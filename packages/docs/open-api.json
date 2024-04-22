@@ -6,6 +6,14 @@
     "version": "0.0.1"
   },
   "components": {
+    "securitySchemes": {
+      "publicWriteKey": {
+        "type": "apiKey",
+        "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key.",
+        "name": "PublicWriteKey",
+        "in": "header"
+      }
+    },
     "schemas": {}
   },
   "paths": {
@@ -1395,9 +1403,21 @@
             "schema": {
               "type": "string"
             },
+            "examples": {
+              "1043": {
+                "value": "1043"
+              },
+              "user-123": {
+                "value": "user-123"
+              },
+              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
+                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+              }
+            },
             "in": "query",
             "name": "userId",
-            "required": false
+            "required": false,
+            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
           },
           {
             "schema": {
@@ -1457,6 +1477,12 @@
                           "userId": {
                             "anyOf": [
                               {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
                                 "type": "string"
                               },
                               {
@@ -1467,6 +1493,11 @@
                           "anonymousId": {
                             "anyOf": [
                               {
+                                "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                "examples": [
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                  "session-123"
+                                ],
                                 "type": "string"
                               },
                               {
@@ -10447,9 +10478,21 @@
             "schema": {
               "type": "string"
             },
+            "examples": {
+              "1043": {
+                "value": "1043"
+              },
+              "user-123": {
+                "value": "user-123"
+              },
+              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
+                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+              }
+            },
             "in": "query",
             "name": "userId",
-            "required": false
+            "required": false,
+            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
           },
           {
             "schema": {
@@ -10591,6 +10634,12 @@
                                 "type": "string"
                               },
                               "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
                                 "type": "string"
                               },
                               "originMessageId": {
@@ -10805,6 +10854,12 @@
                                 "type": "string"
                               },
                               "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
                                 "type": "string"
                               },
                               "originMessageId": {
@@ -10905,6 +10960,12 @@
                                 "type": "string"
                               },
                               "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
                                 "type": "string"
                               },
                               "originMessageId": {
@@ -11106,6 +11167,12 @@
                   "userIds": {
                     "type": "array",
                     "items": {
+                      "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
                       "type": "string"
                     }
                   },
@@ -11255,6 +11322,12 @@
                   "userIds": {
                     "type": "array",
                     "items": {
+                      "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
                       "type": "string"
                     }
                   }
@@ -12300,20 +12373,56 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "traits": {
+                        "description": "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "name": "Michael Scott",
+                            "items": [
+                              {
+                                "id": 1,
+                                "name": "Paper"
+                              },
+                              {
+                                "id": 2,
+                                "name": "Stapler"
+                              }
+                            ]
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "userId": {
+                        "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                        "examples": [
+                          "1043",
+                          "user-123",
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12326,20 +12435,55 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "traits": {
+                        "description": "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "name": "Michael Scott",
+                            "items": [
+                              {
+                                "id": 1,
+                                "name": "Paper"
+                              },
+                              {
+                                "id": 2,
+                                "name": "Stapler"
+                              }
+                            ]
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "anonymousId": {
+                        "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                        "examples": [
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                          "session-123"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12358,9 +12502,16 @@
             "schema": {
               "type": "string"
             },
+            "example": "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
             "in": "header",
             "name": "authorization",
-            "required": true
+            "required": true,
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+          }
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
           }
         ],
         "responses": {
@@ -12411,23 +12562,53 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "event": {
+                        "description": "Name of the action that a user has performed.",
+                        "examples": [
+                          "COURSE_CLICKED"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "title": "Intro to customer engagement"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "userId": {
+                        "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                        "examples": [
+                          "1043",
+                          "user-123",
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12441,23 +12622,52 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "event": {
+                        "description": "Name of the action that a user has performed.",
+                        "examples": [
+                          "COURSE_CLICKED"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "title": "Intro to customer engagement"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "anonymousId": {
+                        "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                        "examples": [
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                          "session-123"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12477,9 +12687,16 @@
             "schema": {
               "type": "string"
             },
+            "example": "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
             "in": "header",
             "name": "authorization",
-            "required": true
+            "required": true,
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+          }
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
           }
         ],
         "responses": {
@@ -12530,23 +12747,54 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "name": {
+                        "description": "Name of the page visited by the user.",
+                        "examples": [
+                          "Home"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "title": "My Site",
+                            "url": "http://www.site.com"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "userId": {
+                        "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                        "examples": [
+                          "1043",
+                          "user-123",
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12559,23 +12807,53 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "name": {
+                        "description": "Name of the page visited by the user.",
+                        "examples": [
+                          "Home"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+                        "examples": [
+                          {
+                            "title": "My Site",
+                            "url": "http://www.site.com"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "anonymousId": {
+                        "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                        "examples": [
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                          "session-123"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12594,9 +12872,16 @@
             "schema": {
               "type": "string"
             },
+            "example": "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
             "in": "header",
             "name": "authorization",
-            "required": true
+            "required": true,
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+          }
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
           }
         ],
         "responses": {
@@ -12647,23 +12932,53 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "name": {
+                        "description": "Name of the screen visited by the user.",
+                        "examples": [
+                          "Home"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the screen, like title.",
+                        "examples": [
+                          {
+                            "title": "My Screen"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "userId": {
+                        "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                        "examples": [
+                          "1043",
+                          "user-123",
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12676,23 +12991,52 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
+                        "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                        "examples": [
+                          {
+                            "ip": "192.0.2.1"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "name": {
+                        "description": "Name of the screen visited by the user.",
+                        "examples": [
+                          "Home"
+                        ],
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Free-form dictionary of properties of the screen, like title.",
+                        "examples": [
+                          {
+                            "title": "My Screen"
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": {}
                       },
                       "anonymousId": {
+                        "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                        "examples": [
+                          "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                          "session-123"
+                        ],
                         "type": "string"
                       }
                     },
@@ -12711,9 +13055,16 @@
             "schema": {
               "type": "string"
             },
+            "example": "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
             "in": "header",
             "name": "authorization",
-            "required": true
+            "required": true,
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+          }
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
           }
         ],
         "responses": {
@@ -12754,6 +13105,11 @@
         "tags": [
           "Public Apps"
         ],
+        "security": [
+          {
+            "publicWriteKey": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -12765,6 +13121,11 @@
       "post": {
         "tags": [
           "Public Apps"
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
+          }
         ],
         "responses": {
           "200": {
@@ -12795,9 +13156,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12807,10 +13176,32 @@
                                   ]
                                 },
                                 "traits": {
+                                  "description": "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "name": "Michael Scott",
+                                      "items": [
+                                        {
+                                          "id": 1,
+                                          "name": "Paper"
+                                        },
+                                        {
+                                          "id": 2,
+                                          "name": "Stapler"
+                                        }
+                                      ]
+                                    }
+                                  ],
                                   "type": "object",
                                   "additionalProperties": {}
                                 },
                                 "userId": {
+                                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                  "examples": [
+                                    "1043",
+                                    "user-123",
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -12824,9 +13215,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12836,10 +13235,31 @@
                                   ]
                                 },
                                 "traits": {
+                                  "description": "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "name": "Michael Scott",
+                                      "items": [
+                                        {
+                                          "id": 1,
+                                          "name": "Paper"
+                                        },
+                                        {
+                                          "id": 2,
+                                          "name": "Stapler"
+                                        }
+                                      ]
+                                    }
+                                  ],
                                   "type": "object",
                                   "additionalProperties": {}
                                 },
                                 "anonymousId": {
+                                  "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                  "examples": [
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                    "session-123"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -12857,10 +13277,45 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "event": {
+                                  "description": "Name of the action that a user has performed.",
+                                  "examples": [
+                                    "COURSE_CLICKED"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "title": "Intro to customer engagement"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -12868,21 +13323,20 @@
                                     "track"
                                   ]
                                 },
-                                "event": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "userId": {
+                                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                  "examples": [
+                                    "1043",
+                                    "user-123",
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                  ],
                                   "type": "string"
                                 }
                               },
                               "required": [
                                 "messageId",
-                                "type",
                                 "event",
+                                "type",
                                 "userId"
                               ]
                             },
@@ -12890,10 +13344,45 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "event": {
+                                  "description": "Name of the action that a user has performed.",
+                                  "examples": [
+                                    "COURSE_CLICKED"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "title": "Intro to customer engagement"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -12901,21 +13390,19 @@
                                     "track"
                                   ]
                                 },
-                                "event": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "anonymousId": {
+                                  "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                  "examples": [
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                    "session-123"
+                                  ],
                                   "type": "string"
                                 }
                               },
                               "required": [
                                 "messageId",
-                                "type",
                                 "event",
+                                "type",
                                 "anonymousId"
                               ]
                             }
@@ -12927,10 +13414,46 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "name": {
+                                  "description": "Name of the page visited by the user.",
+                                  "examples": [
+                                    "Home"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "title": "My Site",
+                                      "url": "http://www.site.com"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -12938,14 +13461,13 @@
                                     "page"
                                   ]
                                 },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "userId": {
+                                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                  "examples": [
+                                    "1043",
+                                    "user-123",
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -12959,10 +13481,46 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "name": {
+                                  "description": "Name of the page visited by the user.",
+                                  "examples": [
+                                    "Home"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+                                  "examples": [
+                                    {
+                                      "title": "My Site",
+                                      "url": "http://www.site.com"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -12970,14 +13528,12 @@
                                     "page"
                                   ]
                                 },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "anonymousId": {
+                                  "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                  "examples": [
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                    "session-123"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -12995,10 +13551,45 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "name": {
+                                  "description": "Name of the screen visited by the user.",
+                                  "examples": [
+                                    "Home"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the screen, like title.",
+                                  "examples": [
+                                    {
+                                      "title": "My Screen"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -13006,14 +13597,13 @@
                                     "screen"
                                   ]
                                 },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "userId": {
+                                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                  "examples": [
+                                    "1043",
+                                    "user-123",
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -13027,10 +13617,45 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
+                                },
+                                "context": {
+                                  "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                                  "examples": [
+                                    {
+                                      "ip": "192.0.2.1"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "name": {
+                                  "description": "Name of the screen visited by the user.",
+                                  "examples": [
+                                    "Home"
+                                  ],
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "description": "Free-form dictionary of properties of the screen, like title.",
+                                  "examples": [
+                                    {
+                                      "title": "My Screen"
+                                    }
+                                  ],
+                                  "type": "object",
+                                  "additionalProperties": {}
                                 },
                                 "type": {
                                   "type": "string",
@@ -13038,14 +13663,12 @@
                                     "screen"
                                   ]
                                 },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "properties": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                },
                                 "anonymousId": {
+                                  "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                  "examples": [
+                                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                    "session-123"
+                                  ],
                                   "type": "string"
                                 }
                               },
@@ -13061,6 +13684,12 @@
                     }
                   },
                   "context": {
+                    "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                    "examples": [
+                      {
+                        "ip": "192.0.2.1"
+                      }
+                    ],
                     "type": "object",
                     "additionalProperties": {}
                   }
@@ -13099,9 +13728,16 @@
             "schema": {
               "type": "string"
             },
+            "example": "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
             "in": "header",
             "name": "authorization",
-            "required": true
+            "required": true,
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+          }
+        ],
+        "security": [
+          {
+            "publicWriteKey": []
           }
         ],
         "responses": {
@@ -14087,6 +14723,12 @@
                   "userIds": {
                     "type": "array",
                     "items": {
+                      "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
                       "type": "string"
                     }
                   },
@@ -14236,6 +14878,12 @@
                   "userIds": {
                     "type": "array",
                     "items": {
+                      "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
                       "type": "string"
                     }
                   }
@@ -14291,9 +14939,21 @@
             "schema": {
               "type": "string"
             },
+            "examples": {
+              "1043": {
+                "value": "1043"
+              },
+              "user-123": {
+                "value": "user-123"
+              },
+              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
+                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+              }
+            },
             "in": "query",
             "name": "userId",
-            "required": false
+            "required": false,
+            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
           },
           {
             "schema": {
@@ -14353,6 +15013,12 @@
                           "userId": {
                             "anyOf": [
                               {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
                                 "type": "string"
                               },
                               {
@@ -14363,6 +15029,11 @@
                           "anonymousId": {
                             "anyOf": [
                               {
+                                "description": "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+                                "examples": [
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b",
+                                  "session-123"
+                                ],
                                 "type": "string"
                               },
                               {

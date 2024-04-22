@@ -834,10 +834,38 @@ export const DeleteSegmentRequest = Type.Object({
 
 export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
+export const UserId = Type.String({
+  description:
+    "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+  examples: ["1043", "user-123", "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"],
+});
+
+export type UserId = Static<typeof UserId>;
+
+export const AnonymousId = Type.String({
+  description:
+    "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+  examples: ["0a58e5e4-c753-477e-a6c4-f9b0e3396b9b", "session-123"],
+});
+
+export type AnonymousId = Static<typeof AnonymousId>;
+
+export const PUBLIC_WRITE_KEY_DESCRIPTION =
+  "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key.";
+
+export const PublicWriteKey = Type.String({
+  description: PUBLIC_WRITE_KEY_DESCRIPTION,
+  examples: [
+    "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
+  ],
+});
+
+export type PublicWriteKey = Static<typeof PublicWriteKey>;
+
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   searchTerm: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
+  userId: Type.Optional(UserId),
   offset: Type.Number(),
   limit: Type.Number(),
   startDate: Type.Optional(Type.Number()),
@@ -846,7 +874,25 @@ export const GetEventsRequest = Type.Object({
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;
 
-export const Traits = Nullable(Type.Record(Type.String(), Type.Any()));
+export const Traits = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      name: "Michael Scott",
+      items: [
+        {
+          id: 1,
+          name: "Paper",
+        },
+        {
+          id: 2,
+          name: "Stapler",
+        },
+      ],
+    },
+  ],
+});
 
 export type Traits = Static<typeof Traits>;
 
@@ -854,8 +900,8 @@ export const GetEventsResponseItem = Type.Object({
   messageId: Type.String(),
   eventType: Type.String(),
   event: Type.String(),
-  userId: Nullable(Type.String()),
-  anonymousId: Nullable(Type.String()),
+  userId: Nullable(UserId),
+  anonymousId: Nullable(AnonymousId),
   processingTime: Type.String(),
   eventTime: Type.String(),
   traits: Type.String(),
@@ -1619,7 +1665,7 @@ export const GetUsersRequest = Type.Object({
   segmentFilter: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
-  userIds: Type.Optional(Type.Array(Type.String())),
+  userIds: Type.Optional(Type.Array(UserId)),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
 });
@@ -1864,38 +1910,56 @@ export type DeleteSubscriptionGroupRequest = Static<
 >;
 
 export const AppDataContext = Type.Optional(
-  Type.Record(Type.String(), Type.Any()),
+  Type.Record(Type.String(), Type.Any(), {
+    description:
+      "Provides metadata about the user submitting the event and the context in which the event occurred.",
+    examples: [
+      {
+        ip: "192.0.2.1",
+      },
+    ],
+  }),
 );
 
 export type AppDataContext = Static<typeof AppDataContext>;
 
 export const BaseAppData = {
-  messageId: Type.String(),
-  timestamp: Type.Optional(Type.String()),
+  messageId: Type.String({
+    description:
+      "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+    examples: ["23d04926-78e5-4ebc-853f-f26c84ff629e"],
+  }),
+  timestamp: Type.Optional(
+    Type.String({
+      description:
+        "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+      examples: ["2024-04-22T07:00:00.000Z"],
+    }),
+  ),
 };
 
 export const BaseIdentifyData = {
   ...BaseAppData,
   context: AppDataContext,
-  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Optional(Traits),
 };
 
 export const BaseBatchIdentifyData = {
   ...BaseAppData,
   type: Type.Literal(EventType.Identify),
-  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Optional(Traits),
 };
 
 const KnownIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
 
 const AnonymousIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
@@ -1909,14 +1973,14 @@ export type IdentifyData = Static<typeof IdentifyData>;
 
 export const KnownBatchIdentifyData = Type.Object({
   ...BaseBatchIdentifyData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownBatchIdentifyData = Static<typeof KnownBatchIdentifyData>;
 
 export const AnonymousBatchIdentifyData = Type.Object({
   ...BaseBatchIdentifyData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousBatchIdentifyData = Static<
@@ -1930,30 +1994,47 @@ export const BatchIdentifyData = Type.Union([
 
 export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
 
+export const TrackEventName = Type.String({
+  description: "Name of the action that a user has performed.",
+  examples: ["COURSE_CLICKED"],
+});
+
+export type TrackEventName = Static<typeof TrackEventName>;
+
+export const TrackEventProperties = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      title: "Intro to customer engagement",
+    },
+  ],
+});
+
+export type TrackEventProperties = Static<typeof TrackEventProperties>;
+
 export const BaseTrackData = {
   ...BaseAppData,
   context: AppDataContext,
-  event: Type.String(),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  event: TrackEventName,
+  properties: Type.Optional(TrackEventProperties),
 };
 
 export const BaseBatchTrackData = {
-  ...BaseAppData,
+  ...BaseTrackData,
   type: Type.Literal(EventType.Track),
-  event: Type.String(),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownTrackData = Type.Object({
   ...BaseTrackData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownTrackData = Static<typeof KnownTrackData>;
 
 export const AnonymousTrackData = Type.Object({
   ...BaseTrackData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousTrackData = Static<typeof AnonymousTrackData>;
@@ -1964,14 +2045,14 @@ export type TrackData = Static<typeof TrackData>;
 
 export const KnownBatchTrackData = Type.Object({
   ...BaseBatchTrackData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownBatchTrackData = Static<typeof KnownBatchTrackData>;
 
 export const AnonymousBatchTrackData = Type.Object({
   ...BaseBatchTrackData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousBatchTrackData = Static<typeof AnonymousBatchTrackData>;
@@ -1983,30 +2064,46 @@ export const BatchTrackData = Type.Union([
 
 export type BatchTrackData = Static<typeof BatchTrackData>;
 
+export const PageName = Type.String({
+  description: "Name of the page visited by the user.",
+  examples: ["Home"],
+});
+
+export type PageName = Static<typeof PageName>;
+
+export const PageProperties = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      title: "My Site",
+      url: "http://www.site.com",
+    },
+  ],
+});
+
 export const BasePageData = {
   ...BaseAppData,
   context: AppDataContext,
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  name: Type.Optional(PageName),
+  properties: Type.Optional(PageProperties),
 };
 
 export const BaseBatchPageData = {
-  ...BaseAppData,
+  ...BasePageData,
   type: Type.Literal(EventType.Page),
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownPageData = Type.Object({
   ...BasePageData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownPageData = Static<typeof KnownPageData>;
 
 export const AnonymousPageData = Type.Object({
   ...BasePageData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousPageData = Static<typeof AnonymousPageData>;
@@ -2018,40 +2115,56 @@ export type PageData = Static<typeof PageData>;
 export const BatchPageData = Type.Union([
   Type.Object({
     ...BaseBatchPageData,
-    userId: Type.String(),
+    userId: UserId,
   }),
   Type.Object({
     ...BaseBatchPageData,
-    anonymousId: Type.String(),
+    anonymousId: AnonymousId,
   }),
 ]);
 
 export type BatchPageData = Static<typeof BatchPageData>;
 
+export const ScreenName = Type.String({
+  description: "Name of the screen visited by the user.",
+  examples: ["Home"],
+});
+
+export type ScreenName = Static<typeof ScreenName>;
+
+export const ScreenProperties = Type.Record(Type.String(), Type.Any(), {
+  description: "Free-form dictionary of properties of the screen, like title.",
+  examples: [
+    {
+      title: "My Screen",
+    },
+  ],
+});
+
+export type ScreenProperties = Static<typeof ScreenProperties>;
+
 export const BaseScreenData = {
   ...BaseAppData,
   context: AppDataContext,
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  name: Type.Optional(ScreenName),
+  properties: Type.Optional(ScreenProperties),
 };
 
 export const BaseBatchScreenData = {
-  ...BaseAppData,
+  ...BaseScreenData,
   type: Type.Literal(EventType.Screen),
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownScreenData = Type.Object({
   ...BaseScreenData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownScreenData = Static<typeof KnownScreenData>;
 
 export const AnonymousScreenData = Type.Object({
   ...BaseScreenData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousScreenData = Static<typeof AnonymousScreenData>;
@@ -2063,11 +2176,11 @@ export type ScreenData = Static<typeof ScreenData>;
 export const BatchScreenData = Type.Union([
   Type.Object({
     ...BaseBatchScreenData,
-    userId: Type.String(),
+    userId: UserId,
   }),
   Type.Object({
     ...BaseBatchScreenData,
-    anonymousId: Type.String(),
+    anonymousId: AnonymousId,
   }),
 ]);
 
@@ -2879,7 +2992,7 @@ export const SearchDeliveriesRequest = Type.Object({
   fromIdentifier: Type.Optional(Type.String()),
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
+  userId: Type.Optional(UserId),
   channel: Type.Optional(Type.Enum(ChannelType)),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
@@ -2891,7 +3004,7 @@ const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
   journeyId: Type.String(),
-  userId: Type.String(),
+  userId: UserId,
   originMessageId: Type.String(),
   templateId: Type.String(),
 });
@@ -3027,7 +3140,7 @@ export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
 
 export const DeleteUsersRequest = Type.Object({
   workspaceId: Type.String(),
-  userIds: Type.Array(Type.String()),
+  userIds: Type.Array(UserId),
 });
 
 export type DeleteUsersRequest = Static<typeof DeleteUsersRequest>;

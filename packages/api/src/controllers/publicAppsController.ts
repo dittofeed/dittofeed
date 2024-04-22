@@ -16,6 +16,7 @@ import {
   EmptyResponse,
   IdentifyData,
   PageData,
+  PublicWriteKey,
   ScreenData,
   TrackData,
 } from "isomorphic-lib/src/types";
@@ -26,12 +27,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/identify",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         description:
           "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
         tags: ["Public Apps"],
         body: IdentifyData,
         headers: Type.Object({
-          authorization: Type.String(),
+          authorization: PublicWriteKey,
         }),
         response: {
           204: EmptyResponse,
@@ -62,12 +68,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/track",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         description:
           "The Track call is how you record any actions your users perform, along with any properties that describe the action.",
         tags: ["Public Apps"],
         body: TrackData,
         headers: Type.Object({
-          authorization: Type.String(),
+          authorization: PublicWriteKey,
         }),
         response: {
           204: EmptyResponse,
@@ -98,12 +109,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/page",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         description:
           "The page call lets you record whenever a user sees a page of your website, along with any optional properties about the page.",
         tags: ["Public Apps"],
         body: PageData,
         headers: Type.Object({
-          authorization: Type.String(),
+          authorization: PublicWriteKey,
         }),
         response: {
           204: EmptyResponse,
@@ -134,12 +150,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/screen",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         description:
           "The screen call lets you record whenever a user sees a screen, the mobile equivalent of page, in your mobile app, along with any properties about the screen",
         tags: ["Public Apps"],
         body: ScreenData,
         headers: Type.Object({
-          authorization: Type.String(),
+          authorization: PublicWriteKey,
         }),
         response: {
           204: EmptyResponse,
@@ -170,6 +191,11 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/group",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         tags: ["Public Apps"],
       },
     },
@@ -186,6 +212,11 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/alias",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         tags: ["Public Apps"],
       },
     },
@@ -202,12 +233,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/batch",
     {
       schema: {
+        security: [
+          {
+            publicWriteKey: [],
+          },
+        ],
         description:
           "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
         tags: ["Public Apps"],
         body: BatchAppData,
         headers: Type.Object({
-          authorization: Type.String(),
+          authorization: PublicWriteKey,
         }),
         response: {
           204: EmptyResponse,
