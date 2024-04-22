@@ -122,7 +122,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, emailProviderId, fromAddress } = request.body;
+      const { workspaceId, emailProviderId, fromAddress, templateIds } = request.body;
 
       await prisma().defaultEmailProvider.upsert({
         where: {
@@ -138,6 +138,28 @@ export default async function settingsController(fastify: FastifyInstance) {
           fromAddress,
         },
       });
+
+      if (templateIds && templateIds.length > 0) {
+        const existingDefinitions = await prisma().messageTemplate.findMany({
+          where: { id: { in: templateIds } },
+          select: { id: true, definition: true },
+        });
+
+        const updatePromises = existingDefinitions.map(async (template) => {
+          const existingDefinition = template.definition as Prisma.JsonObject;
+          const updatedDefinition = {
+            ...existingDefinition,
+            from: fromAddress,
+          };
+
+          await prisma().messageTemplate.update({
+            where: { id: template.id },
+            data: { definition: updatedDefinition },
+          });
+        });
+
+        await Promise.all(updatePromises);
+      }
 
       return reply.status(201).send();
     },

@@ -1214,6 +1214,7 @@ export const DefaultEmailProviderResource = Type.Object({
   workspaceId: Type.String(),
   emailProviderId: Type.String(),
   fromAddress: Nullable(Type.String()),
+  templateIds: Type.Optional(Type.Array(Type.String()))
 });
 
 export type DefaultEmailProviderResource = Static<

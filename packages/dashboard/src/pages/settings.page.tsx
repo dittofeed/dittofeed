@@ -93,6 +93,8 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import { findMessageTemplates } from "backend-lib/src/messaging";
+import ModalComponent from "../components/modal";
 
 function copyToClipboardField({
   value,
@@ -190,6 +192,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultSmsProviderRecord,
       secretAvailability,
       adminApiKeys,
+      messageTemplate,
     ] = await Promise.all([
       getOrCreateEmailProviders({ workspaceId }),
       prisma().defaultEmailProvider.findFirst({
@@ -222,8 +225,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         ],
       }),
       getAdminApiKeys({ workspaceId }),
+      findMessageTemplates({workspaceId})
     ]);
 
+    const messageTemplateEmailType = messageTemplate.filter((mt) => mt.definition?.type === "Email");
     const serverInitialState: PreloadedState = {
       emailProviders,
       secretAvailability,
@@ -237,6 +242,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       },
     };
 
+    if(messageTemplateEmailType.length > 0){
+      serverInitialState.messageTemplateEmailType = messageTemplateEmailType
+    }
+  
     if (writeKey) {
       serverInitialState.writeKeys = [writeKey];
     } else {
@@ -882,18 +891,26 @@ function SmtpConfig() {
 }
 
 function DefaultEmailConfig() {
+  const [openModal, setOpenModal] = useState(false);
+  const [overriddenTemplates, setOverriddenTemplates] = useState<{
+    id: string;
+    name: string;
+  }[]>([{id: "" , name: ""}]);
+  
   const {
     emailProviders,
     apiBase,
     workspace,
     defaultEmailProvider,
     setDefaultEmailProvider,
+    messageTemplateEmailType
   } = useAppStorePick([
     "apiBase",
     "workspace",
     "emailProviders",
     "defaultEmailProvider",
     "setDefaultEmailProvider",
+    "messageTemplateEmailType"
   ]);
   const [
     { defaultProvider, defaultFromAddress, defaultProviderRequest },
@@ -910,10 +927,37 @@ function DefaultEmailConfig() {
     },
   });
 
-  const apiHandler = (emailProviderId: string, fromAddress: string) => {
+  const handleOpenModal = () => {
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    apiHandler(defaultProvider ?? "", defaultFromAddress ?? "");
+    return;
+  };
+
+  const checkAndOpenModal = (fromAddress: string) => {
+    const overriddenTemplates = messageTemplateEmailType
+      .filter((mt) => mt.definition?.type === "Email" && mt.definition.from !== fromAddress)
+      .map((mt) => ({ id: mt.id, name: mt.name }));
+
+    if (overriddenTemplates.length > 0) {
+      setOverriddenTemplates(overriddenTemplates);
+      handleOpenModal();
+      return;
+    }
+    apiHandler(defaultProvider ?? "", fromAddress);
+    return;
+  }
+
+  const apiHandler = (emailProviderId: string, fromAddress: string, overriddenTemplates: { id: string; name: string }[] = []) => {
     if (workspace.type !== CompletionStatus.Successful) {
       return;
     }
+
+    const templateIds = overriddenTemplates.map(({ id }) => id);
+
     apiRequestHandlerFactory({
       request: defaultProviderRequest,
       setRequest: (request) => {
@@ -933,6 +977,7 @@ function DefaultEmailConfig() {
           workspaceId: workspace.value.id,
           emailProviderId: defaultProvider,
           fromAddress,
+          templateIds
         });
       },
       requestConfig: {
@@ -942,6 +987,7 @@ function DefaultEmailConfig() {
           workspaceId: workspace.value.id,
           emailProviderId,
           fromAddress,
+          templateIds
         } satisfies DefaultEmailProviderResource,
         headers: {
           "Content-Type": "application/json",
@@ -949,6 +995,12 @@ function DefaultEmailConfig() {
       },
     })();
   };
+
+  const handleOverride = () => {
+    apiHandler(defaultProvider ?? "", defaultFromAddress ?? "", overriddenTemplates);
+    setOpenModal(false);
+    return
+  }
 
   const options = emailProviders.map((ep) => {
     const { type } = ep;
@@ -1005,6 +1057,31 @@ function DefaultEmailConfig() {
         },
       ]}
     >
+      
+      <ModalComponent<{name : string, id : string}>
+        open={openModal}
+        onClose={handleCloseModal}
+        title="Override Templates"
+        description="The following templates have a different 'From' address:"
+        data={overriddenTemplates}
+        onClick={handleOverride}
+        renderContent={(item) => (
+          <Box
+            sx={{
+              marginBottom: 2,
+            }}
+          >
+            <ul>
+              <li>
+                <Typography variant="h4" fontWeight={400} sx={{ fontSize: 15, marginBottom: 1.5 }}>
+                  {item.name}
+                </Typography>
+              </li>
+            </ul>
+          </Box>
+        )}
+      />
+
       <Button
         variant="contained"
         disabled={!defaultProvider}
@@ -1015,7 +1092,7 @@ function DefaultEmailConfig() {
           },
         }}
         onClick={() =>
-          apiHandler(defaultProvider ?? "", defaultFromAddress ?? "")
+          checkAndOpenModal(defaultFromAddress ?? "")
         }
       >
         Save

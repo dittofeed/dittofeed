@@ -154,6 +154,7 @@ export type AppState = {
   defaultEmailProvider: DefaultEmailProviderResource | null;
   emailProviders: PersistedEmailProvider[];
   defaultSmsProvider: DefaultSmsProviderResource | null;
+  messageTemplateEmailType : MessageTemplateResource[];
   smsProviders: PersistedSmsProvider[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
