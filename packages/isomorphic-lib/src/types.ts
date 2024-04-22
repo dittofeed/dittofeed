@@ -834,10 +834,26 @@ export const DeleteSegmentRequest = Type.Object({
 
 export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
+export const UserId = Type.String({
+  description:
+    "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+  examples: ["1043", "user-123", "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"],
+});
+
+export type UserId = Static<typeof UserId>;
+
+export const AnonymousId = Type.String({
+  description:
+    "Identifier for a logged out user. It can be any pseudo-unique identifier, for example a session Id or a UUID.",
+  examples: ["0a58e5e4-c753-477e-a6c4-f9b0e3396b9b", "session-123"],
+});
+
+export type AnonymousId = Static<typeof AnonymousId>;
+
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   searchTerm: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
+  userId: Type.Optional(UserId),
   offset: Type.Number(),
   limit: Type.Number(),
   startDate: Type.Optional(Type.Number()),
@@ -872,8 +888,8 @@ export const GetEventsResponseItem = Type.Object({
   messageId: Type.String(),
   eventType: Type.String(),
   event: Type.String(),
-  userId: Nullable(Type.String()),
-  anonymousId: Nullable(Type.String()),
+  userId: Nullable(UserId),
+  anonymousId: Nullable(AnonymousId),
   processingTime: Type.String(),
   eventTime: Type.String(),
   traits: Type.String(),
@@ -1637,7 +1653,7 @@ export const GetUsersRequest = Type.Object({
   segmentFilter: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
-  userIds: Type.Optional(Type.Array(Type.String())),
+  userIds: Type.Optional(Type.Array(UserId)),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
 });
@@ -1924,14 +1940,14 @@ export const BaseBatchIdentifyData = {
 
 const KnownIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
 
 const AnonymousIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
@@ -1945,14 +1961,14 @@ export type IdentifyData = Static<typeof IdentifyData>;
 
 export const KnownBatchIdentifyData = Type.Object({
   ...BaseBatchIdentifyData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownBatchIdentifyData = Static<typeof KnownBatchIdentifyData>;
 
 export const AnonymousBatchIdentifyData = Type.Object({
   ...BaseBatchIdentifyData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousBatchIdentifyData = Static<
@@ -1982,14 +1998,14 @@ export const BaseBatchTrackData = {
 
 export const KnownTrackData = Type.Object({
   ...BaseTrackData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownTrackData = Static<typeof KnownTrackData>;
 
 export const AnonymousTrackData = Type.Object({
   ...BaseTrackData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousTrackData = Static<typeof AnonymousTrackData>;
@@ -2000,14 +2016,14 @@ export type TrackData = Static<typeof TrackData>;
 
 export const KnownBatchTrackData = Type.Object({
   ...BaseBatchTrackData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownBatchTrackData = Static<typeof KnownBatchTrackData>;
 
 export const AnonymousBatchTrackData = Type.Object({
   ...BaseBatchTrackData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousBatchTrackData = Static<typeof AnonymousBatchTrackData>;
@@ -2035,14 +2051,14 @@ export const BaseBatchPageData = {
 
 export const KnownPageData = Type.Object({
   ...BasePageData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownPageData = Static<typeof KnownPageData>;
 
 export const AnonymousPageData = Type.Object({
   ...BasePageData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousPageData = Static<typeof AnonymousPageData>;
@@ -2054,11 +2070,11 @@ export type PageData = Static<typeof PageData>;
 export const BatchPageData = Type.Union([
   Type.Object({
     ...BaseBatchPageData,
-    userId: Type.String(),
+    userId: UserId,
   }),
   Type.Object({
     ...BaseBatchPageData,
-    anonymousId: Type.String(),
+    anonymousId: AnonymousId,
   }),
 ]);
 
@@ -2080,14 +2096,14 @@ export const BaseBatchScreenData = {
 
 export const KnownScreenData = Type.Object({
   ...BaseScreenData,
-  userId: Type.String(),
+  userId: UserId,
 });
 
 export type KnownScreenData = Static<typeof KnownScreenData>;
 
 export const AnonymousScreenData = Type.Object({
   ...BaseScreenData,
-  anonymousId: Type.String(),
+  anonymousId: AnonymousId,
 });
 
 export type AnonymousScreenData = Static<typeof AnonymousScreenData>;
@@ -2099,11 +2115,11 @@ export type ScreenData = Static<typeof ScreenData>;
 export const BatchScreenData = Type.Union([
   Type.Object({
     ...BaseBatchScreenData,
-    userId: Type.String(),
+    userId: UserId,
   }),
   Type.Object({
     ...BaseBatchScreenData,
-    anonymousId: Type.String(),
+    anonymousId: AnonymousId,
   }),
 ]);
 
@@ -2915,7 +2931,7 @@ export const SearchDeliveriesRequest = Type.Object({
   fromIdentifier: Type.Optional(Type.String()),
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
+  userId: Type.Optional(UserId),
   channel: Type.Optional(Type.Enum(ChannelType)),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
@@ -2927,7 +2943,7 @@ const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
   journeyId: Type.String(),
-  userId: Type.String(),
+  userId: UserId,
   originMessageId: Type.String(),
   templateId: Type.String(),
 });
@@ -3063,7 +3079,7 @@ export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
 
 export const DeleteUsersRequest = Type.Object({
   workspaceId: Type.String(),
-  userIds: Type.Array(Type.String()),
+  userIds: Type.Array(UserId),
 });
 
 export type DeleteUsersRequest = Static<typeof DeleteUsersRequest>;
