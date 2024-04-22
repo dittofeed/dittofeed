@@ -14680,44 +14680,6 @@
         }
       }
     },
-    "/api/public/single-tenant/login": {
-      "post": {
-        "description": "Login in single-tenant auth mode.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "password": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "password"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response"
-          }
-        }
-      }
-    },
-    "/api/public/single-tenant/signout": {
-      "get": {
-        "description": "Signout in single-tenant auth mode.",
-        "responses": {
-          "200": {
-            "description": "Default Response"
-          }
-        }
-      }
-    },
     "/api/admin/users/": {
       "post": {
         "tags": [
