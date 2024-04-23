@@ -205,7 +205,7 @@ async function readResolvedSegmentStates({
 function toTestResolvedSegmentState(
   resolvedSegmentState: ResolvedSegmentState,
   segments: SavedSegmentResource[],
-): TestResolvedSegmentState {
+): TestResolvedSegmentState | null {
   const segment = segments.find(
     (s) => s.id === resolvedSegmentState.segment_id,
   );
@@ -220,7 +220,7 @@ function toTestResolvedSegmentState(
   })?.id;
 
   if (!nodeId) {
-    throw new Error(`nodeId not found`);
+    return null;
   }
   return {
     userId: resolvedSegmentState.user_id,
@@ -943,6 +943,140 @@ describe("computeProperties", () => {
               name: "andSegment",
               nodeId: "3",
               lastValue: "running",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "computes an AND segment correctly when one node is updated from false to true",
+      userProperties: [],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "3",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "running",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is initially not in the segment with only one of the required traits",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "running",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is in the segment after receiving the second trait",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "stopped",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is not in the segment again after having their trait changed to a non-matching value",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: false,
+              },
             },
           ],
         },
@@ -2882,6 +3016,128 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "when a performed segment is updated with a within condition",
+      userProperties: [],
+      segments: [
+        {
+          name: "updatedPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 10000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "updatedPerformed",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Performed,
+                  id: "1",
+                  event: "test",
+                  timesOperator: RelationalOperators.GreaterThanOrEqual,
+                  times: 1,
+                  // new within condition
+                  withinSeconds: 5,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its definition is updated",
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              uniqueCount: 0,
+              name: "updatedPerformed",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving an event within the time window, user satisfies new segment definition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a negative trait segment",
       userProperties: [],
       segments: [
@@ -3376,8 +3632,11 @@ describe("computeProperties", () => {
                       workspaceId,
                     },
                   );
-                  const actualTestStates = resolvedSegmentStates.map((s) =>
-                    toTestResolvedSegmentState(s, segments),
+                  const actualTestStates = resolvedSegmentStates.flatMap(
+                    (s) => {
+                      const resolved = toTestResolvedSegmentState(s, segments);
+                      return resolved ?? [];
+                    },
                   );
                   for (const expected of step.resolvedSegmentStates ?? []) {
                     const actualState = actualTestStates.find(

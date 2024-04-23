@@ -2341,6 +2341,7 @@ export async function computeAssignments({
         qb,
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
       const assignmentQuery = `
         insert into computed_property_assignments_v2
         select
@@ -2369,14 +2370,24 @@ export async function computeAssignments({
               max(max_event_time) as max_state_event_time
             from resolved_segment_state
             where
-              workspace_id = ${workspaceIdParam}
-              and segment_id = ${qb.addQueryValue(segment.id, "String")}
+              (
+                workspace_id,
+                segment_id,
+              ) in (
+                select
+                  workspace_id,
+                  segment_id
+                from resolved_segment_state
+                where
+                  workspace_id = ${workspaceIdParam}
+                  and segment_id = ${qb.addQueryValue(segment.id, "String")}
+                  and computed_at <= toDateTime64(${nowSeconds}, 3)
+                  ${lowerBoundClause}
+              )
               and state_id in ${qb.addQueryValue(
                 assignmentConfig.stateIds,
                 "Array(String)",
               )}
-              and computed_at <= toDateTime64(${nowSeconds}, 3)
-              ${lowerBoundClause}
             group by
               workspace_id,
               segment_id,
