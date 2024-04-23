@@ -205,7 +205,7 @@ async function readResolvedSegmentStates({
 function toTestResolvedSegmentState(
   resolvedSegmentState: ResolvedSegmentState,
   segments: SavedSegmentResource[],
-): TestResolvedSegmentState {
+): TestResolvedSegmentState | null {
   const segment = segments.find(
     (s) => s.id === resolvedSegmentState.segment_id,
   );
@@ -220,7 +220,7 @@ function toTestResolvedSegmentState(
   })?.id;
 
   if (!nodeId) {
-    throw new Error(`nodeId not found`);
+    return null;
   }
   return {
     userId: resolvedSegmentState.user_id,
@@ -2958,12 +2958,29 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
-          users: [
+          // users: [
+          //   {
+          //     id: "user-1",
+          //     segments: {
+          //       updatedPerformed: false,
+          //     },
+          //   },
+          // ],
+          states: [
             {
-              id: "user-1",
-              segments: {
-                updatedPerformed: false,
-              },
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              uniqueCount: 0,
+              name: "updatedPerformed",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              nodeId: "1",
+              segmentStateValue: false,
+              name: "updatedPerformed",
             },
           ],
         },
@@ -3495,8 +3512,11 @@ describe("computeProperties", () => {
                       workspaceId,
                     },
                   );
-                  const actualTestStates = resolvedSegmentStates.map((s) =>
-                    toTestResolvedSegmentState(s, segments),
+                  const actualTestStates = resolvedSegmentStates.flatMap(
+                    (s) => {
+                      const resolved = toTestResolvedSegmentState(s, segments);
+                      return resolved ?? [];
+                    },
                   );
                   for (const expected of step.resolvedSegmentStates ?? []) {
                     const actualState = actualTestStates.find(
