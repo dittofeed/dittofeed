@@ -2882,6 +2882,125 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "when a performed segment is updated with a within condition",
+      userProperties: [],
+      only: true,
+      segments: [
+        {
+          name: "updatedPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 10000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "updatedPerformed",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Performed,
+                  id: "1",
+                  event: "test",
+                  timesOperator: RelationalOperators.GreaterThanOrEqual,
+                  times: 1,
+                  // new within condition
+                  withinSeconds: 5,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving an event within the time window, user satisfies new segment definition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a negative trait segment",
       userProperties: [],
       segments: [
