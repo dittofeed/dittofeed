@@ -3094,14 +3094,6 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
-          // users: [
-          //   {
-          //     id: "user-1",
-          //     segments: {
-          //       updatedPerformed: false,
-          //     },
-          //   },
-          // ],
           states: [
             {
               userId: "user-1",
@@ -3110,14 +3102,6 @@ describe("computeProperties", () => {
               uniqueCount: 0,
               name: "updatedPerformed",
             },
-          ],
-          resolvedSegmentStates: [
-            // {
-            //   userId: "user-1",
-            //   nodeId: "1",
-            //   segmentStateValue: false,
-            //   name: "updatedPerformed",
-            // },
           ],
         },
         {
