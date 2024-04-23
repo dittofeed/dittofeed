@@ -85,6 +85,20 @@ export async function userJourneyWorkflow({
     });
     return;
   }
+  // event entry journeys can't be started from segment signals
+  if (
+    definition.entryNode.type === JourneyNodeType.EventEntryNode &&
+    eventKey !== definition.entryNode.event
+  ) {
+    logger.info("early exit event key mismatch", {
+      journeyId,
+      userId,
+      event: definition.entryNode.event,
+      workspaceId,
+      eventKey,
+    });
+    return;
+  }
 
   const journeyStartedAt = Date.now();
   const segmentAssignments = new Map<string, SegmentAssignment>();
