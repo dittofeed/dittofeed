@@ -2341,8 +2341,61 @@ export async function computeAssignments({
         qb,
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-      if (segment.definitionUpdatedAt) {
-      }
+      // if (
+      //   segment.definitionUpdatedAt &&
+      //   segment.definitionUpdatedAt <= now &&
+      //   segment.definitionUpdatedAt >= (periodBound ?? 0)
+      // ) {
+      //   const resetQuery = `
+      //     insert into computed_property_assignments_v2
+      //     select
+      //       workspace_id,
+      //       'segment',
+      //       segment_id,
+      //       user_id,
+      //       ${assignmentConfig.expression} as segment_value,
+      //       '',
+      //       max_state_event_time,
+      //       toDateTime64(${nowSeconds}, 3) as assigned_at
+      //     from (
+      //       select
+      //         workspace_id,
+      //         segment_id,
+      //         user_id,
+      //         CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
+      //         max(max_state_event_time) as max_state_event_time
+      //       from  (
+      //         select
+      //           workspace_id,
+      //           segment_id,
+      //           state_id,
+      //           user_id,
+      //           argMax(segment_state_value, computed_at) segment_state_value,
+      //           max(max_event_time) as max_state_event_time
+      //         from resolved_segment_state
+      //         where
+      //           workspace_id = ${workspaceIdParam}
+      //           and segment_id = ${qb.addQueryValue(segment.id, "String")}
+      //           and state_id in ${qb.addQueryValue(
+      //             assignmentConfig.stateIds,
+      //             "Array(String)",
+      //           )}
+      //           and computed_at <= toDateTime64(${nowSeconds}, 3)
+      //           ${lowerBoundClause}
+      //         group by
+      //           workspace_id,
+      //           segment_id,
+      //           user_id,
+      //           state_id
+      //       )
+      //       group by
+      //         workspace_id,
+      //         segment_id,
+      //         user_id
+      //     )
+      //   `;
+      // }
+      // FIXME what happens if only some of the nodes are updated
       const assignmentQuery = `
         insert into computed_property_assignments_v2
         select
