@@ -2341,6 +2341,8 @@ export async function computeAssignments({
         qb,
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+      if (segment.definitionUpdatedAt) {
+      }
       const assignmentQuery = `
         insert into computed_property_assignments_v2
         select
