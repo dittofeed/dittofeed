@@ -1005,6 +1005,8 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description:
+            "user is initially not in the segment with only one of the required traits",
           users: [
             {
               id: "user-1",
@@ -1036,6 +1038,8 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description:
+            "user is in the segment after receiving the second trait",
           users: [
             {
               id: "user-1",
@@ -1048,9 +1052,6 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Sleep,
           timeMs: 500,
-        },
-        {
-          type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.SubmitEvents,
@@ -1066,7 +1067,12 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
           type: EventsStepType.Assert,
+          description:
+            "user is not in the segment again after having their trait changed to a non-matching value",
           users: [
             {
               id: "user-1",
