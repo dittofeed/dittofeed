@@ -948,12 +948,10 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // FIXME
     {
       description:
         "computes an AND segment correctly when one node is updated from false to true",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "andSegment",
@@ -3017,12 +3015,10 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // FIXME
     {
       description:
         "when a performed segment is updated with a within condition",
       userProperties: [],
-      // only: true,
       segments: [
         {
           name: "updatedPerformed",
