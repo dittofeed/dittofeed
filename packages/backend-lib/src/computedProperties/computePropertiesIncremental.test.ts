@@ -3017,8 +3017,10 @@ describe("computeProperties", () => {
     },
     {
       description:
+        // FIXME
         "when a performed segment is updated with a within condition",
       userProperties: [],
+      only: true,
       segments: [
         {
           name: "updatedPerformed",
@@ -3088,9 +3090,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
@@ -3101,6 +3100,14 @@ describe("computeProperties", () => {
               nodeId: "1",
               uniqueCount: 0,
               name: "updatedPerformed",
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: false,
+              },
             },
           ],
         },

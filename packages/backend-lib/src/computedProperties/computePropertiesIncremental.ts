@@ -2342,6 +2342,13 @@ export async function computeAssignments({
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
+      if (
+        segment.definitionUpdatedAt &&
+        segment.definitionUpdatedAt <= now &&
+        segment.definitionUpdatedAt >= (periodBound ?? 0)
+      ) {
+      }
+      // FIXME
       const assignmentQuery = `
         insert into computed_property_assignments_v2
         select
