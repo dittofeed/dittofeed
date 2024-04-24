@@ -3017,10 +3017,8 @@ describe("computeProperties", () => {
     },
     {
       description:
-        // FIXME
         "when a performed segment is updated with a within condition",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "updatedPerformed",
@@ -3064,7 +3062,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 10000,
+          timeMs: 50000,
         },
         {
           type: EventsStepType.UpdateComputedProperty,
