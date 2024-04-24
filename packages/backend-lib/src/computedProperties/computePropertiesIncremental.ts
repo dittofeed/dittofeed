@@ -2342,7 +2342,6 @@ export async function computeAssignments({
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-      // FIXME
       const segmentIdParam = qb.addQueryValue(segment.id, "String");
       const assignmentQueries = [
         `
