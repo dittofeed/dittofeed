@@ -3062,7 +3062,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 10000,
+          timeMs: 50000,
         },
         {
           type: EventsStepType.UpdateComputedProperty,
@@ -3088,9 +3088,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
@@ -3101,6 +3098,14 @@ describe("computeProperties", () => {
               nodeId: "1",
               uniqueCount: 0,
               name: "updatedPerformed",
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: false,
+              },
             },
           ],
         },

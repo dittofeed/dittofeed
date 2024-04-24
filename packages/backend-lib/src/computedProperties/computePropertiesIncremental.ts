@@ -2342,7 +2342,9 @@ export async function computeAssignments({
       });
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-      const assignmentQuery = `
+      const segmentIdParam = qb.addQueryValue(segment.id, "String");
+      const assignmentQueries = [
+        `
         insert into computed_property_assignments_v2
         select
           workspace_id,
@@ -2380,7 +2382,7 @@ export async function computeAssignments({
                 from resolved_segment_state
                 where
                   workspace_id = ${workspaceIdParam}
-                  and segment_id = ${qb.addQueryValue(segment.id, "String")}
+                  and segment_id = ${segmentIdParam}
                   and computed_at <= toDateTime64(${nowSeconds}, 3)
                   ${lowerBoundClause}
               )
@@ -2399,9 +2401,36 @@ export async function computeAssignments({
             segment_id,
             user_id
         )
-      `;
+      `,
+      ];
 
-      const queries = [resolvedQueries, assignmentQuery];
+      if (
+        segment.definitionUpdatedAt &&
+        segment.definitionUpdatedAt <= now &&
+        segment.definitionUpdatedAt >= (periodBound ?? 0) &&
+        segment.definitionUpdatedAt > segment.createdAt
+      ) {
+        const resetQuery = `
+          insert into computed_property_assignments_v2
+          select
+            workspace_id,
+            'segment',
+            computed_property_id,
+            user_id,
+            False as segment_value,
+            '',
+            max_event_time,
+            toDateTime64(${nowSeconds}, 3) as assigned_at
+          from computed_property_assignments_v2
+          where
+            workspace_id = ${workspaceIdParam}
+            and type = 'segment'
+            and computed_property_id = ${segmentIdParam}
+        `;
+        assignmentQueries.unshift(resetQuery);
+      }
+
+      const queries = [resolvedQueries, ...assignmentQueries];
 
       if (indexedConfig.length) {
         const indexQuery = `
