@@ -175,7 +175,7 @@ export default function WebhookSecretTable() {
         />
       </Box>
       <Dialog open={newSecretName !== null} onClose={closeDialog}>
-        <DialogTitle>Create Webhook Secret</DialogTitle>
+        <DialogTitle>Name Your Webhook Secret</DialogTitle>
         <DialogContent>
           <TextField
             value={newSecretName ?? ""}
