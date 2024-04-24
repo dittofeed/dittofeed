@@ -28,7 +28,7 @@ The `config` object and `secret` object accept the same values, modeled after [a
 The difference between `config` and `seceret` is that the `secret` values:
 
 1. Override the config values.
-2. Are not rendered into the stored `DFInternalMessageSent` events, ensuring that sensitive information is leaked to Dittofeed's event store.
+2. Are not rendered into the stored `DFInternalMessageSent` events, ensuring that sensitive information is not leaked to Dittofeed's event store.
 
 These features of the secret object are useful for storing sensitive information, such as API keys. API keys for the webhook channel can be set on the settings page, at [`/dashboard/settings#webhook-channel`](https://dittofeed.com/dashboard/settings#webhook-channel).
 
