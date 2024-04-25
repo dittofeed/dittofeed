@@ -540,22 +540,22 @@ export default function TemplateEditor({
   ]);
 
   const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
+  const [debouncedTitle] = useDebounce(editedTemplate?.title, 300);
 
   useUpdateEffect(() => {
-    if (disabled || !workspace || !editedTemplate) {
+    if (disabled || !workspace) {
       return;
     }
     const workspaceId = workspace.id;
     const updateData: UpsertMessageTemplateResource = {
       id: templateId,
       workspaceId,
-      name: editedTemplate.title,
+      name: debouncedTitle,
     };
     if (!hidePublisher) {
-      if (deepEquals(debouncedDraft, template?.draft)) {
-        return;
+      if (!deepEquals(debouncedDraft, template?.draft)) {
+        updateData.draft = debouncedDraft;
       }
-      updateData.draft = debouncedDraft;
     } else {
       const definitionFromDraft = debouncedDraft
         ? messageTemplateDraftToDefinition(debouncedDraft).unwrapOr(null)
@@ -588,7 +588,7 @@ export default function TemplateEditor({
         },
       },
     })();
-  }, [debouncedDraft]);
+  }, [debouncedDraft, debouncedTitle]);
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
