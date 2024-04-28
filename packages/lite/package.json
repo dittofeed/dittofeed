@@ -17,7 +17,7 @@
     "backend-lib": "0.0.3",
     "dashboard": "0.1.0",
     "isomorphic-lib": "0.0.3",
-    "next": "13.4.4",
+    "next": "13.4.5",
     "utility-types": "^3.10.0",
     "worker": "0.0.3",
     "yargs": "^17.7.2"
