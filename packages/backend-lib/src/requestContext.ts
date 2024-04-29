@@ -209,6 +209,7 @@ export async function getMultiTenantRequestContext({
     });
   }
 
+  // FIXME
   const decodedJwt = decodeJwtHeader(authorizationToken);
 
   if (!decodedJwt) {
