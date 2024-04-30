@@ -20,7 +20,7 @@ const headerSX = {
 export interface MainCardProps extends React.ComponentProps<typeof Card> {
   border?: boolean;
   children?: React.ReactNode;
-  content?: boolean;
+  content?: string;
   darkTitle?: boolean;
   boxShadow?: boolean;
   divider?: boolean;
@@ -36,7 +36,7 @@ function MainCardInner({
   border = true,
   boxShadow,
   children,
-  content = true,
+  content,
   contentSX = {},
   darkTitle,
   divider = true,
