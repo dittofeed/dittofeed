@@ -1,12 +1,12 @@
 // material-ui
 // assets
-import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { AppBar, IconButton, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 // project import
 import AppBarStyled from "./header/appBarStyled";
 import HeaderContent from "./header/headerContent";
+import { MenuOpenOutlined, MenuOutlined } from "@mui/icons-material";
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 
@@ -38,7 +38,7 @@ function Header({
           ml: { xs: 0, lg: -2 },
         }}
       >
-        {!open ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        {!open ? <MenuOutlined /> : <MenuOpenOutlined />}
       </IconButton>
       <HeaderContent />
     </Toolbar>

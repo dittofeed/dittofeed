@@ -1,18 +1,16 @@
 import {
-  ApartmentOutlined,
   BarChartOutlined,
+  BoltOutlined,
   BookOutlined,
-  GroupOutlined,
-  MessageOutlined,
-  ReadOutlined,
-  ThunderboltOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import {
   CampaignOutlined,
+  ContactSupportOutlined,
+  GroupOutlined,
   InboxOutlined,
+  LanOutlined,
   ManageAccountsOutlined,
+  MenuBookOutlined,
   PeopleOutlined,
+  PersonOutlined,
 } from "@mui/icons-material";
 
 import { MenuItemGroup } from "./types";
@@ -54,7 +52,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Journeys",
           type: "item",
           url: "/journeys",
-          icon: ApartmentOutlined,
+          icon: LanOutlined,
           description: "View and, create, and edit user journeys.",
         },
         {
@@ -85,7 +83,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Users",
           type: "item",
           url: "/users",
-          icon: UserOutlined,
+          icon: PersonOutlined,
           description: "View users, and their histories.",
         },
         {
@@ -118,7 +116,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Events",
           type: "item",
           url: "/events",
-          icon: ThunderboltOutlined,
+          icon: BoltOutlined,
           description: "View user events.",
         },
       ],
@@ -133,7 +131,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Documentation",
           type: "item",
           url: "https://docs.dittofeed.com",
-          icon: ReadOutlined,
+          icon: MenuBookOutlined,
           external: true,
           description:
             "Documentation with instructions and guidelines on how to use Dittofeed.",
@@ -143,7 +141,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Contact Us",
           type: "item",
           url: "/contact",
-          icon: MessageOutlined,
+          icon: ContactSupportOutlined,
           description: "Contact details.",
         },
       ],
