@@ -1,6 +1,5 @@
 // material-ui
-import { GithubOutlined } from "@ant-design/icons";
-import { Lock } from "@mui/icons-material";
+import { GitHub, Lock } from "@mui/icons-material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
@@ -325,7 +324,7 @@ function HeaderContent() {
           title="Github Repository"
           sx={{ color: "text.primary", bgcolor: "grey.100" }}
         >
-          <GithubOutlined />
+          <GitHub />
         </IconButton>
       ) : null}
 

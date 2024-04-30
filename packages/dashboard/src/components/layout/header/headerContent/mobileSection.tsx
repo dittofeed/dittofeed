@@ -1,5 +1,5 @@
 // assets
-import { MoreOutlined } from "@ant-design/icons";
+import { MoreVert } from "@mui/icons-material";
 import {
   AppBar,
   Box,
@@ -62,7 +62,7 @@ function MobileSection() {
           onClick={handleToggle}
           color="inherit"
         >
-          <MoreOutlined />
+          <MoreVert />
         </IconButton>
       </Box>
       <Popper

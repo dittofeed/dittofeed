@@ -1,6 +1,6 @@
 // material-ui
 // assets
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@mui/icons-material";
 import { Box, FormControl, InputAdornment, OutlinedInput } from "@mui/material";
 
 // ==============================|| HEADER CONTENT - SEARCH ||============================== //

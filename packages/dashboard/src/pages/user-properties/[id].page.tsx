@@ -1,8 +1,7 @@
-import { PlusCircleFilled } from "@ant-design/icons";
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Delete } from "@mui/icons-material";
+import { AddCircleOutlineOutlined, Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -411,7 +410,7 @@ function AnyOfUserPropertyDefinitionEditor({
           })
         }
       >
-        <PlusCircleFilled />
+        <AddCircleOutlineOutlined />
       </IconButton>
       <Stack spacing={3} direction="column">
         {groupedUserProperty.nodes

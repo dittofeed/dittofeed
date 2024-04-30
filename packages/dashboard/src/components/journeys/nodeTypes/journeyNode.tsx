@@ -1,12 +1,11 @@
 import {
-  ClockCircleOutlined,
-  DeliveredProcedureOutlined,
-  type FontSizeOutlined,
-  ForkOutlined,
-  MailOutlined,
-  ThunderboltOutlined,
-} from "@ant-design/icons";
-import BackHandOutlined from "@mui/icons-material/BackHandOutlined";
+  AccessTimeOutlined,
+  BackHandOutlined,
+  BoltOutlined,
+  CallSplitOutlined,
+  ExitToAppOutlined,
+  MailOutlineOutlined,
+} from "@mui/icons-material";
 import {
   Box,
   ClickAwayListener,
@@ -41,7 +40,7 @@ import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
 import { JOURNEY_NODE_WIDTH } from "./styles";
 
-export type JourneyNodeIcon = typeof FontSizeOutlined | typeof BackHandOutlined;
+export type JourneyNodeIcon = typeof MailOutlineOutlined;
 
 interface JourneyNodeConfig {
   sidebarColor: string;
@@ -172,15 +171,15 @@ export function journeyNodeIcon(
 ): JourneyNodeIcon {
   switch (type) {
     case AdditionalJourneyNodeType.EntryUiNode:
-      return ThunderboltOutlined;
+      return BoltOutlined;
     case JourneyNodeType.DelayNode:
-      return ClockCircleOutlined;
+      return AccessTimeOutlined;
     case JourneyNodeType.SegmentSplitNode:
-      return ForkOutlined;
+      return CallSplitOutlined;
     case JourneyNodeType.MessageNode:
-      return MailOutlined;
+      return MailOutlineOutlined;
     case JourneyNodeType.ExitNode:
-      return DeliveredProcedureOutlined;
+      return ExitToAppOutlined;
     case JourneyNodeType.WaitForNode:
       return BackHandOutlined;
   }

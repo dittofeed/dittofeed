@@ -22,35 +22,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ant-design/colors@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "@ant-design/colors@npm:6.0.0"
+"@ant-design/colors@npm:^7.0.2":
+  version: 7.0.2
+  resolution: "@ant-design/colors@npm:7.0.2"
   dependencies:
-    "@ctrl/tinycolor": "npm:^3.4.0"
-  checksum: 10/302ad54f5b9594d2ecebbeee460fae44cecde47f46e137fe4148d7a86add991e66e435cf371bf8941d2e2b13b36adfb004114dba0cf1eba99e87add4daa337ec
-  languageName: node
-  linkType: hard
-
-"@ant-design/icons-svg@npm:^4.2.1":
-  version: 4.2.1
-  resolution: "@ant-design/icons-svg@npm:4.2.1"
-  checksum: 10/cdd156db2fb399e3a0bdef36ccd6d7f6a0e447dedca7c9e105b7d3f0888b94d3acfbd26756a0051086dc21c014e961303fb3b0a0b4b20d4e0ebd849b601c5b8e
-  languageName: node
-  linkType: hard
-
-"@ant-design/icons@npm:^4.7.0":
-  version: 4.8.0
-  resolution: "@ant-design/icons@npm:4.8.0"
-  dependencies:
-    "@ant-design/colors": "npm:^6.0.0"
-    "@ant-design/icons-svg": "npm:^4.2.1"
-    "@babel/runtime": "npm:^7.11.2"
-    classnames: "npm:^2.2.6"
-    rc-util: "npm:^5.9.4"
-  peerDependencies:
-    react: ">=16.0.0"
-    react-dom: ">=16.0.0"
-  checksum: 10/664b223ddc768416c99429222330620cc089872cb42a1d8e4cb5dfc25cfb6ddd5d65082faa036dfb35572d66b41bad6a4dd5ec5fab001224b459435c26d0bc2a
+    "@ctrl/tinycolor": "npm:^3.6.1"
+  checksum: 10/631cb0229a136834b50df22fe46eda048306399bc742d42d7a75b23a1e4c8859b7544be691c3d0d47b2f77ca0e06df6bfb95b5c23737525d1a2f0471e2a3d609
   languageName: node
   linkType: hard
 
@@ -996,7 +973,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.20.6, @babel/runtime@npm:^7.20.7, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.7":
+"@babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.20.6, @babel/runtime@npm:^7.20.7, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.7":
   version: 7.20.13
   resolution: "@babel/runtime@npm:7.20.13"
   dependencies:
@@ -1273,10 +1250,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ctrl/tinycolor@npm:^3.4.0":
-  version: 3.5.0
-  resolution: "@ctrl/tinycolor@npm:3.5.0"
-  checksum: 10/d9693050485c3d329edc95041ca83e9ed3928fd6275fceba1c7d265bd69d44539ecb90153a14f9cd38ee0476a49bcd26262b67d5ca80e4f1509407f82c8c4535
+"@ctrl/tinycolor@npm:^3.6.1":
+  version: 3.6.1
+  resolution: "@ctrl/tinycolor@npm:3.6.1"
+  checksum: 10/f3c77b2d29076402d6b94632975cea1ce11942b05ca65d9108c951ff4d61965184dd7e480296e6625cb6df9e7de8b7938ce36a88cf1794c3b8ac83c908af468e
   languageName: node
   linkType: hard
 
@@ -8994,7 +8971,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"classnames@npm:^2.2.6, classnames@npm:^2.3.2":
+"classnames@npm:^2.3.2":
   version: 2.3.2
   resolution: "classnames@npm:2.3.2"
   checksum: 10/ba3151c12e8b6a84c64b340ab4259ad0408947652009314462d828e94631505989c6a7d7e796bec1d309be9295d3111b498ad18a9d533fe3e6f859e51e574cbb
@@ -9601,7 +9578,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dashboard@workspace:packages/dashboard"
   dependencies:
-    "@ant-design/icons": "npm:^4.7.0"
+    "@ant-design/colors": "npm:^7.0.2"
     "@codemirror/lang-html": "npm:^6.4.0"
     "@codemirror/lang-json": "npm:^6.0.1"
     "@codemirror/lint": "npm:^6.1.0"
@@ -18202,19 +18179,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rc-util@npm:^5.9.4":
-  version: 5.27.1
-  resolution: "rc-util@npm:5.27.1"
-  dependencies:
-    "@babel/runtime": "npm:^7.18.3"
-    react-is: "npm:^16.12.0"
-  peerDependencies:
-    react: ">=16.9.0"
-    react-dom: ">=16.9.0"
-  checksum: 10/dd5af98fc41dbd6bed302b142409b754032089679374dffe005cf040327b5887323d4fe7db777fb2b2fb1d5712dd1ce2aecaf824729fb39f3751e59161aff986
-  languageName: node
-  linkType: hard
-
 "react-device-detect@npm:^2.2.2":
   version: 2.2.2
   resolution: "react-device-detect@npm:2.2.2"
@@ -18254,7 +18218,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-is@npm:^16.12.0, react-is@npm:^16.13.1, react-is@npm:^16.7.0":
+"react-is@npm:^16.13.1, react-is@npm:^16.7.0":
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: 10/5aa564a1cde7d391ac980bedee21202fc90bdea3b399952117f54fb71a932af1e5902020144fb354b4690b2414a0c7aafe798eb617b76a3d441d956db7726fdf

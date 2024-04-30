@@ -1,4 +1,4 @@
-import { EditFilled } from "@ant-design/icons";
+import { BorderColorOutlined } from "@mui/icons-material";
 import {
   IconButton,
   Stack,
@@ -71,7 +71,7 @@ export default function EditableName({
           setIsNamedFocused(true);
         }}
       >
-        <EditFilled />
+        <BorderColorOutlined />
       </IconButton>
     </Stack>
   );
