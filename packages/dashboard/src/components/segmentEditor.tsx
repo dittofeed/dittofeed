@@ -1,5 +1,4 @@
-import { PlusCircleFilled } from "@ant-design/icons";
-import { Delete } from "@mui/icons-material";
+import { AddCircleOutlineOutlined, Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -938,7 +937,7 @@ function SegmentNodeComponent({
             size="large"
             onClick={() => addChild(node.id)}
           >
-            <PlusCircleFilled />
+            <AddCircleOutlineOutlined />
           </IconButton>
           {deleteButton}
         </Stack>
