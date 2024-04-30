@@ -84,7 +84,7 @@ async function buildApp() {
     server.register(fastifyRequestContext),
   ];
 
-  const { authMode, secretKey, singleTenantCookieSecure } = backendConfig();
+  const { authMode, secretKey, sessionCookieSecure } = backendConfig();
 
   if (authMode === "single-tenant") {
     if (!secretKey) {
@@ -97,7 +97,7 @@ async function buildApp() {
           path: "/",
           maxAge: 14 * 24 * 60 * 60,
           httpOnly: true,
-          secure: singleTenantCookieSecure,
+          secure: sessionCookieSecure,
         },
       }),
     );
