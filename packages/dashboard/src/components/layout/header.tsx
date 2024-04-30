@@ -1,12 +1,12 @@
 // material-ui
 // assets
+import { MenuOpenOutlined, MenuOutlined } from "@mui/icons-material";
 import { AppBar, IconButton, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 // project import
 import AppBarStyled from "./header/appBarStyled";
 import HeaderContent from "./header/headerContent";
-import { MenuOpenOutlined, MenuOutlined } from "@mui/icons-material";
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 

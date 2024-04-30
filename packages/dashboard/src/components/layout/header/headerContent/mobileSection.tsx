@@ -1,4 +1,5 @@
 // assets
+import { MoreVert } from "@mui/icons-material";
 import {
   AppBar,
   Box,
@@ -17,7 +18,6 @@ import Transitions from "../../../transitions";
 import Profile from "./profile";
 // project import
 import Search from "./search";
-import { MoreVert } from "@mui/icons-material";
 
 // ==============================|| HEADER CONTENT - MOBILE ||============================== //
 
