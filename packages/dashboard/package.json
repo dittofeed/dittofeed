@@ -101,9 +101,5 @@
   "optionalDependencies": {
     "@next/swc-linux-arm64-gnu": "13.4.5",
     "@next/swc-linux-arm64-musl": "13.4.5"
-  },
-  "resolutions": {
-    "react-dom": "18.3.1",
-    "react-is": "18.3.1"
   }
 }
