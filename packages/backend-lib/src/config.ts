@@ -85,6 +85,8 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   sessionCookieSecure: Type.Optional(BoolStr),
+  openIdClientId: Type.Optional(Type.String()),
+  openIdClientSecret: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
