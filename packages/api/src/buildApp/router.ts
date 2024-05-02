@@ -20,15 +20,22 @@ import subscriptionManagementController from "../controllers/subscriptionManagem
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
+import { BuildAppOpts } from "../types";
 import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
 
-export default async function router(fastify: FastifyInstance) {
+export default async function router(
+  fastify: FastifyInstance,
+  opts?: BuildAppOpts,
+) {
   await fastify.register(indexController, { prefix: "/api" });
 
   // endpoints with standard authorization
   await fastify.register(
     async (f: FastifyInstance) => {
+      if (opts?.registerAuthentication) {
+        await opts.registerAuthentication(f);
+      }
       await fastify.register(requestContext);
 
       await Promise.all([

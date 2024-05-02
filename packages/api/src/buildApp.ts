@@ -18,13 +18,14 @@ import qs from "qs";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
+import { BuildAppOpts } from "./types";
 
 declare module "@fastify/request-context" {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   export interface RequestContextData extends DFRequestContext {}
 }
 
-async function buildApp() {
+async function buildApp(opts?: BuildAppOpts) {
   const fastifyLogger = logger();
   const server = fastify({
     querystringParser: (str) => qs.parse(str),
@@ -106,7 +107,7 @@ async function buildApp() {
   await Promise.all(fastifyPluginPromises);
 
   await Promise.all([
-    server.register(router),
+    server.register((f) => router(f, opts)),
     server.register(cors),
     server.register(fastifySwaggerUI, {
       routePrefix: "/documentation",
