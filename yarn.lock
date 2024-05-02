@@ -7688,7 +7688,7 @@ __metadata:
     fast-jwt: "npm:^2.2.2"
     fastify: "npm:4.26.2"
     fastify-plugin: "npm:^4.5.0"
-    fastify-raw-body: "npm:^4.2.0"
+    fastify-raw-body: "npm:4.2.0"
     fastify-tsconfig: "npm:^1.0.1"
     isomorphic-lib: "npm:0.0.3"
     jest: "npm:^29.4.0"
