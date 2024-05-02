@@ -137,7 +137,7 @@ export const LogLevel = Type.Union([
 
 export type LogLevel = Static<typeof LogLevel>;
 
-export const DecodedJwt = Type.Object({
+export const OpenIdProfile = Type.Object({
   sub: Type.String(),
   email: Type.String(),
   email_verified: Type.Boolean(),
@@ -146,7 +146,7 @@ export const DecodedJwt = Type.Object({
   nickname: Type.Optional(Type.String()),
 });
 
-export type DecodedJwt = Static<typeof DecodedJwt>;
+export type OpenIdProfile = Static<typeof OpenIdProfile>;
 
 export enum TwilioMessageStatus {
   Queued = "queued",
