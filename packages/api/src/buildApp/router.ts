@@ -1,4 +1,5 @@
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 
 import apiKeyController from "../controllers/apiKeyController";
@@ -20,7 +21,7 @@ import subscriptionManagementController from "../controllers/subscriptionManagem
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
-import { BuildAppOpts } from "../types";
+import { BuildAppOpts, DittofeedFastifyInstance } from "../types";
 import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
 
@@ -32,8 +33,9 @@ export default async function router(
 
   // endpoints with standard authorization
   await fastify.register(
-    async (f: FastifyInstance) => {
+    async (f: DittofeedFastifyInstance) => {
       if (opts?.registerAuthentication) {
+        logger().info("registering authentication");
         await opts.registerAuthentication(f);
       }
       await fastify.register(requestContext);

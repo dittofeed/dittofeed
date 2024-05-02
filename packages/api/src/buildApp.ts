@@ -6,7 +6,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
-import fastify from "fastify";
+import fastify, { FastifyInstance } from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import {
   DFRequestContext,
@@ -86,6 +86,11 @@ async function buildApp(opts?: BuildAppOpts) {
   ];
 
   const { authMode, secretKey, sessionCookieSecure } = backendConfig();
+
+  if (opts?.extendPlugins) {
+    logger().info("extending plugins");
+    await opts.extendPlugins(server);
+  }
 
   if (authMode === "single-tenant") {
     if (!secretKey) {
