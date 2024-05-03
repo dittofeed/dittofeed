@@ -85,12 +85,13 @@ export async function userJourneyWorkflow({
     });
     return;
   }
+
   // event entry journeys can't be started from segment signals
   if (
     definition.entryNode.type === JourneyNodeType.EventEntryNode &&
-    eventKey !== definition.entryNode.event
+    !eventKey
   ) {
-    logger.info("early exit event key mismatch", {
+    logger.info("early exit event key missing for event entry", {
       journeyId,
       userId,
       event: definition.entryNode.event,
