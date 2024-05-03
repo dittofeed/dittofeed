@@ -1748,12 +1748,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/type-provider-typebox@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@fastify/type-provider-typebox@npm:4.0.0"
+"@fastify/type-provider-typebox@npm:3.6.0":
+  version: 3.6.0
+  resolution: "@fastify/type-provider-typebox@npm:3.6.0"
   peerDependencies:
     "@sinclair/typebox": ">=0.26 <=0.32"
-  checksum: 10/7f601927fc81de4991d5ce73734a3b2f76f9c197edf8bfe7d1cfcd4e382a3a328a39fb9f48ae8eb71e59e8fdd085095c381d056988069417122dd93cec264564
+  checksum: 10/b372b6d8f11db80d319a000ae589bd9d8531d04cde837430b79b1b5e7cfd4156067a2e6eff37f88477759263692b86d3ec320fc90d6ba2bb1b3235a36efc5086
   languageName: node
   linkType: hard
 
@@ -7680,7 +7680,7 @@ __metadata:
     "@fastify/secure-session": "npm:^7.1.0"
     "@fastify/swagger": "npm:^8.1.0"
     "@fastify/swagger-ui": "npm:^1.1.0"
-    "@fastify/type-provider-typebox": "npm:4.0.0"
+    "@fastify/type-provider-typebox": "npm:3.6.0"
     "@opentelemetry/api": "npm:1.4.1"
     "@opentelemetry/instrumentation": "npm:0.41.0"
     "@opentelemetry/resources": "npm:1.12.0"

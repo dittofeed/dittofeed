@@ -36,7 +36,7 @@
     "typescript": "^5.2.2"
   },
   "resolutions": {
-    "@fastify/type-provider-typebox": "4.0.0",
+    "@fastify/type-provider-typebox": "3.6.0",
     "@sinclair/typebox": "0.32.14",
     "fastify": "4.26.2",
     "fastify-raw-body": "4.2.0",
