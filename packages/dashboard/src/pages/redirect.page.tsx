@@ -1,4 +1,3 @@
-import { CircularProgress, Stack } from "@mui/material";
 import logger from "backend-lib/src/logger";
 import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
