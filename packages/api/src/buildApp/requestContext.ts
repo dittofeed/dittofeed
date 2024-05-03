@@ -30,7 +30,6 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
       ...requestToSessionValue(request),
     };
     const { user: profile } = request as { user?: OpenIdProfile };
-    logger().debug({ profile }, "profile from request");
     const rc = await getRequestContext(headers, profile);
 
     if (rc.isErr()) {

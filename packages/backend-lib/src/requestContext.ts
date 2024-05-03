@@ -29,17 +29,11 @@ export async function setProfileOnContext<T>(
   profile: OpenIdProfile,
   run: () => Promise<T>,
 ): Promise<T> {
-  console.log("ProfileStore loc15", ProfileStore);
-  // ProfileStore loc14 AsyncLocalStorage {
-  //   kResourceStore: Symbol(kResourceStore),
-  //   enabled: false
-  // }
   const result = await ProfileStore.run(profile, run);
   return result;
 }
 
 export function getProfileFromContext(): OpenIdProfile | null {
-  console.log("ProfileStore loc14", ProfileStore);
   return ProfileStore.getStore() ?? null;
 }
 
@@ -227,9 +221,6 @@ export async function getMultiTenantRequestContext({
   }
 
   let profile: OpenIdProfile;
-
-  console.log("profileFromContext loc17", profileFromContext);
-  // FIXME is null
   if (profileFromContext) {
     profile = profileFromContext;
   } else {

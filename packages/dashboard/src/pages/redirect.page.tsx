@@ -31,8 +31,6 @@ export const getServerSideProps: GetServerSideProps<RedirectPageProps> = async (
       notFound: true,
     };
   }
-
-  logger().debug({ returnTo }, "Redirecting to returnTo.");
   return {
     props: {
       returnTo,
