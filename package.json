@@ -35,5 +35,11 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
+  "resolutions": {
+    "fastify": "4.26.2",
+    "@fastify/type-provider-typebox": "4.0.0",
+    "@sinclair/typebox": "0.32.14",
+    "fastify-raw-body": "4.2.0"
+  },
   "packageManager": "yarn@4.1.1"
 }
