@@ -18,7 +18,7 @@ import qs from "qs";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
-import { BuildAppOpts } from "./types";
+import { BuildAppOpts, DittofeedFastifyInstance } from "./types";
 
 declare module "@fastify/request-context" {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -27,7 +27,7 @@ declare module "@fastify/request-context" {
 
 async function buildApp(opts?: BuildAppOpts) {
   const fastifyLogger = logger();
-  const server = fastify({
+  const server: DittofeedFastifyInstance = fastify({
     querystringParser: (str) => qs.parse(str),
     rewriteUrl: (req) => {
       const { apiPrefix } = config();

@@ -143,7 +143,7 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const { id }: DeleteUserPropertyRequest = request.body;
 
       let deletedCount: number;
       try {

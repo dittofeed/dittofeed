@@ -26,7 +26,7 @@ import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
 
 export default async function router(
-  fastify: DittofeedFastifyInstance,
+  fastify: FastifyInstance,
   opts?: BuildAppOpts,
 ) {
   await fastify.register(indexController, { prefix: "/api" });
@@ -35,10 +35,10 @@ export default async function router(
   await fastify.register(
     async (f: DittofeedFastifyInstance) => {
       // async (f) => {
-      // if (opts?.registerAuthentication) {
-      //   logger().info("registering authentication");
-      //   await opts.registerAuthentication(f);
-      // }
+      if (opts?.registerAuthentication) {
+        logger().info("registering authentication");
+        await opts.registerAuthentication(f);
+      }
       await fastify.register(requestContext);
 
       await Promise.all([
