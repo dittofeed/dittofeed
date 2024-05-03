@@ -1,3 +1,4 @@
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
 import {
   FastifyInstance,
@@ -10,7 +11,8 @@ export type DittofeedFastifyInstance = FastifyInstance<
   RawServerDefault,
   RawRequestDefaultExpression,
   RawReplyDefaultExpression,
-  ReturnType<typeof logger>
+  ReturnType<typeof logger>,
+  TypeBoxTypeProvider
 >;
 
 export interface BuildAppOpts {
