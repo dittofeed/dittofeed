@@ -33,7 +33,13 @@ export default async function userPropertiesController(
     },
     async (request, reply) => {
       let userProperty: UserProperty;
-      const { id, name, definition, workspaceId, exampleValue } = request.body;
+      const {
+        id,
+        name,
+        definition,
+        workspaceId,
+        exampleValue,
+      }: UpsertUserPropertyResource = request.body;
 
       const canCreate = workspaceId && name && definition;
       const definitionUpdatedAt = definition ? new Date() : undefined;
@@ -112,8 +118,9 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
+      const { workspaceId }: ReadAllUserPropertiesRequest = request.query;
       const userProperties = await findAllUserPropertyResources({
-        workspaceId: request.query.workspaceId,
+        workspaceId,
       });
 
       return reply.status(200).send({
@@ -136,7 +143,7 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const { id }: DeleteUserPropertyRequest = request.body;
 
       let deletedCount: number;
       try {

@@ -1,30 +1,14 @@
-import {
-  ExplicitBucketHistogramAggregation,
-  InstrumentType,
-  View,
-} from "@opentelemetry/sdk-metrics";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 
 import config from "../src/config";
-import telemetryConfig from "../src/telemetryConfig";
+import { initApiOpenTelemetry } from "../src/openTelemetry";
 
 const apiConfig = config();
-const { apiPort: port, apiHost: host, apiServiceName: serviceName } = apiConfig;
+const { apiPort: port, apiHost: host } = apiConfig;
 
 // README: open telemetry instrumentation has to be imported before buildApp, because it patches fastify
-const otel = initOpenTelemetry({
-  serviceName,
-  configOverrides: telemetryConfig,
-  meterProviderViews: [
-    new View({
-      aggregation: new ExplicitBucketHistogramAggregation([200, 300, 400, 500]),
-      instrumentName: "api-statuses",
-      instrumentType: InstrumentType.HISTOGRAM,
-    }),
-  ],
-});
+const otel = initApiOpenTelemetry();
 
 // eslint-disable-next-line import/first
 import buildApp from "../src/buildApp";
@@ -36,7 +20,7 @@ async function start() {
         ...backendConfig(),
         ...apiConfig,
       },
-      "Initialized with config"
+      "Initialized with config",
     );
   }
 

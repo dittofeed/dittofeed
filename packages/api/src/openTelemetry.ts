@@ -1,7 +1,16 @@
-import { type initOpenTelemetry } from "backend-lib/src/openTelemetry";
+import {
+  ExplicitBucketHistogramAggregation,
+  InstrumentType,
+  View,
+} from "@opentelemetry/sdk-metrics";
+import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import { FastifyRequest } from "fastify";
 
+import config from "./config";
 import { getWorkspaceIdFromReq } from "./workspace";
+
+const apiConfig = config();
+const { apiServiceName: serviceName } = apiConfig;
 
 const telemetryConfig: Parameters<
   typeof initOpenTelemetry
@@ -23,4 +32,19 @@ const telemetryConfig: Parameters<
     },
   },
 };
-export default telemetryConfig;
+
+export function initApiOpenTelemetry() {
+  return initOpenTelemetry({
+    serviceName,
+    configOverrides: telemetryConfig,
+    meterProviderViews: [
+      new View({
+        aggregation: new ExplicitBucketHistogramAggregation([
+          200, 300, 400, 500,
+        ]),
+        instrumentName: "api-statuses",
+        instrumentType: InstrumentType.HISTOGRAM,
+      }),
+    ],
+  });
+}

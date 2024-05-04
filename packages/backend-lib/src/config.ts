@@ -64,6 +64,7 @@ const BaseRawConfigProps = {
   authProvider: Type.Optional(Type.String()),
   oauthStartUrl: Type.Optional(Type.String()),
   signoutUrl: Type.Optional(Type.String()),
+  signoutRedirectUrl: Type.Optional(Type.String()),
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
   dashboardUrl: Type.Optional(Type.String()),
@@ -84,7 +85,10 @@ const BaseRawConfigProps = {
   computePropertiesWorkflowTaskTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
-  singleTenantCookieSecure: Type.Optional(BoolStr),
+  sessionCookieSecure: Type.Optional(BoolStr),
+  openIdClientId: Type.Optional(Type.String()),
+  openIdClientSecret: Type.Optional(Type.String()),
+  allowedReferrers: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -182,7 +186,9 @@ export type Config = Overwrite<
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
     computePropertiesAttempts: number;
-    singleTenantCookieSecure: boolean;
+    sessionCookieSecure: boolean;
+    signoutRedirectUrl: string;
+    allowedReferrers: string[];
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -319,6 +325,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   const authMode = rawConfig.authMode ?? "anonymous";
   const secretKey = rawConfig.secretKey ?? DEFAULT_BACKEND_CONFIG.secretKey;
+  const dashboardUrl = buildDashboardUrl({
+    nodeEnv,
+    dashboardUrl: rawConfig.dashboardUrl,
+    dashboardUrlName: rawConfig.dashboardUrlName,
+  });
 
   const parsedConfig: Config = {
     ...rawConfig,
@@ -374,11 +385,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode,
-    dashboardUrl: buildDashboardUrl({
-      nodeEnv,
-      dashboardUrl: rawConfig.dashboardUrl,
-      dashboardUrlName: rawConfig.dashboardUrlName,
-    }),
+    dashboardUrl,
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize
@@ -395,6 +402,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       authMode === "single-tenant"
         ? "/api/public/single-tenant/signout"
         : rawConfig.signoutUrl,
+    signoutRedirectUrl: rawConfig.signoutRedirectUrl ?? dashboardUrl,
     secretKey,
     password: rawConfig.password ?? DEFAULT_BACKEND_CONFIG.password,
     // ms
@@ -405,7 +413,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesAttempts: rawConfig.computePropertiesAttempts
       ? parseInt(rawConfig.computePropertiesAttempts)
       : 150,
-    singleTenantCookieSecure: rawConfig.singleTenantCookieSecure === "true",
+    sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
+    allowedReferrers: (rawConfig.allowedReferrers ?? dashboardUrl).split(","),
   };
   return parsedConfig;
 }

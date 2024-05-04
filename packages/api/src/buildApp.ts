@@ -6,7 +6,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
-import fastify from "fastify";
+import fastify, { FastifyInstance } from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import {
   DFRequestContext,
@@ -18,15 +18,16 @@ import qs from "qs";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
+import { BuildAppOpts, DittofeedFastifyInstance } from "./types";
 
 declare module "@fastify/request-context" {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   export interface RequestContextData extends DFRequestContext {}
 }
 
-async function buildApp() {
+async function buildApp(opts?: BuildAppOpts) {
   const fastifyLogger = logger();
-  const server = fastify({
+  const server: DittofeedFastifyInstance = fastify({
     querystringParser: (str) => qs.parse(str),
     rewriteUrl: (req) => {
       const { apiPrefix } = config();
@@ -84,7 +85,12 @@ async function buildApp() {
     server.register(fastifyRequestContext),
   ];
 
-  const { authMode, secretKey, singleTenantCookieSecure } = backendConfig();
+  const { authMode, secretKey, sessionCookieSecure } = backendConfig();
+
+  if (opts?.extendPlugins) {
+    logger().info("extending plugins");
+    await opts.extendPlugins(server);
+  }
 
   if (authMode === "single-tenant") {
     if (!secretKey) {
@@ -97,7 +103,7 @@ async function buildApp() {
           path: "/",
           maxAge: 14 * 24 * 60 * 60,
           httpOnly: true,
-          secure: singleTenantCookieSecure,
+          secure: sessionCookieSecure,
         },
       }),
     );
@@ -106,7 +112,7 @@ async function buildApp() {
   await Promise.all(fastifyPluginPromises);
 
   await Promise.all([
-    server.register(router),
+    server.register((f) => router(f, opts)),
     server.register(cors),
     server.register(fastifySwaggerUI, {
       routePrefix: "/documentation",

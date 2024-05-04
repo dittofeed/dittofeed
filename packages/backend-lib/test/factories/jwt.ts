@@ -1,6 +1,6 @@
 import { createSigner } from "fast-jwt";
 
-import { DecodedJwt } from "../../src/types";
+import { OpenIdProfile } from "../../src/types";
 
 export function encodeMockJwt(jwtVals: Partial<DecodedJwt>) {
   const signer = createSigner({ algorithm: "none" });
