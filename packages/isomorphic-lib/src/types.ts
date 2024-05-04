@@ -1,5 +1,6 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 import { Result } from "neverthrow";
+import { omit } from "remeda";
 
 export enum JsonResultType {
   Ok = "Ok",
@@ -76,25 +77,27 @@ export const ChannelType = {
 
 export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
 
-export const SubscriptionGroupResource = Type.Object({
+const SubscriptionGroupResourceInner = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
   channel: Type.Enum(ChannelType),
   type: Type.Enum(SubscriptionGroupType),
-});
+};
+
+export const SubscriptionGroupResource = Type.Object(
+  SubscriptionGroupResourceInner,
+);
 
 export type SubscriptionGroupResource = Static<
   typeof SubscriptionGroupResource
 >;
 
-export const SavedSubscriptionGroupResource = Type.Composite([
-  SubscriptionGroupResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-  }),
-]);
+export const SavedSubscriptionGroupResource = Type.Object({
+  ...SubscriptionGroupResourceInner,
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
 
 export type SavedSubscriptionGroupResource = Static<
   typeof SavedSubscriptionGroupResource
@@ -744,7 +747,7 @@ export const JourneyDefinition = Type.Object({
 
 export type JourneyDefinition = Static<typeof JourneyDefinition>;
 
-export const SegmentResource = Type.Object({
+const SegmentResourceInner = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
@@ -752,32 +755,34 @@ export const SegmentResource = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
-});
+};
+
+export const SegmentResource = Type.Object(SegmentResourceInner);
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
-export const SegmentTimestamps = Type.Object({
+const SegmentTimestampsInner = {
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   definitionUpdatedAt: Type.Number(),
-});
+};
+
+export const SegmentTimestamps = Type.Object(SegmentTimestampsInner);
 
 export type SegmentTimestamps = Static<typeof SegmentTimestamps>;
 
-export const SavedSegmentResource = Type.Composite([
-  SegmentResource,
-  SegmentTimestamps,
-]);
+export const SavedSegmentResource = Type.Object({
+  ...SegmentResourceInner,
+  ...SegmentTimestampsInner,
+});
 
 export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
 
-export const PartialSegmentResource = Type.Composite([
-  Type.Omit(SegmentResource, ["definition"]),
-  SegmentTimestamps,
-  Type.Object({
-    definition: Type.Optional(SegmentDefinition),
-  }),
-]);
+export const PartialSegmentResource = Type.Object({
+  ...omit(SegmentResourceInner, ["definition"]),
+  ...SegmentTimestampsInner,
+  definition: Type.Optional(SegmentDefinition),
+});
 
 export type PartialSegmentResource = Static<typeof PartialSegmentResource>;
 
@@ -916,29 +921,27 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export const EmailContents = Type.Object({
+const EmailContentsInner = {
   from: Type.String(),
   body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
-});
+};
 
-export const EmailTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Email),
-  }),
-  EmailContents,
-]);
+export const EmailContents = Type.Object(EmailContentsInner);
+
+export const EmailTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  ...EmailContentsInner,
+});
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
-export const EmailConfiguration = Type.Composite([
-  EmailContents,
-  Type.Object({
-    to: Type.String(),
-    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  }),
-]);
+export const EmailConfiguration = Type.Object({
+  to: Type.String(),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+  ...EmailContentsInner,
+});
 
 export type EmailConfiguration = Static<typeof EmailConfiguration>;
 
@@ -960,16 +963,16 @@ export type MobilePushTemplateResource = Static<
   typeof MobilePushTemplateResource
 >;
 
-const SmsContents = Type.Object({
+const SmsContentsInner = {
   body: Type.String(),
-});
+};
 
-export const SmsTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Sms),
-  }),
-  SmsContents,
-]);
+export const SmsContents = Type.Object(SmsContentsInner);
+
+export const SmsTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  ...SmsContentsInner,
+});
 
 export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
 
@@ -987,19 +990,19 @@ export const WebhookConfig = Type.Object({
 
 export type WebhookConfig = Static<typeof WebhookConfig>;
 
-export const WebhookContents = Type.Object({
+const WebhookContentsInner = {
   identifierKey: Type.String(),
   body: Type.String(),
-});
+};
+
+export const WebhookContents = Type.Object(WebhookContentsInner);
 
 export type WebhookContents = Static<typeof WebhookContents>;
 
-export const WebhookTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Webhook),
-  }),
-  WebhookContents,
-]);
+export const WebhookTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  ...WebhookContentsInner,
+});
 
 export type WebhookTemplateResource = Static<typeof WebhookTemplateResource>;
 
@@ -1278,7 +1281,7 @@ export enum AdditionalJourneyNodeType {
 }
 
 export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
-  Type.Composite([
+  Type.Intersect([
     Type.Partial(Type.Omit(schema, ["type"])),
     Type.Pick(schema, ["type"]),
   ]);
@@ -1490,17 +1493,21 @@ const baseJourneyResource = {
   draft: Type.Optional(JourneyDraft),
 } as const;
 
-export const NotStartedJourneyResource = Type.Object({
+const NotStartedJourneyResourceInner = {
   ...baseJourneyResource,
   status: Type.Literal(JourneyResourceStatusEnum.NotStarted),
   definition: Type.Optional(JourneyDefinition),
-});
+};
+
+export const NotStartedJourneyResource = Type.Object(
+  NotStartedJourneyResourceInner,
+);
 
 export type NotStartedJourneyResource = Static<
   typeof NotStartedJourneyResource
 >;
 
-export const HasStartedJourneyResource = Type.Object({
+const HasStartedJourneyResourceInner = {
   ...baseJourneyResource,
   status: Type.Union([
     Type.Literal(JourneyResourceStatusEnum.Running),
@@ -1508,7 +1515,11 @@ export const HasStartedJourneyResource = Type.Object({
     Type.Literal(JourneyResourceStatusEnum.Broadcast),
   ]),
   definition: JourneyDefinition,
-});
+};
+
+export const HasStartedJourneyResource = Type.Object(
+  HasStartedJourneyResourceInner,
+);
 
 export type HasStartedJourneyResource = Static<
   typeof HasStartedJourneyResource
@@ -1521,24 +1532,26 @@ export const JourneyResource = Type.Union([
 
 export type JourneyResource = Static<typeof JourneyResource>;
 
-const Timestamps = Type.Object({
+const TimestampsInner = {
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
-});
+};
 
-export const SavedHasStartedJourneyResource = Type.Composite([
-  HasStartedJourneyResource,
-  Timestamps,
-]);
+export const Timestamps = Type.Object(TimestampsInner);
+
+export const SavedHasStartedJourneyResource = Type.Object({
+  ...HasStartedJourneyResourceInner,
+  ...TimestampsInner,
+});
 
 export type SavedHasStartedJourneyResource = Static<
   typeof SavedHasStartedJourneyResource
 >;
 
-export const SavedNotStartedJourneyResource = Type.Composite([
-  NotStartedJourneyResource,
-  Timestamps,
-]);
+export const SavedNotStartedJourneyResource = Type.Object({
+  ...NotStartedJourneyResourceInner,
+  ...TimestampsInner,
+});
 
 export type SavedNotStartedJourneyResource = Static<
   typeof SavedNotStartedJourneyResource
@@ -1551,7 +1564,7 @@ export const SavedJourneyResource = Type.Union([
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
-export const UpsertJourneyResource = Type.Composite([
+export const UpsertJourneyResource = Type.Intersect([
   Type.Partial(
     Type.Omit(
       Type.Object({
@@ -1583,7 +1596,7 @@ export const DeleteJourneyRequest = Type.Object({
 
 export type DeleteJourneyRequest = Static<typeof DeleteJourneyRequest>;
 
-export const UserPropertyResource = Type.Object({
+const UserPropertyResourceInner = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
@@ -1591,18 +1604,18 @@ export const UserPropertyResource = Type.Object({
   exampleValue: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
-});
+};
+
+export const UserPropertyResource = Type.Object(UserPropertyResourceInner);
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
 
-export const SavedUserPropertyResource = Type.Composite([
-  UserPropertyResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-    definitionUpdatedAt: Type.Number(),
-  }),
-]);
+export const SavedUserPropertyResource = Type.Object({
+  ...UserPropertyResourceInner,
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+  definitionUpdatedAt: Type.Number(),
+});
 
 export type SavedUserPropertyResource = Static<
   typeof SavedUserPropertyResource
@@ -2339,7 +2352,7 @@ export const IntegrationResource = Type.Object({
 
 export type IntegrationResource = Static<typeof IntegrationResource>;
 
-export const UpsertIntegrationResource = Type.Composite([
+export const UpsertIntegrationResource = Type.Intersect([
   Type.Partial(Type.Pick(IntegrationResource, ["enabled", "definition"])),
   Type.Pick(IntegrationResource, ["workspaceId", "name"]),
 ]);
@@ -2406,22 +2419,22 @@ export const MessageChannelStats = Type.Union([
 
 export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
-export const BaseMessageNodeStats = Type.Object({
+const BaseMessageNodeStatsInner = {
   sendRate: Type.Optional(Type.Number()),
   channelStats: Type.Optional(MessageChannelStats),
-});
+};
+
+export const BaseMessageNodeStats = Type.Object(BaseMessageNodeStatsInner);
 
 export type BaseMessageNodeStats = Static<typeof BaseMessageNodeStats>;
 
-export const MessageNodeStats = Type.Composite([
-  BaseMessageNodeStats,
-  Type.Object({
-    type: Type.Literal(NodeStatsType.MessageNodeStats),
-    proportions: Type.Object({
-      childEdge: Type.Number(),
-    }),
+export const MessageNodeStats = Type.Object({
+  ...BaseMessageNodeStatsInner,
+  type: Type.Literal(NodeStatsType.MessageNodeStats),
+  proportions: Type.Object({
+    childEdge: Type.Number(),
   }),
-]);
+});
 
 export type MessageNodeStats = Static<typeof MessageNodeStats>;
 
@@ -2569,14 +2582,12 @@ export type SmsServiceProviderSuccess = Static<
   typeof SmsServiceProviderSuccess
 >;
 
-export const MessageSmsSuccess = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Sms),
-    provider: SmsServiceProviderSuccess,
-    to: Type.String(),
-  }),
-  SmsContents,
-]);
+export const MessageSmsSuccess = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  provider: SmsServiceProviderSuccess,
+  to: Type.String(),
+  ...SmsContentsInner,
+});
 
 export type MessageSmsSuccess = Static<typeof MessageSmsSuccess>;
 
@@ -2631,15 +2642,13 @@ export type EmailServiceProviderSuccess = Static<
   typeof EmailServiceProviderSuccess
 >;
 
-export const MessageEmailSuccess = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Email),
-    provider: EmailServiceProviderSuccess,
-    to: Type.String(),
-    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  }),
-  EmailContents,
-]);
+export const MessageEmailSuccess = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  provider: EmailServiceProviderSuccess,
+  to: Type.String(),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+  ...EmailContentsInner,
+});
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
@@ -3000,39 +3009,35 @@ export const SearchDeliveriesRequest = Type.Object({
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
 
-const BaseDeliveryItem = Type.Object({
+const BaseDeliveryItemInner = {
   sentAt: Type.String(),
   updatedAt: Type.String(),
   journeyId: Type.String(),
   userId: UserId,
   originMessageId: Type.String(),
   templateId: Type.String(),
-});
+};
 
 export const SearchDeliveriesResponseItem = Type.Union([
   // TODO implement sms status
-  Type.Composite([
-    Type.Object({
-      status: Type.String(),
-      variant: MessageSmsSuccess,
-    }),
-    BaseDeliveryItem,
-  ]),
-  Type.Composite([
-    Type.Object({
-      status: EmailEvent,
-      variant: MessageEmailSuccess,
-    }),
-    BaseDeliveryItem,
-  ]),
-  Type.Composite([
+  Type.Object({
+    status: Type.String(),
+    variant: MessageSmsSuccess,
+    ...BaseDeliveryItemInner,
+  }),
+  Type.Object({
+    status: EmailEvent,
+    variant: MessageEmailSuccess,
+    ...BaseDeliveryItemInner,
+  }),
+  Type.Intersect([
     Type.Object({
       status: EmailEvent,
       to: Type.String(),
       channel: Type.Literal(ChannelType.Email),
+      ...BaseDeliveryItemInner,
     }),
     Type.Partial(EmailContents),
-    BaseDeliveryItem,
   ]),
 ]);
 
@@ -3184,12 +3189,14 @@ export const AdminApiKeyDefinition = Type.Object({
 
 export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
 
-export const AdminApiKeyResource = Type.Object({
+const AdminKeyResourceInner = {
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
   createdAt: Type.Number(),
-});
+};
+
+export const AdminApiKeyResource = Type.Object(AdminKeyResourceInner);
 
 export type AdminApiKeyResource = Static<typeof AdminApiKeyResource>;
 
@@ -3200,12 +3207,10 @@ export const CreateAdminApiKeyRequest = Type.Object({
 
 export type CreateAdminApiKeyRequest = Static<typeof CreateAdminApiKeyRequest>;
 
-export const CreateAdminApiKeyResponse = Type.Composite([
-  AdminApiKeyResource,
-  Type.Object({
-    apiKey: Type.String(),
-  }),
-]);
+export const CreateAdminApiKeyResponse = Type.Object({
+  apiKey: Type.String(),
+  ...AdminKeyResourceInner,
+});
 
 export type CreateAdminApiKeyResponse = Static<
   typeof CreateAdminApiKeyResponse

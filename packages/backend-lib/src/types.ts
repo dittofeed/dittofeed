@@ -424,7 +424,7 @@ export enum SendgridEventType {
   GroupResubscribe = "group_resubscribe",
 }
 
-export const MessageMetadataFields = Type.Object({
+const MessageMetadataFieldsInner = {
   workspaceId: Type.Optional(Type.String()),
   runId: Type.Optional(Type.String()),
   messageId: Type.Optional(Type.String()),
@@ -433,28 +433,28 @@ export const MessageMetadataFields = Type.Object({
   nodeId: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
   anonymousId: Type.Optional(Type.String()),
-});
+};
+
+export const MessageMetadataFields = Type.Object(MessageMetadataFieldsInner);
 
 export type MessageMetadataFields = Static<typeof MessageMetadataFields>;
 
-export const SendgridEvent = Type.Composite([
-  Type.Object({
-    email: Type.String(),
-    timestamp: Type.Integer(),
-    event: Type.Enum(SendgridEventType),
-    sg_event_id: Type.String(),
-    sg_message_id: Type.String(),
-    ip: Type.Optional(Type.String()),
-    reason: Type.Optional(Type.String()),
-    pool: Type.Optional(
-      Type.Object({
-        id: Type.Number(),
-        name: Type.String(),
-      }),
-    ),
-  }),
-  MessageMetadataFields,
-]);
+export const SendgridEvent = Type.Object({
+  ...MessageMetadataFieldsInner,
+  email: Type.String(),
+  timestamp: Type.Integer(),
+  event: Type.Enum(SendgridEventType),
+  sg_event_id: Type.String(),
+  sg_message_id: Type.String(),
+  ip: Type.Optional(Type.String()),
+  reason: Type.Optional(Type.String()),
+  pool: Type.Optional(
+    Type.Object({
+      id: Type.Number(),
+      name: Type.String(),
+    }),
+  ),
+});
 
 export enum ResendEventType {
   Sent = "email.sent",
@@ -487,19 +487,17 @@ export enum PostMarkEventType {
   Click = "Click",
 }
 
-export const PostMarkEvent = Type.Composite([
-  Type.Object({
-    MessageStream: Type.String(),
-    Tag: Type.String(),
-    MessageID: Type.String(),
-    Metadata: Type.Record(Type.String(), Type.Any()),
-    RecordType: Type.Enum(PostMarkEventType),
-    BouncedAt: Type.Optional(Type.String()),
-    DeliveredAt: Type.Optional(Type.String()),
-    ReceivedAt: Type.Optional(Type.String()),
-  }),
-  MessageMetadataFields,
-]);
+export const PostMarkEvent = Type.Object({
+  ...MessageMetadataFieldsInner,
+  MessageStream: Type.String(),
+  Tag: Type.String(),
+  MessageID: Type.String(),
+  Metadata: Type.Record(Type.String(), Type.Any()),
+  RecordType: Type.Enum(PostMarkEventType),
+  BouncedAt: Type.Optional(Type.String()),
+  DeliveredAt: Type.Optional(Type.String()),
+  ReceivedAt: Type.Optional(Type.String()),
+});
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
 
@@ -522,23 +520,23 @@ export type EnrichedIntegration = Overwrite<
   { definition: IntegrationDefinition }
 >;
 
-export const IntegrationResource = Type.Object({
+const IntegrationResourceInner = {
   id: Type.String(),
   name: Type.String(),
   definition: IntegrationDefinition,
   enabled: Type.Boolean(),
   workspaceId: Type.String(),
-});
+};
+
+export const IntegrationResource = Type.Object(IntegrationResourceInner);
 
 export type IntegrationResource = Static<typeof IntegrationResource>;
 
-export const SavedIntegrationResource = Type.Composite([
-  IntegrationResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-    definitionUpdatedAt: Type.Number(),
-  }),
-]);
+export const SavedIntegrationResource = Type.Object({
+  ...IntegrationResourceInner,
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+  definitionUpdatedAt: Type.Number(),
+});
 
 export type SavedIntegrationResource = Static<typeof SavedIntegrationResource>;

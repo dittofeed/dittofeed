@@ -32,7 +32,7 @@
     "@mui/x-data-grid": "^6.0.0",
     "@mui/x-date-pickers": "^6.18.5",
     "@prisma/client": "^5.4.1",
-    "@sinclair/typebox": "^0.32.14",
+    "@sinclair/typebox": "0.32.14",
     "@uiw/react-codemirror": "^4.19.5",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
