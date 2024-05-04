@@ -57,7 +57,7 @@ async function startLite() {
         ...backendConfig(),
         ...liteConfig,
       },
-      "Initialized with config"
+      "Initialized with config",
     );
   }
 
@@ -80,7 +80,7 @@ async function startLite() {
   const dir = path.resolve(packagesDir, relativeDir);
   logger().debug(
     { dir, dirname: __dirname, packagesDir },
-    "Next.js app directory"
+    "Next.js app directory",
   );
 
   const nextApp = next({
@@ -135,7 +135,7 @@ async function startLite() {
             }),
         ],
       },
-      workerLogger
+      workerLogger,
     ),
     reuseV8Context: workerConfig().reuseContext,
     maxCachedWorkflows: workerConfig().maxCachedWorkflows,

@@ -1,7 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import prisma from "backend-lib/src/prisma";
-import { FastifyInstance } from "fastify";
 import {
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
@@ -9,8 +8,12 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 
+import { DittofeedFastifyInstance } from "../types";
+
 // eslint-disable-next-line @typescript-eslint/require-await
-export default async function apiKeyController(fastify: FastifyInstance) {
+export default async function apiKeyController(
+  fastify: DittofeedFastifyInstance,
+) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/",
     {
@@ -25,7 +28,9 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const adminApiKey = await createAdminApiKey(request.body);
+      const adminApiKey = await createAdminApiKey(
+        request.body satisfies CreateAdminApiKeyRequest,
+      );
       if (adminApiKey.isErr()) {
         return reply.status(409).send();
       }
@@ -54,10 +59,11 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const { id, workspaceId }: DeleteAdminApiKeyRequest = request.query;
       await prisma().adminApiKey.delete({
         where: {
-          workspaceId: request.query.workspaceId,
-          id: request.query.id,
+          workspaceId,
+          id,
         },
       });
 

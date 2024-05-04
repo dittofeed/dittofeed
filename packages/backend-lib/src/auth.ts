@@ -4,18 +4,18 @@ import { validate } from "uuid";
 
 import logger from "./logger";
 import prisma from "./prisma";
-import { DecodedJwt, WriteKeyResource } from "./types";
+import { OpenIdProfile, WriteKeyResource } from "./types";
 
 const decoder = createDecoder();
 
-export function decodeJwtHeader(header: string): DecodedJwt | null {
+export function decodeJwtHeader(header: string): OpenIdProfile | null {
   const bearerToken = header.replace("Bearer ", "");
   const decoded: unknown | null = bearerToken ? decoder(bearerToken) : null;
 
   if (!decoded) {
     return null;
   }
-  const result = schemaValidate(decoded, DecodedJwt);
+  const result = schemaValidate(decoded, OpenIdProfile);
   if (result.isErr()) {
     return null;
   }

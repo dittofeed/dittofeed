@@ -5,6 +5,7 @@ import {
   getRequestContext,
   RequestContextErrorType,
 } from "backend-lib/src/requestContext";
+import { OpenIdProfile } from "backend-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -22,7 +23,8 @@ interface WaitingRoomProps {
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState<WaitingRoomProps>
 > = async (ctx) => {
-  const rc = await getRequestContext(ctx.req.headers);
+  const { profile } = ctx.req as { profile?: OpenIdProfile };
+  const rc = await getRequestContext(ctx.req.headers, profile);
   if (rc.isOk()) {
     return {
       redirect: {

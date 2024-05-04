@@ -11,6 +11,7 @@ import { withSpan } from "./openTelemetry";
 import prisma from "./prisma";
 import {
   DFRequestContext,
+  OpenIdProfile,
   Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
@@ -19,7 +20,7 @@ import {
   WorkspaceResource,
 } from "./types";
 
-export const SESSION_KEY = "df-session-key" as const;
+export const SESSION_KEY = "df-session-key";
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -191,9 +192,11 @@ async function findAndCreateRoles(
 export async function getMultiTenantRequestContext({
   authorizationToken,
   authProvider,
+  profile: profileFromContext,
 }: {
   authorizationToken: string | null;
   authProvider?: string;
+  profile?: OpenIdProfile;
 }): Promise<RequestContextResult> {
   if (!authProvider) {
     return err({
@@ -202,24 +205,29 @@ export async function getMultiTenantRequestContext({
     });
   }
 
-  if (!authorizationToken) {
-    return err({
-      type: RequestContextErrorType.ApplicationError,
-      message: "authorizationToken is missing",
-    });
-  }
+  let profile: OpenIdProfile;
+  if (profileFromContext) {
+    profile = profileFromContext;
+  } else {
+    if (!authorizationToken) {
+      return err({
+        type: RequestContextErrorType.ApplicationError,
+        message: "authorizationToken is missing",
+      });
+    }
+    const decodedJwt = decodeJwtHeader(authorizationToken);
 
-  const decodedJwt = decodeJwtHeader(authorizationToken);
-
-  if (!decodedJwt) {
-    return err({
-      type: RequestContextErrorType.NotAuthenticated,
-      message: "Unable to decode jwt",
-    });
+    if (!decodedJwt) {
+      return err({
+        type: RequestContextErrorType.NotAuthenticated,
+        message: "Unable to decode jwt",
+      });
+    }
+    profile = decodedJwt;
   }
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { sub, email, picture, email_verified, name, nickname } = decodedJwt;
+  const { sub, email, picture, email_verified, name, nickname } = profile;
 
   if (!email_verified) {
     return err({
@@ -367,6 +375,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
 
 export async function getRequestContext(
   headers: IncomingHttpHeaders,
+  profile?: OpenIdProfile,
 ): Promise<RequestContextResult> {
   return withSpan({ name: "get-request-context" }, async (span) => {
     const { authMode } = config();
@@ -393,6 +402,7 @@ export async function getRequestContext(
         result = await getMultiTenantRequestContext({
           authorizationToken,
           authProvider: config().authProvider,
+          profile,
         });
         break;
       }

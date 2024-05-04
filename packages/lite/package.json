@@ -10,14 +10,14 @@
   },
   "dependencies": {
     "@fastify/secure-session": "^7.1.0",
-    "@sinclair/typebox": "^0.32.14",
+    "@sinclair/typebox": "0.32.29",
     "@temporalio/worker": "1.8.4",
     "admin-cli": "0.0.1",
     "api": "0.0.3",
     "backend-lib": "0.0.3",
     "dashboard": "0.1.0",
     "isomorphic-lib": "0.0.3",
-    "next": "13.4.5",
+    "next": "13.5.6",
     "utility-types": "^3.10.0",
     "worker": "0.0.3",
     "yargs": "^17.7.2"

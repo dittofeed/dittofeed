@@ -36,9 +36,12 @@
     "typescript": "^5.2.2"
   },
   "resolutions": {
-    "fastify": "4.23.2",
     "@fastify/type-provider-typebox": "4.0.0",
-    "fastify-raw-body": "4.2.0"
+    "fastify": "4.23.2",
+    "fastify-raw-body": "4.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-is": "18.3.1"
   },
   "packageManager": "yarn@4.1.1"
 }
