@@ -28,7 +28,7 @@
     "@prisma/client": "^5.4.1",
     "@sendgrid/helpers": "^7.7.0",
     "@sendgrid/mail": "^7.7.0",
-    "@sinclair/typebox": "^0.32.14",
+    "@sinclair/typebox": "0.32.29",
     "@temporalio/activity": "1.8.4",
     "@temporalio/client": "1.8.4",
     "@temporalio/common": "1.8.4",

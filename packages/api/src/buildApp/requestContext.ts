@@ -4,6 +4,7 @@ import {
   RequestContextErrorType,
   SESSION_KEY,
 } from "backend-lib/src/requestContext";
+import { OpenIdProfile } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
@@ -27,7 +28,8 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
       ...request.headers,
       ...requestToSessionValue(request),
     };
-    const rc = await getRequestContext(headers);
+    const { user: profile } = request as { user?: OpenIdProfile };
+    const rc = await getRequestContext(headers, profile);
 
     if (rc.isErr()) {
       switch (rc.error.type) {

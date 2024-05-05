@@ -1,8 +1,8 @@
 import { createSigner } from "fast-jwt";
 
-import { DecodedJwt } from "../../src/types";
+import { OpenIdProfile } from "../../src/types";
 
-export function encodeMockJwt(jwtVals: Partial<DecodedJwt>) {
+export function encodeMockJwt(jwtVals: Partial<OpenIdProfile>) {
   const signer = createSigner({ algorithm: "none" });
   const payload = {
     iss: "https://yourdomain.eu.auth0.com/",

@@ -41,7 +41,7 @@ export const getServerSideProps: GetServerSideProps<
     databasePassword,
     clickhousePassword,
     secretKey,
-    singleTenantCookieSecure,
+    sessionCookieSecure,
   } = backendConfig();
 
   if (password === DEFAULT_BACKEND_CONFIG.password) {
@@ -68,9 +68,9 @@ export const getServerSideProps: GetServerSideProps<
     );
   }
 
-  if (!singleTenantCookieSecure) {
+  if (!sessionCookieSecure) {
     warnings.push(
-      "Single tenant cookie is not secure. Please use tls and set SINGLE_TENANT_COOKIE_SECURE='true'.",
+      "Single tenant cookie is not secure. Please use tls and set SESSION_COOKIE_SECURE='true'.",
     );
   }
 
