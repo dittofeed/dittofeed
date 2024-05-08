@@ -39,7 +39,7 @@ const googleOpsConfig: PinoConf = {
   },
 };
 
-export default function logger() {
+export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
     if (config().prettyLogs) {
