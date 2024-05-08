@@ -1,6 +1,8 @@
-import { Logger, pino } from "pino";
+import { Logger as PinoLogger, pino } from "pino";
 
 import config from "./config";
+
+export type Logger = PinoLogger<string>;
 
 let LOGGER: Logger | null = null;
 
