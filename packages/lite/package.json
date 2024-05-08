@@ -9,7 +9,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@fastify/secure-session": "^7.1.0",
+    "@fastify/secure-session": "7.1.0",
     "@sinclair/typebox": "0.32.29",
     "@temporalio/worker": "1.8.4",
     "admin-cli": "0.0.1",

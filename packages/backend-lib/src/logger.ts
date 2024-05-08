@@ -1,6 +1,8 @@
-import { Logger, pino } from "pino";
+import { Logger as PinoLogger, pino } from "pino";
 
 import config from "./config";
+
+export type Logger = PinoLogger<string>;
 
 let LOGGER: Logger | null = null;
 
@@ -39,7 +41,7 @@ const googleOpsConfig: PinoConf = {
   },
 };
 
-export default function logger() {
+export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
     if (config().prettyLogs) {
@@ -61,7 +63,9 @@ export default function logger() {
         Object.assign(options, googleOpsConfig);
       }
     }
-    LOGGER = pino(options);
+    const l = pino(options);
+    LOGGER = l;
+    return l;
   }
   return LOGGER;
 }
