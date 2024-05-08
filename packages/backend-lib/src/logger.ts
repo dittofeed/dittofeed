@@ -61,7 +61,9 @@ export default function logger(): Logger {
         Object.assign(options, googleOpsConfig);
       }
     }
-    LOGGER = pino(options);
+    const l = pino(options);
+    LOGGER = l;
+    return l;
   }
   return LOGGER;
 }
