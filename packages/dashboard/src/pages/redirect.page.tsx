@@ -14,8 +14,10 @@ export const getServerSideProps: GetServerSideProps<RedirectPageProps> = async (
   const { referer } = ctx.req.headers;
 
   if (
-    referer &&
-    backendConfig().allowedReferrers.some((ref) => referer.includes(ref))
+    !(
+      referer &&
+      backendConfig().allowedReferrers.some((ref) => referer.includes(ref))
+    )
   ) {
     logger().error(
       { referer, allowedReferrers: backendConfig().allowedReferrers },
