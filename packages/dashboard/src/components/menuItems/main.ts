@@ -4,7 +4,7 @@ import {
   BookOutlined,
   CampaignOutlined,
   ContactSupportOutlined,
-  GroupOutlined,
+  GroupsOutlined,
   InboxOutlined,
   LanOutlined,
   ManageAccountsOutlined,
@@ -91,7 +91,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Segments",
           type: "item",
           url: "/segments",
-          icon: GroupOutlined,
+          icon: GroupsOutlined,
           description: "View, create, and edit segments.",
         },
         {
