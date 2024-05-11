@@ -88,7 +88,7 @@ const BaseRawConfigProps = {
   sessionCookieSecure: Type.Optional(BoolStr),
   openIdClientId: Type.Optional(Type.String()),
   openIdClientSecret: Type.Optional(Type.String()),
-  allowedReferrers: Type.Optional(Type.String()),
+  allowedOrigins: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -188,7 +188,7 @@ export type Config = Overwrite<
     computePropertiesAttempts: number;
     sessionCookieSecure: boolean;
     signoutRedirectUrl: string;
-    allowedReferrers: string[];
+    allowedOrigins: string[];
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -414,7 +414,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? parseInt(rawConfig.computePropertiesAttempts)
       : 150,
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
-    allowedReferrers: (rawConfig.allowedReferrers ?? dashboardUrl).split(","),
+    allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
   };
   return parsedConfig;
 }
