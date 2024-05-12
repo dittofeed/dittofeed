@@ -1,3 +1,4 @@
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   Integration,
   Journey,
@@ -6,6 +7,12 @@ import {
   UserProperty,
 } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
+import {
+  FastifyInstance,
+  RawReplyDefaultExpression,
+  RawRequestDefaultExpression,
+  RawServerDefault,
+} from "fastify";
 import {
   EventType,
   IntegrationDefinition,
@@ -542,3 +549,16 @@ export const SavedIntegrationResource = Type.Composite([
 ]);
 
 export type SavedIntegrationResource = Static<typeof SavedIntegrationResource>;
+
+export type DittofeedFastifyInstance = FastifyInstance<
+  RawServerDefault,
+  RawRequestDefaultExpression,
+  RawReplyDefaultExpression,
+  ReturnType<typeof logger>,
+  TypeBoxTypeProvider
+>;
+
+export interface BuildAppOpts {
+  extendPlugins?: (fastify: DittofeedFastifyInstance) => Promise<void>;
+  registerAuthentication?: (fastify: DittofeedFastifyInstance) => Promise<void>;
+}
