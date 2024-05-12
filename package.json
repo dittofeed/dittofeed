@@ -32,7 +32,7 @@
     "prettier": "3.2.5",
     "prettier-eslint": "^16.3.0",
     "ts-jest": "^29.0.5",
-    "ts-node": "^10.9.1",
+    "ts-node": "10.9.1",
     "typescript": "^5.2.2"
   },
   "resolutions": {
