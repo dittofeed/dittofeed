@@ -6,7 +6,8 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
-import { BuildAppOpts, DittofeedFastifyInstance } from "backend-lib/src/types";
+import { BuildAppOpts } from "backend-lib/src/types";
+import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import {
