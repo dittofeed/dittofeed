@@ -17,7 +17,7 @@
     "cross-spawn": "^7.0.3",
     "isomorphic-lib": "0.0.3",
     "remeda": "^1.56.0",
-    "ts-node": "^10.9.1",
+    "ts-node": "10.9.1",
     "yargs": "^17.7.2"
   },
   "license": "LicenseRef-LICENSE",
@@ -37,6 +37,6 @@
     "jest-expect-message": "^1.1.3",
     "prettier": "^3.2.5",
     "ts-jest": "^29.0.5",
-    "typescript": "^5.2.2"
+    "typescript": "5.2.2"
   }
 }

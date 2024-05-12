@@ -1,3 +1,4 @@
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   Integration,
   Journey,
@@ -7,6 +8,12 @@ import {
 } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import {
+  FastifyInstance,
+  RawReplyDefaultExpression,
+  RawRequestDefaultExpression,
+  RawServerDefault,
+} from "fastify";
+import {
   EventType,
   IntegrationDefinition,
   JourneyDefinition,
@@ -15,6 +22,7 @@ import {
   SegmentDefinition,
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
+import { Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";
@@ -542,3 +550,13 @@ export const SavedIntegrationResource = Type.Composite([
 ]);
 
 export type SavedIntegrationResource = Static<typeof SavedIntegrationResource>;
+
+export type Logger = PinoLogger<string>;
+
+export type DittofeedFastifyInstance = FastifyInstance<
+  RawServerDefault,
+  RawRequestDefaultExpression,
+  RawReplyDefaultExpression,
+  Logger,
+  TypeBoxTypeProvider
+>;

@@ -1,5 +1,6 @@
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
+import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 
 import apiKeyController from "../controllers/apiKeyController";
@@ -21,7 +22,7 @@ import subscriptionManagementController from "../controllers/subscriptionManagem
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
-import { BuildAppOpts, DittofeedFastifyInstance } from "../types";
+import { BuildAppOpts } from "../types";
 import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
 
