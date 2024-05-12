@@ -6,7 +6,6 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
-import { BuildAppOpts } from "backend-lib/src/types";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
@@ -20,6 +19,7 @@ import qs from "qs";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
+import { BuildAppOpts } from "./types";
 
 declare module "@fastify/request-context" {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
