@@ -7478,8 +7478,8 @@ __metadata:
     prettier: "npm:^3.2.5"
     remeda: "npm:^1.56.0"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
-    typescript: "npm:^5.2.2"
+    ts-node: "npm:10.9.1"
+    typescript: "npm:5.2.2"
     yargs: "npm:^17.7.2"
   languageName: unknown
   linkType: soft
@@ -7759,10 +7759,10 @@ __metadata:
     resend: "npm:^2.1.0"
     svix: "npm:^1.15.0"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
+    ts-node: "npm:10.9.1"
     ts-node-dev: "npm:^2.0.0"
     twilio: "npm:^4.22.0"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
     utility-types: "npm:^3.10.0"
     uuid: "npm:^9.0.0"
     yargs: "npm:^17.7.2"
@@ -8169,6 +8169,7 @@ __metadata:
     "@aws-sdk/client-sesv2": "npm:^3.535.0"
     "@clickhouse/client": "npm:^0.2.1"
     "@fast-csv/format": "npm:^4.3.5"
+    "@fastify/type-provider-typebox": "npm:4.0.0"
     "@opentelemetry/api": "npm:1.4.1"
     "@opentelemetry/auto-instrumentations-node": "npm:0.39.2"
     "@opentelemetry/exporter-metrics-otlp-grpc": "npm:0.41.2"
@@ -8220,6 +8221,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
     fast-jwt: "npm:^2.2.2"
+    fastify: "npm:4.23.2"
     firebase-admin: "npm:^11.9.0"
     geo-tz: "npm:^7.0.7"
     isomorphic-lib: "npm:0.0.3"
@@ -8244,9 +8246,9 @@ __metadata:
     resend: "npm:^2.1.0"
     sns-payload-validator: "npm:^2.1.0"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
+    ts-node: "npm:10.9.1"
     twilio: "npm:^4.18.0"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
     utility-types: "npm:^3.10.0"
     uuid: "npm:^9.0.0"
     yargs: "npm:^17.7.2"
@@ -9602,7 +9604,7 @@ __metadata:
     slate-history: "npm:^0.86.0"
     slate-react: "npm:^0.88.0"
     ts-jest: "npm:^29.0.5"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
     unidiff: "npm:^1.0.2"
     use-debounce: "npm:^9.0.2"
     use-immer: "npm:^0.9.0"
@@ -9937,8 +9939,8 @@ __metadata:
     prettier: "npm:3.2.5"
     prettier-eslint: "npm:^16.3.0"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
-    typescript: "npm:^5.2.2"
+    ts-node: "npm:10.9.1"
+    typescript: "npm:5.2.2"
   languageName: unknown
   linkType: soft
 
@@ -13539,7 +13541,7 @@ __metadata:
     prettier: "npm:3.2.5"
     remeda: "npm:^1.56.0"
     ts-jest: "npm:^29.0.5"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
   languageName: unknown
   linkType: soft
 
@@ -14637,9 +14639,9 @@ __metadata:
     next: "npm:13.5.6"
     prettier: "npm:3.2.5"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
+    ts-node: "npm:10.9.1"
     tsc-watch: "npm:^6.0.0"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
     utility-types: "npm:^3.10.0"
     worker: "npm:0.0.3"
     yargs: "npm:^17.7.2"
@@ -20248,6 +20250,44 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ts-node@npm:10.9.1":
+  version: 10.9.1
+  resolution: "ts-node@npm:10.9.1"
+  dependencies:
+    "@cspotcode/source-map-support": "npm:^0.8.0"
+    "@tsconfig/node10": "npm:^1.0.7"
+    "@tsconfig/node12": "npm:^1.0.7"
+    "@tsconfig/node14": "npm:^1.0.0"
+    "@tsconfig/node16": "npm:^1.0.2"
+    acorn: "npm:^8.4.1"
+    acorn-walk: "npm:^8.1.1"
+    arg: "npm:^4.1.0"
+    create-require: "npm:^1.1.0"
+    diff: "npm:^4.0.1"
+    make-error: "npm:^1.1.1"
+    v8-compile-cache-lib: "npm:^3.0.1"
+    yn: "npm:3.1.1"
+  peerDependencies:
+    "@swc/core": ">=1.2.50"
+    "@swc/wasm": ">=1.2.50"
+    "@types/node": "*"
+    typescript: ">=2.7"
+  peerDependenciesMeta:
+    "@swc/core":
+      optional: true
+    "@swc/wasm":
+      optional: true
+  bin:
+    ts-node: dist/bin.js
+    ts-node-cwd: dist/bin-cwd.js
+    ts-node-esm: dist/bin-esm.js
+    ts-node-script: dist/bin-script.js
+    ts-node-transpile-only: dist/bin-transpile.js
+    ts-script: dist/bin-script-deprecated.js
+  checksum: 10/bee56d4dc96ccbafc99dfab7b73fbabc62abab2562af53cdea91c874a301b9d11e42bc33c0a032a6ed6d813dbdc9295ec73dde7b73ea4ebde02b0e22006f7e04
+  languageName: node
+  linkType: hard
+
 "ts-node@npm:^10.4.0":
   version: 10.9.2
   resolution: "ts-node@npm:10.9.2"
@@ -20283,44 +20323,6 @@ __metadata:
     ts-node-transpile-only: dist/bin-transpile.js
     ts-script: dist/bin-script-deprecated.js
   checksum: 10/a91a15b3c9f76ac462f006fa88b6bfa528130dcfb849dd7ef7f9d640832ab681e235b8a2bc58ecde42f72851cc1d5d4e22c901b0c11aa51001ea1d395074b794
-  languageName: node
-  linkType: hard
-
-"ts-node@npm:^10.9.1":
-  version: 10.9.1
-  resolution: "ts-node@npm:10.9.1"
-  dependencies:
-    "@cspotcode/source-map-support": "npm:^0.8.0"
-    "@tsconfig/node10": "npm:^1.0.7"
-    "@tsconfig/node12": "npm:^1.0.7"
-    "@tsconfig/node14": "npm:^1.0.0"
-    "@tsconfig/node16": "npm:^1.0.2"
-    acorn: "npm:^8.4.1"
-    acorn-walk: "npm:^8.1.1"
-    arg: "npm:^4.1.0"
-    create-require: "npm:^1.1.0"
-    diff: "npm:^4.0.1"
-    make-error: "npm:^1.1.1"
-    v8-compile-cache-lib: "npm:^3.0.1"
-    yn: "npm:3.1.1"
-  peerDependencies:
-    "@swc/core": ">=1.2.50"
-    "@swc/wasm": ">=1.2.50"
-    "@types/node": "*"
-    typescript: ">=2.7"
-  peerDependenciesMeta:
-    "@swc/core":
-      optional: true
-    "@swc/wasm":
-      optional: true
-  bin:
-    ts-node: dist/bin.js
-    ts-node-cwd: dist/bin-cwd.js
-    ts-node-esm: dist/bin-esm.js
-    ts-node-script: dist/bin-script.js
-    ts-node-transpile-only: dist/bin-transpile.js
-    ts-script: dist/bin-script-deprecated.js
-  checksum: 10/bee56d4dc96ccbafc99dfab7b73fbabc62abab2562af53cdea91c874a301b9d11e42bc33c0a032a6ed6d813dbdc9295ec73dde7b73ea4ebde02b0e22006f7e04
   languageName: node
   linkType: hard
 
@@ -20492,7 +20494,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.2.2":
+"typescript@npm:5.2.2, typescript@npm:^5.2.2":
   version: 5.2.2
   resolution: "typescript@npm:5.2.2"
   bin:
@@ -20502,7 +20504,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.2.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A5.2.2#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.2.2#optional!builtin<compat/typescript>":
   version: 5.2.2
   resolution: "typescript@patch:typescript@npm%3A5.2.2#optional!builtin<compat/typescript>::version=5.2.2&hash=f3b441"
   bin:
@@ -21342,9 +21344,9 @@ __metadata:
     jest-expect-message: "npm:^1.1.3"
     prettier: "npm:3.2.5"
     ts-jest: "npm:^29.0.5"
-    ts-node: "npm:^10.9.1"
+    ts-node: "npm:10.9.1"
     tsc-watch: "npm:^6.0.0"
-    typescript: "npm:^5.2.2"
+    typescript: "npm:5.2.2"
     utility-types: "npm:^3.10.0"
   languageName: unknown
   linkType: soft
