@@ -1,14 +1,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import prisma from "backend-lib/src/prisma";
+import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import {
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
   DeleteAdminApiKeyRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
-
-import { DittofeedFastifyInstance } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function apiKeyController(
