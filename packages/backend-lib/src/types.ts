@@ -22,6 +22,7 @@ import {
   SegmentDefinition,
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
+import { Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";
@@ -550,11 +551,13 @@ export const SavedIntegrationResource = Type.Composite([
 
 export type SavedIntegrationResource = Static<typeof SavedIntegrationResource>;
 
+export type Logger = PinoLogger<string>;
+
 export type DittofeedFastifyInstance = FastifyInstance<
   RawServerDefault,
   RawRequestDefaultExpression,
   RawReplyDefaultExpression,
-  ReturnType<typeof logger>,
+  Logger,
   TypeBoxTypeProvider
 >;
 
