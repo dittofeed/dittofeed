@@ -29,7 +29,7 @@ function ProfileTab() {
         },
       }}
     >
-      <ListItemButton LinkComponent={Link} href="/dashboard/settings">
+      <ListItemButton LinkComponent={Link} href="/settings">
         <ListItemIcon>
           <Settings />
         </ListItemIcon>
