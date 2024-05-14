@@ -58,6 +58,7 @@ export default async function contentController(fastify: FastifyInstance) {
         subscriptionGroupId,
         channel,
         userProperties,
+        tags,
       } = request.body;
 
       const secretNames = [SecretNames.Subscription];
@@ -115,6 +116,7 @@ export default async function contentController(fastify: FastifyInstance) {
               userProperties,
               identifierKey,
               secrets: templateSecrets,
+              tags,
             });
             value = {
               type: JsonResultType.Ok,

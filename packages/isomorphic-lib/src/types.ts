@@ -1878,6 +1878,7 @@ export const RenderMessageTemplateRequest = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   contents: RenderMessageTemplateRequestContents,
   userProperties: Type.Record(Type.String(), Type.Any()),
+  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
 export type RenderMessageTemplateRequest = Static<
