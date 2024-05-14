@@ -287,6 +287,29 @@ function getUserPropertyValues({
   return userPropertyAssignments;
 }
 
+function buildTags({
+  workspaceId,
+  templateId,
+  userId,
+  anonymousId,
+}: {
+  workspaceId: string;
+  templateId: string;
+  userId?: string;
+  anonymousId?: string;
+}): Record<string, string> {
+  return {
+    workspaceId,
+    messageId: "sample-message-id",
+    runId: "sample-run-id",
+    userId: userId ?? "sample-user-id",
+    templateId,
+    nodeId: "sample-node-id",
+    journeyId: "sample-journey-id",
+    anonymousId: anonymousId ?? "sample-anonymous-id",
+  };
+}
+
 export default function TemplateEditor({
   templateId,
   channel,
@@ -617,16 +640,12 @@ export default function TemplateEditor({
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
-        tags: {
-          workspaceId: "sample-workspace-id",
-          messageId: "sample-message-id",
-          runId: "sample-run-id",
-          userId: "sample-user-id",
-          templateId: "sample-template-id",
-          nodeId: "sample-node-id",
-          journeyId: "sample-journey-id",
-          anonymousId: "sample-anonymous-id",
-        },
+        tags: buildTags({
+          workspaceId: workspace.id,
+          templateId,
+          userId: debouncedUserProperties.id,
+          anonymousId: debouncedUserProperties.anonymousId,
+        }),
         contents: draftToPreview(draftToRender),
       };
 
@@ -794,11 +813,17 @@ export default function TemplateEditor({
 
   const submitTestDataBase: Pick<
     MessageTemplateTestRequest,
-    "workspaceId" | "templateId" | "userProperties"
+    "workspaceId" | "templateId" | "userProperties" | "tags"
   > = {
     workspaceId: workspace.id,
     templateId,
     userProperties: debouncedUserProperties,
+    tags: buildTags({
+      workspaceId: workspace.id,
+      templateId,
+      userId: debouncedUserProperties.id,
+      anonymousId: debouncedUserProperties.anonymousId,
+    }),
   };
   let submitTestData: MessageTemplateTestRequest;
   switch (state.channel) {

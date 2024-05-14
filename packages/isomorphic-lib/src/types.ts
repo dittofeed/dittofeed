@@ -1023,7 +1023,7 @@ export type WebhookTemplateResourceDraft = Static<
 
 export const ParsedWebhookBody = Type.Object({
   config: WebhookConfig,
-  secret: WebhookConfig,
+  secret: Type.Optional(WebhookConfig),
 });
 
 export type ParsedWebhookBody = Static<typeof ParsedWebhookBody>;
