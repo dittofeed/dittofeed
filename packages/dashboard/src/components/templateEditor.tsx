@@ -617,6 +617,16 @@ export default function TemplateEditor({
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
+        tags: {
+          workspaceId: "sample-workspace-id",
+          messageId: "sample-message-id",
+          runId: "sample-run-id",
+          userId: "sample-user-id",
+          templateId: "sample-template-id",
+          nodeId: "sample-node-id",
+          journeyId: "sample-journey-id",
+          anonymousId: "sample-anonymous-id",
+        },
         contents: draftToPreview(draftToRender),
       };
 

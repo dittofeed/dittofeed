@@ -2948,6 +2948,7 @@ const BaseMessageTemplateTestRequest = {
   workspaceId: Type.String(),
   templateId: Type.String(),
   userProperties: Type.Record(Type.String(), Type.Any()),
+  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 } as const;
 
 export const MessageTemplateTestRequest = Type.Union([
