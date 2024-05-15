@@ -291,22 +291,19 @@ function buildTags({
   workspaceId,
   templateId,
   userId,
-  anonymousId,
 }: {
   workspaceId: string;
   templateId: string;
   userId?: string;
-  anonymousId?: string;
 }): Record<string, string> {
   return {
-    workspaceId,
-    messageId: "sample-message-id",
-    runId: "sample-run-id",
-    userId: userId ?? "sample-user-id",
-    templateId,
-    nodeId: "sample-node-id",
     journeyId: "sample-journey-id",
-    anonymousId: anonymousId ?? "sample-anonymous-id",
+    messageId: "sample-message-id",
+    nodeId: "sample-node-id",
+    runId: "sample-run-id",
+    templateId,
+    userId: userId ?? "sample-user-id",
+    workspaceId,
   };
 }
 
@@ -644,7 +641,6 @@ export default function TemplateEditor({
           workspaceId: workspace.id,
           templateId,
           userId: debouncedUserProperties.id,
-          anonymousId: debouncedUserProperties.anonymousId,
         }),
         contents: draftToPreview(draftToRender),
       };
@@ -822,7 +818,6 @@ export default function TemplateEditor({
       workspaceId: workspace.id,
       templateId,
       userId: debouncedUserProperties.id,
-      anonymousId: debouncedUserProperties.anonymousId,
     }),
   };
   let submitTestData: MessageTemplateTestRequest;
