@@ -14,12 +14,11 @@ import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
-import MainLayout from "../../components/mainLayout";
+import DashboardContent from "../../components/dashboardContent";
 import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStore } from "../../lib/appStore";
@@ -173,16 +172,8 @@ function TemplateListContents() {
 
 export default function TemplateList() {
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <TemplateListContents />
-        </MainLayout>
-      </main>
-    </>
+    <DashboardContent>
+      <TemplateListContents />
+    </DashboardContent>
   );
 }

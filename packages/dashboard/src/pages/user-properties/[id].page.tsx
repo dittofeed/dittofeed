@@ -28,17 +28,16 @@ import {
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import React, { ComponentProps } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
 
+import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
 import { SubtleHeader } from "../../components/headers";
 import InfoTooltip from "../../components/infoTooltip";
-import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
@@ -720,15 +719,5 @@ export default function NewUserProperty() {
     );
   }
 
-  return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>{body}</MainLayout>
-      </main>
-    </>
-  );
+  return <DashboardContent>{body}</DashboardContent>;
 }

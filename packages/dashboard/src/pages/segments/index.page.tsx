@@ -9,7 +9,6 @@ import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findManyPartialSegments } from "backend-lib/src/segments";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { pick } from "remeda";
 
 import DashboardContent from "../../components/dashboardContent";
