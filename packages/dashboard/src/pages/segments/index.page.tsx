@@ -114,22 +114,14 @@ export default function SegmentList() {
     </Tooltip>
   );
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <DashboardContent>
-          <ResourceListContainer
-            title="Segments"
-            newItemHref={(newItemId) => `/segments/${newItemId}`}
-            controls={controls}
-          >
-            <SegmentsTable />
-          </ResourceListContainer>
-        </DashboardContent>
-      </main>
-    </>
+    <DashboardContent>
+      <ResourceListContainer
+        title="Segments"
+        newItemHref={(newItemId) => `/segments/${newItemId}`}
+        controls={controls}
+      >
+        <SegmentsTable />
+      </ResourceListContainer>
+    </DashboardContent>
   );
 }
