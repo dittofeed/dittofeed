@@ -99,9 +99,11 @@ async function sendMessageInner({
     userPropertyAssignments,
     subscriptionGroupDetails,
     messageTags: {
+      workspaceId,
       runId,
       nodeId,
       journeyId,
+      templateId,
       messageId,
       userId,
       channel,

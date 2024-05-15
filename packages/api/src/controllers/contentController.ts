@@ -58,7 +58,12 @@ export default async function contentController(fastify: FastifyInstance) {
         subscriptionGroupId,
         channel,
         userProperties,
+        tags,
       } = request.body;
+      const tagsWithMessageId: MessageTags = {
+        ...(tags ?? {}),
+        messageId: tags?.messageId ?? randomUUID(),
+      };
 
       const secretNames = [SecretNames.Subscription];
       if (channel === ChannelType.Webhook) {
@@ -115,6 +120,7 @@ export default async function contentController(fastify: FastifyInstance) {
               userProperties,
               identifierKey,
               secrets: templateSecrets,
+              tags: tagsWithMessageId,
             });
             value = {
               type: JsonResultType.Ok,
@@ -168,8 +174,8 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const messageTags: MessageTags = {
-        channel: request.body.channel,
-        messageId: randomUUID(),
+        ...(request.body.tags ?? {}),
+        messageId: request.body.tags?.messageId ?? randomUUID(),
       };
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

@@ -1023,7 +1023,7 @@ export type WebhookTemplateResourceDraft = Static<
 
 export const ParsedWebhookBody = Type.Object({
   config: WebhookConfig,
-  secret: WebhookConfig,
+  secret: Type.Optional(WebhookConfig),
 });
 
 export type ParsedWebhookBody = Static<typeof ParsedWebhookBody>;
@@ -1878,6 +1878,7 @@ export const RenderMessageTemplateRequest = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   contents: RenderMessageTemplateRequestContents,
   userProperties: Type.Record(Type.String(), Type.Any()),
+  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
 export type RenderMessageTemplateRequest = Static<
@@ -2947,6 +2948,7 @@ const BaseMessageTemplateTestRequest = {
   workspaceId: Type.String(),
   templateId: Type.String(),
   userProperties: Type.Record(Type.String(), Type.Any()),
+  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 } as const;
 
 export const MessageTemplateTestRequest = Type.Union([

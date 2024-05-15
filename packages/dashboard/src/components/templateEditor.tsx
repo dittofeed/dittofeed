@@ -287,6 +287,26 @@ function getUserPropertyValues({
   return userPropertyAssignments;
 }
 
+function buildTags({
+  workspaceId,
+  templateId,
+  userId,
+}: {
+  workspaceId: string;
+  templateId: string;
+  userId?: string;
+}): Record<string, string> {
+  return {
+    journeyId: "sample-journey-id",
+    messageId: "sample-message-id",
+    nodeId: "sample-node-id",
+    runId: "sample-run-id",
+    templateId,
+    userId: userId ?? "sample-user-id",
+    workspaceId,
+  };
+}
+
 export default function TemplateEditor({
   templateId,
   channel,
@@ -617,6 +637,11 @@ export default function TemplateEditor({
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
+        tags: buildTags({
+          workspaceId: workspace.id,
+          templateId,
+          userId: debouncedUserProperties.id,
+        }),
         contents: draftToPreview(draftToRender),
       };
 
@@ -784,11 +809,16 @@ export default function TemplateEditor({
 
   const submitTestDataBase: Pick<
     MessageTemplateTestRequest,
-    "workspaceId" | "templateId" | "userProperties"
+    "workspaceId" | "templateId" | "userProperties" | "tags"
   > = {
     workspaceId: workspace.id,
     templateId,
     userProperties: debouncedUserProperties,
+    tags: buildTags({
+      workspaceId: workspace.id,
+      templateId,
+      userId: debouncedUserProperties.id,
+    }),
   };
   let submitTestData: MessageTemplateTestRequest;
   switch (state.channel) {

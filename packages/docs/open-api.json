@@ -93,6 +93,12 @@
                   "userProperties": {
                     "type": "object",
                     "additionalProperties": {}
+                  },
+                  "tags": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
                   }
                 },
                 "required": [
@@ -835,6 +841,12 @@
                         "type": "object",
                         "additionalProperties": {}
                       },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
                       "channel": {
                         "type": "string",
                         "enum": [
@@ -902,6 +914,12 @@
                         "type": "object",
                         "additionalProperties": {}
                       },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
                       "channel": {
                         "type": "string",
                         "enum": [
@@ -945,6 +963,12 @@
                         "type": "object",
                         "additionalProperties": {}
                       },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
                       "channel": {
                         "type": "string",
                         "enum": [
@@ -987,6 +1011,12 @@
                       "userProperties": {
                         "type": "object",
                         "additionalProperties": {}
+                      },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
                       },
                       "channel": {
                         "type": "string",
@@ -11493,9 +11523,6 @@
                     },
                     "journeyId": {
                       "type": "string"
-                    },
-                    "anonymousId": {
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -11805,9 +11832,6 @@
                           },
                           "journeyId": {
                             "type": "string"
-                          },
-                          "anonymousId": {
-                            "type": "string"
                           }
                         }
                       }
@@ -11998,9 +12022,6 @@
                     "type": "string"
                   },
                   "journeyId": {
-                    "type": "string"
-                  },
-                  "anonymousId": {
                     "type": "string"
                   }
                 },
@@ -13910,9 +13931,6 @@
                     },
                     "journeyId": {
                       "type": "string"
-                    },
-                    "anonymousId": {
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -14222,9 +14240,6 @@
                           },
                           "journeyId": {
                             "type": "string"
-                          },
-                          "anonymousId": {
-                            "type": "string"
                           }
                         }
                       }
@@ -14415,9 +14430,6 @@
                     "type": "string"
                   },
                   "journeyId": {
-                    "type": "string"
-                  },
-                  "anonymousId": {
                     "type": "string"
                   }
                 },

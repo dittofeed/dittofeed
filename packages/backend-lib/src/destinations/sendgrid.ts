@@ -52,8 +52,8 @@ export function sendgridEventToDF({
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { email, event, timestamp, sg_message_id } = sendgridEvent;
 
-  const userOrAnonymousId = sendgridEvent.userId ?? sendgridEvent.anonymousId;
-  if (!userOrAnonymousId) {
+  const { userId } = sendgridEvent;
+  if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
   const messageId = uuidv5(sg_message_id, workspaceId);
@@ -94,22 +94,12 @@ export function sendgridEventToDF({
       type: EventType.Track,
       event: eventName,
       userId: sendgridEvent.userId,
-      anonymousId: sendgridEvent.anonymousId,
-      properties,
-      messageId,
-      timestamp: itemTimestamp,
-    };
-  } else if (sendgridEvent.anonymousId) {
-    item = {
-      type: EventType.Track,
-      event: eventName,
-      anonymousId: sendgridEvent.anonymousId,
       properties,
       messageId,
       timestamp: itemTimestamp,
     };
   } else {
-    return err(new Error("Missing userId and anonymousId."));
+    return err(new Error("Missing userId."));
   }
 
   return ok(item);

@@ -1355,7 +1355,7 @@ export async function sendWebhook({
 
   const renderedHeaders = {
     ...renderedConfigHeaders,
-    ...(renderedSecret.headers ?? {}),
+    ...(renderedSecret?.headers ?? {}),
   };
 
   const rawIdentifier = userPropertyAssignments[identifierKey];
@@ -1383,12 +1383,12 @@ export async function sendWebhook({
   }
 
   try {
-    const data: unknown = renderedSecret.data ?? renderedConfig.data;
-    const params: unknown = renderedSecret.params ?? renderedConfig.params;
-    const method = renderedSecret.method ?? renderedConfig.method;
+    const data: unknown = renderedSecret?.data ?? renderedConfig.data;
+    const params: unknown = renderedSecret?.params ?? renderedConfig.params;
+    const method = renderedSecret?.method ?? renderedConfig.method;
     const responseType =
-      renderedSecret.responseType ?? renderedConfig.responseType;
-    const url = renderedSecret.url ?? renderedConfig.url;
+      renderedSecret?.responseType ?? renderedConfig.responseType;
+    const url = renderedSecret?.url ?? renderedConfig.url;
 
     const response = await axios({
       url,
