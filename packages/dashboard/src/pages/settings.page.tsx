@@ -71,6 +71,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import AdminApiKeyTable from "../components/adminApiKeyTable";
+import DashboardHead from "../components/dashboardHead";
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
 import {
@@ -397,13 +398,16 @@ function SettingsLayout(
   props: Omit<React.ComponentProps<typeof Layout>, "items">,
 ) {
   return (
-    <Layout
-      pageTitle="Settings"
-      backLink="/"
-      navigationRenderer="minimal"
-      items={menuItems}
-      {...props}
-    />
+    <>
+      <DashboardHead />
+      <Layout
+        pageTitle="Settings"
+        backLink="/"
+        navigationRenderer="minimal"
+        items={menuItems}
+        {...props}
+      />
+    </>
   );
 }
 

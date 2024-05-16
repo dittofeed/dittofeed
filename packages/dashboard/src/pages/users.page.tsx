@@ -9,7 +9,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
-import MainLayout from "../components/mainLayout";
+import DashboardContent from "../components/dashboardContent";
 import { UsersFilter } from "../components/usersFilter";
 import UsersTable, { OnPaginationChangeProps } from "../components/usersTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
@@ -74,7 +74,7 @@ export default function SegmentUsers() {
   };
 
   return (
-    <MainLayout>
+    <DashboardContent>
       <Stack
         spacing={1}
         sx={{
@@ -94,6 +94,6 @@ export default function SegmentUsers() {
           onPaginationChange={onUsersTablePaginate}
         />
       </Stack>
-    </MainLayout>
+    </DashboardContent>
   );
 }

@@ -7,8 +7,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
+import DashboardContent from "../../components/dashboardContent";
 import JourneysTable from "../../components/journeysTable";
-import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
@@ -72,9 +72,9 @@ function JourneyListContents() {
 
 function Journeys() {
   return (
-    <MainLayout>
+    <DashboardContent>
       <JourneyListContents />
-    </MainLayout>
+    </DashboardContent>
   );
 }
 export default Journeys;
