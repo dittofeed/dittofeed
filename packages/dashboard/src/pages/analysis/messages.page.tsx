@@ -15,11 +15,10 @@ import {
   SavedJourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useMemo } from "react";
 
-import MainLayout from "../../components/mainLayout";
+import DashboardContent from "../../components/dashboardContent";
 import TabLink from "../../components/tabLink";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
@@ -45,24 +44,16 @@ function AnalysisLayout({
   const tabIndex = TAB_INDEX[tab];
 
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <Stack direction="column" sx={{ width: "100%", p: 1 }} spacing={1}>
-            <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-              <Tabs value={tabIndex}>
-                <TabLink label="Messages" href={basePath} index={0} />
-              </Tabs>
-            </Box>
-            <Box>{children}</Box>
-          </Stack>
-        </MainLayout>
-      </main>
-    </>
+    <DashboardContent>
+      <Stack direction="column" sx={{ width: "100%", p: 1 }} spacing={1}>
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs value={tabIndex}>
+            <TabLink label="Messages" href={basePath} index={0} />
+          </Tabs>
+        </Box>
+        <Box>{children}</Box>
+      </Stack>
+    </DashboardContent>
   );
 }
 

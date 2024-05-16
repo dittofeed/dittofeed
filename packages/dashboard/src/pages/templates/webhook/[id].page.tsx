@@ -8,12 +8,11 @@ import {
   WebhookTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import React from "react";
 import { validate } from "uuid";
 
-import MainLayout from "../../../components/mainLayout";
+import DashboardContent from "../../../components/dashboardContent";
 import WebhookEditor from "../../../components/messages/webhookEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
@@ -106,20 +105,12 @@ export default function MessageEditor() {
     return null;
   }
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <WebhookEditor
-            key={templateId}
-            templateId={templateId}
-            member={member ?? undefined}
-          />
-        </MainLayout>
-      </main>
-    </>
+    <DashboardContent>
+      <WebhookEditor
+        key={templateId}
+        templateId={templateId}
+        member={member ?? undefined}
+      />
+    </DashboardContent>
   );
 }

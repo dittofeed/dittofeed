@@ -8,12 +8,11 @@ import {
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import React from "react";
 import { validate } from "uuid";
 
-import MainLayout from "../../../components/mainLayout";
+import DashboardContent from "../../../components/dashboardContent";
 import { defaultEmailDefinition } from "../../../components/messages/email";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
@@ -102,16 +101,8 @@ export default function MessageEditor() {
     return null;
   }
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <EmailEditor templateId={messageId} member={member ?? undefined} />
-        </MainLayout>
-      </main>
-    </>
+    <DashboardContent>
+      <EmailEditor templateId={messageId} member={member ?? undefined} />
+    </DashboardContent>
   );
 }

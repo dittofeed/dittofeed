@@ -8,11 +8,10 @@ import { findMessageTemplates } from "backend-lib/src/messaging";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
-import MainLayout from "../../components/mainLayout";
+import DashboardContent from "../../components/dashboardContent";
 import UserPropertiesTable from "../../components/userPropertiesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
@@ -140,16 +139,8 @@ function UserPropertyListContents() {
 
 export default function UserPropertyList() {
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <UserPropertyListContents />
-        </MainLayout>
-      </main>
-    </>
+    <DashboardContent>
+      <UserPropertyListContents />
+    </DashboardContent>
   );
 }

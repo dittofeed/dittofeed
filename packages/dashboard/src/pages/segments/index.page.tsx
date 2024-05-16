@@ -9,7 +9,6 @@ import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findManyPartialSegments } from "backend-lib/src/segments";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { pick } from "remeda";
 
 import DashboardContent from "../../components/dashboardContent";
@@ -114,22 +113,14 @@ export default function SegmentList() {
     </Tooltip>
   );
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <DashboardContent>
-          <ResourceListContainer
-            title="Segments"
-            newItemHref={(newItemId) => `/segments/${newItemId}`}
-            controls={controls}
-          >
-            <SegmentsTable />
-          </ResourceListContainer>
-        </DashboardContent>
-      </main>
-    </>
+    <DashboardContent>
+      <ResourceListContainer
+        title="Segments"
+        newItemHref={(newItemId) => `/segments/${newItemId}`}
+        controls={controls}
+      >
+        <SegmentsTable />
+      </ResourceListContainer>
+    </DashboardContent>
   );
 }

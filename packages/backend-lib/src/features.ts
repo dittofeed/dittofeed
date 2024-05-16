@@ -39,6 +39,15 @@ export async function getFeatures({
     if (validated.isErr()) {
       return acc;
     }
+    if (!feature.enabled) {
+      acc[validated.value] = false;
+      return acc;
+    }
+    if (feature.config && typeof feature.config === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      acc[validated.value] = feature.config;
+      return acc;
+    }
     acc[validated.value] = feature.enabled;
     return acc;
   }, {});

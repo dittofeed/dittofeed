@@ -4,11 +4,10 @@ import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import React from "react";
 
+import DashboardContent from "../components/dashboardContent";
 import { EventsTable } from "../components/eventsTable";
-import MainLayout from "../components/mainLayout";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
@@ -53,25 +52,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
 export default function Events() {
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <MainLayout>
-        <Stack
-          direction="column"
-          alignItems="center"
-          justifyContent="center"
-          paddingBottom={2}
-          paddingTop={2}
-          sx={{ width: "100%", height: "100%", padding: 2 }}
-        >
-          <Box sx={{ width: "100%", height: "100%" }}>
-            <EventsTable />
-          </Box>
-        </Stack>
-      </MainLayout>
-    </>
+    <DashboardContent>
+      <Stack
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        paddingBottom={2}
+        paddingTop={2}
+        sx={{ width: "100%", height: "100%", padding: 2 }}
+      >
+        <Box sx={{ width: "100%", height: "100%" }}>
+          <EventsTable />
+        </Box>
+      </Stack>
+    </DashboardContent>
   );
 }

@@ -3260,17 +3260,6 @@ export const JourneyUpsertValidationError = Type.Object({
   variant: JourneyUpsertValidationErrorVariant,
 });
 
-export enum FeatureNamesEnum {
-  DisplayJourneyPercentages = "DisplayJourneyPercentages",
-  WhiteLabel = "WhiteLabel",
-}
-
-export const FeatureNames = Type.Enum(FeatureNamesEnum);
-
-export type FeatureMap = {
-  [K in FeatureNamesEnum]?: boolean;
-};
-
 export type MessageTags = Record<string, string> & { messageId: string };
 
 export const RelatedResourceProperties = Type.Intersect([
@@ -3285,3 +3274,22 @@ export const RelatedResourceProperties = Type.Intersect([
 export type RelatedResourceProperties = Static<
   typeof RelatedResourceProperties
 >;
+
+export enum FeatureNamesEnum {
+  DisplayJourneyPercentages = "DisplayJourneyPercentages",
+  WhiteLabel = "WhiteLabel",
+}
+
+export const FeatureNames = Type.Enum(FeatureNamesEnum);
+
+export type FeatureMap = {
+  [K in FeatureNamesEnum]?: object | boolean;
+};
+
+export const WhiteLabelFeatureConfig = Type.Object({
+  type: Type.Literal(FeatureNamesEnum.WhiteLabel),
+  favicon: Type.Optional(Type.String()),
+  title: Type.Optional(Type.String()),
+});
+
+export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
