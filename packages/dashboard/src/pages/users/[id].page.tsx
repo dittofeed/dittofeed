@@ -25,10 +25,10 @@ import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
 
 import DeleteDialog from "../../components/confirmDeleteDialog";
+import DashboardContent from "../../components/dashboardContent";
 import { DeliveriesTable } from "../../components/deliveriesTable";
 import { EventsTable } from "../../components/eventsTable";
 import { SubtleHeader } from "../../components/headers";
-import MainLayout from "../../components/mainLayout";
 import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -171,7 +171,7 @@ const User: NextPage<UserPageProps> = function User(props) {
   };
 
   return (
-    <MainLayout>
+    <DashboardContent>
       <Stack
         direction="row"
         sx={{ padding: 2, width: "100%" }}
@@ -235,7 +235,7 @@ const User: NextPage<UserPageProps> = function User(props) {
           />
         </Stack>
       </Stack>
-    </MainLayout>
+    </DashboardContent>
   );
 };
 
