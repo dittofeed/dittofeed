@@ -3283,7 +3283,7 @@ export enum FeatureNamesEnum {
 export const FeatureNames = Type.Enum(FeatureNamesEnum);
 
 export type FeatureMap = {
-  [K in FeatureNamesEnum]?: boolean;
+  [K in FeatureNamesEnum]?: object | boolean;
 };
 
 export const WhiteLabelFeatureConfig = Type.Object({
