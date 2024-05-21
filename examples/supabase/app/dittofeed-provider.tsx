@@ -2,6 +2,7 @@
 
 import { DittofeedSdk } from "@dittofeed/sdk-web";
 import { useEffect } from "react";
+
 import { useSupabase } from "./supabase-provider";
 
 // Initialize the sdk with a writeKey, which is used to identify your
@@ -10,17 +11,22 @@ import { useSupabase } from "./supabase-provider";
 if (process.env.NEXT_PUBLIC_DITTOFEED_WRITE_KEY) {
   DittofeedSdk.init({
     writeKey: process.env.NEXT_PUBLIC_DITTOFEED_WRITE_KEY,
+    host: process.env.NEXT_PUBLIC_DITTOFEED_HOST,
   });
 }
 
-export default function DittofeedProvider({ children }: { children: React.ReactNode }) {
+export default function DittofeedProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = useSupabase();
 
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+      if (session && event === "SIGNED_IN") {
         const { user } = session;
         DittofeedSdk.identify({
           userId: user.id,
@@ -32,6 +38,6 @@ export default function DittofeedProvider({ children }: { children: React.ReactN
     return () => {
       subscription.unsubscribe();
     };
-  });
+  }, [supabase, Math.random()]);
   return <>{children}</>;
 }

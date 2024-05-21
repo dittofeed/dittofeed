@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import DittofeedProvider from "./dittofeed-provider";
+import SupabaseProvider from "./supabase-provider";
 
 export const metadata = {
   title: "User Management",
@@ -14,13 +15,15 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en">
-      <DittofeedProvider>
-        <body>
-          <div className="container" style={{ padding: "50px 0 100px 0" }}>
-            {children}
-          </div>
-        </body>
-      </DittofeedProvider>
+      <SupabaseProvider>
+        <DittofeedProvider>
+          <body>
+            <div className="container" style={{ padding: "50px 0 100px 0" }}>
+              {children}
+            </div>
+          </body>
+        </DittofeedProvider>
+      </SupabaseProvider>
     </html>
   );
 }

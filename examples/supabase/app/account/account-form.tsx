@@ -6,12 +6,12 @@ import {
   Session,
   createClientComponentClient,
 } from "@supabase/auth-helpers-nextjs";
+import { DittofeedSdk } from "@dittofeed/sdk-web";
 
 export default function AccountForm({ session }: { session: Session | null }) {
   const supabase = createClientComponentClient<Database>();
   const [loading, setLoading] = useState(true);
   const [fullname, setFullname] = useState<string | null>(null);
-  const [plan, setPlan] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [website, setWebsite] = useState<string | null>(null);
   const [avatar_url, setAvatarUrl] = useState<string | null>(null);
@@ -61,14 +61,20 @@ export default function AccountForm({ session }: { session: Session | null }) {
     try {
       setLoading(true);
 
-      let { error } = await supabase.from("profiles").upsert({
-        id: user?.id as string,
+      const userId = user?.id as string;
+      const updatedUser = {
+        id: userId,
         full_name: fullname,
         username,
         website,
         avatar_url,
         updated_at: new Date().toISOString(),
+      };
+      DittofeedSdk.identify({
+        userId,
+        traits: updatedUser,
       });
+      let { error } = await supabase.from("profiles").upsert(updatedUser);
       if (error) throw error;
       alert("Profile updated!");
     } catch (error) {
