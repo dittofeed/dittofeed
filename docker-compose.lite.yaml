@@ -17,6 +17,7 @@ x-backend-app-env: &backend-app-env
   AUTH_MODE: ${AUTH_MODE:-single-tenant}
   SECRET_KEY: ${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}
   PASSWORD: ${PASSWORD:-password}
+  DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
 services:
   lite:
     image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.13.13}
