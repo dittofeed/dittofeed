@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 import { useSupabase } from "./supabase-provider";
 
-// Initialize the sdk with a writeKey, which is used to identify your
+// Initialize the sdk with a writeKey on startup, which is used to identify your
 // workspace. This key can be found at
 // https://dittofeed.com/dashboard/settings
 if (process.env.NEXT_PUBLIC_DITTOFEED_WRITE_KEY) {
@@ -27,6 +27,7 @@ export default function DittofeedProvider({
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && event === "SIGNED_IN") {
+        // Emit an identify event to Dittofeed when a user signs in
         const { user } = session;
         DittofeedSdk.identify({
           userId: user.id,
@@ -38,6 +39,7 @@ export default function DittofeedProvider({
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase, Math.random()]);
+  }, [supabase]);
+
   return <>{children}</>;
 }

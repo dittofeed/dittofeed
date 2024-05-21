@@ -1,6 +1,8 @@
 # Supabase Next.js Auth & User Management Starter
 
-This example will set you up for a very common situation: users can sign up or sign in and then update their account with public profile information, including a profile image.
+This example will set you up for a very common situation: users can sign up or sign in and then update their account with public profile information, including a profile image. This example illustrates how to integrate Dittofeed into an app-router based Next.js application, with Supabase.
+
+This example was derived from the following [supabase example project](https://github.com/supabase/supabase/tree/master/examples/user-management/nextjs-user-management).
 
 This demonstrates how to use:
 
@@ -59,6 +61,103 @@ Populate this file with your URL and Key.
 ### 5. Run the application
 
 Run the application: `npm run dev`. Open your browser to `https://localhost:3000/` and you are ready to go 🚀.
+
+## Dittofeed details
+
+Dittofeed is integrated at several points in the application.
+
+[`app/dittofeed-provider.tsx`](/examples/supabase/app/dittofeed-provider.tsx)
+
+```typescript
+"use client";
+
+import { DittofeedSdk } from "@dittofeed/sdk-web";
+import { useEffect } from "react";
+
+import { useSupabase } from "./supabase-provider";
+
+// Initialize the sdk with a writeKey on startup, which is used to identify your
+// workspace. This key can be found at
+// https://dittofeed.com/dashboard/settings
+if (process.env.NEXT_PUBLIC_DITTOFEED_WRITE_KEY) {
+  DittofeedSdk.init({
+    writeKey: process.env.NEXT_PUBLIC_DITTOFEED_WRITE_KEY,
+    host: process.env.NEXT_PUBLIC_DITTOFEED_HOST,
+  });
+}
+
+export default function DittofeedProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = useSupabase();
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && event === "SIGNED_IN") {
+        // Emit an identify event to Dittofeed when a user signs in
+        const { user } = session;
+        DittofeedSdk.identify({
+          userId: user.id,
+          traits: user,
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  return <>{children}</>;
+}
+```
+
+[`app/account/account-form.tsx`](/examples/supabase/app/account/account-form.tsx)
+
+```typescript
+...
+ async function updateProfile({
+    username,
+    website,
+    avatar_url,
+  }: {
+    username: string | null;
+    fullname: string | null;
+    website: string | null;
+    avatar_url: string | null;
+  }) {
+    try {
+      setLoading(true);
+
+      const userId = user?.id as string;
+      const updatedUser = {
+        id: userId,
+        full_name: fullname,
+        username,
+        website,
+        avatar_url,
+        updated_at: new Date().toISOString(),
+      };
+      // Emit an identify event to Dittofeed when a user updates their profile
+      DittofeedSdk.identify({
+        userId,
+        traits: updatedUser,
+      });
+      let { error } = await supabase.from("profiles").upsert(updatedUser);
+      if (error) throw error;
+      alert("Profile updated!");
+    } catch (error) {
+      alert("Error updating the data!");
+    } finally {
+      setLoading(false);
+    }
+  }
+...
+```
 
 ## Supabase details
 

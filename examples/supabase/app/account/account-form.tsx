@@ -70,6 +70,7 @@ export default function AccountForm({ session }: { session: Session | null }) {
         avatar_url,
         updated_at: new Date().toISOString(),
       };
+      // Emit an identify event to Dittofeed when a user updates their profile
       DittofeedSdk.identify({
         userId,
         traits: updatedUser,
