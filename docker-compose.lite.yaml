@@ -49,8 +49,9 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
-    env_file:
-      - .env
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     networks:
       - dittofeed-network-lite
   temporal:
