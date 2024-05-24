@@ -110,11 +110,7 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
             </Stack>
             {signOutUrl ? (
               <Box>
-                <Button
-                  LinkComponent={Link}
-                  href={signOutUrl}
-                  variant="outlined"
-                >
+                <Button href={signOutUrl} variant="outlined">
                   Sign Out
                 </Button>
               </Box>
