@@ -68,6 +68,21 @@ resources:
     cpu: 1
     memory: 512Mi
 
+clickhouse:
+  # Enable to install ClickHouse as a dependency
+  enabled: false
+
+postgresql:
+  # Enable to install PostgreSQL as a dependency
+  enabled: false
+
+# FIXME add deployment for standalone temporal
+
+env:
+  # BOOTSTRAP should be set to "false" after the first deployment
+  # - name: BOOTSTRAP
+  #   value: "false"
+
 livenessProbe:
   httpGet:
     path: /dashboard/api
