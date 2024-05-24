@@ -12,7 +12,7 @@ function NavCard() {
   }
   return (
     <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
-      <Stack alignItems="center" spacing={2.5}>
+      <Stack alignItems="center" spacing={2.5} p={2}>
         <Stack alignItems="center">
           <Typography variant="h5">Dittofeed</Typography>
           <Typography variant="h6" color="secondary">
