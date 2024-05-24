@@ -1,0 +1,39 @@
+{{- if .Values.temporal.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dittofeed.fullname" . }}-temporal
+  labels:
+    {{- include "dittofeed.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "dittofeed.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dittofeed.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-temporal
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.temporal.image.repository }}:{{ .Values.temporal.image.tag }}"
+          imagePullPolicy: {{ .Values.temporal.image.pullPolicy }}
+          ports:
+            - containerPort: 7233
+          resources:
+            {{- toYaml .Values.temporal.resources | nindent 12 }}
+          env: # Add this section to define environment variables
+            - name: DB
+              value: "postgresql"
+            - name: DB_PORT
+              value: "5432"
+            {{- if .Values.temporal.env }}
+            {{- toYaml .Values.temporal.env | nindent 12 }}
+            {{- end }}
+{{- end }}
