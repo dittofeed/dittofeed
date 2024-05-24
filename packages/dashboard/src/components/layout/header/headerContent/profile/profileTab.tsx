@@ -36,7 +36,7 @@ function ProfileTab() {
         <ListItemText primary="Settings" />
       </ListItemButton>
       {signoutUrl ? (
-        <ListItemButton LinkComponent={Link} href={signoutUrl}>
+        <ListItemButton href={signoutUrl}>
           <ListItemIcon>
             <Logout />
           </ListItemIcon>
