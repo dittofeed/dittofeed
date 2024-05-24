@@ -71,14 +71,29 @@ resources:
 clickhouse:
   # Enable to install ClickHouse as a dependency
   enabled: false
+  auth:
+    username: dittofeed
+    password: password
+    database: dittofeed
+    # uncomment to use an existing secret for the password
+    # existingSecret: "my-secret-name"
+    # existingSecretKey: "password"
 
 postgresql:
   # Enable to install PostgreSQL as a dependency
   enabled: false
+  auth:
+    username: postgres
+    password: password
+    database: dittofeed
+    # uncomment to use an existing secret for the password
+    # existingSecret: "my-secret-name"
+    # userPasswordKey: "password"
 
 # FIXME add deployment for standalone temporal
 
 env:
+  # FIXME add env variables for clickhouse and postgresql connections
   # BOOTSTRAP should be set to "false" after the first deployment
   # - name: BOOTSTRAP
   #   value: "false"
