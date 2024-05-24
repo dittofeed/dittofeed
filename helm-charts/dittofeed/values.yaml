@@ -76,7 +76,7 @@ clickhouse:
     password: password
     database: dittofeed
     # uncomment to use an existing secret for the password
-    # existingSecret: "my-secret-name"
+    # existingSecret: "my-clickhouse-secret-name"
     # existingSecretKey: "password"
 
 postgresql:
@@ -87,17 +87,58 @@ postgresql:
     password: password
     database: dittofeed
     # uncomment to use an existing secret for the password
-    # existingSecret: "my-secret-name"
+    # existingSecret: "my-pg-secret-name"
     # userPasswordKey: "password"
 
-# FIXME add deployment for standalone temporal
+temporal:
+  # Enable to install standalone Temporal as a dependency
+  enabled: false
+  resources: {}
+    # limits:
+    #   cpu: 1
+    #   memory: 1024Mi
+    # requests:
+    #   cpu: 1
+    #   memory: 1024Mi
+  env:
+    - name: POSTGRES_SEEDS
+      value: "dittofeed-postgresql.default.svc.cluster.local"
+    - name: POSTGRES_USER
+      value: "postgres"
+    - name: POSTGRES_PWD
+      value: "password"
+
+  image:
+    repository: temporalio/auto-setup
+    tag: 1.23.1.0
+    pullPolicy: IfNotPresent
 
 env:
-  # FIXME add env variables for clickhouse and postgresql connections
+  - name: DATABASE_HOST
+    value: "dittofeed-postgresql.default.svc.cluster.local"
+  - name: DATABASE_USER
+    value: "postgres"
+  - name: DATABASE_PASSWORD
+    value: "password"
+  - name: CLICKHOUSE_HOST
+    value: "dittofeed-clickhouse.default.svc.cluster.local"
+  - name: CLICKHOUSE_USER
+    value: "dittofeed"
+  - name: CLICKHOUSE_PASSWORD
+    value: "password"
   # BOOTSTRAP should be set to "false" after the first deployment
   # - name: BOOTSTRAP
   #   value: "false"
-
+  # - name: DATABASE_PASSWORD
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-pg-secret-name
+  #       key: password
+  # - name: CLICKHOUSE_PASSWORD
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-clickhouse-secret-name
+  #       key: password
 livenessProbe:
   httpGet:
     path: /dashboard/api
@@ -113,19 +154,6 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
-
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
 
 nodeSelector: {}
 
