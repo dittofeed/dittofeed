@@ -59,14 +59,14 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
+resources:
   # Recommended resources for production
-  # limits:
-  #   cpu: 1
-  #   memory: 512Mi
-  # requests:
-  #   cpu: 1
-  #   memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 512Mi
+  requests:
+    cpu: 1
+    memory: 512Mi
 
 livenessProbe:
   httpGet:

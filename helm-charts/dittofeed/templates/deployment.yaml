@@ -47,6 +47,17 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
+          env: # Add this section to define environment variables
+            - name: NODE_ENV
+              value: "production"
+            - name: ENV_VAR_NAME_1
+              value: "value1"
+            - name: ENV_VAR_NAME_2
+              value: "value2"
+            {{- if .Values.customEnv }}
+            {{- toYaml .Values.customEnv | nindent 12 }}
+            {{- end }}
+
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
