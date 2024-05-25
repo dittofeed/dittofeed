@@ -36,14 +36,17 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: 
+            - node
+            - --max-old-space-size={{ .Values.maxOldSpaceSize | default 412 }}
+            - packages/lite/dist/scripts/startLite.js
+            - --workspace-name='Dittofeed Demo'
+          # FIXME add workspace name param
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          # FIXME reenable
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env: # Add this section to define environment variables

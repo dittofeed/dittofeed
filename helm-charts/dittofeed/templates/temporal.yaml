@@ -4,12 +4,21 @@ kind: Deployment
 metadata:
   name: {{ include "dittofeed.fullname" . }}-temporal
   labels:
-    {{- include "dittofeed.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "dittofeed.baseLabels" . | nindent 4 }}
 spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "dittofeed.baseLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "dittofeed.labels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "dittofeed.baseLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
