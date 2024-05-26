@@ -40,8 +40,7 @@ spec:
             - node
             - --max-old-space-size={{ .Values.maxOldSpaceSize | default 412 }}
             - packages/lite/dist/scripts/startLite.js
-            - --workspace-name='Dittofeed Demo'
-          # FIXME add workspace name param
+            - --workspace-name={{ .Values.workspaceName | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

@@ -2,6 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+workspaceName: Dittofeed
 replicaCount: 1
 
 maxOldSpaceSize: 412
@@ -70,14 +71,11 @@ resources:
     cpu: 1
     memory: 512Mi
 
-# 2024.05.24 22:29:48.429239 [ 620 ] {} <Warning> RaftInstance: peer (2) response error: failed to resolve host demo-helm-clickhouse-shard0-2.demo-helm-clickhouse-headless.marketing-automation.svc.cluster.local due to error 1, Host not found (authoritative)
-# 2024.05.24 22:29:48.435891 [ 625 ] {} <Warning> RaftInstance: peer (1) response error: failed to resolve host demo-helm-clickhouse-shard0-1.demo-helm-clickhouse-headless.marketing-automation.svc.cluster.local due to erro
 clickhouse:
   # Enable to install ClickHouse as a dependency
   enabled: false
   # Minimal installation for easy of testing.
-  # shards: 1
-  # replicaCount: 1
+  shards: 1
   zookeeper:
     enabled: false
   keeper:
@@ -131,25 +129,25 @@ env:
     value: "postgres"
   - name: DATABASE_PASSWORD
     value: "password"
+  ## - name: DATABASE_PASSWORD
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-pg-secret-name
+  #       key: password
   - name: CLICKHOUSE_HOST
     value: "dittofeed-clickhouse.default.svc.cluster.local:8443"
   - name: CLICKHOUSE_USER
     value: "dittofeed"
   - name: CLICKHOUSE_PASSWORD
     value: "password"
-  # BOOTSTRAP should be set to "false" after the first deployment
-  # - name: BOOTSTRAP
-  #   value: "false"
-  # - name: DATABASE_PASSWORD
-  #   valueFrom:
-  #     secretKeyRef:
-  #       name: my-pg-secret-name
-  #       key: password
   # - name: CLICKHOUSE_PASSWORD
   #   valueFrom:
   #     secretKeyRef:
   #       name: my-clickhouse-secret-name
   #       key: password
+  # BOOTSTRAP should be set to "false" after the first deployment
+  # - name: BOOTSTRAP
+  #   value: "false"
 livenessProbe:
   httpGet:
     path: /dashboard/api
