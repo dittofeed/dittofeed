@@ -57,7 +57,7 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: 7233
+    - port: 80
       targetPort: 7233
       protocol: TCP
       name: http

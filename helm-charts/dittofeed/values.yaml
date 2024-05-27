@@ -140,7 +140,7 @@ env:
   #       name: my-pg-secret-name
   #       key: password
   - name: CLICKHOUSE_HOST
-    value: "dittofeed-clickhouse.default.svc.cluster.local:8443"
+    value: "http://dittofeed-clickhouse.default.svc.cluster.local:8443"
   - name: CLICKHOUSE_USER
     value: "dittofeed"
   - name: CLICKHOUSE_PASSWORD
