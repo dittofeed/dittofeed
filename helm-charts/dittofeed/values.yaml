@@ -74,8 +74,13 @@ resources:
 clickhouse:
   # Enable to install ClickHouse as a dependency
   enabled: false
-  # Minimal installation for easy of testing.
+  # Minimal installation for ease of testing.
   shards: 1
+  resources:
+    limits:
+      memory: 1024Mi
+    requests:
+      memory: 1024Mi
   zookeeper:
     enabled: false
   keeper:
@@ -148,14 +153,8 @@ env:
   # BOOTSTRAP should be set to "false" after the first deployment
   # - name: BOOTSTRAP
   #   value: "false"
-livenessProbe:
-  httpGet:
-    path: /dashboard/api
-    port: http
-readinessProbe:
-  httpGet:
-    path: /dashboard/api
-    port: http
+  - name: TEMPORAL_ADDRESS
+    value: "dittofeed-temporal-standalone:80"
 
 autoscaling:
   enabled: false

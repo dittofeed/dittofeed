@@ -45,7 +45,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          # FIXME reenable
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env: # Add this section to define environment variables
