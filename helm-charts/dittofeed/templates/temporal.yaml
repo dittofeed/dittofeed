@@ -45,4 +45,24 @@ spec:
             {{- if .Values.temporal.env }}
             {{- toYaml .Values.temporal.env | nindent 12 }}
             {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dittofeed.fullname" . }}-temporal
+  labels:
+    app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "dittofeed.baseLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 7233
+      targetPort: 7233
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "dittofeed.baseLabels" . | nindent 4 }}
 {{- end }}

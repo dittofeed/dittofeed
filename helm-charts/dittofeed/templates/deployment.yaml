@@ -43,7 +43,7 @@ spec:
             - --workspace-name={{ .Values.workspaceName | quote }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: 3000
               protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

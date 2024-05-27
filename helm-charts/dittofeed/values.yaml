@@ -154,7 +154,7 @@ env:
   # - name: BOOTSTRAP
   #   value: "false"
   - name: TEMPORAL_ADDRESS
-    value: "dittofeed-temporal-standalone:80"
+    value: "dittofeed-temporal:80"
 
 autoscaling:
   enabled: false
