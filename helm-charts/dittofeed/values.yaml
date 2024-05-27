@@ -116,7 +116,7 @@ temporal:
     #   memory: 1024Mi
   env:
     - name: POSTGRES_SEEDS
-      value: "dittofeed-postgresql.default.svc.cluster.local"
+      value: "demo-postgresql.default.svc.cluster.local"
     - name: POSTGRES_USER
       value: "postgres"
     - name: POSTGRES_PWD
@@ -129,7 +129,7 @@ temporal:
 
 env:
   - name: DATABASE_HOST
-    value: "dittofeed-postgresql.default.svc.cluster.local"
+    value: "demo-postgresql.default.svc.cluster.local"
   - name: DATABASE_USER
     value: "postgres"
   - name: DATABASE_PASSWORD
@@ -140,7 +140,7 @@ env:
   #       name: my-pg-secret-name
   #       key: password
   - name: CLICKHOUSE_HOST
-    value: "http://dittofeed-clickhouse.default.svc.cluster.local:8443"
+    value: "http://demo-clickhouse.default.svc.cluster.local:8123"
   - name: CLICKHOUSE_USER
     value: "dittofeed"
   - name: CLICKHOUSE_PASSWORD
@@ -154,7 +154,7 @@ env:
   # - name: BOOTSTRAP
   #   value: "false"
   - name: TEMPORAL_ADDRESS
-    value: "dittofeed-temporal:80"
+    value: "demo-dittofeed-temporal:80"
 
 autoscaling:
   enabled: false
