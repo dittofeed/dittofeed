@@ -4,6 +4,17 @@ title: Self-Host with Docker Compose
 
 This section outlines the necessary steps to run Dittofeed with docker compose.
 
+Watch the following video walkthrough to see how to set up Dittofeed with docker compose.
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/kZbDvVCylVg?si=4P9uoHFttEmrZD2i"
+  title="Setting Up Dittofeed with Docker Compose"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
 First, clone Dittofeed's github repository.
 
 ```bash
@@ -11,13 +22,28 @@ git clone git@github.com:dittofeed/dittofeed.git
 cd dittofeed
 ```
 
-Next create a local `.env` file.
+## Overridde Default Environment Variables
+
+It's important that you override the default environment variables in the `.env` file, for security reasons.
+
+<Info>
+Dittofeed has dependencies on Postgres, and Clickhouse, with an optional Kafka dependency.
+</Info>
+
+To start, create a local `.env` file.
 
 ```bash
 touch .env
 ```
 
-Dittofeed has dependencies on Postgres, and Clickhouse, with an optional Kafka dependency.
+Then uncomment the following lines from [`docker-compose.lite.yaml`](https://github.com/dittofeed/dittofeed/blob/main/docker-compose.lite.yaml):
+
+```yaml docker-compose.lite.yaml
+# README: To add local env variables uncomment the following line and add a .env file in the root directory
+env_file:
+  - .env
+```
+
 
 Populate this `.env` file with the following values, substituting placeholder values with your own. Dittofeed will work without these overrides, but it is recommended that you substitute your own credentials.
 
