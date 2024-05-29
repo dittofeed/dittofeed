@@ -52,6 +52,8 @@ spec:
               value: "production"
             - name: AUTH_MODE
               value: "single-tenant"
+            - name: DASHBOARD_API_BASE
+              value: ""
             {{- if .Values.env }}
             {{- toYaml .Values.env | nindent 12 }}
             {{- end }}
