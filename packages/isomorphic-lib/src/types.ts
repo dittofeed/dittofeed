@@ -1422,7 +1422,17 @@ export const JourneyNodeUiProps = Type.Union([
 
 export type JourneyNodeUiProps = Static<typeof JourneyNodeUiProps>;
 
-export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
+export const TimeUnitEnum = {
+  seconds: "seconds",
+  minutes: "minutes",
+  hours: "hours",
+  days: "days",
+  weeks: "weeks",
+} as const;
+
+export const TimeUnit = Type.KeyOf(Type.Const(TimeUnitEnum));
+
+export type TimeUnit = Static<typeof TimeUnit>;
 
 export enum JourneyUiEdgeType {
   JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",

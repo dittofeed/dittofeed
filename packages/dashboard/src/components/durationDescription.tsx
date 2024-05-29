@@ -18,17 +18,22 @@ export const timeUnitConversion: Record<TimeUnit, number> = {
   weeks: 60 * 60 * 24 * 7,
 };
 
+const EPSILON = 1e-10;
+
 export function nearestTimeUnit(seconds?: number): TimeUnit {
   if (!seconds) {
     return "days";
   }
   for (const unit of timeUnitOrder) {
     const conversion = timeUnitConversion[unit];
-    if ((seconds / conversion) % 1 === 0) {
+    const numberOfUnits = seconds / conversion;
+    if (Math.abs(numberOfUnits - Math.round(numberOfUnits)) < EPSILON) {
       return unit;
     }
   }
-  throw new Error("should by default select seconds from loop above");
+  throw new Error(
+    `should by default select seconds from loop above: ${seconds}`,
+  );
 }
 
 export interface DurationDescriptionProps {
