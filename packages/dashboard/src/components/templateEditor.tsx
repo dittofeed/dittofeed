@@ -431,17 +431,15 @@ export default function TemplateEditor({
       if (!template?.definition) {
         return;
       }
+      // initialize editedTemplate from store if not set
       if (!draft.editedTemplate) {
         draft.editedTemplate = {
           title: template.name,
           draft: template.draft,
         };
-      } else {
-        draft.editedTemplate.title = template.name;
         // handling reverts, otherwise don't overwrite draft
-        if (!template.draft) {
-          draft.editedTemplate.draft = undefined;
-        }
+      } else if (!template.draft) {
+        draft.editedTemplate.draft = undefined;
       }
     });
   }, [setState, template]);
