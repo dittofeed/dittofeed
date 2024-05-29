@@ -92,7 +92,7 @@ export {
   type JourneyUiPlaceholderEdgeProps,
   type MessageUiNodeProps,
   type SegmentSplitUiNodeProps,
-  type TimeUnit,
+  TimeUnit,
   type WaitForUiNodeProps,
 };
 
