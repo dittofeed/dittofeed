@@ -1,10 +1,9 @@
-import { Prisma, SegmentAssignment } from "@prisma/client";
+import { SegmentAssignment } from "@prisma/client";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
-import logger from "../../logger";
 import { sendMessage } from "../../messaging";
 import prisma from "../../prisma";
 import {
@@ -15,7 +14,6 @@ import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   ChannelType,
-  ComputedPropertyStep,
   InternalEventType,
   JSONValue,
   TrackData,
@@ -213,56 +211,4 @@ export function getSegmentAssignment({
   });
 }
 
-export async function getLastComputePropertyPeriod({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<number> {
-  // TODO extract
-  const [userProperties, segments] = await Promise.all([
-    prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        definitionUpdatedAt: true,
-      },
-    }),
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        definitionUpdatedAt: true,
-      },
-    }),
-  ]);
-  const step = ComputedPropertyStep.ProcessAssignments;
-  const pairs = [
-    ...userProperties.map((up) => [up.id, up.definitionUpdatedAt.toString()]),
-    ...segments.map((s) => [s.id, s.definitionUpdatedAt.toString()]),
-  ];
-
-  const query = Prisma.sql`
-    SELECT MIN("to") as "minTo"
-    FROM "ComputedPropertyPeriod"
-    WHERE
-      "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND "step" = ${step}
-      AND ("computedPropertyId", "version") IN (${Prisma.join(pairs)})
-  `;
-  const result = await prisma().$queryRaw<{ minTo: number }[]>(query);
-  const minTo = result[0]?.minTo;
-  if (!minTo) {
-    logger().error(
-      {
-        result,
-      },
-      "No computed property periods found",
-    );
-    return 0;
-  }
-  return minTo;
-}
+export { getLastComputePropertyPeriod } from "../../computedProperties/periods";
