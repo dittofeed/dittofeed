@@ -654,6 +654,7 @@ export const MessageNode = Type.Object(
     subscriptionGroupId: Type.Optional(Type.String()),
     variant: MessageVariant,
     child: Type.String(),
+    syncProperties: Type.Optional(Type.Boolean()),
   },
   {
     title: "Message Node",
