@@ -1,12 +1,10 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { Tooltip } from "@mui/material";
-import {
-  ComputedPropertyStep,
-  getPeriodsByComputedPropertyId,
-} from "backend-lib/src/computedProperties/computePropertiesIncremental";
+import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findManyPartialSegments } from "backend-lib/src/segments";
+import { ComputedPropertyStep } from "backend-lib/src/types";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { pick } from "remeda";
