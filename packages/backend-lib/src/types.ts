@@ -559,3 +559,9 @@ export type DittofeedFastifyInstance = FastifyInstance<
   Logger,
   TypeBoxTypeProvider
 >;
+
+export enum ComputedPropertyStep {
+  ComputeState = "ComputeState",
+  ComputeAssignments = "ComputeAssignments",
+  ProcessAssignments = "ProcessAssignments",
+}

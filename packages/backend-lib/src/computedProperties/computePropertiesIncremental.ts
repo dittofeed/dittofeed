@@ -32,6 +32,7 @@ import {
   ComputedAssignment,
   ComputedPropertyAssignment,
   ComputedPropertyPeriod,
+  ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
@@ -205,12 +206,6 @@ async function signalJourney({
     signal: segmentUpdateSignal,
     signalArgs: [segmentUpdate],
   });
-}
-
-export enum ComputedPropertyStep {
-  ComputeState = "ComputeState",
-  ComputeAssignments = "ComputeAssignments",
-  ProcessAssignments = "ProcessAssignments",
 }
 
 type PeriodByComputedPropertyIdMap = Map<
