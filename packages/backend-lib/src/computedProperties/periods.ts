@@ -167,7 +167,6 @@ export async function getEarliestComputePropertyPeriod({
 }: {
   workspaceId: string;
 }): Promise<number> {
-  // TODO extract
   const [userProperties, segments] = await Promise.all([
     prisma().userProperty.findMany({
       where: {
@@ -189,10 +188,24 @@ export async function getEarliestComputePropertyPeriod({
     }),
   ]);
   const step = ComputedPropertyStep.ProcessAssignments;
-  const pairs = [
-    ...userProperties.map((up) => [up.id, up.definitionUpdatedAt.toString()]),
-    ...segments.map((s) => [s.id, s.definitionUpdatedAt.toString()]),
+  const pairs: [string, string][] = [
+    ...userProperties.map<[string, string]>((up) => [
+      up.id,
+      up.definitionUpdatedAt.toString(),
+    ]),
+    ...segments.map<[string, string]>((s) => [
+      s.id,
+      s.definitionUpdatedAt.toString(),
+    ]),
   ];
+
+  const conditions = Prisma.join(
+    pairs.map(
+      ([computedPropertyId, version]) =>
+        Prisma.sql`("computedPropertyId" = CAST(${computedPropertyId} AS UUID) AND "version" = ${version})`,
+    ),
+    " OR ",
+  );
 
   const query = Prisma.sql`
     SELECT MIN("to") as "minTo"
@@ -200,7 +213,7 @@ export async function getEarliestComputePropertyPeriod({
     WHERE
       "workspaceId" = CAST(${workspaceId} AS UUID)
       AND "step" = ${step}
-      AND ("computedPropertyId", "version") IN (${Prisma.join(pairs)})
+      AND (${conditions})
   `;
   const result = await prisma().$queryRaw<{ minTo: number }[]>(query);
   const minTo = result[0]?.minTo;
