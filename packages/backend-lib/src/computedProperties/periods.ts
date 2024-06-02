@@ -1,5 +1,6 @@
 import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
 
+import logger from "../logger";
 import prisma from "../prisma";
 import {
   ComputedPropertyStep,
@@ -104,14 +105,14 @@ export async function createPeriods({
   workspaceId: string;
   userProperties: SavedUserPropertyResource[];
   segments: SavedSegmentResource[];
-  periodByComputedPropertyId: PeriodByComputedPropertyId;
+  periodByComputedPropertyId?: PeriodByComputedPropertyId;
   now: number;
 }) {
   const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
-    const previousPeriod = periodByComputedPropertyId.get({
+    const previousPeriod = periodByComputedPropertyId?.get({
       version,
       computedPropertyId: segment.id,
     });
@@ -128,7 +129,7 @@ export async function createPeriods({
 
   for (const userProperty of userProperties) {
     const version = userProperty.definitionUpdatedAt.toString();
-    const previousPeriod = periodByComputedPropertyId.get({
+    const previousPeriod = periodByComputedPropertyId?.get({
       version,
       computedPropertyId: userProperty.id,
     });
@@ -161,7 +162,7 @@ export async function createPeriods({
   });
 }
 
-export async function getLastComputePropertyPeriod({
+export async function getEarliestComputePropertyPeriod({
   workspaceId,
 }: {
   workspaceId: string;
