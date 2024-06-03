@@ -271,6 +271,9 @@ function MessageNodeFields({
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.MessageNode) {
         props.templateId = template?.id;
+        if (props.name.length === 0) {
+          props.name = template?.name ?? "";
+        }
       }
     });
   };
@@ -295,12 +298,6 @@ function MessageNodeFields({
 
   return (
     <>
-      <TextField
-        label="name"
-        value={nodeProps.name}
-        onChange={onNameChangeHandler}
-        disabled={disabled}
-      />
       <FormControl>
         <InputLabel id="message-channel-select-label">
           Message Channel
@@ -343,6 +340,14 @@ function MessageNodeFields({
           });
         }}
       />
+      {nodeProps.templateId ? (
+        <TextField
+          label="Name Override"
+          value={nodeProps.name}
+          onChange={onNameChangeHandler}
+          disabled={disabled}
+        />
+      ) : null}
     </>
   );
 }

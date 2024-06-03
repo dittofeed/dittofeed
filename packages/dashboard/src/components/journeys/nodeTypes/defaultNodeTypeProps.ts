@@ -10,7 +10,6 @@ import { v4 as uuid } from "uuid";
 import {
   AdditionalJourneyNodeType,
   JourneyNodeUiProps,
-  JourneyUiNodeType,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
 
@@ -18,20 +17,14 @@ export const defaultSegmentSplitName = "True / False Branch";
 
 export function defaultBodyNodeTypeProps(
   type: JourneyUiBodyNodeTypeProps["type"],
-  nodes: Node<JourneyNodeUiProps>[],
+  _nodes: Node<JourneyNodeUiProps>[],
 ): JourneyUiBodyNodeTypeProps {
   switch (type) {
     case JourneyNodeType.MessageNode: {
-      const numMessages =
-        nodes.filter(
-          (n) =>
-            n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
-            n.data.nodeTypeProps.type === JourneyNodeType.MessageNode,
-        ).length + 1;
       return {
         type,
         channel: ChannelType.Email,
-        name: `Message ${numMessages}`,
+        name: "",
       };
     }
     case JourneyNodeType.DelayNode:
