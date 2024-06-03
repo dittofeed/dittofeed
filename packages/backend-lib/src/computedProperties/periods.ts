@@ -144,6 +144,7 @@ export async function createPeriods({
     });
   }
 
+  logger().debug({ newPeriods }, "Creating computed property periods");
   await prisma().$transaction(async (tx) => {
     await tx.computedPropertyPeriod.createMany({
       data: newPeriods,
@@ -208,15 +209,21 @@ export async function getEarliestComputePropertyPeriod({
   );
 
   const query = Prisma.sql`
-    SELECT MIN("to") as "minTo"
+    SELECT
+      MIN("to") as "minTo"
     FROM "ComputedPropertyPeriod"
     WHERE
       "workspaceId" = CAST(${workspaceId} AS UUID)
       AND "step" = ${step}
       AND (${conditions})
   `;
-  const result = await prisma().$queryRaw<{ minTo: number }[]>(query);
-  const minTo = result[0]?.minTo;
+
+  const result = await prisma().$queryRaw<{ minTo: Date }[]>(query);
+  const minTo = result[0]?.minTo.getTime();
+  logger().debug(
+    { result, mintToType: typeof minTo },
+    "Earliest computed property period",
+  );
   if (!minTo) {
     logger().error(
       {
