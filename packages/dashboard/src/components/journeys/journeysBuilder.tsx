@@ -4,6 +4,7 @@ import { Box } from "@mui/material";
 import {
   CompletionStatus,
   JourneyUiBodyNodeTypeProps,
+  SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
@@ -43,12 +44,14 @@ function createNewConnections({
   source,
   target,
   addNodes,
+  subscriptionGroups,
 }: {
   nodeType: JourneyUiBodyNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
   addNodes: AppState["addNodes"];
   source: string;
   target: string;
+  subscriptionGroups: SavedSubscriptionGroupResource[];
 }) {
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
@@ -57,7 +60,7 @@ function createNewConnections({
     id: newTargetId,
     source,
     target,
-    ...defaultBodyNodeTypeProps(nodeType, nodes),
+    ...defaultBodyNodeTypeProps({ type: nodeType, nodes, subscriptionGroups }),
   });
 
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
@@ -76,6 +79,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     upsertJourneyStats,
     setJourneyStatsRequest,
     viewDraft,
+    subscriptionGroups,
   } = useAppStorePick([
     "apiBase",
     "setNodes",
@@ -88,6 +92,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
     "viewDraft",
+    "subscriptionGroups",
   ]);
 
   useJourneyStats({
@@ -116,6 +121,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           target,
           addNodes,
           nodes,
+          subscriptionGroups,
         });
       }
     }

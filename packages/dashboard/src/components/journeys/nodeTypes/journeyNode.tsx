@@ -246,7 +246,7 @@ function journNodeTypeToConfig(
       return {
         sidebarColor: "#03D9F5",
         icon: journeyNodeIcon(JourneyNodeType.MessageNode),
-        title: props.name,
+        title: props.name.length ? props.name : "Unfinished Message",
         body: null,
       };
     case JourneyNodeType.ExitNode:
