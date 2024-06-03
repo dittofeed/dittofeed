@@ -3,7 +3,9 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -355,6 +357,27 @@ function MessageNodeFields({
           label="Name Override"
           value={nodeProps.name}
           onChange={onNameChangeHandler}
+          disabled={disabled}
+        />
+      ) : null}
+      {nodeProps.channel === ChannelType.Webhook ? (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={nodeProps.syncProperties ?? false}
+              onChange={(event) => {
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (props.type === JourneyNodeType.MessageNode) {
+                    props.syncProperties = event.target.checked;
+                  }
+                });
+              }}
+              name="syncProperties"
+              color="primary"
+            />
+          }
+          label="Synchronize Properties"
           disabled={disabled}
         />
       ) : null}
