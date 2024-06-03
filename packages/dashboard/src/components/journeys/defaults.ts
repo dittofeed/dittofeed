@@ -33,10 +33,11 @@ export const DEFAULT_JOURNEY_NODES: Node<JourneyNodeUiProps>[] = layoutNodes(
       id: AdditionalJourneyNodeType.EntryUiNode,
       data: {
         type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-        nodeTypeProps: defaultNodeTypeProps(
-          AdditionalJourneyNodeType.EntryUiNode,
-          [],
-        ),
+        nodeTypeProps: defaultNodeTypeProps({
+          type: AdditionalJourneyNodeType.EntryUiNode,
+          nodes: [],
+          subscriptionGroups: [],
+        }),
       },
       position: placeholderNodePosition,
       type: "journey",
@@ -45,7 +46,11 @@ export const DEFAULT_JOURNEY_NODES: Node<JourneyNodeUiProps>[] = layoutNodes(
       id: JourneyNodeType.ExitNode,
       data: {
         type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-        nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.ExitNode, []),
+        nodeTypeProps: defaultNodeTypeProps({
+          type: JourneyNodeType.ExitNode,
+          nodes: [],
+          subscriptionGroups: [],
+        }),
       },
       position: placeholderNodePosition,
       type: "journey",

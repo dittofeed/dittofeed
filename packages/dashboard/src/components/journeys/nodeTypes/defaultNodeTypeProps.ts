@@ -1,8 +1,11 @@
+import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   DelayVariantType,
   JourneyNodeType,
   JourneyUiBodyNodeTypeProps,
+  SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
@@ -15,16 +18,32 @@ import {
 
 export const defaultSegmentSplitName = "True / False Branch";
 
-export function defaultBodyNodeTypeProps(
-  type: JourneyUiBodyNodeTypeProps["type"],
-  _nodes: Node<JourneyNodeUiProps>[],
-): JourneyUiBodyNodeTypeProps {
+export interface DefaultNodeTypeProps {
+  type: JourneyUiNodeTypeProps["type"];
+  nodes: Node<JourneyNodeUiProps>[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
+}
+
+export function defaultBodyNodeTypeProps({
+  type,
+  nodes: _nodes,
+  subscriptionGroups,
+}: {
+  type: JourneyUiNodeTypeProps["type"];
+  nodes: Node<JourneyNodeUiProps>[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
+}): JourneyUiBodyNodeTypeProps {
   switch (type) {
     case JourneyNodeType.MessageNode: {
+      const defaultSubscriptionGroup = getDefaultSubscriptionGroup({
+        subscriptionGroups,
+        channel: ChannelType.Email,
+      });
       return {
         type,
         channel: ChannelType.Email,
         name: "",
+        subscriptionGroupId: defaultSubscriptionGroup?.id,
       };
     }
     case JourneyNodeType.DelayNode:
@@ -53,13 +72,25 @@ export function defaultBodyNodeTypeProps(
           },
         ],
       };
+    case AdditionalJourneyNodeType.EntryUiNode:
+      throw new Error(
+        "EntryUiNode should not be handled by defaultBodyNodeTypeProps",
+      );
+    case JourneyNodeType.ExitNode:
+      throw new Error(
+        "ExitUiNode should not be handled by defaultBodyNodeTypeProps",
+      );
+    default: {
+      const t: never = type;
+      assertUnreachable(t);
+    }
   }
 }
 
 export function defaultNodeTypeProps(
-  type: JourneyUiNodeTypeProps["type"],
-  nodes: Node<JourneyNodeUiProps>[],
+  props: DefaultNodeTypeProps,
 ): JourneyUiNodeTypeProps {
+  const { type } = props;
   switch (type) {
     case AdditionalJourneyNodeType.EntryUiNode:
       return {
@@ -73,6 +104,6 @@ export function defaultNodeTypeProps(
         type,
       };
     default:
-      return defaultBodyNodeTypeProps(type, nodes);
+      return defaultBodyNodeTypeProps(props);
   }
 }

@@ -18,6 +18,7 @@ import {
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
 import { DAY_INDICES } from "isomorphic-lib/src/constants";
+import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AllowedDayIndices,
@@ -33,7 +34,7 @@ import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
 import { shallow } from "zustand/shallow";
 
-import { useAppStore } from "../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   DelayUiNodeProps,
@@ -242,15 +243,17 @@ function MessageNodeFields({
   nodeProps: MessageUiNodeProps;
   disabled?: boolean;
 }) {
-  const { enableMobilePush, updateJourneyNodeData, messages } = useAppStore(
-    (store) => ({
-      enableMobilePush: store.enableMobilePush,
-      updateJourneyNodeData: store.updateJourneyNodeData,
-      templates: store.messages,
-      messages: store.messages,
-    }),
-    shallow,
-  );
+  const {
+    enableMobilePush,
+    updateJourneyNodeData,
+    messages,
+    subscriptionGroups,
+  } = useAppStorePick([
+    "messages",
+    "enableMobilePush",
+    "updateJourneyNodeData",
+    "subscriptionGroups",
+  ]);
 
   const onNameChangeHandler: React.ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -291,7 +294,14 @@ function MessageNodeFields({
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.MessageNode) {
-        props.channel = e.target.value as ChannelType;
+        const channel = e.target.value as ChannelType;
+        const defaultSubscriptionGroup = getDefaultSubscriptionGroup({
+          channel,
+          subscriptionGroups,
+        });
+
+        props.channel = channel;
+        props.subscriptionGroupId = defaultSubscriptionGroup?.id;
       }
     });
   };
@@ -317,16 +327,6 @@ function MessageNodeFields({
           </MenuItem>
         </Select>
       </FormControl>
-      <Autocomplete
-        value={template}
-        options={templates}
-        disabled={disabled}
-        getOptionLabel={getTemplateLabel}
-        onChange={onTemplateChangeHandler}
-        renderInput={(params) => (
-          <TextField {...params} label="Template" variant="outlined" />
-        )}
-      />
       <SubscriptionGroupAutocomplete
         subscriptionGroupId={nodeProps.subscriptionGroupId}
         channel={nodeProps.channel}
@@ -339,6 +339,16 @@ function MessageNodeFields({
             }
           });
         }}
+      />
+      <Autocomplete
+        value={template}
+        options={templates}
+        disabled={disabled}
+        getOptionLabel={getTemplateLabel}
+        onChange={onTemplateChangeHandler}
+        renderInput={(params) => (
+          <TextField {...params} label="Template" variant="outlined" />
+        )}
       />
       {nodeProps.templateId ? (
         <TextField
