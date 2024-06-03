@@ -1,10 +1,8 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { IconButton, Stack, Typography } from "@mui/material";
-import {
-  ComputedPropertyStep,
-  getPeriodsByComputedPropertyId,
-} from "backend-lib/src/computedProperties/computePropertiesIncremental";
+import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
 import { findMessageTemplates } from "backend-lib/src/messaging";
+import { ComputedPropertyStep } from "backend-lib/src/types";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";

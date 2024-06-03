@@ -1,8 +1,8 @@
-import { ComputedPropertyStep } from "./computedProperties/computePropertiesIncremental";
 import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
 import logger from "./logger";
 import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
+import { ComputedPropertyStep } from "./types";
 
 export async function observeWorkspaceComputeLatency() {
   const [periods, workspaces] = await Promise.all([

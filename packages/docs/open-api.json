@@ -2010,6 +2010,9 @@
                                 },
                                 "child": {
                                   "type": "string"
+                                },
+                                "syncProperties": {
+                                  "type": "boolean"
                                 }
                               },
                               "required": [
@@ -3411,6 +3414,9 @@
                                       },
                                       "child": {
                                         "type": "string"
+                                      },
+                                      "syncProperties": {
+                                        "type": "boolean"
                                       }
                                     },
                                     "required": [
@@ -4351,6 +4357,9 @@
                                       },
                                       "child": {
                                         "type": "string"
+                                      },
+                                      "syncProperties": {
+                                        "type": "boolean"
                                       }
                                     },
                                     "required": [

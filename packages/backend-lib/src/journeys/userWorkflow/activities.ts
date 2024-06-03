@@ -210,3 +210,5 @@ export function getSegmentAssignment({
     },
   });
 }
+
+export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";

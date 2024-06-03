@@ -1,6 +1,5 @@
 /* eslint-disable no-await-in-loop */
 
-import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import jsonPath from "jsonpath";
@@ -24,14 +23,13 @@ import {
 } from "../journeys/userWorkflow";
 import logger from "../logger";
 import { withSpan } from "../openTelemetry";
-import prisma from "../prisma";
 import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
   BroadcastSegmentNode,
   ComputedAssignment,
   ComputedPropertyAssignment,
-  ComputedPropertyPeriod,
+  ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
@@ -58,6 +56,7 @@ import {
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
+import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -207,159 +206,6 @@ async function signalJourney({
   });
 }
 
-export enum ComputedPropertyStep {
-  ComputeState = "ComputeState",
-  ComputeAssignments = "ComputeAssignments",
-  ProcessAssignments = "ProcessAssignments",
-}
-
-type PeriodByComputedPropertyIdMap = Map<
-  string,
-  Pick<
-    AggregatedComputedPropertyPeriod,
-    "maxTo" | "computedPropertyId" | "version"
-  >
->;
-
-class PeriodByComputedPropertyId {
-  private map: PeriodByComputedPropertyIdMap;
-
-  static getKey({
-    computedPropertyId,
-    version,
-  }: {
-    computedPropertyId: string;
-    version: string;
-  }) {
-    return `${computedPropertyId}-${version}`;
-  }
-
-  constructor(map: PeriodByComputedPropertyIdMap) {
-    this.map = map;
-  }
-
-  get({
-    computedPropertyId,
-    version,
-  }: {
-    computedPropertyId: string;
-    version: string;
-  }) {
-    return this.map.get(
-      PeriodByComputedPropertyId.getKey({
-        computedPropertyId,
-        version,
-      }),
-    );
-  }
-}
-
-export async function getPeriodsByComputedPropertyId({
-  workspaceId,
-  step,
-}: {
-  workspaceId: string;
-  step: ComputedPropertyStep;
-}): Promise<PeriodByComputedPropertyId> {
-  const periodsQuery = Prisma.sql`
-    SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
-      "type",
-      "computedPropertyId",
-      "version",
-      MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
-    FROM "ComputedPropertyPeriod"
-    WHERE
-      "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND "step" = ${step}
-    ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
-  `;
-  const periods =
-    await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(periodsQuery);
-
-  const periodByComputedPropertyId =
-    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
-      const { maxTo } = period;
-      const key = PeriodByComputedPropertyId.getKey(period);
-      acc.set(key, {
-        maxTo,
-        computedPropertyId: period.computedPropertyId,
-        version: period.version,
-      });
-      return acc;
-    }, new Map());
-
-  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
-}
-
-async function createPeriods({
-  workspaceId,
-  userProperties,
-  segments,
-  now,
-  periodByComputedPropertyId,
-  step,
-}: {
-  step: ComputedPropertyStep;
-  workspaceId: string;
-  userProperties: SavedUserPropertyResource[];
-  segments: SavedSegmentResource[];
-  periodByComputedPropertyId: PeriodByComputedPropertyId;
-  now: number;
-}) {
-  const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
-
-  for (const segment of segments) {
-    const version = segment.definitionUpdatedAt.toString();
-    const previousPeriod = periodByComputedPropertyId.get({
-      version,
-      computedPropertyId: segment.id,
-    });
-    newPeriods.push({
-      workspaceId,
-      step,
-      type: "Segment",
-      computedPropertyId: segment.id,
-      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
-      to: new Date(now),
-      version,
-    });
-  }
-
-  for (const userProperty of userProperties) {
-    const version = userProperty.definitionUpdatedAt.toString();
-    const previousPeriod = periodByComputedPropertyId.get({
-      version,
-      computedPropertyId: userProperty.id,
-    });
-    newPeriods.push({
-      workspaceId,
-      step,
-      type: "UserProperty",
-      computedPropertyId: userProperty.id,
-      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
-      to: new Date(now),
-      version,
-    });
-  }
-
-  await prisma().$transaction(async (tx) => {
-    await tx.computedPropertyPeriod.createMany({
-      data: newPeriods,
-      skipDuplicates: true,
-    });
-    await tx.computedPropertyPeriod.deleteMany({
-      where: {
-        workspaceId,
-        step,
-        to: {
-          // 5 minutes retention
-          lt: new Date(now - 60 * 1000 * 5),
-        },
-      },
-    });
-  });
-}
-
 interface FullSubQueryData {
   condition: string;
   type: "user_property" | "segment";
@@ -374,13 +220,6 @@ interface FullSubQueryData {
   version: string;
 }
 type SubQueryData = Omit<FullSubQueryData, "version">;
-
-type AggregatedComputedPropertyPeriod = Omit<
-  ComputedPropertyPeriod,
-  "from" | "workspaceId" | "to"
-> & {
-  maxTo: ComputedPropertyPeriod["to"];
-};
 
 export function segmentNodeStateId(
   segment: SavedSegmentResource,

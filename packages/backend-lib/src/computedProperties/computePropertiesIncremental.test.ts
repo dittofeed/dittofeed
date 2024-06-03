@@ -19,6 +19,7 @@ import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   ComputedPropertyAssignment,
+  ComputedPropertyStep,
   EventType,
   InternalEventType,
   JourneyDefinition,
@@ -46,7 +47,6 @@ import {
 } from "../userProperties";
 import {
   computeAssignments,
-  ComputedPropertyStep,
   computeState,
   processAssignments,
   segmentNodeStateId,
