@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Stack,
   Tooltip,
   useTheme,
 } from "@mui/material";
@@ -54,17 +55,26 @@ export default function LoadingModal({
       )}
       {isMinimised && (
         <Tooltip title="Send Test Messages">
-          <IconButton
-            onClick={() => setModalOpen(true)}
-            disabled={openDisabled}
+          <Stack
+            direction="row"
+            sx={{
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <ForwardToInboxOutlined
-              sx={{
-                border: `2px solid ${theme.palette.grey[600]}`,
-                borderRadius: "50%",
-              }}
-            />
-          </IconButton>
+            <IconButton
+              onClick={() => setModalOpen(true)}
+              disabled={openDisabled}
+            >
+              <ForwardToInboxOutlined
+                sx={{
+                  border: `2px solid ${theme.palette.grey[600]}`,
+                  borderRadius: "50%",
+                }}
+              />
+            </IconButton>
+          </Stack>
         </Tooltip>
       )}
 
