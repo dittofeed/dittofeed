@@ -192,11 +192,11 @@ export async function getEarliestComputePropertyPeriod({
   const pairs: [string, string][] = [
     ...userProperties.map<[string, string]>((up) => [
       up.id,
-      up.definitionUpdatedAt.toString(),
+      up.definitionUpdatedAt.getTime().toString(),
     ]),
     ...segments.map<[string, string]>((s) => [
       s.id,
-      s.definitionUpdatedAt.toString(),
+      s.definitionUpdatedAt.getTime().toString(),
     ]),
   ];
 
@@ -220,10 +220,6 @@ export async function getEarliestComputePropertyPeriod({
 
   const result = await prisma().$queryRaw<{ minTo: Date }[]>(query);
   const minTo = result[0]?.minTo.getTime();
-  logger().debug(
-    { result, mintToType: typeof minTo },
-    "Earliest computed property period",
-  );
   if (!minTo) {
     logger().error(
       {
