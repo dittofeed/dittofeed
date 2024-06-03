@@ -356,6 +356,7 @@ function journeyDefinitionFromStateBranch(
           type: JourneyNodeType.MessageNode,
           name: uiNode.name,
           subscriptionGroupId: uiNode.subscriptionGroupId,
+          syncProperties: uiNode.syncProperties,
           variant: {
             type: uiNode.channel,
             templateId: uiNode.templateId,
@@ -1190,6 +1191,7 @@ export function journeyBranchToState(
           channel: node.variant.type,
           name: node.name ?? "",
           subscriptionGroupId: node.subscriptionGroupId,
+          syncProperties: node.syncProperties,
         };
         nodesState.push(buildJourneyNode(nId, messageNode));
         nextNodeId = node.child;
