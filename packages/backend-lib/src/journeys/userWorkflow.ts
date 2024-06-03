@@ -9,6 +9,7 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
+import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
   DelayVariantType,
@@ -308,6 +309,21 @@ export async function userJourneyWorkflow({
           });
           nextNode = definition.exitNode;
           break;
+        }
+
+        if (currentNode.syncProperties) {
+          const now = Date.now();
+
+          // retry until compute properties workflow as run after message was sent
+          await retryExponential({
+            sleep,
+            check: async () => {
+              const period = await activities.getEarliestComputePropertyPeriod({
+                workspaceId,
+              });
+              return period > now;
+            },
+          });
         }
 
         nextNode = nodes.get(currentNode.child) ?? null;

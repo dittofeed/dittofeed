@@ -9,8 +9,8 @@ export async function retryExponential({
 }: {
   check: () => Promise<boolean>;
   sleep: (delay: number) => Promise<void>;
-  maxAttempts: number;
-  baseDelay: number;
+  maxAttempts?: number;
+  baseDelay?: number;
 }) {
   let attempt = 0;
 
