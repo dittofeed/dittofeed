@@ -880,22 +880,12 @@ export async function sendEmail({
         html: body,
         reply_to: replyTo,
         headers: unsubscribeHeaders,
-        tags: [
-          {
-            name: "workspaceId",
-            value: workspaceId,
-          },
-          {
-            name: "templateId",
-            value: templateId,
-          },
-          ...(messageTags
-            ? Object.entries(messageTags).map(([name, value]) => ({
-                name,
-                value,
-              }))
-            : []),
-        ],
+        tags: messageTags
+          ? Object.entries(messageTags).map(([name, value]) => ({
+              name,
+              value,
+            }))
+          : [],
       };
 
       if (!secretConfig.apiKey) {
