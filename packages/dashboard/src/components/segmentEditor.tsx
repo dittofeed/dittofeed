@@ -60,12 +60,6 @@ const traitGroupedOption = {
   label: "User Trait",
 };
 
-const broadcastGroupedOption = {
-  id: SegmentNodeType.Broadcast,
-  group: "User Data",
-  label: "Broadcast",
-};
-
 const andGroupedOption = {
   id: SegmentNodeType.And,
   group: "Group",
@@ -98,7 +92,6 @@ const emailOption = {
 const segmentOptions: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
-  broadcastGroupedOption,
   subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
@@ -106,14 +99,16 @@ const segmentOptions: SegmentGroupedOption[] = [
 ];
 
 const keyedSegmentOptions: Record<
-  Exclude<SegmentNodeType, SegmentNodeType.LastPerformed>,
+  Exclude<
+    SegmentNodeType,
+    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
+  >,
   SegmentGroupedOption
 > = {
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.Performed]: performedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
-  [SegmentNodeType.Broadcast]: broadcastGroupedOption,
   [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
   [SegmentNodeType.Email]: emailOption,
 };
@@ -839,7 +834,10 @@ function SegmentNodeComponent({
       ),
     [editedSegment],
   );
-  if (node.type === SegmentNodeType.LastPerformed) {
+  if (
+    node.type === SegmentNodeType.LastPerformed ||
+    node.type === SegmentNodeType.Broadcast
+  ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
   if (!nodeById) {
@@ -952,15 +950,6 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <TraitSelect node={node} />
-        {deleteButton}
-      </Stack>
-    );
-  } else if (node.type === SegmentNodeType.Broadcast) {
-    el = (
-      <Stack direction="row" spacing={1}>
-        {labelEl}
-        {conditionSelect}
-        <Box>Actives when segment receives a broadcast.</Box>
         {deleteButton}
       </Stack>
     );
