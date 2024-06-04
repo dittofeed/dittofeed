@@ -35,6 +35,7 @@ const {
   isRunnable,
   sendMessageV2,
   findNextLocalizedTime,
+  getEarliestComputePropertyPeriod,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -318,11 +319,12 @@ export async function userJourneyWorkflow({
           await retryExponential({
             sleep,
             check: async () => {
-              const period = await activities.getEarliestComputePropertyPeriod({
+              const period = await getEarliestComputePropertyPeriod({
                 workspaceId,
               });
               return period > now;
             },
+            logger,
           });
         }
 
