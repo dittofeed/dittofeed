@@ -4709,6 +4709,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-email/render@npm:0.0.12":
+  version: 0.0.12
+  resolution: "@react-email/render@npm:0.0.12"
+  dependencies:
+    html-to-text: "npm:9.0.5"
+    js-beautify: "npm:^1.14.11"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
+  checksum: 10/98c8f0f91c2f8f33c3902e5018a67dd59f7ac94fe7ddcac5910747ec84e96fc3925c5f7528856e652c40052511a49de67000c8c767b0f1357bceef500e812278
+  languageName: node
+  linkType: hard
+
 "@react-email/render@npm:0.0.9":
   version: 0.0.9
   resolution: "@react-email/render@npm:0.0.9"
@@ -8243,7 +8255,7 @@ __metadata:
     prettier: "npm:3.2.5"
     prisma: "npm:^5.4.1"
     remeda: "npm:^1.56.0"
-    resend: "npm:^2.1.0"
+    resend: "npm:^3.2.0"
     sns-payload-validator: "npm:^2.1.0"
     ts-jest: "npm:^29.0.5"
     ts-node: "npm:10.9.1"
@@ -10205,7 +10217,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"editorconfig@npm:^1.0.3":
+"editorconfig@npm:^1.0.3, editorconfig@npm:^1.0.4":
   version: 1.0.4
   resolution: "editorconfig@npm:1.0.4"
   dependencies:
@@ -14118,6 +14130,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-beautify@npm:^1.14.11":
+  version: 1.15.1
+  resolution: "js-beautify@npm:1.15.1"
+  dependencies:
+    config-chain: "npm:^1.1.13"
+    editorconfig: "npm:^1.0.4"
+    glob: "npm:^10.3.3"
+    js-cookie: "npm:^3.0.5"
+    nopt: "npm:^7.2.0"
+  bin:
+    css-beautify: js/bin/css-beautify.js
+    html-beautify: js/bin/html-beautify.js
+    js-beautify: js/bin/js-beautify.js
+  checksum: 10/9fc7111fc30035e8674e778ed2c271b2762084039482252d0a53fd94341e2009daceda99f4d9d0272672f2e136367ec8ce1008a04eb00140bd42c9668c3ed9af
+  languageName: node
+  linkType: hard
+
 "js-beautify@npm:^1.6.12":
   version: 1.14.11
   resolution: "js-beautify@npm:1.14.11"
@@ -14147,6 +14176,13 @@ __metadata:
     html-beautify: js/bin/html-beautify.js
     js-beautify: js/bin/js-beautify.js
   checksum: 10/1d947dd196cdfeb7b38fbfacf410f7976ac2779eeb6454e78c62172d9c71167c38d1f1cd6b4b8039461ff5097ac1647a7e258f829477471e15025bd60d709802
+  languageName: node
+  linkType: hard
+
+"js-cookie@npm:^3.0.5":
+  version: 3.0.5
+  resolution: "js-cookie@npm:3.0.5"
+  checksum: 10/366494b1630b9fb8abaef3659748db5dfd52c58c6fc3459b9f0a03b492593bc1b01c6dfcc066b46f6413c28edb3a00cc68fb61ea8cdf6991bedf1f100f8a389d
   languageName: node
   linkType: hard
 
@@ -18571,6 +18607,15 @@ __metadata:
   dependencies:
     "@react-email/render": "npm:0.0.9"
   checksum: 10/75f5dea9ba44f2d9d4ed2af6548ad4ab47c091f631f9abb1adfbdb557bd5c545608027204a821d863f4c2dbf02337b5a96fa32acc9f120eacf915401a9c10209
+  languageName: node
+  linkType: hard
+
+"resend@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "resend@npm:3.2.0"
+  dependencies:
+    "@react-email/render": "npm:0.0.12"
+  checksum: 10/a54db3416d827f9092bbcaf01922e797bc91eaf8806a488fcd16ca86b4b84af6f8f891657abc1843a16f349b79d84dc1e20375fa6024bbe7c627fb1387ae7824
   languageName: node
   linkType: hard
 
