@@ -1310,6 +1310,7 @@ export const MessageUiNodeProps = Type.Object({
   templateId: Type.Optional(Type.String()),
   channel: Type.Enum(ChannelType),
   subscriptionGroupId: Type.Optional(Type.String()),
+  syncProperties: Type.Optional(Type.Boolean()),
 });
 
 export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;

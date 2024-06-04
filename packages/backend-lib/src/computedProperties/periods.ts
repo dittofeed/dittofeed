@@ -144,7 +144,6 @@ export async function createPeriods({
     });
   }
 
-  logger().debug({ newPeriods }, "Creating computed property periods");
   await prisma().$transaction(async (tx) => {
     await tx.computedPropertyPeriod.createMany({
       data: newPeriods,

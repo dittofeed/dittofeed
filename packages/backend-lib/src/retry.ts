@@ -14,6 +14,7 @@ export async function retryExponential({
   baseDelay?: number;
   logger: LoggerSinks["defaultWorkerLogger"];
 }) {
+  logger.debug("retry exponential started");
   let attempt = 0;
 
   while (attempt < maxAttempts) {
@@ -31,7 +32,7 @@ export async function retryExponential({
     attempt += 1;
     const delay = baseDelay * 2 ** attempt;
 
-    logger.debug(`Retrying in ${delay}ms`);
+    logger.debug(`retry exponential did not succeed. retrying in ${delay} ms`);
     await sleep(delay);
   }
 

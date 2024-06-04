@@ -3,7 +3,9 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -46,6 +48,7 @@ import {
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
+import InfoTooltip from "../infoTooltip";
 import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -357,6 +360,30 @@ function MessageNodeFields({
           onChange={onNameChangeHandler}
           disabled={disabled}
         />
+      ) : null}
+      {nodeProps.channel === ChannelType.Webhook ? (
+        <Stack direction="row" spacing={1}>
+          <InfoTooltip title="Ensures user properties and segments recompute after receiving a webhook response before proceeding." />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={nodeProps.syncProperties ?? false}
+                onChange={(event) => {
+                  updateJourneyNodeData(nodeId, (node) => {
+                    const props = node.data.nodeTypeProps;
+                    if (props.type === JourneyNodeType.MessageNode) {
+                      props.syncProperties = event.target.checked;
+                    }
+                  });
+                }}
+                name="syncProperties"
+                color="primary"
+              />
+            }
+            label="Synchronize Properties"
+            disabled={disabled}
+          />
+        </Stack>
       ) : null}
     </>
   );

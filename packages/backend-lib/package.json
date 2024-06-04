@@ -63,7 +63,7 @@
     "postmark": "^4.0.2",
     "prisma": "^5.4.1",
     "remeda": "^1.56.0",
-    "resend": "^2.1.0",
+    "resend": "^3.2.0",
     "sns-payload-validator": "^2.1.0",
     "twilio": "^4.18.0",
     "utility-types": "^3.10.0",

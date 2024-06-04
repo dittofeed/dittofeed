@@ -322,9 +322,17 @@ export async function userJourneyWorkflow({
               const period = await getEarliestComputePropertyPeriod({
                 workspaceId,
               });
+              logger.debug("retrying until compute properties are updated", {
+                period,
+                now,
+                workspaceId,
+                userId,
+              });
               return period > now;
             },
             logger,
+            baseDelay: 10000,
+            maxAttempts: 5,
           });
         }
 
