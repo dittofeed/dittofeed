@@ -323,6 +323,7 @@ export async function userJourneyWorkflow({
               });
               return period > now;
             },
+            logger,
           });
         }
 
