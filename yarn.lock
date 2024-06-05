@@ -7492,6 +7492,7 @@ __metadata:
     ts-jest: "npm:^29.0.5"
     ts-node: "npm:10.9.1"
     typescript: "npm:5.2.2"
+    uuid: "npm:^9.0.0"
     yargs: "npm:^17.7.2"
   languageName: unknown
   linkType: soft

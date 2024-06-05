@@ -29,13 +29,13 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
+import { transferResources } from "./transferResources";
 import {
   disentangleResendSendgrid,
   upgradeV010Post,
   upgradeV010Pre,
   upgradeV012Pre,
 } from "./upgrades";
-import { transferResources } from "./transferResources";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.

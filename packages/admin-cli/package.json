@@ -18,6 +18,7 @@
     "isomorphic-lib": "0.0.3",
     "remeda": "^1.56.0",
     "ts-node": "10.9.1",
+    "uuid": "^9.0.0",
     "yargs": "^17.7.2"
   },
   "license": "LicenseRef-LICENSE",
