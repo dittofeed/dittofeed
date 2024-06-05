@@ -2437,7 +2437,8 @@ describe("computeProperties", () => {
       ],
     },
     {
-      description: "with a performed user property that has additional property conditions",
+      description:
+        "with a performed user property that has additional property conditions",
       only: true,
       userProperties: [
         {
@@ -2452,9 +2453,9 @@ describe("computeProperties", () => {
                 operator: {
                   type: OperatorType.Equals,
                   value: "my-template-id",
-                }
-              }
-            ]
+                },
+              },
+            ],
           },
         },
       ],
@@ -2509,8 +2510,8 @@ describe("computeProperties", () => {
                     },
                   },
                 },
-              }
-            }
+              },
+            },
           ],
         },
         {
@@ -2529,7 +2530,7 @@ describe("computeProperties", () => {
           ],
         },
       ],
-    }
+    },
     {
       description: "with an opt out subscription group segment",
       segments: [
