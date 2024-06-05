@@ -7,6 +7,8 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   EntryNode,
+  JourneyBodyNode,
+  JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
   MessageNode,
@@ -51,29 +53,38 @@ function mapSegmentNode({
   return node;
 }
 
-function mapJourneyNode({
+function mapJourneyEntryNode({
   node,
-  subscriptionGroupMap,
   segmentMap,
-  templateMap,
 }: {
-  node: JourneyNode;
-  subscriptionGroupMap: Map<string, string>;
+  node: EntryNode;
   segmentMap: Map<string, string>;
-  templateMap: Map<string, string>;
-}): JourneyNode {
+}): EntryNode {
   switch (node.type) {
-    case JourneyNodeType.ExitNode:
-      return node;
     case JourneyNodeType.EventEntryNode:
-      return node;
-    case JourneyNodeType.DelayNode:
       return node;
     case JourneyNodeType.SegmentEntryNode:
       return {
         ...node,
         segment: getUnsafe(segmentMap, node.segment),
       } satisfies SegmentEntryNode;
+  }
+}
+
+function mapJourneyBodyNode({
+  node,
+  subscriptionGroupMap,
+  segmentMap,
+  templateMap,
+}: {
+  node: JourneyBodyNode;
+  subscriptionGroupMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+}): JourneyBodyNode {
+  switch (node.type) {
+    case JourneyNodeType.DelayNode:
+      return node;
     case JourneyNodeType.MessageNode:
       return {
         ...node,
@@ -191,7 +202,14 @@ export async function transferResources({
       return acc;
     }, new Map<string, string>());
 
-    const destinationSubscriptionGroups = await Promise.all(
+    logger().info(
+      {
+        count: subscriptionGroups.length,
+      },
+      "Transferring subscription groups",
+    );
+
+    await Promise.all(
       subscriptionGroups.map((sg) => {
         const newName = newSubscriptionGroupName({
           name: sg.name,
@@ -228,6 +246,13 @@ export async function transferResources({
       return acc;
     }, new Map<string, string>());
 
+    logger().info(
+      {
+        count: segments.length,
+      },
+      "Transferring segments",
+    );
+
     await Promise.all(
       segments.map((segment) => {
         const definition = unwrap(
@@ -256,6 +281,64 @@ export async function transferResources({
           create: {
             ...segment,
             id: getUnsafe(segmentMap, segment.id),
+            definition: newDefinition,
+            workspaceId: destinationWorkspaceId,
+          },
+          update: {},
+        });
+      }),
+    );
+
+    const journeys = await tx.journey.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+
+    const journeyMap = journeys.reduce((acc, journey) => {
+      acc.set(journey.id, uuidv5(journey.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
+    logger().info(
+      {
+        count: journeys.length,
+      },
+      "Transferring journeys",
+    );
+
+    await Promise.all(
+      journeys.map((journey) => {
+        const definition = unwrap(
+          schemaValidate(journey.definition, JourneyDefinition),
+        );
+        const newDefinition = {
+          entryNode: mapJourneyEntryNode({
+            node: definition.entryNode,
+            segmentMap,
+          }),
+          nodes: definition.nodes.map((node) =>
+            mapJourneyBodyNode({
+              node,
+              subscriptionGroupMap,
+              segmentMap,
+              templateMap,
+            }),
+          ),
+          exitNode: definition.exitNode,
+        } satisfies JourneyDefinition;
+
+        return tx.journey.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId: destinationWorkspaceId,
+              name: journey.name,
+            },
+          },
+          create: {
+            ...journey,
+            id: getUnsafe(journeyMap, journey.id),
+            draft: journey.draft ?? Prisma.DbNull,
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
