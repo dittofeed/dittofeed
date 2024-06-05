@@ -35,6 +35,7 @@ import {
   upgradeV010Pre,
   upgradeV012Pre,
 } from "./upgrades";
+import { transferResources } from "./transferResources";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -454,6 +455,28 @@ export async function cli() {
       () => {},
       async () => {
         await upgradeV012Pre();
+      },
+    )
+    .command(
+      "transfer-resources",
+      "Transfer resources from one workspace to another.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            describe: "The workspace id to transfer resources from.",
+          },
+          "destination-workspace-id": {
+            type: "string",
+            alias: "d",
+            require: true,
+            describe: "The workspace id to transfer resources to.",
+          },
+        }),
+      async ({ workspaceId, destinationWorkspaceId }) => {
+        await transferResources({ workspaceId, destinationWorkspaceId });
       },
     )
     .demandCommand(1, "# Please provide a valid command")
