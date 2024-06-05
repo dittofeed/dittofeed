@@ -141,7 +141,6 @@ export async function transferResources({
     "Transferring resources for workspace",
   );
 
-  logger().info("Transferring message templates");
   const [workspace, destinationWorkspace] = await Promise.all([
     prisma().workspace.findUniqueOrThrow({
       where: {
@@ -156,6 +155,37 @@ export async function transferResources({
   ]);
 
   await prisma().$transaction(async (tx) => {
+    const userProperties = await tx.userProperty.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    logger().info(
+      {
+        count: userProperties.length,
+      },
+      "Transferring user properties",
+    );
+    await Promise.all(
+      userProperties.map((userProperty) =>
+        tx.userProperty.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId: destinationWorkspaceId,
+              name: userProperty.name,
+            },
+          },
+          create: {
+            ...userProperty,
+            definition: userProperty.definition ?? Prisma.JsonNull,
+            id: uuidv5(userProperty.id, destinationWorkspaceId),
+            workspaceId: destinationWorkspaceId,
+          },
+          update: {},
+        }),
+      ),
+    );
+
     const templates = await tx.messageTemplate.findMany({
       where: {
         workspaceId,
