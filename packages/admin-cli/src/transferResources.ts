@@ -1,6 +1,7 @@
 import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { SubscriptionGroup, Workspace } from "backend-lib/src/types";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -24,41 +25,18 @@ function newSubscriptionGroupName({
 
 function mapSegmentNode({
   node,
-  subscriptionGroups,
-  destinationSubscriptionGroups,
-  workspace,
-  destinationWorkspace,
+  subscriptionGroupMap,
 }: {
   node: SegmentNode;
-  subscriptionGroups: SubscriptionGroup[];
-  destinationSubscriptionGroups: SubscriptionGroup[];
-  workspace: Workspace;
-  destinationWorkspace: Workspace;
+  subscriptionGroupMap: Map<string, string>;
 }): SegmentNode {
   if (node.type === SegmentNodeType.SubscriptionGroup) {
-    const existingSubscriptionGroup = subscriptionGroups.find(
-      (sg) => sg.id === node.subscriptionGroupId,
-    );
-    if (!existingSubscriptionGroup) {
-      logger().error({ node }, "Subscription group not found");
-      throw new Error("Subscription group not found");
-    }
-    const newSubscriptionGroup = destinationSubscriptionGroups.find(
-      (sg) =>
-        sg.name ===
-        newSubscriptionGroupName({
-          name: existingSubscriptionGroup.name,
-          workspaceName: workspace.name,
-          destinationWorkspaceName: destinationWorkspace.name,
-        }),
-    );
-    if (!newSubscriptionGroup) {
-      logger().error({ node }, "Destination subscription group not found");
-      throw new Error("Destination subscription group not found");
-    }
     return {
       ...node,
-      subscriptionGroupId: newSubscriptionGroup.id,
+      subscriptionGroupId: getUnsafe(
+        subscriptionGroupMap,
+        node.subscriptionGroupId,
+      ),
     };
   }
   return node;
@@ -133,6 +111,10 @@ export async function transferResources({
         workspaceId,
       },
     });
+    const subscriptionGroupMap = subscriptionGroups.reduce((acc, sg) => {
+      acc.set(sg.id, uuidv5(sg.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
 
     const destinationSubscriptionGroups = await Promise.all(
       subscriptionGroups.map((sg) => {
@@ -143,7 +125,7 @@ export async function transferResources({
         });
         const data = {
           ...sg,
-          id: uuidv5(sg.id, destinationWorkspaceId),
+          id: getUnsafe(subscriptionGroupMap, sg.id),
           workspaceId: destinationWorkspaceId,
           name: newName,
         };
@@ -174,18 +156,12 @@ export async function transferResources({
         const newDefinition = {
           entryNode: mapSegmentNode({
             node: definition.entryNode,
-            subscriptionGroups,
-            destinationSubscriptionGroups,
-            workspace,
-            destinationWorkspace,
+            subscriptionGroupMap,
           }),
           nodes: definition.nodes.map((node) =>
             mapSegmentNode({
               node,
-              subscriptionGroups,
-              destinationSubscriptionGroups,
-              workspace,
-              destinationWorkspace,
+              subscriptionGroupMap,
             }),
           ),
         };
