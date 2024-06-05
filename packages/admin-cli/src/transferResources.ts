@@ -1,5 +1,6 @@
 import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
+import { v5 as uuidv5 } from "uuid";
 
 // yarn admin bootstrap --workspace-name='Destination'
 // yarn admin transfer-resources --workspace-id='5c89ccd5-bd30-4af3-94fa-c7e1ea869307' --destination-workspace-id='0ae1dc72-4e8f-4f1c-bd54-0762235d7134'
@@ -43,6 +44,7 @@ export async function transferResources({
           },
           create: {
             ...template,
+            id: uuidv5(template.id, destinationWorkspaceId),
             definition: template.definition ?? Prisma.DbNull,
             draft: template.draft ?? Prisma.DbNull,
             workspaceId: destinationWorkspaceId,
