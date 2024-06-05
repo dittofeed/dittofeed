@@ -5,7 +5,12 @@ import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  EntryNode,
+  JourneyNode,
+  JourneyNodeType,
+  MessageNode,
   SegmentDefinition,
+  SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
@@ -40,6 +45,39 @@ function mapSegmentNode({
     };
   }
   return node;
+}
+
+function mapJourneyNode({
+  node,
+  subscriptionGroupMap,
+  segmentMap,
+  templateMap,
+}: {
+  node: JourneyNode;
+  subscriptionGroupMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+}): JourneyNode {
+  switch (node.type) {
+    case JourneyNodeType.ExitNode:
+      return node;
+    case JourneyNodeType.SegmentEntryNode:
+      return {
+        ...node,
+        segment: getUnsafe(segmentMap, node.segment),
+      } satisfies SegmentEntryNode;
+    case JourneyNodeType.MessageNode:
+      return {
+        ...node,
+        subscriptionGroupId: node.subscriptionGroupId ? getUnsafe(
+          subscriptionGroupMap,
+          node.subscriptionGroupId,
+        ) : undefined,
+        variant: {
+          ...node.variant,
+          templateId: getUnsafe(templateMap, node.variant.templateId),
+        }
+      } satisfies MessageNode;
 }
 
 // yarn admin bootstrap --workspace-name='Destination'
@@ -86,6 +124,11 @@ export async function transferResources({
       },
       "Transferring message templates",
     );
+    const templateMap = templates.reduce((acc, template) => {
+      acc.set(template.id, uuidv5(template.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
     await Promise.all(
       templates.map((template) =>
         tx.messageTemplate.upsert({
@@ -97,7 +140,7 @@ export async function transferResources({
           },
           create: {
             ...template,
-            id: uuidv5(template.id, destinationWorkspaceId),
+            id: getUnsafe(templateMap, template.id),
             definition: template.definition ?? Prisma.DbNull,
             draft: template.draft ?? Prisma.DbNull,
             workspaceId: destinationWorkspaceId,
@@ -148,6 +191,11 @@ export async function transferResources({
       },
     });
 
+    const segmentMap = segments.reduce((acc, segment) => {
+      acc.set(segment.id, uuidv5(segment.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
     await Promise.all(
       segments.map((segment) => {
         const definition = unwrap(
@@ -175,7 +223,7 @@ export async function transferResources({
           },
           create: {
             ...segment,
-            id: uuidv5(segment.id, destinationWorkspaceId),
+            id: getUnsafe(segmentMap, segment.id),
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
