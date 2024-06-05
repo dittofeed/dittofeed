@@ -4,6 +4,7 @@ import { SubscriptionGroup, Workspace } from "backend-lib/src/types";
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   EntryNode,
   JourneyNode,
@@ -13,6 +14,9 @@ import {
   SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
+  SegmentSplitNode,
+  SegmentSplitVariantType,
+  WaitForNode,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
@@ -61,6 +65,10 @@ function mapJourneyNode({
   switch (node.type) {
     case JourneyNodeType.ExitNode:
       return node;
+    case JourneyNodeType.EventEntryNode:
+      return node;
+    case JourneyNodeType.DelayNode:
+      return node;
     case JourneyNodeType.SegmentEntryNode:
       return {
         ...node,
@@ -69,15 +77,39 @@ function mapJourneyNode({
     case JourneyNodeType.MessageNode:
       return {
         ...node,
-        subscriptionGroupId: node.subscriptionGroupId ? getUnsafe(
-          subscriptionGroupMap,
-          node.subscriptionGroupId,
-        ) : undefined,
+        subscriptionGroupId: node.subscriptionGroupId
+          ? getUnsafe(subscriptionGroupMap, node.subscriptionGroupId)
+          : undefined,
         variant: {
           ...node.variant,
           templateId: getUnsafe(templateMap, node.variant.templateId),
-        }
+        },
       } satisfies MessageNode;
+    case JourneyNodeType.SegmentSplitNode: {
+      const { variant } = node;
+
+      return {
+        ...node,
+        variant: {
+          ...variant,
+          trueChild: getUnsafe(segmentMap, node.variant.trueChild),
+          falseChild: getUnsafe(segmentMap, node.variant.falseChild),
+        },
+      } satisfies SegmentSplitNode;
+    }
+    case JourneyNodeType.WaitForNode:
+      return {
+        ...node,
+        segmentChildren: node.segmentChildren.map((child) => ({
+          ...child,
+          segment: getUnsafe(segmentMap, child.segmentId),
+        })),
+      } satisfies WaitForNode;
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Not implemented");
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Not implemented");
+  }
 }
 
 // yarn admin bootstrap --workspace-name='Destination'
