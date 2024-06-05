@@ -334,7 +334,17 @@ export async function transferResources({
     );
 
     await Promise.all(
-      journeys.map((journey) => {
+      journeys.flatMap((journey) => {
+        if (!journey.definition) {
+          logger().warn(
+            {
+              journeyId: journey.id,
+              journeyName: journey.name,
+            },
+            "Journey has no definition, skipping.",
+          );
+          return [];
+        }
         const definition = unwrap(
           schemaValidate(journey.definition, JourneyDefinition),
         );
