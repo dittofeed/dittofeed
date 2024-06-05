@@ -29,6 +29,7 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
+import { transferResources } from "./transferResources";
 import {
   disentangleResendSendgrid,
   upgradeV010Post,
@@ -454,6 +455,28 @@ export async function cli() {
       () => {},
       async () => {
         await upgradeV012Pre();
+      },
+    )
+    .command(
+      "transfer-resources",
+      "Transfer resources from one workspace to another.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            describe: "The workspace id to transfer resources from.",
+          },
+          "destination-workspace-id": {
+            type: "string",
+            alias: "d",
+            require: true,
+            describe: "The workspace id to transfer resources to.",
+          },
+        }),
+      async ({ workspaceId, destinationWorkspaceId }) => {
+        await transferResources({ workspaceId, destinationWorkspaceId });
       },
     )
     .demandCommand(1, "# Please provide a valid command")
