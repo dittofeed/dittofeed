@@ -374,7 +374,8 @@ export async function transferResources({
           create: {
             ...journey,
             id: getUnsafe(journeyMap, journey.id),
-            draft: journey.draft ?? Prisma.DbNull,
+            status: "Paused",
+            draft: Prisma.DbNull,
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
