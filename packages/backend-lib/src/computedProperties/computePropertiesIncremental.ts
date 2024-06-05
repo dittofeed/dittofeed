@@ -39,6 +39,7 @@ import {
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   NodeEnvEnum,
+  OperatorType,
   PerformedSegmentNode,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -1310,11 +1311,37 @@ function leafUserPropertyToSubQuery({
       if (!path) {
         return null;
       }
+      let propertiesCondition: string | null = null;
+      if (child.properties && Object.keys(child.properties).length > 0) {
+        propertiesCondition = child.properties
+          .flatMap((property) => {
+            switch (property.operator.type) {
+              case OperatorType.Equals: {
+                const propertyPath = toJsonPathParam({
+                  path: property.path,
+                  qb,
+                });
+                if (!propertyPath) {
+                  return [];
+                }
+                return `JSON_VALUE(properties, ${propertyPath}) == ${qb.addQueryValue(
+                  property.operator.value,
+                  "String",
+                )}`;
+              }
+              default:
+                throw new Error(
+                  `Unimplemented operator type for user property ${property.operator.type}`,
+                );
+            }
+          })
+          .join(" and ");
+      }
       return {
         condition: `event_type == 'track' and event = ${qb.addQueryValue(
           child.event,
           "String",
-        )}`,
+        )}${propertiesCondition ? ` AND (${propertiesCondition})` : ""} `,
         type: "user_property",
         uniqValue: "''",
         argMaxValue: `JSON_VALUE(properties, ${path})`,
