@@ -25,6 +25,7 @@ import {
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -352,20 +353,52 @@ function PerformedUserPropertyDefinitionEditor({
     });
   };
 
+  const handleAddProperty = () => {
+    updateUserPropertyDefinition((current) => {
+      // FIXME
+      if (current.type !== UserPropertyDefinitionType.Performed) {
+        return current;
+      }
+      const properties = current.properties ?? [];
+      // limit to 100 properties
+      if (properties.length >= 100) {
+        return current;
+      }
+      properties.push({
+        path: "myPropertyPath",
+        operator: {
+          type: UserPropertyOperatorType.Equals,
+          value: "myValue",
+        },
+      });
+      current.properties = properties;
+      return current;
+    });
+  };
+
+  let propertyRows: React.ReactNode = null;
+
   return (
-    <Stack spacing={1} direction="row">
-      <TextField
-        label="Event Name"
-        sx={{ width: selectorWidth }}
-        value={definition.event}
-        onChange={handleEventNameChange}
-      />
-      <TextField
-        label="Property Path"
-        sx={{ width: selectorWidth }}
-        value={definition.path}
-        onChange={handlePathChange}
-      />
+    <Stack direction="column" spacing={2}>
+      <Stack spacing={1} direction="row">
+        <TextField
+          label="Event Name"
+          sx={{ width: selectorWidth }}
+          value={definition.event}
+          onChange={handleEventNameChange}
+        />
+        <TextField
+          label="Property Path"
+          sx={{ width: selectorWidth }}
+          value={definition.path}
+          onChange={handlePathChange}
+        />
+        <Button variant="contained" onClick={() => handleAddProperty()}>
+          Property
+        </Button>
+      </Stack>
+      {propertyRows ? <SubtleHeader>Properties</SubtleHeader> : null}
+      {propertyRows}
     </Stack>
   );
 }
