@@ -303,10 +303,10 @@ function PerformedUserPropertyDefinitionEditor({
 }: {
   definition: PerformedUserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStore(
-    (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow,
-  );
+  //FIXME
+  const { updateUserPropertyDefinition } = useAppStorePick([
+    "updateUserPropertyDefinition",
+  ]);
 
   const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
     e,
