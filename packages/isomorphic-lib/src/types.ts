@@ -116,16 +116,17 @@ export interface UserPropertyUpdate {
 
 export type ComputedPropertyUpdate = SegmentUpdate | UserPropertyUpdate;
 
-export enum OperatorType {
+export enum UserPropertyOperatorType {
+  Equals = "Equals",
+}
+
+export enum SegmentOperatorType {
   Within = "Within",
   Equals = "Equals",
   HasBeen = "HasBeen",
   NotEquals = "NotEquals",
   Exists = "Exists",
 }
-
-// alias for convenience
-export const SegmentOperatorType = OperatorType;
 
 export enum SegmentHasBeenOperatorComparator {
   GTE = "GTE",
@@ -368,7 +369,7 @@ export type AnonymousIdUserPropertyDefinition = Static<
 >;
 
 const UserPropertyEqualsOperator = Type.Object({
-  type: Type.Literal(OperatorType.Equals),
+  type: Type.Literal(UserPropertyOperatorType.Equals),
   value: Type.String(),
 });
 

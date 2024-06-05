@@ -25,7 +25,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  OperatorType,
+  UserPropertyOperatorType,
   ParsedPerformedManyValueItem,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -2451,7 +2451,7 @@ describe("computeProperties", () => {
               {
                 path: "templateId",
                 operator: {
-                  type: OperatorType.Equals,
+                  type: UserPropertyOperatorType.Equals,
                   value: "my-template-id",
                 },
               },

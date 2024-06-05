@@ -39,7 +39,7 @@ import {
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   NodeEnvEnum,
-  OperatorType,
+  UserPropertyOperatorType,
   PerformedSegmentNode,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -1316,7 +1316,7 @@ function leafUserPropertyToSubQuery({
         propertiesCondition = child.properties
           .flatMap((property) => {
             switch (property.operator.type) {
-              case OperatorType.Equals: {
+              case UserPropertyOperatorType.Equals: {
                 const propertyPath = toJsonPathParam({
                   path: property.path,
                   qb,
