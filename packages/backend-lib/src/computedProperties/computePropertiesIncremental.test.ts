@@ -25,6 +25,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
+  UserPropertyOperatorType,
   ParsedPerformedManyValueItem,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -2429,6 +2430,101 @@ describe("computeProperties", () => {
               id: "user-1",
               properties: {
                 performed: "lead",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "with a performed user property that has additional property conditions",
+      only: true,
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: InternalEventType.MessageSent,
+            path: "variant.response.body.status",
+            properties: [
+              {
+                path: "templateId",
+                operator: {
+                  type: UserPropertyOperatorType.Equals,
+                  value: "my-template-id",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -400,
+              type: EventType.Track,
+              event: "wrong-event",
+              properties: {
+                templateId: "my-template-id",
+                variant: {
+                  response: {
+                    body: {
+                      status: "status1",
+                    },
+                  },
+                },
+              },
+            },
+            {
+              userId: "user-1",
+              offsetMs: -500,
+              type: EventType.Track,
+              event: InternalEventType.MessageSent,
+              properties: {
+                templateId: "wrong-template-id",
+                variant: {
+                  response: {
+                    body: {
+                      status: "status2",
+                    },
+                  },
+                },
+              },
+            },
+            {
+              userId: "user-1",
+              offsetMs: -600,
+              type: EventType.Track,
+              event: InternalEventType.MessageSent,
+              properties: {
+                templateId: "my-template-id",
+                variant: {
+                  response: {
+                    body: {
+                      status: "status3",
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "picks the last event that satisfies the conditions",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "status3",
               },
             },
           ],
