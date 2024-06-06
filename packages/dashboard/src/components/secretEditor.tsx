@@ -16,6 +16,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { ComponentProps, useCallback } from "react";
 import { useImmer } from "use-immer";
+import { Overwrite } from "utility-types";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
@@ -67,8 +68,9 @@ export interface SecretEditorProps {
   name: string;
   // the key within the secret config referenced by this component
   secretKey: string;
-  // whether the secret is saved or not on page load
-  saved: boolean;
+  // whether the secret is saved or not on page load. value is undefined while
+  // loading
+  saved?: boolean;
   // used to describe the secret in the UI
   label?: string;
   helperText?: string;
@@ -172,7 +174,7 @@ export interface SecretEditorKeyedProps extends SecretEditorProps {
   type: string;
 }
 
-export function SecretEditorBase({
+function SecretEditorLoaded({
   name,
   saved,
   secretKey,
@@ -180,7 +182,7 @@ export function SecretEditorBase({
   helperText,
   handleDelete,
   handleUpdate,
-}: SecretEditorProps & SecretEditorUpdateProps) {
+}: Overwrite<SecretEditorProps, { saved: boolean }> & SecretEditorUpdateProps) {
   const { workspace: workspaceResult, patchSecretAvailability } =
     useAppStorePick(["workspace", "patchSecretAvailability"]);
 
@@ -358,6 +360,32 @@ export function SecretEditorBase({
       {field}
     </Stack>
   );
+}
+
+export function SecretEditorBase(
+  props: SecretEditorProps & SecretEditorUpdateProps,
+) {
+  const { saved, label, helperText } = props;
+  if (saved === undefined) {
+    return (
+      <Stack
+        direction="row"
+        className="secret-editor"
+        spacing={1}
+        sx={{ width: "100%" }}
+      >
+        <SimpleTextField
+          disabled
+          sx={{ flex: 1 }}
+          helperText={helperText}
+          label={label}
+        />
+        <SecretButton loading />
+      </Stack>
+    );
+  }
+
+  return <SecretEditorLoaded {...props} saved={saved} />;
 }
 
 /**
