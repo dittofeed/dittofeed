@@ -7,6 +7,8 @@ import {
   Box,
   Button,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -355,7 +357,6 @@ function PerformedUserPropertyDefinitionEditor({
 
   const handleAddProperty = () => {
     updateUserPropertyDefinition((current) => {
-      // FIXME
       if (current.type !== UserPropertyDefinitionType.Performed) {
         return current;
       }
@@ -377,6 +378,84 @@ function PerformedUserPropertyDefinitionEditor({
   };
 
   let propertyRows: React.ReactNode = null;
+  if (definition.properties) {
+    propertyRows = definition.properties.map((property, i) => {
+      const handlePropertyPathChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        updateUserPropertyDefinition((current) => {
+          if (current.type !== UserPropertyDefinitionType.Performed) {
+            return current;
+          }
+          const newPath = e.target.value;
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.path = newPath;
+          return current;
+        });
+      };
+
+      const handlePropertyValueChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        updateUserPropertyDefinition((current) => {
+          if (current.type !== UserPropertyDefinitionType.Performed) {
+            return current;
+          }
+          const newValue = e.target.value;
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.operator.value = newValue;
+          return current;
+        });
+      };
+      const handleDelete = () => {
+        updateUserPropertyDefinition((current) => {
+          if (current.type !== UserPropertyDefinitionType.Performed) {
+            return current;
+          }
+          const properties = current.properties ?? [];
+          properties.splice(i, 1);
+          current.properties = properties;
+          return current;
+        });
+      };
+      return (
+        <Stack
+          direction="row"
+          key={i}
+          spacing={1}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            label="Property Path"
+            value={property.path}
+            onChange={handlePropertyPathChange}
+          />
+          {/* hardcoded until support for multiple operators is added */}
+          <Select value={UserPropertyOperatorType.Equals}>
+            <MenuItem value={UserPropertyOperatorType.Equals}>Equals</MenuItem>
+          </Select>
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+          <IconButton color="error" size="large" onClick={handleDelete}>
+            <Delete />
+          </IconButton>
+        </Stack>
+      );
+    });
+  }
 
   return (
     <Stack direction="column" spacing={2}>
