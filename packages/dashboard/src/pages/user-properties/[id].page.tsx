@@ -32,7 +32,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps } from "react";
+import React, { ComponentProps, useCallback } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -52,6 +52,7 @@ import {
   PropsWithInitialState,
 } from "../../lib/types";
 import useLoadTraits from "../../lib/useLoadTraits";
+import { Draft } from "immer";
 
 const selectorWidth = "192px";
 
@@ -306,7 +307,6 @@ function PerformedUserPropertyDefinitionEditor({
 }: {
   definition: PerformedUserPropertyDefinition;
 }) {
-  //FIXME
   const { updateUserPropertyDefinition } = useAppStorePick([
     "updateUserPropertyDefinition",
   ]);
@@ -333,33 +333,50 @@ function PerformedUserPropertyDefinitionEditor({
     });
   };
 
+  const updatePerformedNode = useCallback(
+    (
+      updater: (
+        currentValue: Draft<PerformedUserPropertyDefinition>,
+      ) => Draft<PerformedUserPropertyDefinition>,
+    ) => {
+      updateUserPropertyDefinition((current) => {
+        let d: PerformedUserPropertyDefinition | null = null;
+        if (current.type === UserPropertyDefinitionType.Performed) {
+          d = current;
+        } else if (
+          current.type === UserPropertyDefinitionType.Group &&
+          definition.id
+        ) {
+          for (const node of current.nodes) {
+            if (
+              node.id === definition.id &&
+              node.type === UserPropertyDefinitionType.Performed
+            ) {
+              d = node;
+              break;
+            }
+          }
+        }
+        if (d) {
+          updater(d);
+        }
+        return current;
+      });
+    },
+    [updateUserPropertyDefinition],
+  );
+
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
     e,
   ) => {
-    updateUserPropertyDefinition((current) => {
-      let d: PerformedUserPropertyDefinition;
-      if (current.type === UserPropertyDefinitionType.Performed) {
-        d = current;
-      } else if (
-        current.type === UserPropertyDefinitionType.Group &&
-        definition.id
-      ) {
-        d = current.nodes.find(
-          (n) => n.id === definition.id,
-        ) as PerformedUserPropertyDefinition;
-      } else {
-        return current;
-      }
-      d.event = e.target.value;
+    updatePerformedNode((current) => {
+      current.event = e.target.value;
       return current;
     });
   };
 
   const handleAddProperty = () => {
-    updateUserPropertyDefinition((current) => {
-      if (current.type !== UserPropertyDefinitionType.Performed) {
-        return current;
-      }
+    updatePerformedNode((current) => {
       const properties = current.properties ?? [];
       // limit to 100 properties
       if (properties.length >= 100) {
@@ -383,10 +400,7 @@ function PerformedUserPropertyDefinitionEditor({
       const handlePropertyPathChange = (
         e: React.ChangeEvent<HTMLInputElement>,
       ) => {
-        updateUserPropertyDefinition((current) => {
-          if (current.type !== UserPropertyDefinitionType.Performed) {
-            return current;
-          }
+        updatePerformedNode((current) => {
           const newPath = e.target.value;
           const existingProperty = current.properties?.[i];
 
@@ -401,10 +415,7 @@ function PerformedUserPropertyDefinitionEditor({
       const handlePropertyValueChange = (
         e: React.ChangeEvent<HTMLInputElement>,
       ) => {
-        updateUserPropertyDefinition((current) => {
-          if (current.type !== UserPropertyDefinitionType.Performed) {
-            return current;
-          }
+        updatePerformedNode((current) => {
           const newValue = e.target.value;
           const existingProperty = current.properties?.[i];
 
@@ -416,10 +427,7 @@ function PerformedUserPropertyDefinitionEditor({
         });
       };
       const handleDelete = () => {
-        updateUserPropertyDefinition((current) => {
-          if (current.type !== UserPropertyDefinitionType.Performed) {
-            return current;
-          }
+        updatePerformedNode((current) => {
           const properties = current.properties ?? [];
           properties.splice(i, 1);
           current.properties = properties;
@@ -532,12 +540,7 @@ function AnyOfUserPropertyDefinitionEditor({
               return null;
             }
             return (
-              <Stack
-                direction="row"
-                spacing={1}
-                key={n.id}
-                sx={{ alignItems: "center" }}
-              >
+              <Stack direction="row" spacing={1} key={n.id}>
                 <Autocomplete
                   value={condition}
                   sx={{ width: selectorWidth }}
@@ -708,7 +711,7 @@ function UserPropertyDefinitionEditor({
     <Stack spacing={1} direction="row">
       <Stack spacing={2} sx={{ flex: 1 }}>
         <SubtleHeader>Definition</SubtleHeader>
-        <Stack spacing={1} direction="row" alignItems="center">
+        <Stack spacing={1} direction="row">
           {selectUserPropertyType}
           <DefinitionComponent definition={definition} />
         </Stack>
