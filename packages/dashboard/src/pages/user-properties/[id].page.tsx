@@ -7,12 +7,15 @@ import {
   Box,
   Button,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import { Draft } from "immer";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -25,11 +28,12 @@ import {
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps } from "react";
+import React, { ComponentProps, useCallback } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -303,10 +307,9 @@ function PerformedUserPropertyDefinitionEditor({
 }: {
   definition: PerformedUserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStore(
-    (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow,
-  );
+  const { updateUserPropertyDefinition } = useAppStorePick([
+    "updateUserPropertyDefinition",
+  ]);
 
   const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
     e,
@@ -330,42 +333,160 @@ function PerformedUserPropertyDefinitionEditor({
     });
   };
 
+  const updatePerformedNode = useCallback(
+    (
+      updater: (
+        currentValue: Draft<PerformedUserPropertyDefinition>,
+      ) => Draft<PerformedUserPropertyDefinition>,
+    ) => {
+      updateUserPropertyDefinition((current) => {
+        let d: PerformedUserPropertyDefinition | null = null;
+        if (current.type === UserPropertyDefinitionType.Performed) {
+          d = current;
+        } else if (
+          current.type === UserPropertyDefinitionType.Group &&
+          definition.id
+        ) {
+          for (const node of current.nodes) {
+            if (
+              node.id === definition.id &&
+              node.type === UserPropertyDefinitionType.Performed
+            ) {
+              d = node;
+              break;
+            }
+          }
+        }
+        if (d) {
+          updater(d);
+        }
+        return current;
+      });
+    },
+    [updateUserPropertyDefinition],
+  );
+
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
     e,
   ) => {
-    updateUserPropertyDefinition((current) => {
-      let d: PerformedUserPropertyDefinition;
-      if (current.type === UserPropertyDefinitionType.Performed) {
-        d = current;
-      } else if (
-        current.type === UserPropertyDefinitionType.Group &&
-        definition.id
-      ) {
-        d = current.nodes.find(
-          (n) => n.id === definition.id,
-        ) as PerformedUserPropertyDefinition;
-      } else {
-        return current;
-      }
-      d.event = e.target.value;
+    updatePerformedNode((current) => {
+      current.event = e.target.value;
       return current;
     });
   };
 
+  const handleAddProperty = () => {
+    updatePerformedNode((current) => {
+      const properties = current.properties ?? [];
+      // limit to 100 properties
+      if (properties.length >= 100) {
+        return current;
+      }
+      properties.push({
+        path: "myPropertyPath",
+        operator: {
+          type: UserPropertyOperatorType.Equals,
+          value: "myValue",
+        },
+      });
+      current.properties = properties;
+      return current;
+    });
+  };
+
+  let propertyRows: React.ReactNode = null;
+  if (definition.properties) {
+    propertyRows = definition.properties.map((property, i) => {
+      const handlePropertyPathChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        updatePerformedNode((current) => {
+          const newPath = e.target.value;
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.path = newPath;
+          return current;
+        });
+      };
+
+      const handlePropertyValueChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        updatePerformedNode((current) => {
+          const newValue = e.target.value;
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.operator.value = newValue;
+          return current;
+        });
+      };
+      const handleDelete = () => {
+        updatePerformedNode((current) => {
+          const properties = current.properties ?? [];
+          properties.splice(i, 1);
+          current.properties = properties;
+          return current;
+        });
+      };
+      return (
+        <Stack
+          direction="row"
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          spacing={1}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            label="Property Path"
+            value={property.path}
+            onChange={handlePropertyPathChange}
+          />
+          {/* hardcoded until support for multiple operators is added */}
+          <Select value={UserPropertyOperatorType.Equals}>
+            <MenuItem value={UserPropertyOperatorType.Equals}>Equals</MenuItem>
+          </Select>
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+          <IconButton color="error" size="large" onClick={handleDelete}>
+            <Delete />
+          </IconButton>
+        </Stack>
+      );
+    });
+  }
+
   return (
-    <Stack spacing={1} direction="row">
-      <TextField
-        label="Event Name"
-        sx={{ width: selectorWidth }}
-        value={definition.event}
-        onChange={handleEventNameChange}
-      />
-      <TextField
-        label="Property Path"
-        sx={{ width: selectorWidth }}
-        value={definition.path}
-        onChange={handlePathChange}
-      />
+    <Stack direction="column" spacing={2}>
+      <Stack spacing={1} direction="row">
+        <TextField
+          label="Event Name"
+          sx={{ width: selectorWidth }}
+          value={definition.event}
+          onChange={handleEventNameChange}
+        />
+        <TextField
+          label="Property Path"
+          sx={{ width: selectorWidth }}
+          value={definition.path}
+          onChange={handlePathChange}
+        />
+        <Button variant="contained" onClick={() => handleAddProperty()}>
+          Property
+        </Button>
+      </Stack>
+      {propertyRows ? <SubtleHeader>Properties</SubtleHeader> : null}
+      {propertyRows}
     </Stack>
   );
 }
@@ -420,12 +541,7 @@ function AnyOfUserPropertyDefinitionEditor({
               return null;
             }
             return (
-              <Stack
-                direction="row"
-                spacing={1}
-                key={n.id}
-                sx={{ alignItems: "center" }}
-              >
+              <Stack direction="row" spacing={1} key={n.id}>
                 <Autocomplete
                   value={condition}
                   sx={{ width: selectorWidth }}
@@ -596,7 +712,7 @@ function UserPropertyDefinitionEditor({
     <Stack spacing={1} direction="row">
       <Stack spacing={2} sx={{ flex: 1 }}>
         <SubtleHeader>Definition</SubtleHeader>
-        <Stack spacing={1} direction="row" alignItems="center">
+        <Stack spacing={1} direction="row">
           {selectUserPropertyType}
           <DefinitionComponent definition={definition} />
         </Stack>

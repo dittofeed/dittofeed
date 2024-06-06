@@ -2439,7 +2439,6 @@ describe("computeProperties", () => {
     {
       description:
         "with a performed user property that has additional property conditions",
-      only: true,
       userProperties: [
         {
           name: "performed",
