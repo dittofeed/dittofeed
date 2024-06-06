@@ -93,7 +93,31 @@ import { getOrCreateEmailProviders } from "../lib/email";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
-import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
+
+function useSecretAvailability(): AppState["secretAvailability"] | undefined {
+  const { secretAvailability, inTransition } = useAppStorePick([
+    "secretAvailability",
+    "inTransition",
+  ]);
+  if (inTransition) {
+    return undefined;
+  }
+  return secretAvailability;
+}
+
+function isSecretSaved(
+  name: SecretNames,
+  key: string,
+  secretAvailability?: AppState["secretAvailability"],
+): boolean | undefined {
+  if (!secretAvailability) {
+    return undefined;
+  }
+  return (
+    secretAvailability.find((s) => s.name === name)?.configValue?.[key] ?? false
+  );
+}
 
 function copyToClipboardField({
   value,
@@ -594,7 +618,7 @@ function SegmentIoConfig() {
 }
 
 function SendGridConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const secretAvailability = useSecretAvailability();
 
   return (
     <Fields
@@ -616,9 +640,11 @@ function SendGridConfig() {
                     helperText:
                       "API key, used internally to send emails via sendgrid.",
                     type: EmailProviderType.Sendgrid,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Sendgrid,
-                    )?.configValue?.apiKey,
+                    saved: isSecretSaved(
+                      SecretNames.Sendgrid,
+                      "apiKey",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -631,9 +657,11 @@ function SendGridConfig() {
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
                     type: EmailProviderType.Sendgrid,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Sendgrid,
-                    )?.configValue?.webhookKey,
+                    saved: isSecretSaved(
+                      SecretNames.Sendgrid,
+                      "webhookKey",
+                      secretAvailability,
+                    ),
                   },
                 },
               ],
@@ -646,7 +674,7 @@ function SendGridConfig() {
 }
 
 function AmazonSesConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const secretAvailability = useSecretAvailability();
 
   return (
     <Fields
@@ -667,9 +695,11 @@ function AmazonSesConfig() {
                     label: "Access Key Id",
                     helperText: "IAM user access key",
                     type: EmailProviderType.AmazonSes,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.AmazonSes,
-                    )?.configValue?.accessKeyId,
+                    saved: isSecretSaved(
+                      SecretNames.AmazonSes,
+                      "accessKeyId",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -681,9 +711,11 @@ function AmazonSesConfig() {
                     label: "Secret Access Key",
                     helperText: "Secret access key for IAM user.",
                     type: EmailProviderType.AmazonSes,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.AmazonSes,
-                    )?.configValue?.secretAccessKey,
+                    saved: isSecretSaved(
+                      SecretNames.AmazonSes,
+                      "secretAccessKey",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -695,9 +727,11 @@ function AmazonSesConfig() {
                     label: "AWS Region",
                     helperText: "The AWS region to route requests to.",
                     type: EmailProviderType.AmazonSes,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.AmazonSes,
-                    )?.configValue?.region,
+                    saved: isSecretSaved(
+                      SecretNames.AmazonSes,
+                      "region",
+                      secretAvailability,
+                    ),
                   },
                 },
               ],
@@ -710,8 +744,7 @@ function AmazonSesConfig() {
 }
 
 function ResendConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
-  // fixme don't initialize before secretAvailable is there
+  const secretAvailability = useSecretAvailability();
 
   return (
     <Fields
@@ -733,9 +766,11 @@ function ResendConfig() {
                     helperText:
                       "API key, used internally to send emails via resend.",
                     type: EmailProviderType.Resend,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Resend,
-                    )?.configValue?.apiKey,
+                    saved: isSecretSaved(
+                      SecretNames.Resend,
+                      "apiKey",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -748,9 +783,11 @@ function ResendConfig() {
                     helperText:
                       "Resend webhook verification key, used to authenticate resend webhook requests.",
                     type: EmailProviderType.Resend,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Resend,
-                    )?.configValue?.webhookKey,
+                    saved: isSecretSaved(
+                      SecretNames.Resend,
+                      "webhookKey",
+                      secretAvailability,
+                    ),
                   },
                 },
               ],
@@ -763,7 +800,7 @@ function ResendConfig() {
 }
 
 function PostMarkConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const secretAvailability = useSecretAvailability();
 
   return (
     <Fields
@@ -785,9 +822,11 @@ function PostMarkConfig() {
                     helperText:
                       "API key, used internally to send emails via Postmark.",
                     type: EmailProviderType.PostMark,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Postmark,
-                    )?.configValue?.apiKey,
+                    saved: isSecretSaved(
+                      SecretNames.Postmark,
+                      "apiKey",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -800,9 +839,11 @@ function PostMarkConfig() {
                     helperText:
                       "Auth header value (x-postmark-secret), used to authenticate PostMark webhook requests. Use a secure random string generator.",
                     type: EmailProviderType.PostMark,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Postmark,
-                    )?.configValue?.webhookKey,
+                    saved: isSecretSaved(
+                      SecretNames.Postmark,
+                      "webhookKey",
+                      secretAvailability,
+                    ),
                   },
                 },
               ],
@@ -842,7 +883,7 @@ const SMTP_SECRET_FIELDS: {
 ];
 
 function SmtpConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const secretAvailability = useSecretAvailability();
   const fields: SecretField[] = SMTP_SECRET_FIELDS.map((field) => ({
     id: `smtp-${field.key}`,
     type: "secret",
@@ -852,8 +893,7 @@ function SmtpConfig() {
       label: field.label,
       helperText: field.helperText,
       type: EmailProviderType.Smtp,
-      saved: secretAvailability.find((s) => s.name === SecretNames.Smtp)
-        ?.configValue?.[field.key],
+      saved: isSecretSaved(SecretNames.Smtp, field.key, secretAvailability),
     },
   }));
 
@@ -1164,7 +1204,7 @@ function DefaultSmsConfig() {
 }
 
 function Twilios() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const secretAvailability = useSecretAvailability();
   return (
     <Fields
       sections={[
@@ -1184,9 +1224,11 @@ function Twilios() {
                     label: "Account SID",
                     helperText: "Twilio Account SID",
                     type: SmsProviderType.Twilio,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Twilio,
-                    )?.configValue?.accountSid,
+                    saved: isSecretSaved(
+                      SecretNames.Twilio,
+                      "accountSid",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -1198,9 +1240,11 @@ function Twilios() {
                     label: "Messaging Service SID",
                     helperText: "Twilio messaging service SID",
                     type: SmsProviderType.Twilio,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Twilio,
-                    )?.configValue?.messagingServiceSid,
+                    saved: isSecretSaved(
+                      SecretNames.Twilio,
+                      "messagingServiceSid",
+                      secretAvailability,
+                    ),
                   },
                 },
                 {
@@ -1213,9 +1257,11 @@ function Twilios() {
                     helperText:
                       "Twilio auth token used to authenticate requests.",
                     type: SmsProviderType.Twilio,
-                    saved: secretAvailability.find(
-                      (s) => s.name === SecretNames.Twilio,
-                    )?.configValue?.authToken,
+                    saved: isSecretSaved(
+                      SecretNames.Twilio,
+                      "authToken",
+                      secretAvailability,
+                    ),
                   },
                 },
               ],
