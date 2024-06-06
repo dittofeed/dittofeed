@@ -15,6 +15,7 @@ import {
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import { Draft } from "immer";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -52,7 +53,6 @@ import {
   PropsWithInitialState,
 } from "../../lib/types";
 import useLoadTraits from "../../lib/useLoadTraits";
-import { Draft } from "immer";
 
 const selectorWidth = "192px";
 
@@ -437,6 +437,7 @@ function PerformedUserPropertyDefinitionEditor({
       return (
         <Stack
           direction="row"
+          // eslint-disable-next-line react/no-array-index-key
           key={i}
           spacing={1}
           sx={{
