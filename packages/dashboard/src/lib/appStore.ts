@@ -596,16 +596,33 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
 
         patchSecretAvailability: (secretAvailability) =>
           set((state) => {
+            if (
+              state.workspace.type !== CompletionStatus.Successful ||
+              state.workspace.value.id !== secretAvailability.workspaceId
+            ) {
+              return state;
+            }
+            let updated = false;
             for (const existing of state.secretAvailability) {
-              if (
-                state.workspace.type === CompletionStatus.Successful &&
-                state.workspace.value.id === secretAvailability.workspaceId &&
-                existing.name === secretAvailability.name &&
-                existing.configValue
-              ) {
-                existing.configValue[secretAvailability.key] =
-                  secretAvailability.value;
+              if (existing.name !== secretAvailability.name) {
+                continue;
               }
+              const configValue = existing.configValue ?? {};
+              configValue[secretAvailability.key] = secretAvailability.value;
+              existing.configValue = configValue;
+              updated = true;
+              break;
+            }
+            if (!updated) {
+              const newSecretAvailability = {
+                workspaceId: secretAvailability.workspaceId,
+                name: secretAvailability.name,
+                value: true,
+                configValue: {
+                  [secretAvailability.key]: secretAvailability.value,
+                },
+              };
+              state.secretAvailability.push(newSecretAvailability);
             }
             return state;
           }),
