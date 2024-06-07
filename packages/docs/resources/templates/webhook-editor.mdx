@@ -88,6 +88,28 @@ When sending a message rendered from a webhook template, the message can include
 
 ### Slack
 
+<Accordion title="Slack Webhook Template Code">
+```{
+  "config": {
+    "url": "https://slack.com/api/chat.postMessage",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": {
+      "text": "Hello world",
+      "channel": "alert-testing"
+    }
+  },
+  "secret": {
+    "headers": {
+      "Authorization": "Bearer {{secrets.SLACK_BOT_TOKEN}}"
+    }
+  }
+}
+```
+</Accordion>
+
 <iframe
   class="w-full aspect-video"
   src="https://www.youtube.com/embed/2_K-Ohmtm_c?si=JRXdUB7fwMCBMjsh"
@@ -98,6 +120,32 @@ When sending a message rendered from a webhook template, the message can include
 </iframe>
 
 ### WhatsApp
+
+<Accordion title="WhatsApp Webhook Template Code">
+```{
+  "config": {
+    "url": "https://graph.facebook.com/v19.0/{INSERT YOUR WHATSAPP PHONE NUMBER ID}/messages",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": {
+      "messaging_product": "whatsapp",
+      "to": "{{user.phone}}",
+      "type": "text",
+      "text": {
+        "body": "Hi anybody there?"
+      }
+    }
+  },
+  "secret": {
+    "headers": {
+      "Authorization": "Bearer {{secrets.WhatsAppToken}}"
+    }
+  }
+}
+```
+</Accordion>
 
 <iframe
   class="w-full aspect-video"
