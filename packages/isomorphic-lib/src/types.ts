@@ -188,6 +188,7 @@ export enum SegmentNodeType {
   Broadcast = "Broadcast",
   SubscriptionGroup = "SubscriptionGroup",
   Email = "Email",
+  Manual = "Manual",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -313,6 +314,14 @@ export const OrSegmentNode = Type.Object({
 
 export type OrSegmentNode = Static<typeof OrSegmentNode>;
 
+export const ManualSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Manual),
+  version: Type.Number(),
+  id: Type.String(),
+});
+
+export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
+
 export const SegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
@@ -322,6 +331,7 @@ export const SegmentNode = Type.Union([
   EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
+  ManualSegmentNode,
 ]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
