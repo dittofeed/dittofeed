@@ -254,7 +254,14 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         );
         break;
       case ChannelType.Sms:
-        templateEditor = <SmsEditor templateId={templateId} hideTitle />;
+        templateEditor = (
+          <SmsEditor
+            templateId={templateId}
+            hideTitle
+            hidePublisher
+            disabled={started}
+          />
+        );
         break;
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");
@@ -311,6 +318,9 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               </MenuItem>
               <MenuItem value={ChannelType.Sms}>
                 {CHANNEL_NAMES[ChannelType.Sms]}
+              </MenuItem>
+              <MenuItem value={ChannelType.Webhook}>
+                {CHANNEL_NAMES[ChannelType.Webhook]}
               </MenuItem>
               <MenuItem disabled value={ChannelType.MobilePush}>
                 {CHANNEL_NAMES[ChannelType.MobilePush]}
