@@ -19,17 +19,21 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EphemeralRequestStatus,
   JourneyBodyNode,
   JourneyNodeType,
   MessageNode,
   MessageTemplateResource,
+  ResetMessageTemplateResource,
   SavedJourneyResource,
   UpsertJourneyResource,
+  UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
+import { useImmer } from "use-immer";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
@@ -161,10 +165,20 @@ function getBroadcastMessageNode(
   return messageNode;
 }
 
+interface BroadcastTemplateState {
+  updateTemplateRequest: EphemeralRequestStatus<Error>;
+}
+
 const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
   function BroadcastTemplate({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
+    const [{ updateTemplateRequest }, setState] =
+      useImmer<BroadcastTemplateState>({
+        updateTemplateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+      });
     const channel = getChannel(routeChannel);
     const {
       apiBase,
@@ -173,10 +187,12 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       setJourneyUpdateRequest,
       upsertJourney,
       broadcasts,
+      upsertTemplate,
     } = useAppStorePick([
       "apiBase",
       "journeys",
       "upsertJourney",
+      "upsertTemplate",
       "journeyUpdateRequest",
       "setJourneyUpdateRequest",
       "broadcasts",
@@ -192,9 +208,11 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       [broadcasts, id],
     );
     const started = broadcast?.status !== "NotStarted";
+    const disabled =
+      started || updateTemplateRequest.type === CompletionStatus.InProgress;
 
     useUpdateEffect(() => {
-      if (journeys.type !== CompletionStatus.Successful || started) {
+      if (journeys.type !== CompletionStatus.Successful || disabled) {
         return;
       }
       const journey = journeys.value.find((j) => j.id === journeyId);
@@ -246,7 +264,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       case ChannelType.Email:
         templateEditor = (
           <EmailEditor
-            disabled={started}
+            disabled={disabled}
             hideTitle
             hidePublisher
             templateId={templateId}
@@ -254,14 +272,21 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         );
         break;
       case ChannelType.Sms:
-        templateEditor = <SmsEditor templateId={templateId} hideTitle />;
+        templateEditor = (
+          <SmsEditor
+            templateId={templateId}
+            hideTitle
+            hidePublisher
+            disabled={disabled}
+          />
+        );
         break;
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");
       case ChannelType.Webhook:
         templateEditor = (
           <WebhookEditor
-            disabled={started}
+            disabled={disabled}
             hideTitle
             hidePublisher
             templateId={templateId}
@@ -290,19 +315,48 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <FormControl>
             <InputLabel id="broadcast-channel-label">Channel</InputLabel>
             <Select
-              disabled={started}
+              disabled={disabled}
               label="Channel"
               labelId="broadcast-channel-label"
               sx={{
                 minWidth: theme.spacing(10),
               }}
               onChange={(e) => {
-                router.push({
-                  query: {
-                    id,
-                    channel: e.target.value,
+                if (!broadcast) {
+                  return;
+                }
+                const channel = e.target.value as ChannelType;
+                apiRequestHandlerFactory({
+                  request: updateTemplateRequest,
+                  setRequest: (req) =>
+                    setState((draft) => {
+                      draft.updateTemplateRequest = req;
+                    }),
+                  setResponse: (template) => {
+                    upsertTemplate(template);
+                    router.push({
+                      query: {
+                        id,
+                        channel,
+                      },
+                    });
                   },
-                });
+                  responseSchema: MessageTemplateResource,
+                  onFailureNoticeHandler: () =>
+                    `API Error: Failed to update template channel.`,
+                  requestConfig: {
+                    method: "PUT",
+                    url: `${apiBase}/api/content/templates/reset`,
+                    data: {
+                      workspaceId: broadcast.workspaceId,
+                      id: templateId,
+                      type: channel,
+                    } satisfies ResetMessageTemplateResource,
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  },
+                })();
               }}
               value={channel}
             >
@@ -312,6 +366,9 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               <MenuItem value={ChannelType.Sms}>
                 {CHANNEL_NAMES[ChannelType.Sms]}
               </MenuItem>
+              <MenuItem value={ChannelType.Webhook}>
+                {CHANNEL_NAMES[ChannelType.Webhook]}
+              </MenuItem>
               <MenuItem disabled value={ChannelType.MobilePush}>
                 {CHANNEL_NAMES[ChannelType.MobilePush]}
               </MenuItem>
@@ -320,7 +377,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <Box sx={{ minWidth: "12rem" }}>
             <SubscriptionGroupAutocomplete
               subscriptionGroupId={subscriptionGroupId ?? undefined}
-              disabled={started}
+              disabled={disabled}
               channel={channel}
               handler={(sg) => {
                 setSubscriptionGroupId(sg?.id ?? null);
