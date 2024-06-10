@@ -847,6 +847,10 @@ function segmentToResolvedState({
         }),
       ];
     }
+    // TODO: [DF-482]
+    case SegmentNodeType.Manual: {
+      throw new Error("Manual segment nodes are not supported");
+    }
     default:
       assertUnreachable(node);
   }
@@ -975,6 +979,10 @@ function resolvedSegmentToAssignment({
         stateIds: [stateId],
         expression: stateValue,
       };
+    }
+    // TODO: [DF-482]
+    case SegmentNodeType.Manual: {
+      throw new Error("Manual segment nodes are not supported");
     }
     default:
       assertUnreachable(node);
@@ -1164,6 +1172,10 @@ export function segmentNodeToStateSubQuery({
           qb,
         });
       });
+    }
+    // TODO: [DF-482]
+    case SegmentNodeType.Manual: {
+      throw new Error("Manual segment nodes are not supported");
     }
     case SegmentNodeType.LastPerformed: {
       const stateId = segmentNodeStateId(segment, node.id);
