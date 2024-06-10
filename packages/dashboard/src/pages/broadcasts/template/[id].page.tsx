@@ -19,12 +19,14 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EphemeralRequestStatus,
   JourneyBodyNode,
   JourneyNodeType,
   MessageNode,
   MessageTemplateResource,
   SavedJourneyResource,
   UpsertJourneyResource,
+  UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
@@ -45,6 +47,7 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
+import { useImmer } from "use-immer";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -161,10 +164,20 @@ function getBroadcastMessageNode(
   return messageNode;
 }
 
+interface BroadcastTemplateState {
+  updateTemplateRequest: EphemeralRequestStatus<Error>;
+}
+
 const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
   function BroadcastTemplate({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
+    const [{ updateTemplateRequest }, setState] =
+      useImmer<BroadcastTemplateState>({
+        updateTemplateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+      });
     const channel = getChannel(routeChannel);
     const {
       apiBase,
@@ -173,10 +186,12 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       setJourneyUpdateRequest,
       upsertJourney,
       broadcasts,
+      upsertTemplate,
     } = useAppStorePick([
       "apiBase",
       "journeys",
       "upsertJourney",
+      "upsertTemplate",
       "journeyUpdateRequest",
       "setJourneyUpdateRequest",
       "broadcasts",
@@ -192,9 +207,11 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       [broadcasts, id],
     );
     const started = broadcast?.status !== "NotStarted";
+    const disabled =
+      started || updateTemplateRequest.type === CompletionStatus.InProgress;
 
     useUpdateEffect(() => {
-      if (journeys.type !== CompletionStatus.Successful || started) {
+      if (journeys.type !== CompletionStatus.Successful || disabled) {
         return;
       }
       const journey = journeys.value.find((j) => j.id === journeyId);
@@ -246,7 +263,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       case ChannelType.Email:
         templateEditor = (
           <EmailEditor
-            disabled={started}
+            disabled={disabled}
             hideTitle
             hidePublisher
             templateId={templateId}
@@ -259,7 +276,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
             templateId={templateId}
             hideTitle
             hidePublisher
-            disabled={started}
+            disabled={disabled}
           />
         );
         break;
@@ -268,7 +285,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       case ChannelType.Webhook:
         templateEditor = (
           <WebhookEditor
-            disabled={started}
+            disabled={disabled}
             hideTitle
             hidePublisher
             templateId={templateId}
@@ -297,7 +314,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <FormControl>
             <InputLabel id="broadcast-channel-label">Channel</InputLabel>
             <Select
-              disabled={started}
+              disabled={disabled}
               label="Channel"
               labelId="broadcast-channel-label"
               sx={{
@@ -310,6 +327,32 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     channel: e.target.value,
                   },
                 });
+                if (!broadcast) {
+                  return;
+                }
+                apiRequestHandlerFactory({
+                  request: updateTemplateRequest,
+                  setRequest: (req) =>
+                    setState((draft) => {
+                      draft.updateTemplateRequest = req;
+                    }),
+                  setResponse: upsertTemplate,
+                  responseSchema: MessageTemplateResource,
+                  onFailureNoticeHandler: () =>
+                    `API Error: Failed to update template channel.`,
+                  requestConfig: {
+                    method: "PUT",
+                    url: `${apiBase}/api/content/templates`,
+                    // data: {
+                    //   workspaceId: broadcast?.workspaceId,
+                    //   templateId,
+                    //   definition: {
+                    // } satisfies UpsertMessageTemplateResource,
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  },
+                })();
               }}
               value={channel}
             >
@@ -330,7 +373,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <Box sx={{ minWidth: "12rem" }}>
             <SubscriptionGroupAutocomplete
               subscriptionGroupId={subscriptionGroupId ?? undefined}
-              disabled={started}
+              disabled={disabled}
               channel={channel}
               handler={(sg) => {
                 setSubscriptionGroupId(sg?.id ?? null);

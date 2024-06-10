@@ -6,6 +6,7 @@ import {
   SendMessageParameters,
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
+import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import prisma from "backend-lib/src/prisma";
 import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
@@ -18,6 +19,7 @@ import {
   BadWorkspaceConfigurationType,
   BaseMessageResponse,
   ChannelType,
+  DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
   EmailProviderType,
   EmptyResponse,
@@ -26,11 +28,13 @@ import {
   MessageSkippedType,
   MessageTags,
   MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
+  ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
@@ -156,6 +160,48 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
+      return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/templates/reset",
+    {
+      schema: {
+        description: "Create or update message template",
+        tags: ["Content"],
+        body: ResetMessageTemplateResource,
+        response: {
+          200: MessageTemplateResource,
+        },
+      },
+    },
+    async (request, reply) => {
+      let definition: MessageTemplateResourceDefinition;
+      const { workspaceId } = request.body;
+      switch (request.body.type) {
+        case ChannelType.Email: {
+          const defaultEmailProvider =
+            (await prisma().defaultEmailProvider.findUnique({
+              where: {
+                workspaceId,
+              },
+            })) as DefaultEmailProviderResource | null;
+
+          definition = defaultEmailDefinition(
+            defaultEmailProvider ?? undefined,
+          );
+          break;
+        }
+        default: {
+          // fixme
+          throw new Error("unimplemented channel type");
+        }
+      }
+      const resource = await upsertMessageTemplate({
+        ...request.body,
+        definition,
+      });
       return reply.status(200).send(resource);
     },
   );

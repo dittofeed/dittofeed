@@ -13,7 +13,7 @@ import React from "react";
 import { validate } from "uuid";
 
 import DashboardContent from "../../../components/dashboardContent";
-import { defaultEmailDefinition } from "../../../components/messages/email";
+import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
