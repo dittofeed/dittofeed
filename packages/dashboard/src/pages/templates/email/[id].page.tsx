@@ -1,4 +1,5 @@
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
+import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -13,7 +14,6 @@ import React from "react";
 import { validate } from "uuid";
 
 import DashboardContent from "../../../components/dashboardContent";
-import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";

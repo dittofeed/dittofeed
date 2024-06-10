@@ -33,6 +33,7 @@ import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
+import { useImmer } from "use-immer";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
@@ -48,7 +49,6 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
-import { useImmer } from "use-immer";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -348,7 +348,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     method: "PUT",
                     url: `${apiBase}/api/content/templates/reset`,
                     data: {
-                      workspaceId: broadcast?.workspaceId,
+                      workspaceId: broadcast.workspaceId,
                       id: templateId,
                       type: channel,
                     } satisfies ResetMessageTemplateResource,

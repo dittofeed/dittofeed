@@ -1,14 +1,13 @@
 import { EmailProvider } from "@prisma/client";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
-
 import {
+  BadWorkspaceConfigurationType,
   ChannelType,
   DefaultEmailProviderResource,
-  EmailTemplateResource,
-  BadWorkspaceConfigurationType,
   EmailProviderSecret,
   EmailProviderType,
+  EmailTemplateResource,
   MessageTemplateRenderError,
   PersistedEmailProvider,
   SubscriptionChange,

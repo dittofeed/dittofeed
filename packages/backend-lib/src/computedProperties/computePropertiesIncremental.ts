@@ -39,7 +39,6 @@ import {
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   NodeEnvEnum,
-  UserPropertyOperatorType,
   PerformedSegmentNode,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -54,6 +53,7 @@ import {
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
@@ -1314,6 +1314,7 @@ function leafUserPropertyToSubQuery({
       let propertiesCondition: string | null = null;
       if (child.properties && Object.keys(child.properties).length > 0) {
         propertiesCondition = child.properties
+          // eslint-disable-next-line array-callback-return
           .flatMap((property) => {
             switch (property.operator.type) {
               case UserPropertyOperatorType.Equals: {
@@ -1329,10 +1330,6 @@ function leafUserPropertyToSubQuery({
                   "String",
                 )}`;
               }
-              default:
-                throw new Error(
-                  `Unimplemented operator type for user property ${property.operator.type}`,
-                );
             }
           })
           .join(" and ");

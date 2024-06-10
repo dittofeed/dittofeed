@@ -1,7 +1,7 @@
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
+import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
