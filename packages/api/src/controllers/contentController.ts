@@ -1,7 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
-import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
-import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import logger from "backend-lib/src/logger";
 import {
   sendMessage,
@@ -9,6 +7,8 @@ import {
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
 import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
+import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
+import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import prisma from "backend-lib/src/prisma";
 import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";

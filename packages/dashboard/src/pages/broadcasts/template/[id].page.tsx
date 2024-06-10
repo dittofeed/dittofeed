@@ -27,7 +27,6 @@ import {
   ResetMessageTemplateResource,
   SavedJourneyResource,
   UpsertJourneyResource,
-  UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
@@ -325,7 +324,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                 if (!broadcast) {
                   return;
                 }
-                const channel = e.target.value as ChannelType;
+                const newChannel = e.target.value as ChannelType;
                 apiRequestHandlerFactory({
                   request: updateTemplateRequest,
                   setRequest: (req) =>
@@ -337,7 +336,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     router.push({
                       query: {
                         id,
-                        channel,
+                        channel: newChannel,
                       },
                     });
                   },
@@ -350,7 +349,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     data: {
                       workspaceId: broadcast.workspaceId,
                       id: templateId,
-                      type: channel,
+                      type: newChannel,
                     } satisfies ResetMessageTemplateResource,
                     headers: {
                       "Content-Type": "application/json",
