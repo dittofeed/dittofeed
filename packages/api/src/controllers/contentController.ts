@@ -6,6 +6,9 @@ import {
   SendMessageParameters,
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
+import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
+import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
+import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import prisma from "backend-lib/src/prisma";
 import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
@@ -18,6 +21,7 @@ import {
   BadWorkspaceConfigurationType,
   BaseMessageResponse,
   ChannelType,
+  DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
   EmailProviderType,
   EmptyResponse,
@@ -26,11 +30,13 @@ import {
   MessageSkippedType,
   MessageTags,
   MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
+  ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
@@ -156,6 +162,55 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
+      return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/templates/reset",
+    {
+      schema: {
+        description: "Create or update message template",
+        tags: ["Content"],
+        body: ResetMessageTemplateResource,
+        response: {
+          200: MessageTemplateResource,
+        },
+      },
+    },
+    async (request, reply) => {
+      let definition: MessageTemplateResourceDefinition;
+      const { workspaceId } = request.body;
+      switch (request.body.type) {
+        case ChannelType.Email: {
+          const defaultEmailProvider =
+            (await prisma().defaultEmailProvider.findUnique({
+              where: {
+                workspaceId,
+              },
+            })) as DefaultEmailProviderResource | null;
+
+          definition = defaultEmailDefinition(
+            defaultEmailProvider ?? undefined,
+          );
+          break;
+        }
+        case ChannelType.Sms: {
+          definition = defaultSmsDefinition();
+          break;
+        }
+        case ChannelType.Webhook: {
+          definition = DEFAULT_WEBHOOK_DEFINITION;
+          break;
+        }
+        case ChannelType.MobilePush: {
+          throw new Error("Mobile push templates unimplemented");
+        }
+      }
+      const resource = await upsertMessageTemplate({
+        ...request.body,
+        definition,
+      });
       return reply.status(200).send(resource);
     },
   );

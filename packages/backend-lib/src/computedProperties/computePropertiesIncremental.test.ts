@@ -25,7 +25,6 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  UserPropertyOperatorType,
   ParsedPerformedManyValueItem,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -39,6 +38,7 @@ import {
   SubscriptionChangeEvent,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   UserPropertyResource,
   Workspace,
 } from "../types";

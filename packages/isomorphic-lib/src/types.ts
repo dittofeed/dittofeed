@@ -1099,6 +1099,16 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
+export const ResetMessageTemplateResource = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  type: Type.Enum(ChannelType),
+});
+
+export type ResetMessageTemplateResource = Static<
+  typeof ResetMessageTemplateResource
+>;
+
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
   type: Type.Enum(ChannelType),
