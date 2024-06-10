@@ -24,6 +24,7 @@ import {
   JourneyNodeType,
   MessageNode,
   MessageTemplateResource,
+  ResetMessageTemplateResource,
   SavedJourneyResource,
   UpsertJourneyResource,
   UpsertMessageTemplateResource,
@@ -330,6 +331,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                 if (!broadcast) {
                   return;
                 }
+                const channel = e.target.value as ChannelType;
                 apiRequestHandlerFactory({
                   request: updateTemplateRequest,
                   setRequest: (req) =>
@@ -342,12 +344,12 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     `API Error: Failed to update template channel.`,
                   requestConfig: {
                     method: "PUT",
-                    url: `${apiBase}/api/content/templates`,
-                    // data: {
-                    //   workspaceId: broadcast?.workspaceId,
-                    //   templateId,
-                    //   definition: {
-                    // } satisfies UpsertMessageTemplateResource,
+                    url: `${apiBase}/api/content/templates/reset`,
+                    data: {
+                      workspaceId: broadcast?.workspaceId,
+                      id: templateId,
+                      type: channel,
+                    } satisfies ResetMessageTemplateResource,
                     headers: {
                       "Content-Type": "application/json",
                     },
