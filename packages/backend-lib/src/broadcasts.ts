@@ -11,11 +11,11 @@ import {
   SegmentDefinition,
 } from "isomorphic-lib/src/types";
 
-import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
 import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
+import { defaultEmailDefinition } from "./messaging/email";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
 
@@ -146,6 +146,11 @@ export async function upsertBroadcast({
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
+  const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
+    where: {
+      workspaceId,
+    },
+  });
   const [segment, messageTemplate] = await Promise.all([
     prisma().segment.upsert({
       where: {
@@ -174,7 +179,9 @@ export async function upsertBroadcast({
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
-        definition: WELCOME_TEMPLATE,
+        definition: defaultEmailDefinition({
+          fromAddress: defaultEmailProvider?.fromAddress ?? null,
+        }),
       },
       update: {},
     }),
