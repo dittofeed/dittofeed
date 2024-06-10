@@ -1754,6 +1754,23 @@ function Metadata() {
   );
 }
 
+function SettingsContents() {
+  const { inTransition } = useAppStorePick(["inTransition"]);
+  if (inTransition) {
+    return null;
+  }
+  return (
+    <>
+      <SegmentIoConfig />
+      <MessageChannelsConfig />
+      <AuthenticationSettings />
+      <SubscriptionManagementSettings />
+      <IntegrationSettings />
+      <Metadata />
+    </>
+  );
+}
+
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
@@ -1769,12 +1786,7 @@ const Settings: NextPage<
           width: "100%",
         }}
       >
-        <SegmentIoConfig />
-        <MessageChannelsConfig />
-        <AuthenticationSettings />
-        <SubscriptionManagementSettings />
-        <IntegrationSettings />
-        <Metadata />
+        <SettingsContents />
       </Stack>
     </SettingsLayout>
   );
