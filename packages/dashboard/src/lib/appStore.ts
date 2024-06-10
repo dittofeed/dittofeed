@@ -187,6 +187,16 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.Manual: {
+      return {
+        primary: {
+          type: SegmentNodeType.Manual,
+          version: Math.floor(Date.now() / 1000),
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
     }
