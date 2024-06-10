@@ -322,12 +322,6 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                 minWidth: theme.spacing(10),
               }}
               onChange={(e) => {
-                router.push({
-                  query: {
-                    id,
-                    channel: e.target.value,
-                  },
-                });
                 if (!broadcast) {
                   return;
                 }
@@ -338,7 +332,15 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                     setState((draft) => {
                       draft.updateTemplateRequest = req;
                     }),
-                  setResponse: upsertTemplate,
+                  setResponse: (template) => {
+                    upsertTemplate(template);
+                    router.push({
+                      query: {
+                        id,
+                        channel,
+                      },
+                    });
+                  },
                   responseSchema: MessageTemplateResource,
                   onFailureNoticeHandler: () =>
                     `API Error: Failed to update template channel.`,
