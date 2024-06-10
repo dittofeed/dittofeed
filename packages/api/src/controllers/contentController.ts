@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
+import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
 import logger from "backend-lib/src/logger";
 import {
   sendMessage,
@@ -191,6 +192,10 @@ export default async function contentController(fastify: FastifyInstance) {
           definition = defaultEmailDefinition(
             defaultEmailProvider ?? undefined,
           );
+          break;
+        }
+        case ChannelType.Sms: {
+          definition = defaultSmsDefinition();
           break;
         }
         default: {

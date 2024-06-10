@@ -1,6 +1,7 @@
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   ChannelType,
@@ -50,10 +51,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId: dfContext.workspace.id,
           name: `New SMS Message - ${id}`,
           id,
-          definition: {
-            type: ChannelType.Sms,
-            body: "Example message to {{ user.phone }}",
-          } satisfies MessageTemplateResourceDefinition,
+          definition: defaultSmsDefinition(),
         },
         update: {},
       });
