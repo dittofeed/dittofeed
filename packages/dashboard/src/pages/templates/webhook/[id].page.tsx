@@ -1,12 +1,9 @@
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import {
-  ChannelType,
-  CompletionStatus,
-  WebhookTemplateResource,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React from "react";
@@ -19,20 +16,6 @@ import { useAppStorePick } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
-
-const DEFAULT_WEBHOOK_BODY = `{
-  "config": {
-    "url": "https://httpbin.org/post",
-    "method": "POST",
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "data": {}
-  },
-  "secret": {
-    "headers": {}
-  }
-}`;
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -64,11 +47,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId: dfContext.workspace.id,
           name: `New Webhook Template - ${id}`,
           id,
-          definition: {
-            type: ChannelType.Webhook,
-            identifierKey: "email",
-            body: DEFAULT_WEBHOOK_BODY,
-          } satisfies WebhookTemplateResource,
+          definition: DEFAULT_WEBHOOK_DEFINITION,
         },
         update: {},
       });

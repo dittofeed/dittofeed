@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
 import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
+import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import logger from "backend-lib/src/logger";
 import {
   sendMessage,
@@ -198,9 +199,12 @@ export default async function contentController(fastify: FastifyInstance) {
           definition = defaultSmsDefinition();
           break;
         }
-        default: {
-          // fixme
-          throw new Error("unimplemented channel type");
+        case ChannelType.Webhook: {
+          definition = DEFAULT_WEBHOOK_DEFINITION;
+          break;
+        }
+        case ChannelType.MobilePush: {
+          throw new Error("Mobile push templates unimplemented");
         }
       }
       const resource = await upsertMessageTemplate({

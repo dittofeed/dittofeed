@@ -23,7 +23,6 @@ function fieldToReadable(field: string) {
 
 const draftToPreview: DraftToPreview = (definition) => {
   if (definition.type !== ChannelType.Sms) {
-    debugger;
     throw new Error("Invalid channel type");
   }
   const content: RenderMessageTemplateRequestContents = {
