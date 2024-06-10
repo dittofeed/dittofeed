@@ -6201,6 +6201,28 @@
                                   "subscriptionGroupId",
                                   "subscriptionGroupType"
                                 ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Manual"
+                                    ]
+                                  },
+                                  "version": {
+                                    "type": "number"
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "version",
+                                  "id"
+                                ]
                               }
                             ]
                           },
@@ -7056,6 +7078,28 @@
                                     "id",
                                     "subscriptionGroupId",
                                     "subscriptionGroupType"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "Manual"
+                                      ]
+                                    },
+                                    "version": {
+                                      "type": "number"
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "version",
+                                    "id"
                                   ]
                                 }
                               ]
@@ -7965,6 +8009,28 @@
                                 "subscriptionGroupId",
                                 "subscriptionGroupType"
                               ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Manual"
+                                  ]
+                                },
+                                "version": {
+                                  "type": "number"
+                                },
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "version",
+                                "id"
+                              ]
                             }
                           ]
                         },
@@ -8820,6 +8886,28 @@
                                   "id",
                                   "subscriptionGroupId",
                                   "subscriptionGroupType"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Manual"
+                                    ]
+                                  },
+                                  "version": {
+                                    "type": "number"
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "version",
+                                  "id"
                                 ]
                               }
                             ]
