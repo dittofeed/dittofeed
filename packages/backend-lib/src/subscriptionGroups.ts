@@ -402,6 +402,7 @@ export async function lookupUserForSubscriptions({
       include: {
         UserPropertyAssignment: {
           where: {
+            workspaceId,
             value: identifier,
           },
         },
