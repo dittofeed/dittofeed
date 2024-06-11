@@ -1007,7 +1007,7 @@ export function EntryNodeComponent({ node }: { node: SegmentNode }) {
     default:
       throw new Error(`Unsupported entry node type ${node.type}`);
   }
-  return <>content</>;
+  return <>{content}</>;
 }
 
 export function SegmentEditorInner({
