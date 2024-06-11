@@ -17,8 +17,10 @@ import {
   useTheme,
 } from "@mui/material";
 import { isEmailEvent } from "isomorphic-lib/src/email";
+import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  BodySegmentNode,
   CompletionStatus,
   EmailSegmentNode,
   InternalEventType,
@@ -89,9 +91,16 @@ const emailOption = {
   label: "Email",
 };
 
+const manualOption = {
+  id: SegmentNodeType.Manual,
+  group: "Manual",
+  label: "Manual",
+};
+
 const segmentOptions: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  manualOption,
   subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
@@ -101,13 +110,11 @@ const segmentOptions: SegmentGroupedOption[] = [
 const keyedSegmentOptions: Record<
   Exclude<
     SegmentNodeType,
-    | SegmentNodeType.LastPerformed
-    | SegmentNodeType.Broadcast
-    // TODO: [DF-482]
-    | SegmentNodeType.Manual
+    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
   >,
   SegmentGroupedOption
 > = {
+  [SegmentNodeType.Manual]: manualOption,
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.Performed]: performedOption,
   [SegmentNodeType.And]: andGroupedOption,
@@ -807,13 +814,13 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
 
 type Label = Group | "empty";
 
-function SegmentNodeComponent({
+function BodySegmentNodeComponent({
   node,
   label,
   renderDelete,
   parentId,
 }: {
-  node: SegmentNode;
+  node: BodySegmentNode;
   renderDelete?: boolean;
   parentId?: string;
   label?: Label;
@@ -839,9 +846,7 @@ function SegmentNodeComponent({
   );
   if (
     node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast ||
-    // TODO: [DF-482]
-    node.type === SegmentNodeType.Manual
+    node.type === SegmentNodeType.Broadcast
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
@@ -914,12 +919,12 @@ function SegmentNodeComponent({
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
-      if (!child) {
+      if (!child || !isBodySegmentNode(child)) {
         return [];
       }
 
       return (
-        <SegmentNodeComponent
+        <BodySegmentNodeComponent
           key={i}
           node={child}
           renderDelete={i !== 0}
@@ -993,6 +998,18 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
+export function EntryNodeComponent({ node }: { node: SegmentNode }) {
+  let content: React.ReactElement;
+  switch (node.type) {
+    case SegmentNodeType.Manual:
+      content = <Typography>Manual Segment</Typography>;
+      break;
+    default:
+      throw new Error(`Unsupported entry node type ${node.type}`);
+  }
+  return <>content</>;
+}
+
 export function SegmentEditorInner({
   sx,
   disabled,
@@ -1007,6 +1024,18 @@ export function SegmentEditorInner({
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
   useLoadTraits();
+  let content: React.ReactElement;
+  if (isBodySegmentNode(entryNode)) {
+    content = (
+      <BodySegmentNodeComponent
+        node={entryNode}
+        renderDelete={false}
+        label="empty"
+      />
+    );
+  } else {
+    content = <EntryNodeComponent node={entryNode} />;
+  }
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
@@ -1020,7 +1049,7 @@ export function SegmentEditorInner({
           ...sx,
         }}
       >
-        <SegmentNodeComponent node={entryNode} />
+        {content}
       </Box>
     </DisabledContext.Provider>
   );
