@@ -286,7 +286,7 @@ export async function createUserEventsTables({
         computed_at;
     `,
   ];
-  if (ingressTopic) {
+  if (ingressTopic && config().writeMode === "kafka") {
     mvQueries.push(`
       CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
       TO user_events_v2 AS
