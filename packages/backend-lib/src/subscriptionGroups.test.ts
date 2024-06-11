@@ -4,7 +4,10 @@ import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
 
 import bootstrap from "./bootstrap";
 import prisma from "./prisma";
-import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
+import {
+  generateSubscriptionChangeUrl,
+  generateSubscriptionHash,
+} from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
 
 describe("subscriptionGroups", () => {
