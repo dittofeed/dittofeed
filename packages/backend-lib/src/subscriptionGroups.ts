@@ -410,8 +410,8 @@ export async function lookupUserForSubscriptions({
     }),
   ]);
 
-  const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
-  if (!userPropertyAssignment) {
+  const assignments = userProperties?.UserPropertyAssignment;
+  if (!assignments || assignments.length === 0) {
     logger().warn(
       {
         identifier,
@@ -422,23 +422,35 @@ export async function lookupUserForSubscriptions({
     return err(new Error("User not found"));
   }
 
+  const secretValue = subscriptionSecret?.value;
+
   // This is a programmatic error, should never happen
-  if (!subscriptionSecret?.value) {
+  if (!secretValue) {
     throw new Error("Subscription secret not found");
   }
 
-  const { userId } = userPropertyAssignment;
+  const userId = assignments.find(({ userId: assignmentUserId }) => {
+    const generatedHash = generateSubscriptionHash({
+      workspaceId,
+      userId: assignmentUserId,
+      identifierKey,
+      identifier,
+      subscriptionSecret: secretValue,
+    });
+    return hash === generatedHash;
+  })?.userId;
 
-  const expectedHash = generateSubscriptionHash({
-    workspaceId,
-    userId,
-    identifierKey,
-    identifier,
-    subscriptionSecret: subscriptionSecret.value,
-  });
-
-  if (expectedHash !== hash) {
-    return err(new Error("Hash mismatch"));
+  if (!userId) {
+    logger().warn(
+      {
+        workspaceId,
+        identifier,
+        identifierKey,
+        hash,
+      },
+      "Invalid hash",
+    );
+    return err(new Error("Invalid hash"));
   }
   return ok({ userId });
 }
