@@ -332,10 +332,14 @@ export async function getUserSubscriptions({
     },
     include: {
       Segment: {
+        where: {
+          workspaceId,
+        },
         include: {
           SegmentAssignment: {
             where: {
               userId,
+              workspaceId,
             },
           },
         },
@@ -398,7 +402,7 @@ export async function lookupUserForSubscriptions({
       include: {
         UserPropertyAssignment: {
           where: {
-            value: JSON.stringify(identifier),
+            value: identifier,
           },
         },
       },
@@ -407,6 +411,13 @@ export async function lookupUserForSubscriptions({
 
   const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
   if (!userPropertyAssignment) {
+    logger().warn(
+      {
+        identifier,
+        identifierKey,
+      },
+      "User not found",
+    );
     return err(new Error("User not found"));
   }
 

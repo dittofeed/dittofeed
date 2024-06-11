@@ -16,7 +16,6 @@ import {
 import { GetServerSideProps, NextPage } from "next";
 import React from "react";
 
-import DashboardContent from "../../components/dashboardContent";
 import {
   SubscriptionManagement,
   SubscriptionManagementProps,
@@ -163,25 +162,23 @@ const SubscriptionManagementPage: NextPage<SSP> =
       workspaceName,
     } = props;
     return (
-      <DashboardContent>
-        <Stack
-          justifyContent="center"
-          alignItems="center"
-          sx={{ height: "100vh" }}
-        >
-          <SubscriptionManagement
-            workspaceId={workspaceId}
-            subscriptions={subscriptions}
-            subscriptionChange={subscriptionChange}
-            changedSubscription={changedSubscription}
-            hash={hash}
-            identifier={identifier}
-            identifierKey={identifierKey}
-            workspaceName={workspaceName}
-            onSubscriptionUpdate={onUpdate}
-          />
-        </Stack>
-      </DashboardContent>
+      <Stack
+        justifyContent="center"
+        alignItems="center"
+        sx={{ height: "100vh" }}
+      >
+        <SubscriptionManagement
+          workspaceId={workspaceId}
+          subscriptions={subscriptions}
+          subscriptionChange={subscriptionChange}
+          changedSubscription={changedSubscription}
+          hash={hash}
+          identifier={identifier}
+          identifierKey={identifierKey}
+          workspaceName={workspaceName}
+          onSubscriptionUpdate={onUpdate}
+        />
+      </Stack>
     );
   };
 

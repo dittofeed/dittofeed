@@ -527,7 +527,7 @@ export const defaultEmailBody = `<!DOCTYPE html>
                             margin-bottom: 15px;
                           "
                         >
-                          {{ "{{user.firstName}}" }} = "{{ user.firstName }}"
+                          {{ "{{user.firstName}}" }} = "{{ user.firstName | default: "Default Name" }}"
                         </p>
                         <p
                           style="
@@ -599,15 +599,8 @@ export const defaultEmailBody = `<!DOCTYPE html>
                     >
                     <br />
                     Don't like these emails?
-                    <a
-                      style="
-                        text-decoration: underline;
-                        color: #999999;
-                        font-size: 12px;
-                        text-align: center;
-                      "
-                      >Unsubscribe</a
-                    >.
+
+                    {% unsubscribe_link %}
                   </td>
                 </tr>
                 <tr>
@@ -655,7 +648,7 @@ export const defaultEmailBody = `<!DOCTYPE html>
 </html>`;
 
 export function defaultEmailDefinition(
-  emailProvider?: DefaultEmailProviderResource,
+  emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">,
 ): EmailTemplateResource {
   return {
     type: ChannelType.Email,
