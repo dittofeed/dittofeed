@@ -221,13 +221,13 @@ export async function createUserEventsTables({
       `,
   ];
 
-  const kafkaBrokers =
-    config().nodeEnv === NodeEnvEnum.Test ||
-    config().nodeEnv === NodeEnvEnum.Development
-      ? "kafka:29092"
-      : config().kafkaBrokers.join(",");
+  if (ingressTopic && config().writeMode === "kafka") {
+    const kafkaBrokers =
+      config().nodeEnv === NodeEnvEnum.Test ||
+      config().nodeEnv === NodeEnvEnum.Development
+        ? "kafka:29092"
+        : config().kafkaBrokers.join(",");
 
-  if (ingressTopic) {
     // TODO modify kafka consumer settings
     queries.push(`
         CREATE TABLE IF NOT EXISTS user_events_queue_v2
@@ -286,7 +286,7 @@ export async function createUserEventsTables({
         computed_at;
     `,
   ];
-  if (ingressTopic) {
+  if (ingressTopic && config().writeMode === "kafka") {
     mvQueries.push(`
       CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
       TO user_events_v2 AS
