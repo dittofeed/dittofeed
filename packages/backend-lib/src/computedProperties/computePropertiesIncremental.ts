@@ -847,9 +847,44 @@ function segmentToResolvedState({
         }),
       ];
     }
-    // TODO: [DF-482]
     case SegmentNodeType.Manual: {
-      throw new Error("Manual segment nodes are not supported");
+      return segmentToResolvedState({
+        node: {
+          type: SegmentNodeType.LastPerformed,
+          id: node.id,
+          event: InternalEventType.ManualSegmentUpdate,
+          whereProperties: [
+            {
+              path: "segmentId",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: segment.id,
+              },
+            },
+            {
+              path: "version",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: node.version,
+              },
+            },
+          ],
+          hasProperties: [
+            {
+              path: "inSegment",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: 1,
+              },
+            },
+          ],
+        } satisfies LastPerformedSegmentNode,
+        segment,
+        now,
+        periodBound,
+        workspaceId,
+        qb,
+      });
     }
     default:
       assertUnreachable(node);

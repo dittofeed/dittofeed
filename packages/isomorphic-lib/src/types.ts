@@ -60,6 +60,7 @@ export enum InternalEventType {
   SmsDelivered = "DFSmsDelivered",
   SmsFailed = "DFSmsFailed",
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
+  ManualSegmentUpdate = "DFManualSegmentUpdate",
 }
 
 export enum SubscriptionGroupType {
