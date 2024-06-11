@@ -323,7 +323,7 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
-export const SegmentNode = Type.Union([
+export const BodySegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
   OrSegmentNode,
@@ -332,14 +332,17 @@ export const SegmentNode = Type.Union([
   EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
-  ManualSegmentNode,
 ]);
+
+export type BodySegmentNode = Static<typeof BodySegmentNode>;
+
+export const SegmentNode = Type.Union([BodySegmentNode, ManualSegmentNode]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
 
 export const SegmentDefinition = Type.Object({
   entryNode: SegmentNode,
-  nodes: Type.Array(SegmentNode),
+  nodes: Type.Array(BodySegmentNode),
 });
 
 export type SegmentDefinition = Static<typeof SegmentDefinition>;
