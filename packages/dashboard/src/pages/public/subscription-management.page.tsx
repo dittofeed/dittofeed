@@ -16,7 +16,6 @@ import {
 import { GetServerSideProps, NextPage } from "next";
 import React from "react";
 
-import DashboardContent from "../../components/dashboardContent";
 import {
   SubscriptionManagement,
   SubscriptionManagementProps,

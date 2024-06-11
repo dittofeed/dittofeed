@@ -332,10 +332,14 @@ export async function getUserSubscriptions({
     },
     include: {
       Segment: {
+        where: {
+          workspaceId,
+        },
         include: {
           SegmentAssignment: {
             where: {
               userId,
+              workspaceId,
             },
           },
         },
