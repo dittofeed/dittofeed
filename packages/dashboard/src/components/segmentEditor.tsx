@@ -826,13 +826,73 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
 
 type Label = Group | "empty";
 
-function BodySegmentNodeComponent({
+interface ManualUploadState {
+  uploadRequest: EphemeralRequestStatus<Error>;
+  operation: ManualSegmentOperationEnum;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
+  const { workspace, editedSegment, apiBase } = useAppStorePick([
+    "workspace",
+    "editedSegment",
+    "apiBase",
+  ]);
+  const [{ uploadRequest, operation }, setState] = useImmer<ManualUploadState>({
+    uploadRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    operation: ManualSegmentOperationEnum.Add,
+  });
+
+  // FIXME display if results have been uploaded but haven't been saved
+  // or alternatively save after upload
+  const handleSubmit = useCallback(
+    async ({ data }: { data: FormData }) => {
+      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
+        return;
+      }
+
+      apiRequestHandlerFactory({
+        request: uploadRequest,
+        setRequest: (request) =>
+          setState((draft) => {
+            draft.uploadRequest = request;
+          }),
+        responseSchema: EmptyResponse,
+        onSuccessNotice: `Uploaded CSV to manual segment`,
+        setResponse: () => {},
+        onFailureNoticeHandler: () =>
+          `API Error: Failed upload CSV to manual segment`,
+        requestConfig: {
+          method: "POST",
+          url: `${apiBase}/api/segments/upload-csv`,
+          data,
+          headers: {
+            [WORKSPACE_ID_HEADER]: workspace.value.id,
+            [SEGMENT_ID_HEADER]: editedSegment.id,
+            operation,
+          } satisfies ManualSegmentUploadCsvHeaders,
+        },
+      });
+    },
+    [apiBase, editedSegment, operation, setState, uploadRequest, workspace],
+  );
+  return (
+    <Stack direction="column" spacing={3}>
+      <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
+      <CsvUploader submit={handleSubmit} />
+    </Stack>
+  );
+}
+
+function SegmentNodeComponent({
   node,
   label,
   renderDelete,
   parentId,
 }: {
-  node: BodySegmentNode;
+  node: SegmentNode;
   renderDelete?: boolean;
   parentId?: string;
   label?: Label;
@@ -936,7 +996,7 @@ function BodySegmentNodeComponent({
       }
 
       return (
-        <BodySegmentNodeComponent
+        <SegmentNodeComponent
           key={i}
           node={child}
           renderDelete={i !== 0}
@@ -947,7 +1007,6 @@ function BodySegmentNodeComponent({
     });
     el = (
       <Stack spacing={3}>
-        {/* <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}> */}
         <Stack direction="row" spacing={1}>
           {labelEl}
           {conditionSelect}
@@ -993,10 +1052,18 @@ function BodySegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+  } else if (node.type === SegmentNodeType.Manual) {
+    el = (
+      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+        {labelEl}
+        {conditionSelect}
+        <ManualNodeComponent node={node} />
+      </Stack>
+    );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (node.type === SegmentNodeType.Email) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <EmailSelect node={node} />
@@ -1008,78 +1075,6 @@ function BodySegmentNodeComponent({
   }
 
   return <>{el}</>;
-}
-
-interface ManualUploadState {
-  uploadRequest: EphemeralRequestStatus<Error>;
-  operation: ManualSegmentOperationEnum;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
-  const { workspace, editedSegment, apiBase } = useAppStorePick([
-    "workspace",
-    "editedSegment",
-    "apiBase",
-  ]);
-  const [{ uploadRequest, operation }, setState] = useImmer<ManualUploadState>({
-    uploadRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    operation: ManualSegmentOperationEnum.Add,
-  });
-
-  // FIXME display if results have been uploaded but haven't been saved
-  // or alternatively save after upload
-  const handleSubmit = useCallback(
-    async ({ data }: { data: FormData }) => {
-      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
-        return;
-      }
-
-      apiRequestHandlerFactory({
-        request: uploadRequest,
-        setRequest: (request) =>
-          setState((draft) => {
-            draft.uploadRequest = request;
-          }),
-        responseSchema: EmptyResponse,
-        onSuccessNotice: `Uploaded CSV to manual segment`,
-        setResponse: () => {},
-        onFailureNoticeHandler: () =>
-          `API Error: Failed upload CSV to manual segment`,
-        requestConfig: {
-          method: "POST",
-          url: `${apiBase}/api/segments/upload-csv`,
-          data,
-          headers: {
-            [WORKSPACE_ID_HEADER]: workspace.value.id,
-            [SEGMENT_ID_HEADER]: editedSegment.id,
-            operation,
-          } satisfies ManualSegmentUploadCsvHeaders,
-        },
-      });
-    },
-    [apiBase, editedSegment, operation, setState, uploadRequest, workspace],
-  );
-  return (
-    <Stack>
-      <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
-      <CsvUploader submit={handleSubmit} />
-    </Stack>
-  );
-}
-
-function EntryNodeComponent({ node }: { node: SegmentNode }) {
-  let content: React.ReactElement;
-  switch (node.type) {
-    case SegmentNodeType.Manual:
-      content = <ManualNodeComponent node={node} />;
-      break;
-    default:
-      throw new Error(`Unsupported entry node type ${node.type}`);
-  }
-  return <>{content}</>;
 }
 
 export function SegmentEditorInner({
@@ -1096,18 +1091,6 @@ export function SegmentEditorInner({
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
   useLoadTraits();
-  let content: React.ReactElement;
-  if (isBodySegmentNode(entryNode)) {
-    content = (
-      <BodySegmentNodeComponent
-        node={entryNode}
-        renderDelete={false}
-        label="empty"
-      />
-    );
-  } else {
-    content = <EntryNodeComponent node={entryNode} />;
-  }
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
@@ -1121,7 +1104,11 @@ export function SegmentEditorInner({
           ...sx,
         }}
       >
-        {content}
+        <SegmentNodeComponent
+          node={entryNode}
+          renderDelete={false}
+          label="empty"
+        />
       </Box>
     </DisabledContext.Provider>
   );
