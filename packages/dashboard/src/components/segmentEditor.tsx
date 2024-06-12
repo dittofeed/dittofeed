@@ -16,6 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import axios from "axios";
 import {
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
@@ -24,11 +25,8 @@ import { isEmailEvent } from "isomorphic-lib/src/email";
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  BodySegmentNode,
   CompletionStatus,
   EmailSegmentNode,
-  EmptyResponse,
-  EphemeralRequestStatus,
   InternalEventType,
   ManualSegmentNode,
   ManualSegmentOperationEnum,
@@ -52,14 +50,12 @@ import React, { useCallback, useContext, useMemo } from "react";
 import { useImmer } from "use-immer";
 import { shallow } from "zustand/shallow";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
-import axios from "axios";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -842,13 +838,20 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
     operation: ManualSegmentOperationEnum.Add,
   });
 
-  // FIXME display if results have been uploaded but haven't been saved
-  // or alternatively save after upload
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
       if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
         return;
       }
+
+      await axios({
+        method: "PUT",
+        url: `${apiBase}/api/segments`,
+        data: editedSegment,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       await axios({
         method: "POST",
