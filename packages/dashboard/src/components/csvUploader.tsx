@@ -6,7 +6,7 @@ import { ChangeEvent, useState } from "react";
 
 import { noticeAnchorOrigin } from "../lib/notices";
 
-export function FileUploader({
+export function CsvUploader({
   submit,
 }: {
   submit: (values: { data: FormData }) => Promise<void>;
