@@ -3,6 +3,8 @@ FROM node:20-slim AS builder
 
 WORKDIR /service
 
+RUN yarn set version 4.1.1
+
 RUN apt-get update -y && \
     apt-get install -y openssl
 
@@ -28,12 +30,16 @@ FROM node:20-slim AS runner
 
 WORKDIR /service
 
+RUN yarn set version 4.1.1
+
 RUN apt-get update -y && \
     apt-get install -y openssl
 
 COPY --from=builder /service/production_node_modules ./node_modules
 COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /service/package.json ./package.json
+COPY --from=builder /service/*.json /service/yarn.lock /service/.yarnrc.yml ./
+COPY --from=builder /service/.yarn .yarn
 
 COPY --from=builder /service/packages/worker/dist ./packages/worker/dist
 COPY --from=builder /service/packages/worker/package.json ./packages/worker/package.json
