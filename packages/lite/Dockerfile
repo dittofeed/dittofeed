@@ -15,6 +15,7 @@ COPY ./packages/admin-cli/*.json ./packages/admin-cli/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
+RUN yarn set version 4.1.1
 RUN yarn workspaces focus lite --production && \
     cp -R node_modules production_node_modules
 RUN yarn workspaces focus lite
@@ -42,9 +43,13 @@ ARG WORKSPACE_NAME='Default'
 
 WORKDIR /service
 
+RUN yarn set version 4.1.1
+
 COPY --from=builder /service/production_node_modules ./node_modules
 COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /service/package.json ./package.json
+COPY --from=builder /service/*.json /service/yarn.lock /service/.yarnrc.yml ./
+COPY --from=builder /service/.yarn .yarn
 
 COPY --from=builder /service/packages/lite/dist ./packages/lite/dist
 COPY --from=builder /service/packages/lite/package.json ./packages/lite/package.json
