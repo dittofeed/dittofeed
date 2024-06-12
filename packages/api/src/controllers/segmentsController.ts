@@ -292,6 +292,14 @@ export default async function segmentsController(fastify: FastifyInstance) {
           } satisfies KnownBatchTrackData);
         }
 
+        logger().debug(
+          {
+            batch,
+            workspaceId,
+            segmentId,
+          },
+          "submitting manual segment batch",
+        );
         const data: SubmitBatchOptions = {
           workspaceId,
           data: {
