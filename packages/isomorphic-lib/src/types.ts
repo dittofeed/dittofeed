@@ -1,5 +1,10 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 import { Result } from "neverthrow";
+import {
+  SEGMENT_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "./constants";
 
 export enum JsonResultType {
   Ok = "Ok",
@@ -1790,13 +1795,17 @@ export const UserUploadEmailRow = Type.Intersect([
 
 export type UserUploadEmailRow = Static<typeof UserUploadEmailRow>;
 
+export const BaseUserUploadRow = Type.Intersect([
+  Type.Record(Type.String(), Type.String()),
+  Type.Object({
+    id: Type.String({ minLength: 1 }),
+  }),
+]);
+
+export type BaseUserUploadRow = Static<typeof BaseUserUploadRow>;
+
 export const UserUploadRow = Type.Union([
-  Type.Intersect([
-    Type.Record(Type.String(), Type.String()),
-    Type.Object({
-      id: Type.String({ minLength: 1 }),
-    }),
-  ]),
+  BaseUserUploadRow,
   UserUploadEmailRow,
 ]);
 
@@ -3354,3 +3363,18 @@ export const WhiteLabelFeatureConfig = Type.Object({
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
+
+export enum ManualSegmentOperationEnum {
+  Add = "Add",
+  Remove = "Remove",
+}
+
+export const ManualSegmentUploadCsvHeaders = Type.Object({
+  [WORKSPACE_ID_HEADER]: WorkspaceId,
+  [SEGMENT_ID_HEADER]: Type.String(),
+  operation: Type.Enum(ManualSegmentOperationEnum),
+});
+
+export type ManualSegmentUploadCsvHeaders = Static<
+  typeof ManualSegmentUploadCsvHeaders
+>;

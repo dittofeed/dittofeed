@@ -1,35 +1,45 @@
 import fastifyMultipart from "@fastify/multipart";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import { submitBatchWithTriggers } from "backend-lib/src/apps";
+import { SubmitBatchOptions } from "backend-lib/src/apps/batch";
+import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { buildSegmentsFile, upsertSegment } from "backend-lib/src/segments";
+import { randomUUID } from "crypto";
+import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
 import {
+  DataSources,
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  BaseUserUploadRow,
+  BatchItem,
   CsvUploadValidationError,
   DeleteSegmentRequest,
   EmptyResponse,
+  EventType,
+  InternalEventType,
+  KnownBatchIdentifyData,
+  KnownBatchTrackData,
+  ManualSegmentOperationEnum,
+  ManualSegmentUploadCsvHeaders,
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
   UpsertSegmentResource,
-  UserUploadRow,
   UserUploadRowErrors,
-  WorkspaceId,
 } from "isomorphic-lib/src/types";
-import { Readable } from "stream";
-import { CsvParseResult } from "../types";
-import csvParser from "csv-parser";
 import { err, ok } from "neverthrow";
-import {
-  schemaValidate,
-  schemaValidateWithErr,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
-import logger from "backend-lib/src/logger";
-import { InsertUserEvent } from "backend-lib/src/userEvents";
+import { Readable } from "stream";
+
+import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function segmentsController(fastify: FastifyInstance) {
@@ -135,21 +145,19 @@ export default async function segmentsController(fastify: FastifyInstance) {
           body: Type.Object({
             csv: Type.String(),
           }),
-          headers: Type.Object({
-            [WORKSPACE_ID_HEADER]: WorkspaceId,
-            [SEGMENT_ID_HEADER]: Type.String(),
-          }),
+          headers: ManualSegmentUploadCsvHeaders,
         },
       },
       async (request, reply) => {
         const csvStream = Readable.from(request.body.csv);
         const workspaceId = request.headers[WORKSPACE_ID_HEADER];
         const segmentId = request.headers[SEGMENT_ID_HEADER];
+        const { operation } = request.headers;
 
         // Parse the CSV stream into a JavaScript object with an array of rows
         const csvPromise = new Promise<CsvParseResult>((resolve) => {
           const parsingErrors: UserUploadRowErrors[] = [];
-          const uploadedRows: UserUploadRow[] = [];
+          const uploadedRows: BaseUserUploadRow[] = [];
 
           let i = 0;
           csvStream
@@ -164,7 +172,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
               if (row instanceof Object && Object.keys(row).length === 0) {
                 return;
               }
-              const parsed = schemaValidate(row, UserUploadRow);
+              const parsed = schemaValidate(row, BaseUserUploadRow);
               const rowNumber = i;
               i += 1;
 
@@ -178,7 +186,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
               }
 
               const { value } = parsed;
-              if (value.email.length === 0 && value.id.length === 0) {
+              if (value.id.length === 0) {
                 const errors = {
                   row: rowNumber,
                   error: 'row must have a non-empty "id" field',
@@ -254,16 +262,46 @@ export default async function segmentsController(fastify: FastifyInstance) {
           return reply.status(400).send(errorResponse);
         }
 
-        const emailsWithoutIds: Set<string> = new Set<string>();
-
-        for (const row of rows.value) {
-          if (row.email && !row.id) {
-            emailsWithoutIds.add(row.email);
-          }
-        }
-
         const currentTime = new Date();
         const timestamp = currentTime.toISOString();
+        const batch: BatchItem[] = [];
+        const inSegment = operation === ManualSegmentOperationEnum.Add ? 1 : 0;
+
+        for (const row of rows.value) {
+          const { id, ...rest } = row;
+
+          batch.push({
+            type: EventType.Identify,
+            userId: id,
+            timestamp,
+            traits: rest,
+            messageId: randomUUID(),
+          } satisfies KnownBatchIdentifyData);
+
+          batch.push({
+            type: EventType.Track,
+            userId: id,
+            timestamp,
+            event: InternalEventType.ManualSegmentUpdate,
+            properties: {
+              segmentId,
+              version: definition.entryNode.version,
+              inSegment,
+            },
+            messageId: randomUUID(),
+          } satisfies KnownBatchTrackData);
+        }
+
+        const data: SubmitBatchOptions = {
+          workspaceId,
+          data: {
+            context: {
+              source: DataSources.ManualSegment,
+            },
+            batch,
+          },
+        };
+        await submitBatchWithTriggers(data);
 
         const response = await reply.status(200).send();
         return response;

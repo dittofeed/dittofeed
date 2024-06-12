@@ -30,6 +30,10 @@ export enum SecretNames {
   Webhook = "webhook-channel",
 }
 
+export enum DataSources {
+  ManualSegment = "DfManualSegment",
+}
+
 export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   {
     [SmsProviderType.Twilio]: SecretNames.Twilio,
