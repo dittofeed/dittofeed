@@ -39,7 +39,7 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useContext, useMemo } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -47,6 +47,7 @@ import { GroupedOption } from "../lib/types";
 import useLoadTraits from "../lib/useLoadTraits";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import { CsvUploader } from "./csvUploader";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -999,10 +1000,23 @@ function BodySegmentNodeComponent({
 }
 
 export function EntryNodeComponent({ node }: { node: SegmentNode }) {
+  const { workspace, editedSegment, apiBase } = useAppStorePick([
+    "workspace",
+    "editedSegment",
+    "apiBase",
+  ]);
   let content: React.ReactElement;
+  const handleSubmit = useCallback(
+    async ({ data }: { data: FormData }) => {},
+    [],
+  );
   switch (node.type) {
     case SegmentNodeType.Manual:
-      content = <Typography>Manual Segment</Typography>;
+      content = (
+        <Stack>
+          <CsvUploader submit={handleSubmit} />
+        </Stack>
+      );
       break;
     default:
       throw new Error(`Unsupported entry node type ${node.type}`);
