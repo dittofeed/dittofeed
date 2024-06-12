@@ -59,6 +59,7 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import axios from "axios";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -827,7 +828,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
 type Label = Group | "empty";
 
 interface ManualUploadState {
-  uploadRequest: EphemeralRequestStatus<Error>;
   operation: ManualSegmentOperationEnum;
 }
 
@@ -838,10 +838,7 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
     "editedSegment",
     "apiBase",
   ]);
-  const [{ uploadRequest, operation }, setState] = useImmer<ManualUploadState>({
-    uploadRequest: {
-      type: CompletionStatus.NotStarted,
-    },
+  const [{ operation }] = useImmer<ManualUploadState>({
     operation: ManualSegmentOperationEnum.Add,
   });
 
@@ -853,35 +850,27 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
         return;
       }
 
-      apiRequestHandlerFactory({
-        request: uploadRequest,
-        setRequest: (request) =>
-          setState((draft) => {
-            draft.uploadRequest = request;
-          }),
-        responseSchema: EmptyResponse,
-        onSuccessNotice: `Uploaded CSV to manual segment`,
-        setResponse: () => {},
-        onFailureNoticeHandler: () =>
-          `API Error: Failed upload CSV to manual segment`,
-        requestConfig: {
-          method: "POST",
-          url: `${apiBase}/api/segments/upload-csv`,
-          data,
-          headers: {
-            [WORKSPACE_ID_HEADER]: workspace.value.id,
-            [SEGMENT_ID_HEADER]: editedSegment.id,
-            operation,
-          } satisfies ManualSegmentUploadCsvHeaders,
-        },
+      await axios({
+        method: "POST",
+        url: `${apiBase}/api/segments/upload-csv`,
+        data,
+        headers: {
+          [WORKSPACE_ID_HEADER]: workspace.value.id,
+          [SEGMENT_ID_HEADER]: editedSegment.id,
+          operation,
+        } satisfies ManualSegmentUploadCsvHeaders,
       });
     },
-    [apiBase, editedSegment, operation, setState, uploadRequest, workspace],
+    [apiBase, editedSegment, operation, workspace],
   );
   return (
     <Stack direction="column" spacing={3}>
       <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
-      <CsvUploader submit={handleSubmit} />
+      <CsvUploader
+        submit={handleSubmit}
+        successMessage="Uploaded CSV to manual segment"
+        errorMessage="API Error: Failed upload CSV to manual segment"
+      />
     </Stack>
   );
 }

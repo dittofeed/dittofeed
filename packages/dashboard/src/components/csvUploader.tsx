@@ -8,8 +8,12 @@ import { noticeAnchorOrigin } from "../lib/notices";
 
 export function CsvUploader({
   submit,
+  successMessage,
+  errorMessage,
 }: {
   submit: (values: { data: FormData }) => Promise<void>;
+  successMessage: string;
+  errorMessage: string;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [mainError, setMainError] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export function CsvUploader({
         setMainError(null);
         setRowErrors([]);
 
-        enqueueSnackbar("Submitted users to subscription group", {
+        enqueueSnackbar(successMessage, {
           variant: "success",
           autoHideDuration: 3000,
           anchorOrigin: noticeAnchorOrigin,
@@ -54,20 +58,14 @@ export function CsvUploader({
                 .map((e) => `row ${e.row}: ${e.error}`),
             );
             setMainError(axiosError.response.data.message);
-            console.error(
-              `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`,
-            );
             return;
           }
         }
-        enqueueSnackbar(
-          "API Error: failed upload users to subscription group.",
-          {
-            variant: "error",
-            autoHideDuration: 3000,
-            anchorOrigin: noticeAnchorOrigin,
-          },
-        );
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
         // Unknown error
         console.error(error);
       }

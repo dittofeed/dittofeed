@@ -60,7 +60,11 @@ export default function SubscriptionGroupConfig() {
             Upload Users to a Subscription Group
           </Typography>
         </Stack>
-        <CsvUploader submit={handleSubmit} />
+        <CsvUploader
+          submit={handleSubmit}
+          successMessage="Submitted users to subscription group"
+          errorMessage="API Error: failed upload users to subscription group."
+        />
       </Stack>
     </SubscriptionGroupLayout>
   );
