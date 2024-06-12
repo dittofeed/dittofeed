@@ -9,6 +9,8 @@ RUN apt-get update -y && \
 
 COPY . .
 
+RUN yarn set version 4.1.1
+
 RUN yarn workspaces focus isomorphic-lib && \
     yarn workspaces focus backend-lib && \
     yarn workspaces focus dashboard
@@ -27,6 +29,8 @@ FROM node:20-slim AS runner
 
 WORKDIR /app
 
+RUN yarn set version 4.1.1
+
 RUN apt-get update -y && \
     apt-get install -y openssl
 
@@ -38,6 +42,8 @@ COPY --from=builder /app/packages/dashboard/.next/standalone/node_modules ./node
 # static and public should be on CDN
 COPY --from=builder /app/packages/dashboard/.next/static ./.next/static
 COPY --from=builder /app/packages/dashboard/public ./public
+COPY --from=builder /app/.yarn ./.yarn
+COPY --from=builder /app/*.json /app/yarn.lock /app/.yarnrc.yml ./
 
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 

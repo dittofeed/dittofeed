@@ -3,6 +3,8 @@ FROM node:20-buster AS builder
 
 WORKDIR /service
 
+RUN yarn set version 4.1.1
+
 RUN apt-get update -y && \
     apt-get install -y openssl
 
