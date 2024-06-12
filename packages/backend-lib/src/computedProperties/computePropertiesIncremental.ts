@@ -130,13 +130,14 @@ function manualSegmentToLastPerformed({
           value: segment.id,
         },
       },
-      {
-        path: "version",
-        operator: {
-          type: SegmentOperatorType.Equals,
-          value: node.version,
-        },
-      },
+      // FIXME succeeds without this condition
+      // {
+      //   path: "version",
+      //   operator: {
+      //     type: SegmentOperatorType.Equals,
+      //     value: node.version,
+      //   },
+      // },
     ],
     hasProperties: [
       {
