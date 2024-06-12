@@ -6,10 +6,8 @@ import {
   SmsProviderType,
 } from "./types";
 
-export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
-export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;
-export const SEGMENT_ID_HEADER = "df-segment-id" as const;
-export const MESSAGE_ID_HEADER = "df-message-id" as const;
+export * from "./constants/headers";
+
 export const UNAUTHORIZED_PAGE = "/404" as const;
 export const SINGLE_TENANT_LOGIN_PAGE = "/auth/single-tenant" as const;
 export const WAITING_ROOM_PAGE = "/waiting-room" as const;

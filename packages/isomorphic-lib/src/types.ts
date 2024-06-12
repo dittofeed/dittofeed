@@ -1,10 +1,7 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 import { Result } from "neverthrow";
-import {
-  SEGMENT_ID_HEADER,
-  WORKSPACE_ID_HEADER,
-  WORKSPACE_ID_HEADER,
-} from "./constants";
+
+import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
 export enum JsonResultType {
   Ok = "Ok",

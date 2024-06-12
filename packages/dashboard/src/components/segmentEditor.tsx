@@ -16,6 +16,10 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import {
+  SEGMENT_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "isomorphic-lib/src/constants";
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -23,7 +27,12 @@ import {
   BodySegmentNode,
   CompletionStatus,
   EmailSegmentNode,
+  EmptyResponse,
+  EphemeralRequestStatus,
   InternalEventType,
+  ManualSegmentNode,
+  ManualSegmentOperationEnum,
+  ManualSegmentUploadCsvHeaders,
   PerformedSegmentNode,
   RelationalOperators,
   SegmentEqualsOperator,
@@ -40,14 +49,16 @@ import {
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useCallback, useContext, useMemo } from "react";
+import { useImmer } from "use-immer";
 import { shallow } from "zustand/shallow";
 
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadTraits from "../lib/useLoadTraits";
+import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
-import { CsvUploader } from "./csvUploader";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -999,24 +1010,71 @@ function BodySegmentNodeComponent({
   return <>{el}</>;
 }
 
-export function EntryNodeComponent({ node }: { node: SegmentNode }) {
+interface ManualUploadState {
+  uploadRequest: EphemeralRequestStatus<Error>;
+  operation: ManualSegmentOperationEnum;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
   const { workspace, editedSegment, apiBase } = useAppStorePick([
     "workspace",
     "editedSegment",
     "apiBase",
   ]);
-  let content: React.ReactElement;
+  const [{ uploadRequest, operation }, setState] = useImmer<ManualUploadState>({
+    uploadRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    operation: ManualSegmentOperationEnum.Add,
+  });
+
+  // FIXME display if results have been uploaded but haven't been saved
+  // or alternatively save after upload
   const handleSubmit = useCallback(
-    async ({ data }: { data: FormData }) => {},
-    [],
+    async ({ data }: { data: FormData }) => {
+      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
+        return;
+      }
+
+      apiRequestHandlerFactory({
+        request: uploadRequest,
+        setRequest: (request) =>
+          setState((draft) => {
+            draft.uploadRequest = request;
+          }),
+        responseSchema: EmptyResponse,
+        onSuccessNotice: `Uploaded CSV to manual segment`,
+        setResponse: () => {},
+        onFailureNoticeHandler: () =>
+          `API Error: Failed upload CSV to manual segment`,
+        requestConfig: {
+          method: "POST",
+          url: `${apiBase}/api/segments/upload-csv`,
+          data,
+          headers: {
+            [WORKSPACE_ID_HEADER]: workspace.value.id,
+            [SEGMENT_ID_HEADER]: editedSegment.id,
+            operation,
+          } satisfies ManualSegmentUploadCsvHeaders,
+        },
+      });
+    },
+    [apiBase, editedSegment, operation, setState, uploadRequest, workspace],
   );
+  return (
+    <Stack>
+      <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
+      <CsvUploader submit={handleSubmit} />
+    </Stack>
+  );
+}
+
+function EntryNodeComponent({ node }: { node: SegmentNode }) {
+  let content: React.ReactElement;
   switch (node.type) {
     case SegmentNodeType.Manual:
-      content = (
-        <Stack>
-          <CsvUploader submit={handleSubmit} />
-        </Stack>
-      );
+      content = <ManualNodeComponent node={node} />;
       break;
     default:
       throw new Error(`Unsupported entry node type ${node.type}`);
