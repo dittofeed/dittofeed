@@ -1228,9 +1228,15 @@ export function segmentNodeToStateSubQuery({
         });
       });
     }
-    // TODO: [DF-482]
     case SegmentNodeType.Manual: {
-      throw new Error("Manual segment nodes are not supported");
+      return segmentNodeToStateSubQuery({
+        node: manualSegmentToLastPerformed({
+          node,
+          segment,
+        }),
+        segment,
+        qb,
+      });
     }
     case SegmentNodeType.LastPerformed: {
       const stateId = segmentNodeStateId(segment, node.id);
