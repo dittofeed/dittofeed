@@ -68,7 +68,7 @@ export default async function subscriptionGroupsController(
   );
 
   await fastify.register(async (fastifyInner) => {
-    await fastify.register(fastifyMultipart, {
+    await fastifyInner.register(fastifyMultipart, {
       attachFieldsToBody: "keyValues",
     });
 
