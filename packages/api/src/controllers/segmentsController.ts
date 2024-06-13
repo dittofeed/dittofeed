@@ -141,7 +141,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       {
         schema: {
           // TODO upload files to S3 and use a presigned URL
-          tags: ["Subscription Groups"],
+          tags: ["Segments"],
+          description:
+            "Upload a CSV file to add or remove users from a manual segment.",
           body: Type.Object({
             csv: Type.String(),
           }),
