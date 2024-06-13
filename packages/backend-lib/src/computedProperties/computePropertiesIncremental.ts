@@ -130,7 +130,7 @@ function manualSegmentToLastPerformed({
           value: segment.id,
         },
       },
-      // FIXME succeeds without this condition
+      // FIXME succeeds without this condition, issue is likely with numeric comparison
       // {
       //   path: "version",
       //   operator: {
@@ -849,7 +849,8 @@ function segmentToResolvedState({
         const operatorType = property.operator.type;
         const reference =
           i === 0
-            ? `(JSONExtract(argMaxMerge(last_value), 'Array(String)') as ${varName})`
+            ? // FIXME
+              `(JSONExtract(argMaxMerge(last_value), 'Array(String)') as ${varName})`
             : varName;
         const indexedReference = `${reference}[${i + 1}]`;
 
@@ -857,12 +858,14 @@ function segmentToResolvedState({
           case SegmentOperatorType.Equals: {
             return `${indexedReference} == ${qb.addQueryValue(
               property.operator.value,
+              // FIXME
               "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
             return `${indexedReference} != ${qb.addQueryValue(
               property.operator.value,
+              // FIXME
               "String",
             )}`;
           }

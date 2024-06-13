@@ -2243,7 +2243,7 @@ describe("computeProperties", () => {
       userProperties: [],
       segments: [
         {
-          name: "lastPerformed",
+          name: "manual",
           definition: {
             entryNode: {
               type: SegmentNodeType.Manual,
@@ -2289,7 +2289,7 @@ describe("computeProperties", () => {
             // manually removed user
             ({ segments }) => ({
               type: EventType.Track,
-              userId: "user-1",
+              userId: "user-3",
               event: InternalEventType.ManualSegmentUpdate,
               offsetMs: -100,
               properties: {
@@ -2314,23 +2314,32 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              name: "manual",
+              nodeId: "1",
+              lastValue: JSON.stringify(["1"]),
+            },
+          ],
           users: [
             {
               id: "user-1",
               segments: {
-                lastPerformed: true,
+                manual: true,
               },
             },
             {
               id: "user-2",
               segments: {
-                lastPerformed: null,
+                manual: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                lastPerformed: null,
+                manual: null,
               },
             },
           ],
