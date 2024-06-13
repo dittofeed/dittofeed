@@ -132,7 +132,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
   );
 
   await fastify.register(async (fastifyInner) => {
-    await fastify.register(fastifyMultipart, {
+    await fastifyInner.register(fastifyMultipart, {
       attachFieldsToBody: "keyValues",
     });
 
