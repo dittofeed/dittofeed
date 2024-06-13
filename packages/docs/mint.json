@@ -162,6 +162,7 @@
             "resources/segment-nodes/performed",
             "resources/segment-nodes/and",
             "resources/segment-nodes/or",
+            "resources/segment-nodes/manual",
             "resources/segment-nodes/subscription-group",
             "resources/segment-nodes/email"
           ]
