@@ -16,12 +16,21 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import axios from "axios";
+import {
+  SEGMENT_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "isomorphic-lib/src/constants";
 import { isEmailEvent } from "isomorphic-lib/src/email";
+import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   EmailSegmentNode,
   InternalEventType,
+  ManualSegmentNode,
+  ManualSegmentOperationEnum,
+  ManualSegmentUploadCsvHeaders,
   PerformedSegmentNode,
   RelationalOperators,
   SegmentEqualsOperator,
@@ -37,12 +46,14 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useContext, useMemo } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
+import { useImmer } from "use-immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadTraits from "../lib/useLoadTraits";
+import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
 
@@ -89,9 +100,16 @@ const emailOption = {
   label: "Email",
 };
 
+const manualOption = {
+  id: SegmentNodeType.Manual,
+  group: "Manual",
+  label: "Manual",
+};
+
 const segmentOptions: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  manualOption,
   subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
@@ -101,13 +119,11 @@ const segmentOptions: SegmentGroupedOption[] = [
 const keyedSegmentOptions: Record<
   Exclude<
     SegmentNodeType,
-    | SegmentNodeType.LastPerformed
-    | SegmentNodeType.Broadcast
-    // TODO: [DF-482]
-    | SegmentNodeType.Manual
+    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
   >,
   SegmentGroupedOption
 > = {
+  [SegmentNodeType.Manual]: manualOption,
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.Performed]: performedOption,
   [SegmentNodeType.And]: andGroupedOption,
@@ -807,6 +823,61 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
 
 type Label = Group | "empty";
 
+interface ManualUploadState {
+  operation: ManualSegmentOperationEnum;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
+  const { workspace, editedSegment, apiBase } = useAppStorePick([
+    "workspace",
+    "editedSegment",
+    "apiBase",
+  ]);
+  const [{ operation }] = useImmer<ManualUploadState>({
+    operation: ManualSegmentOperationEnum.Add,
+  });
+
+  const handleSubmit = useCallback(
+    async ({ data }: { data: FormData }) => {
+      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
+        return;
+      }
+
+      await axios({
+        method: "PUT",
+        url: `${apiBase}/api/segments`,
+        data: editedSegment,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      await axios({
+        method: "POST",
+        url: `${apiBase}/api/segments/upload-csv`,
+        data,
+        headers: {
+          [WORKSPACE_ID_HEADER]: workspace.value.id,
+          [SEGMENT_ID_HEADER]: editedSegment.id,
+          operation,
+        } satisfies ManualSegmentUploadCsvHeaders,
+      });
+    },
+    [apiBase, editedSegment, operation, workspace],
+  );
+  return (
+    <Stack direction="column" spacing={3}>
+      <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
+      <CsvUploader
+        submit={handleSubmit}
+        successMessage="Uploaded CSV to manual segment"
+        errorMessage="API Error: Failed upload CSV to manual segment"
+      />
+    </Stack>
+  );
+}
+
 function SegmentNodeComponent({
   node,
   label,
@@ -839,9 +910,7 @@ function SegmentNodeComponent({
   );
   if (
     node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast ||
-    // TODO: [DF-482]
-    node.type === SegmentNodeType.Manual
+    node.type === SegmentNodeType.Broadcast
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
@@ -914,7 +983,7 @@ function SegmentNodeComponent({
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
-      if (!child) {
+      if (!child || !isBodySegmentNode(child)) {
         return [];
       }
 
@@ -930,7 +999,6 @@ function SegmentNodeComponent({
     });
     el = (
       <Stack spacing={3}>
-        {/* <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}> */}
         <Stack direction="row" spacing={1}>
           {labelEl}
           {conditionSelect}
@@ -976,10 +1044,18 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+  } else if (node.type === SegmentNodeType.Manual) {
+    el = (
+      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+        {labelEl}
+        {conditionSelect}
+        <ManualNodeComponent node={node} />
+      </Stack>
+    );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (node.type === SegmentNodeType.Email) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <EmailSelect node={node} />
@@ -1020,7 +1096,11 @@ export function SegmentEditorInner({
           ...sx,
         }}
       >
-        <SegmentNodeComponent node={entryNode} />
+        <SegmentNodeComponent
+          node={entryNode}
+          renderDelete={false}
+          label="empty"
+        />
       </Box>
     </DisabledContext.Provider>
   );

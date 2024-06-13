@@ -31,15 +31,12 @@ import {
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok, Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-type CsvParseResult = Result<
-  UserUploadRow[],
-  Error | UserUploadRowErrors[] | string
->;
+import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(

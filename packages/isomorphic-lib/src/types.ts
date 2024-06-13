@@ -1,6 +1,8 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 import { Result } from "neverthrow";
 
+import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
+
 export enum JsonResultType {
   Ok = "Ok",
   Err = "Err",
@@ -323,7 +325,7 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
-export const SegmentNode = Type.Union([
+export const BodySegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
   OrSegmentNode,
@@ -332,14 +334,17 @@ export const SegmentNode = Type.Union([
   EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
-  ManualSegmentNode,
 ]);
+
+export type BodySegmentNode = Static<typeof BodySegmentNode>;
+
+export const SegmentNode = Type.Union([BodySegmentNode, ManualSegmentNode]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
 
 export const SegmentDefinition = Type.Object({
   entryNode: SegmentNode,
-  nodes: Type.Array(SegmentNode),
+  nodes: Type.Array(BodySegmentNode),
 });
 
 export type SegmentDefinition = Static<typeof SegmentDefinition>;
@@ -1787,13 +1792,17 @@ export const UserUploadEmailRow = Type.Intersect([
 
 export type UserUploadEmailRow = Static<typeof UserUploadEmailRow>;
 
+export const BaseUserUploadRow = Type.Intersect([
+  Type.Record(Type.String(), Type.String()),
+  Type.Object({
+    id: Type.String({ minLength: 1 }),
+  }),
+]);
+
+export type BaseUserUploadRow = Static<typeof BaseUserUploadRow>;
+
 export const UserUploadRow = Type.Union([
-  Type.Intersect([
-    Type.Record(Type.String(), Type.String()),
-    Type.Object({
-      id: Type.String({ minLength: 1 }),
-    }),
-  ]),
+  BaseUserUploadRow,
   UserUploadEmailRow,
 ]);
 
@@ -3351,3 +3360,18 @@ export const WhiteLabelFeatureConfig = Type.Object({
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
+
+export enum ManualSegmentOperationEnum {
+  Add = "Add",
+  Remove = "Remove",
+}
+
+export const ManualSegmentUploadCsvHeaders = Type.Object({
+  [WORKSPACE_ID_HEADER]: WorkspaceId,
+  [SEGMENT_ID_HEADER]: Type.String(),
+  operation: Type.Enum(ManualSegmentOperationEnum),
+});
+
+export type ManualSegmentUploadCsvHeaders = Static<
+  typeof ManualSegmentUploadCsvHeaders
+>;

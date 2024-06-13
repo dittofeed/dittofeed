@@ -38,6 +38,7 @@ import {
   InternalEventType,
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
+  ManualSegmentNode,
   NodeEnvEnum,
   PerformedSegmentNode,
   RelationalOperators,
@@ -108,6 +109,45 @@ interface IndexedStateConfig {
 interface AssignedSegmentConfig {
   stateIds: string[];
   expression: string;
+}
+
+function manualSegmentToLastPerformed({
+  node,
+  segment,
+}: {
+  node: ManualSegmentNode;
+  segment: SavedSegmentResource;
+}): LastPerformedSegmentNode {
+  return {
+    type: SegmentNodeType.LastPerformed,
+    id: node.id,
+    event: InternalEventType.ManualSegmentUpdate,
+    whereProperties: [
+      {
+        path: "segmentId",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: segment.id,
+        },
+      },
+      {
+        path: "version",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: node.version,
+        },
+      },
+    ],
+    hasProperties: [
+      {
+        path: "inSegment",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: 1,
+        },
+      },
+    ],
+  };
 }
 
 function subscriptionChangeToPerformed(
@@ -815,13 +855,13 @@ function segmentToResolvedState({
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
             return `${indexedReference} == ${qb.addQueryValue(
-              property.operator.value,
+              String(property.operator.value),
               "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
             return `${indexedReference} != ${qb.addQueryValue(
-              property.operator.value,
+              String(property.operator.value),
               "String",
             )}`;
           }
@@ -849,36 +889,10 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.Manual: {
       return segmentToResolvedState({
-        node: {
-          type: SegmentNodeType.LastPerformed,
-          id: node.id,
-          event: InternalEventType.ManualSegmentUpdate,
-          whereProperties: [
-            {
-              path: "segmentId",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: segment.id,
-              },
-            },
-            {
-              path: "version",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: node.version,
-              },
-            },
-          ],
-          hasProperties: [
-            {
-              path: "inSegment",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: 1,
-              },
-            },
-          ],
-        } satisfies LastPerformedSegmentNode,
+        node: manualSegmentToLastPerformed({
+          node,
+          segment,
+        }),
         segment,
         now,
         periodBound,
@@ -1015,9 +1029,15 @@ function resolvedSegmentToAssignment({
         expression: stateValue,
       };
     }
-    // TODO: [DF-482]
     case SegmentNodeType.Manual: {
-      throw new Error("Manual segment nodes are not supported");
+      return resolvedSegmentToAssignment({
+        node: manualSegmentToLastPerformed({
+          node,
+          segment,
+        }),
+        segment,
+        qb,
+      });
     }
     default:
       assertUnreachable(node);
@@ -1208,9 +1228,15 @@ export function segmentNodeToStateSubQuery({
         });
       });
     }
-    // TODO: [DF-482]
     case SegmentNodeType.Manual: {
-      throw new Error("Manual segment nodes are not supported");
+      return segmentNodeToStateSubQuery({
+        node: manualSegmentToLastPerformed({
+          node,
+          segment,
+        }),
+        segment,
+        qb,
+      });
     }
     case SegmentNodeType.LastPerformed: {
       const stateId = segmentNodeStateId(segment, node.id);

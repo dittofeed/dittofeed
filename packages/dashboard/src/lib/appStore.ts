@@ -1,4 +1,6 @@
+import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import {
+  BodySegmentNode,
   CompletionStatus,
   InternalEventType,
   RelationalOperators,
@@ -66,11 +68,11 @@ function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
 function mapSegmentNodeToNewType(
   node: SegmentNode,
   type: SegmentNodeType,
-): { primary: SegmentNode; secondary: SegmentNode[] } {
+): { primary: SegmentNode; secondary: BodySegmentNode[] } {
   switch (type) {
     case SegmentNodeType.And: {
       let children: string[];
-      let secondary: SegmentNode[];
+      let secondary: BodySegmentNode[];
 
       if (node.type === SegmentNodeType.Or) {
         children = node.children;
@@ -101,7 +103,7 @@ function mapSegmentNodeToNewType(
     }
     case SegmentNodeType.Or: {
       let children: string[];
-      let secondary: SegmentNode[];
+      let secondary: BodySegmentNode[];
 
       if (node.type === SegmentNodeType.And) {
         children = node.children;
@@ -831,6 +833,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             if (!definition) {
               return;
             }
+            // update entry node
             if (nodeId === definition.entryNode.id) {
               const node = definition.entryNode;
               // No need to update node, already desired type
@@ -840,6 +843,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               const newType = mapSegmentNodeToNewType(node, nodeType);
               definition.entryNode = newType.primary;
               definition.nodes = newType.secondary.concat(definition.nodes);
+              // update body node
             } else {
               definition.nodes.forEach((node) => {
                 if (node.id !== nodeId) {
@@ -852,10 +856,17 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
                 }
 
                 const newType = mapSegmentNodeToNewType(node, nodeType);
+                const { primary } = newType;
+                if (!isBodySegmentNode(primary)) {
+                  console.error(
+                    `Unexpected segment node type ${nodeType} for body node.`,
+                  );
+                  return;
+                }
 
                 definition.nodes = newType.secondary.concat(definition.nodes);
                 definition.nodes = definition.nodes.map((n) =>
-                  n.id === nodeId ? newType.primary : n,
+                  n.id === nodeId ? primary : n,
                 );
               });
             }

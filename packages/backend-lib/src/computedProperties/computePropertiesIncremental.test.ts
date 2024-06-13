@@ -385,6 +385,7 @@ enum EventsStepType {
 interface StepContext {
   now: number;
   workspace: Workspace;
+  segments: SavedSegmentResource[];
 }
 
 type EventBuilder = (ctx: StepContext) => TestEvent;
@@ -2236,6 +2237,114 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "manual segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "manual",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Manual,
+              id: "1",
+              version: 1,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-1",
+              offsetMs: -100,
+              traits: {
+                email: "max@test.com",
+              },
+            },
+            // manually added user
+            ({ segments }) => ({
+              type: EventType.Track,
+              userId: "user-1",
+              event: InternalEventType.ManualSegmentUpdate,
+              offsetMs: -100,
+              properties: {
+                segmentId: segments[0]?.id,
+                version: 1,
+                inSegment: 1,
+              },
+            }),
+            {
+              type: EventType.Identify,
+              userId: "user-2",
+              offsetMs: -100,
+              traits: {
+                email: "chandler@test.com",
+              },
+            },
+            // manually removed user
+            ({ segments }) => ({
+              type: EventType.Track,
+              userId: "user-3",
+              event: InternalEventType.ManualSegmentUpdate,
+              offsetMs: -100,
+              properties: {
+                segmentId: segments[0]?.id,
+                version: 1,
+                inSegment: 0,
+              },
+            }),
+            // never added user
+            {
+              type: EventType.Identify,
+              userId: "user-3",
+              offsetMs: -100,
+              traits: {
+                email: "john@test.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              name: "manual",
+              nodeId: "1",
+              lastValue: JSON.stringify(["1"]),
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                manual: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                manual: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                manual: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "last performed segment with nested properties",
       userProperties: [],
       segments: [
@@ -3512,6 +3621,7 @@ describe("computeProperties", () => {
     for (const step of test.steps) {
       const stepContext: StepContext = {
         workspace,
+        segments,
         now,
       };
       switch (step.type) {

@@ -68,7 +68,7 @@ export async function submitTrackWithTriggers({
   }
 }
 
-export async function submitBatchkWithTriggers({
+export async function submitBatchWithTriggers({
   workspaceId,
   data,
 }: SubmitBatchOptions) {
