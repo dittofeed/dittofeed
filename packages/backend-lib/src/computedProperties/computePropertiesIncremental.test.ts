@@ -2237,9 +2237,7 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description: "manual segment",
-      only: true,
       userProperties: [],
       segments: [
         {
