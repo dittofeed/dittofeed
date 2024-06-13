@@ -106,7 +106,7 @@ const manualOption = {
   label: "Manual",
 };
 
-const segmentOptions: SegmentGroupedOption[] = [
+const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
   manualOption,
@@ -883,8 +883,10 @@ function SegmentNodeComponent({
   label,
   renderDelete,
   parentId,
+  isRoot = false,
 }: {
   node: SegmentNode;
+  isRoot?: boolean;
   renderDelete?: boolean;
   parentId?: string;
   label?: Label;
@@ -908,19 +910,27 @@ function SegmentNodeComponent({
       ),
     [editedSegment],
   );
+  const segmentOptions = useMemo(
+    () =>
+      SEGMENT_OPTIONS.filter(
+        (opt) => isRoot || opt.id !== SegmentNodeType.Manual,
+      ),
+    [isRoot],
+  );
+
   if (
     node.type === SegmentNodeType.LastPerformed ||
     node.type === SegmentNodeType.Broadcast
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
+
   if (!nodeById) {
     console.error("Missing nodeById");
     return null;
   }
 
   const condition = keyedSegmentOptions[node.type];
-
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
@@ -1098,6 +1108,7 @@ export function SegmentEditorInner({
       >
         <SegmentNodeComponent
           node={entryNode}
+          isRoot
           renderDelete={false}
           label="empty"
         />
