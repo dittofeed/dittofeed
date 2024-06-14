@@ -27,6 +27,7 @@ import {
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
+import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -46,6 +47,8 @@ const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
   await fastify.register(formbody);
+  await fastify.register(fastifyRawBody);
+
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   fastify.addHook("onSend", async (_request, reply, payload) => {
     if (reply.statusCode !== 400) {
@@ -440,6 +443,7 @@ export default async function webhookController(fastify: FastifyInstance) {
     },
   );
 
+  // curl -X POST http://localhost:3001/api/public/webhooks/segment -H "Content-Type: application/json" -H "x-signature: {signature}" -H "df-workspace-id: abc" -d '{"messageId": "123", "timestamp": "2021-08-10T00:00:00Z"}'
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/segment",
     {

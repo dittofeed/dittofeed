@@ -144,20 +144,20 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let file: Readable | null = null;
-      // const csvStream = (await request.file())?.file ?? null;
+      // let file: Readable | null = null;
+      const file = (await request.file())?.file;
       // for await (const part of request.parts()) {
       //   logger().info({ part }, "loc1");
       //   if ("file" in part) {
       //     file = part.file;
       //   }
       // }
-      for await (const part of request.files()) {
-        logger().info({ part }, "loc1");
-        if ("file" in part) {
-          file = part.file;
-        }
-      }
+      // for await (const part of request.files()) {
+      //   logger().info({ part }, "loc1");
+      //   if ("file" in part) {
+      //     file = part.file;
+      //   }
+      // }
       // /Users/maxwellgurewitz/dev/dittofeed/node_modules/@fastify/multipart/index.js
       // for await (const part of request.files()) {
       //   try {

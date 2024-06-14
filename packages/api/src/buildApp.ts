@@ -8,7 +8,6 @@ import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import fastify from "fastify";
-import fastifyRawBody from "fastify-raw-body";
 import {
   DFRequestContext,
   PUBLIC_WRITE_KEY_DESCRIPTION,
@@ -57,7 +56,6 @@ async function buildApp(opts?: BuildAppOpts) {
     default:
       servers = [];
   }
-  await server.register(multipart);
 
   // needs to be registered before fastifySwaggerUI
   await server.register(fastifySwagger, {
@@ -84,8 +82,8 @@ async function buildApp(opts?: BuildAppOpts) {
 
   // needs to be registered before routes
   const fastifyPluginPromises: PromiseLike<unknown>[] = [
-    // server.register(fastifyRawBody),
     server.register(fastifyRequestContext),
+    server.register(multipart),
   ];
 
   const { authMode, secretKey, sessionCookieSecure } = backendConfig();
