@@ -8999,24 +8999,6 @@
           "Segments"
         ],
         "description": "Upload a CSV file to add or remove users from a manual segment.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "csv": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "csv"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
         "parameters": [
           {
             "schema": {
@@ -9848,24 +9830,6 @@
         "tags": [
           "Subscription Groups"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "csv": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "csv"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
         "parameters": [
           {
             "schema": {
@@ -20538,24 +20502,6 @@
           "Segments"
         ],
         "description": "Upload a CSV file to add or remove users from a manual segment.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "csv": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "csv"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
         "parameters": [
           {
             "schema": {

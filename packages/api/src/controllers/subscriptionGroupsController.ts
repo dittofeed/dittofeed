@@ -32,10 +32,8 @@ import {
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
-import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-import multipart from "../buildApp/multipart";
 import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -67,169 +65,167 @@ export default async function subscriptionGroupsController(
     },
   );
 
-  await fastify.register(async (fastifyInner) => {
-    await fastifyInner.register(multipart);
-
-    fastifyInner.withTypeProvider<TypeBoxTypeProvider>().post(
-      "/upload-csv",
-      {
-        schema: {
-          // TODO upload files to S3 and use a presigned URL
-          tags: ["Subscription Groups"],
-          body: Type.Object({
-            csv: Type.String(),
-          }),
-          headers: Type.Object({
-            [WORKSPACE_ID_HEADER]: WorkspaceId,
-            [SUBSRIPTION_GROUP_ID_HEADER]: Type.String(),
-          }),
-        },
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/upload-csv",
+    {
+      schema: {
+        // TODO upload files to S3 and use a presigned URL
+        tags: ["Subscription Groups"],
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+          [SUBSRIPTION_GROUP_ID_HEADER]: Type.String(),
+        }),
       },
-      async (request, reply) => {
-        const csvStream = Readable.from(request.body.csv);
-        const workspaceId = request.headers[WORKSPACE_ID_HEADER];
-        const subscriptionGroupId =
-          request.headers[SUBSRIPTION_GROUP_ID_HEADER];
+    },
+    async (request, reply) => {
+      const requestFile = await request.file();
+      if (!requestFile) {
+        return reply.status(400).send({
+          message: "missing file",
+        });
+      }
+      const csvStream = requestFile.file;
+      const workspaceId = request.headers[WORKSPACE_ID_HEADER];
+      const subscriptionGroupId = request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
-        // Parse the CSV stream into a JavaScript object with an array of rows
-        const rows: CsvParseResult = await new Promise<CsvParseResult>(
-          (resolve) => {
-            const parsingErrors: UserUploadRowErrors[] = [];
-            const uploadedRows: UserUploadRow[] = [];
+      // Parse the CSV stream into a JavaScript object with an array of rows
+      const rows: CsvParseResult = await new Promise<CsvParseResult>(
+        (resolve) => {
+          const parsingErrors: UserUploadRowErrors[] = [];
+          const uploadedRows: UserUploadRow[] = [];
 
-            let i = 0;
-            csvStream
-              .pipe(csvParser())
-              .on("headers", (headers: string[]) => {
-                if (!headers.includes("id") && !headers.includes("email")) {
-                  resolve(err('csv must have "id" or "email" headers'));
-                  csvStream.destroy(); // This will stop the parsing process
-                }
-              })
-              .on("data", (row: unknown) => {
-                if (row instanceof Object && Object.keys(row).length === 0) {
-                  return;
-                }
-                const parsed = schemaValidate(row, UserUploadRow);
-                const rowNumber = i;
-                i += 1;
+          let i = 0;
+          csvStream
+            .pipe(csvParser())
+            .on("headers", (headers: string[]) => {
+              if (!headers.includes("id") && !headers.includes("email")) {
+                resolve(err('csv must have "id" or "email" headers'));
+                csvStream.destroy(); // This will stop the parsing process
+              }
+            })
+            .on("data", (row: unknown) => {
+              if (row instanceof Object && Object.keys(row).length === 0) {
+                return;
+              }
+              const parsed = schemaValidate(row, UserUploadRow);
+              const rowNumber = i;
+              i += 1;
 
-                if (parsed.isErr()) {
-                  const errors = {
-                    row: rowNumber,
-                    error: 'row must have a non-empty "email" or "id" field',
-                  };
-                  parsingErrors.push(errors);
-                  return;
-                }
+              if (parsed.isErr()) {
+                const errors = {
+                  row: rowNumber,
+                  error: 'row must have a non-empty "email" or "id" field',
+                };
+                parsingErrors.push(errors);
+                return;
+              }
 
-                const { value } = parsed;
-                if (value.email.length === 0 && value.id.length === 0) {
-                  const errors = {
-                    row: rowNumber,
-                    error: 'row must have a non-empty "email" or "id" field',
-                  };
-                  parsingErrors.push(errors);
-                  return;
-                }
+              const { value } = parsed;
+              if (value.email.length === 0 && value.id.length === 0) {
+                const errors = {
+                  row: rowNumber,
+                  error: 'row must have a non-empty "email" or "id" field',
+                };
+                parsingErrors.push(errors);
+                return;
+              }
 
-                uploadedRows.push(parsed.value);
-              })
-              .on("end", () => {
-                logger().debug(
-                  `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`,
-                );
-                if (parsingErrors.length) {
-                  resolve(err(parsingErrors));
-                } else {
-                  resolve(ok(uploadedRows));
-                }
-              })
-              .on("error", (error) => {
-                resolve(err(error));
-              });
-          },
-        );
-        if (rows.isErr()) {
-          if (rows.error instanceof Error) {
-            const errorResponse: CsvUploadValidationError = {
-              message: `misformatted file: ${rows.error.message}`,
-            };
-            return reply.status(400).send(errorResponse);
-          }
-
-          if (rows.error instanceof Array) {
-            const errorResponse: CsvUploadValidationError = {
-              message: "csv rows contained errors",
-              rowErrors: rows.error,
-            };
-            return reply.status(400).send(errorResponse);
-          }
-
+              uploadedRows.push(parsed.value);
+            })
+            .on("end", () => {
+              logger().debug(
+                `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`,
+              );
+              if (parsingErrors.length) {
+                resolve(err(parsingErrors));
+              } else {
+                resolve(ok(uploadedRows));
+              }
+            })
+            .on("error", (error) => {
+              resolve(err(error));
+            });
+        },
+      );
+      if (rows.isErr()) {
+        if (rows.error instanceof Error) {
           const errorResponse: CsvUploadValidationError = {
-            message: rows.error,
+            message: `misformatted file: ${rows.error.message}`,
           };
           return reply.status(400).send(errorResponse);
         }
 
-        const emailsWithoutIds: Set<string> = new Set<string>();
-
-        for (const row of rows.value) {
-          if (row.email && !row.id) {
-            emailsWithoutIds.add(row.email);
-          }
-        }
-
-        const missingUserIdsByEmail = await findUserIdsByUserProperty({
-          userPropertyName: "email",
-          workspaceId,
-          valueSet: emailsWithoutIds,
-        });
-
-        const userEvents: InsertUserEvent[] = [];
-        const currentTime = new Date();
-        const timestamp = currentTime.toISOString();
-
-        for (const row of rows.value) {
-          const userIds = missingUserIdsByEmail[row.email];
-          const userId =
-            (row.id as string | undefined) ??
-            (userIds?.length ? userIds[0] : uuid());
-
-          if (!userId) {
-            continue;
-          }
-
-          const identifyEvent: InsertUserEvent = {
-            messageId: uuid(),
-            messageRaw: JSON.stringify({
-              userId,
-              timestamp,
-              type: "identify",
-              traits: omit(row, ["id"]),
-            }),
+        if (rows.error instanceof Array) {
+          const errorResponse: CsvUploadValidationError = {
+            message: "csv rows contained errors",
+            rowErrors: rows.error,
           };
-
-          const trackEvent = buildSubscriptionChangeEvent({
-            userId,
-            currentTime,
-            subscriptionGroupId,
-            action: SubscriptionChange.Subscribe,
-          });
-
-          userEvents.push(trackEvent);
-          userEvents.push(identifyEvent);
+          return reply.status(400).send(errorResponse);
         }
-        await insertUserEvents({
-          workspaceId,
-          userEvents,
+
+        const errorResponse: CsvUploadValidationError = {
+          message: rows.error,
+        };
+        return reply.status(400).send(errorResponse);
+      }
+
+      const emailsWithoutIds: Set<string> = new Set<string>();
+
+      for (const row of rows.value) {
+        if (row.email && !row.id) {
+          emailsWithoutIds.add(row.email);
+        }
+      }
+
+      const missingUserIdsByEmail = await findUserIdsByUserProperty({
+        userPropertyName: "email",
+        workspaceId,
+        valueSet: emailsWithoutIds,
+      });
+
+      const userEvents: InsertUserEvent[] = [];
+      const currentTime = new Date();
+      const timestamp = currentTime.toISOString();
+
+      for (const row of rows.value) {
+        const userIds = missingUserIdsByEmail[row.email];
+        const userId =
+          (row.id as string | undefined) ??
+          (userIds?.length ? userIds[0] : uuid());
+
+        if (!userId) {
+          continue;
+        }
+
+        const identifyEvent: InsertUserEvent = {
+          messageId: uuid(),
+          messageRaw: JSON.stringify({
+            userId,
+            timestamp,
+            type: "identify",
+            traits: omit(row, ["id"]),
+          }),
+        };
+
+        const trackEvent = buildSubscriptionChangeEvent({
+          userId,
+          currentTime,
+          subscriptionGroupId,
+          action: SubscriptionChange.Subscribe,
         });
 
-        const response = await reply.status(200).send();
-        return response;
-      },
-    );
-  });
+        userEvents.push(trackEvent);
+        userEvents.push(identifyEvent);
+      }
+      await insertUserEvents({
+        workspaceId,
+        userEvents,
+      });
+
+      const response = await reply.status(200).send();
+      return response;
+    },
+  );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
     "/",

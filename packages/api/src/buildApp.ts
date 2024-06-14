@@ -8,7 +8,6 @@ import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import fastify from "fastify";
-import fastifyRawBody from "fastify-raw-body";
 import {
   DFRequestContext,
   PUBLIC_WRITE_KEY_DESCRIPTION,
@@ -17,6 +16,7 @@ import { OpenAPIV3_1 } from "openapi-types";
 import qs from "qs";
 
 import cors from "./buildApp/cors";
+import multipart from "./buildApp/multipart";
 import router from "./buildApp/router";
 import config from "./config";
 import { BuildAppOpts } from "./types";
@@ -82,8 +82,8 @@ async function buildApp(opts?: BuildAppOpts) {
 
   // needs to be registered before routes
   const fastifyPluginPromises: PromiseLike<unknown>[] = [
-    server.register(fastifyRawBody),
     server.register(fastifyRequestContext),
+    server.register(multipart),
   ];
 
   const { authMode, secretKey, sessionCookieSecure } = backendConfig();
