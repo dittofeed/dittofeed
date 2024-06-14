@@ -1,3 +1,4 @@
+import fastifyMultipart from "@fastify/multipart";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitBatchWithTriggers } from "backend-lib/src/apps";
@@ -38,8 +39,6 @@ import {
 import { err, ok } from "neverthrow";
 
 import { CsvParseResult } from "../types";
-import { Readable } from "stream";
-import fastifyMultipart from "@fastify/multipart";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function segmentsController(fastify: FastifyInstance) {
@@ -144,42 +143,13 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      // let file: Readable | null = null;
       const file = (await request.file())?.file;
-      // for await (const part of request.parts()) {
-      //   logger().info({ part }, "loc1");
-      //   if ("file" in part) {
-      //     file = part.file;
-      //   }
-      // }
-      // for await (const part of request.files()) {
-      //   logger().info({ part }, "loc1");
-      //   if ("file" in part) {
-      //     file = part.file;
-      //   }
-      // }
-      // /Users/maxwellgurewitz/dev/dittofeed/node_modules/@fastify/multipart/index.js
-      // for await (const part of request.files()) {
-      //   try {
-      //     logger().info({ part }, "loc1");
-      //     if ("file" in part) {
-      //       csvStream = part.file;
-      //     }
-      //   } catch (error) {
-      //     logger().error({ error }, "error in for await");
-      //   }
-      // }
-      logger().info(
-        { isMulti: request.isMultipart(), body: request.body },
-        "loc0",
-      );
       if (!file) {
         return reply.status(400).send({
           message: "missing file",
         });
       }
       const csvStream = file;
-      // const csvStream = requestFile.file;
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
       const segmentId = request.headers[SEGMENT_ID_HEADER];
       const { operation } = request.headers;

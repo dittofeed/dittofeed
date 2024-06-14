@@ -32,10 +32,8 @@ import {
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
-import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-import multipart from "../buildApp/multipart";
 import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -80,12 +78,6 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
-      // for await (const data of request.files()) {
-      //   console.log("loc0", data);
-      // }
-      // for await (const data of request.parts()) {
-      //   console.log("loc1", data);
-      // }
       const requestFile = await request.file();
       if (!requestFile) {
         return reply.status(400).send({
