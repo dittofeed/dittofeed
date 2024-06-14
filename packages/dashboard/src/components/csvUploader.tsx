@@ -38,6 +38,7 @@ export function CsvUploader({
       }
       const formData = new FormData();
       formData.append("csv", file);
+      console.log("loc1", file, Array.from(formData.entries()));
       try {
         await submit({ data: formData });
         setMainError(null);

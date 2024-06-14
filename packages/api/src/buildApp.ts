@@ -17,6 +17,7 @@ import { OpenAPIV3_1 } from "openapi-types";
 import qs from "qs";
 
 import cors from "./buildApp/cors";
+import multipart from "./buildApp/multipart";
 import router from "./buildApp/router";
 import config from "./config";
 import { BuildAppOpts } from "./types";
@@ -56,6 +57,7 @@ async function buildApp(opts?: BuildAppOpts) {
     default:
       servers = [];
   }
+  await server.register(multipart);
 
   // needs to be registered before fastifySwaggerUI
   await server.register(fastifySwagger, {
@@ -82,7 +84,7 @@ async function buildApp(opts?: BuildAppOpts) {
 
   // needs to be registered before routes
   const fastifyPluginPromises: PromiseLike<unknown>[] = [
-    server.register(fastifyRawBody),
+    // server.register(fastifyRawBody),
     server.register(fastifyRequestContext),
   ];
 
