@@ -1977,6 +1977,28 @@ export type DeleteSubscriptionGroupRequest = Static<
   typeof DeleteSubscriptionGroupRequest
 >;
 
+export enum AppFileType {
+  Base64Encoded = "Base64Encoded",
+}
+
+export const Base64EncodedFile = Type.Object(
+  {
+    type: Type.Literal(AppFileType.Base64Encoded),
+    name: Type.String(),
+    mimeType: Type.String(),
+    data: Type.String(),
+  },
+  {
+    description: "Base64 encoded file.",
+  },
+);
+
+export const AppDataFile = Type.Union([Base64EncodedFile], {
+  description: "File associated with user event.",
+});
+
+export const AppDataFiles = Type.Optional(Type.Array(AppDataFile));
+
 export const AppDataContext = Type.Optional(
   Type.Record(Type.String(), Type.Any(), {
     description:
@@ -1992,6 +2014,7 @@ export const AppDataContext = Type.Optional(
 export type AppDataContext = Static<typeof AppDataContext>;
 
 export const BaseAppData = {
+  files: AppDataFiles,
   messageId: Type.String({
     description:
       "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
