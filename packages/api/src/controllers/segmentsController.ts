@@ -1,4 +1,3 @@
-import fastifyMultipart from "@fastify/multipart";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitBatchWithTriggers } from "backend-lib/src/apps";
