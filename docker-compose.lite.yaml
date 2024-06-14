@@ -114,6 +114,19 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network-lite
+  # Note that minio is only used for local development. In production, use any S3-compatible storage.
+  blob-storage:
+    image: minio/minio
+    profiles: ["blob-storage"]
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - blob-storage:/data
+    command: server --console-address ":9001" /data
 volumes:
   postgres:
   clickhouse_lib:
