@@ -443,7 +443,6 @@ export default async function webhookController(fastify: FastifyInstance) {
     },
   );
 
-  // curl -X POST http://localhost:3001/api/public/webhooks/segment -H "Content-Type: application/json" -H "x-signature: {signature}" -H "df-workspace-id: abc" -d '{"messageId": "123", "timestamp": "2021-08-10T00:00:00Z"}'
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/segment",
     {

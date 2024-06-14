@@ -853,7 +853,6 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
         },
       });
 
-      console.log("uploading csv", data);
       await axios({
         method: "POST",
         url: `${apiBase}/api/segments/upload-csv`,
