@@ -94,10 +94,11 @@ export default async function router(
     async (f: FastifyInstance) => {
       await f.register(adminAuth);
 
-      await Promise.all([f.register(usersController, { prefix: "/users" })]);
-      await Promise.all([f.register(eventsController, { prefix: "/events" })]);
       await Promise.all([
+        f.register(usersController, { prefix: "/users" }),
+        f.register(eventsController, { prefix: "/events" }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(segmentsController, { prefix: "/segments" }),
       ]);
     },
     { prefix: "/api/admin" },
