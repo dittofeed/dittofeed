@@ -1,4 +1,3 @@
-import fastifyMultipart from "@fastify/multipart";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import logger from "backend-lib/src/logger";
@@ -36,6 +35,7 @@ import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
+import multipart from "../buildApp/multipart";
 import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -68,9 +68,7 @@ export default async function subscriptionGroupsController(
   );
 
   await fastify.register(async (fastifyInner) => {
-    await fastifyInner.register(fastifyMultipart, {
-      attachFieldsToBody: "keyValues",
-    });
+    await fastifyInner.register(multipart);
 
     fastifyInner.withTypeProvider<TypeBoxTypeProvider>().post(
       "/upload-csv",
