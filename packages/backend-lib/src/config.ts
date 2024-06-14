@@ -89,6 +89,11 @@ const BaseRawConfigProps = {
   openIdClientId: Type.Optional(Type.String()),
   openIdClientSecret: Type.Optional(Type.String()),
   allowedOrigins: Type.Optional(Type.String()),
+  blobgStorageEndpoint: Type.Optional(Type.String()),
+  blobgStorageAccessKeyId: Type.Optional(Type.String()),
+  blobgStorageSecretAccessKey: Type.Optional(Type.String()),
+  blobgStorageBucket: Type.Optional(Type.String()),
+  enableBlobStorage: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -177,6 +182,7 @@ export type Config = Overwrite<
     prettyLogs: boolean;
     googleOps: boolean;
     enableSourceControl: boolean;
+    enableBlobStorage: boolean;
     authMode: AuthMode;
     trackDashboard: boolean;
     dashboardUrl: string;
@@ -415,6 +421,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : 150,
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
+    enableBlobStorage: rawConfig.enableBlobStorage === "true",
   };
   return parsedConfig;
 }
