@@ -13040,6 +13040,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13102,6 +13132,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13229,6 +13289,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13289,6 +13379,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13414,6 +13534,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13474,6 +13624,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13599,6 +13779,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13658,6 +13868,36 @@
                   {
                     "type": "object",
                     "properties": {
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "description": "File associated with user event.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Base64Encoded"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "data": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "name",
+                            "mimeType",
+                            "data"
+                          ]
+                        }
+                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13823,6 +14063,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -13882,6 +14152,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -13944,6 +14244,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14011,6 +14341,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14081,6 +14441,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14148,6 +14538,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14218,6 +14638,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14284,6 +14734,36 @@
                             {
                               "type": "object",
                               "properties": {
+                                "files": {
+                                  "type": "array",
+                                  "items": {
+                                    "description": "File associated with user event.",
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Base64Encoded"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "mimeType": {
+                                        "type": "string"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name",
+                                      "mimeType",
+                                      "data"
+                                    ]
+                                  }
+                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
