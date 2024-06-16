@@ -1979,6 +1979,7 @@ export type DeleteSubscriptionGroupRequest = Static<
 
 export enum AppFileType {
   Base64Encoded = "Base64Encoded",
+  BlobStorage = "BlobStorage",
 }
 
 export const Base64EncodedFile = Type.Object(
@@ -1989,11 +1990,24 @@ export const Base64EncodedFile = Type.Object(
     data: Type.String(),
   },
   {
-    description: "Base64 encoded file.",
+    description:
+      "Base64 encoded file. Converted to a BlobStorage file before persisted.",
   },
 );
 
-export const AppDataFile = Type.Union([Base64EncodedFile], {
+export type Base64EncodedFile = Static<typeof Base64EncodedFile>;
+
+export const BlobStorageFile = Type.Object(
+  {
+    type: Type.Literal(AppFileType.BlobStorage),
+    key: Type.String(),
+  },
+  {
+    description: "File stored in blob storage. Should only be used internally.",
+  },
+);
+
+export const AppDataFile = Type.Union([Base64EncodedFile, BlobStorageFile], {
   description: "File associated with user event.",
 });
 
