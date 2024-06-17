@@ -324,7 +324,6 @@ export default async function contentController(fastify: FastifyInstance) {
                   : undefined,
               },
             });
-            break;
           }
           case ChannelType.Email: {
             const { type } = result.error.variant.provider;
@@ -370,7 +369,6 @@ export default async function contentController(fastify: FastifyInstance) {
                     responseData: result.error.variant.provider.message,
                   },
                 });
-                break;
               }
               case EmailProviderType.AmazonSes: {
                 const { message } = result.error.variant.provider;
