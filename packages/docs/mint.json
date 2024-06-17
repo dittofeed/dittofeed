@@ -16,11 +16,11 @@
       "mode": "show"
     }
   },
-  "favicon": "/favicon.png",
+  "favicon": "/favicon_1.png",
   "colors": {
-    "primary": "#0069ED",
-    "light": "#4D9CFF",
-    "dark": "#0050B4"
+    "primary": "#FF8101",
+    "light": "#FFDA71",
+    "dark": "#FF8101"
   },
   "topbarLinks": [
     {
