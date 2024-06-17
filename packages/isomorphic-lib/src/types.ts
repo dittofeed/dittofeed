@@ -2028,7 +2028,6 @@ export const AppDataContext = Type.Optional(
 export type AppDataContext = Static<typeof AppDataContext>;
 
 export const BaseAppData = {
-  files: AppDataFiles,
   messageId: Type.String({
     description:
       "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
@@ -2120,6 +2119,7 @@ export type TrackEventProperties = Static<typeof TrackEventProperties>;
 
 export const BaseTrackData = {
   ...BaseAppData,
+  files: AppDataFiles,
   context: AppDataContext,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
