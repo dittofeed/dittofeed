@@ -9,23 +9,13 @@
 
 ---
 
-## Open-source customer engagement
+<h2 align="center">Open-source customer engagement</h3>
 
-[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, custom webhooks, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
+<p align="center">
+  <a href="https://docs.dittofeed.com/introduction">Docs</a> | <a href="https://discord.gg/HajPkCG4Mm">Discord</a> | <a href="https://demo.dittofeed.com/dashboard">Demo App</a> | <a href="https://docs.dittofeed.com/contributing/running-locally">Contributing</a>
+</p>
 
-<br>
-
-[![Dittofeed Docs Badge](https://img.shields.io/badge/docs-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fintroduction)](https://docs.dittofeed.com/introduction)
-[![Dittofeed Live Demo Badge](https://img.shields.io/badge/live_demo-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdemo.dittofeed.com%2Fdashboard%2Fjourneys)](https://demo.dittofeed.com/dashboard/journeys/)
-[![Dittofeed Site Badge](https://img.shields.io/badge/site-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdittofeed.com%2F)](https://dittofeed.com/)
-[![Dittofeed Open-source Contributing Badge](https://img.shields.io/badge/contributing-dittofeed?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fcontributing%2Frunning-locally)](https://docs.dittofeed.com/contributing/running-locally)
-[![Dittofeed Discord Community Badge](https://img.shields.io/discord/1182801141046726706?style=social&logo=discord&label=Community&link=https%3A%2F%2Fdiscord.gg%2FHajPkCG4Mm
-)](https://discord.gg/HajPkCG4Mm)
-[![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
-[![Open Bounties](https://img.shields.io/endpoint?url=https%3A%2F%2Fconsole.algora.io%2Fapi%2Fshields%2Fdittofeed%2Fbounties%3Fstatus%3Dopen)](https://console.algora.io/org/dittofeed/bounties?status=open)
-[![Rewarded Bounties](https://img.shields.io/endpoint?url=https%3A%2F%2Fconsole.algora.io%2Fapi%2Fshields%2Fdittofeed%2Fbounties%3Fstatus%3Dcompleted)](https://console.algora.io/org/dittofeed/bounties?status=completed)
-
-<br>
+[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, WhatsApp, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
 
 - 1️⃣ Connect user data via Segment, Reverse ETL, or the Dittofeed API ⛓️
 - 2️⃣ Create highly customizable user segments with multiple operators 🧍🏽‍♀️🧍🏻‍♂️🧍🏾
