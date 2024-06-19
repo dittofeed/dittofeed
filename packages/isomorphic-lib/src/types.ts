@@ -63,6 +63,7 @@ export enum InternalEventType {
   SmsFailed = "DFSmsFailed",
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
   ManualSegmentUpdate = "DFManualSegmentUpdate",
+  AttachedFiles = "DFAttachedFiles",
 }
 
 export enum SubscriptionGroupType {
@@ -2007,11 +2008,15 @@ export const BlobStorageFile = Type.Object(
   },
 );
 
-export const AppDataFile = Type.Union([Base64EncodedFile, BlobStorageFile], {
+export type BlobStorageFile = Static<typeof BlobStorageFile>;
+
+export const AppDataFile = Type.Union([Base64EncodedFile], {
   description: "File associated with user event.",
 });
 
 export const AppDataFiles = Type.Optional(Type.Array(AppDataFile));
+
+export type AppDataFiles = Static<typeof AppDataFiles>;
 
 export const AppDataContext = Type.Optional(
   Type.Record(Type.String(), Type.Any(), {
