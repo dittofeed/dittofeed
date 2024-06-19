@@ -35,6 +35,7 @@
     "@temporalio/common": "1.8.4",
     "@temporalio/worker": "1.8.4",
     "@temporalio/workflow": "1.8.4",
+    "aws-sdk": "^2.1645.0",
     "axios": "^1.4.0",
     "change-case": "^4.1.2",
     "cross-spawn": "^7.0.3",
