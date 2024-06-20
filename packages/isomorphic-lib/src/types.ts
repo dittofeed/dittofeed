@@ -2014,6 +2014,7 @@ export const BlobStorageFile = Type.Object(
   {
     type: Type.Literal(AppFileType.BlobStorage),
     key: Type.String(),
+    mimeType: Type.String(),
   },
   {
     description: "File stored in blob storage. Should only be used internally.",

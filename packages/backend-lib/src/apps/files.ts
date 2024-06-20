@@ -41,6 +41,7 @@ export async function persistFiles(
       files[file.name] = {
         type: AppFileType.BlobStorage,
         key,
+        mimeType: file.mimeType,
       };
     }
   }
