@@ -123,6 +123,8 @@ function getUserPropertyOption(
       return anyOfOption;
     case UserPropertyDefinitionType.Group:
       return anyOfOption;
+    case UserPropertyDefinitionType.File:
+      throw new Error("Not implemented");
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }
@@ -173,6 +175,8 @@ function defaultUserProperty(
         entry: "any-of-1",
       };
     }
+    case UserPropertyDefinitionType.File:
+      throw new Error("Not implemented");
     case UserPropertyDefinitionType.Group: {
       throw new Error("Not implemented");
     }
@@ -665,6 +669,8 @@ function DefinitionComponent({
       );
       break;
     }
+    case UserPropertyDefinitionType.File:
+      throw new Error("Not implemented");
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }
