@@ -185,4 +185,11 @@ describe("renderWithUserProperties", () => {
       expect(rendered.trim()).toEqual(expectedRenderedUnsubscribeEmail.trim());
     });
   });
+
+  describe.skip("when inlining a file", () => {
+    describe("when the rendered user property is not a file", () => {});
+    describe("when the rendered user property is a file", () => {
+      it("can render the file inline", () => {});
+    });
+  });
 });

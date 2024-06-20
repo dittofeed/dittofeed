@@ -976,6 +976,7 @@ export const EmailContents = Type.Object({
   body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
+  attachments: Type.Optional(Type.Array(Type.String())),
 });
 
 export const EmailTemplateResource = Type.Composite([

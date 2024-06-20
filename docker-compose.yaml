@@ -244,6 +244,7 @@ services:
     volumes:
       - blob-storage:/data
     command: server --console-address ":9001" /data
+
 volumes:
   postgres:
   kafka:
