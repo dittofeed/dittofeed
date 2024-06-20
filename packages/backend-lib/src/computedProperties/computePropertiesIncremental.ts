@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import jsonPath from "jsonpath";
 import { v5 as uuidv5 } from "uuid";
@@ -59,7 +60,22 @@ import {
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
-import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
+
+function getPrefixCondition({
+  column,
+  value,
+  qb,
+}: {
+  column: string;
+  value: string;
+  qb: ClickHouseQueryBuilder;
+}): string {
+  const prefix = getStringBeforeAsterisk(value);
+  if (!prefix) {
+    return `${column} = ${qb.addQueryValue(value, "String")}`;
+  }
+  return `startsWithUTF8(${column}, ${qb.addQueryValue(prefix, "String")})`;
+}
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1146,7 +1162,6 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.Performed: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const event = qb.addQueryValue(node.event, "String");
       const propertyConditions = node.properties?.map((property) => {
         const operatorType = property.operator.type;
         switch (operatorType) {
@@ -1349,22 +1364,6 @@ export function userPropertyStateId(
     userProperty.id,
   );
   return stateId;
-}
-
-function getPrefixCondition({
-  column,
-  value,
-  qb,
-}: {
-  column: string;
-  value: string;
-  qb: ClickHouseQueryBuilder;
-}): string {
-  const prefix = getStringBeforeAsterisk(value);
-  if (!prefix) {
-    return `${column} = ${qb.addQueryValue(value, "String")}`;
-  }
-  return `startsWithUTF8(${column}, ${qb.addQueryValue(prefix, "String")})`;
 }
 
 function leafUserPropertyToSubQuery({
