@@ -1637,6 +1637,23 @@ function userPropertyToSubQuery({
         },
       ];
     }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: userProperty.definition,
+        qb,
+      });
+      if (!performedDefinition) {
+        return [];
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return userPropertyToSubQuery({
+        userProperty: fileUserProperty,
+        qb,
+      });
+    }
   }
 }
 
@@ -2055,6 +2072,24 @@ function userPropertyToAssignment({
       return leafUserPropertyToAssignment({
         userProperty,
         child: userProperty.definition,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: userProperty.definition,
+        qb,
+      });
+      if (!performedDefinition) {
+        return null;
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return leafUserPropertyToAssignment({
+        userProperty: fileUserProperty,
+        child: performedDefinition,
         qb,
       });
     }
