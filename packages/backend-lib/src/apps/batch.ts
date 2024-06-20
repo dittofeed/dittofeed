@@ -2,16 +2,19 @@ import * as R from "remeda";
 
 import { BatchAppData, EventType } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
+import { persistFiles } from "./files";
 
 export interface SubmitBatchOptions {
   workspaceId: string;
   data: BatchAppData;
 }
 
-export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
+export async function buildBatchUserEvents(
+  data: BatchAppData,
+): Promise<InsertUserEvent[]> {
   const { context, batch } = data;
 
-  return batch.map((message) => {
+  const promises = batch.map(async (message) => {
     let rest: Record<string, unknown>;
     let timestamp: string;
     const messageRaw: Record<string, unknown> = { context };
@@ -23,7 +26,16 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
     } else {
       rest = R.omit(message, ["timestamp", "properties"]);
       timestamp = message.timestamp ?? new Date().toISOString();
-      messageRaw.properties = message.properties ?? {};
+
+      let properties = message.properties ?? {};
+      if (message.type === EventType.Track && message.files) {
+        properties = await persistFiles({
+          files: message.files,
+          messageId: message.messageId,
+          properties,
+        });
+      }
+      messageRaw.properties = properties;
     }
 
     Object.assign(
@@ -39,10 +51,11 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
       messageRaw: JSON.stringify(messageRaw),
     };
   });
+  return Promise.all(promises);
 }
 
 export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
-  const userEvents = buildBatchUserEvents(data);
+  const userEvents = await buildBatchUserEvents(data);
 
   await insertUserEvents({
     workspaceId,

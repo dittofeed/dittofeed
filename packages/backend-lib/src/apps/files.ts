@@ -15,32 +15,43 @@ interface TrackEventForFiles {
   properties: TrackEventProperties;
 }
 
-export async function persistFile(
+/**
+ * Takes the file data from an event and persists it to the blob storage. Then
+ * modifies the event properties to include the file data.
+ * @param event
+ * @returns
+ */
+export async function persistFiles(
   event: TrackEventForFiles,
 ): Promise<TrackEventProperties> {
   let promises: Promise<unknown>[] = [];
   let files: { [name: string]: BlobStorageFile } = {};
-  for (const file of event.files) {
-    const body = new TextEncoder().encode(file.data);
-    const key = `event-files/${event.messageId}/${file.name}]}`;
-    const uploadFiles = storage().send(
-      new PutObjectCommand({
-        Bucket: config().blobStorageBucket,
-        Key: key,
-        Body: body,
-      }),
-    );
-    promises.push(uploadFiles);
-    files[file.name] = {
-      type: AppFileType.BlobStorage,
-      key,
-    };
+  if (config().enableBlobStorage) {
+    for (const file of event.files) {
+      const body = new TextEncoder().encode(file.data);
+      const key = `event-files/${event.messageId}/${file.name}`;
+      const uploadFiles = storage().send(
+        new PutObjectCommand({
+          Bucket: config().blobStorageBucket,
+          Key: key,
+          Body: body,
+        }),
+      );
+      promises.push(uploadFiles);
+      files[file.name] = {
+        type: AppFileType.BlobStorage,
+        key,
+      };
+    }
   }
   await Promise.all(promises);
 
-  const properties: TrackEventProperties = {
-    ...event.properties,
-    [InternalEventType.AttachedFiles]: files,
-  };
+  const properties: TrackEventProperties = config().enableBlobStorage
+    ? {
+        ...event.properties,
+        [InternalEventType.AttachedFiles]: files,
+      }
+    : event.properties;
+
   return properties;
 }
