@@ -1169,15 +1169,24 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const propertyClause = propertyConditions?.length
-        ? `and (${propertyConditions.join(" and ")})`
-        : "";
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
+
+      const conditions: string[] = [
+        "event_type == 'track'",
+        getPrefixCondition({
+          column: "event",
+          value: node.event,
+          qb,
+        }),
+      ];
+      if (propertyConditions?.length) {
+        conditions.push(`(${propertyConditions.join(" and ")})`);
+      }
       return [
         {
-          condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
+          condition: conditions.join(" and "),
           type: "segment",
           eventTimeExpression,
           uniqValue: "message_id",

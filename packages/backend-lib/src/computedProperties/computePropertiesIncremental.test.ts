@@ -1904,8 +1904,6 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with event prefix",
-      // fixme
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -1958,7 +1956,7 @@ describe("computeProperties", () => {
               type: EventType.Track,
               offsetMs: -100,
               userId: "user-2",
-              event: "test",
+              event: "TEST_3",
             },
             {
               type: EventType.Identify,
