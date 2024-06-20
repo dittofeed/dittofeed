@@ -1524,15 +1524,27 @@ function groupedUserPropertyToSubQuery({
   }
 }
 
-// function fileUserPropertyToPerformed(
-//   userProperty: FileUserPropertyDefinition,
-// ): PerformedUserPropertyDefinition {
-//   return {
-//     type: UserPropertyDefinitionType.Performed,
-//     id: userProperty.id,
-//     event,
-//   };
-// }
+function fileUserPropertyToPerformed({
+  userProperty,
+  qb,
+}: {
+  userProperty: FileUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PerformedUserPropertyDefinition | null {
+  const path = toJsonPathParam({
+    path: `${InternalEventType.AttachedFiles}.${userProperty.name}`,
+    qb,
+  });
+  if (!path) {
+    return null;
+  }
+  return {
+    type: UserPropertyDefinitionType.Performed,
+    id: userProperty.id,
+    event: "*",
+    path,
+  };
+}
 
 function userPropertyToSubQuery({
   userProperty,
