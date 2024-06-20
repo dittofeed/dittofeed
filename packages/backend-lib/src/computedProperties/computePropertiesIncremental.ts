@@ -69,7 +69,10 @@ function getPrefixCondition({
   column: string;
   value: string;
   qb: ClickHouseQueryBuilder;
-}): string {
+}): string | null {
+  if (value.length === 0 || value === "*") {
+    return null;
+  }
   const prefix = getStringBeforeAsterisk(value);
   if (!prefix) {
     return `${column} = ${qb.addQueryValue(value, "String")}`;
@@ -1188,14 +1191,16 @@ export function segmentNodeToStateSubQuery({
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
 
-      const conditions: string[] = [
-        "event_type == 'track'",
-        getPrefixCondition({
-          column: "event",
-          value: node.event,
-          qb,
-        }),
-      ];
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
       if (propertyConditions?.length) {
         conditions.push(`(${propertyConditions.join(" and ")})`);
       }
@@ -1432,14 +1437,15 @@ function leafUserPropertyToSubQuery({
           })
           .join(" and ");
       }
-      const conditions: string[] = [
-        "event_type == 'track'",
-        getPrefixCondition({
-          column: "event",
-          value: child.event,
-          qb,
-        }),
-      ];
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: child.event,
+        qb,
+      });
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
       if (propertiesCondition) {
         conditions.push(`(${propertiesCondition})`);
       }
