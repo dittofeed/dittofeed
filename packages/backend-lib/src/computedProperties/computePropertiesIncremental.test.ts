@@ -2546,6 +2546,50 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "with a performed user property with a prefix match",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "PURCHASE_*",
+            path: "name",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "PURCHASE_ENTERPRISE",
+              properties: {
+                name: "My Enterprise Package",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "My Enterprise Package",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description:
         "with a performed user property that has additional property conditions",
       userProperties: [

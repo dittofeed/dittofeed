@@ -59,6 +59,7 @@ import {
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
+import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1341,6 +1342,22 @@ export function userPropertyStateId(
   return stateId;
 }
 
+function getPrefixCondition({
+  column,
+  value,
+  qb,
+}: {
+  column: string;
+  value: string;
+  qb: ClickHouseQueryBuilder;
+}): string {
+  const prefix = getStringBeforeAsterisk(value);
+  if (!prefix) {
+    return `${column} = ${qb.addQueryValue(value, "String")}`;
+  }
+  return `startsWithUTF8(${column}, ${qb.addQueryValue(prefix, "String")})`;
+}
+
 function leafUserPropertyToSubQuery({
   userProperty,
   child,
@@ -1407,11 +1424,19 @@ function leafUserPropertyToSubQuery({
           })
           .join(" and ");
       }
+      const conditions: string[] = [
+        "event_type == 'track'",
+        getPrefixCondition({
+          column: "event",
+          value: child.event,
+          qb,
+        }),
+      ];
+      if (propertiesCondition) {
+        conditions.push(`(${propertiesCondition})`);
+      }
       return {
-        condition: `event_type == 'track' and event = ${qb.addQueryValue(
-          child.event,
-          "String",
-        )}${propertiesCondition ? ` AND (${propertiesCondition})` : ""} `,
+        condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
         argMaxValue: `JSON_VALUE(properties, ${path})`,
