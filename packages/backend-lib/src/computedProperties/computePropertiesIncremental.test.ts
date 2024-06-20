@@ -1903,6 +1903,132 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segment with event prefix",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "TEST_*",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 2,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -150,
+              userId: "user-1",
+              event: "TEST_1",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "TEST_2",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test1@email.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "TEST_3",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                email: "test2@email.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                email: "test3@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "includes user who performed test event twice, but excludes user who performed test event once, and user who performed unrelated event",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 2,
+            },
+            {
+              type: "segment",
+              userId: "user-2",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 1,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with properties",
       userProperties: [
         {
@@ -2539,6 +2665,50 @@ describe("computeProperties", () => {
               id: "user-1",
               properties: {
                 performed: "lead",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "with a performed user property with a prefix match",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "PURCHASE_*",
+            path: "name",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "PURCHASE_ENTERPRISE",
+              properties: {
+                name: "My Enterprise Package",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "My Enterprise Package",
               },
             },
           ],

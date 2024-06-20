@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import jsonPath from "jsonpath";
 import { v5 as uuidv5 } from "uuid";
@@ -59,6 +60,25 @@ import {
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
+
+function getPrefixCondition({
+  column,
+  value,
+  qb,
+}: {
+  column: string;
+  value: string;
+  qb: ClickHouseQueryBuilder;
+}): string | null {
+  if (value.length === 0 || value === "*") {
+    return null;
+  }
+  const prefix = getStringBeforeAsterisk(value);
+  if (!prefix) {
+    return `${column} = ${qb.addQueryValue(value, "String")}`;
+  }
+  return `startsWithUTF8(${column}, ${qb.addQueryValue(prefix, "String")})`;
+}
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1145,7 +1165,6 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.Performed: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const event = qb.addQueryValue(node.event, "String");
       const propertyConditions = node.properties?.map((property) => {
         const operatorType = property.operator.type;
         switch (operatorType) {
@@ -1168,15 +1187,26 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const propertyClause = propertyConditions?.length
-        ? `and (${propertyConditions.join(" and ")})`
-        : "";
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
+
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      if (propertyConditions?.length) {
+        conditions.push(`(${propertyConditions.join(" and ")})`);
+      }
       return [
         {
-          condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
+          condition: conditions.join(" and "),
           type: "segment",
           eventTimeExpression,
           uniqValue: "message_id",
@@ -1407,11 +1437,20 @@ function leafUserPropertyToSubQuery({
           })
           .join(" and ");
       }
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: child.event,
+        qb,
+      });
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      if (propertiesCondition) {
+        conditions.push(`(${propertiesCondition})`);
+      }
       return {
-        condition: `event_type == 'track' and event = ${qb.addQueryValue(
-          child.event,
-          "String",
-        )}${propertiesCondition ? ` AND (${propertiesCondition})` : ""} `,
+        condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
         argMaxValue: `JSON_VALUE(properties, ${path})`,
