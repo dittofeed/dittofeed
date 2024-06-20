@@ -358,6 +358,7 @@ export enum UserPropertyDefinitionType {
   Group = "Group",
   AnyOf = "AnyOf",
   PerformedMany = "PerformedMany",
+  File = "File",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -426,6 +427,16 @@ export const PerformedManyUserPropertyDefinition = Type.Object({
 
 export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
+>;
+
+export const FileUserPropertyDefinition = Type.Object({
+  id: Type.String(),
+  type: Type.Literal(UserPropertyDefinitionType.File),
+  name: Type.String(),
+});
+
+export type FileUserPropertyDefinition = Static<
+  typeof FileUserPropertyDefinition
 >;
 
 export const UserPropertyAssignments = Type.Record(Type.String(), Type.Any());
@@ -506,6 +517,7 @@ export const UserPropertyDefinition = Type.Union([
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
   PerformedManyUserPropertyDefinition,
+  FileUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;
