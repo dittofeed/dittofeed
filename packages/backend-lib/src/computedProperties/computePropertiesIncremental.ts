@@ -33,6 +33,7 @@ import {
   ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
+  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   HasStartedJourneyResource,
@@ -42,6 +43,7 @@ import {
   ManualSegmentNode,
   NodeEnvEnum,
   PerformedSegmentNode,
+  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedIntegrationResource,
@@ -1521,6 +1523,16 @@ function groupedUserPropertyToSubQuery({
     }
   }
 }
+
+// function fileUserPropertyToPerformed(
+//   userProperty: FileUserPropertyDefinition,
+// ): PerformedUserPropertyDefinition {
+//   return {
+//     type: UserPropertyDefinitionType.Performed,
+//     id: userProperty.id,
+//     event,
+//   };
+// }
 
 function userPropertyToSubQuery({
   userProperty,
