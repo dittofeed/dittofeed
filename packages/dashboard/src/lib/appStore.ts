@@ -21,6 +21,7 @@ import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
+import { getDefaultUserPropertyExampleValue } from "./userProperties";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -551,9 +552,12 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             if (!state.editedUserProperty) {
               return state;
             }
-            state.editedUserProperty.definition = updater(
-              state.editedUserProperty.definition,
-            );
+            const definition = updater(state.editedUserProperty.definition);
+            if (state.editedUserProperty.definition.type !== definition.type) {
+              state.editedUserProperty.exampleValue =
+                getDefaultUserPropertyExampleValue(definition);
+            }
+            state.editedUserProperty.definition = definition;
             return state;
           }),
 

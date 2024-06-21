@@ -430,7 +430,7 @@ export type PerformedManyUserPropertyDefinition = Static<
 >;
 
 export const FileUserPropertyDefinition = Type.Object({
-  id: Type.String(),
+  id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.File),
   name: Type.String(),
 });
@@ -486,6 +486,7 @@ export type GroupParentUserPropertyDefinitions = Static<
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
+  FileUserPropertyDefinition,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
@@ -517,7 +518,6 @@ export const UserPropertyDefinition = Type.Union([
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
   PerformedManyUserPropertyDefinition,
-  FileUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

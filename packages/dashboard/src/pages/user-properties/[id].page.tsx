@@ -22,6 +22,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   AnyOfUserPropertyDefinition,
   CompletionStatus,
+  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   PerformedUserPropertyDefinition,
@@ -33,7 +34,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps, useCallback } from "react";
+import React, { ComponentProps, useCallback, useMemo } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -53,6 +54,7 @@ import {
   PropsWithInitialState,
 } from "../../lib/types";
 import useLoadTraits from "../../lib/useLoadTraits";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 const selectorWidth = "192px";
 
@@ -82,6 +84,12 @@ const performedOption = {
   label: "Performed",
 };
 
+const fileOption = {
+  id: UserPropertyDefinitionType.File,
+  group: "Track Events",
+  label: "File",
+};
+
 const anyOfOption = {
   id: UserPropertyDefinitionType.AnyOf,
   group: "Group",
@@ -91,16 +99,18 @@ const anyOfOption = {
 type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
 
 const userPropertyOptions: UserPropertyGroupedOption[] = [
-  performedOption,
   traitOption,
+  performedOption,
+  fileOption,
   anyOfOption,
   idOption,
   anonymousIdOption,
 ];
 
 const groupedUserPropertyOptions: UserPropertyGroupedOption[] = [
-  performedOption,
   traitOption,
+  performedOption,
+  fileOption,
 ];
 
 function getUserPropertyOption(
@@ -124,7 +134,7 @@ function getUserPropertyOption(
     case UserPropertyDefinitionType.Group:
       return anyOfOption;
     case UserPropertyDefinitionType.File:
-      throw new Error("Not implemented");
+      return fileOption;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }
@@ -176,7 +186,11 @@ function defaultUserProperty(
       };
     }
     case UserPropertyDefinitionType.File:
-      throw new Error("Not implemented");
+      return {
+        id,
+        type: UserPropertyDefinitionType.File,
+        name: "my_file_name.pdf",
+      };
     case UserPropertyDefinitionType.Group: {
       throw new Error("Not implemented");
     }
@@ -245,6 +259,50 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     };
   });
+
+function FileUserPropertyDefinitionEditor(
+  definition: FileUserPropertyDefinition,
+) {
+  const { updateUserPropertyDefinition } = useAppStorePick([
+    "updateUserPropertyDefinition",
+  ]);
+  const handleChange = (name: string) => {
+    updateUserPropertyDefinition((current) => {
+      let d: FileUserPropertyDefinition | null = null;
+      if (current.type === UserPropertyDefinitionType.File) {
+        d = current;
+      } else if (
+        current.type === UserPropertyDefinitionType.Group &&
+        definition.id
+      ) {
+        for (const node of current.nodes) {
+          if (
+            node.id === definition.id &&
+            node.type === UserPropertyDefinitionType.File
+          ) {
+            d = node;
+            break;
+          }
+        }
+      }
+
+      if (!d) {
+        return current;
+      }
+      d.name = name;
+      return current;
+    });
+  };
+  return (
+    <TextField
+      label="File Name"
+      value={definition.name}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        handleChange(e.target.value)
+      }
+    />
+  );
+}
 
 function TraitUserPropertyDefinitionEditor({
   definition,
@@ -670,7 +728,8 @@ function DefinitionComponent({
       break;
     }
     case UserPropertyDefinitionType.File:
-      throw new Error("Not implemented");
+      up = <FileUserPropertyDefinitionEditor {...definition} />;
+      break;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }
