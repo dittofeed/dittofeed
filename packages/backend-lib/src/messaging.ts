@@ -66,6 +66,7 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { getObject, storage } from "./blobStorage";
 
 export function enrichMessageTemplate({
   id,
@@ -367,6 +368,12 @@ type TemplateDictionary<T> = {
   };
 };
 
+interface Attachment {
+  mimeType: string;
+  data: string;
+  name: string;
+}
+
 function renderValues<T extends TemplateDictionary<T>>({
   templates,
   ...rest
@@ -644,6 +651,24 @@ export async function sendEmail({
     });
   }
   const secretConfig = secretConfigResult.value;
+  let attachments: Attachment[] | undefined;
+  if (messageTemplateDefinition.attachmentUserProperties?.length) {
+    const s = storage();
+
+    const attachmentPromises =
+      messageTemplateDefinition.attachmentUserProperties.flatMap(
+        async (attachment) => {
+          if (!messageTags?.messageId) {
+            return [];
+          }
+          await getObject(s, {
+            key,
+          });
+        },
+      );
+
+    const attachments = await Promise.all(attachmentPromises);
+  }
 
   switch (emailProvider.type) {
     case EmailProviderType.Smtp: {

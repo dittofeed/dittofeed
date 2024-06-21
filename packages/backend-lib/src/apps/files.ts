@@ -1,5 +1,4 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { storage } from "../blobStorage";
+import { putObject, storage } from "../blobStorage";
 import {
   AppDataFiles,
   AppFileType,
@@ -15,6 +14,16 @@ interface TrackEventForFiles {
   properties: TrackEventProperties;
 }
 
+export function eventFileKey({
+  messageId,
+  name,
+}: {
+  messageId: string;
+  name: string;
+}): string {
+  return `event-files/${messageId}/${name}`;
+}
+
 /**
  * Takes the file data from an event and persists it to the blob storage. Then
  * modifies the event properties to include the file data.
@@ -26,18 +35,21 @@ export async function persistFiles(
 ): Promise<TrackEventProperties> {
   let promises: Promise<unknown>[] = [];
   let files: { [name: string]: BlobStorageFile } = {};
+  const s = storage();
   if (config().enableBlobStorage) {
     for (const file of event.files) {
       const body = new TextEncoder().encode(file.data);
-      const key = `event-files/${event.messageId}/${file.name}`;
-      const uploadFiles = storage().send(
-        new PutObjectCommand({
-          Bucket: config().blobStorageBucket,
-          Key: key,
-          Body: body,
+      const key = eventFileKey({
+        messageId: event.messageId,
+        name: file.name,
+      });
+      promises.push(
+        putObject(s, {
+          key,
+          text: file.data,
+          contentType: file.mimeType,
         }),
       );
-      promises.push(uploadFiles);
       files[file.name] = {
         type: AppFileType.BlobStorage,
         key,
