@@ -320,6 +320,7 @@ export default function TemplateEditor({
   hideTitle,
   fieldToReadable,
   draftToPreview,
+  renderEditorOptions,
 }: {
   channel: ChannelType;
   templateId: string;
@@ -331,6 +332,7 @@ export default function TemplateEditor({
   renderPreviewBody: RenderPreviewSection;
   renderEditorHeader: RenderEditorSection;
   renderEditorBody: RenderEditorSection;
+  renderEditorOptions?: RenderEditorSection;
   draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
 }) {
@@ -1067,16 +1069,19 @@ export default function TemplateEditor({
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
         {fullscreen === null ? (
-          <IconButton
-            size="small"
-            onClick={() =>
-              setState((stateDraft) => {
-                stateDraft.fullscreen = "editor";
-              })
-            }
-          >
-            <Fullscreen />
-          </IconButton>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            {renderEditorOptions && renderEditorOptions(renderEditorParams)}
+            <IconButton
+              size="small"
+              onClick={() =>
+                setState((stateDraft) => {
+                  stateDraft.fullscreen = "editor";
+                })
+              }
+            >
+              <Fullscreen />
+            </IconButton>
+          </Stack>
         ) : (
           <IconButton size="small" onClick={handleFullscreenClose}>
             <FullscreenExit />
