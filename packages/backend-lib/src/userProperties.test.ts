@@ -85,6 +85,7 @@ describe("findAllUserPropertyAssignments", () => {
       expect(actualAssignments).toEqual({
         [`test-${upId1}`]: "value3",
         [`test-${upId2}`]: "value2",
+        id: "userId",
       });
     });
   });
@@ -142,6 +143,7 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments1).toEqual({
         [`test-${upId1}`]: 1,
+        id: "userId",
       });
 
       const actualAssignments2 = await findAllUserPropertyAssignments({
@@ -154,6 +156,7 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments2).toEqual({
         [`test-${upId1}`]: 2,
+        id: "userId",
       });
     });
   });

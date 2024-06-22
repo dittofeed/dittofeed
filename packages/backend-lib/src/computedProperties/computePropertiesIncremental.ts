@@ -2,8 +2,9 @@
 
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
+import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import jsonPath from "jsonpath";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -1066,32 +1067,26 @@ function resolvedSegmentToAssignment({
   }
 }
 
-function toJsonPathParam({
+function toJsonPathParamCh({
   path,
   qb,
 }: {
   path: string;
   qb: ClickHouseQueryBuilder;
 }): string | null {
-  let unvalidated: string;
-  if (path.startsWith("$")) {
-    unvalidated = path;
-  } else {
-    unvalidated = `$.${path}`;
-  }
-  try {
-    jsonPath.parse(unvalidated);
-  } catch (e) {
-    logger().debug(
+  const normalizedPath = toJsonPathParam({ path });
+  if (normalizedPath.isErr()) {
+    logger().info(
       {
-        unvalidated,
-        err: e,
+        path,
+        err: normalizedPath.error,
       },
       "invalid json path in node path",
     );
     return null;
   }
-  return qb.addQueryValue(unvalidated, "String");
+  qb.addQueryValue(normalizedPath.value, "String");
+  return normalizedPath.value;
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
@@ -1116,7 +1111,7 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: node.path,
         qb,
       });
@@ -1171,7 +1166,7 @@ export function segmentNodeToStateSubQuery({
         const operatorType = property.operator.type;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            const path = toJsonPathParam({
+            const path = toJsonPathParamCh({
               path: property.path,
               qb,
             });
@@ -1274,7 +1269,7 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const whereConditions = node.whereProperties?.map((property) => {
         const operatorType = property.operator.type;
-        const path = toJsonPathParam({
+        const path = toJsonPathParamCh({
           path: property.path,
           qb,
         });
@@ -1305,7 +1300,7 @@ export function segmentNodeToStateSubQuery({
         ? `and (${whereConditions.join(" and ")})`
         : "";
       const propertyValues = node.hasProperties.flatMap((property) => {
-        const path = toJsonPathParam({
+        const path = toJsonPathParamCh({
           path: property.path,
           qb,
         });
@@ -1388,7 +1383,7 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: child.path,
         qb,
       });
@@ -1409,7 +1404,7 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: child.path,
         qb,
       });
@@ -1423,7 +1418,7 @@ function leafUserPropertyToSubQuery({
           .flatMap((property) => {
             switch (property.operator.type) {
               case UserPropertyOperatorType.Equals: {
-                const propertyPath = toJsonPathParam({
+                const propertyPath = toJsonPathParamCh({
                   path: property.path,
                   qb,
                 });
@@ -1560,19 +1555,18 @@ function fileUserPropertyToPerformed({
   userProperty: FileUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
 }): PerformedUserPropertyDefinition | null {
-  const path = toJsonPathParam({
+  const path = toJsonPathParamCh({
     path: `${InternalEventType.AttachedFiles}.${userProperty.name}`,
     qb,
   });
-  if (!path) {
-    return null;
-  }
-  return {
-    type: UserPropertyDefinitionType.Performed,
-    id: userProperty.id,
-    event: "*",
-    path,
-  };
+  return fuptp({
+    userProperty,
+    toPath: (path) =>
+      toJsonPathParamCh({
+        path,
+        qb,
+      }),
+  });
 }
 
 function userPropertyToSubQuery({

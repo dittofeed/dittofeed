@@ -663,10 +663,14 @@ export async function sendEmail({
     const attachmentPromises =
       messageTemplateDefinition.attachmentUserProperties.map(
         async (attachmentProperty) => {
-          const file = schemaValidateWithErr(
-            userPropertyAssignments[attachmentProperty],
-            BlobStorageFile,
+          const assignment = userPropertyAssignments[attachmentProperty];
+          logger().info(
+            {
+              assignment,
+            },
+            "loc2",
           );
+          const file = schemaValidateWithErr(assignment, BlobStorageFile);
           if (file.isErr()) {
             return [];
           }
@@ -995,6 +999,16 @@ export async function sendEmail({
           Content: data,
           ContentID: `${messageTags?.messageId}-${name}`,
         }));
+      logger().info(
+        {
+          attachments,
+          postmarkAttachments,
+          userPropertyAssignments,
+          definitionAttachments:
+            messageTemplateDefinition.attachmentUserProperties,
+        },
+        "all attachments loc1",
+      );
       const mailData: PostMarkRequiredFields = {
         To: to,
         From: from,

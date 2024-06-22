@@ -230,6 +230,7 @@ function getAssignmentOverride({
       break;
     }
     if (node.type === UserPropertyDefinitionType.Performed) {
+      // FIXME use path
       const path = `$.${node.path}`;
       let value: JSONValue | null;
       try {

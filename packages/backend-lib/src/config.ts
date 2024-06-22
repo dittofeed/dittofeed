@@ -427,7 +427,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
     enableBlobStorage: rawConfig.enableBlobStorage === "true",
     blobStorageEndpoint:
-      rawConfig.blobStorageEndpoint ?? "http://localhost:9000",
+      rawConfig.blobStorageEndpoint ?? "http://localhost:9010",
     blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",

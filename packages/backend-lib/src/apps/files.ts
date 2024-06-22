@@ -7,6 +7,7 @@ import {
   TrackEventProperties,
 } from "../types";
 import config from "../config";
+import logger from "../logger";
 
 interface TrackEventForFiles {
   files: AppDataFiles;
@@ -38,7 +39,6 @@ export async function persistFiles(
   const s = storage();
   if (config().enableBlobStorage) {
     for (const file of event.files) {
-      const body = new TextEncoder().encode(file.data);
       const key = eventFileKey({
         messageId: event.messageId,
         name: file.name,
@@ -50,6 +50,7 @@ export async function persistFiles(
           contentType: file.mimeType,
         }),
       );
+      logger().debug({ key, mimeType: file.mimeType }, "persisted file loc3");
       files[file.name] = {
         type: AppFileType.BlobStorage,
         key,
@@ -66,5 +67,6 @@ export async function persistFiles(
       }
     : event.properties;
 
+  logger().debug({ properties }, "persisted files loc3");
   return properties;
 }
