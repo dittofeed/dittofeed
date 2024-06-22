@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { insertUserEvents } from "./userEvents";
 import { createUserEventsTables } from "./userEvents/clickhouse";
+import { createBucket, storage } from "./blobStorage";
 
 async function bootstrapPostgres({
   workspaceName,
@@ -321,6 +322,12 @@ export default async function bootstrap({
 
   if (config().bootstrapEvents) {
     await insertDefaultEvents({ workspaceId });
+  }
+
+  if (config().enableBlobStorage) {
+    await createBucket(storage(), {
+      bucketName: config().blobStorageBucket,
+    });
   }
 
   if (config().bootstrapWorker) {

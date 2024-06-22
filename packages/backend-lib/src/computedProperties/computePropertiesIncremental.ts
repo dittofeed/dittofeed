@@ -1085,6 +1085,12 @@ function toJsonPathParamCh({
     );
     return null;
   }
+
+  // path: "'$.DFAttachedFiles.exampleFile'"
+  // err: {
+  //   "type": "Error",
+  //   "message": "Parse error on line 1:\n$.'$.DFAttachedFiles.e...\n--^\nExpecting 'STAR', 'IDENTIFIER', 'SCRIPT_EXPRESSION', 'INTEGER', 'END', got 'Q_STRING'",
+  //   "stack":
   return qb.addQueryValue(normalizedPath.value, "String");
 }
 
@@ -1555,6 +1561,8 @@ function fileUserPropertyToPerformed({
   qb: ClickHouseQueryBuilder;
 }): PerformedUserPropertyDefinition | null {
   const path = toJsonPathParamCh({
+    // path: `${InternalEventType.AttachedFiles}[\'${userProperty.name}\']`,
+    // FIXME allow spaces in file name
     path: `${InternalEventType.AttachedFiles}.${userProperty.name}`,
     qb,
   });

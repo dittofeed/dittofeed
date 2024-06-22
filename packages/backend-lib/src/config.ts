@@ -94,6 +94,7 @@ const BaseRawConfigProps = {
   blobStorageSecretAccessKey: Type.Optional(Type.String()),
   blobStorageBucket: Type.Optional(Type.String()),
   enableBlobStorage: Type.Optional(BoolStr),
+  blobStorageRegion: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -199,6 +200,7 @@ export type Config = Overwrite<
     blobStorageAccessKeyId: string;
     blobStorageSecretAccessKey: string;
     blobStorageBucket: string;
+    blobStorageRegion: string;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -432,6 +434,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",
     blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
+    blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
   };
 
   return parsedConfig;

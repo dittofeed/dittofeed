@@ -547,7 +547,9 @@ function PerformedUserPropertyDefinitionEditor({
           Property
         </Button>
       </Stack>
-      {propertyRows ? <SubtleHeader>Properties</SubtleHeader> : null}
+      {propertyRows && definition.properties?.length ? (
+        <SubtleHeader>Properties</SubtleHeader>
+      ) : null}
       {propertyRows}
     </Stack>
   );

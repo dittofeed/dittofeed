@@ -2,16 +2,25 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  CreateBucketCommand,
 } from "@aws-sdk/client-s3";
 import config from "./config";
 
 export function storage() {
-  const { blobStorageAccessKeyId, blobStorageSecretAccessKey } = config();
+  const {
+    blobStorageAccessKeyId,
+    blobStorageSecretAccessKey,
+    blobStorageEndpoint,
+    blobStorageRegion,
+  } = config();
   const s3Client = new S3Client({
     credentials: {
       accessKeyId: blobStorageAccessKeyId,
       secretAccessKey: blobStorageSecretAccessKey,
     },
+    endpoint: blobStorageEndpoint,
+    region: blobStorageRegion,
+    forcePathStyle: true,
   });
   return s3Client;
 }
@@ -55,4 +64,14 @@ export async function getObject(
 
   const text = await response.Body.transformToString();
   return { text };
+}
+
+export async function createBucket(
+  client: S3Client,
+  { bucketName }: { bucketName: string },
+) {
+  const command = new CreateBucketCommand({
+    Bucket: bucketName,
+  });
+  await client.send(command);
 }
