@@ -1085,8 +1085,7 @@ function toJsonPathParamCh({
     );
     return null;
   }
-  qb.addQueryValue(normalizedPath.value, "String");
-  return normalizedPath.value;
+  return qb.addQueryValue(normalizedPath.value, "String");
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {

@@ -1,5 +1,6 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
+import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty as parseUserPropertyAssignment } from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
@@ -251,6 +252,14 @@ function getAssignmentOverride({
 
       if (value !== null) {
         return value;
+      }
+    } else if (node.type === UserPropertyDefinitionType.File) {
+      const performed = fileUserPropertyToPerformed({
+        userProperty: node,
+        toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),
+      });
+      if (performed) {
+        nodes.push(performed);
       }
     } else if (node.type === UserPropertyDefinitionType.Group) {
       const groupNodesById: Map<string, GroupChildrenUserPropertyDefinitions> =

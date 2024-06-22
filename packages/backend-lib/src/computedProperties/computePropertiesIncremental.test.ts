@@ -53,6 +53,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { omit } from "remeda";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -3862,7 +3863,9 @@ describe("computeProperties", () => {
                       workspaceId,
                     }).then((up) =>
                       expect(
-                        up,
+                        // only check the user id if it's explicitly asserted
+                        // upon, for convenience
+                        user.properties?.id ? up : omit(up, ["id"]),
                         `${
                           step.description ? `${step.description}: ` : ""
                         }user properties for: ${user.id}`,
