@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import {
   Autocomplete,
   Button,
+  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -32,6 +33,8 @@ import TemplateEditor, {
   RenderEditorParams,
 } from "../templateEditor";
 import { useAppStorePick } from "../../lib/appStore";
+import { useRouter } from "next/router";
+import Link from "next/link";
 
 const USER_TO = "{{user.email}}";
 
@@ -79,6 +82,29 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
             sx={{ p: 1 }}
             filterSelectedOptions
             value={draft.attachmentUserProperties ?? []}
+            renderTags={(value: readonly string[], getTagProps) =>
+              value.map((option: string, index: number) => {
+                const { key, ...tagProps } = getTagProps({ index });
+                const id =
+                  userProperties.type === CompletionStatus.Successful
+                    ? userProperties.value.find((up) => up.name === option)?.id
+                    : undefined;
+
+                if (!id) {
+                  return null;
+                }
+                return (
+                  <Chip
+                    clickable
+                    component={Link}
+                    href={`/user-properties/${id}`}
+                    label={option}
+                    key={key}
+                    {...tagProps}
+                  />
+                );
+              })
+            }
             onChange={(_event, value) => {
               setDraft((defn) => {
                 if (defn.type !== ChannelType.Email) {
