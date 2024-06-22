@@ -41,7 +41,7 @@ export function getDefaultUserPropertyExampleValue(
       if (!firstNonParentNode) {
         return "";
       }
-      return getDefaultExampleValue(firstNonParentNode);
+      return getDefaultUserPropertyExampleValue(firstNonParentNode);
     }
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");

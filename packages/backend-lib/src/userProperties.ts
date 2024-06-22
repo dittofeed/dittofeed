@@ -360,5 +360,6 @@ export async function findAllUserPropertyAssignments({
     "findAllUserPropertyAssignments",
   );
 
+  combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;
 }
