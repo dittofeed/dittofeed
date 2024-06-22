@@ -16,6 +16,7 @@ import {
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -230,21 +231,22 @@ function getAssignmentOverride({
       break;
     }
     if (node.type === UserPropertyDefinitionType.Performed) {
-      // FIXME use path
-      const path = `$.${node.path}`;
-      let value: JSONValue | null;
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        value = jp.query(context, path)[0] ?? null;
-      } catch (e) {
-        logger().info(
-          {
-            userPropertyId,
-            err: e,
-          },
-          "failed to query context for user property assignment override",
-        );
-        value = null;
+      const path = toJsonPathParam({ path: node.path }).unwrapOr(null);
+      let value: JSONValue | null = null;
+      if (path) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value = jp.query(context, path)[0] ?? null;
+        } catch (e) {
+          logger().info(
+            {
+              userPropertyId,
+              err: e,
+            },
+            "failed to query context for user property assignment override",
+          );
+          value = null;
+        }
       }
 
       if (value !== null) {
