@@ -1460,6 +1460,24 @@ function leafUserPropertyToSubQuery({
         stateId,
       };
     }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: child,
+        qb,
+      });
+      if (!performedDefinition) {
+        return null;
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return leafUserPropertyToSubQuery({
+        userProperty: fileUserProperty,
+        child: performedDefinition,
+        qb,
+      });
+    }
   }
 }
 
@@ -1516,6 +1534,17 @@ function groupedUserPropertyToSubQuery({
         qb,
       });
 
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
+    }
+    case UserPropertyDefinitionType.File: {
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
       if (!subQuery) {
         return [];
       }
@@ -1638,21 +1667,15 @@ function userPropertyToSubQuery({
       ];
     }
     case UserPropertyDefinitionType.File: {
-      const performedDefinition = fileUserPropertyToPerformed({
-        userProperty: userProperty.definition,
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
         qb,
       });
-      if (!performedDefinition) {
+      if (!subQuery) {
         return [];
       }
-      const fileUserProperty: SavedUserPropertyResource = {
-        ...userProperty,
-        definition: performedDefinition,
-      };
-      return userPropertyToSubQuery({
-        userProperty: fileUserProperty,
-        qb,
-      });
+      return [subQuery];
     }
   }
 }
@@ -1915,7 +1938,7 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): StandardUserPropertyAssignmentConfig {
+}): StandardUserPropertyAssignmentConfig | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
@@ -1932,6 +1955,24 @@ function leafUserPropertyToAssignment({
         type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
+    }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: child,
+        qb,
+      });
+      if (!performedDefinition) {
+        return null;
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return leafUserPropertyToAssignment({
+        userProperty: fileUserProperty,
+        child: performedDefinition,
+        qb,
+      });
     }
   }
 }
@@ -1999,6 +2040,13 @@ function groupedUserPropertyToAssignment({
       });
     }
     case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: node,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.File: {
       return leafUserPropertyToAssignment({
         userProperty,
         child: node,
@@ -2076,20 +2124,9 @@ function userPropertyToAssignment({
       });
     }
     case UserPropertyDefinitionType.File: {
-      const performedDefinition = fileUserPropertyToPerformed({
-        userProperty: userProperty.definition,
-        qb,
-      });
-      if (!performedDefinition) {
-        return null;
-      }
-      const fileUserProperty: SavedUserPropertyResource = {
-        ...userProperty,
-        definition: performedDefinition,
-      };
       return leafUserPropertyToAssignment({
-        userProperty: fileUserProperty,
-        child: performedDefinition,
+        userProperty,
+        child: userProperty.definition,
         qb,
       });
     }
