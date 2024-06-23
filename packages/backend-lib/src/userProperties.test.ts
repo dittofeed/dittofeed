@@ -94,7 +94,7 @@ describe("findAllUserPropertyAssignments", () => {
   });
 
   describe("when passing context with a file user property", () => {
-    it.only("should use the name of the user property", async () => {
+    it("should use the name of the user property", async () => {
       const upId1 = randomUUID();
 
       await prisma().userProperty.create({
