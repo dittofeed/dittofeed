@@ -3,7 +3,6 @@ import * as R from "remeda";
 
 import { TrackData } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
-import { persistFiles } from "./files";
 
 export async function submitTrack({
   workspaceId,
@@ -14,13 +13,6 @@ export async function submitTrack({
 }) {
   const rest = R.omit(data, ["timestamp", "properties"]);
   let properties = data.properties ?? {};
-  if (data.files) {
-    properties = await persistFiles({
-      files: data.files,
-      messageId: data.messageId,
-      properties,
-    });
-  }
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {

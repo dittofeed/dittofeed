@@ -363,10 +363,16 @@ export async function findAllUserPropertyAssignments({
       }
     }
   }
-  logger().debug(
+  // FIXME log level
+  // FIXME not getting file context     context: {
+  //   "email": "max+4CF3C6CC-1C40-4CA4-A610-0BB0AC285FC8@dittofeed.com",
+  //   "firstName": "Maximus"
+  // }
+  logger().info(
     {
       userId,
-      userProperties,
+      // userProperties,
+      context,
       combinedAssignments,
     },
     "findAllUserPropertyAssignments",

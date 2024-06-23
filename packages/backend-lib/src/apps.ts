@@ -14,6 +14,7 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import { persistFiles } from "./apps/files";
 
 export async function submitIdentify({
   workspaceId,
@@ -48,7 +49,22 @@ export async function submitTrackWithTriggers({
   workspaceId: string;
   data: TrackData;
 }) {
-  await submitTrack({ workspaceId, data });
+  let properties = data.properties ?? {};
+  if (data.files) {
+    properties = await persistFiles({
+      files: data.files,
+      messageId: data.messageId,
+      properties,
+    });
+  }
+
+  await submitTrack({
+    workspaceId,
+    data: {
+      ...data,
+      properties,
+    },
+  });
 
   let userOrAnonymousId: string | null = null;
   if ("userId" in data) {
@@ -63,16 +79,37 @@ export async function submitTrackWithTriggers({
       event: data.event,
       userId: userOrAnonymousId,
       messageId: data.messageId,
-      properties: data.properties,
+      properties,
     });
   }
 }
 
 export async function submitBatchWithTriggers({
   workspaceId,
-  data,
+  data: unprocessedData,
 }: SubmitBatchOptions) {
+  const batch = await Promise.all(
+    unprocessedData.batch.map(async (message) => {
+      if (message.type !== EventType.Track || !message.files?.length) {
+        return message;
+      }
+      const properties = await persistFiles({
+        files: message.files,
+        messageId: message.messageId,
+        properties: message.properties ?? {},
+      });
+      return {
+        ...message,
+        properties,
+      };
+    }),
+  );
+  const data = {
+    ...unprocessedData,
+    batch,
+  };
   await submitBatch({ workspaceId, data });
+
   const triggers: TriggerEventEntryJourneysOptions[] = data.batch.flatMap(
     (message) => {
       if (message.type !== EventType.Track) {

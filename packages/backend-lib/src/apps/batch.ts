@@ -27,14 +27,7 @@ export async function buildBatchUserEvents(
       rest = R.omit(message, ["timestamp", "properties"]);
       timestamp = message.timestamp ?? new Date().toISOString();
 
-      let properties = message.properties ?? {};
-      if (message.type === EventType.Track && message.files) {
-        properties = await persistFiles({
-          files: message.files,
-          messageId: message.messageId,
-          properties,
-        });
-      }
+      const properties = message.properties ?? {};
       messageRaw.properties = properties;
     }
 

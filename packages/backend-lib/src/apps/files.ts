@@ -38,6 +38,7 @@ export async function persistFiles(
   let files: { [name: string]: BlobStorageFile } = {};
   const s = storage();
   if (config().enableBlobStorage) {
+    logger().info(event.files, "persisted file loc4");
     for (const file of event.files) {
       const key = eventFileKey({
         messageId: event.messageId,
@@ -50,7 +51,7 @@ export async function persistFiles(
           contentType: file.mimeType,
         }),
       );
-      logger().debug({ key, mimeType: file.mimeType }, "persisted file loc3");
+      logger().info({ key, mimeType: file.mimeType }, "persisted file loc3");
       files[file.name] = {
         type: AppFileType.BlobStorage,
         key,

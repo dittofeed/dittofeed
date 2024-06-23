@@ -663,6 +663,7 @@ export async function sendEmail({
     const attachmentPromises =
       messageTemplateDefinition.attachmentUserProperties.map(
         async (attachmentProperty) => {
+          // FIXME empty
           const assignment = userPropertyAssignments[attachmentProperty];
           logger().info(
             {
