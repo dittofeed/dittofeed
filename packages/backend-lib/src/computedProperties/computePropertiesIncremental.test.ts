@@ -18,6 +18,7 @@ import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  AppFileType,
   ComputedPropertyAssignment,
   ComputedPropertyStep,
   EventType,
@@ -2697,6 +2698,54 @@ describe("computeProperties", () => {
               properties: {
                 name: "My Enterprise Package",
               },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "My Enterprise Package",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "with a file user property",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.File,
+            name: "receipt.pdf",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "order_confirmation",
+              files: [
+                {
+                  name: "receipt.pdf",
+                  mimeType: "application/pdf",
+                  type: AppFileType.Base64Encoded,
+                  data: "mockBase64Data",
+                },
+              ],
             },
           ],
         },

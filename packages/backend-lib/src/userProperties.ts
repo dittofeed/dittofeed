@@ -254,6 +254,7 @@ function getAssignmentOverride({
         return value;
       }
     } else if (node.type === UserPropertyDefinitionType.File) {
+      // fixme add name
       const performed = fileUserPropertyToPerformed({
         userProperty: node,
         toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),

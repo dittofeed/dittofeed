@@ -35,7 +35,7 @@ export async function persistFiles(
   event: TrackEventForFiles,
 ): Promise<TrackEventProperties> {
   let promises: Promise<unknown>[] = [];
-  let files: { [name: string]: BlobStorageFile } = {};
+  let files: { [name: string]: Omit<BlobStorageFile, "name"> } = {};
   const s = storage();
   if (config().enableBlobStorage) {
     for (const file of event.files) {

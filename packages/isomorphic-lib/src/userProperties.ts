@@ -83,7 +83,7 @@ export function fileUserPropertyToPerformed({
   toPath: (path: string) => string | null;
 }): PerformedUserPropertyDefinition | null {
   const path = toPath(
-    `${InternalEventType.AttachedFiles}.${userProperty.name}`,
+    `${InternalEventType.AttachedFiles}["${userProperty.name}"]`,
   );
   if (!path) {
     return null;

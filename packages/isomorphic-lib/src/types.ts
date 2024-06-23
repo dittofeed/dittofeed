@@ -2020,6 +2020,7 @@ export const BlobStorageFile = Type.Object(
   {
     type: Type.Literal(AppFileType.BlobStorage),
     key: Type.String(),
+    name: Type.String(),
     mimeType: Type.String(),
   },
   {

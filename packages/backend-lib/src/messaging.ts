@@ -663,29 +663,23 @@ export async function sendEmail({
     const attachmentPromises =
       messageTemplateDefinition.attachmentUserProperties.map(
         async (attachmentProperty) => {
-          // FIXME empty
           const assignment = userPropertyAssignments[attachmentProperty];
-          logger().info(
-            {
-              assignment,
-            },
-            "loc2",
-          );
           const file = schemaValidateWithErr(assignment, BlobStorageFile);
           if (file.isErr()) {
             return [];
           }
 
+          const { name, key, mimeType } = file.value;
           const object = await getObject(s, {
-            key: file.value.key,
+            key,
           });
           if (!object) {
             return [];
           }
           const attachment: Attachment = {
-            mimeType: file.value.mimeType,
+            mimeType,
             data: object.text,
-            name: attachmentProperty,
+            name,
           };
           return attachment;
         },
