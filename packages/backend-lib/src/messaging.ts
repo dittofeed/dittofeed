@@ -922,6 +922,11 @@ export async function sendEmail({
         });
       }
 
+      const resendAttachments: ResendRequiredData["attachments"] =
+        attachments?.map((attachment) => ({
+          filename: attachment.name,
+          content: attachment.data,
+        }));
       const mailData: ResendRequiredData = {
         to,
         from,
@@ -935,6 +940,7 @@ export async function sendEmail({
               value,
             }))
           : [],
+        attachments: resendAttachments,
       };
 
       if (!secretConfig.apiKey) {
@@ -1000,16 +1006,6 @@ export async function sendEmail({
           Content: data,
           ContentID: `${messageTags?.messageId}-${name}`,
         }));
-      logger().info(
-        {
-          attachments,
-          postmarkAttachments,
-          userPropertyAssignments,
-          definitionAttachments:
-            messageTemplateDefinition.attachmentUserProperties,
-        },
-        "all attachments loc1",
-      );
       const mailData: PostMarkRequiredFields = {
         To: to,
         From: from,
