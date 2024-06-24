@@ -1,17 +1,36 @@
 import { html } from "@codemirror/lang-html";
 import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Stack, SxProps, TextField, Theme, useTheme } from "@mui/material";
+import {
+  Autocomplete,
+  Button,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  SxProps,
+  TextField,
+  Theme,
+  useTheme,
+} from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
+  CompletionStatus,
   RenderMessageTemplateRequestContents,
+  UserPropertyDefinitionType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import React from "react";
+import Link from "next/link";
+import React, { useMemo } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
 import EmailPreviewHeader from "../emailPreviewHeader";
-import TemplateEditor, { DraftToPreview } from "../templateEditor";
+import TemplateEditor, {
+  DraftToPreview,
+  RenderEditorParams,
+} from "../templateEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -28,6 +47,80 @@ function fieldToReadable(field: string) {
     default:
       return null;
   }
+}
+
+function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
+  const [open, setOpen] = React.useState(false);
+  const { userProperties } = useAppStorePick(["userProperties"]);
+  const options = useMemo(() => {
+    if (userProperties.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return userProperties.value
+      .filter((up) => up.definition.type === UserPropertyDefinitionType.File)
+      .map((up) => up.name);
+  }, [userProperties]);
+  if (draft.type !== ChannelType.Email) {
+    return null;
+  }
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}> Options </Button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle> Email Options </DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            sx={{ p: 1 }}
+            filterSelectedOptions
+            value={draft.attachmentUserProperties ?? []}
+            renderTags={(value: readonly string[], getTagProps) =>
+              value.map((option: string, index: number) => {
+                const { key, ...tagProps } = getTagProps({ index });
+                const id =
+                  userProperties.type === CompletionStatus.Successful
+                    ? userProperties.value.find((up) => up.name === option)?.id
+                    : undefined;
+
+                if (!id) {
+                  return null;
+                }
+                return (
+                  <Chip
+                    clickable
+                    component={Link}
+                    href={`/user-properties/${id}`}
+                    label={option}
+                    key={key}
+                    {...tagProps}
+                  />
+                );
+              })
+            }
+            onChange={(_event, value) => {
+              setDraft((defn) => {
+                if (defn.type !== ChannelType.Email) {
+                  return defn;
+                }
+                defn.attachmentUserProperties = value;
+                return defn;
+              });
+            }}
+            options={options}
+            disabled={disabled}
+            multiple
+            renderInput={(params) => (
+              <TextField {...params} label="Attachments" variant="outlined" />
+            )}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 const draftToPreview: DraftToPreview = (definition) => {
@@ -86,6 +179,7 @@ export default function EmailEditor({
       disabled={disabled}
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
+      renderEditorOptions={(params) => <EmailOptions {...params} />}
       renderEditorHeader={({ draft, setDraft }) => {
         if (draft.type !== ChannelType.Email) {
           return null;

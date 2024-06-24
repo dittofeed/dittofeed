@@ -2,6 +2,10 @@ import { randomUUID } from "crypto";
 
 import prisma from "./prisma";
 import {
+  AppFileType,
+  BlobStorageFile,
+  FileUserPropertyDefinition,
+  InternalEventType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   Workspace,
@@ -85,6 +89,87 @@ describe("findAllUserPropertyAssignments", () => {
       expect(actualAssignments).toEqual({
         [`test-${upId1}`]: "value3",
         [`test-${upId2}`]: "value2",
+        id: "userId",
+      });
+    });
+  });
+
+  describe("with a file user property", () => {
+    let upId1: string;
+    let definition: FileUserPropertyDefinition;
+    let value: Omit<BlobStorageFile, "name">;
+
+    beforeEach(async () => {
+      upId1 = randomUUID();
+
+      definition = {
+        type: UserPropertyDefinitionType.File,
+        name: "myFile.pdf",
+      };
+
+      await prisma().userProperty.create({
+        data: {
+          id: upId1,
+          workspaceId: workspace.id,
+          name: `test-${upId1}`,
+          definition,
+        },
+      });
+
+      value = {
+        type: AppFileType.BlobStorage,
+        key: "/path/to/myFile.pdf",
+        mimeType: "application/pdf",
+      } satisfies Omit<BlobStorageFile, "name">;
+    });
+    describe("when passing context", () => {
+      it("should use the name of the user property", async () => {
+        const actualAssignments = await findAllUserPropertyAssignments({
+          userId: "userId",
+          workspaceId: workspace.id,
+          context: {
+            [InternalEventType.AttachedFiles]: {
+              [definition.name]: {
+                ...value,
+              },
+            },
+          },
+        });
+
+        expect(actualAssignments).toEqual({
+          [`test-${upId1}`]: {
+            ...value,
+            name: "myFile.pdf",
+          },
+          id: "userId",
+        });
+      });
+    });
+
+    describe("when loading from a user property", () => {
+      it("should return the user property assignment", async () => {
+        const assignments: UserPropertyBulkUpsertItem[] = [
+          {
+            workspaceId: workspace.id,
+            userId: "userId",
+            userPropertyId: upId1,
+            value: JSON.stringify(value),
+          },
+        ];
+        await upsertBulkUserPropertyAssignments({ data: assignments });
+
+        const actualAssignments = await findAllUserPropertyAssignments({
+          userId: "userId",
+          workspaceId: workspace.id,
+        });
+
+        expect(actualAssignments).toEqual({
+          [`test-${upId1}`]: {
+            ...value,
+            name: "myFile.pdf",
+          },
+          id: "userId",
+        });
       });
     });
   });
@@ -142,6 +227,7 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments1).toEqual({
         [`test-${upId1}`]: 1,
+        id: "userId",
       });
 
       const actualAssignments2 = await findAllUserPropertyAssignments({
@@ -154,6 +240,7 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments2).toEqual({
         [`test-${upId1}`]: 2,
+        id: "userId",
       });
     });
   });

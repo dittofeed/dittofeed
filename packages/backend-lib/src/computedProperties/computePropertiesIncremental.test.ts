@@ -6,6 +6,7 @@ import { utcToZonedTime } from "date-fns-tz";
 import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { omit } from "remeda";
 
 import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
@@ -18,6 +19,7 @@ import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  AppFileType,
   ComputedPropertyAssignment,
   ComputedPropertyStep,
   EventType,
@@ -2716,6 +2718,54 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "with a file user property",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.File,
+            name: "receipt.pdf",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "order_confirmation",
+              files: [
+                {
+                  name: "receipt.pdf",
+                  mimeType: "application/pdf",
+                  type: AppFileType.Base64Encoded,
+                  data: "mockBase64Data",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "My Enterprise Package",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description:
         "with a performed user property that has additional property conditions",
       userProperties: [
@@ -3862,7 +3912,9 @@ describe("computeProperties", () => {
                       workspaceId,
                     }).then((up) =>
                       expect(
-                        up,
+                        // only check the user id if it's explicitly asserted
+                        // upon, for convenience
+                        user.properties?.id ? up : omit(up, ["id"]),
                         `${
                           step.description ? `${step.description}: ` : ""
                         }user properties for: ${user.id}`,

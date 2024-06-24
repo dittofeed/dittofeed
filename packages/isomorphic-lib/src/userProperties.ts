@@ -5,17 +5,26 @@ import {
   schemaValidateWithErr,
 } from "./resultHandling/schemaValidation";
 import {
+  FileUserPropertyDefinition,
+  InternalEventType,
   JSONValue,
   PerformedManyValueItem,
+  PerformedUserPropertyDefinition,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "./types";
 
 function processUserProperty(
   definition: UserPropertyDefinition,
-  value: JSONValue
+  value: JSONValue,
 ): Result<JSONValue, Error> {
   switch (definition.type) {
+    case UserPropertyDefinitionType.File: {
+      if (typeof value !== "object") {
+        return err(new Error("file user property value is not an object"));
+      }
+      return ok({ ...value, name: definition.name });
+    }
     case UserPropertyDefinitionType.PerformedMany: {
       let parsedValue: JSONValue;
       // deprecated format for performedmany events
@@ -32,7 +41,7 @@ function processUserProperty(
 
       if (!(parsedValue instanceof Array)) {
         return err(
-          new Error("performed many json parsed value is not an array")
+          new Error("performed many json parsed value is not an array"),
         );
       }
 
@@ -50,7 +59,7 @@ function processUserProperty(
             ...result.value,
             properties: parsedProperties.value,
           };
-        })
+        }),
       );
     }
   }
@@ -59,7 +68,7 @@ function processUserProperty(
 
 export function parseUserProperty(
   definition: UserPropertyDefinition,
-  value: string
+  value: string,
 ): Result<JSONValue, Error> {
   const parsed = jsonParseSafe(value);
   if (parsed.isErr()) {
@@ -70,4 +79,24 @@ export function parseUserProperty(
     return err(processed.error);
   }
   return ok(processed.value);
+}
+
+export function fileUserPropertyToPerformed({
+  userProperty,
+  toPath,
+}: {
+  userProperty: FileUserPropertyDefinition;
+  toPath: (path: string) => string | null;
+}): PerformedUserPropertyDefinition | null {
+  const unModifiedPath = `$.${InternalEventType.AttachedFiles}["${userProperty.name}"]`;
+  const path = toPath(unModifiedPath);
+  if (!path) {
+    return null;
+  }
+  return {
+    type: UserPropertyDefinitionType.Performed,
+    id: userProperty.id,
+    event: "*",
+    path,
+  };
 }

@@ -13,6 +13,7 @@ import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 import { Overwrite } from "utility-types";
 
+import { getObject, storage } from "./blobStorage";
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
@@ -20,7 +21,10 @@ import {
   sendMail as sendMailResend,
 } from "./destinations/resend";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
-import { sendMail as sendMailSmtp } from "./destinations/smtp";
+import {
+  SendSmtpMailParams,
+  sendMail as sendMailSmtp,
+} from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -37,6 +41,7 @@ import {
   type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
+  BlobStorageFile,
   ChannelType,
   EmailProvider,
   EmailProviderSecret,
@@ -367,6 +372,12 @@ type TemplateDictionary<T> = {
   };
 };
 
+interface Attachment {
+  mimeType: string;
+  data: string;
+  name: string;
+}
+
 function renderValues<T extends TemplateDictionary<T>>({
   templates,
   ...rest
@@ -437,6 +448,16 @@ async function getSmsProvider({
     },
   });
   return defaultProvider?.smsProvider ?? null;
+}
+
+function getMessageFileId({
+  messageId,
+  name,
+}: {
+  messageId: string;
+  name: string;
+}): string {
+  return `${messageId}-${name}`;
 }
 
 async function getEmailProvider({
@@ -644,6 +665,40 @@ export async function sendEmail({
     });
   }
   const secretConfig = secretConfigResult.value;
+  let attachments: Attachment[] | undefined;
+  if (
+    messageTemplateDefinition.attachmentUserProperties?.length &&
+    messageTags
+  ) {
+    const s = storage();
+
+    const attachmentPromises =
+      messageTemplateDefinition.attachmentUserProperties.map(
+        async (attachmentProperty) => {
+          const assignment = userPropertyAssignments[attachmentProperty];
+          const file = schemaValidateWithErr(assignment, BlobStorageFile);
+          if (file.isErr()) {
+            return [];
+          }
+
+          const { name, key, mimeType } = file.value;
+          const object = await getObject(s, {
+            key,
+          });
+          if (!object) {
+            return [];
+          }
+          const attachment: Attachment = {
+            mimeType,
+            data: object.text,
+            name,
+          };
+          return attachment;
+        },
+      );
+
+    attachments = (await Promise.all(attachmentPromises)).flat();
+  }
 
   switch (emailProvider.type) {
     case EmailProviderType.Smtp: {
@@ -676,6 +731,14 @@ export async function sendEmail({
           },
         });
       }
+      const smtpAttachments: SendSmtpMailParams["attachments"] =
+        messageTags &&
+        attachments?.map((attachment) => ({
+          content: attachment.data,
+          filename: attachment.name,
+          contentType: attachment.mimeType,
+        }));
+
       const result = await sendMailSmtp({
         ...secretConfig,
         from,
@@ -686,6 +749,7 @@ export async function sendEmail({
         host,
         port: numPort,
         headers: unsubscribeHeaders,
+        attachments: smtpAttachments,
       });
       if (result.isErr()) {
         return err({
@@ -724,6 +788,17 @@ export async function sendEmail({
           },
         });
       }
+      const sendgridAttachments: MailDataRequired["attachments"] =
+        messageTags &&
+        attachments?.map((attachment) => ({
+          content: attachment.data,
+          type: attachment.mimeType,
+          filename: attachment.name,
+          contentId: getMessageFileId({
+            messageId: messageTags.messageId,
+            name: attachment.name,
+          }),
+        }));
       const mailData: MailDataRequired = {
         to,
         from,
@@ -731,6 +806,7 @@ export async function sendEmail({
         html: body,
         replyTo,
         headers: unsubscribeHeaders,
+        attachments: sendgridAttachments,
         customArgs: {
           workspaceId,
           templateId,
@@ -873,6 +949,11 @@ export async function sendEmail({
         });
       }
 
+      const resendAttachments: ResendRequiredData["attachments"] =
+        attachments?.map((attachment) => ({
+          filename: attachment.name,
+          content: attachment.data,
+        }));
       const mailData: ResendRequiredData = {
         to,
         from,
@@ -886,6 +967,7 @@ export async function sendEmail({
               value,
             }))
           : [],
+        attachments: resendAttachments,
       };
 
       if (!secretConfig.apiKey) {
@@ -944,12 +1026,25 @@ export async function sendEmail({
         });
       }
 
+      const postmarkAttachments: PostMarkRequiredFields["Attachments"] =
+        messageTags
+          ? attachments?.map(({ mimeType, data, name }) => ({
+              Name: name,
+              ContentType: mimeType,
+              Content: data,
+              ContentID: getMessageFileId({
+                messageId: messageTags.messageId,
+                name,
+              }),
+            }))
+          : [];
       const mailData: PostMarkRequiredFields = {
         To: to,
         From: from,
         Subject: subject,
         HtmlBody: body,
         ReplyTo: replyTo,
+        Attachments: postmarkAttachments,
         Headers: unsubscribeHeaders
           ? Object.entries(unsubscribeHeaders).map(([name, value]) => ({
               Name: name,

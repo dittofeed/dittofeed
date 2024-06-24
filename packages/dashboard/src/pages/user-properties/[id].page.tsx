@@ -22,6 +22,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   AnyOfUserPropertyDefinition,
   CompletionStatus,
+  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   PerformedUserPropertyDefinition,
@@ -82,6 +83,12 @@ const performedOption = {
   label: "Performed",
 };
 
+const fileOption = {
+  id: UserPropertyDefinitionType.File,
+  group: "Track Events",
+  label: "File",
+};
+
 const anyOfOption = {
   id: UserPropertyDefinitionType.AnyOf,
   group: "Group",
@@ -91,16 +98,18 @@ const anyOfOption = {
 type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
 
 const userPropertyOptions: UserPropertyGroupedOption[] = [
-  performedOption,
   traitOption,
+  performedOption,
+  fileOption,
   anyOfOption,
   idOption,
   anonymousIdOption,
 ];
 
 const groupedUserPropertyOptions: UserPropertyGroupedOption[] = [
-  performedOption,
   traitOption,
+  performedOption,
+  fileOption,
 ];
 
 function getUserPropertyOption(
@@ -123,6 +132,8 @@ function getUserPropertyOption(
       return anyOfOption;
     case UserPropertyDefinitionType.Group:
       return anyOfOption;
+    case UserPropertyDefinitionType.File:
+      return fileOption;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }
@@ -173,6 +184,12 @@ function defaultUserProperty(
         entry: "any-of-1",
       };
     }
+    case UserPropertyDefinitionType.File:
+      return {
+        id,
+        type: UserPropertyDefinitionType.File,
+        name: "my_file_name.pdf",
+      };
     case UserPropertyDefinitionType.Group: {
       throw new Error("Not implemented");
     }
@@ -241,6 +258,46 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     };
   });
+
+function FileUserPropertyDefinitionEditor(
+  definition: FileUserPropertyDefinition,
+) {
+  const { updateUserPropertyDefinition } = useAppStorePick([
+    "updateUserPropertyDefinition",
+  ]);
+
+  const { id, name: fileName } = definition;
+  const handleChange = (name: string) => {
+    updateUserPropertyDefinition((current) => {
+      let d: FileUserPropertyDefinition | null = null;
+      if (current.type === UserPropertyDefinitionType.File) {
+        d = current;
+      } else if (current.type === UserPropertyDefinitionType.Group && id) {
+        for (const node of current.nodes) {
+          if (node.id === id && node.type === UserPropertyDefinitionType.File) {
+            d = node;
+            break;
+          }
+        }
+      }
+
+      if (!d) {
+        return current;
+      }
+      d.name = name;
+      return current;
+    });
+  };
+  return (
+    <TextField
+      label="File Name"
+      value={fileName}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        handleChange(e.target.value)
+      }
+    />
+  );
+}
 
 function TraitUserPropertyDefinitionEditor({
   definition,
@@ -363,7 +420,7 @@ function PerformedUserPropertyDefinitionEditor({
         return current;
       });
     },
-    [updateUserPropertyDefinition],
+    [updateUserPropertyDefinition, definition.id],
   );
 
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
@@ -485,7 +542,9 @@ function PerformedUserPropertyDefinitionEditor({
           Property
         </Button>
       </Stack>
-      {propertyRows ? <SubtleHeader>Properties</SubtleHeader> : null}
+      {propertyRows && definition.properties?.length ? (
+        <SubtleHeader>Properties</SubtleHeader>
+      ) : null}
       {propertyRows}
     </Stack>
   );
@@ -665,6 +724,9 @@ function DefinitionComponent({
       );
       break;
     }
+    case UserPropertyDefinitionType.File:
+      up = <FileUserPropertyDefinitionEditor {...definition} />;
+      break;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
   }

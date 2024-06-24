@@ -41,10 +41,10 @@ export async function submitBatch({
     }),
   };
 
-  const userEvents = buildBatchUserEvents(batchAppData).map((e, i) => {
+  const userEvents = (await buildBatchUserEvents(batchAppData)).map((e, i) => {
     const testEvent = data[i]!;
     const processingTime = new Date(
-      (testEvent.processingOffsetMs ?? testEvent.offsetMs) + now
+      (testEvent.processingOffsetMs ?? testEvent.offsetMs) + now,
     ).toISOString();
 
     return {
@@ -58,7 +58,7 @@ export async function submitBatch({
       workspaceId,
       userEvents,
     },
-    "inserting user events"
+    "inserting user events",
   );
   await insertUserEvents({
     workspaceId,

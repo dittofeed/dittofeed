@@ -1,9 +1,10 @@
 /* eslint-disable no-await-in-loop */
 
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import jsonPath from "jsonpath";
+import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -33,6 +34,7 @@ import {
   ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
+  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   HasStartedJourneyResource,
@@ -42,6 +44,7 @@ import {
   ManualSegmentNode,
   NodeEnvEnum,
   PerformedSegmentNode,
+  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedIntegrationResource,
@@ -1064,32 +1067,43 @@ function resolvedSegmentToAssignment({
   }
 }
 
-function toJsonPathParam({
+function toJsonPathParamCh({
   path,
   qb,
 }: {
   path: string;
   qb: ClickHouseQueryBuilder;
 }): string | null {
-  let unvalidated: string;
-  if (path.startsWith("$")) {
-    unvalidated = path;
-  } else {
-    unvalidated = `$.${path}`;
-  }
-  try {
-    jsonPath.parse(unvalidated);
-  } catch (e) {
-    logger().debug(
+  const normalizedPath = toJsonPathParam({ path });
+  if (normalizedPath.isErr()) {
+    logger().info(
       {
-        unvalidated,
-        err: e,
+        path,
+        err: normalizedPath.error,
       },
       "invalid json path in node path",
     );
     return null;
   }
-  return qb.addQueryValue(unvalidated, "String");
+
+  return qb.addQueryValue(normalizedPath.value, "String");
+}
+
+function fileUserPropertyToPerformed({
+  userProperty,
+  qb,
+}: {
+  userProperty: FileUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PerformedUserPropertyDefinition | null {
+  return fuptp({
+    userProperty,
+    toPath: (path) =>
+      toJsonPathParamCh({
+        path,
+        qb,
+      }),
+  });
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
@@ -1114,7 +1128,7 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: node.path,
         qb,
       });
@@ -1169,7 +1183,7 @@ export function segmentNodeToStateSubQuery({
         const operatorType = property.operator.type;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            const path = toJsonPathParam({
+            const path = toJsonPathParamCh({
               path: property.path,
               qb,
             });
@@ -1272,7 +1286,7 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const whereConditions = node.whereProperties?.map((property) => {
         const operatorType = property.operator.type;
-        const path = toJsonPathParam({
+        const path = toJsonPathParamCh({
           path: property.path,
           qb,
         });
@@ -1303,7 +1317,7 @@ export function segmentNodeToStateSubQuery({
         ? `and (${whereConditions.join(" and ")})`
         : "";
       const propertyValues = node.hasProperties.flatMap((property) => {
-        const path = toJsonPathParam({
+        const path = toJsonPathParamCh({
           path: property.path,
           qb,
         });
@@ -1386,7 +1400,7 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: child.path,
         qb,
       });
@@ -1407,7 +1421,7 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = toJsonPathParam({
+      const path = toJsonPathParamCh({
         path: child.path,
         qb,
       });
@@ -1421,7 +1435,7 @@ function leafUserPropertyToSubQuery({
           .flatMap((property) => {
             switch (property.operator.type) {
               case UserPropertyOperatorType.Equals: {
-                const propertyPath = toJsonPathParam({
+                const propertyPath = toJsonPathParamCh({
                   path: property.path,
                   qb,
                 });
@@ -1457,6 +1471,24 @@ function leafUserPropertyToSubQuery({
         computedPropertyId: userProperty.id,
         stateId,
       };
+    }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: child,
+        qb,
+      });
+      if (!performedDefinition) {
+        return null;
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return leafUserPropertyToSubQuery({
+        userProperty: fileUserProperty,
+        child: performedDefinition,
+        qb,
+      });
     }
   }
 }
@@ -1514,6 +1546,17 @@ function groupedUserPropertyToSubQuery({
         qb,
       });
 
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
+    }
+    case UserPropertyDefinitionType.File: {
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
       if (!subQuery) {
         return [];
       }
@@ -1612,6 +1655,17 @@ function userPropertyToSubQuery({
           stateId,
         },
       ];
+    }
+    case UserPropertyDefinitionType.File: {
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
   }
 }
@@ -1874,7 +1928,7 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): StandardUserPropertyAssignmentConfig {
+}): StandardUserPropertyAssignmentConfig | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
@@ -1891,6 +1945,24 @@ function leafUserPropertyToAssignment({
         type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
+    }
+    case UserPropertyDefinitionType.File: {
+      const performedDefinition = fileUserPropertyToPerformed({
+        userProperty: child,
+        qb,
+      });
+      if (!performedDefinition) {
+        return null;
+      }
+      const fileUserProperty: SavedUserPropertyResource = {
+        ...userProperty,
+        definition: performedDefinition,
+      };
+      return leafUserPropertyToAssignment({
+        userProperty: fileUserProperty,
+        child: performedDefinition,
+        qb,
+      });
     }
   }
 }
@@ -1964,6 +2036,13 @@ function groupedUserPropertyToAssignment({
         qb,
       });
     }
+    case UserPropertyDefinitionType.File: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: node,
+        qb,
+      });
+    }
   }
 }
 
@@ -2028,6 +2107,13 @@ function userPropertyToAssignment({
       };
     }
     case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.File: {
       return leafUserPropertyToAssignment({
         userProperty,
         child: userProperty.definition,

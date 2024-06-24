@@ -1,7 +1,11 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { parseUserProperty as parseUserPropertyAssignment } from "isomorphic-lib/src/userProperties";
+import {
+  fileUserPropertyToPerformed,
+  parseUserProperty as parseUserPropertyAssignment,
+} from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
@@ -11,6 +15,7 @@ import {
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
+  PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
@@ -214,15 +219,44 @@ export async function upsertBulkUserPropertyAssignments({
   }
 }
 
+interface UserPropertyAssignmentOverrideProps {
+  userPropertyId: string;
+  definition: UserPropertyDefinition;
+  context: Record<string, JSONValue>;
+}
+
+function getPerformedAssignmentOverride({
+  userPropertyId,
+  node,
+  context,
+}: UserPropertyAssignmentOverrideProps & {
+  node: PerformedUserPropertyDefinition;
+}): JSONValue | null {
+  const path = toJsonPathParam({ path: node.path }).unwrapOr(null);
+  let value: JSONValue | null = null;
+  if (path) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      value = jp.query(context, path)[0] ?? null;
+    } catch (e) {
+      logger().info(
+        {
+          userPropertyId,
+          err: e,
+        },
+        "failed to query context for user property assignment override",
+      );
+      value = null;
+    }
+  }
+  return value;
+}
+
 function getAssignmentOverride({
   userPropertyId,
   definition,
   context,
-}: {
-  userPropertyId: string;
-  definition: UserPropertyDefinition;
-  context: Record<string, JSONValue>;
-}): JSONValue | null {
+}: UserPropertyAssignmentOverrideProps): JSONValue | null {
   const nodes: UserPropertyDefinition[] = [definition];
   while (nodes.length) {
     const node = nodes.shift();
@@ -230,24 +264,37 @@ function getAssignmentOverride({
       break;
     }
     if (node.type === UserPropertyDefinitionType.Performed) {
-      const path = `$.${node.path}`;
-      let value: JSONValue | null;
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        value = jp.query(context, path)[0] ?? null;
-      } catch (e) {
-        logger().info(
-          {
-            userPropertyId,
-            err: e,
-          },
-          "failed to query context for user property assignment override",
-        );
-        value = null;
-      }
+      const value = getPerformedAssignmentOverride({
+        userPropertyId,
+        node,
+        definition,
+        context,
+      });
 
       if (value !== null) {
         return value;
+      }
+    } else if (node.type === UserPropertyDefinitionType.File) {
+      const performed = fileUserPropertyToPerformed({
+        userProperty: node,
+        toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),
+      });
+      if (!performed) {
+        continue;
+      }
+      const value = getPerformedAssignmentOverride({
+        userPropertyId,
+        node: performed,
+        definition,
+        context,
+      });
+
+      if (value !== null && value instanceof Object) {
+        const withName = {
+          ...value,
+          name: node.name,
+        };
+        return withName;
       }
     } else if (node.type === UserPropertyDefinitionType.Group) {
       const groupNodesById: Map<string, GroupChildrenUserPropertyDefinitions> =
@@ -351,14 +398,16 @@ export async function findAllUserPropertyAssignments({
       }
     }
   }
-  logger().debug(
+  logger().info(
     {
       userId,
-      userProperties,
+      // userProperties,
+      context,
       combinedAssignments,
     },
     "findAllUserPropertyAssignments",
   );
 
+  combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;
 }

@@ -89,6 +89,12 @@ const BaseRawConfigProps = {
   openIdClientId: Type.Optional(Type.String()),
   openIdClientSecret: Type.Optional(Type.String()),
   allowedOrigins: Type.Optional(Type.String()),
+  blobStorageEndpoint: Type.Optional(Type.String()),
+  blobStorageAccessKeyId: Type.Optional(Type.String()),
+  blobStorageSecretAccessKey: Type.Optional(Type.String()),
+  blobStorageBucket: Type.Optional(Type.String()),
+  enableBlobStorage: Type.Optional(BoolStr),
+  blobStorageRegion: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -189,6 +195,12 @@ export type Config = Overwrite<
     sessionCookieSecure: boolean;
     signoutRedirectUrl: string;
     allowedOrigins: string[];
+    enableBlobStorage: boolean;
+    blobStorageEndpoint: string;
+    blobStorageAccessKeyId: string;
+    blobStorageSecretAccessKey: string;
+    blobStorageBucket: string;
+    blobStorageRegion: string;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -415,7 +427,16 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : 150,
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
+    enableBlobStorage: rawConfig.enableBlobStorage === "true",
+    blobStorageEndpoint:
+      rawConfig.blobStorageEndpoint ?? "http://localhost:9010",
+    blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
+    blobStorageSecretAccessKey:
+      rawConfig.blobStorageSecretAccessKey ?? "password",
+    blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
+    blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
   };
+
   return parsedConfig;
 }
 

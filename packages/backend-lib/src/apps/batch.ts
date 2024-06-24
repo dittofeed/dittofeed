@@ -23,7 +23,9 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
     } else {
       rest = R.omit(message, ["timestamp", "properties"]);
       timestamp = message.timestamp ?? new Date().toISOString();
-      messageRaw.properties = message.properties ?? {};
+
+      const properties = message.properties ?? {};
+      messageRaw.properties = properties;
     }
 
     Object.assign(

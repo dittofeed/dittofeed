@@ -5,6 +5,7 @@ import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
 import { createWriteKey } from "./auth";
+import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
@@ -321,6 +322,12 @@ export default async function bootstrap({
 
   if (config().bootstrapEvents) {
     await insertDefaultEvents({ workspaceId });
+  }
+
+  if (config().enableBlobStorage) {
+    await createBucket(storage(), {
+      bucketName: config().blobStorageBucket,
+    });
   }
 
   if (config().bootstrapWorker) {

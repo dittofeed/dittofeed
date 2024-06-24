@@ -63,6 +63,7 @@ export enum InternalEventType {
   SmsFailed = "DFSmsFailed",
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
   ManualSegmentUpdate = "DFManualSegmentUpdate",
+  AttachedFiles = "DFAttachedFiles",
 }
 
 export enum SubscriptionGroupType {
@@ -357,6 +358,7 @@ export enum UserPropertyDefinitionType {
   Group = "Group",
   AnyOf = "AnyOf",
   PerformedMany = "PerformedMany",
+  File = "File",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -427,6 +429,16 @@ export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
 >;
 
+export const FileUserPropertyDefinition = Type.Object({
+  id: Type.Optional(Type.String()),
+  type: Type.Literal(UserPropertyDefinitionType.File),
+  name: Type.String(),
+});
+
+export type FileUserPropertyDefinition = Static<
+  typeof FileUserPropertyDefinition
+>;
+
 export const UserPropertyAssignments = Type.Record(Type.String(), Type.Any());
 
 export type UserPropertyAssignments = Static<typeof UserPropertyAssignments>;
@@ -474,6 +486,7 @@ export type GroupParentUserPropertyDefinitions = Static<
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
+  FileUserPropertyDefinition,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
@@ -963,6 +976,12 @@ export const EmailContents = Type.Object({
   body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
+  attachmentUserProperties: Type.Optional(
+    Type.Array(Type.String(), {
+      description:
+        "Names of user properties to attach to the email as attachments.",
+    }),
+  ),
 });
 
 export const EmailTemplateResource = Type.Composite([
@@ -1977,6 +1996,48 @@ export type DeleteSubscriptionGroupRequest = Static<
   typeof DeleteSubscriptionGroupRequest
 >;
 
+export enum AppFileType {
+  Base64Encoded = "Base64Encoded",
+  BlobStorage = "BlobStorage",
+}
+
+export const Base64EncodedFile = Type.Object(
+  {
+    type: Type.Literal(AppFileType.Base64Encoded),
+    name: Type.String(),
+    mimeType: Type.String(),
+    data: Type.String(),
+  },
+  {
+    description:
+      "Base64 encoded file. Converted to a BlobStorage file before persisted.",
+  },
+);
+
+export type Base64EncodedFile = Static<typeof Base64EncodedFile>;
+
+export const BlobStorageFile = Type.Object(
+  {
+    type: Type.Literal(AppFileType.BlobStorage),
+    key: Type.String(),
+    name: Type.String(),
+    mimeType: Type.String(),
+  },
+  {
+    description: "File stored in blob storage. Should only be used internally.",
+  },
+);
+
+export type BlobStorageFile = Static<typeof BlobStorageFile>;
+
+export const AppDataFile = Type.Union([Base64EncodedFile], {
+  description: "File associated with user event.",
+});
+
+export const AppDataFiles = Type.Optional(Type.Array(AppDataFile));
+
+export type AppDataFiles = Static<typeof AppDataFiles>;
+
 export const AppDataContext = Type.Optional(
   Type.Record(Type.String(), Type.Any(), {
     description:
@@ -2083,6 +2144,7 @@ export type TrackEventProperties = Static<typeof TrackEventProperties>;
 
 export const BaseTrackData = {
   ...BaseAppData,
+  files: AppDataFiles,
   context: AppDataContext,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
