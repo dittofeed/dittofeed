@@ -18,8 +18,13 @@ function processUserProperty(
   definition: UserPropertyDefinition,
   value: JSONValue,
 ): Result<JSONValue, Error> {
-  console.log("processUserProperty loc5 definition", definition);
   switch (definition.type) {
+    case UserPropertyDefinitionType.File: {
+      if (typeof value !== "object") {
+        return err(new Error("file user property value is not an object"));
+      }
+      return ok({ ...value, name: definition.name });
+    }
     case UserPropertyDefinitionType.PerformedMany: {
       let parsedValue: JSONValue;
       // deprecated format for performedmany events
@@ -69,6 +74,8 @@ export function parseUserProperty(
   if (parsed.isErr()) {
     return ok(value);
   }
+  console.log("loc9 value", value);
+  console.log("loc9.1 parsed", parsed.value);
   const processed = processUserProperty(definition, parsed.value);
   if (processed.isErr()) {
     return err(processed.error);

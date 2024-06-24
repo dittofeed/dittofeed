@@ -95,46 +95,35 @@ describe("findAllUserPropertyAssignments", () => {
   });
 
   describe("with a file user property", () => {
+    let upId1: string;
+    let definition: FileUserPropertyDefinition;
+    let value: Omit<BlobStorageFile, "name">;
+
+    beforeEach(async () => {
+      upId1 = randomUUID();
+
+      definition = {
+        type: UserPropertyDefinitionType.File,
+        name: "myFile.pdf",
+      };
+
+      await prisma().userProperty.create({
+        data: {
+          id: upId1,
+          workspaceId: workspace.id,
+          name: `test-${upId1}`,
+          definition,
+        },
+      });
+
+      value = {
+        type: AppFileType.BlobStorage,
+        key: "/path/to/myFile.pdf",
+        mimeType: "application/pdf",
+      } satisfies Omit<BlobStorageFile, "name">;
+    });
     describe("when passing context", () => {
-      it.only("should use the name of the user property", async () => {
-        const upId1 = randomUUID();
-
-        const definition: FileUserPropertyDefinition = {
-          type: UserPropertyDefinitionType.File,
-          name: "myFile.pdf",
-        };
-
-        await prisma().userProperty.create({
-          data: {
-            id: upId1,
-            workspaceId: workspace.id,
-            name: `test-${upId1}`,
-            definition,
-          },
-        });
-
-        // const assignmentValue = {
-        //   type: AppFileType.BlobStorage,
-        //   key: "/path/to/myFile.pdf",
-        //   mimeType: "application/pdf",
-        // } satisfies Omit<BlobStorageFile, "name">;
-
-        // const assignments: UserPropertyBulkUpsertItem[] = [
-        //   {
-        //     workspaceId: workspace.id,
-        //     userId: "userId",
-        //     userPropertyId: upId1,
-        //     value: JSON.stringify(assignmentValue),
-        //   },
-        // ];
-        // await upsertBulkUserPropertyAssignments({ data: assignments });
-
-        const value = {
-          type: AppFileType.BlobStorage,
-          key: "/path/to/myFile.pdf",
-          mimeType: "application/pdf",
-        } satisfies Omit<BlobStorageFile, "name">;
-
+      it("should use the name of the user property", async () => {
         const actualAssignments = await findAllUserPropertyAssignments({
           userId: "userId",
           workspaceId: workspace.id,
@@ -145,6 +134,38 @@ describe("findAllUserPropertyAssignments", () => {
               },
             },
           },
+        });
+
+        expect(actualAssignments).toEqual({
+          [`test-${upId1}`]: {
+            ...value,
+            name: "myFile.pdf",
+          },
+          id: "userId",
+        });
+      });
+    });
+
+    describe.only("when loading from a user property", () => {
+      it("should return the user property assignment", async () => {
+        // const assignmentValue = {
+        //   type: AppFileType.BlobStorage,
+        //   key: "/path/to/myFile.pdf",
+        //   mimeType: "application/pdf",
+        // } satisfies Omit<BlobStorageFile, "name">;
+        const assignments: UserPropertyBulkUpsertItem[] = [
+          {
+            workspaceId: workspace.id,
+            userId: "userId",
+            userPropertyId: upId1,
+            value: JSON.stringify(value),
+          },
+        ];
+        await upsertBulkUserPropertyAssignments({ data: assignments });
+
+        const actualAssignments = await findAllUserPropertyAssignments({
+          userId: "userId",
+          workspaceId: workspace.id,
         });
 
         expect(actualAssignments).toEqual({
