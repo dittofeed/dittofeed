@@ -9,6 +9,7 @@ import {
   MessageSmtpFailure,
   SmtpSecret,
 } from "../types";
+import Mail from "nodemailer/lib/mailer";
 
 export type SendSmtpMailParams = Overwrite<
   SmtpSecret,
@@ -17,7 +18,9 @@ export type SendSmtpMailParams = Overwrite<
     port?: number;
   }
 > &
-  EmailConfiguration;
+  EmailConfiguration & {
+    attachments?: Mail.Attachment[];
+  };
 
 export async function sendMail({
   host,
@@ -28,6 +31,7 @@ export async function sendMail({
   to,
   subject,
   body,
+  attachments,
   replyTo,
   headers,
 }: SendSmtpMailParams): Promise<Result<EmailSmtpSuccess, MessageSmtpFailure>> {
@@ -50,6 +54,7 @@ export async function sendMail({
       html: body,
       replyTo,
       headers,
+      attachments,
     });
 
     return ok({

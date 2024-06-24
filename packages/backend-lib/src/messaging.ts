@@ -21,7 +21,10 @@ import {
   sendMail as sendMailResend,
 } from "./destinations/resend";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
-import { sendMail as sendMailSmtp } from "./destinations/smtp";
+import {
+  SendSmtpMailParams,
+  sendMail as sendMailSmtp,
+} from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -728,6 +731,14 @@ export async function sendEmail({
           },
         });
       }
+      const smtpAttachments: SendSmtpMailParams["attachments"] =
+        messageTags &&
+        attachments?.map((attachment) => ({
+          content: attachment.data,
+          filename: attachment.name,
+          contentType: attachment.mimeType,
+        }));
+
       const result = await sendMailSmtp({
         ...secretConfig,
         from,
@@ -738,6 +749,7 @@ export async function sendEmail({
         host,
         port: numPort,
         headers: unsubscribeHeaders,
+        attachments: smtpAttachments,
       });
       if (result.isErr()) {
         return err({
