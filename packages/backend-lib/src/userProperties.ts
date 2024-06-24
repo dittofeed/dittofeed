@@ -398,15 +398,6 @@ export async function findAllUserPropertyAssignments({
       }
     }
   }
-  logger().info(
-    {
-      userId,
-      // userProperties,
-      context,
-      combinedAssignments,
-    },
-    "findAllUserPropertyAssignments",
-  );
 
   combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;

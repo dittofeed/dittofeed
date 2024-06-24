@@ -41,7 +41,7 @@ export async function submitBatch({
     }),
   };
 
-  const userEvents = (await buildBatchUserEvents(batchAppData)).map((e, i) => {
+  const userEvents = buildBatchUserEvents(batchAppData).map((e, i) => {
     const testEvent = data[i]!;
     const processingTime = new Date(
       (testEvent.processingOffsetMs ?? testEvent.offsetMs) + now,
