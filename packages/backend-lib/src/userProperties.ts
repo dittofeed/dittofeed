@@ -370,7 +370,6 @@ export async function findAllUserPropertyAssignments({
       userProperty.definition,
       UserPropertyDefinition,
     );
-    console.log("loc8", userProperty.name);
     if (definitionResult.isErr()) {
       logger().error(
         { err: definitionResult.error, workspaceId, userProperty },

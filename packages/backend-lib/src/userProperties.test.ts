@@ -146,13 +146,8 @@ describe("findAllUserPropertyAssignments", () => {
       });
     });
 
-    describe.only("when loading from a user property", () => {
+    describe("when loading from a user property", () => {
       it("should return the user property assignment", async () => {
-        // const assignmentValue = {
-        //   type: AppFileType.BlobStorage,
-        //   key: "/path/to/myFile.pdf",
-        //   mimeType: "application/pdf",
-        // } satisfies Omit<BlobStorageFile, "name">;
         const assignments: UserPropertyBulkUpsertItem[] = [
           {
             workspaceId: workspace.id,
