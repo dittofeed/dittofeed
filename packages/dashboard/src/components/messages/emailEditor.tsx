@@ -8,9 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  FormControl,
-  InputLabel,
-  Select,
   Stack,
   SxProps,
   TextField,
@@ -26,7 +23,6 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
