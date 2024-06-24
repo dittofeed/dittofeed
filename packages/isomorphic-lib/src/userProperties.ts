@@ -90,9 +90,10 @@ export function fileUserPropertyToPerformed({
   userProperty: FileUserPropertyDefinition;
   toPath: (path: string) => string | null;
 }): PerformedUserPropertyDefinition | null {
-  const path = toPath(
-    `${InternalEventType.AttachedFiles}["${userProperty.name}"]`,
-  );
+  const unModifiedPath = `$.${InternalEventType.AttachedFiles}["${userProperty.name}"]`;
+  console.log("loc10 unModifiedPath", unModifiedPath);
+  const path = toPath(unModifiedPath);
+  console.log("loc11 path", path);
   if (!path) {
     return null;
   }

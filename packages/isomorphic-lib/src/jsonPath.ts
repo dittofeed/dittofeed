@@ -6,6 +6,7 @@ export function toJsonPathParam({
 }: {
   path: string;
 }): Result<string, Error> {
+  console.log("loc12 path", path);
   let unvalidated: string;
   if (path.startsWith("$")) {
     unvalidated = path;
@@ -17,5 +18,6 @@ export function toJsonPathParam({
   } catch (e) {
     return err(e as Error);
   }
+  console.log("loc12.1 unvalidated", unvalidated);
   return ok(unvalidated);
 }

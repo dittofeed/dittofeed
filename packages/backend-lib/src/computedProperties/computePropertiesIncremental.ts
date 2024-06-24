@@ -1074,6 +1074,7 @@ function toJsonPathParamCh({
   path: string;
   qb: ClickHouseQueryBuilder;
 }): string | null {
+  console.log("loc13 path", path);
   const normalizedPath = toJsonPathParam({ path });
   if (normalizedPath.isErr()) {
     logger().info(
@@ -1560,12 +1561,6 @@ function fileUserPropertyToPerformed({
   userProperty: FileUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
 }): PerformedUserPropertyDefinition | null {
-  const path = toJsonPathParamCh({
-    // path: `${InternalEventType.AttachedFiles}[\'${userProperty.name}\']`,
-    // FIXME allow spaces in file name
-    path: `${InternalEventType.AttachedFiles}.${userProperty.name}`,
-    qb,
-  });
   return fuptp({
     userProperty,
     toPath: (path) =>
