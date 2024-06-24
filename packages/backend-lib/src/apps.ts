@@ -1,6 +1,7 @@
 import * as R from "remeda";
 
 import { submitBatch, SubmitBatchOptions } from "./apps/batch";
+import { persistFiles } from "./apps/files";
 import { submitTrack } from "./apps/track";
 import {
   triggerEventEntryJourneys,
@@ -14,7 +15,6 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
-import { persistFiles } from "./apps/files";
 
 export async function submitIdentify({
   workspaceId,

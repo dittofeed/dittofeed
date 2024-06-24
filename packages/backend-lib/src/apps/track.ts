@@ -12,7 +12,7 @@ export async function submitTrack({
   data: TrackData;
 }) {
   const rest = R.omit(data, ["timestamp", "properties"]);
-  let properties = data.properties ?? {};
+  const properties = data.properties ?? {};
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {

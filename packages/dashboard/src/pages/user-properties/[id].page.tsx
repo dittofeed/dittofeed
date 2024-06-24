@@ -34,7 +34,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps, useCallback, useMemo } from "react";
+import React, { ComponentProps, useCallback } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -54,7 +54,6 @@ import {
   PropsWithInitialState,
 } from "../../lib/types";
 import useLoadTraits from "../../lib/useLoadTraits";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 const selectorWidth = "192px";
 
@@ -266,20 +265,16 @@ function FileUserPropertyDefinitionEditor(
   const { updateUserPropertyDefinition } = useAppStorePick([
     "updateUserPropertyDefinition",
   ]);
+
+  const { id, name: fileName } = definition;
   const handleChange = (name: string) => {
     updateUserPropertyDefinition((current) => {
       let d: FileUserPropertyDefinition | null = null;
       if (current.type === UserPropertyDefinitionType.File) {
         d = current;
-      } else if (
-        current.type === UserPropertyDefinitionType.Group &&
-        definition.id
-      ) {
+      } else if (current.type === UserPropertyDefinitionType.Group && id) {
         for (const node of current.nodes) {
-          if (
-            node.id === definition.id &&
-            node.type === UserPropertyDefinitionType.File
-          ) {
+          if (node.id === id && node.type === UserPropertyDefinitionType.File) {
             d = node;
             break;
           }
@@ -296,7 +291,7 @@ function FileUserPropertyDefinitionEditor(
   return (
     <TextField
       label="File Name"
-      value={definition.name}
+      value={fileName}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
         handleChange(e.target.value)
       }
@@ -425,7 +420,7 @@ function PerformedUserPropertyDefinitionEditor({
         return current;
       });
     },
-    [updateUserPropertyDefinition],
+    [updateUserPropertyDefinition, definition.id],
   );
 
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (

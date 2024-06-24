@@ -5,6 +5,7 @@ import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
 import { createWriteKey } from "./auth";
+import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
@@ -30,7 +31,6 @@ import {
 } from "./types";
 import { insertUserEvents } from "./userEvents";
 import { createUserEventsTables } from "./userEvents/clickhouse";
-import { createBucket, storage } from "./blobStorage";
 
 async function bootstrapPostgres({
   workspaceName,

@@ -1,9 +1,10 @@
 import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
   CreateBucketCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
 } from "@aws-sdk/client-s3";
+
 import config from "./config";
 
 export function storage() {

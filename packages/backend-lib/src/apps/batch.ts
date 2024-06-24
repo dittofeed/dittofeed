@@ -2,19 +2,16 @@ import * as R from "remeda";
 
 import { BatchAppData, EventType } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
-import { persistFiles } from "./files";
 
 export interface SubmitBatchOptions {
   workspaceId: string;
   data: BatchAppData;
 }
 
-export async function buildBatchUserEvents(
-  data: BatchAppData,
-): Promise<InsertUserEvent[]> {
+export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
   const { context, batch } = data;
 
-  const promises = batch.map(async (message) => {
+  return batch.map((message) => {
     let rest: Record<string, unknown>;
     let timestamp: string;
     const messageRaw: Record<string, unknown> = { context };
@@ -44,11 +41,10 @@ export async function buildBatchUserEvents(
       messageRaw: JSON.stringify(messageRaw),
     };
   });
-  return Promise.all(promises);
 }
 
 export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
-  const userEvents = await buildBatchUserEvents(data);
+  const userEvents = buildBatchUserEvents(data);
 
   await insertUserEvents({
     workspaceId,

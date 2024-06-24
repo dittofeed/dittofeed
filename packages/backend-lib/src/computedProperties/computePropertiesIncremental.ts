@@ -1,10 +1,10 @@
 /* eslint-disable no-await-in-loop */
 
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
-import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
-import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -1074,7 +1074,6 @@ function toJsonPathParamCh({
   path: string;
   qb: ClickHouseQueryBuilder;
 }): string | null {
-  console.log("loc13 path", path);
   const normalizedPath = toJsonPathParam({ path });
   if (normalizedPath.isErr()) {
     logger().info(
@@ -1087,12 +1086,24 @@ function toJsonPathParamCh({
     return null;
   }
 
-  // path: "'$.DFAttachedFiles.exampleFile'"
-  // err: {
-  //   "type": "Error",
-  //   "message": "Parse error on line 1:\n$.'$.DFAttachedFiles.e...\n--^\nExpecting 'STAR', 'IDENTIFIER', 'SCRIPT_EXPRESSION', 'INTEGER', 'END', got 'Q_STRING'",
-  //   "stack":
   return qb.addQueryValue(normalizedPath.value, "String");
+}
+
+function fileUserPropertyToPerformed({
+  userProperty,
+  qb,
+}: {
+  userProperty: FileUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PerformedUserPropertyDefinition | null {
+  return fuptp({
+    userProperty,
+    toPath: (path) =>
+      toJsonPathParamCh({
+        path,
+        qb,
+      }),
+  });
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
@@ -1552,23 +1563,6 @@ function groupedUserPropertyToSubQuery({
       return [subQuery];
     }
   }
-}
-
-function fileUserPropertyToPerformed({
-  userProperty,
-  qb,
-}: {
-  userProperty: FileUserPropertyDefinition;
-  qb: ClickHouseQueryBuilder;
-}): PerformedUserPropertyDefinition | null {
-  return fuptp({
-    userProperty,
-    toPath: (path) =>
-      toJsonPathParamCh({
-        path,
-        qb,
-      }),
-  });
 }
 
 function userPropertyToSubQuery({

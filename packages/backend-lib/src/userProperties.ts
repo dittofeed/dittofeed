@@ -1,8 +1,11 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
-import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
+import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { parseUserProperty as parseUserPropertyAssignment } from "isomorphic-lib/src/userProperties";
+import {
+  fileUserPropertyToPerformed,
+  parseUserProperty as parseUserPropertyAssignment,
+} from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
@@ -18,7 +21,6 @@ import {
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
-import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -255,7 +257,6 @@ function getAssignmentOverride({
   definition,
   context,
 }: UserPropertyAssignmentOverrideProps): JSONValue | null {
-  console.log("definition 'loc3", definition, context);
   const nodes: UserPropertyDefinition[] = [definition];
   while (nodes.length) {
     const node = nodes.shift();
@@ -274,12 +275,10 @@ function getAssignmentOverride({
         return value;
       }
     } else if (node.type === UserPropertyDefinitionType.File) {
-      console.log("node 'loc0", node);
       const performed = fileUserPropertyToPerformed({
         userProperty: node,
         toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),
       });
-      console.log("node 'loc0.1", performed);
       if (!performed) {
         continue;
       }
@@ -290,13 +289,11 @@ function getAssignmentOverride({
         context,
       });
 
-      console.log("node 'loc0.2", value);
       if (value !== null && value instanceof Object) {
         const withName = {
           ...value,
           name: node.name,
         };
-        console.log("withName 'loc1", withName);
         return withName;
       }
     } else if (node.type === UserPropertyDefinitionType.Group) {
@@ -353,16 +350,6 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
-  logger().info(
-    {
-      userId,
-      workspaceId,
-      userProperties,
-      userPropertiesFilter,
-      context,
-    },
-    "loc9 findAllUserPropertyAssignments",
-  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -386,28 +373,8 @@ export async function findAllUserPropertyAssignments({
         })
       : null;
     if (contextAssignment !== null) {
-      logger().info(
-        {
-          contextAssignment,
-        },
-        "loc6 assigning from context",
-      );
-      // [05:17:14 UTC] INFO: loc6 assigning from context
-      //     contextAssignment: {
-      //       "type": "Performed",
-      //       "event": "*",
-      //       "path": "$.DFAttachedFiles[\"exampleFile.png\"]",
-      //       "name": "exampleFile.png"
-      //     }
-      // "message": "Parse error on line 1:\n$.'$.DFAttachedFiles[\"...\n--^\nExpecting 'STAR', 'IDENTIFIER', 'SCRIPT_EXPRESSION', 'INTEGER', 'END', got 'Q_STRING'",
       combinedAssignments[userProperty.name] = contextAssignment;
     } else {
-      logger().info(
-        {
-          contextAssignment,
-        },
-        "loc7 assigning from up",
-      );
       const assignments = userProperty.UserPropertyAssignment;
       const assignment = assignments[0];
       if (assignment) {

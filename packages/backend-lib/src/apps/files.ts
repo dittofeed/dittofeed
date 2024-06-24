@@ -1,4 +1,5 @@
 import { putObject, storage } from "../blobStorage";
+import config from "../config";
 import {
   AppDataFiles,
   AppFileType,
@@ -6,8 +7,6 @@ import {
   InternalEventType,
   TrackEventProperties,
 } from "../types";
-import config from "../config";
-import logger from "../logger";
 
 interface TrackEventForFiles {
   files: AppDataFiles;
@@ -34,8 +33,8 @@ export function eventFileKey({
 export async function persistFiles(
   event: TrackEventForFiles,
 ): Promise<TrackEventProperties> {
-  let promises: Promise<unknown>[] = [];
-  let files: { [name: string]: Omit<BlobStorageFile, "name"> } = {};
+  const promises: Promise<unknown>[] = [];
+  const files: Record<string, Omit<BlobStorageFile, "name">> = {};
   const s = storage();
   if (config().enableBlobStorage) {
     for (const file of event.files) {
@@ -66,6 +65,5 @@ export async function persistFiles(
       }
     : event.properties;
 
-  logger().debug({ properties }, "persisted files loc3");
   return properties;
 }

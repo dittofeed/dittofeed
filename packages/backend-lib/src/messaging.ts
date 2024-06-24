@@ -13,6 +13,7 @@ import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 import { Overwrite } from "utility-types";
 
+import { getObject, storage } from "./blobStorage";
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
@@ -37,6 +38,7 @@ import {
   type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
+  BlobStorageFile,
   ChannelType,
   EmailProvider,
   EmailProviderSecret,
@@ -64,11 +66,8 @@ import {
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
-  BlobStorageFile,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { getObject, storage } from "./blobStorage";
-import { eventFileKey } from "./apps/files";
 
 export function enrichMessageTemplate({
   id,
@@ -994,12 +993,14 @@ export async function sendEmail({
       }
 
       const postmarkAttachments: PostMarkRequiredFields["Attachments"] =
-        attachments?.map(({ mimeType, data, name }) => ({
-          Name: name,
-          ContentType: mimeType,
-          Content: data,
-          ContentID: `${messageTags?.messageId}-${name}`,
-        }));
+        messageTags
+          ? attachments?.map(({ mimeType, data, name }) => ({
+              Name: name,
+              ContentType: mimeType,
+              Content: data,
+              ContentID: `${messageTags.messageId}-${name}`,
+            }))
+          : [];
       const mailData: PostMarkRequiredFields = {
         To: to,
         From: from,

@@ -6,6 +6,7 @@ import { utcToZonedTime } from "date-fns-tz";
 import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { omit } from "remeda";
 
 import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
@@ -54,7 +55,6 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { omit } from "remeda";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();

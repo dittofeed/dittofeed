@@ -74,8 +74,6 @@ export function parseUserProperty(
   if (parsed.isErr()) {
     return ok(value);
   }
-  console.log("loc9 value", value);
-  console.log("loc9.1 parsed", parsed.value);
   const processed = processUserProperty(definition, parsed.value);
   if (processed.isErr()) {
     return err(processed.error);
@@ -91,9 +89,7 @@ export function fileUserPropertyToPerformed({
   toPath: (path: string) => string | null;
 }): PerformedUserPropertyDefinition | null {
   const unModifiedPath = `$.${InternalEventType.AttachedFiles}["${userProperty.name}"]`;
-  console.log("loc10 unModifiedPath", unModifiedPath);
   const path = toPath(unModifiedPath);
-  console.log("loc11 path", path);
   if (!path) {
     return null;
   }
