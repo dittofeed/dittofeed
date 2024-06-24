@@ -274,6 +274,13 @@
                           },
                           "replyTo": {
                             "type": "string"
+                          },
+                          "attachmentUserProperties": {
+                            "description": "Names of user properties to attach to the email as attachments.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": [
@@ -388,6 +395,13 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": [
@@ -559,6 +573,13 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -671,6 +692,13 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -980,6 +1008,13 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -1092,6 +1127,13 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -1534,6 +1576,13 @@
                                         },
                                         "replyTo": {
                                           "type": "string"
+                                        },
+                                        "attachmentUserProperties": {
+                                          "description": "Names of user properties to attach to the email as attachments.",
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -10025,6 +10074,27 @@
                                             "event",
                                             "path"
                                           ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "File"
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "name"
+                                          ]
                                         }
                                       ]
                                     }
@@ -10117,6 +10187,27 @@
                                   "type",
                                   "event",
                                   "path"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "File"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "name"
                                 ]
                               }
                             ]
@@ -10354,6 +10445,27 @@
                                           "event",
                                           "path"
                                         ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "File"
+                                            ]
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "name"
+                                        ]
                                       }
                                     ]
                                   }
@@ -10446,6 +10558,27 @@
                                 "type",
                                 "event",
                                 "path"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "File"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "name"
                               ]
                             }
                           ]
@@ -10695,6 +10828,27 @@
                                                 "event",
                                                 "path"
                                               ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "File"
+                                                  ]
+                                                },
+                                                "name": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "name"
+                                              ]
                                             }
                                           ]
                                         }
@@ -10787,6 +10941,27 @@
                                       "type",
                                       "event",
                                       "path"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "File"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name"
                                     ]
                                   }
                                 ]
@@ -11510,6 +11685,13 @@
                                   },
                                   "replyTo": {
                                     "type": "string"
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": [
@@ -11626,6 +11808,13 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               },
                               "sentAt": {
                                 "type": "string"
@@ -13040,36 +13229,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13132,36 +13291,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13289,6 +13418,20 @@
                   {
                     "type": "object",
                     "properties": {
+                      "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
+                        "type": "string"
+                      },
                       "files": {
                         "type": "array",
                         "items": {
@@ -13318,20 +13461,6 @@
                             "data"
                           ]
                         }
-                      },
-                      "messageId": {
-                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
-                        "examples": [
-                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
-                        ],
-                        "type": "string"
-                      },
-                      "timestamp": {
-                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
-                        "examples": [
-                          "2024-04-22T07:00:00.000Z"
-                        ],
-                        "type": "string"
                       },
                       "context": {
                         "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
@@ -13379,6 +13508,20 @@
                   {
                     "type": "object",
                     "properties": {
+                      "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
+                        "type": "string"
+                      },
                       "files": {
                         "type": "array",
                         "items": {
@@ -13408,20 +13551,6 @@
                             "data"
                           ]
                         }
-                      },
-                      "messageId": {
-                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
-                        "examples": [
-                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
-                        ],
-                        "type": "string"
-                      },
-                      "timestamp": {
-                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
-                        "examples": [
-                          "2024-04-22T07:00:00.000Z"
-                        ],
-                        "type": "string"
                       },
                       "context": {
                         "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
@@ -13534,36 +13663,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13624,36 +13723,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13779,36 +13848,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -13868,36 +13907,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "files": {
-                        "type": "array",
-                        "items": {
-                          "description": "File associated with user event.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Base64Encoded"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "mimeType": {
-                              "type": "string"
-                            },
-                            "data": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "name",
-                            "mimeType",
-                            "data"
-                          ]
-                        }
-                      },
                       "messageId": {
                         "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                         "examples": [
@@ -14063,36 +14072,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14152,36 +14131,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14244,6 +14193,20 @@
                             {
                               "type": "object",
                               "properties": {
+                                "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
+                                  "type": "string"
+                                },
                                 "files": {
                                   "type": "array",
                                   "items": {
@@ -14273,20 +14236,6 @@
                                       "data"
                                     ]
                                   }
-                                },
-                                "messageId": {
-                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
-                                  "examples": [
-                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
-                                  ],
-                                  "type": "string"
-                                },
-                                "timestamp": {
-                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
-                                  "examples": [
-                                    "2024-04-22T07:00:00.000Z"
-                                  ],
-                                  "type": "string"
                                 },
                                 "context": {
                                   "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
@@ -14341,6 +14290,20 @@
                             {
                               "type": "object",
                               "properties": {
+                                "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
+                                  "type": "string"
+                                },
                                 "files": {
                                   "type": "array",
                                   "items": {
@@ -14370,20 +14333,6 @@
                                       "data"
                                     ]
                                   }
-                                },
-                                "messageId": {
-                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
-                                  "examples": [
-                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
-                                  ],
-                                  "type": "string"
-                                },
-                                "timestamp": {
-                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
-                                  "examples": [
-                                    "2024-04-22T07:00:00.000Z"
-                                  ],
-                                  "type": "string"
                                 },
                                 "context": {
                                   "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
@@ -14441,36 +14390,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14538,36 +14457,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14638,36 +14527,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -14734,36 +14593,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "files": {
-                                  "type": "array",
-                                  "items": {
-                                    "description": "File associated with user event.",
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": [
-                                          "Base64Encoded"
-                                        ]
-                                      },
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "mimeType": {
-                                        "type": "string"
-                                      },
-                                      "data": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "name",
-                                      "mimeType",
-                                      "data"
-                                    ]
-                                  }
-                                },
                                 "messageId": {
                                   "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
                                   "examples": [
@@ -16427,6 +16256,27 @@
                                             "event",
                                             "path"
                                           ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "File"
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "name"
+                                          ]
                                         }
                                       ]
                                     }
@@ -16519,6 +16369,27 @@
                                   "type",
                                   "event",
                                   "path"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "File"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "name"
                                 ]
                               }
                             ]
@@ -16756,6 +16627,27 @@
                                           "event",
                                           "path"
                                         ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "File"
+                                            ]
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "name"
+                                        ]
                                       }
                                     ]
                                   }
@@ -16848,6 +16740,27 @@
                                 "type",
                                 "event",
                                 "path"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "File"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "name"
                               ]
                             }
                           ]
@@ -17097,6 +17010,27 @@
                                                 "event",
                                                 "path"
                                               ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "File"
+                                                  ]
+                                                },
+                                                "name": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "name"
+                                              ]
                                             }
                                           ]
                                         }
@@ -17189,6 +17123,27 @@
                                       "type",
                                       "event",
                                       "path"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "File"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name"
                                     ]
                                   }
                                 ]

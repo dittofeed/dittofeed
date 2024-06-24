@@ -447,6 +447,16 @@ async function getSmsProvider({
   return defaultProvider?.smsProvider ?? null;
 }
 
+function getMessageFileId({
+  messageId,
+  name,
+}: {
+  messageId: string;
+  name: string;
+}): string {
+  return `${messageId}-${name}`;
+}
+
 async function getEmailProvider({
   provider,
   workspaceId,
@@ -766,6 +776,17 @@ export async function sendEmail({
           },
         });
       }
+      const sendgridAttachments: MailDataRequired["attachments"] =
+        messageTags &&
+        attachments?.map((attachment) => ({
+          content: attachment.data,
+          type: attachment.mimeType,
+          filename: attachment.name,
+          contentId: getMessageFileId({
+            messageId: messageTags.messageId,
+            name: attachment.name,
+          }),
+        }));
       const mailData: MailDataRequired = {
         to,
         from,
@@ -773,6 +794,7 @@ export async function sendEmail({
         html: body,
         replyTo,
         headers: unsubscribeHeaders,
+        attachments: sendgridAttachments,
         customArgs: {
           workspaceId,
           templateId,
@@ -998,7 +1020,10 @@ export async function sendEmail({
               Name: name,
               ContentType: mimeType,
               Content: data,
-              ContentID: `${messageTags.messageId}-${name}`,
+              ContentID: getMessageFileId({
+                messageId: messageTags.messageId,
+                name,
+              }),
             }))
           : [];
       const mailData: PostMarkRequiredFields = {
