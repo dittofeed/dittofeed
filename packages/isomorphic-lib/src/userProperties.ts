@@ -18,6 +18,7 @@ function processUserProperty(
   definition: UserPropertyDefinition,
   value: JSONValue,
 ): Result<JSONValue, Error> {
+  console.log("processUserProperty loc5 definition", definition);
   switch (definition.type) {
     case UserPropertyDefinitionType.PerformedMany: {
       let parsedValue: JSONValue;

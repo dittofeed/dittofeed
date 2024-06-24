@@ -255,6 +255,7 @@ function getAssignmentOverride({
   definition,
   context,
 }: UserPropertyAssignmentOverrideProps): JSONValue | null {
+  console.log("definition 'loc3", definition, context);
   const nodes: UserPropertyDefinition[] = [definition];
   while (nodes.length) {
     const node = nodes.shift();
@@ -273,13 +274,30 @@ function getAssignmentOverride({
         return value;
       }
     } else if (node.type === UserPropertyDefinitionType.File) {
-      // fixme add name
+      console.log("node 'loc0", node);
       const performed = fileUserPropertyToPerformed({
         userProperty: node,
         toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),
       });
-      if (performed) {
-        nodes.push(performed);
+      console.log("node 'loc0.1", performed);
+      if (!performed) {
+        continue;
+      }
+      const value = getPerformedAssignmentOverride({
+        userPropertyId,
+        node: performed,
+        definition,
+        context,
+      });
+
+      console.log("node 'loc0.2", value);
+      if (value !== null && value instanceof Object) {
+        const withName = {
+          ...value,
+          name: node.name,
+        };
+        console.log("withName 'loc1", withName);
+        return withName;
       }
     } else if (node.type === UserPropertyDefinitionType.Group) {
       const groupNodesById: Map<string, GroupChildrenUserPropertyDefinitions> =
@@ -335,6 +353,16 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
+  logger().info(
+    {
+      userId,
+      workspaceId,
+      userProperties,
+      userPropertiesFilter,
+      context,
+    },
+    "loc9 findAllUserPropertyAssignments",
+  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -342,6 +370,7 @@ export async function findAllUserPropertyAssignments({
       userProperty.definition,
       UserPropertyDefinition,
     );
+    console.log("loc8", userProperty.name);
     if (definitionResult.isErr()) {
       logger().error(
         { err: definitionResult.error, workspaceId, userProperty },
@@ -358,8 +387,28 @@ export async function findAllUserPropertyAssignments({
         })
       : null;
     if (contextAssignment !== null) {
+      logger().info(
+        {
+          contextAssignment,
+        },
+        "loc6 assigning from context",
+      );
+      // [05:17:14 UTC] INFO: loc6 assigning from context
+      //     contextAssignment: {
+      //       "type": "Performed",
+      //       "event": "*",
+      //       "path": "$.DFAttachedFiles[\"exampleFile.png\"]",
+      //       "name": "exampleFile.png"
+      //     }
+      // "message": "Parse error on line 1:\n$.'$.DFAttachedFiles[\"...\n--^\nExpecting 'STAR', 'IDENTIFIER', 'SCRIPT_EXPRESSION', 'INTEGER', 'END', got 'Q_STRING'",
       combinedAssignments[userProperty.name] = contextAssignment;
     } else {
+      logger().info(
+        {
+          contextAssignment,
+        },
+        "loc7 assigning from up",
+      );
       const assignments = userProperty.UserPropertyAssignment;
       const assignment = assignments[0];
       if (assignment) {
@@ -383,11 +432,6 @@ export async function findAllUserPropertyAssignments({
       }
     }
   }
-  // FIXME log level
-  // FIXME not getting file context     context: {
-  //   "email": "max+4CF3C6CC-1C40-4CA4-A610-0BB0AC285FC8@dittofeed.com",
-  //   "firstName": "Maximus"
-  // }
   logger().info(
     {
       userId,
