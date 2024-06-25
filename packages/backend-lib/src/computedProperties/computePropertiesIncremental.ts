@@ -1181,19 +1181,23 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const propertyConditions = node.properties?.map((property) => {
         const operatorType = property.operator.type;
+        const path = toJsonPathParamCh({
+          path: property.path,
+          qb,
+        });
+
+        if (!path) {
+          return [];
+        }
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            const path = toJsonPathParamCh({
-              path: property.path,
-              qb,
-            });
-            if (!path) {
-              return [];
-            }
             return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
               property.operator.value,
               "String",
             )}`;
+          }
+          case SegmentOperatorType.Exists: {
+            return `JSON_VALUE(properties, ${path}) != ''`;
           }
           default:
             throw new Error(

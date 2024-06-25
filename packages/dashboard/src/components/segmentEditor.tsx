@@ -8,6 +8,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   SelectProps,
   Stack,
   SxProps,
@@ -170,14 +171,13 @@ const operatorOptions: Option[] = [
   existsOperatorOption,
 ];
 
-const keyedOperatorOptions = new Map<SegmentOperatorType, Option>([
-  [SegmentOperatorType.Equals, equalsOperatorOption],
-  [SegmentOperatorType.Within, withinOperatorOption],
-  [SegmentOperatorType.HasBeen, hasBeenOperatorOption],
-  [SegmentOperatorType.Exists, existsOperatorOption],
-  [SegmentOperatorType.NotEquals, notEqualsOperatorOption],
-]);
-
+const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
+  [SegmentOperatorType.Equals]: equalsOperatorOption,
+  [SegmentOperatorType.Within]: withinOperatorOption,
+  [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
+  [SegmentOperatorType.Exists]: existsOperatorOption,
+  [SegmentOperatorType.NotEquals]: notEqualsOperatorOption,
+};
 const relationalOperatorNames: [RelationalOperators, string][] = [
   [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
   [RelationalOperators.LessThan, "Less than (<)"],
@@ -350,24 +350,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         }
       });
     };
-    const handlePropertyValueChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
-      updateSegmentNodeData(node.id, (n) => {
-        if (n.type === SegmentNodeType.Performed) {
-          const newValue = e.target.value;
-          const existingProperty = n.properties?.[i];
-          if (
-            !existingProperty ||
-            existingProperty.operator.type !== SegmentOperatorType.Equals
-          ) {
-            return;
-          }
-          existingProperty.operator.value = newValue;
-        }
-      });
-    };
-    const operator = keyedOperatorOptions.get(property.operator.type);
+    const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
       updateSegmentNodeData(node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
@@ -378,12 +361,62 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         }
       });
     };
+
+    const handleOperatorChange = (
+      e: SelectChangeEvent<SegmentOperatorType>,
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          const newOperator = e.target.value as SegmentOperatorType;
+          const existingProperty = n.properties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.operator.type = newOperator;
+        }
+      });
+    };
     if (!operator) {
       return null;
     }
-    if (property.operator.type !== SegmentOperatorType.Equals) {
-      return null;
+    let operatorEl: React.ReactNode;
+    switch (property.operator.type) {
+      case SegmentOperatorType.Equals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.Performed) {
+              const newValue = e.target.value;
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Equals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Exists: {
+        operatorEl = null;
+        break;
+      }
+      default: {
+        throw new Error(`Unsupported operator type: ${property.operator.type}`);
+      }
     }
+
     return (
       <Stack
         // eslint-disable-next-line react/no-array-index-key
@@ -399,14 +432,15 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           value={property.path}
           onChange={handlePropertyPathChange}
         />
-        <Select value={operator.id}>
-          <MenuItem value={operator.id}>{operator.label}</MenuItem>
+        <Select value={operator.id} onChange={handleOperatorChange}>
+          <MenuItem value={SegmentOperatorType.Equals}>
+            {keyedOperatorOptions[SegmentOperatorType.Equals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Exists}>
+            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
         </Select>
-        <TextField
-          label="Property Value"
-          onChange={handlePropertyValueChange}
-          value={property.operator.value}
-        />
+        {operatorEl}
         <IconButton
           color="error"
           size="large"
@@ -682,7 +716,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
   const traits = useAppStore((store) => store.traits);
-  const operator = keyedOperatorOptions.get(node.operator.type);
+  const operator = keyedOperatorOptions[node.operator.type];
   if (!operator) {
     throw new Error(`Unsupported operator type: ${node.operator.type}`);
   }

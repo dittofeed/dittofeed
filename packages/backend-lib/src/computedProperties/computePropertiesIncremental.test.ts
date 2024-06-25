@@ -2179,6 +2179,153 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segment with properties and exists operator",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "status",
+                  operator: {
+                    type: SegmentOperatorType.Exists,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                status: "active",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test1@email.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+              properties: {
+                status: "inactive",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                email: "test2@email.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "test",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                email: "test3@mail.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-4",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-4",
+              traits: {
+                email: "test4@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "only includes user with track event with appropriate property values",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 1,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                performed: null,
+              },
+            },
+            {
+              id: "user-4",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with nested properties",
       userProperties: [],
       segments: [
