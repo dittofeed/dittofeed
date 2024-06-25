@@ -2180,7 +2180,6 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with properties and exists operator",
-      only: true,
       userProperties: [
         {
           name: "email",
