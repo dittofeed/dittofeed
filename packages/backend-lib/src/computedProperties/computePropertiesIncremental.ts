@@ -1210,7 +1210,6 @@ export function segmentNodeToStateSubQuery({
         value: node.event,
         qb,
       });
-
       const conditions: string[] = ["event_type == 'track'"];
       if (prefixCondition) {
         conditions.push(prefixCondition);
@@ -1218,6 +1217,15 @@ export function segmentNodeToStateSubQuery({
       if (propertyConditions?.length) {
         conditions.push(`(${propertyConditions.join(" and ")})`);
       }
+
+      logger().error(
+        {
+          prefixCondition,
+          conditions,
+        },
+        "loc1",
+      );
+
       return [
         {
           condition: conditions.join(" and "),
@@ -1421,6 +1429,13 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
+      // FIXME
+      logger().error(
+        {
+          path: child.path,
+        },
+        "loc3",
+      );
       const path = toJsonPathParamCh({
         path: child.path,
         qb,
@@ -1463,6 +1478,12 @@ function leafUserPropertyToSubQuery({
       if (propertiesCondition) {
         conditions.push(`(${propertiesCondition})`);
       }
+      logger().error(
+        {
+          conditions,
+        },
+        "loc2",
+      );
       return {
         condition: conditions.join(" and "),
         type: "user_property",

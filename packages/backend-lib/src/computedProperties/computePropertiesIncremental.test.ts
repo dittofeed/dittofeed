@@ -2719,6 +2719,7 @@ describe("computeProperties", () => {
     },
     {
       description: "with a file user property",
+      only: true,
       userProperties: [
         {
           name: "performed",
