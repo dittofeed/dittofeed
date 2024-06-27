@@ -6,7 +6,6 @@ export function toJsonPathParam({
 }: {
   path: string;
 }): Result<string, Error> {
-  console.log("loc4", path);
   let unvalidated: string;
   if (path.startsWith("$")) {
     unvalidated = path;
@@ -14,7 +13,6 @@ export function toJsonPathParam({
     unvalidated = `$.${path}`;
   }
 
-  console.log("loc5", unvalidated);
   try {
     jsonPath.parse(unvalidated);
   } catch (e) {

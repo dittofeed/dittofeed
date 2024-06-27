@@ -20,6 +20,7 @@ import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   AppFileType,
+  BlobStorageFile,
   ComputedPropertyAssignment,
   ComputedPropertyStep,
   EventType,
@@ -2719,10 +2720,9 @@ describe("computeProperties", () => {
     },
     {
       description: "with a file user property",
-      only: true,
       userProperties: [
         {
-          name: "performed",
+          name: "file",
           definition: {
             type: UserPropertyDefinitionType.File,
             name: "receipt.pdf",
@@ -2739,14 +2739,15 @@ describe("computeProperties", () => {
               offsetMs: -100,
               type: EventType.Track,
               event: "order_confirmation",
-              files: [
-                {
-                  name: "receipt.pdf",
-                  mimeType: "application/pdf",
-                  type: AppFileType.Base64Encoded,
-                  data: "mockBase64Data",
+              properties: {
+                [InternalEventType.AttachedFiles]: {
+                  "receipt.pdf": {
+                    mimeType: "application/pdf",
+                    type: AppFileType.BlobStorage,
+                    key: "my/blob/storage/key.pdf",
+                  } satisfies Omit<BlobStorageFile, "name">,
                 },
-              ],
+              },
             },
           ],
         },
@@ -2759,7 +2760,12 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               properties: {
-                performed: "My Enterprise Package",
+                file: {
+                  key: "my/blob/storage/key.pdf",
+                  mimeType: "application/pdf",
+                  name: "receipt.pdf",
+                  type: AppFileType.BlobStorage,
+                },
               },
             },
           ],
