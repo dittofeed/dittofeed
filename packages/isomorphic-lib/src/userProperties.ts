@@ -83,19 +83,10 @@ export function parseUserProperty(
 
 export function fileUserPropertyToPerformed({
   userProperty,
-  toPath,
 }: {
   userProperty: FileUserPropertyDefinition;
-  toPath: (path: string) => string | null;
-}): PerformedUserPropertyDefinition | null {
-  console.log("loc5", userProperty.name);
-  const unModifiedPath = `$.${InternalEventType.AttachedFiles}["${userProperty.name}"]`;
-  console.log("loc6", unModifiedPath);
-  const path = toPath(unModifiedPath);
-  console.log("loc7", path);
-  if (!path) {
-    return null;
-  }
+}): PerformedUserPropertyDefinition {
+  const path = `$.${InternalEventType.AttachedFiles}["${userProperty.name}"]`;
   return {
     type: UserPropertyDefinitionType.Performed,
     id: userProperty.id,

@@ -277,11 +277,7 @@ function getAssignmentOverride({
     } else if (node.type === UserPropertyDefinitionType.File) {
       const performed = fileUserPropertyToPerformed({
         userProperty: node,
-        toPath: (path) => toJsonPathParam({ path }).unwrapOr(null),
       });
-      if (!performed) {
-        continue;
-      }
       const value = getPerformedAssignmentOverride({
         userPropertyId,
         node: performed,

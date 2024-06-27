@@ -4,7 +4,7 @@ import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
+import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -34,7 +34,6 @@ import {
   ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
-  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   HasStartedJourneyResource,
@@ -44,7 +43,6 @@ import {
   ManualSegmentNode,
   NodeEnvEnum,
   PerformedSegmentNode,
-  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedIntegrationResource,
@@ -1075,6 +1073,13 @@ function toJsonPathParamCh({
   qb: ClickHouseQueryBuilder;
 }): string | null {
   const normalizedPath = toJsonPathParam({ path });
+  logger().info(
+    {
+      path,
+      normalizedPath,
+    },
+    "loc9",
+  );
   if (normalizedPath.isErr()) {
     logger().info(
       {
@@ -1087,23 +1092,6 @@ function toJsonPathParamCh({
   }
 
   return qb.addQueryValue(normalizedPath.value, "String");
-}
-
-function fileUserPropertyToPerformed({
-  userProperty,
-  qb,
-}: {
-  userProperty: FileUserPropertyDefinition;
-  qb: ClickHouseQueryBuilder;
-}): PerformedUserPropertyDefinition | null {
-  return fuptp({
-    userProperty,
-    toPath: (path) =>
-      toJsonPathParamCh({
-        path,
-        qb,
-      }),
-  });
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
@@ -1496,8 +1484,14 @@ function leafUserPropertyToSubQuery({
     case UserPropertyDefinitionType.File: {
       const performedDefinition = fileUserPropertyToPerformed({
         userProperty: child,
-        qb,
       });
+      logger().info(
+        {
+          child,
+          performedDefinition,
+        },
+        "loc8",
+      );
       if (!performedDefinition) {
         return null;
       }
@@ -1970,8 +1964,14 @@ function leafUserPropertyToAssignment({
     case UserPropertyDefinitionType.File: {
       const performedDefinition = fileUserPropertyToPerformed({
         userProperty: child,
-        qb,
       });
+      logger().info(
+        {
+          child,
+          performedDefinition,
+        },
+        "loc11",
+      );
       if (!performedDefinition) {
         return null;
       }
