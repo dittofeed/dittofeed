@@ -11,16 +11,4 @@ definition:
         type: 'Email'
         template: 'Welcome'
     - id: 2
-      type: 'DelayNode'
-      child: 3
-      variant:
-        type: 'Second'
-        seconds: 604800
-    - id: 3
-      type: 'MessageNode'
-      child: 4
-      variant:
-        type: 'Email'
-        template: '10 Reasons to Upgrade'
-    - id: 4
       type: 'ExitNode'
