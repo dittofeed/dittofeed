@@ -191,9 +191,7 @@ const User: NextPage<UserPageProps> = function User(props) {
             >
               {user.segments.map((segment) => (
                 <ListItem key={segment.id}>
-                  <ResourceListItemButton
-                    href={`/dashboard/segments/${segment.id}`}
-                  >
+                  <ResourceListItemButton href={`/segments/${segment.id}`}>
                     <ListItemText>{segment.name}</ListItemText>
                   </ResourceListItemButton>
                 </ListItem>
