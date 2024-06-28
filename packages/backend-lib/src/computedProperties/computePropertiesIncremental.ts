@@ -4,7 +4,7 @@ import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { fileUserPropertyToPerformed as fuptp } from "isomorphic-lib/src/userProperties";
+import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -34,7 +34,6 @@ import {
   ComputedPropertyStep,
   ComputedPropertyUpdate,
   EmailSegmentNode,
-  FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   HasStartedJourneyResource,
@@ -44,7 +43,6 @@ import {
   ManualSegmentNode,
   NodeEnvEnum,
   PerformedSegmentNode,
-  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedIntegrationResource,
@@ -1089,23 +1087,6 @@ function toJsonPathParamCh({
   return qb.addQueryValue(normalizedPath.value, "String");
 }
 
-function fileUserPropertyToPerformed({
-  userProperty,
-  qb,
-}: {
-  userProperty: FileUserPropertyDefinition;
-  qb: ClickHouseQueryBuilder;
-}): PerformedUserPropertyDefinition | null {
-  return fuptp({
-    userProperty,
-    toPath: (path) =>
-      toJsonPathParamCh({
-        path,
-        qb,
-      }),
-  });
-}
-
 function truncateEventTimeExpression(windowSeconds: number): string {
   // Window data within 1 / 10th of the specified period, with a minumum
   // window of 30 seconds, and a maximum window of 1 day.
@@ -1214,7 +1195,6 @@ export function segmentNodeToStateSubQuery({
         value: node.event,
         qb,
       });
-
       const conditions: string[] = ["event_type == 'track'"];
       if (prefixCondition) {
         conditions.push(prefixCondition);
@@ -1222,6 +1202,7 @@ export function segmentNodeToStateSubQuery({
       if (propertyConditions?.length) {
         conditions.push(`(${propertyConditions.join(" and ")})`);
       }
+
       return [
         {
           condition: conditions.join(" and "),
@@ -1479,11 +1460,7 @@ function leafUserPropertyToSubQuery({
     case UserPropertyDefinitionType.File: {
       const performedDefinition = fileUserPropertyToPerformed({
         userProperty: child,
-        qb,
       });
-      if (!performedDefinition) {
-        return null;
-      }
       const fileUserProperty: SavedUserPropertyResource = {
         ...userProperty,
         definition: performedDefinition,
@@ -1953,11 +1930,7 @@ function leafUserPropertyToAssignment({
     case UserPropertyDefinitionType.File: {
       const performedDefinition = fileUserPropertyToPerformed({
         userProperty: child,
-        qb,
       });
-      if (!performedDefinition) {
-        return null;
-      }
       const fileUserProperty: SavedUserPropertyResource = {
         ...userProperty,
         definition: performedDefinition,

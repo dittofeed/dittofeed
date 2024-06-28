@@ -1,5 +1,5 @@
 import jsonPath from "jsonpath";
-import { err,ok, Result } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 
 export function toJsonPathParam({
   path,
@@ -12,6 +12,7 @@ export function toJsonPathParam({
   } else {
     unvalidated = `$.${path}`;
   }
+
   try {
     jsonPath.parse(unvalidated);
   } catch (e) {
