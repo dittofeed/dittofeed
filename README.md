@@ -103,7 +103,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
 
-- Branch-based git worflows that support messaging campaign version control.
+- Branch-based git workflows that support messaging campaign version control.
 - Write email templates in your favorite editor, checked into git - not in an unversioned web based IDE.
 - Testing SDK to test your messaging campaigns in CI. No more manually QAing them in production.
 - Self-hostable. Protect your sensitive PII inside of your own VPC. Avoid volume-based pricing.
