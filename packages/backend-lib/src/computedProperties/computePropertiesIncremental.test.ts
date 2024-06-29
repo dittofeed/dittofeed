@@ -1929,6 +1929,65 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "when a performed segment conditions on an event being performed 0 times within a time window",
+      // FIXME
+      only: true,
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.Equals,
+              withinSeconds: 500,
+              times: 0,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user who performed unrelated event within time window is in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with event prefix",
       userProperties: [
         {
