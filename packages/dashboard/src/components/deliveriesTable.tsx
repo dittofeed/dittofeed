@@ -35,9 +35,9 @@ import { immer } from "zustand/middleware/immer";
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import { WebhookPreviewBody } from "./messages/webhookPreview";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
-import { WebhookPreviewBody } from "./messages/webhookPreview";
 
 interface TableItem {
   userId: string;
