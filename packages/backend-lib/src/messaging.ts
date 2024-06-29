@@ -22,8 +22,8 @@ import {
 } from "./destinations/resend";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import {
-  SendSmtpMailParams,
   sendMail as sendMailSmtp,
+  SendSmtpMailParams,
 } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";

@@ -3165,6 +3165,13 @@ export const SearchDeliveriesResponseItem = Type.Union([
     Type.Partial(EmailContents),
     BaseDeliveryItem,
   ]),
+  Type.Composite([
+    Type.Object({
+      status: Type.String(),
+      variant: MessageWebhookSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
 ]);
 
 export type SearchDeliveriesResponseItem = Static<
