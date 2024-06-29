@@ -16,6 +16,7 @@ import TemplateEditor, {
   DraftToPreview,
   getDisabledInputStyles,
 } from "../templateEditor";
+import { WebhookPreviewBody } from "./webhookPreview";
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -174,27 +175,7 @@ export default function WebhookEditor({
       }}
       renderPreviewBody={({ rendered }) => {
         if (!rendered.body) return null;
-
-        return (
-          <ReactCodeMirror
-            value={rendered.body}
-            height="100%"
-            readOnly
-            editable={false}
-            extensions={[
-              codeMirrorJson(),
-              linter(jsonParseLinter()),
-              EditorView.lineWrapping,
-              EditorView.editable.of(false),
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              lintGutter(),
-            ]}
-          />
-        );
+        return <WebhookPreviewBody body={rendered.body} />;
       }}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}

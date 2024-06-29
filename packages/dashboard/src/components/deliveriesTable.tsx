@@ -35,6 +35,7 @@ import { immer } from "zustand/middleware/immer";
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import { WebhookPreviewBody } from "./messages/webhookPreview";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
 
@@ -367,7 +368,13 @@ export function DeliveriesTable({
         if ("variant" in item) {
           to = item.variant.to;
           channel = item.variant.type;
-          body = item.variant.body;
+
+          if (item.variant.type === ChannelType.Webhook) {
+            const { request, response } = item.variant;
+            body = JSON.stringify({ request, response }, null, 2);
+          } else {
+            body = item.variant.body;
+          }
 
           if (item.variant.type === ChannelType.Email) {
             from = item.variant.from;
@@ -382,7 +389,7 @@ export function DeliveriesTable({
           channel = item.channel;
           body = item.body ?? null;
         }
-        if (!to || !channel) {
+        if (!to) {
           return [];
         }
         const tableItem: TableItem = {
@@ -402,7 +409,7 @@ export function DeliveriesTable({
         };
         return tableItem;
       }),
-    [items, pageItems],
+    [items, pageItems, messages, journeys, broadcasts],
   );
 
   const renderEmailPreviewBody = (body: string) => {
@@ -420,17 +427,26 @@ export function DeliveriesTable({
     );
   };
 
+  const renderWebhookPreviewBody = (body: string) => {
+    return <WebhookPreviewBody body={body} />;
+  };
+
   const renderSmsPreviewBody = (body: string) => {
     return <SmsPreviewBody body={body} />;
   };
 
   const renderPreviewBody = (po: PreviewObjectInterface) => {
     if (!po.body) return null;
-    if (po.channelType === "Email") {
-      return renderEmailPreviewBody(po.body);
+    switch (po.channelType) {
+      case ChannelType.Email:
+        return renderEmailPreviewBody(po.body);
+      case ChannelType.Sms:
+        return renderSmsPreviewBody(po.body);
+      case ChannelType.Webhook:
+        return renderWebhookPreviewBody(po.body);
+      default:
+        return null;
     }
-
-    return renderSmsPreviewBody(po.body);
   };
 
   const renderEmailPreviewHeader = (po: PreviewObjectInterface) => {

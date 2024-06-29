@@ -77,7 +77,10 @@ export function parseSearchDeliveryRow(
       originMessageId: row.origin_message_id,
       userId: row.user_or_anonymous_id,
       channel:
-        properties.channnel ?? properties.messageType ?? ChannelType.Email,
+        properties.channnel ??
+        properties.messageType ??
+        properties.type ??
+        ChannelType.Email,
       to: properties.to ?? properties.email,
       ...properties,
     } as Record<string, unknown>,
