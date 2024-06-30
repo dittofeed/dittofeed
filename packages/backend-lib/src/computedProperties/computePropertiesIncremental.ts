@@ -62,6 +62,17 @@ import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
 
+export function userPropertyStateId(
+  userProperty: SavedUserPropertyResource,
+  nodeId = "",
+): string {
+  const stateId = uuidv5(
+    `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
+    userProperty.id,
+  );
+  return stateId;
+}
+
 function getPrefixCondition({
   column,
   value,
@@ -306,6 +317,7 @@ function segmentToIndexed({
 
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
+          // fixme inspo
           return [
             {
               stateId,
@@ -444,7 +456,7 @@ function segmentToResolvedState({
   node,
   qb,
   periodBound,
-  idUserPropertyId,
+  idUserProperty,
 }: {
   workspaceId: string;
   segment: SavedSegmentResource;
@@ -452,7 +464,7 @@ function segmentToResolvedState({
   node: SegmentNode;
   periodBound?: number;
   qb: ClickHouseQueryBuilder;
-  idUserPropertyId: string;
+  idUserProperty: SavedUserPropertyResource;
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
@@ -472,6 +484,16 @@ function segmentToResolvedState({
           operator === RelationalOperators.LessThan;
 
         // FIXME
+        const withinRangeWhereClause = `
+          cps_performed.workspace_id = ${workspaceIdParam}
+          and cps_performed.type = 'segment'
+          and cps_performed.computed_property_id = ${segmentIdParam}
+          and cps_performed.state_id = ${stateIdParam}
+          and cps_performed.event_time >= toDateTime64(${Math.round(
+            Math.max(nowSeconds - node.withinSeconds, 0),
+          )}, 3)
+        `;
+
         const query = `
           insert into resolved_segment_state
           select
@@ -528,17 +550,10 @@ function segmentToResolvedState({
               computed_property_id,
               state_id,
               user_id,
-              uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
-              max(cps.event_time) as max_event_time
-            from computed_property_state_v2 cps
-            where
-              cps.workspace_id = ${workspaceIdParam}
-              and cps.type = 'segment'
-              and cps.computed_property_id = ${segmentIdParam}
-              and cps.state_id = ${stateIdParam}
-              and cps.event_time >= toDateTime64(${Math.round(
-                Math.max(nowSeconds - node.withinSeconds, 0),
-              )}, 3)
+              uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value,
+              max(cps_performed.event_time) as max_event_time
+            from computed_property_state_v2 cps_performed
+            where ${withinRangeWhereClause}
             group by
               workspace_id,
               computed_property_id,
@@ -552,16 +567,59 @@ function segmentToResolvedState({
         `;
         const queries = [query];
         if (shouldConditionOnNever) {
+          const userIdStateParam = qb.addQueryValue(
+            userPropertyStateId(idUserProperty),
+            "String",
+          );
+          const userIdPropertyIdParam = qb.addQueryValue(
+            idUserProperty.id,
+            "String",
+          );
+          // FIXME not enough space
+          // FIXME dedup with rss
           const zeroTimesQuery = `
+            insert into resolved_segment_state
             select
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id,
-              uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
-              max(cps.event_time) as max_event_time
-            from computed_property_state_v2 cps
-          `;
+              np.workspace_id,
+              np.segment_id,
+              np.state_id,
+              np.user_id,
+              True,
+              np.max_event_time
+            from (
+              select
+                workspace_id,
+                ${segmentIdParam},
+                ${stateIdParam},
+                user_id,
+                argMaxMerge(last_value) last_id,
+                max(cps.event_time) as max_event_time
+              from computed_property_state_v2 cps
+              where
+                cps.workspace_id = ${workspaceIdParam}
+                and cps.type = 'user_property'
+                and cps.computed_property_id = ${userIdPropertyIdParam}
+                and cps.state_id = ${userIdStateParam}
+                and (
+                  cps.user_id
+                ) not in (
+                  select user_id
+                  from (
+                    select
+                      workspace_id,
+                      computed_property_id,
+                      state_id,
+                      user_id
+                    from computed_property_state_v2 as cps_performed
+                    where ${withinRangeWhereClause}
+                    group by
+                      workspace_id,
+                      computed_property_id,
+                      state_id,
+                      user_id
+                  )
+                )
+            ) as np`;
           queries.push(zeroTimesQuery);
         }
 
@@ -582,6 +640,7 @@ function segmentToResolvedState({
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
+          // FIXME inspiration
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
@@ -832,7 +891,7 @@ function segmentToResolvedState({
           now,
           periodBound,
           workspaceId,
-          idUserPropertyId,
+          idUserProperty,
           qb,
         });
       });
@@ -857,7 +916,7 @@ function segmentToResolvedState({
           now,
           periodBound,
           workspaceId,
-          idUserPropertyId,
+          idUserProperty,
           qb,
         });
       });
@@ -874,7 +933,7 @@ function segmentToResolvedState({
         now,
         periodBound,
         workspaceId,
-        idUserPropertyId,
+        idUserProperty,
         qb,
       });
     }
@@ -886,7 +945,7 @@ function segmentToResolvedState({
         now,
         periodBound,
         workspaceId,
-        idUserPropertyId,
+        idUserProperty,
         qb,
       });
     }
@@ -945,6 +1004,7 @@ function segmentToResolvedState({
         now,
         periodBound,
         workspaceId,
+        idUserProperty,
         qb,
       });
     }
@@ -1167,6 +1227,7 @@ export function segmentNodeToStateSubQuery({
       }
       const eventTimeExpression: string | undefined =
         node.operator.type === SegmentOperatorType.HasBeen ||
+        // fixme inspiration
         node.operator.type === SegmentOperatorType.Within
           ? truncateEventTimeExpression(node.operator.windowSeconds)
           : undefined;
@@ -1384,17 +1445,6 @@ export function segmentNodeToStateSubQuery({
       });
     }
   }
-}
-
-export function userPropertyStateId(
-  userProperty: SavedUserPropertyResource,
-  nodeId = "",
-): string {
-  const stateId = uuidv5(
-    `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
-    userProperty.id,
-  );
-  return stateId;
 }
 
 function leafUserPropertyToSubQuery({
@@ -2398,12 +2448,12 @@ export async function computeAssignments({
     const segmentQueries: AssignmentQueryGroup[] = [];
     const userPropertyQueries: AssignmentQueryGroup[] = [];
 
-    const idUserPropertyId = userProperties.find(
+    const idUserProperty = userProperties.find(
       (up) => up.definition.type === UserPropertyDefinitionType.Id,
-    )?.id;
+    );
 
     for (const segment of segments) {
-      if (!idUserPropertyId) {
+      if (!idUserProperty) {
         throw new Error("Missing user id user property");
       }
       const version = segment.definitionUpdatedAt.toString();
@@ -2429,7 +2479,7 @@ export async function computeAssignments({
         now,
         qb,
         periodBound,
-        idUserPropertyId,
+        idUserProperty,
       });
       const assignmentConfig = resolvedSegmentToAssignment({
         segment,
