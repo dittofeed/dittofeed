@@ -581,16 +581,15 @@ function segmentToResolvedState({
             insert into resolved_segment_state
             select
               np.workspace_id,
-              np.segment_id,
-              np.state_id,
+              ${segmentIdParam},
+              ${stateIdParam},
               np.user_id,
               True,
-              np.max_event_time
+              np.max_event_time,
+              toDateTime64(${nowSeconds}, 3)
             from (
               select
                 workspace_id,
-                ${segmentIdParam},
-                ${stateIdParam},
                 user_id,
                 argMaxMerge(last_value) last_id,
                 max(cps.event_time) as max_event_time
@@ -619,6 +618,9 @@ function segmentToResolvedState({
                       user_id
                   )
                 )
+              group by
+                workspace_id,
+                user_id
             ) as np`;
           queries.push(zeroTimesQuery);
         }
