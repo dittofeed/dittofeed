@@ -444,6 +444,7 @@ function segmentToResolvedState({
   node,
   qb,
   periodBound,
+  idUserPropertyId,
 }: {
   workspaceId: string;
   segment: SavedSegmentResource;
@@ -451,18 +452,26 @@ function segmentToResolvedState({
   node: SegmentNode;
   periodBound?: number;
   qb: ClickHouseQueryBuilder;
+  idUserPropertyId: string;
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
   switch (node.type) {
     case SegmentNodeType.Performed: {
-      const operator: string = node.timesOperator ?? RelationalOperators.Equals;
+      const operator: RelationalOperators =
+        node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
 
       const segmentIdParam = qb.addQueryValue(segment.id, "String");
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       if (node.withinSeconds && node.withinSeconds > 0) {
+        // FIXME incorporate
+        const shouldConditionOnNever =
+          (operator === RelationalOperators.Equals && times === 0) ||
+          operator === RelationalOperators.LessThan;
+
+        // FIXME
         const query = `
           insert into resolved_segment_state
           select
@@ -541,8 +550,22 @@ function segmentToResolvedState({
             and within_range.state_id = deduped_rss.state_id
             and within_range.user_id = deduped_rss.user_id
         `;
+        const queries = [query];
+        if (shouldConditionOnNever) {
+          const zeroTimesQuery = `
+            select
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id,
+              uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
+              max(cps.event_time) as max_event_time
+            from computed_property_state_v2 cps
+          `;
+          queries.push(zeroTimesQuery);
+        }
 
-        return [query];
+        return queries;
       }
       return [
         buildRecentUpdateSegmentQuery({
@@ -809,6 +832,7 @@ function segmentToResolvedState({
           now,
           periodBound,
           workspaceId,
+          idUserPropertyId,
           qb,
         });
       });
@@ -833,6 +857,7 @@ function segmentToResolvedState({
           now,
           periodBound,
           workspaceId,
+          idUserPropertyId,
           qb,
         });
       });
@@ -849,6 +874,7 @@ function segmentToResolvedState({
         now,
         periodBound,
         workspaceId,
+        idUserPropertyId,
         qb,
       });
     }
@@ -860,6 +886,7 @@ function segmentToResolvedState({
         now,
         periodBound,
         workspaceId,
+        idUserPropertyId,
         qb,
       });
     }
@@ -2371,7 +2398,14 @@ export async function computeAssignments({
     const segmentQueries: AssignmentQueryGroup[] = [];
     const userPropertyQueries: AssignmentQueryGroup[] = [];
 
+    const idUserPropertyId = userProperties.find(
+      (up) => up.definition.type === UserPropertyDefinitionType.Id,
+    )?.id;
+
     for (const segment of segments) {
+      if (!idUserPropertyId) {
+        throw new Error("Missing user id user property");
+      }
       const version = segment.definitionUpdatedAt.toString();
       const period = periodByComputedPropertyId.get({
         computedPropertyId: segment.id,
@@ -2395,6 +2429,7 @@ export async function computeAssignments({
         now,
         qb,
         periodBound,
+        idUserPropertyId,
       });
       const assignmentConfig = resolvedSegmentToAssignment({
         segment,
