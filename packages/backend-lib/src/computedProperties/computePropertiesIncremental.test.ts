@@ -481,54 +481,67 @@ async function upsertComputedProperties({
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
 }> {
-  const [userPropertyResources, segmentResources] = await Promise.all([
-    Promise.all(
-      userProperties.map(async (up) => {
-        const model = await prisma().userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: up.name,
-            },
-          },
-          create: {
+  await Promise.all([
+    ...userProperties.map((up) =>
+      prisma().userProperty.upsert({
+        where: {
+          workspaceId_name: {
             workspaceId,
             name: up.name,
-            definition: up.definition,
-            definitionUpdatedAt: new Date(now),
           },
-          update: {
-            definition: up.definition,
-            definitionUpdatedAt: new Date(now),
-          },
-        });
-        return unwrap(toSavedUserPropertyResource(model));
+        },
+        create: {
+          workspaceId,
+          name: up.name,
+          definition: up.definition,
+          definitionUpdatedAt: new Date(now),
+        },
+        update: {
+          definition: up.definition,
+          definitionUpdatedAt: new Date(now),
+        },
       }),
     ),
-    Promise.all(
-      segments.map(async (s) => {
-        const model = await prisma().segment.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: s.name,
-            },
-          },
-          create: {
+    ...segments.map((s) =>
+      prisma().segment.upsert({
+        where: {
+          workspaceId_name: {
             workspaceId,
             name: s.name,
-            definition: s.definition,
-            definitionUpdatedAt: new Date(now),
           },
-          update: {
-            definition: s.definition,
-            definitionUpdatedAt: new Date(now),
-          },
-        });
-        return unwrap(toSegmentResource(model));
+        },
+        create: {
+          workspaceId,
+          name: s.name,
+          definition: s.definition,
+          definitionUpdatedAt: new Date(now),
+        },
+        update: {
+          definition: s.definition,
+          definitionUpdatedAt: new Date(now),
+        },
       }),
     ),
   ]);
+  const [segmentModels, userPropertyModels] = await Promise.all([
+    prisma().segment.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
+    prisma().userProperty.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
+  ]);
+  const segmentResources = segmentModels.map((s) =>
+    unwrap(toSegmentResource(s)),
+  );
+
+  const userPropertyResources = userPropertyModels.map((up) =>
+    unwrap(toSavedUserPropertyResource(up)),
+  );
   return {
     segments: segmentResources,
     userProperties: userPropertyResources,
