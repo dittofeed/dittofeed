@@ -618,6 +618,16 @@ function segmentToResolvedState({
                       user_id
                   )
                 )
+                and (
+                  cps.user_id
+                ) not in (
+                  select user_id from resolved_segment_state as rss
+                  where
+                    rss.workspace_id = ${workspaceIdParam}
+                    and rss.segment_id = ${segmentIdParam}
+                    and rss.state_id = ${stateIdParam}
+                    and rss.segment_state_value = True
+                )
               group by
                 workspace_id,
                 user_id
