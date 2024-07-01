@@ -317,7 +317,6 @@ function segmentToIndexed({
 
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
-          // fixme inspo
           return [
             {
               stateId,
@@ -464,7 +463,7 @@ function segmentToResolvedState({
   node: SegmentNode;
   periodBound?: number;
   qb: ClickHouseQueryBuilder;
-  idUserProperty: SavedUserPropertyResource;
+  idUserProperty?: SavedUserPropertyResource;
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
@@ -478,8 +477,11 @@ function segmentToResolvedState({
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       if (node.withinSeconds && node.withinSeconds > 0) {
-        // FIXME incorporate
-        const shouldConditionOnNever =
+        if (!idUserProperty) {
+          logger().error("missing id user property");
+          return [];
+        }
+        const checkZeroValue =
           (operator === RelationalOperators.Equals && times === 0) ||
           operator === RelationalOperators.LessThan;
 
@@ -494,7 +496,7 @@ function segmentToResolvedState({
           )}, 3)
         `;
 
-        const query = `
+        const greaterThanZeroQuery = `
           insert into resolved_segment_state
           select
             multiIf(
@@ -565,8 +567,8 @@ function segmentToResolvedState({
             and within_range.state_id = deduped_rss.state_id
             and within_range.user_id = deduped_rss.user_id
         `;
-        const queries = [query];
-        if (shouldConditionOnNever) {
+        const queries = [greaterThanZeroQuery];
+        if (checkZeroValue) {
           const userIdStateParam = qb.addQueryValue(
             userPropertyStateId(idUserProperty),
             "String",
@@ -575,8 +577,6 @@ function segmentToResolvedState({
             idUserProperty.id,
             "String",
           );
-          // FIXME not enough space
-          // FIXME dedup with rss
           const zeroTimesQuery = `
             insert into resolved_segment_state
             select
@@ -652,7 +652,6 @@ function segmentToResolvedState({
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
-          // FIXME inspiration
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
@@ -1239,7 +1238,6 @@ export function segmentNodeToStateSubQuery({
       }
       const eventTimeExpression: string | undefined =
         node.operator.type === SegmentOperatorType.HasBeen ||
-        // fixme inspiration
         node.operator.type === SegmentOperatorType.Within
           ? truncateEventTimeExpression(node.operator.windowSeconds)
           : undefined;
@@ -2465,9 +2463,6 @@ export async function computeAssignments({
     );
 
     for (const segment of segments) {
-      if (!idUserProperty) {
-        throw new Error("Missing user id user property");
-      }
       const version = segment.definitionUpdatedAt.toString();
       const period = periodByComputedPropertyId.get({
         computedPropertyId: segment.id,

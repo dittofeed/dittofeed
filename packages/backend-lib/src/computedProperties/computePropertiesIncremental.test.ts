@@ -1931,8 +1931,6 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
-      // FIXME
-      only: true,
       userProperties: [
         {
           name: "id",
@@ -3686,6 +3684,7 @@ describe("computeProperties", () => {
           },
         },
       ],
+      only: true,
       segments: [
         {
           name: "updatedPerformed",
