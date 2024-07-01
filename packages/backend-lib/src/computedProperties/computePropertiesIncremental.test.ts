@@ -83,6 +83,7 @@ async function readAssignments({
     select *
     from computed_property_assignments_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+    order by assigned_at desc
   `;
   const response = await clickhouseClient().query({
     query,
