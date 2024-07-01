@@ -350,7 +350,9 @@ function toTestState(
       const userProperty: SavedUserPropertyResource | undefined =
         userProperties.find((up) => up.id === state.computed_property_id);
       if (!userProperty) {
-        throw new Error("userProperty not found");
+        throw new Error(
+          `userProperty not found for state:\n  properties:\n${userProperties.map((up) => `- ${up.name}\n`).join()}`,
+        );
       }
       let nodeId: string | undefined;
       if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
@@ -542,15 +544,6 @@ async function upsertComputedProperties({
 
   const userPropertyResources = userPropertyModels.map((up) =>
     unwrap(toSavedUserPropertyResource(up)),
-  );
-  logger().info(
-    {
-      userProperties,
-      userPropertyResources,
-      segments,
-      segmentResources,
-    },
-    "upserting test computed properties",
   );
   return {
     segments: segmentResources,
@@ -3677,6 +3670,10 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a within condition",
       userProperties: [
+<<<<<<< HEAD
+=======
+        // FIXME adding this user property breaks test for some reason
+>>>>>>> 9a9aff43 (wip)
         {
           name: "id",
           definition: {
@@ -3684,6 +3681,10 @@ describe("computeProperties", () => {
           },
         },
       ],
+<<<<<<< HEAD
+=======
+      // fixme
+>>>>>>> 9a9aff43 (wip)
       only: true,
       segments: [
         {
@@ -3800,6 +3801,48 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "after receiving an event within the time window, user satisfies new segment definition",
+          // [
+          //   {
+          //     "type": "user_property",
+          //     "name": "id",
+          //     "lastValue": "user-1",
+          //     "uniqueCount": 1,
+          //     "userId": "user-1",
+          //     "maxEventTime": "1970-01-01T00:00:00.000Z"
+          //   },
+          //   {
+          //     "type": "segment",
+          //     "name": "updatedPerformed",
+          //     "nodeId": "1",
+          //     "lastValue": "",
+          //     "uniqueCount": 2,
+          //     "userId": "user-1",
+          //     "maxEventTime": "2024-07-01T05:09:30.000Z"
+          //   },
+          //   {
+          //     "type": "segment",
+          //     "name": "updatedPerformed",
+          //     "lastValue": "",
+          //     "uniqueCount": 1,
+          //     "userId": "user-1",
+          //     "maxEventTime": "1970-01-01T00:00:00.000Z"
+          //   }
+          // ]
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              uniqueCount: 1,
+              name: "updatedPerformed",
+            },
+            // {
+            //   userId: "user-1",
+            //   type: "user_property",
+            //   lastValue: "user-1",
+            //   name: "id",
+            // },
+          ],
           users: [
             {
               id: "user-1",
@@ -4036,6 +4079,8 @@ describe("computeProperties", () => {
       segments: test.segments ?? [],
       now,
     });
+    console.log("loc2", test.userProperties);
+    console.log("loc3", userProperties);
 
     const journeys = await Promise.all(
       test.journeys?.map(({ name, entrySegmentName }) => {

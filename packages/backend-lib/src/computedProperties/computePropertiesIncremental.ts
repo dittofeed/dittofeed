@@ -477,10 +477,6 @@ function segmentToResolvedState({
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       if (node.withinSeconds && node.withinSeconds > 0) {
-        if (!idUserProperty) {
-          logger().error("missing id user property");
-          return [];
-        }
         const checkZeroValue =
           (operator === RelationalOperators.Equals && times === 0) ||
           operator === RelationalOperators.LessThan;
@@ -569,70 +565,74 @@ function segmentToResolvedState({
         `;
         const queries = [greaterThanZeroQuery];
         if (checkZeroValue) {
-          const userIdStateParam = qb.addQueryValue(
-            userPropertyStateId(idUserProperty),
-            "String",
-          );
-          const userIdPropertyIdParam = qb.addQueryValue(
-            idUserProperty.id,
-            "String",
-          );
-          const zeroTimesQuery = `
-            insert into resolved_segment_state
-            select
-              np.workspace_id,
-              ${segmentIdParam},
-              ${stateIdParam},
-              np.user_id,
-              True,
-              np.max_event_time,
-              toDateTime64(${nowSeconds}, 3)
-            from (
-              select
-                workspace_id,
-                user_id,
-                argMaxMerge(last_value) last_id,
-                max(cps.event_time) as max_event_time
-              from computed_property_state_v2 cps
-              where
-                cps.workspace_id = ${workspaceIdParam}
-                and cps.type = 'user_property'
-                and cps.computed_property_id = ${userIdPropertyIdParam}
-                and cps.state_id = ${userIdStateParam}
-                and (
-                  cps.user_id
-                ) not in (
-                  select user_id
-                  from (
-                    select
-                      workspace_id,
-                      computed_property_id,
-                      state_id,
-                      user_id
-                    from computed_property_state_v2 as cps_performed
-                    where ${withinRangeWhereClause}
-                    group by
-                      workspace_id,
-                      computed_property_id,
-                      state_id,
-                      user_id
-                  )
-                )
-                and (
-                  cps.user_id
-                ) not in (
-                  select user_id from resolved_segment_state as rss
-                  where
-                    rss.workspace_id = ${workspaceIdParam}
-                    and rss.segment_id = ${segmentIdParam}
-                    and rss.state_id = ${stateIdParam}
-                    and rss.segment_state_value = True
-                )
-              group by
-                workspace_id,
-                user_id
-            ) as np`;
-          queries.push(zeroTimesQuery);
+          // if (!idUserProperty) {
+          //   logger().error("missing id user property");
+          //   return [];
+          // }
+          // const userIdStateParam = qb.addQueryValue(
+          //   userPropertyStateId(idUserProperty),
+          //   "String",
+          // );
+          // const userIdPropertyIdParam = qb.addQueryValue(
+          //   idUserProperty.id,
+          //   "String",
+          // );
+          // const zeroTimesQuery = `
+          //   insert into resolved_segment_state
+          //   select
+          //     np.workspace_id,
+          //     ${segmentIdParam},
+          //     ${stateIdParam},
+          //     np.user_id,
+          //     True,
+          //     np.max_event_time,
+          //     toDateTime64(${nowSeconds}, 3)
+          //   from (
+          //     select
+          //       workspace_id,
+          //       user_id,
+          //       argMaxMerge(last_value) last_id,
+          //       max(cps.event_time) as max_event_time
+          //     from computed_property_state_v2 cps
+          //     where
+          //       cps.workspace_id = ${workspaceIdParam}
+          //       and cps.type = 'user_property'
+          //       and cps.computed_property_id = ${userIdPropertyIdParam}
+          //       and cps.state_id = ${userIdStateParam}
+          //       and (
+          //         cps.user_id
+          //       ) not in (
+          //         select user_id
+          //         from (
+          //           select
+          //             workspace_id,
+          //             computed_property_id,
+          //             state_id,
+          //             user_id
+          //           from computed_property_state_v2 as cps_performed
+          //           where ${withinRangeWhereClause}
+          //           group by
+          //             workspace_id,
+          //             computed_property_id,
+          //             state_id,
+          //             user_id
+          //         )
+          //       )
+          //       and (
+          //         cps.user_id
+          //       ) not in (
+          //         select user_id from resolved_segment_state as rss
+          //         where
+          //           rss.workspace_id = ${workspaceIdParam}
+          //           and rss.segment_id = ${segmentIdParam}
+          //           and rss.state_id = ${stateIdParam}
+          //           and rss.segment_state_value = True
+          //       )
+          //     group by
+          //       workspace_id,
+          //       user_id
+          //   ) as np`;
+          // queries.push(zeroTimesQuery);
         }
 
         return queries;
