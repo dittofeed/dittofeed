@@ -3609,7 +3609,15 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment is updated with a within condition",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      only: true,
       segments: [
         {
           name: "updatedPerformed",
