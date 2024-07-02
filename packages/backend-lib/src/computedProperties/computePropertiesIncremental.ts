@@ -2361,7 +2361,6 @@ export async function computeAssignments({
   userProperties,
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
-  logger().debug("compute assignments");
   return withSpan({ name: "compute-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 

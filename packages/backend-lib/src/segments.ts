@@ -61,23 +61,6 @@ export async function findAllSegmentAssignments({
     },
   });
 
-  logger().info(
-    {
-      segments,
-    },
-    "loc1",
-  );
-  // with succeeding test
-  //
-  // FIXME with failing test
-  // "SegmentAssignment": [
-  //   {
-  //     "workspaceId": "d2e1cbfd-9dbc-4bb0-9426-ca2bad68921c",
-  //     "userId": "user-1",
-  //     "segmentId": "ddda142b-b7f4-462b-a75a-e8c7f147c274",
-  //     "inSegment": false
-  //   }
-  // ]
   const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
     (memo, curr) => {
       memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
