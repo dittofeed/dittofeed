@@ -1932,7 +1932,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      only: true,
       segments: [
         {
           name: "performed",
@@ -4029,8 +4028,6 @@ describe("computeProperties", () => {
       segments: test.segments ?? [],
       now,
     });
-    console.log("loc2", test.userProperties);
-    console.log("loc3", userProperties);
 
     const journeys = await Promise.all(
       test.journeys?.map(({ name, entrySegmentName }) => {
