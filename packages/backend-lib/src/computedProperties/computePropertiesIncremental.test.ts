@@ -3670,10 +3670,6 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a within condition",
       userProperties: [
-<<<<<<< HEAD
-=======
-        // FIXME adding this user property breaks test for some reason
->>>>>>> 9a9aff43 (wip)
         {
           name: "id",
           definition: {
@@ -3681,10 +3677,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-<<<<<<< HEAD
-=======
-      // fixme
->>>>>>> 9a9aff43 (wip)
       only: true,
       segments: [
         {
@@ -3801,48 +3793,6 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "after receiving an event within the time window, user satisfies new segment definition",
-          // [
-          //   {
-          //     "type": "user_property",
-          //     "name": "id",
-          //     "lastValue": "user-1",
-          //     "uniqueCount": 1,
-          //     "userId": "user-1",
-          //     "maxEventTime": "1970-01-01T00:00:00.000Z"
-          //   },
-          //   {
-          //     "type": "segment",
-          //     "name": "updatedPerformed",
-          //     "nodeId": "1",
-          //     "lastValue": "",
-          //     "uniqueCount": 2,
-          //     "userId": "user-1",
-          //     "maxEventTime": "2024-07-01T05:09:30.000Z"
-          //   },
-          //   {
-          //     "type": "segment",
-          //     "name": "updatedPerformed",
-          //     "lastValue": "",
-          //     "uniqueCount": 1,
-          //     "userId": "user-1",
-          //     "maxEventTime": "1970-01-01T00:00:00.000Z"
-          //   }
-          // ]
-          states: [
-            {
-              userId: "user-1",
-              type: "segment",
-              nodeId: "1",
-              uniqueCount: 1,
-              name: "updatedPerformed",
-            },
-            // {
-            //   userId: "user-1",
-            //   type: "user_property",
-            //   lastValue: "user-1",
-            //   name: "id",
-            // },
-          ],
           users: [
             {
               id: "user-1",
