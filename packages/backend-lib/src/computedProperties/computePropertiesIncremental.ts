@@ -1716,7 +1716,7 @@ function assignStandardUserPropertiesQuery({
     insert into computed_property_assignments_v2
     select
       workspace_id,
-      type,
+      'user_property',
       computed_property_id,
       user_id,
       False as segment_value,
@@ -1726,7 +1726,6 @@ function assignStandardUserPropertiesQuery({
     from (
       select
         workspace_id,
-        type,
         computed_property_id,
         user_id,
         CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
@@ -1760,7 +1759,6 @@ function assignStandardUserPropertiesQuery({
       )
       group by
         workspace_id,
-        type,
         computed_property_id,
         user_id
     )
@@ -2338,34 +2336,21 @@ interface AssignmentQueryGroup {
 async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
   for (const query of queries) {
     if (Array.isArray(query)) {
-      logger().debug(
-        {
-          query,
-        },
-        "array write assignment queries",
+      await Promise.all(
+        query.map((q) =>
+          command({
+            query: q,
+            query_params: qb.getQueries(),
+            clickhouse_settings: { wait_end_of_query: 1 },
+          }),
+        ),
       );
-      for (const q of query) {
-        await command({
-          query: q,
-          query_params: qb.getQueries(),
-          clickhouse_settings: { wait_end_of_query: 1 },
-        });
-      }
-      logger().debug("write assignment array queries complete");
     } else {
-      logger().debug(
-        {
-          query,
-        },
-        "individual write assignment query",
-      );
       await command({
         query,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
-
-      logger().debug("write assignment individual query complete");
     }
   }
 }
@@ -2600,6 +2585,7 @@ export async function computeAssignments({
       });
     }
 
+    // TODO debug why ordering here is relevant
     await Promise.all(segmentQueries.map(execAssignmentQueryGroup));
     await Promise.all(userPropertyQueries.map(execAssignmentQueryGroup));
 
@@ -2790,14 +2776,6 @@ export async function processAssignments({
   journeys,
   now,
 }: ComputePropertiesArgs): Promise<void> {
-  // userProperties = [];
-  logger().debug(
-    {
-      userProperties,
-      segments,
-    },
-    "process assignments",
-  );
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
