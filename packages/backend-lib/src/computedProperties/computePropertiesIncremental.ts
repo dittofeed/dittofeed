@@ -1186,7 +1186,6 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      // FIXME is this getting rounded correctly
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
@@ -1629,7 +1628,6 @@ function userPropertyToSubQuery({
     }
     case UserPropertyDefinitionType.Id: {
       return [
-        // fixme when commenting out succeeds
         {
           condition: "True",
           type: "user_property",
@@ -2079,7 +2077,6 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.Id: {
       const stateId = userPropertyStateId(userProperty);
-      // fixme commenting out succeeds
       return {
         type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
@@ -2333,6 +2330,46 @@ export async function computeState({
   });
 }
 
+interface AssignmentQueryGroup {
+  queries: (string | string[])[];
+  qb: ClickHouseQueryBuilder;
+}
+
+async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
+  for (const query of queries) {
+    if (Array.isArray(query)) {
+      logger().debug(
+        {
+          query,
+        },
+        "array write assignment queries",
+      );
+      for (const q of query) {
+        await command({
+          query: q,
+          query_params: qb.getQueries(),
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+      }
+      logger().debug("write assignment array queries complete");
+    } else {
+      logger().debug(
+        {
+          query,
+        },
+        "individual write assignment query",
+      );
+      await command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      logger().debug("write assignment individual query complete");
+    }
+  }
+}
+
 export async function computeAssignments({
   workspaceId,
   segments,
@@ -2347,10 +2384,8 @@ export async function computeAssignments({
       workspaceId,
       step: ComputedPropertyStep.ComputeAssignments,
     });
-    const queryValues: {
-      queries: (string | string[])[];
-      qb: ClickHouseQueryBuilder;
-    }[] = [];
+    const segmentQueries: AssignmentQueryGroup[] = [];
+    const userPropertyQueries: AssignmentQueryGroup[] = [];
 
     for (const segment of segments) {
       const version = segment.definitionUpdatedAt.toString();
@@ -2516,7 +2551,7 @@ export async function computeAssignments({
         queries.unshift(indexQuery);
       }
 
-      queryValues.push({
+      segmentQueries.push({
         queries,
         qb,
       });
@@ -2559,87 +2594,17 @@ export async function computeAssignments({
         );
         continue;
       }
-      queryValues.push({
+      userPropertyQueries.push({
         queries: [stateQuery],
         qb,
       });
     }
+    for (const group of segmentQueries) {
+      await execAssignmentQueryGroup(group);
+    }
 
-    // await Promise.all(
-    //   queryValues.map(async ({ queries, qb }) => {
-    //     for (const query of queries) {
-    //       if (Array.isArray(query)) {
-    //         logger().debug(
-    //           {
-    //             query,
-    //           },
-    //           "array write assignment queries",
-    //         );
-    //         await Promise.all(
-    //           query.map((q) =>
-    //             command({
-    //               query: q,
-    //               query_params: qb.getQueries(),
-    //               clickhouse_settings: { wait_end_of_query: 1 },
-    //             }),
-    //           ),
-    //         );
-    //         logger().debug("write assignment array queries complete");
-    //       } else {
-    //         logger().debug(
-    //           {
-    //             query,
-    //           },
-    //           "individual write assignment query",
-    //         );
-    //         await command({
-    //           query,
-    //           query_params: qb.getQueries(),
-    //           clickhouse_settings: { wait_end_of_query: 1 },
-    //         });
-
-    //         logger().debug("write assignment individual query complete");
-    //       }
-    //     }
-    //   }),
-    // );
-
-    for (const obj of queryValues) {
-      const { queries, qb } = obj;
-      for (const query of queries) {
-        if (Array.isArray(query)) {
-          logger().debug(
-            {
-              query,
-            },
-            "array write assignment queries",
-          );
-          await Promise.all(
-            query.map((q) =>
-              command({
-                query: q,
-                query_params: qb.getQueries(),
-                clickhouse_settings: { wait_end_of_query: 1 },
-              }),
-            ),
-          );
-          logger().debug("write assignment array queries complete");
-        } else {
-          logger().debug(
-            {
-              query,
-            },
-            "individual write assignment query",
-          );
-          await command({
-            query,
-            query_params: qb.getQueries(),
-            clickhouse_settings: { wait_end_of_query: 1 },
-          });
-
-          logger().debug("write assignment individual query complete");
-        }
-      }
+    for (const group of userPropertyQueries) {
+      await execAssignmentQueryGroup(group);
     }
 
     await createPeriods({
