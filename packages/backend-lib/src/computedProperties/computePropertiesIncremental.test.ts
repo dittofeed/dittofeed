@@ -1989,7 +1989,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      only: true,
       segments: [
         {
           name: "performed",

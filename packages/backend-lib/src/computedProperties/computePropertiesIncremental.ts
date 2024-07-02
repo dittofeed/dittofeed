@@ -476,16 +476,26 @@ function segmentToResolvedState({
       const segmentIdParam = qb.addQueryValue(segment.id, "String");
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
+      const userIdStateParam = idUserProperty
+        ? qb.addQueryValue(userPropertyStateId(idUserProperty), "String")
+        : null;
+
+      const userIdPropertyIdParam = idUserProperty
+        ? qb.addQueryValue(idUserProperty.id, "String")
+        : null;
+
+      const checkZeroValue =
+        ((operator === RelationalOperators.Equals && times === 0) ||
+          operator === RelationalOperators.LessThan) &&
+        userIdStateParam &&
+        userIdPropertyIdParam;
+
+      const checkGreaterThanZeroValue = !(
+        operator === RelationalOperators.Equals && times === 0
+      );
+
       if (node.withinSeconds && node.withinSeconds > 0) {
-        const checkZeroValue =
-          (operator === RelationalOperators.Equals && times === 0) ||
-          operator === RelationalOperators.LessThan;
-
-        const checkGreaterThanZeroValue = !(
-          operator === RelationalOperators.Equals && times === 0
-        );
-
-        // FIXME
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'
@@ -573,18 +583,6 @@ function segmentToResolvedState({
           queries.push(greaterThanZeroQuery);
         }
         if (checkZeroValue) {
-          if (!idUserProperty) {
-            logger().error("missing id user property");
-            return [];
-          }
-          const userIdStateParam = qb.addQueryValue(
-            userPropertyStateId(idUserProperty),
-            "String",
-          );
-          const userIdPropertyIdParam = qb.addQueryValue(
-            idUserProperty.id,
-            "String",
-          );
           const zeroTimesQuery = `
             insert into resolved_segment_state
             select
@@ -645,17 +643,88 @@ function segmentToResolvedState({
 
         return queries;
       }
-      return [
-        buildRecentUpdateSegmentQuery({
-          segmentId: segment.id,
-          periodBound,
-          now,
-          workspaceId,
-          stateId,
-          expression: `uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value`,
-          qb,
-        }),
-      ];
+      const queries: string[] = [];
+      if (checkGreaterThanZeroValue) {
+        queries.push(
+          buildRecentUpdateSegmentQuery({
+            segmentId: segment.id,
+            periodBound,
+            now,
+            workspaceId,
+            stateId,
+            expression: `uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value`,
+            qb,
+          }),
+        );
+      }
+      if (checkZeroValue) {
+        const nowSeconds = now / 1000;
+        const lowerBoundClause = getLowerBoundClause(periodBound);
+
+        const zeroTimesQuery = `
+          insert into resolved_segment_state
+          select
+            np.workspace_id,
+            ${segmentIdParam},
+            ${stateIdParam},
+            np.user_id,
+            True,
+            np.max_event_time,
+            toDateTime64(${nowSeconds}, 3)
+          from (
+            select
+              workspace_id,
+              user_id,
+              argMaxMerge(last_value) last_id,
+              max(cps.event_time) as max_event_time
+            from computed_property_state_v2 cps
+            where
+              cps.workspace_id = ${workspaceIdParam}
+              and cps.type = 'user_property'
+              and cps.computed_property_id = ${userIdPropertyIdParam}
+              and cps.state_id = ${userIdStateParam}
+              and (
+                cps.user_id
+              ) not in (
+                select user_id
+                from (
+                  select
+                    workspace_id,
+                    computed_property_id,
+                    state_id,
+                    user_id
+                  from computed_property_state_v2 as cps_performed
+                  where
+                    workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                    and type = 'segment'
+                    and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
+                    and state_id = ${qb.addQueryValue(stateId, "String")}
+                    and computed_at <= toDateTime64(${nowSeconds}, 3)
+                    ${lowerBoundClause}
+                  group by
+                    workspace_id,
+                    computed_property_id,
+                    state_id,
+                    user_id
+                )
+              )
+              and (
+                cps.user_id
+              ) not in (
+                select user_id from resolved_segment_state as rss
+                where
+                  rss.workspace_id = ${workspaceIdParam}
+                  and rss.segment_id = ${segmentIdParam}
+                  and rss.state_id = ${stateIdParam}
+                  and rss.segment_state_value = True
+              )
+            group by
+              workspace_id,
+              user_id
+          ) as np`;
+        queries.push(zeroTimesQuery);
+      }
+      return queries;
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
