@@ -350,7 +350,9 @@ function toTestState(
       const userProperty: SavedUserPropertyResource | undefined =
         userProperties.find((up) => up.id === state.computed_property_id);
       if (!userProperty) {
-        throw new Error("userProperty not found");
+        throw new Error(
+          `userProperty not found for state:\n  properties:\n${userProperties.map((up) => `- ${up.name}\n`).join()}`,
+        );
       }
       let nodeId: string | undefined;
       if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
@@ -542,15 +544,6 @@ async function upsertComputedProperties({
 
   const userPropertyResources = userPropertyModels.map((up) =>
     unwrap(toSavedUserPropertyResource(up)),
-  );
-  logger().info(
-    {
-      userProperties,
-      userPropertyResources,
-      segments,
-      segmentResources,
-    },
-    "upserting test computed properties",
   );
   return {
     segments: segmentResources,
@@ -1916,6 +1909,148 @@ describe("computeProperties", () => {
               id: "user-2",
               segments: {
                 performed: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment conditions on an event being performed 0 times within a time window",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.Equals,
+              withinSeconds: 500,
+              times: 0,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user who performed unrelated event within time window is in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment conditions on an event being performed less than 2 times",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.LessThan,
+              times: 2,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "excludes user who performed event twice",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
               },
             },
             {
