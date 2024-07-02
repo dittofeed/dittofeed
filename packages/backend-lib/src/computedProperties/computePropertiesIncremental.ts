@@ -2599,13 +2599,9 @@ export async function computeAssignments({
         qb,
       });
     }
-    for (const group of segmentQueries) {
-      await execAssignmentQueryGroup(group);
-    }
 
-    for (const group of userPropertyQueries) {
-      await execAssignmentQueryGroup(group);
-    }
+    await Promise.all(segmentQueries.map(execAssignmentQueryGroup));
+    await Promise.all(userPropertyQueries.map(execAssignmentQueryGroup));
 
     await createPeriods({
       workspaceId,
