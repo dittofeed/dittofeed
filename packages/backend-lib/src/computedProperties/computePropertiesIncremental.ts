@@ -1186,6 +1186,7 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
+      // FIXME is this getting rounded correctly
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
@@ -1628,6 +1629,7 @@ function userPropertyToSubQuery({
     }
     case UserPropertyDefinitionType.Id: {
       return [
+        // fixme when commenting out succeeds
         {
           condition: "True",
           type: "user_property",
@@ -2077,6 +2079,7 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.Id: {
       const stateId = userPropertyStateId(userProperty);
+      // fixme commenting out succeeds
       return {
         type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
@@ -2336,6 +2339,7 @@ export async function computeAssignments({
   userProperties,
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
+  logger().debug("compute assignments");
   return withSpan({ name: "compute-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
@@ -2530,6 +2534,12 @@ export async function computeAssignments({
         qb,
       });
       if (!ac) {
+        logger().debug(
+          {
+            userProperty,
+          },
+          "skipping write assignment for user property. failed to generate config",
+        );
         continue;
       }
       const stateQuery = assignUserPropertiesQuery({
@@ -2541,6 +2551,12 @@ export async function computeAssignments({
         periodBound: period?.maxTo.getTime(),
       });
       if (!stateQuery) {
+        logger().debug(
+          {
+            userProperty,
+          },
+          "skipping write assignment for user property. failed to build query",
+        );
         continue;
       }
       queryValues.push({
@@ -2549,29 +2565,82 @@ export async function computeAssignments({
       });
     }
 
-    await Promise.all(
-      queryValues.map(async ({ queries, qb }) => {
-        for (const query of queries) {
-          if (Array.isArray(query)) {
-            await Promise.all(
-              query.map(async (q) => {
-                await command({
-                  query: q,
-                  query_params: qb.getQueries(),
-                  clickhouse_settings: { wait_end_of_query: 1 },
-                });
-              }),
-            );
-          } else {
-            await command({
+    // await Promise.all(
+    //   queryValues.map(async ({ queries, qb }) => {
+    //     for (const query of queries) {
+    //       if (Array.isArray(query)) {
+    //         logger().debug(
+    //           {
+    //             query,
+    //           },
+    //           "array write assignment queries",
+    //         );
+    //         await Promise.all(
+    //           query.map((q) =>
+    //             command({
+    //               query: q,
+    //               query_params: qb.getQueries(),
+    //               clickhouse_settings: { wait_end_of_query: 1 },
+    //             }),
+    //           ),
+    //         );
+    //         logger().debug("write assignment array queries complete");
+    //       } else {
+    //         logger().debug(
+    //           {
+    //             query,
+    //           },
+    //           "individual write assignment query",
+    //         );
+    //         await command({
+    //           query,
+    //           query_params: qb.getQueries(),
+    //           clickhouse_settings: { wait_end_of_query: 1 },
+    //         });
+
+    //         logger().debug("write assignment individual query complete");
+    //       }
+    //     }
+    //   }),
+    // );
+
+    for (const obj of queryValues) {
+      const { queries, qb } = obj;
+      for (const query of queries) {
+        if (Array.isArray(query)) {
+          logger().debug(
+            {
               query,
-              query_params: qb.getQueries(),
-              clickhouse_settings: { wait_end_of_query: 1 },
-            });
-          }
+            },
+            "array write assignment queries",
+          );
+          await Promise.all(
+            query.map((q) =>
+              command({
+                query: q,
+                query_params: qb.getQueries(),
+                clickhouse_settings: { wait_end_of_query: 1 },
+              }),
+            ),
+          );
+          logger().debug("write assignment array queries complete");
+        } else {
+          logger().debug(
+            {
+              query,
+            },
+            "individual write assignment query",
+          );
+          await command({
+            query,
+            query_params: qb.getQueries(),
+            clickhouse_settings: { wait_end_of_query: 1 },
+          });
+
+          logger().debug("write assignment individual query complete");
         }
-      }),
-    );
+      }
+    }
 
     await createPeriods({
       workspaceId,
@@ -2760,6 +2829,14 @@ export async function processAssignments({
   journeys,
   now,
 }: ComputePropertiesArgs): Promise<void> {
+  // userProperties = [];
+  logger().debug(
+    {
+      userProperties,
+      segments,
+    },
+    "process assignments",
+  );
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 

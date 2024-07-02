@@ -171,7 +171,16 @@ export async function streamClickhouseQuery(
   const stream = q.stream();
   const rowPromises: Promise<unknown>[] = [];
 
+  stream.on("error", (e) => {
+    logger().error(
+      {
+        err: e,
+      },
+      "streaming clickhouse error",
+    );
+  });
   stream.on("data", (rows: Row[]) => {
+    logger().debug("stream clickhouse data");
     const promise = (async () => {
       const json = await Promise.all(rows.map((row) => row.json()));
       await cb(json);
@@ -182,6 +191,7 @@ export async function streamClickhouseQuery(
   await Promise.all([
     new Promise((resolve) => {
       stream.on("end", () => {
+        logger().debug("stream clickhouse end");
         resolve(0);
       });
     }),

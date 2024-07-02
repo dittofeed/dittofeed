@@ -482,6 +482,7 @@ async function upsertComputedProperties({
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
 }> {
+  // FIXME only upsert definition updated at if the definition changed
   await Promise.all([
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
@@ -542,6 +543,15 @@ async function upsertComputedProperties({
 
   const userPropertyResources = userPropertyModels.map((up) =>
     unwrap(toSavedUserPropertyResource(up)),
+  );
+  logger().info(
+    {
+      userProperties,
+      userPropertyResources,
+      segments,
+      segmentResources,
+    },
+    "upserting test computed properties",
   );
   return {
     segments: segmentResources,
@@ -3611,8 +3621,25 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a within condition",
       userProperties: [
+        // FIXME
+        // fails with
+        // {
+        //   name: "id",
+        //   definition: {
+        //     type: UserPropertyDefinitionType.Id,
+        //   },
+        // },
+        // passes with
+        // {
+        //   name: "email",
+        //   definition: {
+        //     type: UserPropertyDefinitionType.Trait,
+        //     path: "email",
+        //   },
+        // },
+        // FIXME fails with
         {
-          name: "id",
+          name: "otherId",
           definition: {
             type: UserPropertyDefinitionType.Id,
           },
@@ -3728,9 +3755,107 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          type: EventsStepType.DebugAssignments,
+        },
+        // when test fails
+        // assignments: [
+        //   {
+        //     "workspace_id": "21184102-7a88-47d7-8e23-c88f9f4838b1",
+        //     "type": "user_property",
+        //     "computed_property_id": "7352549a-1572-4073-8c5d-d98091926f64",
+        //     "user_id": "user-1",
+        //     "segment_value": false,
+        //     "user_property_value": "user-1",
+        //     "max_event_time": "1970-01-01 00:00:00.000",
+        //     "assigned_at": "2024-07-01 21:23:44.203"
+        //   },
+        //   {
+        //     "workspace_id": "21184102-7a88-47d7-8e23-c88f9f4838b1",
+        //     "type": "segment",
+        //     "computed_property_id": "fc35c619-d2d4-4838-aa98-5c0d29404216",
+        //     "user_id": "user-1",
+        //     "segment_value": false,
+        //     "user_property_value": "",
+        //     "max_event_time": "1970-01-01 00:00:00.000",
+        //     "assigned_at": "2024-07-01 21:23:44.203"
+        //   },
+        //   {
+        //     "workspace_id": "21184102-7a88-47d7-8e23-c88f9f4838b1",
+        //     "type": "segment",
+        //     "computed_property_id": "fc35c619-d2d4-4838-aa98-5c0d29404216",
+        //     "user_id": "user-1",
+        //     "segment_value": true,
+        //     "user_property_value": "",
+        //     "max_event_time": "2024-07-01 21:23:44.000",
+        //     "assigned_at": "2024-07-01 21:23:44.203"
+
+        //   when test succeeds
+        // assignments: [
+        //   {
+        //     "workspace_id": "1ffe9aaf-19b3-4edc-87ae-ac69ea30b099",
+        //     "type": "segment",
+        //     "computed_property_id": "312b62eb-bdd2-4025-8168-ada80c5b5e4a",
+        //     "user_id": "user-1",
+        //     "segment_value": true,
+        //     "user_property_value": "",
+        //     "max_event_time": "2024-07-01 21:33:48.000",
+        //     "assigned_at": "2024-07-01 21:33:48.325"
+        //   },
+        //   {
+        //     "workspace_id": "1ffe9aaf-19b3-4edc-87ae-ac69ea30b099",
+        //     "type": "segment",
+        //     "computed_property_id": "312b62eb-bdd2-4025-8168-ada80c5b5e4a",
+        //     "user_id": "user-1",
+        //     "segment_value": false,
+        //     "user_property_value": "",
+        //     "max_event_time": "1970-01-01 00:00:00.000",
+        //     "assigned_at": "2024-07-01 21:33:48.325"
+        //   },
+        //   {
+        //     "workspace_id": "1ffe9aaf-19b3-4edc-87ae-ac69ea30b099",
+        //     "type": "segment",
+        //     "computed_property_id": "312b62eb-bdd2-4025-8168-ada80c5b5e4a",
+        //     "user_id": "user-1",
+        //     "segment_value": false,
+        //     "user_property_value": "",
+        //     "max_event_time": "1970-01-01 00:00:00.000",
+        //     "assigned_at": "2024-07-01 21:33:47.325"
+        //   },
+        //   {
+        //     "workspace_id": "1ffe9aaf-19b3-4edc-87ae-ac69ea30b099",
+        //     "type": "segment",
+        //     "computed_property_id": "312b62eb-bdd2-4025-8168-ada80c5b5e4a",
+        //     "user_id": "user-1",
+        //     "segment_value": true,
+        //     "user_property_value": "",
+        //     "max_event_time": "1970-01-01 00:00:00.000",
+        //     "assigned_at": "2024-07-01 21:32:57.325"
+        //   }
+        // ]
+        {
           type: EventsStepType.Assert,
+          // FIXME
           description:
             "after receiving an event within the time window, user satisfies new segment definition",
+          // note changed
+          // weird that it's 2 instead of 1 but unchanged
+          // states: [
+          //   {
+          //     userId: "user-1",
+          //     type: "segment",
+          //     nodeId: "1",
+          //     uniqueCount: 2,
+          //     name: "updatedPerformed",
+          //   },
+          // ],
+          // resolvedSegmentStates: [
+          //   {
+          //     userId: "user-1",
+          //     nodeId: "1",
+          //     segmentStateValue: true,
+          //     name: "updatedPerformed",
+          //   },
+          // ],
           users: [
             {
               id: "user-1",
