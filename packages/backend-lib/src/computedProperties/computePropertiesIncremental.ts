@@ -658,7 +658,6 @@ function segmentToResolvedState({
         );
       }
       if (checkZeroValue) {
-        const nowSeconds = now / 1000;
         const lowerBoundClause = getLowerBoundClause(periodBound);
 
         const zeroTimesQuery = `
