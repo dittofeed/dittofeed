@@ -1932,6 +1932,7 @@ describe("computeProperties", () => {
           },
         },
       ],
+      only: true,
       segments: [
         {
           name: "performed",
@@ -3677,7 +3678,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      only: true,
       segments: [
         {
           name: "updatedPerformed",
