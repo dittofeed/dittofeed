@@ -83,6 +83,7 @@ async function readAssignments({
     select *
     from computed_property_assignments_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+    order by assigned_at desc
   `;
   const response = await clickhouseClient().query({
     query,
@@ -481,54 +482,76 @@ async function upsertComputedProperties({
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
 }> {
-  const [userPropertyResources, segmentResources] = await Promise.all([
-    Promise.all(
-      userProperties.map(async (up) => {
-        const model = await prisma().userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: up.name,
-            },
-          },
-          create: {
+  await Promise.all([
+    ...userProperties.map((up) =>
+      prisma().userProperty.upsert({
+        where: {
+          workspaceId_name: {
             workspaceId,
             name: up.name,
-            definition: up.definition,
-            definitionUpdatedAt: new Date(now),
           },
-          update: {
-            definition: up.definition,
-            definitionUpdatedAt: new Date(now),
-          },
-        });
-        return unwrap(toSavedUserPropertyResource(model));
+        },
+        create: {
+          workspaceId,
+          name: up.name,
+          definition: up.definition,
+          definitionUpdatedAt: new Date(now),
+        },
+        update: {
+          definition: up.definition,
+          definitionUpdatedAt: new Date(now),
+        },
       }),
     ),
-    Promise.all(
-      segments.map(async (s) => {
-        const model = await prisma().segment.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: s.name,
-            },
-          },
-          create: {
+    ...segments.map((s) =>
+      prisma().segment.upsert({
+        where: {
+          workspaceId_name: {
             workspaceId,
             name: s.name,
-            definition: s.definition,
-            definitionUpdatedAt: new Date(now),
           },
-          update: {
-            definition: s.definition,
-            definitionUpdatedAt: new Date(now),
-          },
-        });
-        return unwrap(toSegmentResource(model));
+        },
+        create: {
+          workspaceId,
+          name: s.name,
+          definition: s.definition,
+          definitionUpdatedAt: new Date(now),
+        },
+        update: {
+          definition: s.definition,
+          definitionUpdatedAt: new Date(now),
+        },
       }),
     ),
   ]);
+  const [segmentModels, userPropertyModels] = await Promise.all([
+    prisma().segment.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
+    prisma().userProperty.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
+  ]);
+  const segmentResources = segmentModels.map((s) =>
+    unwrap(toSegmentResource(s)),
+  );
+
+  const userPropertyResources = userPropertyModels.map((up) =>
+    unwrap(toSavedUserPropertyResource(up)),
+  );
+  logger().info(
+    {
+      userProperties,
+      userPropertyResources,
+      segments,
+      segmentResources,
+    },
+    "upserting test computed properties",
+  );
   return {
     segments: segmentResources,
     userProperties: userPropertyResources,
@@ -3596,7 +3619,14 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment is updated with a within condition",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "updatedPerformed",
@@ -3704,6 +3734,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,

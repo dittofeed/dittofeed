@@ -1,5 +1,6 @@
 import { err, ok, Result } from "neverthrow";
 import { createTransport } from "nodemailer";
+import Mail from "nodemailer/lib/mailer";
 import { Overwrite } from "utility-types";
 
 import {
@@ -9,7 +10,6 @@ import {
   MessageSmtpFailure,
   SmtpSecret,
 } from "../types";
-import Mail from "nodemailer/lib/mailer";
 
 export type SendSmtpMailParams = Overwrite<
   SmtpSecret,

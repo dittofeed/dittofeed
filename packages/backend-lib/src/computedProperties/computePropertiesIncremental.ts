@@ -1716,7 +1716,7 @@ function assignStandardUserPropertiesQuery({
     insert into computed_property_assignments_v2
     select
       workspace_id,
-      type,
+      'user_property',
       computed_property_id,
       user_id,
       False as segment_value,
@@ -1726,7 +1726,6 @@ function assignStandardUserPropertiesQuery({
     from (
       select
         workspace_id,
-        type,
         computed_property_id,
         user_id,
         CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
@@ -1760,7 +1759,6 @@ function assignStandardUserPropertiesQuery({
       )
       group by
         workspace_id,
-        type,
         computed_property_id,
         user_id
     )
@@ -2330,6 +2328,33 @@ export async function computeState({
   });
 }
 
+interface AssignmentQueryGroup {
+  queries: (string | string[])[];
+  qb: ClickHouseQueryBuilder;
+}
+
+async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
+  for (const query of queries) {
+    if (Array.isArray(query)) {
+      await Promise.all(
+        query.map((q) =>
+          command({
+            query: q,
+            query_params: qb.getQueries(),
+            clickhouse_settings: { wait_end_of_query: 1 },
+          }),
+        ),
+      );
+    } else {
+      await command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+    }
+  }
+}
+
 export async function computeAssignments({
   workspaceId,
   segments,
@@ -2343,10 +2368,8 @@ export async function computeAssignments({
       workspaceId,
       step: ComputedPropertyStep.ComputeAssignments,
     });
-    const queryValues: {
-      queries: (string | string[])[];
-      qb: ClickHouseQueryBuilder;
-    }[] = [];
+    const segmentQueries: AssignmentQueryGroup[] = [];
+    const userPropertyQueries: AssignmentQueryGroup[] = [];
 
     for (const segment of segments) {
       const version = segment.definitionUpdatedAt.toString();
@@ -2512,7 +2535,7 @@ export async function computeAssignments({
         queries.unshift(indexQuery);
       }
 
-      queryValues.push({
+      segmentQueries.push({
         queries,
         qb,
       });
@@ -2530,6 +2553,12 @@ export async function computeAssignments({
         qb,
       });
       if (!ac) {
+        logger().debug(
+          {
+            userProperty,
+          },
+          "skipping write assignment for user property. failed to generate config",
+        );
         continue;
       }
       const stateQuery = assignUserPropertiesQuery({
@@ -2541,37 +2570,23 @@ export async function computeAssignments({
         periodBound: period?.maxTo.getTime(),
       });
       if (!stateQuery) {
+        logger().debug(
+          {
+            userProperty,
+          },
+          "skipping write assignment for user property. failed to build query",
+        );
         continue;
       }
-      queryValues.push({
+      userPropertyQueries.push({
         queries: [stateQuery],
         qb,
       });
     }
 
-    await Promise.all(
-      queryValues.map(async ({ queries, qb }) => {
-        for (const query of queries) {
-          if (Array.isArray(query)) {
-            await Promise.all(
-              query.map(async (q) => {
-                await command({
-                  query: q,
-                  query_params: qb.getQueries(),
-                  clickhouse_settings: { wait_end_of_query: 1 },
-                });
-              }),
-            );
-          } else {
-            await command({
-              query,
-              query_params: qb.getQueries(),
-              clickhouse_settings: { wait_end_of_query: 1 },
-            });
-          }
-        }
-      }),
-    );
+    // TODO debug why ordering here is relevant
+    await Promise.all(segmentQueries.map(execAssignmentQueryGroup));
+    await Promise.all(userPropertyQueries.map(execAssignmentQueryGroup));
 
     await createPeriods({
       workspaceId,
