@@ -2035,11 +2035,43 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Assert,
           description: "excludes user who performed event twice",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "continues to show the same results after second compute properties",
           users: [
             {
               id: "user-1",
