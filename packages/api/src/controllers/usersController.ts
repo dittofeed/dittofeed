@@ -25,13 +25,7 @@ export default async function usersController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const result = await getUsers({
-        workspaceId: request.body.workspaceId,
-        cursor: request.body.cursor,
-        direction: request.body.direction,
-        segmentFilter: request.body.segmentFilter,
-        userPropertyFilter: request.body.userPropertyFilter,
-      });
+      const result = await getUsers(request.body);
       if (result.isErr()) {
         return reply.status(400).send({
           message: result.error.message,
