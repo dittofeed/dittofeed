@@ -99,6 +99,7 @@ export default async function router(
         f.register(eventsController, { prefix: "/events" }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
         f.register(segmentsController, { prefix: "/segments" }),
+        f.register(contentController, { prefix: "/content" }),
       ]);
     },
     { prefix: "/api/admin" },

@@ -216,6 +216,7 @@
                   "definition": {
                     "anyOf": [
                       {
+                        "description": "Mobile push template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -255,6 +256,7 @@
                         ]
                       },
                       {
+                        "description": "Email template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -291,6 +293,7 @@
                         ]
                       },
                       {
+                        "description": "SMS template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -309,6 +312,7 @@
                         ]
                       },
                       {
+                        "description": "Webhook template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -337,6 +341,7 @@
                       {
                         "anyOf": [
                           {
+                            "description": "Mobile push template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -376,6 +381,7 @@
                             ]
                           },
                           {
+                            "description": "Email template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -412,6 +418,7 @@
                             ]
                           },
                           {
+                            "description": "SMS template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -430,6 +437,7 @@
                             ]
                           },
                           {
+                            "description": "Webhook template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -515,6 +523,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -554,6 +563,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -590,6 +600,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -608,6 +619,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -634,6 +646,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -673,6 +686,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -709,6 +723,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -727,6 +742,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -950,6 +966,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -989,6 +1006,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1025,6 +1043,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1043,6 +1062,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1069,6 +1089,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1108,6 +1129,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1144,6 +1166,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1162,6 +1185,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21095,6 +21119,1802 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/admin/content/templates/render": {
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "description": "Render message template.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "channel": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Email"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MobilePush"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Sms"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
+                      }
+                    ]
+                  },
+                  "subscriptionGroupId": {
+                    "type": "string"
+                  },
+                  "contents": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        },
+                        "mjml": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ]
+                    }
+                  },
+                  "userProperties": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "tags": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "channel",
+                  "contents",
+                  "userProperties"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contents": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Ok"
+                                ]
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "value"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Err"
+                                ]
+                              },
+                              "err": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "err"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "contents"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/templates": {
+      "put": {
+        "tags": [
+          "Content"
+        ],
+        "description": "Create or update message template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "definition": {
+                    "anyOf": [
+                      {
+                        "description": "Mobile push template resource",
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "MobilePush"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "imageUrl": {
+                            "type": "string"
+                          },
+                          "android": {
+                            "type": "object",
+                            "properties": {
+                              "notification": {
+                                "type": "object",
+                                "properties": {
+                                  "channelId": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "notification"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ]
+                      },
+                      {
+                        "description": "Email template resource",
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Email"
+                            ]
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "type": "string"
+                          },
+                          "replyTo": {
+                            "type": "string"
+                          },
+                          "attachmentUserProperties": {
+                            "description": "Names of user properties to attach to the email as attachments.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "from",
+                          "body",
+                          "subject"
+                        ]
+                      },
+                      {
+                        "description": "SMS template resource",
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Sms"
+                            ]
+                          },
+                          "body": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "body"
+                        ]
+                      },
+                      {
+                        "description": "Webhook template resource",
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Webhook"
+                            ]
+                          },
+                          "identifierKey": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "identifierKey",
+                          "body"
+                        ]
+                      }
+                    ]
+                  },
+                  "draft": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "description": "Mobile push template resource",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "MobilePush"
+                                ]
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              },
+                              "imageUrl": {
+                                "type": "string"
+                              },
+                              "android": {
+                                "type": "object",
+                                "properties": {
+                                  "notification": {
+                                    "type": "object",
+                                    "properties": {
+                                      "channelId": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "notification"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          },
+                          {
+                            "description": "Email template resource",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "from",
+                              "body",
+                              "subject"
+                            ]
+                          },
+                          {
+                            "description": "SMS template resource",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Sms"
+                                ]
+                              },
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "body"
+                            ]
+                          },
+                          {
+                            "description": "Webhook template resource",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Webhook"
+                                ]
+                              },
+                              "identifierKey": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "identifierKey",
+                              "body"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Email"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "MobilePush"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Sms"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Webhook"
+                          ]
+                        }
+                      ]
+                    },
+                    "definition": {
+                      "anyOf": [
+                        {
+                          "description": "Mobile push template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "MobilePush"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "imageUrl": {
+                              "type": "string"
+                            },
+                            "android": {
+                              "type": "object",
+                              "properties": {
+                                "notification": {
+                                  "type": "object",
+                                  "properties": {
+                                    "channelId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "notification"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "description": "Email template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Email"
+                              ]
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "subject": {
+                              "type": "string"
+                            },
+                            "replyTo": {
+                              "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "from",
+                            "body",
+                            "subject"
+                          ]
+                        },
+                        {
+                          "description": "SMS template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Sms"
+                              ]
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "body"
+                          ]
+                        },
+                        {
+                          "description": "Webhook template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "body"
+                          ]
+                        }
+                      ]
+                    },
+                    "draft": {
+                      "anyOf": [
+                        {
+                          "description": "Mobile push template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "MobilePush"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "imageUrl": {
+                              "type": "string"
+                            },
+                            "android": {
+                              "type": "object",
+                              "properties": {
+                                "notification": {
+                                  "type": "object",
+                                  "properties": {
+                                    "channelId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "notification"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "description": "Email template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Email"
+                              ]
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "subject": {
+                              "type": "string"
+                            },
+                            "replyTo": {
+                              "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "from",
+                            "body",
+                            "subject"
+                          ]
+                        },
+                        {
+                          "description": "SMS template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Sms"
+                              ]
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "body"
+                          ]
+                        },
+                        {
+                          "description": "Webhook template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "body"
+                          ]
+                        }
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "workspaceId",
+                    "id",
+                    "name",
+                    "type",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Content"
+        ],
+        "description": "Delete a message template.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Email"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MobilePush"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Sms"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/templates/reset": {
+      "put": {
+        "tags": [
+          "Content"
+        ],
+        "description": "Create or update message template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Email"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MobilePush"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Sms"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "id",
+                  "type"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Email"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "MobilePush"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Sms"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Webhook"
+                          ]
+                        }
+                      ]
+                    },
+                    "definition": {
+                      "anyOf": [
+                        {
+                          "description": "Mobile push template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "MobilePush"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "imageUrl": {
+                              "type": "string"
+                            },
+                            "android": {
+                              "type": "object",
+                              "properties": {
+                                "notification": {
+                                  "type": "object",
+                                  "properties": {
+                                    "channelId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "notification"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "description": "Email template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Email"
+                              ]
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "subject": {
+                              "type": "string"
+                            },
+                            "replyTo": {
+                              "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "from",
+                            "body",
+                            "subject"
+                          ]
+                        },
+                        {
+                          "description": "SMS template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Sms"
+                              ]
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "body"
+                          ]
+                        },
+                        {
+                          "description": "Webhook template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "body"
+                          ]
+                        }
+                      ]
+                    },
+                    "draft": {
+                      "anyOf": [
+                        {
+                          "description": "Mobile push template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "MobilePush"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "imageUrl": {
+                              "type": "string"
+                            },
+                            "android": {
+                              "type": "object",
+                              "properties": {
+                                "notification": {
+                                  "type": "object",
+                                  "properties": {
+                                    "channelId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "notification"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "description": "Email template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Email"
+                              ]
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            },
+                            "subject": {
+                              "type": "string"
+                            },
+                            "replyTo": {
+                              "type": "string"
+                            },
+                            "attachmentUserProperties": {
+                              "description": "Names of user properties to attach to the email as attachments.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "from",
+                            "body",
+                            "subject"
+                          ]
+                        },
+                        {
+                          "description": "SMS template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Sms"
+                              ]
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "body"
+                          ]
+                        },
+                        {
+                          "description": "Webhook template resource",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "body": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "body"
+                          ]
+                        }
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "workspaceId",
+                    "id",
+                    "name",
+                    "type",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/templates/test": {
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "description": "Send a test message for a message template.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "templateId": {
+                        "type": "string"
+                      },
+                      "userProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "Email"
+                        ]
+                      },
+                      "provider": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "SendGrid"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "AmazonSes"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Resend"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "PostMark"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Smtp"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Test"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "templateId",
+                      "userProperties",
+                      "channel"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "templateId": {
+                        "type": "string"
+                      },
+                      "userProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "Sms"
+                        ]
+                      },
+                      "provider": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Twilio"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Test"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "templateId",
+                      "userProperties",
+                      "channel"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "templateId": {
+                        "type": "string"
+                      },
+                      "userProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "MobilePush"
+                        ]
+                      },
+                      "provider": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Firebase"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Test"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "templateId",
+                      "userProperties",
+                      "channel"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "templateId": {
+                        "type": "string"
+                      },
+                      "userProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "tags": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "templateId",
+                      "userProperties",
+                      "channel"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Ok"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DFInternalMessageSent"
+                                  ]
+                                },
+                                "variant": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Email"
+                                          ]
+                                        },
+                                        "provider": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "SendGrid"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "AmazonSes"
+                                                  ]
+                                                },
+                                                "messageId": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "PostMark"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Resend"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Smtp"
+                                                  ]
+                                                },
+                                                "messageId": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "messageId"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Test"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "headers": {
+                                          "type": "object",
+                                          "additionalProperties": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "body": {
+                                          "type": "string"
+                                        },
+                                        "subject": {
+                                          "type": "string"
+                                        },
+                                        "replyTo": {
+                                          "type": "string"
+                                        },
+                                        "attachmentUserProperties": {
+                                          "description": "Names of user properties to attach to the email as attachments.",
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "provider",
+                                        "to",
+                                        "from",
+                                        "body",
+                                        "subject"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Sms"
+                                          ]
+                                        },
+                                        "provider": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Twilio"
+                                                  ]
+                                                },
+                                                "sid": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "sid"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Test"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "body": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "provider",
+                                        "to",
+                                        "body"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Webhook"
+                                          ]
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "request": {
+                                          "type": "object",
+                                          "properties": {
+                                            "url": {
+                                              "type": "string"
+                                            },
+                                            "method": {
+                                              "type": "string"
+                                            },
+                                            "headers": {
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "params": {},
+                                            "data": {},
+                                            "responseType": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "json"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "text"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "response": {
+                                          "type": "object",
+                                          "properties": {
+                                            "status": {
+                                              "type": "number"
+                                            },
+                                            "headers": {
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "body": {}
+                                          },
+                                          "required": [
+                                            "body"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "to",
+                                        "request",
+                                        "response"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "variant"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DFMessageSkipped"
+                                  ]
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "value"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Err"
+                          ]
+                        },
+                        "err": {
+                          "type": "object",
+                          "properties": {
+                            "suggestions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "responseData": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "suggestions"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "err"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
