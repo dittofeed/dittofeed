@@ -216,6 +216,7 @@
                   "definition": {
                     "anyOf": [
                       {
+                        "description": "Mobile push template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -255,6 +256,7 @@
                         ]
                       },
                       {
+                        "description": "Email template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -291,6 +293,7 @@
                         ]
                       },
                       {
+                        "description": "SMS template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -309,6 +312,7 @@
                         ]
                       },
                       {
+                        "description": "Webhook template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -337,6 +341,7 @@
                       {
                         "anyOf": [
                           {
+                            "description": "Mobile push template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -376,6 +381,7 @@
                             ]
                           },
                           {
+                            "description": "Email template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -412,6 +418,7 @@
                             ]
                           },
                           {
+                            "description": "SMS template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -430,6 +437,7 @@
                             ]
                           },
                           {
+                            "description": "Webhook template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -515,6 +523,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -554,6 +563,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -590,6 +600,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -608,6 +619,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -634,6 +646,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -673,6 +686,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -709,6 +723,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -727,6 +742,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -950,6 +966,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -989,6 +1006,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1025,6 +1043,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1043,6 +1062,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1069,6 +1089,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1108,6 +1129,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1144,6 +1166,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -1162,6 +1185,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21288,6 +21312,7 @@
                   "definition": {
                     "anyOf": [
                       {
+                        "description": "Mobile push template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -21327,6 +21352,7 @@
                         ]
                       },
                       {
+                        "description": "Email template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -21363,6 +21389,7 @@
                         ]
                       },
                       {
+                        "description": "SMS template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -21381,6 +21408,7 @@
                         ]
                       },
                       {
+                        "description": "Webhook template resource",
                         "type": "object",
                         "properties": {
                           "type": {
@@ -21409,6 +21437,7 @@
                       {
                         "anyOf": [
                           {
+                            "description": "Mobile push template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -21448,6 +21477,7 @@
                             ]
                           },
                           {
+                            "description": "Email template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -21484,6 +21514,7 @@
                             ]
                           },
                           {
+                            "description": "SMS template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -21502,6 +21533,7 @@
                             ]
                           },
                           {
+                            "description": "Webhook template resource",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -21587,6 +21619,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21626,6 +21659,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21662,6 +21696,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21680,6 +21715,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21706,6 +21742,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21745,6 +21782,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21781,6 +21819,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -21799,6 +21838,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22022,6 +22062,7 @@
                     "definition": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22061,6 +22102,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22097,6 +22139,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22115,6 +22158,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22141,6 +22185,7 @@
                     "draft": {
                       "anyOf": [
                         {
+                          "description": "Mobile push template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22180,6 +22225,7 @@
                           ]
                         },
                         {
+                          "description": "Email template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22216,6 +22262,7 @@
                           ]
                         },
                         {
+                          "description": "SMS template resource",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -22234,6 +22281,7 @@
                           ]
                         },
                         {
+                          "description": "Webhook template resource",
                           "type": "object",
                           "properties": {
                             "type": {

@@ -984,12 +984,17 @@ export const EmailContents = Type.Object({
   ),
 });
 
-export const EmailTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Email),
-  }),
-  EmailContents,
-]);
+export const EmailTemplateResource = Type.Composite(
+  [
+    Type.Object({
+      type: Type.Literal(ChannelType.Email),
+    }),
+    EmailContents,
+  ],
+  {
+    description: "Email template resource",
+  },
+);
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
@@ -1003,19 +1008,24 @@ export const EmailConfiguration = Type.Composite([
 
 export type EmailConfiguration = Static<typeof EmailConfiguration>;
 
-export const MobilePushTemplateResource = Type.Object({
-  type: Type.Literal(ChannelType.MobilePush),
-  title: Type.Optional(Type.String()),
-  body: Type.Optional(Type.String()),
-  imageUrl: Type.Optional(Type.String()),
-  android: Type.Optional(
-    Type.Object({
-      notification: Type.Object({
-        channelId: Type.Optional(Type.String()),
+export const MobilePushTemplateResource = Type.Object(
+  {
+    type: Type.Literal(ChannelType.MobilePush),
+    title: Type.Optional(Type.String()),
+    body: Type.Optional(Type.String()),
+    imageUrl: Type.Optional(Type.String()),
+    android: Type.Optional(
+      Type.Object({
+        notification: Type.Object({
+          channelId: Type.Optional(Type.String()),
+        }),
       }),
-    }),
-  ),
-});
+    ),
+  },
+  {
+    description: "Mobile push template resource",
+  },
+);
 
 export type MobilePushTemplateResource = Static<
   typeof MobilePushTemplateResource
@@ -1025,12 +1035,17 @@ const SmsContents = Type.Object({
   body: Type.String(),
 });
 
-export const SmsTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Sms),
-  }),
-  SmsContents,
-]);
+export const SmsTemplateResource = Type.Composite(
+  [
+    Type.Object({
+      type: Type.Literal(ChannelType.Sms),
+    }),
+    SmsContents,
+  ],
+  {
+    description: "SMS template resource",
+  },
+);
 
 export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
 
@@ -1055,12 +1070,17 @@ export const WebhookContents = Type.Object({
 
 export type WebhookContents = Static<typeof WebhookContents>;
 
-export const WebhookTemplateResource = Type.Composite([
-  Type.Object({
-    type: Type.Literal(ChannelType.Webhook),
-  }),
-  WebhookContents,
-]);
+export const WebhookTemplateResource = Type.Composite(
+  [
+    Type.Object({
+      type: Type.Literal(ChannelType.Webhook),
+    }),
+    WebhookContents,
+  ],
+  {
+    description: "Webhook template resource",
+  },
+);
 
 export type WebhookTemplateResource = Static<typeof WebhookTemplateResource>;
 

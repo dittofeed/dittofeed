@@ -221,8 +221,8 @@
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
         "api-reference/auto/events/get-apiadminevents",
-        "api-reference/auto/content/delete-apiadmincontenttemplates",
-        "api-reference/auto/content/put-apiadmincontenttemplates"
+        "api-reference/auto/content/put-apiadmincontenttemplates",
+        "api-reference/auto/content/delete-apiadmincontenttemplates"
       ]
     },
     {
