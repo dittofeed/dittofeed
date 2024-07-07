@@ -82,7 +82,7 @@ export function ResourceListContainer({
         <Typography sx={{ padding: 1 }} variant="h5">
           {title}
         </Typography>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
           {controls}
           <Tooltip title="create new" placement="right" arrow>
             <IconButton
