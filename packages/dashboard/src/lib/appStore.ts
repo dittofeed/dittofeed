@@ -200,6 +200,9 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.RandomBucket: {
+      throw new Error(`Unimplemented segment node type ${type}.`);
+    }
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
     }

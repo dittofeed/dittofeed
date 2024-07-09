@@ -193,6 +193,7 @@ export enum SegmentNodeType {
   SubscriptionGroup = "SubscriptionGroup",
   Email = "Email",
   Manual = "Manual",
+  RandomBucket = "RandomBucket",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -205,6 +206,17 @@ export const SubscriptionGroupSegmentNode = Type.Object({
 export type SubscriptionGroupSegmentNode = Static<
   typeof SubscriptionGroupSegmentNode
 >;
+
+export const RandomBucketSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.RandomBucket),
+  id: Type.String(),
+  percent: Type.Number({
+    description:
+      "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+  }),
+});
+
+export type RandomBucketSegmentNode = Static<typeof RandomBucketSegmentNode>;
 
 export enum RelationalOperators {
   Equals = "=",
@@ -335,6 +347,7 @@ export const BodySegmentNode = Type.Union([
   EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
+  RandomBucketSegmentNode,
 ]);
 
 export type BodySegmentNode = Static<typeof BodySegmentNode>;
