@@ -120,7 +120,9 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
 const keyedSegmentOptions: Record<
   Exclude<
     SegmentNodeType,
-    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
+    | SegmentNodeType.LastPerformed
+    | SegmentNodeType.Broadcast
+    | SegmentNodeType.RandomBucket
   >,
   SegmentGroupedOption
 > = {
@@ -954,7 +956,8 @@ function SegmentNodeComponent({
 
   if (
     node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast
+    node.type === SegmentNodeType.Broadcast ||
+    node.type === SegmentNodeType.RandomBucket
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
