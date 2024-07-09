@@ -6276,6 +6276,29 @@
                                       "subscriptionGroupId",
                                       "subscriptionGroupType"
                                     ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "RandomBucket"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "percent": {
+                                        "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id",
+                                      "percent"
+                                    ]
                                   }
                                 ]
                               },
@@ -7155,6 +7178,29 @@
                                     "id",
                                     "subscriptionGroupId",
                                     "subscriptionGroupType"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "RandomBucket"
+                                      ]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "percent": {
+                                      "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "id",
+                                    "percent"
                                   ]
                                 }
                               ]
@@ -8066,6 +8112,29 @@
                                     "subscriptionGroupId",
                                     "subscriptionGroupType"
                                   ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "RandomBucket"
+                                      ]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "percent": {
+                                      "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "id",
+                                    "percent"
+                                  ]
                                 }
                               ]
                             },
@@ -8945,6 +9014,29 @@
                                   "id",
                                   "subscriptionGroupId",
                                   "subscriptionGroupType"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "RandomBucket"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "percent": {
+                                    "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "percent"
                                 ]
                               }
                             ]
@@ -18280,6 +18372,29 @@
                                       "subscriptionGroupId",
                                       "subscriptionGroupType"
                                     ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "RandomBucket"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "percent": {
+                                        "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id",
+                                      "percent"
+                                    ]
                                   }
                                 ]
                               },
@@ -19159,6 +19274,29 @@
                                     "id",
                                     "subscriptionGroupId",
                                     "subscriptionGroupType"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "RandomBucket"
+                                      ]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "percent": {
+                                      "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "id",
+                                    "percent"
                                   ]
                                 }
                               ]
@@ -20070,6 +20208,29 @@
                                     "subscriptionGroupId",
                                     "subscriptionGroupType"
                                   ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "RandomBucket"
+                                      ]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "percent": {
+                                      "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "id",
+                                    "percent"
+                                  ]
                                 }
                               ]
                             },
@@ -20949,6 +21110,29 @@
                                   "id",
                                   "subscriptionGroupId",
                                   "subscriptionGroupType"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "RandomBucket"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "percent": {
+                                    "description": "The percentage of users to be randomly assigned to be in the segment. Expressed as a number between 0 and 1.",
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "percent"
                                 ]
                               }
                             ]
