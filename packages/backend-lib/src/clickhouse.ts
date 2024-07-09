@@ -139,6 +139,12 @@ export async function createClickhouseDb(
 
   const client = createClient(clientConfig);
 
+  logger().info(
+    {
+      database,
+    },
+    "Creating ClickHouse database",
+  );
   await client.exec({
     query: `CREATE DATABASE IF NOT EXISTS ${database}`,
     clickhouse_settings: {
