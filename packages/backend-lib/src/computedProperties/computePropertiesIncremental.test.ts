@@ -4118,6 +4118,61 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "with a random bucket segment",
+      // fixme
+      only: true,
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.RandomBucket,
+              id: "1",
+              percent: 0.5,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
