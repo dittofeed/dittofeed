@@ -4122,6 +4122,14 @@ describe("computeProperties", () => {
       description: "with a random bucket segment",
       // fixme
       only: true,
+      userProperties: [
+        {
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+          name: "id",
+        },
+      ],
       segments: [
         {
           name: "test",

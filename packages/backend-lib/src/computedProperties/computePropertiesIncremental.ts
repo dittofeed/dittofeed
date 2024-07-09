@@ -1096,7 +1096,8 @@ function segmentToResolvedState({
       });
     }
     case SegmentNodeType.RandomBucket: {
-      throw new Error("Not implemented");
+      // reuse user id state
+      return [];
     }
     default:
       assertUnreachable(node);
