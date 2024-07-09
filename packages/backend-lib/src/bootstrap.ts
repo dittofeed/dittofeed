@@ -221,6 +221,7 @@ async function bootstrapKafka() {
 }
 
 export async function bootstrapClickhouse() {
+  logger().info("Bootstrapping clickhouse.");
   await createClickhouseDb();
 
   await createUserEventsTables({

@@ -1,6 +1,7 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
+import logger from "../logger";
 import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 export interface InsertValue {
@@ -28,6 +29,7 @@ export async function createUserEventsTables({
 }: {
   ingressTopic?: string;
 } = {}) {
+  logger().info("Creating user events tables");
   const queries: string[] = [
     `
         CREATE TABLE IF NOT EXISTS user_events_v2 (
