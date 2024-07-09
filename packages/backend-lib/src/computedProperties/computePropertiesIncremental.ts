@@ -1095,6 +1095,9 @@ function segmentToResolvedState({
         qb,
       });
     }
+    case SegmentNodeType.RandomBucket: {
+      throw new Error("Not implemented");
+    }
     default:
       assertUnreachable(node);
   }
@@ -1233,6 +1236,9 @@ function resolvedSegmentToAssignment({
         segment,
         qb,
       });
+    }
+    case SegmentNodeType.RandomBucket: {
+      throw new Error("Not implemented");
     }
     default:
       assertUnreachable(node);
@@ -1529,6 +1535,9 @@ export function segmentNodeToStateSubQuery({
         segment,
         qb,
       });
+    }
+    case SegmentNodeType.RandomBucket: {
+      throw new Error("Not implemented");
     }
   }
 }
