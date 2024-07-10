@@ -33,6 +33,7 @@ import {
   ManualSegmentOperationEnum,
   ManualSegmentUploadCsvHeaders,
   PerformedSegmentNode,
+  RandomBucketSegmentNode,
   RelationalOperators,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
@@ -57,6 +58,7 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import { round } from "isomorphic-lib/src/numbers";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -95,6 +97,12 @@ const performedOption = {
   label: "User Performed",
 };
 
+const randomBucketOption = {
+  id: SegmentNodeType.RandomBucket,
+  group: "User Data",
+  label: "Random Bucket",
+};
+
 const emailOption = {
   id: SegmentNodeType.Email,
   group: "Messages",
@@ -110,8 +118,9 @@ const manualOption = {
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
-  manualOption,
+  randomBucketOption,
   subscriptionGroupGroupedOption,
+  manualOption,
   andGroupedOption,
   orGroupedOption,
   emailOption,
@@ -120,9 +129,7 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
 const keyedSegmentOptions: Record<
   Exclude<
     SegmentNodeType,
-    | SegmentNodeType.LastPerformed
-    | SegmentNodeType.Broadcast
-    | SegmentNodeType.RandomBucket
+    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
   >,
   SegmentGroupedOption
 > = {
@@ -133,6 +140,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
   [SegmentNodeType.Email]: emailOption,
+  [SegmentNodeType.RandomBucket]: randomBucketOption,
 };
 
 interface Option {
@@ -863,6 +871,53 @@ interface ManualUploadState {
   operation: ManualSegmentOperationEnum;
 }
 
+function RandomBucketSelect({
+  node,
+  disabled,
+}: {
+  node: RandomBucketSegmentNode;
+  disabled?: boolean;
+}) {
+  const { editedSegment, updateEditableSegmentNodeData } = useAppStorePick([
+    "editedSegment",
+    "updateEditableSegmentNodeData",
+  ]);
+  const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+
+    updateEditableSegmentNodeData(node.id, (segmentNode) => {
+      if (segmentNode.type !== SegmentNodeType.RandomBucket) {
+        return;
+      }
+      const percent = parseFloat(newValue);
+      if (Number.isNaN(percent)) {
+        return;
+      }
+      const adjustedPercent = percent / 100;
+      if (adjustedPercent < 0 || adjustedPercent > 1) {
+        return;
+      }
+      segmentNode.percent = adjustedPercent;
+    });
+  };
+  const percentString = useMemo(() => {
+    const roundedPercent = round(node.percent * 100, 1);
+    return String(roundedPercent);
+  }, [node.percent]);
+  return (
+    <TextField
+      disabled={disabled}
+      label="To be included in bucket."
+      InputProps={{
+        type: "number",
+        endAdornment: "%",
+      }}
+      value={percentString}
+      onChange={handlePercentChange}
+    />
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
   const { workspace, editedSegment, apiBase } = useAppStorePick([
@@ -956,8 +1011,7 @@ function SegmentNodeComponent({
 
   if (
     node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast ||
-    node.type === SegmentNodeType.RandomBucket
+    node.type === SegmentNodeType.Broadcast
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
@@ -1099,7 +1153,15 @@ function SegmentNodeComponent({
         <ManualNodeComponent node={node} />
       </Stack>
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  } else if (node.type === SegmentNodeType.RandomBucket) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+        <RandomBucketSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
   } else if (node.type === SegmentNodeType.Email) {
     el = (
       <Stack direction="row" spacing={1}>
