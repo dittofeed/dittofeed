@@ -1114,6 +1114,7 @@ function segmentToResolvedState({
       }
       const stateIdParam = qb.addQueryValue(stateId, "String");
 
+      // fixme don't use state id to make easier to test
       const query = `
         insert into resolved_segment_state
         select

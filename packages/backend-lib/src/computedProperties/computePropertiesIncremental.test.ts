@@ -4174,7 +4174,7 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
