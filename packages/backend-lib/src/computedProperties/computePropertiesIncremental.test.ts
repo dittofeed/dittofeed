@@ -4155,7 +4155,7 @@ describe("computeProperties", () => {
             {
               type: EventType.Identify,
               offsetMs: -100,
-              userId: "user-2",
+              userId: "user-b",
             },
           ],
         },
@@ -4168,13 +4168,13 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: true,
+                test: null,
               },
             },
             {
-              id: "user-2",
+              id: "user-b",
               segments: {
-                test: null,
+                test: true,
               },
             },
           ],

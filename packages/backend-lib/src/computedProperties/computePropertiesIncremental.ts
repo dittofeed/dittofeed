@@ -1113,16 +1113,18 @@ function segmentToResolvedState({
         );
       }
       const stateIdParam = qb.addQueryValue(stateId, "String");
+      const segmentIdParam = qb.addQueryValue(segment.id, "String");
+      // using name instead of id so that can be deterministically tested
+      const segmentNameParam = qb.addQueryValue(segment.name, "String");
 
-      // fixme don't use state id to make easier to test
       const query = `
         insert into resolved_segment_state
         select
           workspace_id,
-          ${qb.addQueryValue(segment.id, "String")},
+          ${segmentIdParam},
           ${stateIdParam},
           user_id,
-          reinterpretAsUInt64(reverse(unhex(left(hex(MD5(concat(user_id, ${stateIdParam}))), 16)))) < (${qb.addQueryValue(node.percent, "Float64")} * pow(2, 64)),
+          reinterpretAsUInt64(reverse(unhex(left(hex(MD5(concat(user_id, ${segmentNameParam}))), 16)))) < (${qb.addQueryValue(node.percent, "Float64")} * pow(2, 64)),
           max(event_time),
           toDateTime64(${nowSeconds}, 3) as assigned_at
         from computed_property_state_v2 as cps
