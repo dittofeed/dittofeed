@@ -1096,7 +1096,6 @@ function segmentToResolvedState({
       });
     }
     case SegmentNodeType.RandomBucket: {
-      const nowSeconds = now / 1000;
       const lowerBoundClause = getLowerBoundClause(periodBound);
 
       const userIdStateParam = idUserProperty
