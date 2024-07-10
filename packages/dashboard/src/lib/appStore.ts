@@ -201,7 +201,14 @@ function mapSegmentNodeToNewType(
       };
     }
     case SegmentNodeType.RandomBucket: {
-      throw new Error(`Unimplemented segment node type ${type}.`);
+      return {
+        primary: {
+          type: SegmentNodeType.RandomBucket,
+          id: node.id,
+          percent: 0.5,
+        },
+        secondary: [],
+      };
     }
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
