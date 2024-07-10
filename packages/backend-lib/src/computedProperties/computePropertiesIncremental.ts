@@ -1096,8 +1096,59 @@ function segmentToResolvedState({
       });
     }
     case SegmentNodeType.RandomBucket: {
-      // reuse user id state
-      return [];
+      const nowSeconds = now / 1000;
+      const lowerBoundClause = getLowerBoundClause(periodBound);
+
+      const userIdStateParam = idUserProperty
+        ? qb.addQueryValue(userPropertyStateId(idUserProperty), "String")
+        : null;
+
+      const userIdPropertyIdParam = idUserProperty
+        ? qb.addQueryValue(idUserProperty.id, "String")
+        : null;
+
+      if (!userIdStateParam || !userIdPropertyIdParam) {
+        throw new Error(
+          "User ID state and property ID are required for random bucket segments",
+        );
+      }
+      const stateIdParam = qb.addQueryValue(stateId, "String");
+
+      const query = `
+        insert into resolved_segment_state
+        select
+          workspace_id,
+          ${qb.addQueryValue(segment.id, "String")},
+          ${stateIdParam},
+          user_id,
+          reinterpretAsUInt64(reverse(unhex(left(hex(MD5(concat(user_id, ${stateIdParam}))), 16)))) < (${qb.addQueryValue(node.percent, "Float64")} * pow(2, 64)),
+          max(event_time),
+          toDateTime64(${nowSeconds}, 3) as assigned_at
+        from computed_property_state_v2 as cps
+        where
+          (
+            workspace_id,
+            user_id
+          ) in (
+            select
+              workspace_id,
+              user_id
+            from updated_computed_property_state
+            where
+              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and type = 'user_property'
+              and computed_property_id = ${userIdPropertyIdParam}
+              and state_id = ${userIdStateParam}
+              and computed_at <= toDateTime64(${nowSeconds}, 3)
+              ${lowerBoundClause}
+          )
+        group by
+          workspace_id,
+          computed_property_id,
+          state_id,
+          user_id
+      `;
+      return [query];
     }
     default:
       assertUnreachable(node);
@@ -1124,6 +1175,12 @@ function resolvedSegmentToAssignment({
       };
     }
     case SegmentNodeType.Performed: {
+      return {
+        stateIds: [stateId],
+        expression: stateValue,
+      };
+    }
+    case SegmentNodeType.RandomBucket: {
       return {
         stateIds: [stateId],
         expression: stateValue,
@@ -1237,9 +1294,6 @@ function resolvedSegmentToAssignment({
         segment,
         qb,
       });
-    }
-    case SegmentNodeType.RandomBucket: {
-      throw new Error("Not implemented");
     }
     default:
       assertUnreachable(node);
@@ -1538,7 +1592,7 @@ export function segmentNodeToStateSubQuery({
       });
     }
     case SegmentNodeType.RandomBucket: {
-      throw new Error("Not implemented");
+      return [];
     }
   }
 }
