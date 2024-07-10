@@ -10,10 +10,12 @@ export function CsvUploader({
   submit,
   successMessage,
   errorMessage,
+  disabled,
 }: {
   submit: (values: { data: FormData }) => Promise<void>;
   successMessage: string;
   errorMessage: string;
+  disabled?: boolean;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [mainError, setMainError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function CsvUploader({
         sx={{ alignItems: "center", width: "100%" }}
         spacing={3}
       >
-        <Button variant="contained" component="label">
+        <Button variant="contained" component="label" disabled={disabled}>
           Choose CSV File
           <input accept=".csv" type="file" hidden onChange={handleFileChange} />
         </Button>
@@ -87,7 +89,7 @@ export function CsvUploader({
           variant="contained"
           color="primary"
           onClick={handleSubmit}
-          disabled={!file}
+          disabled={!file || disabled}
         >
           Upload
         </Button>

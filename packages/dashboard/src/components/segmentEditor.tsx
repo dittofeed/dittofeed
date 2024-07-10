@@ -23,6 +23,7 @@ import {
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { isEmailEvent } from "isomorphic-lib/src/email";
+import { round } from "isomorphic-lib/src/numbers";
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -58,7 +59,6 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
-import { round } from "isomorphic-lib/src/numbers";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -871,17 +871,11 @@ interface ManualUploadState {
   operation: ManualSegmentOperationEnum;
 }
 
-function RandomBucketSelect({
-  node,
-  disabled,
-}: {
-  node: RandomBucketSegmentNode;
-  disabled?: boolean;
-}) {
-  const { editedSegment, updateEditableSegmentNodeData } = useAppStorePick([
-    "editedSegment",
+function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
+  const { updateEditableSegmentNodeData } = useAppStorePick([
     "updateEditableSegmentNodeData",
   ]);
+  const { disabled } = useContext(DisabledContext);
   const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
 
@@ -920,6 +914,7 @@ function RandomBucketSelect({
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
+  const { disabled } = useContext(DisabledContext);
   const { workspace, editedSegment, apiBase } = useAppStorePick([
     "workspace",
     "editedSegment",
@@ -961,6 +956,7 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
     <Stack direction="column" spacing={3}>
       <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
       <CsvUploader
+        disabled={disabled}
         submit={handleSubmit}
         successMessage="Uploaded CSV to manual segment"
         errorMessage="API Error: Failed upload CSV to manual segment"
