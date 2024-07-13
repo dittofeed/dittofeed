@@ -3005,10 +3005,12 @@ function buildProcessAssignmentsQuery({
   workspaceId,
   type,
   computedPropertyId,
+  qb,
   ...rest
 }: {
   workspaceId: string;
   computedPropertyId: string;
+  qb: ClickHouseQueryBuilder;
 } & (
   | {
       type: "segment";
@@ -3025,7 +3027,6 @@ function buildProcessAssignmentsQuery({
       processedFor: string;
     }
 )): string {
-  const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
     computedPropertyId,
@@ -3039,8 +3040,22 @@ function buildProcessAssignmentsQuery({
     "String",
   );
   const typeParam = qb.addQueryValue(type, "String");
-  // FIXME remove join
-  // FIXME conditionally remove  where condition
+
+  /**
+   * This query is a bit complicated, so here's a breakdown of what it does:
+   *
+   * 1. It reads all the computed property assignments for the workspace.
+   * 2. It joins the computed property assignments with the processed computed
+   * properties table to filter out assignments that have already been
+   * processed.
+   * 3. It filters out "empty assignments" (assignments where the user property
+   * value is empty, or the segment value is false) if the property has not
+   * already been assigned.
+   * 4. It filters out false segment assignments to journeys.
+   */
+  // TODO remove left join
+  // TODO scope by time
+  // TODO conditionally remove  where condition
 
   const query = `
    SELECT
@@ -3120,6 +3135,57 @@ function buildProcessAssignmentsQuery({
   return query;
 }
 
+async function paginateProcessAssignmentsQuery({
+  query,
+  qb,
+  workspaceId,
+  journeys,
+}: {
+  query: string;
+  workspaceId: string;
+  qb: ClickHouseQueryBuilder;
+  journeys: HasStartedJourneyResource[];
+}): Promise<void> {
+  return withSpan(
+    { name: "paginate-process-assignments-query" },
+    async (span) => {
+      const pageQueryId = getChCompatibleUuid();
+
+      span.setAttribute("query", query);
+      span.setAttribute("workspaceId", workspaceId);
+
+      const resultSet = await chQuery({
+        query,
+        query_id: pageQueryId,
+        query_params: qb.getQueries(),
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      let rowsProcessed = 0;
+      try {
+        await streamClickhouseQuery(resultSet, async (rows) => {
+          rowsProcessed += rows.length;
+          await processRows({
+            rows,
+            workspaceId,
+            subscribedJourneys: journeys,
+          });
+        });
+      } catch (e) {
+        logger().error(
+          {
+            err: e,
+            pageQueryId,
+          },
+          "failed to process rows",
+        );
+      }
+      span.setAttribute("rowsProcessed", rowsProcessed);
+    },
+  );
+}
+
 export async function processAssignments({
   workspaceId,
   userProperties,
@@ -3188,214 +3254,96 @@ export async function processAssignments({
       return memo;
     }, new Map());
 
-    const subscribedJourneyKeys: string[] = [];
-    const subscribedJourneyValues: string[][] = [];
-    const subscribedIntegrationUserPropertyKeys: string[] = [];
-    const subscribedIntegrationUserPropertyValues: string[][] = [];
-    const subscribedIntegrationSegmentKeys: string[] = [];
-    const subscribedIntegrationSegmentValues: string[][] = [];
-    const queries: string[] = [];
+    const queries: { query: string; qb: ClickHouseQueryBuilder }[] = [];
 
-    for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
-      subscribedJourneyKeys.push(segmentId);
-      subscribedJourneyValues.push(Array.from(journeySet));
+    for (const userProperty of userProperties) {
+      const qb = new ClickHouseQueryBuilder();
+      queries.push({
+        query: buildProcessAssignmentsQuery({
+          workspaceId,
+          type: "user_property",
+          processedForType: "pg",
+          computedPropertyId: userProperty.id,
+          qb,
+        }),
+        qb,
+      });
+    }
 
-      queries.push(
-        buildProcessAssignmentsQuery({
+    for (const segment of segments) {
+      const qb = new ClickHouseQueryBuilder();
+      queries.push({
+        query: buildProcessAssignmentsQuery({
           workspaceId,
           type: "segment",
-          processedForType: "journey",
-          computedPropertyId: segmentId,
+          processedForType: "pg",
+          computedPropertyId: segment.id,
+          qb,
         }),
-      );
+        qb,
+      });
+    }
+
+    for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
+      for (const journeyId of Array.from(journeySet)) {
+        const qb = new ClickHouseQueryBuilder();
+        queries.push({
+          query: buildProcessAssignmentsQuery({
+            workspaceId,
+            type: "segment",
+            processedForType: "journey",
+            computedPropertyId: segmentId,
+            processedFor: journeyId,
+            qb,
+          }),
+          qb,
+        });
+      }
     }
 
     for (const [segmentId, integrationSet] of Array.from(
       subscribedIntegrationSegmentMap,
     )) {
-      subscribedIntegrationSegmentKeys.push(segmentId);
-      subscribedIntegrationSegmentValues.push(Array.from(integrationSet));
+      for (const integrationName of Array.from(integrationSet)) {
+        const qb = new ClickHouseQueryBuilder();
+        queries.push({
+          query: buildProcessAssignmentsQuery({
+            workspaceId,
+            type: "segment",
+            processedForType: "integration",
+            computedPropertyId: segmentId,
+            processedFor: integrationName,
+            qb,
+          }),
+          qb,
+        });
+      }
     }
 
     for (const [userPropertyId, integrationSet] of Array.from(
       subscribedIntegrationUserPropertyMap,
     )) {
-      subscribedIntegrationUserPropertyKeys.push(userPropertyId);
-      subscribedIntegrationUserPropertyValues.push(Array.from(integrationSet));
-    }
-
-    const qb = new ClickHouseQueryBuilder();
-
-    const subscribedJourneysKeysQuery = qb.addQueryValue(
-      subscribedJourneyKeys,
-      "Array(String)",
-    );
-
-    const subscribedJourneysValuesQuery = qb.addQueryValue(
-      subscribedJourneyValues,
-      "Array(Array(String))",
-    );
-
-    const subscribedIntegrationsUserPropertyKeysQuery = qb.addQueryValue(
-      subscribedIntegrationUserPropertyKeys,
-      "Array(String)",
-    );
-
-    const subscribedIntegrationsUserPropertyValuesQuery = qb.addQueryValue(
-      subscribedIntegrationUserPropertyValues,
-      "Array(Array(String))",
-    );
-
-    const subscribedIntegrationsSegmentKeysQuery = qb.addQueryValue(
-      subscribedIntegrationSegmentKeys,
-      "Array(String)",
-    );
-
-    const subscribedIntegrationsSegmentValuesQuery = qb.addQueryValue(
-      subscribedIntegrationSegmentValues,
-      "Array(Array(String))",
-    );
-
-    const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-
-    /**
-     * This query is a bit complicated, so here's a breakdown of what it does:
-     *
-     * 1. It reads all the computed property assignments for the workspace.
-     * 2. It joins the computed property assignments with the processed computed
-     * properties table to filter out assignments that have already been
-     * processed.
-     * 3. It filters out "empty assignments" (assignments where the user property
-     * value is empty, or the segment value is false) if the property has not
-     * already been assigned.
-     * 4. It filters out false segment assignments to journeys.
-     */
-    // TODO remove array join by separating queries
-    // TODO remove left join
-    // TODO scope by time
-    const selectQuery = `
-    SELECT
-      cpa.workspace_id,
-      cpa.type,
-      cpa.computed_property_id,
-      cpa.user_id,
-      cpa.latest_segment_value,
-      cpa.latest_user_property_value,
-      cpa.max_assigned_at,
-      cpa.processed_for,
-      cpa.processed_for_type
-    FROM (
-      SELECT
-          workspace_id,
-          type,
-          computed_property_id,
-          user_id,
-          argMax(segment_value, assigned_at) latest_segment_value,
-          argMax(user_property_value, assigned_at) latest_user_property_value,
-          max(assigned_at) max_assigned_at,
-          arrayJoin(
-              arrayConcat(
-                  if(
-                      type = 'segment' AND indexOf(${subscribedJourneysKeysQuery}, computed_property_id) > 0,
-                      arrayMap(i -> ('journey', i), arrayElement(${subscribedJourneysValuesQuery}, indexOf(${subscribedJourneysKeysQuery}, computed_property_id))),
-                      []
-                  ),
-                  if(
-                      type = 'user_property' AND indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id) > 0,
-                      arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsUserPropertyValuesQuery}, indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id))),
-                      []
-                  ),
-                  if(
-                      type = 'segment' AND indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id) > 0,
-                      arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsSegmentValuesQuery}, indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id))),
-                      []
-                  ),
-                  [('pg', 'pg')]
-              )
-          ) as processed,
-          processed.1 as processed_for_type,
-          processed.2 as processed_for
-      FROM computed_property_assignments_v2
-      WHERE workspace_id = ${workspaceIdParam}
-      GROUP BY
-          workspace_id,
-          type,
-          computed_property_id,
-          user_id
-    ) cpa
-    LEFT JOIN (
-      SELECT
-        workspace_id,
-        computed_property_id,
-        user_id,
-        processed_for_type,
-        processed_for,
-        argMax(segment_value, processed_at) segment_value,
-        argMax(user_property_value, processed_at) user_property_value
-      FROM processed_computed_properties_v2
-      GROUP BY
-        workspace_id,
-        computed_property_id,
-        user_id,
-        processed_for_type,
-        processed_for
-    ) pcp
-    ON
-      cpa.workspace_id = pcp.workspace_id AND
-      cpa.computed_property_id = pcp.computed_property_id AND
-      cpa.user_id = pcp.user_id AND
-      cpa.processed_for = pcp.processed_for AND
-      cpa.processed_for_type = pcp.processed_for_type
-    WHERE (
-      cpa.latest_user_property_value != pcp.user_property_value
-      OR cpa.latest_segment_value != pcp.segment_value
-    )
-    AND (
-        (
-            cpa.type = 'user_property'
-            AND cpa.latest_user_property_value != '""'
-            AND cpa.latest_user_property_value != ''
-        )
-        OR (
-            cpa.type = 'segment'
-            AND cpa.latest_segment_value = true
-        )
-        OR (
-            pcp.workspace_id != ''
-        )
-    )
-  `;
-
-    const pageQueryId = getChCompatibleUuid();
-
-    const resultSet = await chQuery({
-      query: selectQuery,
-      query_id: pageQueryId,
-      query_params: qb.getQueries(),
-      format: "JSONEachRow",
-      clickhouse_settings: { wait_end_of_query: 1 },
-    });
-
-    let rowsProcessed = 0;
-    try {
-      await streamClickhouseQuery(resultSet, async (rows) => {
-        rowsProcessed += rows.length;
-        await processRows({
-          rows,
-          workspaceId,
-          subscribedJourneys: journeys,
+      for (const integrationName of Array.from(integrationSet)) {
+        const qb = new ClickHouseQueryBuilder();
+        queries.push({
+          query: buildProcessAssignmentsQuery({
+            workspaceId,
+            type: "user_property",
+            processedForType: "integration",
+            computedPropertyId: userPropertyId,
+            processedFor: integrationName,
+            qb,
+          }),
+          qb,
         });
-      });
-    } catch (e) {
-      logger().error(
-        {
-          err: e,
-          pageQueryId,
-        },
-        "failed to process rows",
-      );
+      }
     }
-    span.setAttribute("rowsProcessed", rowsProcessed);
+
+    await Promise.all(
+      queries.map(({ query, qb }) =>
+        paginateProcessAssignmentsQuery({ query, qb, workspaceId, journeys }),
+      ),
+    );
 
     // TODO encorporate existing periods into query
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
