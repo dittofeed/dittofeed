@@ -3004,25 +3004,43 @@ async function processRows({
 function buildProcessAssignmentsQuery({
   workspaceId,
   type,
-  processedForType,
   computedPropertyId,
+  ...rest
 }: {
   workspaceId: string;
-  type: "segment" | "user_property";
-  processedForType: "journey" | "integration" | "pg";
   computedPropertyId: string;
-}): string {
+} & (
+  | {
+      type: "segment";
+      processedForType: "journey" | "integration";
+      processedFor: string;
+    }
+  | {
+      type: "segment" | "user_property";
+      processedForType: "pg";
+    }
+  | {
+      type: "user_property";
+      processedForType: "integration";
+      processedFor: string;
+    }
+)): string {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
     computedPropertyId,
     "String",
   );
-  const processedFor = processedForType === "pg" ? "pg" : computedPropertyId;
+  const processedFor =
+    rest.processedForType === "pg" ? "pg" : rest.processedFor;
   const processedForParam = qb.addQueryValue(processedFor, "String");
-  const processedForTypeParam = qb.addQueryValue(processedForType, "String");
+  const processedForTypeParam = qb.addQueryValue(
+    rest.processedForType,
+    "String",
+  );
   const typeParam = qb.addQueryValue(type, "String");
   // FIXME remove join
+  // FIXME conditionally remove  where condition
 
   const query = `
    SELECT
@@ -3176,10 +3194,20 @@ export async function processAssignments({
     const subscribedIntegrationUserPropertyValues: string[][] = [];
     const subscribedIntegrationSegmentKeys: string[] = [];
     const subscribedIntegrationSegmentValues: string[][] = [];
+    const queries: string[] = [];
 
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
       subscribedJourneyKeys.push(segmentId);
       subscribedJourneyValues.push(Array.from(journeySet));
+
+      queries.push(
+        buildProcessAssignmentsQuery({
+          workspaceId,
+          type: "segment",
+          processedForType: "journey",
+          computedPropertyId: segmentId,
+        }),
+      );
     }
 
     for (const [segmentId, integrationSet] of Array.from(
