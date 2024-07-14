@@ -60,7 +60,11 @@ import {
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
-import { createPeriods, getPeriodsByComputedPropertyId } from "./periods";
+import {
+  PeriodByComputedPropertyId,
+  createPeriods,
+  getPeriodsByComputedPropertyId,
+} from "./periods";
 
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
@@ -3011,6 +3015,7 @@ function buildProcessAssignmentsQuery({
   workspaceId: string;
   computedPropertyId: string;
   qb: ClickHouseQueryBuilder;
+  periodByComputedPropertyId: PeriodByComputedPropertyId;
 } & (
   | {
       type: "segment";
@@ -3253,6 +3258,11 @@ export async function processAssignments({
       return memo;
     }, new Map());
 
+    const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStep.ProcessAssignments,
+    });
+
     const queries: { query: string; qb: ClickHouseQueryBuilder }[] = [];
 
     for (const userProperty of userProperties) {
@@ -3263,6 +3273,7 @@ export async function processAssignments({
           type: "user_property",
           processedForType: "pg",
           computedPropertyId: userProperty.id,
+          periodByComputedPropertyId,
           qb,
         }),
         qb,
@@ -3277,6 +3288,7 @@ export async function processAssignments({
           type: "segment",
           processedForType: "pg",
           computedPropertyId: segment.id,
+          periodByComputedPropertyId,
           qb,
         }),
         qb,
@@ -3293,6 +3305,7 @@ export async function processAssignments({
             processedForType: "journey",
             computedPropertyId: segmentId,
             processedFor: journeyId,
+            periodByComputedPropertyId,
             qb,
           }),
           qb,
@@ -3312,6 +3325,7 @@ export async function processAssignments({
             processedForType: "integration",
             computedPropertyId: segmentId,
             processedFor: integrationName,
+            periodByComputedPropertyId,
             qb,
           }),
           qb,
@@ -3331,6 +3345,7 @@ export async function processAssignments({
             processedForType: "integration",
             computedPropertyId: userPropertyId,
             processedFor: integrationName,
+            periodByComputedPropertyId,
             qb,
           }),
           qb,
@@ -3343,12 +3358,6 @@ export async function processAssignments({
         paginateProcessAssignmentsQuery({ query, qb, workspaceId, journeys }),
       ),
     );
-
-    // TODO encorporate existing periods into query
-    const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
-      workspaceId,
-      step: ComputedPropertyStep.ProcessAssignments,
-    });
 
     await createPeriods({
       workspaceId,
