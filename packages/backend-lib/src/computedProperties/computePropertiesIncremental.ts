@@ -3040,6 +3040,15 @@ function buildProcessAssignmentsQuery({
     "String",
   );
   const typeParam = qb.addQueryValue(type, "String");
+  let typeCondition: string;
+  switch (type) {
+    case "segment":
+      typeCondition = "cpa.latest_segment_value = true";
+      break;
+    case "user_property":
+      typeCondition = `cpa.latest_user_property_value != '""' AND cpa.latest_user_property_value != ''`;
+      break;
+  }
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3055,8 +3064,6 @@ function buildProcessAssignmentsQuery({
    */
   // TODO remove left join
   // TODO scope by time
-  // TODO conditionally remove  where condition
-
   const query = `
    SELECT
       cpa.workspace_id,
@@ -3118,15 +3125,7 @@ function buildProcessAssignmentsQuery({
       OR cpa.latest_segment_value != pcp.segment_value
     )
     AND (
-        (
-            cpa.type = 'user_property'
-            AND cpa.latest_user_property_value != '""'
-            AND cpa.latest_user_property_value != ''
-        )
-        OR (
-            cpa.type = 'segment'
-            AND cpa.latest_segment_value = true
-        )
+        (${typeCondition})
         OR (
             pcp.workspace_id != ''
         )
