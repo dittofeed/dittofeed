@@ -61,9 +61,9 @@ import {
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import {
-  PeriodByComputedPropertyId,
   createPeriods,
   getPeriodsByComputedPropertyId,
+  PeriodByComputedPropertyId,
 } from "./periods";
 
 export function userPropertyStateId(
@@ -3216,7 +3216,7 @@ export async function processAssignments({
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
-    // segment id / pg + journey id
+    // segment id -> journey id
     const subscribedJourneyMap = journeys.reduce<Map<string, Set<string>>>(
       (memo, j) => {
         const subscribedSegments = getSubscribedSegments(j.definition);
@@ -3231,6 +3231,7 @@ export async function processAssignments({
       new Map(),
     );
 
+    // user property id -> integration name
     const subscribedIntegrationUserPropertyMap = integrations.reduce<
       Map<string, Set<string>>
     >((memo, integration) => {
@@ -3254,6 +3255,7 @@ export async function processAssignments({
       return memo;
     }, new Map());
 
+    // segment id -> integration name
     const subscribedIntegrationSegmentMap = integrations.reduce<
       Map<string, Set<string>>
     >((memo, integration) => {
