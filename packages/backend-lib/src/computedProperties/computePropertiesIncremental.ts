@@ -3093,19 +3093,17 @@ function buildProcessAssignmentsQuery({
       cpa.latest_segment_value,
       cpa.latest_user_property_value,
       cpa.max_assigned_at,
-      cpa.processed_for,
-      cpa.processed_for_type
+      ${processedForParam} as processed_for,
+      ${processedForTypeParam} as processed_for_type
     FROM (
       SELECT
           workspace_id,
           type,
           computed_property_id,
           user_id,
-          argMax(segment_value, assigned_at) latest_segment_value,
-          argMax(user_property_value, assigned_at) latest_user_property_value,
           max(assigned_at) max_assigned_at,
-          ${processedForTypeParam} as processed_for_type,
-          ${processedForParam} as processed_for
+          argMax(segment_value, assigned_at) latest_segment_value,
+          argMax(user_property_value, assigned_at) latest_user_property_value
       FROM computed_property_assignments_v2
       WHERE
         workspace_id = ${workspaceIdParam}
@@ -3121,14 +3119,16 @@ function buildProcessAssignmentsQuery({
     ) cpa
     LEFT JOIN (
       SELECT
-        workspace_id,
-        computed_property_id,
         user_id,
-        processed_for_type,
-        processed_for,
         argMax(segment_value, processed_at) segment_value,
         argMax(user_property_value, processed_at) user_property_value
       FROM processed_computed_properties_v2
+      WHERE
+        workspace_id = ${workspaceIdParam}
+        AND type = ${typeParam}
+        AND computed_property_id = ${computedPropertyIdParam}
+        AND processed_for_type = ${processedForTypeParam}
+        AND processed_for = ${processedForParam}
       GROUP BY
         workspace_id,
         computed_property_id,
@@ -3136,12 +3136,7 @@ function buildProcessAssignmentsQuery({
         processed_for_type,
         processed_for
     ) pcp
-    ON
-      cpa.workspace_id = pcp.workspace_id AND
-      cpa.computed_property_id = pcp.computed_property_id AND
-      cpa.user_id = pcp.user_id AND
-      cpa.processed_for = pcp.processed_for AND
-      cpa.processed_for_type = pcp.processed_for_type
+    ON cpa.user_id = pcp.user_id
     WHERE (
       cpa.latest_user_property_value != pcp.user_property_value
       OR cpa.latest_segment_value != pcp.segment_value
@@ -3149,7 +3144,7 @@ function buildProcessAssignmentsQuery({
     AND (
         (${typeCondition})
         OR (
-            pcp.workspace_id != ''
+            pcp.user_id != ''
         )
     )
   `;
