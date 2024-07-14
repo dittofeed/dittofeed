@@ -3174,17 +3174,18 @@ async function paginateProcessAssignmentsQuery({
 
       span.setAttribute("query", query);
       span.setAttribute("workspaceId", workspaceId);
-
-      const resultSet = await chQuery({
-        query,
-        query_id: pageQueryId,
-        query_params: qb.getQueries(),
-        format: "JSONEachRow",
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
+      span.setAttribute("queryId", pageQueryId);
 
       let rowsProcessed = 0;
       try {
+        const resultSet = await chQuery({
+          query,
+          query_id: pageQueryId,
+          query_params: qb.getQueries(),
+          format: "JSONEachRow",
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+
         await streamClickhouseQuery(resultSet, async (rows) => {
           rowsProcessed += rows.length;
           await processRows({
