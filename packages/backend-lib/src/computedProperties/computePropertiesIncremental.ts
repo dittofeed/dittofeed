@@ -3010,11 +3010,16 @@ function buildProcessAssignmentsQuery({
   type,
   computedPropertyId,
   qb,
+  periodByComputedPropertyId,
+  computedPropertyVersion,
+  now,
   ...rest
 }: {
   workspaceId: string;
   computedPropertyId: string;
   qb: ClickHouseQueryBuilder;
+  computedPropertyVersion: string;
+  now: number;
   periodByComputedPropertyId: PeriodByComputedPropertyId;
 } & (
   | {
@@ -3054,6 +3059,14 @@ function buildProcessAssignmentsQuery({
       typeCondition = `cpa.latest_user_property_value != '""' AND cpa.latest_user_property_value != ''`;
       break;
   }
+
+  const period = periodByComputedPropertyId.get({
+    computedPropertyId,
+    version: computedPropertyVersion,
+  });
+  const periodBound = period?.maxTo.getTime();
+  const lowerBoundClause = getLowerBoundClause(periodBound);
+  const nowSeconds = now / 1000;
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3096,6 +3109,8 @@ function buildProcessAssignmentsQuery({
         workspace_id = ${workspaceIdParam}
         AND type = ${typeParam}
         AND computed_property_id = ${computedPropertyIdParam}
+        AND assigned_at <= toDateTime64(${nowSeconds}, 3)
+        ${lowerBoundClause}
       GROUP BY
           workspace_id,
           type,
@@ -3274,6 +3289,8 @@ export async function processAssignments({
           processedForType: "pg",
           computedPropertyId: userProperty.id,
           periodByComputedPropertyId,
+          computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
+          now,
           qb,
         }),
         qb,
@@ -3289,6 +3306,8 @@ export async function processAssignments({
           processedForType: "pg",
           computedPropertyId: segment.id,
           periodByComputedPropertyId,
+          computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+          now,
           qb,
         }),
         qb,
