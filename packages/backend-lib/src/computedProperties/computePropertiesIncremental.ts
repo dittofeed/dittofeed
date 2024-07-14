@@ -3065,7 +3065,10 @@ function buildProcessAssignmentsQuery({
     version: computedPropertyVersion,
   });
   const periodBound = period?.maxTo.getTime();
-  const lowerBoundClause = getLowerBoundClause(periodBound);
+  const lowerBoundClause =
+    periodBound && periodBound > 0
+      ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
+      : "";
   const nowSeconds = now / 1000;
 
   /**
@@ -3081,7 +3084,6 @@ function buildProcessAssignmentsQuery({
    * 4. It filters out false segment assignments to journeys.
    */
   // TODO remove left join
-  // TODO scope by time
   const query = `
    SELECT
       cpa.workspace_id,
@@ -3215,6 +3217,19 @@ export async function processAssignments({
 }: ComputePropertiesArgs): Promise<void> {
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
+    const segmentById = segments.reduce<Map<string, SavedSegmentResource>>(
+      (memo, s) => {
+        memo.set(s.id, s);
+        return memo;
+      },
+      new Map(),
+    );
+    const userPropertyById = userProperties.reduce<
+      Map<string, SavedUserPropertyResource>
+    >((memo, up) => {
+      memo.set(up.id, up);
+      return memo;
+    }, new Map());
 
     // segment id -> journey id
     const subscribedJourneyMap = journeys.reduce<Map<string, Set<string>>>(
@@ -3317,6 +3332,10 @@ export async function processAssignments({
     }
 
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
+      const segment = segmentById.get(segmentId);
+      if (!segment) {
+        continue;
+      }
       for (const journeyId of Array.from(journeySet)) {
         const qb = new ClickHouseQueryBuilder();
         queries.push({
@@ -3327,6 +3346,8 @@ export async function processAssignments({
             computedPropertyId: segmentId,
             processedFor: journeyId,
             periodByComputedPropertyId,
+            computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+            now,
             qb,
           }),
           qb,
@@ -3337,6 +3358,10 @@ export async function processAssignments({
     for (const [segmentId, integrationSet] of Array.from(
       subscribedIntegrationSegmentMap,
     )) {
+      const segment = segmentById.get(segmentId);
+      if (!segment) {
+        continue;
+      }
       for (const integrationName of Array.from(integrationSet)) {
         const qb = new ClickHouseQueryBuilder();
         queries.push({
@@ -3347,6 +3372,8 @@ export async function processAssignments({
             computedPropertyId: segmentId,
             processedFor: integrationName,
             periodByComputedPropertyId,
+            computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+            now,
             qb,
           }),
           qb,
@@ -3357,6 +3384,10 @@ export async function processAssignments({
     for (const [userPropertyId, integrationSet] of Array.from(
       subscribedIntegrationUserPropertyMap,
     )) {
+      const userProperty = userPropertyById.get(userPropertyId);
+      if (!userProperty) {
+        continue;
+      }
       for (const integrationName of Array.from(integrationSet)) {
         const qb = new ClickHouseQueryBuilder();
         queries.push({
@@ -3367,6 +3398,9 @@ export async function processAssignments({
             computedPropertyId: userPropertyId,
             processedFor: integrationName,
             periodByComputedPropertyId,
+            computedPropertyVersion:
+              userProperty.definitionUpdatedAt.toString(),
+            now,
             qb,
           }),
           qb,
