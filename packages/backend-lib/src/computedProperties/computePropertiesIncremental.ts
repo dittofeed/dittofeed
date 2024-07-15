@@ -1401,6 +1401,7 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.Performed: {
       const stateId = segmentNodeStateId(segment, node.id);
+      //FIXME flatmap
       const propertyConditions = node.properties?.map((property) => {
         const operatorType = property.operator.type;
         const path = toJsonPathParamCh({
@@ -1427,6 +1428,7 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
+      // FIXME
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
