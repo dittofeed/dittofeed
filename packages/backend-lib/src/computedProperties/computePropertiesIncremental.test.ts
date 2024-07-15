@@ -4179,6 +4179,66 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description:
+        "when the performed segment property condition has a syntax error, it ignores that property",
+      userProperties: [
+        {
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+          name: "id",
+        },
+      ],
+      segments: [
+        {
+          name: "withMalformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              properties: [
+                {
+                  path: "!*(_.$%",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "test",
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                withMalformed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
