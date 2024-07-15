@@ -4182,7 +4182,6 @@ describe("computeProperties", () => {
     {
       description:
         "when the performed segment property condition has a syntax error, it ignores that property",
-      only: true,
       userProperties: [
         {
           definition: {
