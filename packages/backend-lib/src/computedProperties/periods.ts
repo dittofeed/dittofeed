@@ -167,62 +167,38 @@ export async function getEarliestComputePropertyPeriod({
 }: {
   workspaceId: string;
 }): Promise<number> {
-  const [userProperties, segments] = await Promise.all([
-    prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        definitionUpdatedAt: true,
-      },
-    }),
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        definitionUpdatedAt: true,
-      },
-    }),
-  ]);
   const step = ComputedPropertyStep.ProcessAssignments;
-  const pairs: [string, string][] = [
-    ...userProperties.map<[string, string]>((up) => [
-      up.id,
-      up.definitionUpdatedAt.getTime().toString(),
-    ]),
-    ...segments.map<[string, string]>((s) => [
-      s.id,
-      s.definitionUpdatedAt.getTime().toString(),
-    ]),
-  ];
-
-  const conditions = Prisma.join(
-    pairs.map(
-      ([computedPropertyId, version]) =>
-        Prisma.sql`("computedPropertyId" = CAST(${computedPropertyId} AS UUID) AND "version" = ${version})`,
-    ),
-    " OR ",
-  );
-
   const query = Prisma.sql`
     SELECT
-      MIN("to") as "minTo"
-    FROM "ComputedPropertyPeriod"
-    WHERE
-      "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND "step" = ${step}
-      AND (${conditions})
+      MIN("maxTo") as "minTo"
+    FROM (
+      SELECT
+        cpp."type",
+        cpp."computedPropertyId",
+        MAX(cpp."to") as "maxTo"
+      FROM "ComputedPropertyPeriod" cpp
+      LEFT JOIN "Segment" s ON s."id" = cpp."computedPropertyId" AND cpp."type" = 'Segment'
+      LEFT JOIN "UserProperty" up ON up."id" = cpp."computedPropertyId" AND cpp."type" = 'UserProperty'
+      WHERE
+        cpp."workspaceId" = CAST(${workspaceId} AS UUID)
+        AND cpp."step" = ${step}
+        AND cpp."version" = round(extract(epoch from COALESCE(s."definitionUpdatedAt", up."definitionUpdatedAt")) * 1000) :: text
+      GROUP BY
+        cpp."type",
+        cpp."computedPropertyId"
+    ) as "maxPerComputedProperty"
   `;
 
   const result = await prisma().$queryRaw<{ minTo: Date | null }[]>(query);
+  logger().debug({ result }, "Earliest computed property period");
+
   const minTo = result[0]?.minTo?.getTime();
   if (!minTo) {
     logger().error(
       {
         result,
+        workspaceId,
+        step,
       },
       "No computed property periods found",
     );
