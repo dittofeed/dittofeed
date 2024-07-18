@@ -13,7 +13,7 @@ export async function retryExponential({
   maxAttempts?: number;
   baseDelay?: number;
   logger: LoggerSinks["defaultWorkerLogger"];
-}) {
+}): Promise<boolean> {
   logger.debug("retry exponential started");
   let attempt = 0;
 
@@ -22,7 +22,7 @@ export async function retryExponential({
       const result = await check();
       if (result) {
         logger.debug("retry exponential succeeded");
-        return;
+        return true;
       }
     } catch (e) {
       const err = e as Error;
@@ -35,6 +35,5 @@ export async function retryExponential({
     logger.debug(`retry exponential did not succeed. retrying in ${delay} ms`);
     await sleep(delay);
   }
-
-  throw new Error("Activity did not succeed after maximum attempts");
+  return false;
 }

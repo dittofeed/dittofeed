@@ -316,7 +316,7 @@ export async function userJourneyWorkflow({
           const now = Date.now();
 
           // retry until compute properties workflow as run after message was sent
-          await retryExponential({
+          const succeeded = await retryExponential({
             sleep,
             check: async () => {
               const period = await getEarliestComputePropertyPeriod({
@@ -334,6 +334,15 @@ export async function userJourneyWorkflow({
             baseDelay: 10000,
             maxAttempts: 5,
           });
+
+          if (!succeeded) {
+            logger.error(
+              "compute properties did not sync within timeout",
+              defaultLoggingFields,
+            );
+            nextNode = definition.exitNode;
+            break;
+          }
         }
 
         nextNode = nodes.get(currentNode.child) ?? null;
