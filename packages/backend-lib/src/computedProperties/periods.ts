@@ -217,8 +217,8 @@ export async function getEarliestComputePropertyPeriod({
       AND (${conditions})
   `;
 
-  const result = await prisma().$queryRaw<{ minTo: Date }[]>(query);
-  const minTo = result[0]?.minTo.getTime();
+  const result = await prisma().$queryRaw<{ minTo: Date | null }[]>(query);
+  const minTo = result[0]?.minTo?.getTime();
   if (!minTo) {
     logger().error(
       {
