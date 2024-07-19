@@ -6,7 +6,8 @@ import {
   createClient,
   Row,
 } from "@clickhouse/client";
-import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/client";
+import { NodeClickHouseClient } from "@clickhouse/client/dist/client";
+import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/config";
 import { v4 as uuid } from "uuid";
 
 import config from "./config";
@@ -123,7 +124,12 @@ function getClientConfig({
   };
   if (enableSession) {
     const sessionId = getChCompatibleUuid();
-    logger().info(`ClickHouse session ID: ${sessionId}`);
+    logger().info(
+      {
+        sessionId,
+      },
+      "ClickHouse session ID",
+    );
     clientConfig.session_id = sessionId;
   }
   return clientConfig;
@@ -161,7 +167,7 @@ export function createClickhouseClient(
   return createClient(clientConfig);
 }
 
-let CLICKHOUSE_CLIENT: ClickHouseClient<Readable> | null = null;
+let CLICKHOUSE_CLIENT: NodeClickHouseClient | null = null;
 
 export function clickhouseClient() {
   if (CLICKHOUSE_CLIENT === null) {
@@ -171,7 +177,7 @@ export function clickhouseClient() {
 }
 
 export async function streamClickhouseQuery(
-  q: BaseResultSet<Readable>,
+  q: BaseResultSet<Readable, "JSONEachRow">,
   cb: (rows: unknown[]) => Promise<void> | void,
 ): Promise<void> {
   const stream = q.stream();
@@ -204,7 +210,7 @@ export async function command(
   {
     clickhouseClient: client = clickhouseClient(),
   }: {
-    clickhouseClient?: ClickHouseClient<Readable>;
+    clickhouseClient?: NodeClickHouseClient;
     queryId?: string;
   } = {},
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
@@ -221,14 +227,18 @@ export async function query(
   {
     clickhouseClient: client = clickhouseClient(),
   }: {
-    clickhouseClient?: ClickHouseClient<Readable>;
+    clickhouseClient?: NodeClickHouseClient;
     queryId?: string;
   } = {},
-): Promise<BaseResultSet<Readable>> {
+): Promise<BaseResultSet<Readable, "JSONEachRow">> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
     logger().debug(`clickhouse-query: ${params.query}`);
-    return client.query({ query_id: queryId, ...params });
+    return client.query<"JSONEachRow">({
+      query_id: queryId,
+      ...params,
+      format: "JSONEachRow",
+    });
   });
 }

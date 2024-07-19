@@ -144,7 +144,7 @@ export async function findManyInternalEvents({
     },
   });
 
-  const results = await resultSet.json<UserEvent[]>();
+  const results = await resultSet.json<UserEvent>();
   return results;
 }
 
@@ -166,7 +166,7 @@ export async function findUserIdByMessageId({
     },
   });
 
-  const results = await resultSet.json<{ user_id: string }[]>();
+  const results = await resultSet.json<{ user_id: string }>();
   return results[0]?.user_id ?? null;
 }
 
@@ -225,7 +225,7 @@ export async function findIdentifyTraits({
     },
   });
 
-  const results = await resultSet.json<{ trait: string }[]>();
+  const results = await resultSet.json<{ trait: string }>();
   return results.map((o) => o.trait);
 }
 
@@ -327,8 +327,8 @@ export async function findManyEventsWithCount({
   ]);
 
   const [eventResults, countResults] = await Promise.all([
-    eventsResultSet.json<UserEventsWithTraits[]>(),
-    countResultSet.json<{ count: number }[]>(),
+    eventsResultSet.json<UserEventsWithTraits>(),
+    countResultSet.json<{ count: number }>(),
   ]);
 
   return {
