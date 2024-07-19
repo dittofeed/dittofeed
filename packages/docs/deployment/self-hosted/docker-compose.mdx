@@ -48,18 +48,23 @@ env_file:
 Populate this `.env` file with the following values, substituting placeholder values with your own. Dittofeed will work without these overrides, but it is recommended that you substitute your own credentials.
 
 ```properties .env
-# Used to generate links to the dashboard e.g. for unsubscribe links. Should not
-# include the /dashboard suffix.
-DASHBOARD_URL="https://my-dittofeed-dashboard.com"
-# Used to issue requests to the api from the dashboard. Should not include the
-# /api suffix. Can be the same as the DASHBOARD_URL.
-DASHBOARD_API_BASE="https://my-dittofeed-api.com"
 DATABASE_USER=my-postgres-user
 DATABASE_PASSWORD=my-postgres-password
 CLICKHOUSE_USER=my-clickhouse-user
 CLICKHOUSE_PASSWORD=my-clickhouse-password
 PASSWORD=password
 SECRET_KEY=GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=
+
+# You need to set the following ENV variables when you are ready to deploy to a
+# non-local environment, with a different domain.
+
+# Used to generate links to the dashboard e.g. for unsubscribe links. Should not
+# include the /dashboard suffix.
+# DASHBOARD_URL="https://my-dittofeed-dashboard.com"
+
+# Used to issue requests to the api from the dashboard. Should not include the
+# /api suffix. Can be the same as the DASHBOARD_URL.
+# DASHBOARD_API_BASE="https://my-dittofeed-api.com"
 ```
 
 See our documentation on [Authentication Modes](/deployment/self-hosted/auth-modes) for instructions on how to generate a new `SECRET_KEY`.
