@@ -107,14 +107,14 @@ function getClientConfig({
   enableSession = false,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
-    clickhouseHost: host,
+    clickhouseHost: url,
     clickhouseDatabase: database,
     clickhouseUser: username,
     clickhousePassword: password,
   } = config();
 
   const clientConfig: NodeClickHouseClientConfigOptions = {
-    host,
+    url,
     database,
     username,
     password,
