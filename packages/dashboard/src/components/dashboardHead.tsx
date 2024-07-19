@@ -24,7 +24,9 @@ export default function DashboardHead() {
       </title>
       {whiteLabelConfig?.favicon ? (
         <link rel="icon" href={whiteLabelConfig.favicon} />
-      ) : null}
+      ) : (
+        <link rel="icon" type="image/png" href="/dashboard/favicon.png" />
+      )}
       <meta name="description" content="Open Source Customer Engagement" />
     </Head>
   );
