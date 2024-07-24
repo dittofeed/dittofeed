@@ -168,3 +168,14 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 1
+  failureThreshold: 5
+  successThreshold: 1
+  httpGet:
+    path: /api
+    port: 3000
