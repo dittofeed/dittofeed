@@ -95,6 +95,8 @@ const BaseRawConfigProps = {
   blobStorageBucket: Type.Optional(Type.String()),
   enableBlobStorage: Type.Optional(BoolStr),
   blobStorageRegion: Type.Optional(Type.String()),
+  exportLogsHyperDx: Type.Optional(BoolStr),
+  hyperDxApiKey: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -201,6 +203,7 @@ export type Config = Overwrite<
     blobStorageSecretAccessKey: string;
     blobStorageBucket: string;
     blobStorageRegion: string;
+    exportLogsHyperDx: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
