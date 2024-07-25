@@ -1,3 +1,4 @@
+import * as HyperDX from "@hyperdx/node-opentelemetry";
 import pino from "pino";
 
 import config from "./config";
@@ -61,6 +62,23 @@ export default function logger(): Logger {
       if (config().googleOps) {
         Object.assign(options, googleOpsConfig);
       }
+    }
+    const { exportLogsHyperDx, hyperDxApiKey } = config();
+    if (exportLogsHyperDx && hyperDxApiKey) {
+      options.mixin = HyperDX.getPinoMixinFunction;
+      options.transport = {
+        targets: [
+          {
+            target: "@hyperdx/node-opentelemetry/build/src/otel-logger/pino",
+            options: {
+              headers: {
+                Authorization: hyperDxApiKey,
+              },
+            },
+            level: config().logLevel,
+          },
+        ],
+      };
     }
     const l = pino(options);
     LOGGER = l;
