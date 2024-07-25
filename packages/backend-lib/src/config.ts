@@ -438,6 +438,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.blobStorageSecretAccessKey ?? "password",
     blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
+    exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
   };
 
   return parsedConfig;
