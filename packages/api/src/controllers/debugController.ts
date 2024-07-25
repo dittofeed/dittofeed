@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -12,6 +13,7 @@ export default async function debugController(fastify: FastifyInstance) {
     },
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
+      logger().error("boom!");
       throw new Error("boom!");
     },
   );
