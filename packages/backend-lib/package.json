@@ -61,6 +61,7 @@
     "nodemailer": "^6.9.7",
     "p-limit": "^3.1.0",
     "pino": "9.3.1",
+    "pino-opentelemetry-transport": "^1.0.0",
     "pino-pretty": "11.2.1",
     "postmark": "^4.0.2",
     "prisma": "5.17.0",

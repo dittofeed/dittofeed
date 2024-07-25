@@ -64,16 +64,31 @@ export default function logger(): Logger {
       }
     }
     const { exportLogsHyperDx, hyperDxApiKey } = config();
+
     if (exportLogsHyperDx && hyperDxApiKey) {
+      // HyperDX.init({
+      //   apiKey: hyperDxApiKey,
+      //   service: "dittofeed-api",
+      //   disableMetrics: true,
+      //   disableTracing: true,
+      // });
+
       options.mixin = HyperDX.getPinoMixinFunction;
+
+      // options.transport = HyperDX.getPinoTransport(config().logLevel, {
+      //   detectResources: true,
+      // });
+
       options.transport = {
         targets: [
           {
             target: "@hyperdx/node-opentelemetry/build/src/otel-logger/pino",
             options: {
-              headers: {
-                Authorization: hyperDxApiKey,
-              },
+              apiKey: hyperDxApiKey,
+              // headers: {
+              //   Authorization: hyperDxApiKey,
+              // },
+              // endpoint: "https://in.hyperdx.io",
             },
             level: config().logLevel,
           },

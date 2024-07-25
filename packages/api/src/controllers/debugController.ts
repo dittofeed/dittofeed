@@ -17,4 +17,18 @@ export default async function debugController(fastify: FastifyInstance) {
       throw new Error("boom!");
     },
   );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/ok",
+    {
+      schema: {
+        description: "Ok endpoint for testing telemetry.",
+      },
+    },
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async () => {
+      logger().info("my ok message!");
+      return { ok: true };
+    },
+  );
 }
