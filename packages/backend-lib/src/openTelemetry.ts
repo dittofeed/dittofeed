@@ -15,6 +15,7 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 import config from "./config";
 import logger from "./logger";
+import { getServiceName, setServiceName } from "./openTelemetry/constants";
 
 export interface OpenTelemetry {
   sdk: NodeSDK;
@@ -52,10 +53,8 @@ export async function withSpan<T>(
   });
 }
 
-let SERVICE_NAME = "default";
-
 export function getMeter() {
-  return api.metrics.getMeterProvider().getMeter(SERVICE_NAME);
+  return api.metrics.getMeterProvider().getMeter(getServiceName());
 }
 
 export function initOpenTelemetry({
@@ -96,6 +95,8 @@ export function initOpenTelemetry({
   });
 
   const start = function start() {
+    setServiceName(serviceName);
+
     if (!startOtel) {
       return;
     }
@@ -126,8 +127,6 @@ export function initOpenTelemetry({
       process.exit(1);
     }
   };
-
-  SERVICE_NAME = serviceName;
 
   return {
     start,
