@@ -97,6 +97,7 @@ const BaseRawConfigProps = {
   blobStorageRegion: Type.Optional(Type.String()),
   exportLogsHyperDx: Type.Optional(BoolStr),
   hyperDxApiKey: Type.Optional(Type.String()),
+  dittofeedTelemetryDisabled: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -204,6 +205,7 @@ export type Config = Overwrite<
     blobStorageBucket: string;
     blobStorageRegion: string;
     exportLogsHyperDx: boolean;
+    dittofeedTelemetryDisabled: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -439,6 +441,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
+    dittofeedTelemetryDisabled: rawConfig.dittofeedTelemetryDisabled === "true",
   };
 
   return parsedConfig;

@@ -42,6 +42,10 @@ const googleOpsConfig: PinoConf = {
   },
 };
 
+export function publicLogger(): Logger {
+  throw new Error("Not implemented");
+}
+
 export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
