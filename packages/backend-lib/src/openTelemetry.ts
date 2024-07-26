@@ -14,8 +14,10 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
 import config from "./config";
-import logger from "./logger";
+// import logger from "./logger";
 import { getServiceName, setServiceName } from "./openTelemetry/constants";
+
+console.log("loc16 openTelemetry.ts");
 
 export interface OpenTelemetry {
   sdk: NodeSDK;
@@ -67,6 +69,10 @@ export function initOpenTelemetry({
   meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   const { otelCollector, startOtel } = config();
+  console.log("loc27 initOpenTelemetry", {
+    otelCollector,
+    startOtel,
+  });
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
   });
@@ -101,19 +107,21 @@ export function initOpenTelemetry({
       return;
     }
 
-    // Graceful shutdown
-    ["SIGTERM", "SIGINT"].forEach((signal) =>
+    console.log("loc26 otel start");
+
+    [
+      // Graceful shutdown
+      "SIGTERM",
+      "SIGINT",
+    ].forEach((signal) =>
       process.on(signal, () => {
         sdk.shutdown().then(
           () => {
-            logger().info("Telemetry terminated");
+            console.log("Telemetry terminated");
             process.exit(0);
           },
           (err) => {
-            logger().error(
-              { err: err as Error },
-              "Error terminating telemetry",
-            );
+            console.error("Error terminating telemetry", err);
             process.exit(1);
           },
         );
@@ -123,7 +131,7 @@ export function initOpenTelemetry({
     try {
       sdk.start();
     } catch (err) {
-      logger().error({ err }, "Error initializing telemetry");
+      console.error("Error initializing telemetry", err);
       process.exit(1);
     }
   };
