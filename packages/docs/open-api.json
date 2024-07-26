@@ -23118,16 +23118,12 @@
         "description": "Ok endpoint for testing telemetry.",
         "parameters": [
           {
-            "schema": "object",
-            "in": "query",
-            "name": "type"
-          },
-          {
             "schema": {
               "type": "string"
             },
             "in": "query",
-            "name": "additionalProperties"
+            "name": "customVal",
+            "required": false
           }
         ],
         "responses": {

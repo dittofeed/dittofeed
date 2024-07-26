@@ -25,7 +25,9 @@ export default async function debugController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Ok endpoint for testing telemetry.",
-        querystring: Type.Optional(Type.Record(Type.String(), Type.String())),
+        querystring: Type.Object({
+          customVal: Type.Optional(Type.String()),
+        }),
       },
     },
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -35,7 +37,7 @@ export default async function debugController(fastify: FastifyInstance) {
         logger().info("my ok message!");
         publicLogger().info(
           {
-            ...request.query,
+            customVal: request.query.customVal,
           },
           "my public ok message!",
         );
