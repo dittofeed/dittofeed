@@ -61,6 +61,13 @@ export function publicLogger(): Logger {
               service: getServiceName(),
             },
           },
+          // Write to stdout as well
+          {
+            target: "pino/file",
+            options: {
+              destination: 1, // This means stdout, which will output JSON
+            },
+          },
         ],
       },
     };
