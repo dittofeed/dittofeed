@@ -1,10 +1,12 @@
+import { query as chQuery } from "./clickhouse";
+import config from "./config";
 import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
-import logger from "./logger";
+import logger, { publicLogger } from "./logger";
 import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
 import { ComputedPropertyStep, Workspace } from "./types";
 
-async function observeWorkspaceComputeLatencyInner({
+function observeWorkspaceComputeLatencyInner({
   workspaces,
   periods,
 }: {
@@ -76,8 +78,81 @@ export async function observeWorkspaceComputeLatency() {
     prisma().workspace.findMany(),
   ]);
 
-  await observeWorkspaceComputeLatencyInner({
+  observeWorkspaceComputeLatencyInner({
     workspaces,
     periods,
   });
+}
+
+async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
+  const [userCountsRes, messageCountsRes] = await Promise.all([
+    chQuery({
+      query: `select workspace_id, uniq(user_id) as count from user_events_v2 group by workspace_id`,
+      format: "JSONEachRow",
+    }),
+    chQuery({
+      query: `select workspace_id, uniq(message_id) as count from user_events_v2 where event = 'DFInternalMessageSent'group by workspace_id`,
+      format: "JSONEachRow",
+    }),
+  ]);
+
+  const [userCountRows, messageCountRows] = await Promise.all([
+    userCountsRes.json<{ workspaceId: string; count: number }>(),
+    messageCountsRes.json<{ workspaceId: string; count: number }>(),
+  ]);
+  const userCounts: Record<string, number> = {};
+
+  for (const row of userCountRows) {
+    userCounts[row.workspaceId] = row.count;
+  }
+
+  const messageCounts: Record<string, number> = {};
+
+  for (const row of messageCountRows) {
+    messageCounts[row.workspaceId] = row.count;
+  }
+
+  const firstWorkspace = workspaces[0]?.id;
+
+  publicLogger().info(
+    { userCounts, messageCounts, firstWorkspace },
+    "Public signals",
+  );
+}
+
+export async function emitGlobalSignals() {
+  const [periods, workspaces] = await Promise.all([
+    (async () => {
+      const periodsQuery = Prisma.sql`
+        SELECT
+          "workspaceId",
+          MAX("to") as to
+        FROM "ComputedPropertyPeriod"
+        WHERE
+          "step" = ${ComputedPropertyStep.ProcessAssignments}
+        GROUP BY "workspaceId";
+      `;
+      return prisma().$queryRaw<{ to: Date; workspaceId: string }[]>(
+        periodsQuery,
+      );
+    })(),
+    prisma().workspace.findMany({
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+  ]);
+
+  observeWorkspaceComputeLatencyInner({
+    workspaces,
+    periods,
+  });
+
+  const { dittofeedTelemetryDisabled } = config();
+
+  if (!dittofeedTelemetryDisabled) {
+    await emitPublicSignals({
+      workspaces,
+    });
+  }
 }
