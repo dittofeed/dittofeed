@@ -23116,6 +23116,16 @@
     "/internal-api/debug/ok": {
       "get": {
         "description": "Ok endpoint for testing telemetry.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "customVal",
+            "required": false
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response"

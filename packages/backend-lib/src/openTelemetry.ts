@@ -66,6 +66,7 @@ export function initOpenTelemetry({
   configOverrides?: InstrumentationConfigMap;
   meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
+  setServiceName(serviceName);
   const { otelCollector, startOtel } = config();
 
   const resource = new Resource({
@@ -96,8 +97,6 @@ export function initOpenTelemetry({
   });
 
   const start = function start() {
-    setServiceName(serviceName);
-
     if (!startOtel) {
       return;
     }
