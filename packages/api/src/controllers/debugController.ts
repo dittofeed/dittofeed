@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { trace, context } from "@opentelemetry/api";
 import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
 import { FastifyInstance } from "fastify";
@@ -29,6 +28,7 @@ export default async function debugController(fastify: FastifyInstance) {
     },
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
+      // eslint-disable-next-line @typescript-eslint/require-await
       return withSpan({ name: "my ok span!" }, async () => {
         logger().info("my ok message!");
         return { ok: true };
