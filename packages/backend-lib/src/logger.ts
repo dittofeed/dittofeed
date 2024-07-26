@@ -6,6 +6,7 @@ import { getServiceName } from "./openTelemetry/constants";
 import { Logger } from "./types";
 
 let LOGGER: Logger | null = null;
+let PUBLIC_LOGGER: Logger | null = null;
 
 export { type LogFn } from "pino";
 
@@ -43,7 +44,29 @@ const googleOpsConfig: PinoConf = {
 };
 
 export function publicLogger(): Logger {
-  throw new Error("Not implemented");
+  if (!PUBLIC_LOGGER) {
+    const level = config().dittofeedTelemetryDisabled
+      ? "silent"
+      : config().logLevel;
+
+    const options: PinoConf = {
+      level,
+      mixin: HyperDX.getPinoMixinFunction,
+      transport: {
+        targets: [
+          {
+            target: "@hyperdx/node-opentelemetry/build/src/otel-logger/pino",
+            options: {
+              apiKey: "4d3112b9-2a84-48c2-af9e-ec96b9aacf71",
+              service: getServiceName(),
+            },
+          },
+        ],
+      },
+    };
+    PUBLIC_LOGGER = pino(options);
+  }
+  return PUBLIC_LOGGER;
 }
 
 export default function logger(): Logger {

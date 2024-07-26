@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import logger from "backend-lib/src/logger";
+import { Type } from "@sinclair/typebox";
+import logger, { publicLogger } from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
 import { FastifyInstance } from "fastify";
 
@@ -24,13 +25,20 @@ export default async function debugController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Ok endpoint for testing telemetry.",
+        querystring: Type.Optional(Type.Record(Type.String(), Type.String())),
       },
     },
     // eslint-disable-next-line @typescript-eslint/require-await
-    async () => {
+    async (request) => {
       // eslint-disable-next-line @typescript-eslint/require-await
       return withSpan({ name: "my ok span!" }, async () => {
         logger().info("my ok message!");
+        publicLogger().info(
+          {
+            ...request.query,
+          },
+          "my public ok message!",
+        );
         return { ok: true };
       });
     },
