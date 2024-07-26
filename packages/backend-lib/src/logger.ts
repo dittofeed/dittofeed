@@ -2,6 +2,7 @@ import * as HyperDX from "@hyperdx/node-opentelemetry";
 import pino from "pino";
 
 import config from "./config";
+import { getServiceName } from "./openTelemetry/constants";
 import { Logger } from "./types";
 
 let LOGGER: Logger | null = null;
@@ -56,30 +57,31 @@ export default function logger(): Logger {
         },
       };
     } else {
+      const { exportLogsHyperDx, hyperDxApiKey, logLevel } = config();
+
       options = {
-        level: config().logLevel,
+        level: logLevel,
       };
       if (config().googleOps) {
         Object.assign(options, googleOpsConfig);
+      } else if (exportLogsHyperDx && hyperDxApiKey) {
+        options.mixin = HyperDX.getPinoMixinFunction;
+
+        options.transport = {
+          targets: [
+            {
+              target: "@hyperdx/node-opentelemetry/build/src/otel-logger/pino",
+              options: {
+                apiKey: hyperDxApiKey,
+                service: getServiceName(),
+              },
+              level: logLevel,
+            },
+          ],
+        };
       }
     }
-    const { exportLogsHyperDx, hyperDxApiKey } = config();
-    if (exportLogsHyperDx && hyperDxApiKey) {
-      options.mixin = HyperDX.getPinoMixinFunction;
-      options.transport = {
-        targets: [
-          {
-            target: "@hyperdx/node-opentelemetry/build/src/otel-logger/pino",
-            options: {
-              headers: {
-                Authorization: hyperDxApiKey,
-              },
-            },
-            level: config().logLevel,
-          },
-        ],
-      };
-    }
+
     const l = pino(options);
     LOGGER = l;
     return l;

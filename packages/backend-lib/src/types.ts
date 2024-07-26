@@ -22,7 +22,7 @@ import {
   SegmentDefinition,
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
-import { Logger as PinoLogger } from "pino";
+import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";

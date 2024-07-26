@@ -31,6 +31,9 @@ const telemetryConfig: Parameters<
       }
     },
   },
+  "@opentelemetry/instrumentation-pino": {
+    enabled: true,
+  },
 };
 
 export function initApiOpenTelemetry() {
