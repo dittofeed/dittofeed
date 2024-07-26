@@ -17,8 +17,6 @@ import config from "./config";
 // import logger from "./logger";
 import { getServiceName, setServiceName } from "./openTelemetry/constants";
 
-console.log("loc16 openTelemetry.ts");
-
 export interface OpenTelemetry {
   sdk: NodeSDK;
   resource: Resource;
@@ -69,10 +67,7 @@ export function initOpenTelemetry({
   meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   const { otelCollector, startOtel } = config();
-  console.log("loc27 initOpenTelemetry", {
-    otelCollector,
-    startOtel,
-  });
+
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
   });
@@ -106,8 +101,6 @@ export function initOpenTelemetry({
     if (!startOtel) {
       return;
     }
-
-    console.log("loc26 otel start");
 
     [
       // Graceful shutdown

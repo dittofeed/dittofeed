@@ -30,13 +30,7 @@ export default async function debugController(fastify: FastifyInstance) {
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
       return withSpan({ name: "my ok span!" }, async () => {
-        const span = trace.getSpan(context.active());
-        logger().info(
-          {
-            activeSpan: span,
-          },
-          "my ok message!",
-        );
+        logger().info("my ok message!");
         return { ok: true };
       });
     },
