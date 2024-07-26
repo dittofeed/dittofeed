@@ -23112,6 +23112,16 @@
           }
         }
       }
+    },
+    "/internal-api/debug/ok": {
+      "get": {
+        "description": "Ok endpoint for testing telemetry.",
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
     }
   },
   "servers": [
