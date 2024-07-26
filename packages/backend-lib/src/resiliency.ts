@@ -97,30 +97,47 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   ]);
 
   const [userCountRows, messageCountRows] = await Promise.all([
-    userCountsRes.json<{ workspaceId: string; count: number }>(),
-    messageCountsRes.json<{ workspaceId: string; count: number }>(),
+    userCountsRes.json<{ workspace_id: string; count: string }>(),
+    messageCountsRes.json<{ workspace_id: string; count: string }>(),
   ]);
   const userCounts: Record<string, number> = {};
 
   for (const row of userCountRows) {
-    userCounts[row.workspaceId] = row.count;
+    const count = Number.parseInt(row.count, 10);
+    if (Number.isNaN(count)) {
+      logger().error(
+        { workspaceId: row.workspace_id, count: row.count },
+        "Could not parse user count",
+      );
+      continue;
+    }
+    userCounts[row.workspace_id] = count;
   }
 
   const messageCounts: Record<string, number> = {};
 
   for (const row of messageCountRows) {
-    messageCounts[row.workspaceId] = row.count;
+    const count = Number.parseInt(row.count, 10);
+    if (Number.isNaN(count)) {
+      logger().error(
+        { workspaceId: row.workspace_id, count: row.count },
+        "Could not parse message count",
+      );
+      continue;
+    }
+    messageCounts[row.workspace_id] = count;
   }
 
   const firstWorkspace = workspaces[0]?.id;
 
   publicLogger().info(
     { userCounts, messageCounts, firstWorkspace },
-    "Public signals",
+    "Public signal",
   );
 }
 
 export async function emitGlobalSignals() {
+  logger().info("Emitting global signals");
   const [periods, workspaces] = await Promise.all([
     (async () => {
       const periodsQuery = Prisma.sql`
