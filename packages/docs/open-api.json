@@ -2078,7 +2078,7 @@
                         "anyOf": [
                           {
                             "title": "Segment Entry Node",
-                            "description": "The first node in a journey, which limits it to a specific segment.",
+                            "description": "The first node in a journey - triggered when a user enters a segment.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -2101,6 +2101,8 @@
                             ]
                           },
                           {
+                            "title": "Event Entry Node",
+                            "description": "The first node in a journey - triggered when a user performs a specific event.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -3488,7 +3490,7 @@
                               "anyOf": [
                                 {
                                   "title": "Segment Entry Node",
-                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "description": "The first node in a journey - triggered when a user enters a segment.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -3511,6 +3513,8 @@
                                   ]
                                 },
                                 {
+                                  "title": "Event Entry Node",
+                                  "description": "The first node in a journey - triggered when a user performs a specific event.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -4434,7 +4438,7 @@
                               "anyOf": [
                                 {
                                   "title": "Segment Entry Node",
-                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "description": "The first node in a journey - triggered when a user enters a segment.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -4457,6 +4461,8 @@
                                   ]
                                 },
                                 {
+                                  "title": "Event Entry Node",
+                                  "description": "The first node in a journey - triggered when a user performs a specific event.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -21355,7 +21361,7 @@
                         "anyOf": [
                           {
                             "title": "Segment Entry Node",
-                            "description": "The first node in a journey, which limits it to a specific segment.",
+                            "description": "The first node in a journey - triggered when a user enters a segment.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -21378,6 +21384,8 @@
                             ]
                           },
                           {
+                            "title": "Event Entry Node",
+                            "description": "The first node in a journey - triggered when a user performs a specific event.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -22765,7 +22773,7 @@
                               "anyOf": [
                                 {
                                   "title": "Segment Entry Node",
-                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "description": "The first node in a journey - triggered when a user enters a segment.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -22788,6 +22796,8 @@
                                   ]
                                 },
                                 {
+                                  "title": "Event Entry Node",
+                                  "description": "The first node in a journey - triggered when a user performs a specific event.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -23711,7 +23721,7 @@
                               "anyOf": [
                                 {
                                   "title": "Segment Entry Node",
-                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "description": "The first node in a journey - triggered when a user enters a segment.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
@@ -23734,6 +23744,8 @@
                                   ]
                                 },
                                 {
+                                  "title": "Event Entry Node",
+                                  "description": "The first node in a journey - triggered when a user performs a specific event.",
                                   "type": "object",
                                   "properties": {
                                     "type": {
