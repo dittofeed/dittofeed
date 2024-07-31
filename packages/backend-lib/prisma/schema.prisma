@@ -58,7 +58,7 @@ model Workspace {
 
 model WorkspaceRelation {
   parentWorkspace        Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
-  parentWorkspaceId      String    @db.Uuid @map("workspaceId")
+  parentWorkspaceId      String    @db.Uuid
   childWorkspace   Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
   childWorkspaceId String    @db.Uuid
 

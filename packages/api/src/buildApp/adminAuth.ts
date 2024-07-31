@@ -24,11 +24,11 @@ export async function authenticateAdminApiKey({
       FROM "AdminApiKey" aak
       JOIN "Secret" s ON aak."secretId" = s.id
       WHERE
-        aak."workspaceId" = ${workspaceId}
+        aak."workspaceId" = CAST(${workspaceId} AS UUID)
         OR aak."workspaceId" IN (
           SELECT wr."childWorkspaceId"
           FROM "WorkspaceRelation" wr
-          WHERE wr."parentWorkspaceId" = ${workspaceId}
+          WHERE wr."parentWorkspaceId" = CAST(${workspaceId} AS UUID)
         )
     `;
   const apiKeys =
