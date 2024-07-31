@@ -32,7 +32,7 @@ export async function authenticateAdminApiKey({
         )
     `;
   const apiKeys =
-    await prisma().$queryRaw<{ id: string; configValue: string }[]>(
+    await prisma().$queryRaw<{ id: string; configValue: unknown }[]>(
       apiKeysQuery,
     );
 
@@ -41,8 +41,9 @@ export async function authenticateAdminApiKey({
   }
   let matchingKey = false;
   for (const apiKey of apiKeys) {
-    const definitionResult = jsonParseSafe(apiKey.configValue).andThen(
-      (configValue) => schemaValidate(configValue, AdminApiKeyDefinition),
+    const definitionResult = schemaValidate(
+      apiKey.configValue,
+      AdminApiKeyDefinition,
     );
     if (definitionResult.isErr()) {
       logger().error(
