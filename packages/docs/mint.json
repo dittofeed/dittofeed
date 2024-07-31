@@ -216,13 +216,17 @@
         "api-reference/endpoints/apps/page",
         "api-reference/endpoints/apps/screen",
         "api-reference/endpoints/apps/batch",
-        "api-reference/endpoints/subscription-management/user-subscriptions",
         "api-reference/endpoints/webhooks/segment",
+        "api-reference/auto/content/put-apiadmincontenttemplates",
+        "api-reference/auto/content/delete-apiadmincontenttemplates",
+        "api-reference/auto/segments/put-apiadminsegments",
+        "api-reference/auto/segments/delete-apiadminsegments",
+        "api-reference/auto/journeys/put-apiadminjourneys",
+        "api-reference/auto/journeys/delete-apiadminjourneys",
+        "api-reference/endpoints/subscription-management/user-subscriptions",
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
-        "api-reference/auto/events/get-apiadminevents",
-        "api-reference/auto/content/put-apiadmincontenttemplates",
-        "api-reference/auto/content/delete-apiadmincontenttemplates"
+        "api-reference/auto/events/get-apiadminevents"
       ]
     },
     {

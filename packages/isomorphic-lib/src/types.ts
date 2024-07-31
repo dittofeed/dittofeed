@@ -561,17 +561,24 @@ export const SegmentEntryNode = Type.Object(
   {
     title: "Segment Entry Node",
     description:
-      "The first node in a journey, which limits it to a specific segment.",
+      "The first node in a journey - triggered when a user enters a segment.",
   },
 );
 
 export type SegmentEntryNode = Static<typeof SegmentEntryNode>;
 
-export const EventEntryNode = Type.Object({
-  type: Type.Literal(JourneyNodeType.EventEntryNode),
-  event: Type.String(),
-  child: Type.String(),
-});
+export const EventEntryNode = Type.Object(
+  {
+    type: Type.Literal(JourneyNodeType.EventEntryNode),
+    event: Type.String(),
+    child: Type.String(),
+  },
+  {
+    title: "Event Entry Node",
+    description:
+      "The first node in a journey - triggered when a user performs a specific event.",
+  },
+);
 
 export type EventEntryNode = Static<typeof EventEntryNode>;
 
