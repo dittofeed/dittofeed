@@ -13,6 +13,8 @@ import {
   SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperator,
+  SegmentOperatorType,
   SegmentSplitNode,
   WaitForNode,
 } from "isomorphic-lib/src/types";
@@ -60,6 +62,74 @@ function mapProperty({
   }
 }
 
+function mapSegmentOperator({
+  operator,
+  path,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  operator: SegmentOperator;
+  path: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): SegmentOperator {
+  switch (operator.type) {
+    case SegmentOperatorType.Equals:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.NotEquals:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.HasBeen:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.Within:
+      return operator;
+    case SegmentOperatorType.Exists:
+      return operator;
+  }
+}
+
 function mapSegmentNode({
   node,
   subscriptionGroupMap,
@@ -73,17 +143,23 @@ function mapSegmentNode({
   templateMap: Map<string, string>;
   userPropertyMap: Map<string, string>;
 }): SegmentNode {
-  if (node.type === SegmentNodeType.SubscriptionGroup) {
-    return {
-      ...node,
-      subscriptionGroupId: getUnsafe(
-        subscriptionGroupMap,
-        node.subscriptionGroupId,
-      ),
-    };
+  switch (node.type) {
+    case SegmentNodeType.SubscriptionGroup:
+      return {
+        ...node,
+        subscriptionGroupId: getUnsafe(
+          subscriptionGroupMap,
+          node.subscriptionGroupId,
+        ),
+      };
+    case SegmentNodeType.Email:
+      return {
+        ...node,
+        templateId: getUnsafe(templateMap, node.templateId),
+      };
+    default:
+      return node;
   }
-  // FIXME: Implement other segment node types
-  return node;
 }
 
 function mapJourneyEntryNode({
