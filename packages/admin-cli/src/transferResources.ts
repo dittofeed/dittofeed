@@ -30,12 +30,48 @@ function newSubscriptionGroupName({
   return name.replace(workspaceName, destinationWorkspaceName);
 }
 
+function mapProperty({
+  path,
+  value,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  path: string;
+  value: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): string {
+  switch (path) {
+    case "templateId":
+      return getUnsafe(templateMap, value);
+    case "segmentId":
+      return getUnsafe(segmentMap, value);
+    case "userPropertyId":
+      return getUnsafe(userPropertyMap, value);
+    case "subscriptionGroupId":
+      return getUnsafe(subscriptionGroupMap, value);
+    default: {
+      return value;
+    }
+  }
+}
+
 function mapSegmentNode({
   node,
   subscriptionGroupMap,
+  segmentMap,
+  templateMap,
+  userPropertyMap,
 }: {
   node: SegmentNode;
   subscriptionGroupMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
 }): SegmentNode {
   if (node.type === SegmentNodeType.SubscriptionGroup) {
     return {
@@ -46,6 +82,7 @@ function mapSegmentNode({
       ),
     };
   }
+  // FIXME: Implement other segment node types
   return node;
 }
 
@@ -119,9 +156,7 @@ function mapJourneyBodyNode({
   }
 }
 
-// yarn admin bootstrap --workspace-name='Destination'
-// yarn admin transfer-resources --workspace-id='5c89ccd5-bd30-4af3-94fa-c7e1ea869307' --destination-workspace-id='0ae1dc72-4e8f-4f1c-bd54-0762235d7134'
-// delete from "SubscriptionGroup" where id in ('78084cae-e680-5de4-8345-e04ea73d76b6', '873aa85a-e0da-583b-b3ba-1b139379810f', 'b4f2a360-5606-59c6-a8fa-f73f11f4dcb7');
+// yarn admin transfer-resources --workspace-id='{workspaceId}' --destination-workspace-id='{destinationWorkspaceId}'
 export async function transferResources({
   workspaceId,
   destinationWorkspaceId,
@@ -162,6 +197,11 @@ export async function transferResources({
       },
       "Transferring user properties",
     );
+    const userPropertyMap = userProperties.reduce((acc, userProperty) => {
+      acc.set(userProperty.id, uuidv5(userProperty.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
     await Promise.all(
       userProperties.map((userProperty) =>
         tx.userProperty.upsert({
@@ -174,7 +214,7 @@ export async function transferResources({
           create: {
             ...userProperty,
             definition: userProperty.definition ?? Prisma.JsonNull,
-            id: uuidv5(userProperty.id, destinationWorkspaceId),
+            id: getUnsafe(userPropertyMap, userProperty.id),
             workspaceId: destinationWorkspaceId,
           },
           update: {},
@@ -288,11 +328,17 @@ export async function transferResources({
           entryNode: mapSegmentNode({
             node: definition.entryNode,
             subscriptionGroupMap,
+            segmentMap,
+            templateMap,
+            userPropertyMap,
           }),
           nodes: definition.nodes.map((node) =>
             mapSegmentNode({
               node,
               subscriptionGroupMap,
+              segmentMap,
+              templateMap,
+              userPropertyMap,
             }),
           ),
         };
