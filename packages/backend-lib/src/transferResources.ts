@@ -39,6 +39,21 @@ function newSubscriptionGroupName({
   return name.replace(workspaceName, destinationWorkspaceName);
 }
 
+function getWithDefault(map: Map<string, string>, key: string): string {
+  const value = map.get(key);
+  if (value === undefined) {
+    logger().warn(
+      {
+        key,
+        map,
+      },
+      "Key not found in map, using default value",
+    );
+    return key;
+  }
+  return value;
+}
+
 function mapProperty({
   path,
   value,
@@ -56,13 +71,13 @@ function mapProperty({
 }): string {
   switch (path) {
     case "templateId":
-      return templateMap.get(value) ?? value;
+      return getWithDefault(templateMap, value);
     case "segmentId":
-      return segmentMap.get(value) ?? value;
+      return getWithDefault(segmentMap, value);
     case "userPropertyId":
-      return userPropertyMap.get(value) ?? value;
+      return getWithDefault(userPropertyMap, value);
     case "subscriptionGroupId":
-      return subscriptionGroupMap.get(value) ?? value;
+      return getWithDefault(subscriptionGroupMap, value);
     default: {
       return value;
     }
@@ -185,7 +200,7 @@ function mapSegmentNode({
     case SegmentNodeType.SubscriptionGroup:
       return {
         ...node,
-        subscriptionGroupId: getUnsafe(
+        subscriptionGroupId: getWithDefault(
           subscriptionGroupMap,
           node.subscriptionGroupId,
         ),
@@ -193,7 +208,7 @@ function mapSegmentNode({
     case SegmentNodeType.Email:
       return {
         ...node,
-        templateId: getUnsafe(templateMap, node.templateId),
+        templateId: getWithDefault(templateMap, node.templateId),
       };
     case SegmentNodeType.Performed:
       return {
@@ -228,7 +243,7 @@ function mapJourneyEntryNode({
     case JourneyNodeType.SegmentEntryNode:
       return {
         ...node,
-        segment: getUnsafe(segmentMap, node.segment),
+        segment: getWithDefault(segmentMap, node.segment),
       } satisfies SegmentEntryNode;
   }
 }
@@ -251,11 +266,11 @@ function mapJourneyBodyNode({
       return {
         ...node,
         subscriptionGroupId: node.subscriptionGroupId
-          ? getUnsafe(subscriptionGroupMap, node.subscriptionGroupId)
+          ? getWithDefault(subscriptionGroupMap, node.subscriptionGroupId)
           : undefined,
         variant: {
           ...node.variant,
-          templateId: getUnsafe(templateMap, node.variant.templateId),
+          templateId: getWithDefault(templateMap, node.variant.templateId),
         },
       } satisfies MessageNode;
     case JourneyNodeType.SegmentSplitNode: {
@@ -265,8 +280,8 @@ function mapJourneyBodyNode({
         ...node,
         variant: {
           ...variant,
-          trueChild: getUnsafe(segmentMap, node.variant.trueChild),
-          falseChild: getUnsafe(segmentMap, node.variant.falseChild),
+          trueChild: getWithDefault(segmentMap, node.variant.trueChild),
+          falseChild: getWithDefault(segmentMap, node.variant.falseChild),
         },
       } satisfies SegmentSplitNode;
     }
@@ -275,7 +290,7 @@ function mapJourneyBodyNode({
         ...node,
         segmentChildren: node.segmentChildren.map((child) => ({
           ...child,
-          segment: getUnsafe(segmentMap, child.segmentId),
+          segment: getWithDefault(segmentMap, child.segmentId),
         })),
       } satisfies WaitForNode;
     case JourneyNodeType.ExperimentSplitNode:
