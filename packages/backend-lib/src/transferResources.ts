@@ -45,7 +45,7 @@ function getWithDefault(map: Map<string, string>, key: string): string {
     logger().warn(
       {
         key,
-        map,
+        map: Object.fromEntries(map),
       },
       "Key not found in map, using default value",
     );
