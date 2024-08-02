@@ -5,6 +5,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   EntryNode,
+  GroupChildrenUserPropertyDefinitions,
+  GroupParentUserPropertyDefinitions,
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNodeType,
@@ -16,6 +18,10 @@ import {
   SegmentOperator,
   SegmentOperatorType,
   SegmentSplitNode,
+  UserPropertyDefinition,
+  UserPropertyDefinitionType,
+  UserPropertyOperator,
+  UserPropertyOperatorType,
   WaitForNode,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
@@ -59,6 +65,37 @@ function mapProperty({
     default: {
       return value;
     }
+  }
+}
+
+function mapUserPropertyOperator({
+  operator,
+  path,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  operator: UserPropertyOperator;
+  path: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): UserPropertyOperator {
+  switch (operator.type) {
+    case UserPropertyOperatorType.Equals:
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
   }
 }
 
@@ -247,6 +284,57 @@ function mapJourneyBodyNode({
   }
 }
 
+type MappedUserProperty =
+  | UserPropertyDefinition
+  | GroupParentUserPropertyDefinitions
+  | GroupChildrenUserPropertyDefinitions;
+
+function mapUserPropertyDefinition<T extends MappedUserProperty>({
+  node,
+  userPropertyMap,
+  segmentMap,
+  templateMap,
+  subscriptionGroupMap,
+}: {
+  node: T;
+  userPropertyMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): T {
+  switch (node.type) {
+    case UserPropertyDefinitionType.Group:
+      return {
+        ...node,
+        nodes: node.nodes.map((n) =>
+          mapUserPropertyDefinition({
+            node: n,
+            segmentMap,
+            templateMap,
+            subscriptionGroupMap,
+            userPropertyMap,
+          }),
+        ),
+      };
+    case UserPropertyDefinitionType.Performed:
+      return {
+        ...node,
+        properties: node.properties?.map((p) => ({
+          ...p,
+          operator: mapUserPropertyOperator({
+            operator: p.operator,
+            path: p.path,
+            segmentMap,
+            templateMap,
+            userPropertyMap,
+            subscriptionGroupMap,
+          }),
+        })),
+      };
+  }
+  return node;
+}
+
 // yarn admin transfer-resources --workspace-id='{workspaceId}' --destination-workspace-id='{destinationWorkspaceId}'
 export async function transferResources({
   workspaceId,
@@ -277,25 +365,73 @@ export async function transferResources({
   ]);
 
   await prisma().$transaction(async (tx) => {
-    const userProperties = await tx.userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-    });
+    const [userProperties, templates, subscriptionGroups, segments, journeys] =
+      await Promise.all([
+        tx.userProperty.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.messageTemplate.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.subscriptionGroup.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.segment.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.journey.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+      ]);
+
+    const journeyMap = journeys.reduce((acc, journey) => {
+      acc.set(journey.id, uuidv5(journey.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const templateMap = templates.reduce((acc, template) => {
+      acc.set(template.id, uuidv5(template.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const userPropertyMap = userProperties.reduce((acc, userProperty) => {
+      acc.set(userProperty.id, uuidv5(userProperty.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const segmentMap = segments.reduce((acc, segment) => {
+      acc.set(segment.id, uuidv5(segment.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const subscriptionGroupMap = subscriptionGroups.reduce((acc, sg) => {
+      acc.set(sg.id, uuidv5(sg.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
     logger().info(
       {
         count: userProperties.length,
       },
       "Transferring user properties",
     );
-    const userPropertyMap = userProperties.reduce((acc, userProperty) => {
-      acc.set(userProperty.id, uuidv5(userProperty.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     await Promise.all(
-      userProperties.map((userProperty) =>
-        tx.userProperty.upsert({
+      userProperties.map((userProperty) => {
+        const newUserPropertyDefinition = mapUserPropertyDefinition({
+          node: userProperty.definition as UserPropertyDefinition,
+          userPropertyMap,
+          segmentMap,
+          templateMap,
+          subscriptionGroupMap,
+        });
+        return tx.userProperty.upsert({
           where: {
             workspaceId_name: {
               workspaceId: destinationWorkspaceId,
@@ -304,30 +440,21 @@ export async function transferResources({
           },
           create: {
             ...userProperty,
-            definition: userProperty.definition ?? Prisma.JsonNull,
+            definition: newUserPropertyDefinition,
             id: getUnsafe(userPropertyMap, userProperty.id),
             workspaceId: destinationWorkspaceId,
           },
           update: {},
-        }),
-      ),
+        });
+      }),
     );
 
-    const templates = await tx.messageTemplate.findMany({
-      where: {
-        workspaceId,
-      },
-    });
     logger().info(
       {
         count: templates.length,
       },
       "Transferring message templates",
     );
-    const templateMap = templates.reduce((acc, template) => {
-      acc.set(template.id, uuidv5(template.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     await Promise.all(
       templates.map((template) =>
@@ -349,15 +476,6 @@ export async function transferResources({
         }),
       ),
     );
-    const subscriptionGroups = await tx.subscriptionGroup.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-    const subscriptionGroupMap = subscriptionGroups.reduce((acc, sg) => {
-      acc.set(sg.id, uuidv5(sg.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     logger().info(
       {
@@ -391,17 +509,6 @@ export async function transferResources({
         });
       }),
     );
-
-    const segments = await tx.segment.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-
-    const segmentMap = segments.reduce((acc, segment) => {
-      acc.set(segment.id, uuidv5(segment.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     logger().info(
       {
@@ -451,17 +558,6 @@ export async function transferResources({
         });
       }),
     );
-
-    const journeys = await tx.journey.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-
-    const journeyMap = journeys.reduce((acc, journey) => {
-      acc.set(journey.id, uuidv5(journey.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     logger().info(
       {
