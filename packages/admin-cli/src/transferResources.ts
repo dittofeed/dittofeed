@@ -157,6 +157,21 @@ function mapSegmentNode({
         ...node,
         templateId: getUnsafe(templateMap, node.templateId),
       };
+    case SegmentNodeType.Performed:
+      return {
+        ...node,
+        properties: node.properties?.map((property) => ({
+          ...property,
+          operator: mapSegmentOperator({
+            operator: property.operator,
+            path: property.path,
+            templateMap,
+            segmentMap,
+            userPropertyMap,
+            subscriptionGroupMap,
+          }),
+        })),
+      };
     default:
       return node;
   }
