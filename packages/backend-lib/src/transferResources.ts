@@ -56,13 +56,13 @@ function mapProperty({
 }): string {
   switch (path) {
     case "templateId":
-      return getUnsafe(templateMap, value);
+      return templateMap.get(value) ?? value;
     case "segmentId":
-      return getUnsafe(segmentMap, value);
+      return segmentMap.get(value) ?? value;
     case "userPropertyId":
-      return getUnsafe(userPropertyMap, value);
+      return userPropertyMap.get(value) ?? value;
     case "subscriptionGroupId":
-      return getUnsafe(subscriptionGroupMap, value);
+      return subscriptionGroupMap.get(value) ?? value;
     default: {
       return value;
     }
