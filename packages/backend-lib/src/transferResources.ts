@@ -1,10 +1,10 @@
-import logger from "backend-lib/src/logger";
-import prisma, { Prisma } from "backend-lib/src/prisma";
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   EntryNode,
+  GroupChildrenUserPropertyDefinitions,
+  GroupParentUserPropertyDefinitions,
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNodeType,
@@ -13,10 +13,19 @@ import {
   SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperator,
+  SegmentOperatorType,
   SegmentSplitNode,
+  UserPropertyDefinition,
+  UserPropertyDefinitionType,
+  UserPropertyOperator,
+  UserPropertyOperatorType,
   WaitForNode,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
+
+import logger from "./logger";
+import prisma, { Prisma } from "./prisma";
 
 function newSubscriptionGroupName({
   name,
@@ -30,23 +39,180 @@ function newSubscriptionGroupName({
   return name.replace(workspaceName, destinationWorkspaceName);
 }
 
+function mapProperty({
+  path,
+  value,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  path: string;
+  value: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): string {
+  switch (path) {
+    case "templateId":
+      return templateMap.get(value) ?? value;
+    case "segmentId":
+      return segmentMap.get(value) ?? value;
+    case "userPropertyId":
+      return userPropertyMap.get(value) ?? value;
+    case "subscriptionGroupId":
+      return subscriptionGroupMap.get(value) ?? value;
+    default: {
+      return value;
+    }
+  }
+}
+
+function mapUserPropertyOperator({
+  operator,
+  path,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  operator: UserPropertyOperator;
+  path: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): UserPropertyOperator {
+  switch (operator.type) {
+    case UserPropertyOperatorType.Equals:
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+  }
+}
+
+function mapSegmentOperator({
+  operator,
+  path,
+  templateMap,
+  segmentMap,
+  userPropertyMap,
+  subscriptionGroupMap,
+}: {
+  operator: SegmentOperator;
+  path: string;
+  templateMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): SegmentOperator {
+  switch (operator.type) {
+    case SegmentOperatorType.Equals:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.NotEquals:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.HasBeen:
+      if (typeof operator.value === "number") {
+        return operator;
+      }
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    case SegmentOperatorType.Within:
+      return operator;
+    case SegmentOperatorType.Exists:
+      return operator;
+  }
+}
+
 function mapSegmentNode({
   node,
   subscriptionGroupMap,
+  segmentMap,
+  templateMap,
+  userPropertyMap,
 }: {
   node: SegmentNode;
   subscriptionGroupMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+  userPropertyMap: Map<string, string>;
 }): SegmentNode {
-  if (node.type === SegmentNodeType.SubscriptionGroup) {
-    return {
-      ...node,
-      subscriptionGroupId: getUnsafe(
-        subscriptionGroupMap,
-        node.subscriptionGroupId,
-      ),
-    };
+  switch (node.type) {
+    case SegmentNodeType.SubscriptionGroup:
+      return {
+        ...node,
+        subscriptionGroupId: getUnsafe(
+          subscriptionGroupMap,
+          node.subscriptionGroupId,
+        ),
+      };
+    case SegmentNodeType.Email:
+      return {
+        ...node,
+        templateId: getUnsafe(templateMap, node.templateId),
+      };
+    case SegmentNodeType.Performed:
+      return {
+        ...node,
+        properties: node.properties?.map((property) => ({
+          ...property,
+          operator: mapSegmentOperator({
+            operator: property.operator,
+            path: property.path,
+            templateMap,
+            segmentMap,
+            userPropertyMap,
+            subscriptionGroupMap,
+          }),
+        })),
+      };
+    default:
+      return node;
   }
-  return node;
 }
 
 function mapJourneyEntryNode({
@@ -119,9 +285,58 @@ function mapJourneyBodyNode({
   }
 }
 
-// yarn admin bootstrap --workspace-name='Destination'
-// yarn admin transfer-resources --workspace-id='5c89ccd5-bd30-4af3-94fa-c7e1ea869307' --destination-workspace-id='0ae1dc72-4e8f-4f1c-bd54-0762235d7134'
-// delete from "SubscriptionGroup" where id in ('78084cae-e680-5de4-8345-e04ea73d76b6', '873aa85a-e0da-583b-b3ba-1b139379810f', 'b4f2a360-5606-59c6-a8fa-f73f11f4dcb7');
+type MappedUserProperty =
+  | UserPropertyDefinition
+  | GroupParentUserPropertyDefinitions
+  | GroupChildrenUserPropertyDefinitions;
+
+function mapUserPropertyDefinition<T extends MappedUserProperty>({
+  node,
+  userPropertyMap,
+  segmentMap,
+  templateMap,
+  subscriptionGroupMap,
+}: {
+  node: T;
+  userPropertyMap: Map<string, string>;
+  segmentMap: Map<string, string>;
+  templateMap: Map<string, string>;
+  subscriptionGroupMap: Map<string, string>;
+}): T {
+  switch (node.type) {
+    case UserPropertyDefinitionType.Group:
+      return {
+        ...node,
+        nodes: node.nodes.map((n) =>
+          mapUserPropertyDefinition({
+            node: n,
+            segmentMap,
+            templateMap,
+            subscriptionGroupMap,
+            userPropertyMap,
+          }),
+        ),
+      };
+    case UserPropertyDefinitionType.Performed:
+      return {
+        ...node,
+        properties: node.properties?.map((p) => ({
+          ...p,
+          operator: mapUserPropertyOperator({
+            operator: p.operator,
+            path: p.path,
+            segmentMap,
+            templateMap,
+            userPropertyMap,
+            subscriptionGroupMap,
+          }),
+        })),
+      };
+  }
+  return node;
+}
+
+// yarn admin transfer-resources --workspace-id='{workspaceId}' --destination-workspace-id='{destinationWorkspaceId}'
 export async function transferResources({
   workspaceId,
   destinationWorkspaceId,
@@ -151,20 +366,73 @@ export async function transferResources({
   ]);
 
   await prisma().$transaction(async (tx) => {
-    const userProperties = await tx.userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-    });
+    const [userProperties, templates, subscriptionGroups, segments, journeys] =
+      await Promise.all([
+        tx.userProperty.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.messageTemplate.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.subscriptionGroup.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.segment.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        tx.journey.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+      ]);
+
+    const journeyMap = journeys.reduce((acc, journey) => {
+      acc.set(journey.id, uuidv5(journey.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const templateMap = templates.reduce((acc, template) => {
+      acc.set(template.id, uuidv5(template.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const userPropertyMap = userProperties.reduce((acc, userProperty) => {
+      acc.set(userProperty.id, uuidv5(userProperty.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const segmentMap = segments.reduce((acc, segment) => {
+      acc.set(segment.id, uuidv5(segment.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+    const subscriptionGroupMap = subscriptionGroups.reduce((acc, sg) => {
+      acc.set(sg.id, uuidv5(sg.id, destinationWorkspaceId));
+      return acc;
+    }, new Map<string, string>());
+
     logger().info(
       {
         count: userProperties.length,
       },
       "Transferring user properties",
     );
+
     await Promise.all(
-      userProperties.map((userProperty) =>
-        tx.userProperty.upsert({
+      userProperties.map((userProperty) => {
+        const newUserPropertyDefinition = mapUserPropertyDefinition({
+          node: userProperty.definition as UserPropertyDefinition,
+          userPropertyMap,
+          segmentMap,
+          templateMap,
+          subscriptionGroupMap,
+        });
+        return tx.userProperty.upsert({
           where: {
             workspaceId_name: {
               workspaceId: destinationWorkspaceId,
@@ -173,30 +441,21 @@ export async function transferResources({
           },
           create: {
             ...userProperty,
-            definition: userProperty.definition ?? Prisma.JsonNull,
-            id: uuidv5(userProperty.id, destinationWorkspaceId),
+            definition: newUserPropertyDefinition,
+            id: getUnsafe(userPropertyMap, userProperty.id),
             workspaceId: destinationWorkspaceId,
           },
           update: {},
-        }),
-      ),
+        });
+      }),
     );
 
-    const templates = await tx.messageTemplate.findMany({
-      where: {
-        workspaceId,
-      },
-    });
     logger().info(
       {
         count: templates.length,
       },
       "Transferring message templates",
     );
-    const templateMap = templates.reduce((acc, template) => {
-      acc.set(template.id, uuidv5(template.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     await Promise.all(
       templates.map((template) =>
@@ -218,15 +477,6 @@ export async function transferResources({
         }),
       ),
     );
-    const subscriptionGroups = await tx.subscriptionGroup.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-    const subscriptionGroupMap = subscriptionGroups.reduce((acc, sg) => {
-      acc.set(sg.id, uuidv5(sg.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     logger().info(
       {
@@ -261,17 +511,6 @@ export async function transferResources({
       }),
     );
 
-    const segments = await tx.segment.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-
-    const segmentMap = segments.reduce((acc, segment) => {
-      acc.set(segment.id, uuidv5(segment.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
-
     logger().info(
       {
         count: segments.length,
@@ -288,11 +527,17 @@ export async function transferResources({
           entryNode: mapSegmentNode({
             node: definition.entryNode,
             subscriptionGroupMap,
+            segmentMap,
+            templateMap,
+            userPropertyMap,
           }),
           nodes: definition.nodes.map((node) =>
             mapSegmentNode({
               node,
               subscriptionGroupMap,
+              segmentMap,
+              templateMap,
+              userPropertyMap,
             }),
           ),
         };
@@ -314,17 +559,6 @@ export async function transferResources({
         });
       }),
     );
-
-    const journeys = await tx.journey.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-
-    const journeyMap = journeys.reduce((acc, journey) => {
-      acc.set(journey.id, uuidv5(journey.id, destinationWorkspaceId));
-      return acc;
-    }, new Map<string, string>());
 
     logger().info(
       {

@@ -11,6 +11,7 @@ import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
+import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
@@ -29,7 +30,6 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
-import { transferResources } from "./transferResources";
 import {
   disentangleResendSendgrid,
   upgradeV010Post,
