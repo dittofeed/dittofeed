@@ -1,5 +1,3 @@
-import logger from "backend-lib/src/logger";
-import prisma, { Prisma } from "backend-lib/src/prisma";
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -25,6 +23,9 @@ import {
   WaitForNode,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
+
+import logger from "./logger";
+import prisma, { Prisma } from "./prisma";
 
 function newSubscriptionGroupName({
   name,
