@@ -168,7 +168,7 @@ export async function createUserEventsTables({
         ) Engine=MergeTree
         partition by toYYYYMMDD(computed_at)
         order by computed_at
-        TTL toStartOfDay(computed_at) + interval 100 day;
+        TTL toStartOfDay(computed_at) + interval 24 hour;
       `,
     `
         create table if not exists updated_property_assignments_v2(
@@ -180,7 +180,7 @@ export async function createUserEventsTables({
         ) Engine=MergeTree
         partition by toYYYYMMDD(assigned_at)
         order by assigned_at
-        TTL toStartOfDay(assigned_at) + interval 100 day;
+        TTL toStartOfDay(assigned_at) + interval 24 hour;
       `,
     `
         CREATE TABLE IF NOT EXISTS computed_property_state_index (
