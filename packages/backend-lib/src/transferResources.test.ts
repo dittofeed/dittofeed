@@ -5,8 +5,11 @@ import {
   Workspace,
 } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import prisma from "./prisma";
+import { transferResources } from "./transferResources";
 import {
   ChannelType,
   PerformedSegmentNode,
@@ -18,9 +21,6 @@ import {
   UserPropertyOperatorType,
   WebhookTemplateResource,
 } from "./types";
-import { transferResources } from "./transferResources";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 describe("transferResources", () => {
   describe("when the source workspace has multiple relevant resources", () => {
