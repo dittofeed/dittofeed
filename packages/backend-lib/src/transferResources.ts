@@ -39,11 +39,16 @@ function newSubscriptionGroupName({
   return name.replace(workspaceName, destinationWorkspaceName);
 }
 
-function getWithDefault(map: Map<string, string>, key: string): string {
+function getWithDefault(
+  resourceType: string,
+  map: Map<string, string>,
+  key: string,
+): string {
   const value = map.get(key);
   if (value === undefined) {
     logger().warn(
       {
+        resourceType,
         key,
         map: Object.fromEntries(map),
       },
@@ -71,13 +76,13 @@ function mapProperty({
 }): string {
   switch (path) {
     case "templateId":
-      return getWithDefault(templateMap, value);
+      return getWithDefault("template", templateMap, value);
     case "segmentId":
-      return getWithDefault(segmentMap, value);
+      return getWithDefault("segment", segmentMap, value);
     case "userPropertyId":
-      return getWithDefault(userPropertyMap, value);
+      return getWithDefault("userProperty", userPropertyMap, value);
     case "subscriptionGroupId":
-      return getWithDefault(subscriptionGroupMap, value);
+      return getWithDefault("subscriptionGroup", subscriptionGroupMap, value);
     default: {
       return value;
     }
@@ -201,6 +206,7 @@ function mapSegmentNode({
       return {
         ...node,
         subscriptionGroupId: getWithDefault(
+          "subscriptionGroup",
           subscriptionGroupMap,
           node.subscriptionGroupId,
         ),
@@ -208,7 +214,7 @@ function mapSegmentNode({
     case SegmentNodeType.Email:
       return {
         ...node,
-        templateId: getWithDefault(templateMap, node.templateId),
+        templateId: getWithDefault("template", templateMap, node.templateId),
       };
     case SegmentNodeType.Performed:
       return {
@@ -243,7 +249,7 @@ function mapJourneyEntryNode({
     case JourneyNodeType.SegmentEntryNode:
       return {
         ...node,
-        segment: getWithDefault(segmentMap, node.segment),
+        segment: getWithDefault("segment", segmentMap, node.segment),
       } satisfies SegmentEntryNode;
   }
 }
@@ -266,11 +272,19 @@ function mapJourneyBodyNode({
       return {
         ...node,
         subscriptionGroupId: node.subscriptionGroupId
-          ? getWithDefault(subscriptionGroupMap, node.subscriptionGroupId)
+          ? getWithDefault(
+              "subscriptionGroup",
+              subscriptionGroupMap,
+              node.subscriptionGroupId,
+            )
           : undefined,
         variant: {
           ...node.variant,
-          templateId: getWithDefault(templateMap, node.variant.templateId),
+          templateId: getWithDefault(
+            "template",
+            templateMap,
+            node.variant.templateId,
+          ),
         },
       } satisfies MessageNode;
     case JourneyNodeType.SegmentSplitNode: {
@@ -280,8 +294,16 @@ function mapJourneyBodyNode({
         ...node,
         variant: {
           ...variant,
-          trueChild: getWithDefault(segmentMap, node.variant.trueChild),
-          falseChild: getWithDefault(segmentMap, node.variant.falseChild),
+          trueChild: getWithDefault(
+            "segment",
+            segmentMap,
+            node.variant.trueChild,
+          ),
+          falseChild: getWithDefault(
+            "segment",
+            segmentMap,
+            node.variant.falseChild,
+          ),
         },
       } satisfies SegmentSplitNode;
     }
@@ -290,7 +312,7 @@ function mapJourneyBodyNode({
         ...node,
         segmentChildren: node.segmentChildren.map((child) => ({
           ...child,
-          segment: getWithDefault(segmentMap, child.segmentId),
+          segment: getWithDefault("segment", segmentMap, child.segmentId),
         })),
       } satisfies WaitForNode;
     case JourneyNodeType.ExperimentSplitNode:
