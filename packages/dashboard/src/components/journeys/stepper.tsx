@@ -5,22 +5,27 @@ import Stepper from "@mui/material/Stepper";
 import { useRouter } from "next/router";
 
 export default function JourneyStepper({ journeyId }: { journeyId: string }) {
-  const path = useRouter();
-  const steps: { label: string; path: string }[] = [
+  const router = useRouter();
+  const path = router.asPath.split("?")[0];
+
+  const steps: { label: string; path: [string, ...string[]] }[] = [
     {
       label: "Journey Builder",
-      path: `/journeys/${journeyId}`,
+      path: [`/journeys/${journeyId}`, `/journeys/editor`],
     },
-    { label: "Configure", path: `/journeys/configure/${journeyId}` },
+    { label: "Configure", path: [`/journeys/configure/${journeyId}`] },
   ];
-  const activeStep = steps.findIndex((s) => s.path === path.asPath);
+  const activeStep = path ? steps.findIndex((s) => s.path.includes(path)) : -1;
 
   return (
     <Stack direction="row" spacing={1}>
       <Stepper nonLinear activeStep={activeStep}>
         {steps.map((step) => (
           <Step key={step.label}>
-            <StepButton color="inherit" onClick={() => path.push(step.path)}>
+            <StepButton
+              color="inherit"
+              onClick={() => router.push(step.path[0])}
+            >
               {step.label}
             </StepButton>
           </Step>

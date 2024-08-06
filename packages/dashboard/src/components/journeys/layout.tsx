@@ -9,7 +9,6 @@ import React, { useEffect, useMemo } from "react";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
-import MainLayout from "../mainLayout";
 import {
   Publisher,
   PublisherDraftToggle,
@@ -319,5 +318,5 @@ export default function JourneyLayout({
     </Stack>
   ) : null;
 
-  return <MainLayout>{body}</MainLayout>;
+  return body;
 }

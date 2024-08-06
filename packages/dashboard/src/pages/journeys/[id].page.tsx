@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 
 import JourneysBuilder from "../../components/journeys/journeysBuilder";
 import JourneyLayout from "../../components/journeys/layout";
+import MainLayout from "../../components/mainLayout";
 import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
@@ -18,9 +19,11 @@ function Journey() {
   }
 
   return (
-    <JourneyLayout journeyId={id}>
-      <JourneysBuilder journeyId={id} />
-    </JourneyLayout>
+    <MainLayout>
+      <JourneyLayout journeyId={id}>
+        <JourneysBuilder journeyId={id} />
+      </JourneyLayout>
+    </MainLayout>
   );
 }
 export default Journey;
