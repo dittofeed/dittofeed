@@ -32,7 +32,7 @@ export type JourneyGetServerSideProps =
 
 export const journeyGetServerSideProps: JourneyGetServerSideProps =
   requestContext(async (ctx, dfContext) => {
-    const id = ctx.params?.id;
+    const id = ctx.params?.id ?? ctx.query.jId;
 
     if (typeof id !== "string" || !validate(id)) {
       return {
