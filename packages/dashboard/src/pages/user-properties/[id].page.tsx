@@ -364,13 +364,15 @@ function PerformedUserPropertyDefinitionEditor({
 }: {
   definition: PerformedUserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStorePick([
+  const { updateUserPropertyDefinition, properties } = useAppStorePick([
     "updateUserPropertyDefinition",
+    "properties",
   ]);
 
-  const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
-    e,
-  ) => {
+  const handlePathChange = (newPath: string | null) => {
+    if (newPath === null) {
+      return;
+    }
     updateUserPropertyDefinition((current) => {
       let d: PerformedUserPropertyDefinition;
       if (current.type === UserPropertyDefinitionType.Performed) {
@@ -385,7 +387,7 @@ function PerformedUserPropertyDefinitionEditor({
       } else {
         return current;
       }
-      d.path = e.target.value;
+      d.path = newPath;
       return current;
     });
   };
@@ -423,11 +425,12 @@ function PerformedUserPropertyDefinitionEditor({
     [updateUserPropertyDefinition, definition.id],
   );
 
-  const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
-    e,
-  ) => {
+  const handleEventNameChange = (newEventName: string | null) => {
+    if (newEventName === null) {
+      return;
+    }
     updatePerformedNode((current) => {
-      current.event = e.target.value;
+      current.event = newEventName;
       return current;
     });
   };
@@ -526,17 +529,29 @@ function PerformedUserPropertyDefinitionEditor({
   return (
     <Stack direction="column" spacing={2}>
       <Stack spacing={1} direction="row">
-        <TextField
-          label="Event Name"
-          sx={{ width: selectorWidth }}
+        <Autocomplete
           value={definition.event}
-          onChange={handleEventNameChange}
-        />
-        <TextField
-          label="Property Path"
+          freeSolo
           sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onChange={(_event, newPath) => {
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
+        <Autocomplete
           value={definition.path}
-          onChange={handlePathChange}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[definition.event] ?? []}
+          onChange={(_event, newPath) => {
+            handlePathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
         />
         <Button variant="contained" onClick={() => handleAddProperty()}>
           Property
