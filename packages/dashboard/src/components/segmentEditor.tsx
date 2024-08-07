@@ -63,6 +63,7 @@ import { SubtleHeader } from "./headers";
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
 const selectorWidth = "192px";
+const secondarySelectorWidth = "128px";
 
 const DisabledContext = React.createContext<{ disabled?: boolean }>({
   disabled: false,
@@ -301,6 +302,7 @@ function DurationValueSelect({
   return (
     <DurationSelect
       value={value}
+      timeFieldSx={{ width: secondarySelectorWidth }}
       onChange={handleChange}
       inputLabel="Time Value"
     />
@@ -775,7 +777,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
         keyedHasBeenComparatorOptions[node.operator.comparator];
 
       const comparatorSelect = (
-        <Box sx={{ width: selectorWidth }}>
+        <Box sx={{ width: secondarySelectorWidth }}>
           <Autocomplete
             value={comparatorOption}
             disabled={disabled}
@@ -800,8 +802,8 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = (
         <>
           <ValueSelect nodeId={node.id} operator={node.operator} />
-          <DurationValueSelect nodeId={node.id} operator={node.operator} />
           {comparatorSelect}
+          <DurationValueSelect nodeId={node.id} operator={node.operator} />
         </>
       );
       break;
@@ -854,7 +856,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           )}
         />
       </Box>
-      <Box sx={{ width: selectorWidth }}>
+      <Box sx={{ width: secondarySelectorWidth }}>
         <Autocomplete
           value={operator}
           disabled={disabled}
