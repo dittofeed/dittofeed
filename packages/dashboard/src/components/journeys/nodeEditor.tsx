@@ -46,6 +46,7 @@ import {
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
+import useLoadProperties from "../../lib/useLoadProperties";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
@@ -53,7 +54,6 @@ import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
-import useLoadProperties from "../../lib/useLoadProperties";
 
 const width = 420;
 const transitionDuration = ".15s";

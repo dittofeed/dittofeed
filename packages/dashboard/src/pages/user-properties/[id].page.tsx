@@ -34,7 +34,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps, useCallback } from "react";
+import React, { useCallback } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -437,19 +437,19 @@ function PerformedUserPropertyDefinitionEditor({
 
   const handleAddProperty = () => {
     updatePerformedNode((current) => {
-      const properties = current.properties ?? [];
+      const nodeProperties = current.properties ?? [];
       // limit to 100 properties
-      if (properties.length >= 100) {
+      if (nodeProperties.length >= 100) {
         return current;
       }
-      properties.push({
+      nodeProperties.push({
         path: "myPropertyPath",
         operator: {
           type: UserPropertyOperatorType.Equals,
           value: "myValue",
         },
       });
-      current.properties = properties;
+      current.properties = nodeProperties;
       return current;
     });
   };
@@ -488,9 +488,9 @@ function PerformedUserPropertyDefinitionEditor({
       };
       const handleDelete = () => {
         updatePerformedNode((current) => {
-          const properties = current.properties ?? [];
-          properties.splice(i, 1);
-          current.properties = properties;
+          const nodeProperties = current.properties ?? [];
+          nodeProperties.splice(i, 1);
+          current.properties = nodeProperties;
           return current;
         });
       };

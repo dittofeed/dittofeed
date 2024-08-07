@@ -55,11 +55,11 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
+import useLoadProperties from "../lib/useLoadProperties";
 import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
-import useLoadProperties from "../lib/useLoadProperties";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
