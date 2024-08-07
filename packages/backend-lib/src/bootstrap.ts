@@ -26,6 +26,7 @@ import {
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  NodeEnvEnum,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "./types";
@@ -349,4 +350,34 @@ export default async function bootstrap({
     await startGlobalCron();
   }
   return { workspaceId };
+}
+
+export interface BootstrapWithDefaultsParams {
+  workspaceName?: string;
+  workspaceDomain?: string;
+}
+
+export function getBootstrapDefaultParams({
+  workspaceName,
+  workspaceDomain,
+}: BootstrapWithDefaultsParams): Parameters<typeof bootstrap>[0] {
+  const defaultWorkspaceName =
+    config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
+  const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
+
+  if (!workspaceNameWithDefault) {
+    throw new Error("Please provide a workspace name with --workspace-name");
+  }
+
+  return {
+    workspaceName: workspaceNameWithDefault,
+    workspaceDomain,
+  };
+}
+
+export async function bootstrapWithDefaults(
+  paramsWithoutDefaults: BootstrapWithDefaultsParams,
+) {
+  const params = getBootstrapDefaultParams(paramsWithoutDefaults);
+  await bootstrap(params);
 }

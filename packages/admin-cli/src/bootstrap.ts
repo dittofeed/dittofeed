@@ -1,6 +1,4 @@
-import bootstrap from "backend-lib/src/bootstrap";
-import backendConfig from "backend-lib/src/config";
-import { NodeEnvEnum } from "backend-lib/src/config/loader";
+import { bootstrapWithDefaults } from "backend-lib/src/bootstrap";
 import { Argv } from "yargs";
 
 export const BOOTSTRAP_OPTIONS = {
@@ -21,23 +19,4 @@ export function boostrapOptions(cmd: Argv) {
   return cmd.options(BOOTSTRAP_OPTIONS);
 }
 
-export async function bootstrapHandler({
-  workspaceName,
-  workspaceDomain,
-}: {
-  workspaceName?: string;
-  workspaceDomain?: string;
-}) {
-  const defaultWorkspaceName =
-    backendConfig().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
-  const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
-
-  if (!workspaceNameWithDefault) {
-    throw new Error("Please provide a workspace name with --workspace-name");
-  }
-
-  await bootstrap({
-    workspaceName: workspaceNameWithDefault,
-    workspaceDomain,
-  });
-}
+export const bootstrapHandler = bootstrapWithDefaults;
