@@ -318,10 +318,10 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     (state) => state.updateEditableSegmentNodeData,
   );
 
-  const handleEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEventNameChange = (newEvent: string) => {
     updateSegmentNodeData(node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
-        n.event = e.target.value;
+        n.event = newEvent;
       }
     });
   };
@@ -540,14 +540,22 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Box sx={{ width: selectorWidth }}>
-          <TextField
-            disabled={disabled}
-            label="Event Name"
-            value={node.event}
-            onChange={handleEventNameChange}
-          />
-        </Box>
+        <Autocomplete
+          value={node.event}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
         <Select
           onChange={handleTimesOperatorChange}
           disabled={disabled}
