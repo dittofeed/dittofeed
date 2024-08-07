@@ -1597,6 +1597,220 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "computes HasBeen operator trait segment with less than comparator",
+      userProperties: [],
+      segments: [
+        {
+          name: "recentlyStartedOnboarding",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "status",
+              operator: {
+                type: SegmentOperatorType.HasBeen,
+                value: "onboarding",
+                comparator: SegmentHasBeenOperatorComparator.LT,
+                windowSeconds: 60 * 60 * 24 * 7,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "onboarding",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 50,
+        },
+
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user initially is in recently started onboarding",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyStartedOnboarding: true,
+              },
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              segmentStateValue: true,
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              lastValue: "onboarding",
+              maxEventTime: new Date(
+                floorToNearest(now - 100 - 50, 60480000),
+              ).toISOString(),
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          // 1 week + 1 minute
+          timeMs: 1000 * 60 * 60 * 24 * 7 + 60 * 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after remaining onboarding for over a week the user is no longer in recently started onboarding segment",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              lastValue: "onboarding",
+              maxEventTime: new Date(
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                  60480000,
+                ),
+              ).toISOString(),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyStartedOnboarding: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "onboarding",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "continues to not be in recently started onboarding segment after submitting redundant identify events",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              lastValue: "onboarding",
+              // last event shouldn't update maxEventTime because has same "onboarding" value
+              maxEventTime: new Date(
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
+                  60480000,
+                ),
+              ).toISOString(),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyStartedOnboarding: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "active",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000 * 60 * 60 * 24 * 7,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "is still not in recently started onboarding segment after changing status",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              lastValue: "active",
+              maxEventTime: new Date(
+                floorToNearest(now - 1000 * 60 * 60 * 24 * 7 - 100, 60480000),
+              ).toISOString(),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyStartedOnboarding: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "any of user property",
       segments: [],
       userProperties: [

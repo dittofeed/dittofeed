@@ -63,6 +63,7 @@ import { SubtleHeader } from "./headers";
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
 const selectorWidth = "192px";
+const secondarySelectorWidth = "128px";
 
 const DisabledContext = React.createContext<{ disabled?: boolean }>({
   disabled: false,
@@ -201,6 +202,34 @@ const keyedGroupLabels: Record<Group, string> = {
   [SegmentNodeType.Or]: "OR",
 };
 
+interface HasBeenComparatorOption {
+  id: SegmentHasBeenOperatorComparator;
+  label: string;
+}
+
+const hasBeenComparatorOptionGTE = {
+  id: SegmentHasBeenOperatorComparator.GTE,
+  label: "At least",
+};
+
+const hasBeenComparatorOptionLT = {
+  id: SegmentHasBeenOperatorComparator.LT,
+  label: "Less than",
+};
+
+const hasBeenComparatorOptions: HasBeenComparatorOption[] = [
+  hasBeenComparatorOptionGTE,
+  hasBeenComparatorOptionLT,
+];
+
+const keyedHasBeenComparatorOptions: Record<
+  SegmentHasBeenOperatorComparator,
+  HasBeenComparatorOption
+> = {
+  [SegmentHasBeenOperatorComparator.GTE]: hasBeenComparatorOptionGTE,
+  [SegmentHasBeenOperatorComparator.LT]: hasBeenComparatorOptionLT,
+};
+
 function ValueSelect({
   nodeId,
   operator,
@@ -273,6 +302,7 @@ function DurationValueSelect({
   return (
     <DurationSelect
       value={value}
+      timeFieldSx={{ width: secondarySelectorWidth }}
       onChange={handleChange}
       inputLabel="Time Value"
     />
@@ -741,14 +771,43 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
     case SegmentOperatorType.Equals:
       valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
       break;
-    case SegmentOperatorType.HasBeen:
+    case SegmentOperatorType.HasBeen: {
+      // FIXME
+      const comparatorOption =
+        keyedHasBeenComparatorOptions[node.operator.comparator];
+
+      const comparatorSelect = (
+        <Box sx={{ width: secondarySelectorWidth }}>
+          <Autocomplete
+            value={comparatorOption}
+            disabled={disabled}
+            disableClearable
+            options={hasBeenComparatorOptions}
+            onChange={(_event, newValue) => {
+              updateSegmentNodeData(node.id, (segmentNode) => {
+                if (
+                  segmentNode.type === SegmentNodeType.Trait &&
+                  segmentNode.operator.type === SegmentOperatorType.HasBeen
+                ) {
+                  segmentNode.operator.comparator = newValue.id;
+                }
+              });
+            }}
+            renderInput={(params) => (
+              <TextField label="Comparator" {...params} variant="outlined" />
+            )}
+          />
+        </Box>
+      );
       valueSelect = (
         <>
           <ValueSelect nodeId={node.id} operator={node.operator} />
+          {comparatorSelect}
           <DurationValueSelect nodeId={node.id} operator={node.operator} />
         </>
       );
       break;
+    }
     case SegmentOperatorType.NotEquals: {
       valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
       break;
@@ -797,7 +856,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           )}
         />
       </Box>
-      <Box sx={{ width: selectorWidth }}>
+      <Box sx={{ width: secondarySelectorWidth }}>
         <Autocomplete
           value={operator}
           disabled={disabled}

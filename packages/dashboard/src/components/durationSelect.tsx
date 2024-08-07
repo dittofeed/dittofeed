@@ -1,4 +1,4 @@
-import { Box, Stack, TextField } from "@mui/material";
+import { Box, Stack, SxProps, TextField, Theme } from "@mui/material";
 import { ComponentProps, useState } from "react";
 
 import { TimeUnit } from "../lib/types";
@@ -16,12 +16,14 @@ export default function DurationSelect({
   description,
   disabled,
   onChange,
+  timeFieldSx,
 }: {
   // seconds
   value: number | undefined;
   disabled?: boolean;
   inputLabel: string;
   description?: string;
+  timeFieldSx?: SxProps<Theme>;
   onChange: OnChange;
 }) {
   const [timeUnit, setTimeUnit] = useState<TimeUnit>(nearestTimeUnit(value));
@@ -55,6 +57,7 @@ export default function DurationSelect({
         InputProps={{
           type: "number",
         }}
+        sx={timeFieldSx}
         value={String(timeNonSeconds)}
         onChange={handleTimeChange}
       />

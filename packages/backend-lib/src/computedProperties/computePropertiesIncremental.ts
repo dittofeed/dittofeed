@@ -48,6 +48,7 @@ import {
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -827,6 +828,13 @@ function segmentToResolvedState({
             "String",
           );
           const stateIdParam = qb.addQueryValue(stateId, "String");
+          // comparators are seemingly reversed because we're dealing with times
+          // in the past
+          const comparator =
+            node.operator.comparator === SegmentHasBeenOperatorComparator.GTE
+              ? "<="
+              : ">";
+
           const query = `
             insert into resolved_segment_state
             select
@@ -835,7 +843,7 @@ function segmentToResolvedState({
                 cpsi.state_id,
                 cpsi.user_id,
                 (
-                  max(cpsi.indexed_value) <= ${upperBoundParam}
+                  max(cpsi.indexed_value) ${comparator} ${upperBoundParam}
                   and argMax(state.merged_last_value, state.max_event_time) == ${lastValueParam}
                 ) has_been,
                 max(state.max_event_time),
@@ -895,7 +903,7 @@ function segmentToResolvedState({
               and cpsi.state_id = ${stateIdParam}
               and (
                 (
-                    cpsi.indexed_value <= ${upperBoundParam}
+                    cpsi.indexed_value ${comparator} ${upperBoundParam}
                     and (
                         rss.workspace_id = ''
                         or rss.segment_state_value = False
