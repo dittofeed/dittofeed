@@ -16,6 +16,7 @@ import {
   EphemeralRequestStatus,
   ExitUiNodeProps,
   FeatureMap,
+  GetPropertiesResponse,
   IntegrationResource,
   JourneyNodeUiProps,
   JourneyStats,
@@ -146,7 +147,9 @@ export type AppState = {
   userPropertyMessages: UserPropertyMessages;
   journeys: RequestStatus<SavedJourneyResource[], Error>;
   traits: string[];
+  properties: GetPropertiesResponse["properties"];
   getTraitsRequest: EphemeralRequestStatus<Error>;
+  getPropertiesRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
   adminApiKeys?: AdminApiKeyResource[];
@@ -198,7 +201,9 @@ export interface AppActions {
   deleteUserProperty: (userPropertyId: string) => void;
   upsertIntegration: (integrations: IntegrationResource) => void;
   upsertTraits: (traits: string[]) => void;
+  upsertProperties: (properties: GetPropertiesResponse["properties"]) => void;
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setGetPropertiesRequest: (request: EphemeralRequestStatus<Error>) => void;
   setDefaultEmailProvider: (
     defaultEmailProvider: DefaultEmailProviderResource,
   ) => void;

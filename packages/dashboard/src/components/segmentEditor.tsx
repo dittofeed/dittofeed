@@ -59,6 +59,7 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import useLoadProperties from "../lib/useLoadProperties";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -1247,6 +1248,7 @@ export function SegmentEditorInner({
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
   useLoadTraits();
+  useLoadProperties();
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
