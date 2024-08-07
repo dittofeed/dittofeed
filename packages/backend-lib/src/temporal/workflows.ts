@@ -4,3 +4,4 @@ export * from "../integrations/hubspotWorkflow";
 export * from "../journeys/userWorkflow";
 export * from "../segments/broadcastWorkflow";
 export * from "../segments/computePropertiesWorkflow";
+export * from "../journeys/bootstrap";
