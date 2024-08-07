@@ -238,7 +238,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         defaultSmsProvider: null,
         smsProviders: [],
         traits: [],
+        properties: {},
         getTraitsRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        getPropertiesRequest: {
           type: CompletionStatus.NotStarted,
         },
         features: {},
@@ -248,6 +252,18 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             state.traits = Array.from(new Set(traits.concat(state.traits)));
           }),
         setGetTraitsRequest: (request) =>
+          set((state) => {
+            state.getTraitsRequest = request;
+          }),
+        upsertProperties: (properties) =>
+          set((state) => {
+            for (const [event, eventProperties] of Object.entries(properties)) {
+              state.properties[event] = Array.from(
+                new Set(eventProperties.concat(state.properties[event] ?? [])),
+              );
+            }
+          }),
+        setGetPropertiesRequest: (request) =>
           set((state) => {
             state.getTraitsRequest = request;
           }),
