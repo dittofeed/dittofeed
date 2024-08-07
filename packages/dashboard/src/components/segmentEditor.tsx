@@ -312,6 +312,7 @@ function DurationValueSelect({
 
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
+  const { properties } = useAppStorePick(["properties"]);
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
@@ -377,12 +378,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   };
 
   const propertyRows = node.properties?.map((property, i) => {
-    const handlePropertyPathChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
+    const handlePropertyPathChange = (newPath: string) => {
       updateSegmentNodeData(node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
-          const newPath = e.target.value;
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
             return;
@@ -468,10 +466,18 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <TextField
-          label="Property Path"
+        <Autocomplete
           value={property.path}
-          onChange={handlePropertyPathChange}
+          disabled={disabled}
+          disableClearable
+          sx={{ width: selectorWidth }}
+          options={properties[node.event] ?? []}
+          onChange={(_event, newPath) => {
+            handlePropertyPathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -773,7 +779,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
       break;
     case SegmentOperatorType.HasBeen: {
-      // FIXME
       const comparatorOption =
         keyedHasBeenComparatorOptions[node.operator.comparator];
 
