@@ -8,7 +8,8 @@ import {
   Runtime,
   Worker,
 } from "@temporalio/worker";
-import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
+import { BOOTSTRAP_OPTIONS } from "admin-cli/src/bootstrap";
+import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import buildApp from "api/src/buildApp";
 import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
@@ -68,7 +69,7 @@ async function startLite() {
     const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
       .argv;
 
-    await bootstrapHandler(args);
+    await startBootstrapWorkflow(args);
   } else {
     logger().info("Skipping bootstrap");
   }

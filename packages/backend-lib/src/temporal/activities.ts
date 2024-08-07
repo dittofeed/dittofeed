@@ -6,3 +6,4 @@ export {
   observeWorkspaceComputeLatency,
 } from "../resiliency";
 export * from "../segments/computePropertiesWorkflow/activities";
+export * from "../journeys/bootstrap/activities";

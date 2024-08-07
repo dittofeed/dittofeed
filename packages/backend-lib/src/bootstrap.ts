@@ -26,6 +26,7 @@ import {
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  NodeEnvEnum,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "./types";
@@ -242,6 +243,10 @@ export async function bootstrapWorker({
       logger().info("Compute properties workflow already started.");
     } else {
       logger().error({ err }, "Failed to bootstrap worker.");
+
+      if (config().bootstrapSafe) {
+        throw err;
+      }
     }
   }
 }
@@ -296,6 +301,15 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   });
 }
 
+function handleErrorFactory(message: string) {
+  return function handleError(err: unknown) {
+    logger().error({ err }, message);
+    if (config().bootstrapSafe) {
+      throw err;
+    }
+  };
+}
+
 export default async function bootstrap({
   workspaceName,
   workspaceDomain,
@@ -307,16 +321,16 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
   });
+  const { bootstrapSafe } = config();
+
   const initialBootstrap = [
-    bootstrapClickhouse().catch((err) =>
-      logger().error({ err: err as Error }, "failed to bootstrap clickhouse"),
+    bootstrapClickhouse().catch(
+      handleErrorFactory("failed to bootstrap clickhouse"),
     ),
   ];
   if (config().writeMode === "kafka") {
     initialBootstrap.push(
-      bootstrapKafka().catch((err) =>
-        logger().error({ err: err as Error }, "failed to bootstrap kafka"),
-      ),
+      bootstrapKafka().catch(handleErrorFactory("failed to bootstrap kafka")),
     );
   }
   await Promise.all(initialBootstrap);
@@ -336,4 +350,34 @@ export default async function bootstrap({
     await startGlobalCron();
   }
   return { workspaceId };
+}
+
+export interface BootstrapWithDefaultsParams {
+  workspaceName?: string;
+  workspaceDomain?: string;
+}
+
+export function getBootstrapDefaultParams({
+  workspaceName,
+  workspaceDomain,
+}: BootstrapWithDefaultsParams): Parameters<typeof bootstrap>[0] {
+  const defaultWorkspaceName =
+    config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
+  const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
+
+  if (!workspaceNameWithDefault) {
+    throw new Error("Please provide a workspace name with --workspace-name");
+  }
+
+  return {
+    workspaceName: workspaceNameWithDefault,
+    workspaceDomain,
+  };
+}
+
+export async function bootstrapWithDefaults(
+  paramsWithoutDefaults: BootstrapWithDefaultsParams,
+) {
+  const params = getBootstrapDefaultParams(paramsWithoutDefaults);
+  await bootstrap(params);
 }
