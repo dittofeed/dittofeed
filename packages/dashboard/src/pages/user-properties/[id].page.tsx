@@ -457,11 +457,11 @@ function PerformedUserPropertyDefinitionEditor({
   let propertyRows: React.ReactNode = null;
   if (definition.properties) {
     propertyRows = definition.properties.map((property, i) => {
-      const handlePropertyPathChange = (
-        e: React.ChangeEvent<HTMLInputElement>,
-      ) => {
+      const handlePropertyPathChange = (newPath: string | null) => {
+        if (newPath === null) {
+          return;
+        }
         updatePerformedNode((current) => {
-          const newPath = e.target.value;
           const existingProperty = current.properties?.[i];
 
           if (!existingProperty) {
@@ -504,10 +504,17 @@ function PerformedUserPropertyDefinitionEditor({
             alignItems: "center",
           }}
         >
-          <TextField
-            label="Property Path"
+          <Autocomplete
             value={property.path}
-            onChange={handlePropertyPathChange}
+            freeSolo
+            sx={{ width: selectorWidth }}
+            options={properties[definition.event] ?? []}
+            onChange={(_event, newPath) => {
+              handlePropertyPathChange(newPath);
+            }}
+            renderInput={(params) => (
+              <TextField label="Property Path" {...params} variant="outlined" />
+            )}
           />
           {/* hardcoded until support for multiple operators is added */}
           <Select value={UserPropertyOperatorType.Equals}>
