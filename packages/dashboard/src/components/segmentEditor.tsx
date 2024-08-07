@@ -469,10 +469,13 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         <Autocomplete
           value={property.path}
           disabled={disabled}
-          disableClearable
+          freeSolo
           sx={{ width: selectorWidth }}
           options={properties[node.event] ?? []}
           onChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
             handlePropertyPathChange(newPath);
           }}
           renderInput={(params) => (
