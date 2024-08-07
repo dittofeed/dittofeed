@@ -242,6 +242,10 @@ export async function bootstrapWorker({
       logger().info("Compute properties workflow already started.");
     } else {
       logger().error({ err }, "Failed to bootstrap worker.");
+
+      if (config().bootstrapSafe) {
+        throw err;
+      }
     }
   }
 }
@@ -296,6 +300,15 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   });
 }
 
+function handleErrorFactory(message: string) {
+  return function handleError(err: unknown) {
+    logger().error({ err }, message);
+    if (config().bootstrapSafe) {
+      throw err;
+    }
+  };
+}
+
 export default async function bootstrap({
   workspaceName,
   workspaceDomain,
@@ -307,16 +320,16 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
   });
+  const { bootstrapSafe } = config();
+
   const initialBootstrap = [
-    bootstrapClickhouse().catch((err) =>
-      logger().error({ err: err as Error }, "failed to bootstrap clickhouse"),
+    bootstrapClickhouse().catch(
+      handleErrorFactory("failed to bootstrap clickhouse"),
     ),
   ];
   if (config().writeMode === "kafka") {
     initialBootstrap.push(
-      bootstrapKafka().catch((err) =>
-        logger().error({ err: err as Error }, "failed to bootstrap kafka"),
-      ),
+      bootstrapKafka().catch(handleErrorFactory("failed to bootstrap kafka")),
     );
   }
   await Promise.all(initialBootstrap);

@@ -43,6 +43,7 @@ const BaseRawConfigProps = {
   logConfig: Type.Optional(BoolStr),
   bootstrapEvents: Type.Optional(BoolStr),
   bootstrapWorker: Type.Optional(BoolStr),
+  bootstrapSafe: Type.Optional(BoolStr),
   defaultIdUserPropertyId: Type.Optional(Type.String()),
   defaultAnonymousIdIdUserPropertyId: Type.Optional(Type.String()),
   defaultEmailUserPropertyId: Type.Optional(Type.String()),
@@ -206,6 +207,7 @@ export type Config = Overwrite<
     blobStorageRegion: string;
     exportLogsHyperDx: boolean;
     dittofeedTelemetryDisabled: boolean;
+    bootstrapSafe: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -392,6 +394,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.bootstrapWorker === "true" ||
       (nodeEnv === NodeEnvEnum.Production &&
         rawConfig.bootstrapWorker !== "false"),
+    bootstrapSafe: rawConfig.bootstrapSafe === "true",
     startOtel: rawConfig.startOtel === "true",
     googleOps: rawConfig.googleOps === "true",
     otelCollector: rawConfig.otelCollector ?? "http://localhost:4317",
