@@ -3,12 +3,15 @@ import {
   GetEventsRequest,
   GetEventsResponse,
   GetEventsResponseItem,
+  GetPropertiesRequest,
+  GetPropertiesResponse,
   GetTraitsRequest,
   GetTraitsResponse,
 } from "backend-lib/src/types";
 import {
   findIdentifyTraits,
   findManyEventsWithCount,
+  findTrackProperties,
 } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 
@@ -103,6 +106,26 @@ export default async function eventsController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send({ traits });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/properties",
+    {
+      schema: {
+        description: "Get list of properties available on performed calls",
+        tags: ["Events"],
+        querystring: GetPropertiesRequest,
+        response: {
+          200: GetPropertiesResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const properties = await findTrackProperties({
+        workspaceId: request.query.workspaceId,
+      });
+      return reply.status(200).send({ properties });
     },
   );
 }
