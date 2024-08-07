@@ -55,6 +55,7 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
+import useLoadProperties from "../lib/useLoadProperties";
 import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
@@ -311,15 +312,16 @@ function DurationValueSelect({
 
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
+  const { properties } = useAppStorePick(["properties"]);
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
   );
 
-  const handleEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEventNameChange = (newEvent: string) => {
     updateSegmentNodeData(node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
-        n.event = e.target.value;
+        n.event = newEvent;
       }
     });
   };
@@ -376,12 +378,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   };
 
   const propertyRows = node.properties?.map((property, i) => {
-    const handlePropertyPathChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
+    const handlePropertyPathChange = (newPath: string) => {
       updateSegmentNodeData(node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
-          const newPath = e.target.value;
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
             return;
@@ -467,10 +466,21 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <TextField
-          label="Property Path"
+        <Autocomplete
           value={property.path}
-          onChange={handlePropertyPathChange}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[node.event] ?? []}
+          onChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handlePropertyPathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -530,14 +540,22 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Box sx={{ width: selectorWidth }}>
-          <TextField
-            disabled={disabled}
-            label="Event Name"
-            value={node.event}
-            onChange={handleEventNameChange}
-          />
-        </Box>
+        <Autocomplete
+          value={node.event}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
         <Select
           onChange={handleTimesOperatorChange}
           disabled={disabled}
@@ -772,7 +790,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
       break;
     case SegmentOperatorType.HasBeen: {
-      // FIXME
       const comparatorOption =
         keyedHasBeenComparatorOptions[node.operator.comparator];
 
@@ -1247,6 +1264,7 @@ export function SegmentEditorInner({
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
   useLoadTraits();
+  useLoadProperties();
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>

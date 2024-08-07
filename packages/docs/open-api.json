@@ -2030,6 +2030,50 @@
         }
       }
     },
+    "/api/events/properties": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "description": "Get list of properties available on performed calls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "properties": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "properties"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/journeys/": {
       "put": {
         "tags": [
@@ -16316,6 +16360,50 @@
                   },
                   "required": [
                     "traits"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/events/properties": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "description": "Get list of properties available on performed calls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "properties": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "properties"
                   ]
                 }
               }

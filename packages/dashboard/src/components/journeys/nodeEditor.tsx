@@ -46,6 +46,7 @@ import {
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
+import useLoadProperties from "../../lib/useLoadProperties";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
@@ -118,10 +119,11 @@ function EntryNodeFields({
   nodeProps: EntryUiNodeProps;
   disabled?: boolean;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData,
-  );
-  const segments = useAppStore((state) => state.segments);
+  const { segments, updateJourneyNodeData, properties } = useAppStorePick([
+    "segments",
+    "updateJourneyNodeData",
+    "properties",
+  ]);
 
   let variant: React.ReactNode;
   const nodeVariant = nodeProps.variant;
@@ -165,12 +167,14 @@ function EntryNodeFields({
     }
     case JourneyNodeType.EventEntryNode:
       variant = (
-        <TextField
+        <Autocomplete
           value={nodeVariant.event ?? ""}
+          options={Object.keys(properties)}
           disabled={disabled}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const newEventName = e.target.value;
-
+          onChange={(_event, newEventName) => {
+            if (newEventName === null) {
+              return;
+            }
             updateJourneyNodeData(nodeId, (node) => {
               const props = node.data.nodeTypeProps;
               if (
@@ -181,7 +185,13 @@ function EntryNodeFields({
               }
             });
           }}
-          label="Event Trigger Name"
+          renderInput={(params) => (
+            <TextField
+              label="Event Trigger Name"
+              {...params}
+              variant="outlined"
+            />
+          )}
         />
       );
       break;
@@ -822,6 +832,8 @@ function NodeEditorContents({
 export const journeyNodeEditorId = "journey-node-editor";
 
 export default function NodeEditor({ disabled }: { disabled?: boolean }) {
+  useLoadProperties();
+
   const theme = useTheme();
   const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
   const nodes = useAppStore((state) => state.journeyNodes);

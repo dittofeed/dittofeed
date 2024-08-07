@@ -3158,6 +3158,18 @@ export const GetTraitsResponse = Type.Object({
 
 export type GetTraitsResponse = Static<typeof GetTraitsResponse>;
 
+export const GetPropertiesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetPropertiesRequest = Static<typeof GetPropertiesRequest>;
+
+export const GetPropertiesResponse = Type.Object({
+  properties: Type.Record(Type.String(), Type.Array(Type.String())),
+});
+
+export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
+
 export const SearchDeliveriesRequest = Type.Object({
   workspaceId: Type.String(),
   fromIdentifier: Type.Optional(Type.String()),

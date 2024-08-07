@@ -10,7 +10,7 @@ import {
 import config from "./config";
 import { kafkaProducer } from "./kafka";
 import prisma from "./prisma";
-import { InternalEventType, UserEvent } from "./types";
+import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
 
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
@@ -212,9 +212,11 @@ export async function findIdentifyTraits({
 }): Promise<string[]> {
   const query = `
     SELECT DISTINCT
-      arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait
+      arrayJoin(JSONExtractKeys(properties)) AS trait
     FROM user_events_v2
-    WHERE workspace_id = {workspaceId:String}
+    WHERE
+      workspace_id = {workspaceId:String}
+      and event_type = 'identify'
   `;
 
   const resultSet = await chQuery({
@@ -227,6 +229,42 @@ export async function findIdentifyTraits({
 
   const results = await resultSet.json<{ trait: string }>();
   return results.map((o) => o.trait);
+}
+
+export async function findTrackProperties({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<GetPropertiesResponse["properties"]> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const query = `
+    SELECT
+      arrayJoin(JSONExtractKeys(properties)) AS property,
+      event
+    FROM user_events_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      and event_type = 'track'
+    GROUP BY
+      property,
+      event
+  `;
+
+  const resultSet = await chQuery({
+    query,
+    format: "JSONEachRow",
+    query_params: qb.getQueries(),
+  });
+
+  const results = await resultSet.json<{ property: string; event: string }>();
+
+  return results.reduce<Record<string, string[]>>((acc, o) => {
+    const properties = acc[o.event] ?? [];
+    properties.push(o.property);
+    acc[o.event] = properties;
+    return acc;
+  }, {});
 }
 
 export type UserIdsByPropertyValue = Record<string, string[]>;

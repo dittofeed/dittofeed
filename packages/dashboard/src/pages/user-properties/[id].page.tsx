@@ -34,7 +34,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { ComponentProps, useCallback } from "react";
+import React, { useCallback } from "react";
 import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
@@ -364,13 +364,15 @@ function PerformedUserPropertyDefinitionEditor({
 }: {
   definition: PerformedUserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStorePick([
+  const { updateUserPropertyDefinition, properties } = useAppStorePick([
     "updateUserPropertyDefinition",
+    "properties",
   ]);
 
-  const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
-    e,
-  ) => {
+  const handlePathChange = (newPath: string | null) => {
+    if (newPath === null) {
+      return;
+    }
     updateUserPropertyDefinition((current) => {
       let d: PerformedUserPropertyDefinition;
       if (current.type === UserPropertyDefinitionType.Performed) {
@@ -385,7 +387,7 @@ function PerformedUserPropertyDefinitionEditor({
       } else {
         return current;
       }
-      d.path = e.target.value;
+      d.path = newPath;
       return current;
     });
   };
@@ -423,30 +425,31 @@ function PerformedUserPropertyDefinitionEditor({
     [updateUserPropertyDefinition, definition.id],
   );
 
-  const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
-    e,
-  ) => {
+  const handleEventNameChange = (newEventName: string | null) => {
+    if (newEventName === null) {
+      return;
+    }
     updatePerformedNode((current) => {
-      current.event = e.target.value;
+      current.event = newEventName;
       return current;
     });
   };
 
   const handleAddProperty = () => {
     updatePerformedNode((current) => {
-      const properties = current.properties ?? [];
+      const nodeProperties = current.properties ?? [];
       // limit to 100 properties
-      if (properties.length >= 100) {
+      if (nodeProperties.length >= 100) {
         return current;
       }
-      properties.push({
+      nodeProperties.push({
         path: "myPropertyPath",
         operator: {
           type: UserPropertyOperatorType.Equals,
           value: "myValue",
         },
       });
-      current.properties = properties;
+      current.properties = nodeProperties;
       return current;
     });
   };
@@ -454,11 +457,11 @@ function PerformedUserPropertyDefinitionEditor({
   let propertyRows: React.ReactNode = null;
   if (definition.properties) {
     propertyRows = definition.properties.map((property, i) => {
-      const handlePropertyPathChange = (
-        e: React.ChangeEvent<HTMLInputElement>,
-      ) => {
+      const handlePropertyPathChange = (newPath: string | null) => {
+        if (newPath === null) {
+          return;
+        }
         updatePerformedNode((current) => {
-          const newPath = e.target.value;
           const existingProperty = current.properties?.[i];
 
           if (!existingProperty) {
@@ -485,9 +488,9 @@ function PerformedUserPropertyDefinitionEditor({
       };
       const handleDelete = () => {
         updatePerformedNode((current) => {
-          const properties = current.properties ?? [];
-          properties.splice(i, 1);
-          current.properties = properties;
+          const nodeProperties = current.properties ?? [];
+          nodeProperties.splice(i, 1);
+          current.properties = nodeProperties;
           return current;
         });
       };
@@ -501,10 +504,17 @@ function PerformedUserPropertyDefinitionEditor({
             alignItems: "center",
           }}
         >
-          <TextField
-            label="Property Path"
+          <Autocomplete
             value={property.path}
-            onChange={handlePropertyPathChange}
+            freeSolo
+            sx={{ width: selectorWidth }}
+            options={properties[definition.event] ?? []}
+            onChange={(_event, newPath) => {
+              handlePropertyPathChange(newPath);
+            }}
+            renderInput={(params) => (
+              <TextField label="Property Path" {...params} variant="outlined" />
+            )}
           />
           {/* hardcoded until support for multiple operators is added */}
           <Select value={UserPropertyOperatorType.Equals}>
@@ -526,17 +536,29 @@ function PerformedUserPropertyDefinitionEditor({
   return (
     <Stack direction="column" spacing={2}>
       <Stack spacing={1} direction="row">
-        <TextField
-          label="Event Name"
-          sx={{ width: selectorWidth }}
+        <Autocomplete
           value={definition.event}
-          onChange={handleEventNameChange}
-        />
-        <TextField
-          label="Property Path"
+          freeSolo
           sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onChange={(_event, newPath) => {
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
+        <Autocomplete
           value={definition.path}
-          onChange={handlePathChange}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[definition.event] ?? []}
+          onChange={(_event, newPath) => {
+            handlePathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
         />
         <Button variant="contained" onClick={() => handleAddProperty()}>
           Property
