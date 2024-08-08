@@ -29,6 +29,7 @@ import yargs from "yargs/yargs";
 
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
+import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
   disentangleResendSendgrid,
@@ -478,6 +479,19 @@ export async function cli() {
       async ({ workspaceId, destinationWorkspaceId }) => {
         await transferResources({ workspaceId, destinationWorkspaceId });
       },
+    )
+    .command(
+      "reset-workspace-data",
+      "Resets workspace data. Leaves resources intact.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+          },
+        }),
+      ({ workspaceId }) => resetWorkspaceData({ workspaceId }),
     )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()
