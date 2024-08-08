@@ -76,15 +76,21 @@ clickhouse:
   enabled: false
   # Minimal installation for ease of testing.
   shards: 1
+  replicaCount: 1
+  zookeeper:
+    enabled: false
+  defaultConfigurationOverrides: |
+    <clickhouse>
+      <macros>
+        <shard>1</shard>
+        <replica>single</replica>
+      </macros>
+    </clickhouse>
   resources:
     limits:
       memory: 1024Mi
     requests:
       memory: 1024Mi
-  zookeeper:
-    enabled: false
-  keeper:
-    enabled: true
   auth:
     username: dittofeed
     password: password
@@ -153,6 +159,8 @@ env:
   # BOOTSTRAP should be set to "false" after the first deployment
   # - name: BOOTSTRAP
   #   value: "false"
+  - name: BOOTSTRAP_SAFE
+    value: "true"
   - name: TEMPORAL_ADDRESS
     value: "demo-dittofeed-temporal:80"
 
