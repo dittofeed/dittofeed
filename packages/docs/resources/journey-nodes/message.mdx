@@ -12,3 +12,47 @@ The following is the most basic journey you can create.
 <Frame>
 ![Minimal Message Journey](/images/minimal-useful-journey.png)
 </Frame>
+
+## Webhook Synchronize Properties
+
+The "Synchronize Properties" configuration option is available in webhook message nodes. This option ensures user properties and segments recompute after receiving a response to a webhook request, before proceeding. This feature is useful for rendering webhook response as a part of user properties.
+
+<Frame>
+![Synchronize Options Webhook Message](/images/sync-options-webhook-message.png)
+</Frame>
+
+### Example Use case - Render Product Recommendations
+
+Imagine that you want to email users with a list of their top 5 most highly recommended products. Let's say you have an API that returns product recommendations for a user. It would be infeasible to eagerly update Dittofeed every time any user's recommended products change.
+
+Instead, we can use a webhook request to your recommendations API, and use the response to render an email. You can use the "Synchronize Properties" option when requesting new recommendations to ensure your journey waits until they're available before you proceed to render your email.
+
+1. Create a webhook message template.
+
+<Frame>
+  ![Recommendations Webhook Template](/images/recommendations-webhook-template.png)
+</Frame>
+
+2. Create a user property that renders the webhook response.
+
+<Frame>
+  ![Recommendations User Property](/images/recommendations-user-property.png)
+</Frame>
+
+3. Create an email template that consumes the user property.
+
+<Frame>
+  ![Recommendations Email Template](/images/recommendations-email-template.png)
+</Frame>
+
+4. Create a journey that sends a webhook request to your recommendations API, with the "Synchronize Properties" option enabled.
+
+<Frame>
+  ![Recommendations Journey Synchronize Properties](/images/recommendations-journey-synchronize-properties.png)
+</Frame>
+
+5. Add an email message node to your journey, and select the email template you created.
+
+<Frame>
+  ![Recommendations Journey](/images/recommendations-journey.png)
+</Frame>
