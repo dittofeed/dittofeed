@@ -2,7 +2,11 @@
 title: "File - User Property"
 ---
 
-File user properties capture the value of a `file` values sent in a `track` event, as a base 64 encoded string. These values can then be used to send email attachments. 
+File user properties capture the value of a `file` values sent in a `track` event, as a base 64 encoded string. These values can then be used to send email attachments.
+
+<Frame>
+  ![File User Property](/images/file-user-property.png)
+</Frame>
 
 For example, one might create a `File` type user property to capture to send receipt's for a purchase. Then, this file will be assigned as a user property value, which is accessible in templates.
 
@@ -26,7 +30,10 @@ For example, one might create a `File` type user property to capture to send rec
 }
 ```
 
-<Info> Like `Performed` [user properties](/resources/user-property-types/performed), `File` user properties are calculated synchronously from within [event entry Journeys](/resources/journey-nodes/entry#event-entry). This allows you to include files in the same track event used to trigger journeys, and guarantee that the file is available when rendering message templates for those journeys. </Info>
+<Info>
+Like `Performed` [user properties](/resources/user-property-types/performed), `File` user properties are calculated synchronously from within [event entry Journeys](/resources/journey-nodes/entry#event-entry). This allows you to include files in the same track event used to trigger journeys, and guarantee that the file is used to render message templates for those journeys.
+</Info>
+
 
 ## Example Use Case - Sending an Email Attachment
 
