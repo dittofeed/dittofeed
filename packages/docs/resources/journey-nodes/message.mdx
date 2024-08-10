@@ -25,9 +25,9 @@ The "Synchronize Properties" configuration option is available in webhook messag
 
 Imagine that you want to email users with a list of their top 5 most highly recommended products. Let's say you have an API that returns product recommendations for a user. It would be infeasible to eagerly update Dittofeed every time any user's recommended products change.
 
-Instead, we can use a webhook request to your recommendations API, and use the response to render an email. You can use the "Synchronize Properties" option when requesting new recommendations to ensure your journey waits until they're available before you proceed to render your email.
+Instead, we can use a webhook request to lookup products from your recommendations API, and render the response in an email. You can use the "Synchronize Properties" option when requesting new recommendations to ensure your journey waits until they're available before you proceed to render your email.
 
-1. Create a webhook message template. Note that in the example below we use a secret to store the API key.
+1. Create a webhook message template. Note that in the example below we use a secret to store an API key.
 
 <Frame>
   ![Recommendations Webhook Template](/images/recommendations-webhook-template.png)
@@ -55,7 +55,7 @@ Instead, we can use a webhook request to your recommendations API, and use the r
 ```
 </Accordion>
 
-2. Create a user property that renders the webhook response. This user property should condition on the `DFInternalMessageSent` event name, with the `variant.response.body` path. Furthermore, it should check for the `templateId` property to be equal to the `templateId` of the webhook message template you created e.g. `edfc6da5-f276-4937-9519-427e3164d9d8`.
+2. Create a user property that renders the webhook response. This user property should condition on the `DFInternalMessageSent` event name, with the `variant.response.body` path. Furthermore, it should condition on the `templateId` property equaling `templateId` of the webhook message template you created e.g. `edfc6da5-f276-4937-9519-427e3164d9d8`.
 
 <Frame>
   ![Recommendations User Property](/images/recommendations-user-property.png)
