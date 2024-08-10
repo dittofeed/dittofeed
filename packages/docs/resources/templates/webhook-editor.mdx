@@ -83,6 +83,13 @@ When sending a message rendered from a webhook template, the message can include
 | nodeId      | The identifier for the node within the journey from which the message was sent. |
 | journeyId   | The identifier for the journey within which the message was sent. |
 
+## Example Use case - Render Product Recommendations
+
+Imagine that you want to email users with a list of their top 5 most highly recommended products. Let's say you have an API that returns product recommendations for a user. It would be infeasible to eagerly update Dittofeed every time any user's recommended products change.
+
+Instead, we can use a webhook request to your recommendations API, and use the response to render an email.
+
+See the documentation on the [Synchronize Properties](/resources/journey-nodes/message#webhook-synchronize-properties) journey message node configuration option for more information.
 
 ## Webhook Implementation Walkthrough Videos
 

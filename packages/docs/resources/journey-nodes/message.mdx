@@ -12,3 +12,98 @@ The following is the most basic journey you can create.
 <Frame>
 ![Minimal Message Journey](/images/minimal-useful-journey.png)
 </Frame>
+
+## Webhook Synchronize Properties
+
+The "Synchronize Properties" configuration option is available in webhook message nodes. This option ensures user properties and segments recompute after receiving a response to a webhook request, before proceeding. This feature is useful for rendering webhook response as a part of user properties.
+
+<Frame>
+![Synchronize Options Webhook Message](/images/sync-options-webhook-message.png)
+</Frame>
+
+### Example Use case - Render Product Recommendations
+
+Imagine that you want to email users with a list of their top 5 most highly recommended products. Let's say you have an API that returns product recommendations for a user. It would be infeasible to eagerly update Dittofeed every time any user's recommended products change.
+
+Instead, we can use a webhook request to lookup products from your recommendations API, and render the response in an email. You can use the "Synchronize Properties" option when requesting new recommendations to ensure your journey waits until they're available before you proceed to render your email.
+
+1. Create a webhook message template. Note that in the example below we use a secret to store an API key.
+
+<Frame>
+  ![Recommendations Webhook Template](/images/recommendations-webhook-template.png)
+</Frame>
+
+<Accordion>
+```json
+{
+  "config": {
+    "url": "https://recommendations.myapi.com/v1/recommendations",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": {
+      "userId": "{{ user.id }}"
+    }
+  },
+  "secret": {
+    "headers": {
+      "Authorization": "Bearer {{secrets.RECOMMENDATIONS_API_KEY}}"
+    }
+  }
+}
+```
+</Accordion>
+
+2. Create a user property that renders the webhook response. This user property should condition on the `DFInternalMessageSent` event name, with the `variant.response.body` path. Furthermore, it should condition on the `templateId` property equaling `templateId` of the webhook message template you created e.g. `edfc6da5-f276-4937-9519-427e3164d9d8`.
+
+<Frame>
+  ![Recommendations User Property](/images/recommendations-user-property.png)
+</Frame>
+
+3. Create an email template that consumes the user property.
+
+<Frame>
+  ![Recommendations Email Template](/images/recommendations-email-template.png)
+</Frame>
+
+<Accordion>
+```html
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text>Dear {{ user.firstName }},</mj-text>
+        <mj-text>We've got some great product recommendations for you based on your preferences:</mj-text>
+        {% for product in user.userProductRecommendations %}
+        <mj-text>
+          Product: {{ product.name }}<br />
+          Brand: {{ product.brand }}<br />
+          Price: ${{ product.price }}<br />
+          Category: {{ product.category }}<br />
+          Rating: {{ product.rating }} / 5<br />
+          In Stock: {% if product.inStock %}Yes{% else %}No{% endif %}
+        </mj-text>
+        {% endfor %}
+        <mj-text>We hope you find something you like!</mj-text>
+        <mj-text>Best regards,<br />Your Store Team</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+```
+</Accordion>
+
+4. Create a journey that sends a webhook request to your recommendations API, with the "Synchronize Properties" option enabled.
+
+<Accordion>
+  <Frame>
+  ![Synchronize Options Webhook Message](/images/sync-options-webhook-message.png)
+  </Frame>
+</Accordion>
+
+5. Add an email message node to your journey, and select the email template you created.
+
+<Frame>
+  ![Recommendations Journey](/images/recommendations-journey.png)
+</Frame>
