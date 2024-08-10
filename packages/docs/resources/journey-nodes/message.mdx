@@ -27,13 +27,35 @@ Imagine that you want to email users with a list of their top 5 most highly reco
 
 Instead, we can use a webhook request to your recommendations API, and use the response to render an email. You can use the "Synchronize Properties" option when requesting new recommendations to ensure your journey waits until they're available before you proceed to render your email.
 
-1. Create a webhook message template.
+1. Create a webhook message template. Note that in the example below we use a secret to store the API key.
 
 <Frame>
   ![Recommendations Webhook Template](/images/recommendations-webhook-template.png)
 </Frame>
 
-2. Create a user property that renders the webhook response.
+<Accordion>
+```json
+{
+  "config": {
+    "url": "https://recommendations.myapi.com/v1/recommendations",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": {
+      "userId": "{{ user.id }}"
+    }
+  },
+  "secret": {
+    "headers": {
+      "Authorization": "Bearer {{secrets.RECOMMENDATIONS_API_KEY}}"
+    }
+  }
+}
+```
+</Accordion>
+
+2. Create a user property that renders the webhook response. This user property should condition on the `DFInternalMessageSent` event name, with the `variant.response.body` path. Furthermore, it should check for the `templateId` property to be equal to the `templateId` of the webhook message template you created e.g. `edfc6da5-f276-4937-9519-427e3164d9d8`.
 
 <Frame>
   ![Recommendations User Property](/images/recommendations-user-property.png)
@@ -45,11 +67,40 @@ Instead, we can use a webhook request to your recommendations API, and use the r
   ![Recommendations Email Template](/images/recommendations-email-template.png)
 </Frame>
 
+<Accordion>
+```html
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text>Dear {{ user.firstName }},</mj-text>
+        <mj-text>We've got some great product recommendations for you based on your preferences:</mj-text>
+        {% for product in user.userProductRecommendations %}
+        <mj-text>
+          Product: {{ product.name }}<br />
+          Brand: {{ product.brand }}<br />
+          Price: ${{ product.price }}<br />
+          Category: {{ product.category }}<br />
+          Rating: {{ product.rating }} / 5<br />
+          In Stock: {% if product.inStock %}Yes{% else %}No{% endif %}
+        </mj-text>
+        {% endfor %}
+        <mj-text>We hope you find something you like!</mj-text>
+        <mj-text>Best regards,<br />Your Store Team</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+```
+</Accordion>
+
 4. Create a journey that sends a webhook request to your recommendations API, with the "Synchronize Properties" option enabled.
 
-<Frame>
-  ![Recommendations Journey Synchronize Properties](/images/recommendations-journey-synchronize-properties.png)
-</Frame>
+<Accordion>
+  <Frame>
+  ![Synchronize Options Webhook Message](/images/sync-options-webhook-message.png)
+  </Frame>
+</Accordion>
 
 5. Add an email message node to your journey, and select the email template you created.
 
