@@ -164,7 +164,8 @@
             "resources/segment-nodes/or",
             "resources/segment-nodes/manual",
             "resources/segment-nodes/subscription-group",
-            "resources/segment-nodes/email"
+            "resources/segment-nodes/email",
+            "resources/segment-nodes/random-bucket"
           ]
         },
         "resources/templates",
@@ -188,6 +189,7 @@
             "resources/user-property-types/trait",
             "resources/user-property-types/performed",
             "resources/user-property-types/any-of",
+            "resources/user-property-types/file",
             "resources/user-property-types/id",
             "resources/user-property-types/anonymous-id"
           ]
