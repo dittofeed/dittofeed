@@ -2,6 +2,7 @@ import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
 import prisma from "./prisma";
+import { WorkspaceMember } from "@prisma/client";
 
 export async function onboardUser({
   email,
@@ -10,12 +11,15 @@ export async function onboardUser({
   email: string;
   workspaceName: string;
 }): Promise<Result<null, Error>> {
-  let [workspaceMember, workspaces] = await Promise.all([
+  const [maybeWorkspaceMember, workspaces] = await Promise.all([
     prisma().workspaceMember.findUnique({ where: { email } }),
     prisma().workspace.findMany({ where: { name: workspaceName } }),
   ]);
 
-  if (!workspaceMember) {
+  let workspaceMember: WorkspaceMember;
+  if (maybeWorkspaceMember) {
+    workspaceMember = maybeWorkspaceMember;
+  } else {
     workspaceMember = await prisma().workspaceMember.create({
       data: { email },
     });

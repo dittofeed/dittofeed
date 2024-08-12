@@ -321,7 +321,6 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
   });
-  const { bootstrapSafe } = config();
 
   const initialBootstrap = [
     bootstrapClickhouse().catch(
