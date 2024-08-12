@@ -10,13 +10,15 @@ export async function onboardUser({
   email: string;
   workspaceName: string;
 }): Promise<Result<null, Error>> {
-  const [workspaceMember, workspaces] = await Promise.all([
+  let [workspaceMember, workspaces] = await Promise.all([
     prisma().workspaceMember.findUnique({ where: { email } }),
     prisma().workspace.findMany({ where: { name: workspaceName } }),
   ]);
 
   if (!workspaceMember) {
-    return err(new Error("User not found"));
+    workspaceMember = await prisma().workspaceMember.create({
+      data: { email },
+    });
   }
 
   const workspace = workspaces[0];
