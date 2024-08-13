@@ -46,6 +46,8 @@ const config = {
       ...BASE_CONFIG,
       displayName: "api",
       roots: ["<rootDir>/packages/api/src"],
+      globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
+      globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
