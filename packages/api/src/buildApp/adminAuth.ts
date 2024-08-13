@@ -2,10 +2,7 @@ import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import {
-  jsonParseSafe,
-  schemaValidate,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { AdminApiKeyDefinition } from "isomorphic-lib/src/types";
 
 import { getWorkspaceId } from "../workspace";
