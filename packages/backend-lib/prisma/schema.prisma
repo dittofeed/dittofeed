@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["relationJoins"]
 }
 
@@ -11,10 +11,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum WorkspaceType {
+  // Root workspaces are used in the base, non-embedded application
+  Root
+  // Child workspaces are embedded in other applications
+  Child
+  // Parent workspaces are used to manage child workspaces
+  Parent
+}
+
 model Workspace {
   id                     String                   @id() @default(uuid()) @db.Uuid
   name                   String
   domain                 String?
+  type                   WorkspaceType            @default(Root)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   Segment                Segment[]
@@ -40,8 +50,19 @@ model Workspace {
   Feature                Feature[]
   WorkspaceMember        WorkspaceMember[]
   AdminApiKey            AdminApiKey[]
+  Parents                WorkspaceRelation[]      @relation("ParentRelation")
+  Children               WorkspaceRelation[]      @relation("ChildRelation")
 
   @@unique([name])
+}
+
+model WorkspaceRelation {
+  parentWorkspace        Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
+  parentWorkspaceId      String    @db.Uuid
+  childWorkspace   Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
+  childWorkspaceId String    @db.Uuid
+
+  @@unique([parentWorkspaceId, childWorkspaceId])
 }
 
 enum DBResourceType {

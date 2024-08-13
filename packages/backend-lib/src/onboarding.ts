@@ -1,8 +1,8 @@
+import { WorkspaceMember } from "@prisma/client";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
 import prisma from "./prisma";
-import { WorkspaceMember } from "@prisma/client";
 
 export async function onboardUser({
   email,
