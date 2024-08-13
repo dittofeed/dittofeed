@@ -84,6 +84,12 @@ describe("authenticateAdminApiKey", () => {
           type: WorkspaceType.Child,
         },
       });
+      await prisma().workspaceRelation.create({
+        data: {
+          parentWorkspaceId: workspace.id,
+          childWorkspaceId: childWorkspace.id,
+        },
+      });
       adminApiKey = unwrap(
         await createAdminApiKey({
           workspaceId: childWorkspace.id,
