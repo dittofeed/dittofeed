@@ -15,7 +15,6 @@ import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
-import { segmentIdentifyEvent } from "./segmentIO";
 import {
   startComputePropertiesWorkflow,
   startGlobalCron,
@@ -26,12 +25,13 @@ import {
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  EventType,
   NodeEnvEnum,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "./types";
-import { insertUserEvents } from "./userEvents";
 import { createUserEventsTables } from "./userEvents/clickhouse";
+import { submitBatch } from "./apps/batch";
 
 async function bootstrapPostgres({
   workspaceName,
@@ -252,52 +252,51 @@ export async function bootstrapWorker({
 }
 
 async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
-  const messageId1 = randomUUID();
-  const messageId2 = randomUUID();
   logger().debug("Inserting default events.");
-
-  await insertUserEvents({
+  await submitBatch({
     workspaceId,
-    userEvents: [
-      {
-        messageId: messageId1,
-        messageRaw: JSON.stringify(
-          segmentIdentifyEvent({
-            messageId: messageId1,
-            userId: DEBUG_USER_ID1,
-            traits: {
-              status: "onboarding",
-              firstName: "Max",
-              lastName: "Gurewitz",
-              email: "max@email.com",
-              plan: "free",
-              phone: "8005551234",
-              // 1 day ago
-              createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
-            },
-          }),
-        ),
-      },
-      {
-        messageId: messageId2,
-        messageRaw: JSON.stringify(
-          segmentIdentifyEvent({
-            messageId: messageId2,
-            traits: {
-              status: "onboarded",
-              firstName: "Chandler",
-              lastName: "Craig",
-              email: "chandler@email.com",
-              plan: "paid",
-              // 2 days ago
-              createdAt: new Date(
-                Date.now() - 2 * 8.64 * 1000000,
-              ).toISOString(),
-            },
-          }),
-        ),
-      },
-    ],
+    data: {
+      batch: [
+        {
+          type: EventType.Identify,
+          messageId: randomUUID(),
+          userId: DEBUG_USER_ID1,
+          traits: {
+            status: "onboarding",
+            firstName: "Max",
+            lastName: "Gurewitz",
+            email: "max@email.com",
+            plan: "free",
+            phone: "8005551234",
+            // 1 day ago
+            createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
+          },
+        },
+        {
+          type: EventType.Identify,
+          messageId: randomUUID(),
+          userId: "user-id-2",
+          traits: {
+            status: "onboarded",
+            firstName: "Chandler",
+            lastName: "Craig",
+            email: "chandler@email.com",
+            plan: "paid",
+            // 2 days ago
+            createdAt: new Date(Date.now() - 2 * 8.64 * 1000000).toISOString(),
+          },
+        },
+        {
+          type: EventType.Track,
+          messageId: randomUUID(),
+          userId: "user-id-2",
+          event: "CLICKED_BUTTON",
+          properties: {
+            buttonColor: "blue",
+          },
+        },
+      ],
+    },
   });
 }
 
