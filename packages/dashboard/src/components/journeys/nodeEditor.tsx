@@ -170,6 +170,7 @@ function EntryNodeFields({
         <Autocomplete
           value={nodeVariant.event ?? ""}
           options={Object.keys(properties)}
+          freeSolo
           disabled={disabled}
           onChange={(_event, newEventName) => {
             if (newEventName === null) {
