@@ -472,7 +472,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           freeSolo
           sx={{ width: selectorWidth }}
           options={properties[node.event] ?? []}
-          onChange={(_event, newPath) => {
+          onInputChange={(_event, newPath) => {
             if (newPath === undefined || newPath === null) {
               return;
             }
@@ -546,7 +546,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           freeSolo
           sx={{ width: selectorWidth }}
           options={Object.keys(properties)}
-          onChange={(_event, newPath) => {
+          onInputChange={(_event, newPath) => {
             if (newPath === undefined || newPath === null) {
               return;
             }
@@ -851,7 +851,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
         <Autocomplete
           value={traitPath}
           freeSolo
-          onChange={(_event, newValue) => {
+          onInputChange={(_event, newValue) => {
             traitOnChange(newValue);
           }}
           disableClearable

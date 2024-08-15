@@ -172,7 +172,7 @@ function EntryNodeFields({
           options={Object.keys(properties)}
           freeSolo
           disabled={disabled}
-          onChange={(_event, newEventName) => {
+          onInputChange={(_event, newEventName) => {
             if (newEventName === null) {
               return;
             }

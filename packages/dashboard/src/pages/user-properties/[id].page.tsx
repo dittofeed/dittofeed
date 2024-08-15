@@ -35,9 +35,7 @@ import {
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useCallback } from "react";
-import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
-import { shallow } from "zustand/shallow";
 
 import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
@@ -334,7 +332,7 @@ function TraitUserPropertyDefinitionEditor({
     <Autocomplete
       value={definition.path}
       freeSolo
-      onChange={(_event, newValue) => {
+      onInputChange={(_event, newValue) => {
         handleTraitChange(newValue);
       }}
       disableClearable
@@ -509,7 +507,7 @@ function PerformedUserPropertyDefinitionEditor({
             freeSolo
             sx={{ width: selectorWidth }}
             options={properties[definition.event] ?? []}
-            onChange={(_event, newPath) => {
+            onInputChange={(_event, newPath) => {
               handlePropertyPathChange(newPath);
             }}
             renderInput={(params) => (
@@ -541,7 +539,7 @@ function PerformedUserPropertyDefinitionEditor({
           freeSolo
           sx={{ width: selectorWidth }}
           options={Object.keys(properties)}
-          onChange={(_event, newPath) => {
+          onInputChange={(e, newPath) => {
             handleEventNameChange(newPath);
           }}
           renderInput={(params) => (
@@ -553,7 +551,7 @@ function PerformedUserPropertyDefinitionEditor({
           freeSolo
           sx={{ width: selectorWidth }}
           options={properties[definition.event] ?? []}
-          onChange={(_event, newPath) => {
+          onInputChange={(e, newPath) => {
             handlePathChange(newPath);
           }}
           renderInput={(params) => (
@@ -579,10 +577,9 @@ function AnyOfUserPropertyDefinitionEditor({
   groupedUserProperty: GroupUserPropertyDefinition;
   definition: AnyOfUserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStore(
-    (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow,
-  );
+  const { updateUserPropertyDefinition } = useAppStorePick([
+    "updateUserPropertyDefinition",
+  ]);
   return (
     <>
       <IconButton
