@@ -35,9 +35,7 @@ import {
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useCallback } from "react";
-import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
-import { shallow } from "zustand/shallow";
 
 import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
