@@ -34,7 +34,7 @@ To track email events with Postmark, follow these steps:
    ![Postmark Webhooks](/images/postmark-webhooks.png)
 
 2. Click "Add webhook" to initiate a new webhook setup.
-3. For the Post URL, input `https://dittofeed.com/api/public/webhooks/postmark`
+3. For the Post URL, input `https://app.dittofeed.com/api/public/webhooks/postmark`
 4. In the "Custom headers and basic auth" section, add a custom header named `x-postmark-secret`. For the value, use a secret you generate. You can generate a random key using `openssl rand -hex 32` in your terminal or use an online random key generator.
 5. Choose the events for which you wish to receive webhooks, such as Delivery, Bounce, Spam Complaint, Open, Link Click, and Subscription Change.
 
