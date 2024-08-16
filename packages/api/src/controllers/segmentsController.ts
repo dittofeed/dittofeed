@@ -17,6 +17,7 @@ import {
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   schemaValidate,
   schemaValidateWithErr,
@@ -44,7 +45,6 @@ import {
 import { err, ok } from "neverthrow";
 
 import { CsvParseResult } from "../types";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function segmentsController(fastify: FastifyInstance) {
