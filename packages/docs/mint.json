@@ -220,6 +220,7 @@
         "api-reference/endpoints/apps/screen",
         "api-reference/endpoints/apps/batch",
         "api-reference/endpoints/webhooks/segment",
+        "api-reference/auto/content/get-apiadmincontenttemplates",
         "api-reference/auto/content/put-apiadmincontenttemplates",
         "api-reference/auto/content/delete-apiadmincontenttemplates",
         "api-reference/auto/segments/put-apiadminsegments",

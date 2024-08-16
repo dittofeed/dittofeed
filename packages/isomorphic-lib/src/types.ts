@@ -1174,6 +1174,22 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
+export const GetMessageTemplatesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetMessageTemplatesRequest = Static<
+  typeof GetMessageTemplatesRequest
+>;
+
+export const GetMessageTemplatesResponse = Type.Object({
+  templates: Type.Array(MessageTemplateResource),
+});
+
+export type GetMessageTemplatesResponse = Static<
+  typeof GetMessageTemplatesResponse
+>;
+
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
