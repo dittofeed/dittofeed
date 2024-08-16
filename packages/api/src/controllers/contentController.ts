@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
+  enrichMessageTemplate,
   sendMessage,
   SendMessageParameters,
   upsertMessageTemplate,
@@ -15,6 +16,7 @@ import { randomUUID } from "crypto";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -25,6 +27,8 @@ import {
   DeleteMessageTemplateRequest,
   EmailProviderType,
   EmptyResponse,
+  GetMessageTemplatesRequest,
+  GetMessageTemplatesResponse,
   InternalEventType,
   JsonResultType,
   MessageSkippedType,
@@ -145,6 +149,31 @@ export default async function contentController(fastify: FastifyInstance) {
       return reply.status(200).send({
         contents: responseContents,
       });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/templates",
+    {
+      schema: {
+        description: "Get message templates",
+        tags: ["Content"],
+        params: GetMessageTemplatesRequest,
+        response: {
+          200: GetMessageTemplatesResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const templateModels = await prisma().messageTemplate.findMany({
+        where: {
+          workspaceId: request.params.workspaceId,
+        },
+      });
+      const templates = templateModels.map((t) =>
+        unwrap(enrichMessageTemplate(t)),
+      );
+      return reply.status(200).send({ templates });
     },
   );
 

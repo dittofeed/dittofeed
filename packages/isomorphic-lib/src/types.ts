@@ -1174,6 +1174,34 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
+export const GetMessageTemplatesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetMessageTemplatesRequest = Static<
+  typeof GetMessageTemplatesRequest
+>;
+
+export const GetMessageTemplatesResponse = Type.Object({
+  templates: Type.Array(MessageTemplateResource),
+});
+
+export type GetMessageTemplatesResponse = Static<
+  typeof GetMessageTemplatesResponse
+>;
+
+export const GetSegmentsRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;
+
+export const GetSegmentsResponse = Type.Object({
+  segments: Type.Array(SegmentResource),
+});
+
+export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;
+
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
@@ -1693,6 +1721,18 @@ export const UpsertJourneyResource = Type.Composite([
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
+export const GetJourneysRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetJourneysRequest = Static<typeof GetJourneysRequest>;
+
+export const GetJourneysResponse = Type.Object({
+  journeys: Type.Array(SavedJourneyResource),
+});
+
+export type GetJourneysResponse = Static<typeof GetJourneysResponse>;
+
 export const EmptyResponse = Type.String({
   description: "An empty String",
 });
@@ -1757,7 +1797,7 @@ export type ReadAllUserPropertiesRequest = Static<
 >;
 
 export const ReadAllUserPropertiesResponse = Type.Object({
-  userProperties: Type.Array(UserPropertyResource),
+  userProperties: Type.Array(SavedUserPropertyResource),
 });
 
 export type ReadAllUserPropertiesResponse = Static<
