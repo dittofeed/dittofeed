@@ -412,7 +412,7 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       // TODO refactor this into the backend config, using just the host not the path
       const url =
-        process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://dittofeed.com";
+        process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://app.dittofeed.com";
 
       const verified = validateRequest(
         twilioSecret.authToken,
