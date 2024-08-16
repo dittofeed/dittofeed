@@ -1190,6 +1190,18 @@ export type GetMessageTemplatesResponse = Static<
   typeof GetMessageTemplatesResponse
 >;
 
+export const GetSegmentsRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;
+
+export const GetSegmentsResponse = Type.Object({
+  segments: Type.Array(SegmentResource),
+});
+
+export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;
+
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),

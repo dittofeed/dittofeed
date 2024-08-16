@@ -4,7 +4,11 @@ import { submitBatchWithTriggers } from "backend-lib/src/apps";
 import { SubmitBatchOptions } from "backend-lib/src/apps/batch";
 import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
-import { buildSegmentsFile, upsertSegment } from "backend-lib/src/segments";
+import {
+  buildSegmentsFile,
+  toSegmentResource,
+  upsertSegment,
+} from "backend-lib/src/segments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
@@ -24,6 +28,8 @@ import {
   DeleteSegmentRequest,
   EmptyResponse,
   EventType,
+  GetSegmentsRequest,
+  GetSegmentsResponse,
   InternalEventType,
   KnownBatchIdentifyData,
   KnownBatchTrackData,
@@ -38,9 +44,33 @@ import {
 import { err, ok } from "neverthrow";
 
 import { CsvParseResult } from "../types";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function segmentsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all segments.",
+        tags: ["Segments"],
+        params: GetSegmentsRequest,
+        response: {
+          200: GetSegmentsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const segmentModels = await prisma().segment.findMany({
+        where: {
+          workspaceId: request.params.workspaceId,
+        },
+      });
+      const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
+      return reply.status(200).send({ segments });
+    },
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
