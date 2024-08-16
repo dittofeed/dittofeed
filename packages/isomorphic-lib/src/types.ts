@@ -1797,7 +1797,7 @@ export type ReadAllUserPropertiesRequest = Static<
 >;
 
 export const ReadAllUserPropertiesResponse = Type.Object({
-  userProperties: Type.Array(UserPropertyResource),
+  userProperties: Type.Array(SavedUserPropertyResource),
 });
 
 export type ReadAllUserPropertiesResponse = Static<
