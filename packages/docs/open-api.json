@@ -9,7 +9,7 @@
     "securitySchemes": {
       "publicWriteKey": {
         "type": "apiKey",
-        "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key.",
+        "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key.",
         "name": "PublicWriteKey",
         "in": "header"
       }
@@ -13644,7 +13644,7 @@
             "in": "header",
             "name": "authorization",
             "required": true,
-            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key."
           }
         ],
         "security": [
@@ -13889,7 +13889,7 @@
             "in": "header",
             "name": "authorization",
             "required": true,
-            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key."
           }
         ],
         "security": [
@@ -14074,7 +14074,7 @@
             "in": "header",
             "name": "authorization",
             "required": true,
-            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key."
           }
         ],
         "security": [
@@ -14257,7 +14257,7 @@
             "in": "header",
             "name": "authorization",
             "required": true,
-            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key."
           }
         ],
         "security": [
@@ -14990,7 +14990,7 @@
             "in": "header",
             "name": "authorization",
             "required": true,
-            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key."
+            "description": "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://app.dittofeed.com/dashboard/settings#write-key."
           }
         ],
         "security": [
