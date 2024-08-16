@@ -1721,6 +1721,18 @@ export const UpsertJourneyResource = Type.Composite([
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
+export const GetJourneysRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetJourneysRequest = Static<typeof GetJourneysRequest>;
+
+export const GetJourneysResponse = Type.Object({
+  journeys: Type.Array(SavedJourneyResource),
+});
+
+export type GetJourneysResponse = Static<typeof GetJourneysResponse>;
+
 export const EmptyResponse = Type.String({
   description: "An empty String",
 });

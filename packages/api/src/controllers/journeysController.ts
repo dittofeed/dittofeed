@@ -2,12 +2,15 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   getJourneyConstraintViolations,
   getJourneysStats,
+  toJourneyResource,
 } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   DeleteJourneyRequest,
   EmptyResponse,
+  GetJourneysRequest,
+  GetJourneysResponse,
   Journey,
   JourneyDefinition,
   JourneyDraft,
@@ -20,10 +23,34 @@ import {
   UpsertJourneyResource,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function journeysController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all journeys.",
+        tags: ["Journeys"],
+        querystring: GetJourneysRequest,
+        response: {
+          200: GetJourneysResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const journeyModels = await prisma().journey.findMany({
+        where: {
+          workspaceId: request.query.workspaceId,
+        },
+      });
+      const journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
+      return reply.status(200).send({ journeys });
+    },
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
