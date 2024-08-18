@@ -1,7 +1,6 @@
 import {
   IntegrationCreateDefinition,
   IntegrationType,
-  RelationalOperators,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,

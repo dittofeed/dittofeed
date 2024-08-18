@@ -476,7 +476,6 @@ function segmentToResolvedState({
     case SegmentNodeType.Performed: {
       const operator: RelationalOperators =
         node.timesOperator ?? RelationalOperators.Equals;
-      const opposingOperator = OPPOSING_RELATION_OPERATORS[operator];
       const times = node.times === undefined ? 1 : node.times;
 
       const segmentIdParam = qb.addQueryValue(segment.id, "String");

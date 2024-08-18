@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
+import { submitBatch } from "./apps/batch";
 import { createWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
@@ -31,7 +32,6 @@ import {
   UserPropertyDefinitionType,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
-import { submitBatch } from "./apps/batch";
 
 async function bootstrapPostgres({
   workspaceName,
