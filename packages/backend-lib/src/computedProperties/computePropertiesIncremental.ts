@@ -511,79 +511,73 @@ function segmentToResolvedState({
           )}, 3)
         `;
 
-        const queries = [];
+        const queries: string[] = [];
 
         if (checkGreaterThanZeroValue) {
+          // insert False into resolved_segment_state for all users who are in
+          // the segment and are not in the latest window. allows users to exit
+          // the segment after the window has expired
+          const expiredQuery = `
+            insert into resolved_segment_state
+            select
+              workspace_id,
+              segment_id,
+              state_id,
+              user_id,
+              False,
+              max_event_time,
+              toDateTime64(${nowSeconds}, 3)
+            from resolved_segment_state as rss
+            where
+              rss.workspace_id = ${workspaceIdParam}
+              and rss.segment_id = ${segmentIdParam}
+              and rss.state_id = ${stateIdParam}
+              and rss.segment_state_value = True
+              and (
+                workspace_id,
+                segment_id,
+                state_id,
+                user_id,
+                True
+              ) not in (
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value
+                from computed_property_state_v2 cps_performed
+                where
+                  ${withinRangeWhereClause}
+                group by
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id
+                having
+                  segment_state_value = True
+              )
+          `;
+          queries.push(expiredQuery);
+
+          // set to true all users who satisfy the condition in the latest window
           const greaterThanZeroQuery = `
             insert into resolved_segment_state
             select
-              multiIf(
-                notEmpty(within_range.workspace_id), within_range.workspace_id,
-                notEmpty(deduped_rss.workspace_id), deduped_rss.workspace_id,
-                ''
-              ) default_workspace_id,
-              multiIf(
-                notEmpty(within_range.computed_property_id), within_range.computed_property_id,
-                notEmpty(deduped_rss.segment_id), deduped_rss.segment_id,
-                ''
-              ) default_segment_id,
-              multiIf(
-                notEmpty(within_range.state_id), within_range.state_id,
-                notEmpty(deduped_rss.state_id), deduped_rss.state_id,
-                ''
-              ) default_state_id,
-              multiIf(
-                notEmpty(within_range.user_id), within_range.user_id,
-                notEmpty(deduped_rss.user_id), deduped_rss.user_id,
-                ''
-              ) default_user_id,
-              within_range.segment_state_value,
-              multiIf(
-                notEmpty(within_range.workspace_id), within_range.max_event_time,
-                notEmpty(deduped_rss.workspace_id), deduped_rss.max_event_time,
-                toDateTime64(0, 3)
-              ) default_max_event_time,
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id,
+              uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value,
+              max(cps_performed.event_time) as max_event_time,
               toDateTime64(${nowSeconds}, 3)
-            from (
-              select
-                workspace_id,
-                segment_id,
-                state_id,
-                user_id,
-                argMax(segment_state_value, computed_at) as segment_state_value,
-                max(max_event_time) as max_event_time
-              from resolved_segment_state rss
-              where
-                rss.workspace_id = ${workspaceIdParam}
-                and rss.segment_id = ${segmentIdParam}
-                and rss.state_id = ${stateIdParam}
-                and rss.segment_state_value = True
-              group by
-                workspace_id,
-                segment_id,
-                state_id,
-                user_id
-            ) as deduped_rss
-            full outer join (
-              select
-                workspace_id,
-                computed_property_id,
-                state_id,
-                user_id,
-                uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value,
-                max(cps_performed.event_time) as max_event_time
-              from computed_property_state_v2 cps_performed
-              where ${withinRangeWhereClause}
-              group by
-                workspace_id,
-                computed_property_id,
-                state_id,
-                user_id
-            ) as within_range on
-              within_range.workspace_id = deduped_rss.workspace_id
-              and within_range.computed_property_id = deduped_rss.segment_id
-              and within_range.state_id = deduped_rss.state_id
-              and within_range.user_id = deduped_rss.user_id
+            from computed_property_state_v2 cps_performed
+            where ${withinRangeWhereClause}
+            group by
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
           `;
           queries.push(greaterThanZeroQuery);
         }
