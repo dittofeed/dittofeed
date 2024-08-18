@@ -56,13 +56,3 @@ export const MESSAGE_METADATA_FIELDS = [
   "templateId",
   "nodeId",
 ] as const;
-
-export const OPPOSING_RELATION_OPERATORS: Record<
-  RelationalOperators,
-  RelationalOperators
-> = {
-  [RelationalOperators.Equals]: RelationalOperators.NotEquals,
-  [RelationalOperators.NotEquals]: RelationalOperators.Equals,
-  [RelationalOperators.LessThan]: RelationalOperators.GreaterThanOrEqual,
-  [RelationalOperators.GreaterThanOrEqual]: RelationalOperators.LessThan,
-};

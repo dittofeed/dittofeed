@@ -220,7 +220,6 @@ export type RandomBucketSegmentNode = Static<typeof RandomBucketSegmentNode>;
 
 export enum RelationalOperators {
   Equals = "=",
-  NotEquals = "!=",
   GreaterThanOrEqual = ">=",
   LessThan = "<",
 }

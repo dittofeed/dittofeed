@@ -15,7 +15,7 @@ import {
   streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
-import { HUBSPOT_INTEGRATION, OPPOSING_RELATION_OPERATORS } from "../constants";
+import { HUBSPOT_INTEGRATION } from "../constants";
 import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
 import { getSubscribedSegments } from "../journeys";
 import {
