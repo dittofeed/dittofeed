@@ -513,6 +513,7 @@ function segmentToResolvedState({
 
         const queries = [];
 
+        // FIXME
         if (checkGreaterThanZeroValue) {
           const greaterThanZeroQuery = `
             insert into resolved_segment_state
