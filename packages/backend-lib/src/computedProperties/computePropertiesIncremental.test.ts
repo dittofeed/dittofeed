@@ -1105,8 +1105,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes within operator trait segment",
-      // FIXME
-      only: true,
       userProperties: [],
       segments: [
         {

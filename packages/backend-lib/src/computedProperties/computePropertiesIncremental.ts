@@ -742,6 +742,47 @@ function segmentToResolvedState({
           // join computed property state values
 
           const queries: string[] = [];
+
+          const expiringEntrantsQuery = `
+            insert into resolved_segment_state
+            select
+              rss.workspace_id,
+              rss.segment_id,
+              rss.state_id,
+              rss.user_id,
+              False,
+              rss.max_event_time,
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from resolved_segment_state as rss
+            where
+              rss.workspace_id = ${workspaceIdParam}
+              and rss.segment_id = ${computedPropertyIdParam}
+              and rss.state_id = ${stateIdParam}
+              and rss.segment_state_value = True
+              and (
+                rss.workspace_id,
+                rss.segment_id,
+                rss.state_id,
+                rss.user_id,
+                True
+              ) not in (
+                select
+                  cpsi.workspace_id,
+                  cpsi.computed_property_id,
+                  cpsi.state_id,
+                  cpsi.user_id,
+                  indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")} as segment_state_value
+                from computed_property_state_index cpsi
+                where
+                  segment_state_value = True
+                  and cpsi.workspace_id = ${workspaceIdParam}
+                  and cpsi.type = 'segment'
+                  and cpsi.computed_property_id = ${computedPropertyIdParam}
+                  and cpsi.state_id = ${stateIdParam}
+              )
+          `;
+          queries.push(expiringEntrantsQuery);
+
           const newEntrantsQuery = `
             insert into resolved_segment_state
             select
