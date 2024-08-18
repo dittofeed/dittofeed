@@ -737,12 +737,9 @@ function segmentToResolvedState({
             "String",
           );
           const stateIdParam = qb.addQueryValue(stateId, "String");
-          // insert into resolved state from the index
-          // join previously assigned resolved segment values
-          // join computed property state values
-
           const queries: string[] = [];
 
+          // remove users who are no longer in the segment
           const expiringEntrantsQuery = `
             insert into resolved_segment_state
             select
@@ -783,6 +780,7 @@ function segmentToResolvedState({
           `;
           queries.push(expiringEntrantsQuery);
 
+          // add users who are now in the segment
           const newEntrantsQuery = `
             insert into resolved_segment_state
             select
