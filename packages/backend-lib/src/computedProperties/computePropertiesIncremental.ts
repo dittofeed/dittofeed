@@ -556,12 +556,15 @@ function segmentToResolvedState({
                   user_id,
                   uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value
                 from computed_property_state_v2 cps_performed
-                where ${withinRangeWhereClause}
+                where
+                  ${withinRangeWhereClause}
                 group by
                   workspace_id,
                   computed_property_id,
                   state_id,
                   user_id
+                having
+                  segment_state_value = True
               )
           `;
           queries.push(expiredQuery);
