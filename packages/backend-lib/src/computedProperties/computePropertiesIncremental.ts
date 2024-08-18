@@ -726,6 +726,7 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
+        // FIXME
         case SegmentOperatorType.Within: {
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
@@ -736,74 +737,70 @@ function segmentToResolvedState({
             "String",
           );
           const stateIdParam = qb.addQueryValue(stateId, "String");
-          const query = `
+          const queries: string[] = [];
+
+          // remove users who are no longer in the segment
+          const expiringEntrantsQuery = `
             insert into resolved_segment_state
             select
-                cpsi.workspace_id,
-                cpsi.computed_property_id,
-                cpsi.state_id,
-                cpsi.user_id,
-                argMax(cpsi.indexed_value, state.event_time) >= ${qb.addQueryValue(
-                  withinLowerBound,
-                  "Int32",
-                )} within_range,
-                max(state.event_time),
-                toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state_index cpsi
-            full outer join (
-              select
-                workspace_id,
-                segment_id,
-                state_id,
-                user_id,
-                argMax(segment_state_value, computed_at) as segment_state_value,
-                max(max_event_time) as max_event_time
-              from resolved_segment_state
-              where
-                workspace_id = ${workspaceIdParam}
-                and segment_id = ${computedPropertyIdParam}
-                and state_id = ${stateIdParam}
-              group by
-                workspace_id,
-                segment_id,
-                state_id,
-                user_id
-            ) as rss on
-              rss.workspace_id  = cpsi.workspace_id
-              and rss.segment_id  = cpsi.computed_property_id
-              and rss.state_id  = cpsi.state_id
-              and rss.user_id  = cpsi.user_id
-            left join computed_property_state_v2 state on
-              state.workspace_id = cpsi.workspace_id
-              and state.type = cpsi.type
-              and state.computed_property_id = cpsi.computed_property_id
-              and state.state_id = cpsi.state_id
-              and state.user_id = cpsi.user_id
+              rss.workspace_id,
+              rss.segment_id,
+              rss.state_id,
+              rss.user_id,
+              False,
+              rss.max_event_time,
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from resolved_segment_state as rss
             where
-              cpsi.workspace_id = ${workspaceIdParam}
-              and cpsi.type = 'segment'
-              and cpsi.computed_property_id = ${computedPropertyIdParam}
-              and cpsi.state_id = ${stateIdParam}
+              rss.workspace_id = ${workspaceIdParam}
+              and rss.segment_id = ${computedPropertyIdParam}
+              and rss.state_id = ${stateIdParam}
+              and rss.segment_state_value = True
               and (
-                (
-                    cpsi.indexed_value >= ${qb.addQueryValue(
-                      withinLowerBound,
-                      "Int32",
-                    )}
-                    and (
-                        rss.workspace_id = ''
-                        or rss.segment_state_value = False
-                    )
-                )
-                or rss.segment_state_value = True
+                rss.workspace_id,
+                rss.segment_id,
+                rss.state_id,
+                rss.user_id,
+                True
+              ) not in (
+                select
+                  cpsi.workspace_id,
+                  cpsi.computed_property_id,
+                  cpsi.state_id,
+                  cpsi.user_id,
+                  indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")} as segment_state_value
+                from computed_property_state_index cpsi
+                where
+                  segment_state_value = True
+                  and cpsi.workspace_id = ${workspaceIdParam}
+                  and cpsi.type = 'segment'
+                  and cpsi.computed_property_id = ${computedPropertyIdParam}
+                  and cpsi.state_id = ${stateIdParam}
               )
-           group by
+          `;
+          queries.push(expiringEntrantsQuery);
+
+          // add users who are now in the segment
+          const newEntrantsQuery = `
+            insert into resolved_segment_state
+            select
               cpsi.workspace_id,
               cpsi.computed_property_id,
               cpsi.state_id,
-              cpsi.user_id;
+              cpsi.user_id,
+              True,
+              toDateTime64(indexed_value, 3),
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_index cpsi
+            where
+              indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")}
+              and cpsi.workspace_id = ${workspaceIdParam}
+              and cpsi.type = 'segment'
+              and cpsi.computed_property_id = ${computedPropertyIdParam}
+              and cpsi.state_id = ${stateIdParam}
           `;
-          return [query];
+          queries.push(newEntrantsQuery);
+          return queries;
         }
         case SegmentOperatorType.HasBeen: {
           const upperBound = Math.round(
