@@ -15,7 +15,7 @@ import {
   streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
-import { HUBSPOT_INTEGRATION } from "../constants";
+import { HUBSPOT_INTEGRATION, OPPOSING_RELATION_OPERATORS } from "../constants";
 import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
 import { getSubscribedSegments } from "../journeys";
 import {
@@ -476,6 +476,7 @@ function segmentToResolvedState({
     case SegmentNodeType.Performed: {
       const operator: RelationalOperators =
         node.timesOperator ?? RelationalOperators.Equals;
+      const opposingOperator = OPPOSING_RELATION_OPERATORS[operator];
       const times = node.times === undefined ? 1 : node.times;
 
       const segmentIdParam = qb.addQueryValue(segment.id, "String");
@@ -511,11 +512,14 @@ function segmentToResolvedState({
           )}, 3)
         `;
 
-        const queries = [];
+        const queries: string[] = [];
 
         // FIXME
         if (checkGreaterThanZeroValue) {
           // join previously assigned segments with values with values derived from new values in latest window
+          // set to true all users who satisfy the condition in the latest window
+          // set to false all users who are currently in the segment and are not in the latest window
+
           // FIXME: fails the condition then after waiting long enough without receiving the event again the user exits the segment
           const greaterThanZeroQuery = `
             insert into resolved_segment_state
@@ -535,6 +539,27 @@ function segmentToResolvedState({
               state_id,
               user_id
           `;
+          queries.push(greaterThanZeroQuery);
+
+          const opposingGreaterThanZeroQuery = `
+            insert into resolved_segment_state
+            select
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id,
+              uniqMerge(cps_performed.unique_count) ${opposingOperator} ${times} as segment_state_value,
+              max(cps_performed.event_time) as max_event_time,
+              toDateTime64(${nowSeconds}, 3)
+            from computed_property_state_v2 cps_performed
+            where ${withinRangeWhereClause}
+            group by
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
+          `;
+
           const greaterThanZeroQueryV0 = `
             insert into resolved_segment_state
             select
@@ -606,7 +631,6 @@ function segmentToResolvedState({
               and within_range.state_id = deduped_rss.state_id
               and within_range.user_id = deduped_rss.user_id
           `;
-          queries.push(greaterThanZeroQuery);
         }
         if (checkZeroValue) {
           const zeroTimesQuery = `
