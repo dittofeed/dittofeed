@@ -516,11 +516,56 @@ function segmentToResolvedState({
 
         // FIXME
         if (checkGreaterThanZeroValue) {
+          // previously
           // join previously assigned segments with values with values derived from new values in latest window
           // set to true all users who satisfy the condition in the latest window
           // set to false all users who are currently in the segment and are not in the latest window
 
+          // new
+          // insert false into resolved_segment_state for all users who are in the segment and are not in the latest window using nested query not join
+          // set to true all users who satisfy the condition in the latest window
+
           // FIXME: fails the condition then after waiting long enough without receiving the event again the user exits the segment
+          const expiredQuery = `
+            insert into resolved_segment_state
+            select
+              workspace_id,
+              segment_id,
+              state_id,
+              user_id,
+              False,
+              max_event_time,
+              toDateTime64(${nowSeconds}, 3)
+            from resolved_segment_state as rss
+            where
+              rss.workspace_id = ${workspaceIdParam}
+              and rss.segment_id = ${segmentIdParam}
+              and rss.state_id = ${stateIdParam}
+              and rss.segment_state_value = True
+              and (
+                workspace_id,
+                segment_id,
+                state_id,
+                user_id,
+                True
+              ) not in (
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value
+                from computed_property_state_v2 cps_performed
+                where ${withinRangeWhereClause}
+                group by
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id
+              )
+          `;
+          queries.push(expiredQuery);
+
           const greaterThanZeroQuery = `
             insert into resolved_segment_state
             select
@@ -540,25 +585,6 @@ function segmentToResolvedState({
               user_id
           `;
           queries.push(greaterThanZeroQuery);
-
-          const opposingGreaterThanZeroQuery = `
-            insert into resolved_segment_state
-            select
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id,
-              uniqMerge(cps_performed.unique_count) ${opposingOperator} ${times} as segment_state_value,
-              max(cps_performed.event_time) as max_event_time,
-              toDateTime64(${nowSeconds}, 3)
-            from computed_property_state_v2 cps_performed
-            where ${withinRangeWhereClause}
-            group by
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id
-          `;
 
           const greaterThanZeroQueryV0 = `
             insert into resolved_segment_state
