@@ -825,7 +825,27 @@ function segmentToResolvedState({
               ? "<="
               : ">";
 
+          const queries: string[] = [];
           // FIXME
+          const newEntrantsQuery = `
+            insert into resolved_segment_state
+            select
+              cpsi.workspace_id,
+              cpsi.computed_property_id,
+              cpsi.state_id,
+              cpsi.user_id,
+              True,
+              toDateTime64(cpsi.indexed_value, 3),
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_index cpsi
+            where
+              cpsi.workspace_id = ${workspaceIdParam}
+              and cpsi.type = 'segment'
+              and cpsi.computed_property_id = ${computedPropertyIdParam}
+              and cpsi.state_id = ${stateIdParam}
+              and cpsi.indexed_value ${comparator} ${upperBoundParam}
+          `;
+          queries.push(newEntrantsQuery);
           const query = `
             insert into resolved_segment_state
             select
@@ -908,7 +928,7 @@ function segmentToResolvedState({
               cpsi.state_id,
               cpsi.user_id;
           `;
-          return [query];
+          return queries;
         }
         case SegmentOperatorType.Equals: {
           return [

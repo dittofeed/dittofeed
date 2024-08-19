@@ -1395,6 +1395,8 @@ describe("computeProperties", () => {
     {
       description: "computes HasBeen operator trait segment",
       userProperties: [],
+      only: true,
+      // FIXME
       segments: [
         {
           name: "stuckOnboarding",
