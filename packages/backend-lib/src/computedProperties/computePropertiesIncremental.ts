@@ -825,6 +825,7 @@ function segmentToResolvedState({
               ? "<="
               : ">";
 
+          // FIXME
           const query = `
             insert into resolved_segment_state
             select
