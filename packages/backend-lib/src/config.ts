@@ -68,7 +68,12 @@ const BaseRawConfigProps = {
   signoutRedirectUrl: Type.Optional(Type.String()),
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
-  dashboardUrl: Type.Optional(Type.String()),
+  dashboardUrl: Type.Optional(
+    Type.String({
+      description:
+        "This is a poorly named configuration option. It configures the base domain for the API and dashboard.",
+    }),
+  ),
   dashboardUrlName: Type.Optional(Type.String()),
   enableMobilePush: Type.Optional(BoolStr),
   hubspotClientId: Type.Optional(Type.String()),
@@ -308,7 +313,7 @@ function buildDashboardUrl({
   }
   return nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
     ? "http://localhost:3000"
-    : "https://dittofeed.com";
+    : "https://app.dittofeed.com";
 }
 
 function parseRawConfig(rawConfig: RawConfig): Config {

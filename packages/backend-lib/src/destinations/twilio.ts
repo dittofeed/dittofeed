@@ -11,6 +11,7 @@ import {
   TwilioInboundSchema,
   TwilioMessageStatus,
 } from "../types";
+import config from "../config";
 
 export const TwilioRestException = RestException;
 
@@ -23,6 +24,7 @@ export async function sendSms({
   subscriptionGroupId,
   userId,
   workspaceId,
+  disableCallback = false,
 }: {
   body: string;
   to: string;
@@ -32,28 +34,31 @@ export async function sendSms({
   subscriptionGroupId: string | undefined;
   userId: string;
   workspaceId: string;
+  disableCallback?: boolean;
 }): Promise<Result<{ sid: string }, RestException | Error>> {
   try {
-    logger().debug(
-      {
-        accountSid,
-        messagingServiceSid,
-        body,
-        to,
-      },
-      "Sending SMS",
-    );
-    // TODO refactor this into the backend config, using just the host not the path
-    const statusCallbackBaseURL =
-      process.env.TWILIO_STATUS_CALLBACK_URL ??
-      "https://dittofeed.com/api/public/webhooks/twilio";
+    let statusCallback: string | undefined;
+    if (!disableCallback) {
+      const baseCallbackUrl = `${config().dashboardUrl}/api/public/webhooks/twilio`;
+      statusCallback = `${baseCallbackUrl}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId}&workspaceId=${workspaceId}`;
+    }
 
-    const response = await TwilioClient(accountSid, authToken).messages.create({
+    const createPayload = {
       messagingServiceSid,
       body,
       to,
-      statusCallback: `${statusCallbackBaseURL}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId}&workspaceId=${workspaceId}`,
-    });
+      statusCallback,
+    };
+    logger().debug(
+      {
+        accountSid,
+        ...createPayload,
+      },
+      "Sending SMS",
+    );
+    const response = await TwilioClient(accountSid, authToken).messages.create(
+      createPayload,
+    );
     logger().debug({ response }, "SMS sent");
     return ok({ sid: response.sid });
   } catch (e) {
