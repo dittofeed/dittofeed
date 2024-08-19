@@ -802,11 +802,16 @@ function segmentToResolvedState({
           return queries;
         }
         case SegmentOperatorType.HasBeen: {
-          const upperBound = Math.round(
+          const windowBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
+          const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(nowSeconds, "Int64")}`;
+          const lowerBoundClause =
+            periodBound && periodBound > 0
+              ? `and cpsi.indexed_value >= ${qb.addQueryValue(periodBound, "Int64")}`
+              : "";
 
-          const upperBoundParam = qb.addQueryValue(upperBound, "Int32");
+          const windowBoundParam = qb.addQueryValue(windowBound, "Int64");
           const lastValueParam = qb.addQueryValue(
             node.operator.value,
             "String",
@@ -863,7 +868,7 @@ function segmentToResolvedState({
                   and cpsi.type = 'segment'
                   and cpsi.computed_property_id = ${computedPropertyIdParam}
                   and cpsi.state_id = ${stateIdParam}
-                  and cpsi.indexed_value ${comparator} ${upperBoundParam}
+                  and cpsi.indexed_value ${comparator} ${windowBoundParam}
               )
           `;
           queries.push(expiredQuery);
@@ -885,13 +890,21 @@ function segmentToResolvedState({
               and cpsi.type = 'segment'
               and cpsi.computed_property_id = ${computedPropertyIdParam}
               and cpsi.state_id = ${stateIdParam}
-              and cpsi.indexed_value ${comparator} ${upperBoundParam}
+              and cpsi.indexed_value ${comparator} ${windowBoundParam}
+              and cpsi.indexed_value 
           `;
           queries.push(newEntrantsQuery);
+          // previous
           // select from index values
           // join state values across all time
           // join resolved values
           // insert value if it's within index value range and the last state value matches
+
+          // new
+          // 1. look for all segment state values where index value is in current
+          // time window, and satisfies the operator condition
+          // 2. look for all resolved state values with matching values
+          // 3. group state values, and select only those with matching values
 
           // const query = `
           //   insert into resolved_segment_state
