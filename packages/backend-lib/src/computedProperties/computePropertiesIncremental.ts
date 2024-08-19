@@ -726,7 +726,6 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
-        // FIXME
         case SegmentOperatorType.Within: {
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
@@ -2408,7 +2407,7 @@ export async function computeState({
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
-    // FIXME
+
     const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
       ([period, periodSubQueries]) => {
         const lowerBoundClause =
@@ -2476,140 +2475,6 @@ export async function computeState({
           },
         });
       });
-
-        // const subQueries = periodSubQueries
-        //   .map(
-        //     (subQuery) => `
-        //       if(
-        //         ${subQuery.condition},
-        //         (
-        //           '${subQuery.type}',
-        //           '${subQuery.computedPropertyId}',
-        //           '${subQuery.stateId}',
-        //           ${subQuery.argMaxValue ?? "''"},
-        //           ${subQuery.uniqValue ?? "''"},
-        //           ${subQuery.recordMessageId ? "message_id" : "''"},
-        //           ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"}
-        //         ),
-        //         (Null, Null, Null, Null, Null, Null, Null)
-        //       )
-        //     `,
-        //   )
-        //   .join(", ");
-
-        // const joinedPrior = periodSubQueries.flatMap((subQuery) => {
-        //   if (!subQuery.joinPriorStateValue) {
-        //     return [];
-        //   }
-        //   return `
-        //     (
-        //       type = '${subQuery.type}'
-        //       and computed_property_id = ${qb.addQueryValue(
-        //         subQuery.computedPropertyId,
-        //         "String",
-        //       )}
-        //       and state_id = ${qb.addQueryValue(subQuery.stateId, "String")}
-        //     )
-        //   `;
-        // });
-        // const priorLastValueClause = joinedPrior.length
-        //   ? `
-        //     AND (
-        //         inner1.workspace_id,
-        //         inner1.type,
-        //         inner1.computed_property_id,
-        //         inner1.state_id,
-        //         inner1.user_id,
-        //         inner1.last_value
-        //     ) NOT IN (
-        //       SELECT
-        //         workspace_id,
-        //         type,
-        //         computed_property_id,
-        //         state_id,
-        //         user_id,
-        //         argMaxMerge(last_value) as last_value
-        //       FROM computed_property_state_v2
-        //       WHERE
-        //         workspace_id = ${workspaceIdClause}
-        //         AND (${joinedPrior.join(" OR ")})
-        //       GROUP BY
-        //           workspace_id,
-        //           type,
-        //           computed_property_id,
-        //           state_id,
-        //           user_id
-        //     )
-        //   `
-        //   : "";
-
-        // // FIXME
-        // const queryV0 = `
-        //   insert into computed_property_state_v2
-        //   select
-        //     inner1.workspace_id as workspace_id,
-        //     inner1.type as type,
-        //     inner1.computed_property_id as computed_property_id,
-        //     inner1.state_id as state_id,
-        //     inner1.user_id as user_id,
-        //     argMaxState(inner1.last_value, inner1.full_event_time) as last_value,
-        //     uniqState(inner1.unique_count) as unique_count,
-        //     inner1.truncated_event_time as truncated_event_time,
-        //     groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
-        //     toDateTime64(${nowSeconds}, 3) as computed_at
-        //   from (
-        //     select
-        //       workspace_id,
-        //       CAST(
-        //         (
-        //           arrayJoin(
-        //             arrayFilter(
-        //               v -> not(isNull(v.1)),
-        //               [${subQueries}]
-        //             )
-        //           ) as c
-        //         ).1,
-        //         'Enum8(\\'user_property\\' = 1, \\'segment\\' = 2)'
-        //       ) as type,
-        //       c.2 as computed_property_id,
-        //       c.3 as state_id,
-        //       user_id,
-        //       ifNull(c.4, '') as last_value,
-        //       ifNull(c.5, '') as unique_count,
-        //       ifNull(c.6, '') as grouped_message_id,
-        //       ifNull(c.7, toDateTime64('0000-00-00 00:00:00', 3)) as truncated_event_time,
-        //       event_time as full_event_time
-        //     from user_events_v2 ue
-        //     where
-        //       workspace_id = ${workspaceIdClause}
-        //       and processing_time <= toDateTime64(${nowSeconds}, 3)
-        //       ${lowerBoundClause}
-        //   ) as inner1
-        //   where
-        //     inner1.unique_count != ''
-        //     OR (inner1.grouped_message_id != '')
-        //     OR (inner1.last_value != '' ${priorLastValueClause})
-        //   group by
-        //     inner1.workspace_id,
-        //     inner1.type,
-        //     inner1.computed_property_id,
-        //     inner1.state_id,
-        //     inner1.user_id,
-        //     inner1.last_value,
-        //     inner1.unique_count,
-        //     inner1.grouped_message_id,
-        //     inner1.truncated_event_time,
-        //     inner1.full_event_time
-        // `;
-
-        // await command({
-        //   query,
-        //   query_params: qb.getQueries(),
-        //   clickhouse_settings: {
-        //     wait_end_of_query: 1,
-        //     function_json_value_return_type_allow_complex: 1,
-        //   },
-        // });
       },
     );
     await Promise.all(queries);
