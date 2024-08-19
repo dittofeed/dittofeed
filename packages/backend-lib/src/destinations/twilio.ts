@@ -3,6 +3,7 @@ import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
 
 import { submitBatch } from "../apps/batch";
+import config from "../config";
 import logger from "../logger";
 import {
   BatchTrackData,
@@ -11,7 +12,6 @@ import {
   TwilioInboundSchema,
   TwilioMessageStatus,
 } from "../types";
-import config from "../config";
 
 export const TwilioRestException = RestException;
 
