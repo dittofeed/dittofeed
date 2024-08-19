@@ -2444,7 +2444,8 @@ export async function computeState({
               ${lowerBoundClause}
             group by
               ue.workspace_id,
-              ue.user_id
+              ue.user_id,
+              ue.event_time
           `;
 
         await command({
