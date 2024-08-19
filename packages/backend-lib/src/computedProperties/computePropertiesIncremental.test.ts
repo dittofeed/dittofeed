@@ -555,6 +555,7 @@ describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
       description: "computes a trait user property",
+      only: true,
       userProperties: [
         {
           name: "email",
