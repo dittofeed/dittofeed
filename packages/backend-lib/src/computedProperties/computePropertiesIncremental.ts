@@ -2416,7 +2416,27 @@ export async function computeState({
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
             : ``;
 
+
         return periodSubQueries.map(async (subQuery) => {
+          const joinedPrior = !subQuery.joinPriorStateValue ? "" : `
+            AND (
+              user_id,
+              last_value
+            ) NOT IN (
+              SELECT
+                user_id,
+                argMaxMerge(last_value) as last_value
+              FROM computed_property_state_v2
+              WHERE
+                workspace_id = ${workspaceIdClause}
+                AND type = '${subQuery.type}'
+                AND computed_property_id = '${subQuery.computedPropertyId}'
+                AND state_id = '${subQuery.stateId}'
+              GROUP BY
+                user_id
+            )
+          `;
+
           const query = `
             insert into computed_property_state_v2
             select
@@ -2438,8 +2458,7 @@ export async function computeState({
               and (
                 unique_value != ''
                 or grouped_message_id != ''
-                -- FIXME priorLastValueClause
-                or (last_value != '')
+                or (last_value != '' ${joinedPrior})
               )
               ${lowerBoundClause}
             group by
