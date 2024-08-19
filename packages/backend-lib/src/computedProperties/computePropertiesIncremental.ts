@@ -2415,9 +2415,10 @@ export async function computeState({
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
             : ``;
 
-
         return periodSubQueries.map(async (subQuery) => {
-          const joinedPrior = !subQuery.joinPriorStateValue ? "" : `
+          const joinedPrior = !subQuery.joinPriorStateValue
+            ? ""
+            : `
             AND (
               user_id,
               last_value
@@ -2447,7 +2448,7 @@ export async function computeState({
               argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
               uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
               ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"} as truncated_event_time,
-              groupArrayState(${subQuery.recordMessageId ?  "message_id" : "''"}  as grouped_message_id),
+              groupArrayState(${subQuery.recordMessageId ? "message_id" : "''"}  as grouped_message_id),
               toDateTime64(${nowSeconds}, 3) as computed_at
             from user_events_v2 ue
             where
@@ -2466,15 +2467,15 @@ export async function computeState({
               ue.event_time
           `;
 
-        await command({
-          query,
-          query_params: qb.getQueries(),
-          clickhouse_settings: {
-            wait_end_of_query: 1,
-            function_json_value_return_type_allow_complex: 1,
-          },
+          await command({
+            query,
+            query_params: qb.getQueries(),
+            clickhouse_settings: {
+              wait_end_of_query: 1,
+              function_json_value_return_type_allow_complex: 1,
+            },
+          });
         });
-      });
       },
     );
     await Promise.all(queries);
