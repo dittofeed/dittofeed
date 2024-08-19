@@ -2408,12 +2408,35 @@ export async function computeState({
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
-    const queries = Array.from(subQueriesWithPeriods.entries()).map(
+    // FIXME
+    const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
       async ([period, periodSubQueries]) => {
         const lowerBoundClause =
           period > 0
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
             : ``;
+
+        return periodSubQueries.map((subQuery) => {
+          return `
+            insert into computed_property_state_v2
+            select
+              ue.workspace_id,
+              '${subQuery.type}' as type,
+              '${subQuery.computedPropertyId}' as computed_property_id,
+              '${subQuery.stateId}' as state_id,
+              ue.user_id,
+              argMaxState(inner1.last_value, inner1.full_event_time) as last_value,
+              uniqState(inner1.unique_count) as unique_count,
+              inner1.truncated_event_time as truncated_event_time,
+              groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
+              toDateTime64(${nowSeconds}, 3) as computed_at
+            from user_events_v2 ue
+            where
+              workspace_id = ${workspaceIdClause}
+              and processing_time <= toDateTime64(${nowSeconds}, 3)
+              ${lowerBoundClause}
+          `;
+        });
 
         const subQueries = periodSubQueries
           .map(
@@ -2481,6 +2504,7 @@ export async function computeState({
           `
           : "";
 
+        // FIXME
         const query = `
           insert into computed_property_state_v2
           select
