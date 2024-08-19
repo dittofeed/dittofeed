@@ -293,6 +293,7 @@ export default async function contentController(fastify: FastifyInstance) {
             ...baseSendMessageParams,
             provider: request.body.provider,
             channel: request.body.channel,
+            disableCallback: true,
           };
           break;
         }

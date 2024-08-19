@@ -346,6 +346,7 @@ export interface SendMessageParametersEmail extends SendMessageParametersBase {
 export interface SendMessageParametersSms extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Sms"];
   provider?: SmsProviderType;
+  disableCallback?: boolean;
 }
 
 export interface SendMessageParametersMobilePush
@@ -1139,6 +1140,7 @@ export async function sendSms({
   useDraft,
   provider,
   userId,
+  disableCallback = false,
 }: Omit<
   SendMessageParametersSms,
   "channel"
@@ -1271,6 +1273,7 @@ export async function sendSms({
         subscriptionGroupId: subscriptionGroupDetails?.id,
         to,
         workspaceId,
+        disableCallback,
       });
 
       if (result.isErr()) {

@@ -726,7 +726,6 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
-        // FIXME
         case SegmentOperatorType.Within: {
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
