@@ -836,32 +836,24 @@ function segmentToResolvedState({
           const expiredQuery = `
             insert into resolved_segment_state
             select
-              workspace_id,
-              segment_id,
-              state_id,
-              user_id,
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id,
               False,
-              max_event_time,
-              toDateTime64(${nowSeconds}, 3)
-            from resolved_segment_state as rss
+              max(cps.event_time),
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_v2 as cps
             where
-              rss.workspace_id = ${workspaceIdParam}
-              and rss.segment_id = ${computedPropertyIdParam}
-              and rss.state_id = ${stateIdParam}
-              and rss.segment_state_value = True
+              cps.workspace_id = ${workspaceIdParam}
+              and cps.type = 'segment'
+              and cps.computed_property_id = ${computedPropertyIdParam}
+              and cps.state_id = ${stateIdParam}
               and (
-                workspace_id,
-                segment_id,
-                state_id,
-                user_id,
-                True
-              ) not in (
+                cps.user_id
+              ) in (
                 select
-                  cpsi.workspace_id,
-                  cpsi.computed_property_id,
-                  cpsi.state_id,
                   cpsi.user_id,
-                  True
                 from computed_property_state_index cpsi
                 where
                   cpsi.workspace_id = ${workspaceIdParam}
@@ -870,6 +862,13 @@ function segmentToResolvedState({
                   and cpsi.state_id = ${stateIdParam}
                   and cpsi.indexed_value ${comparator} ${windowBoundParam}
               )
+            group by
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id
+            having
+              argMaxMerge(last_value) == ${lastValueParam}
           `;
           queries.push(expiredQuery);
 
@@ -881,11 +880,17 @@ function segmentToResolvedState({
           // join resolved values
           // insert value if it's within index value range and the last state value matches
 
-          // new
-          // 1. look for all segment state values where index value is in current
-          // time window, and satisfies the operator condition
+          // new logic
+          // new entrants
+          // 1. look for all segment state values where satisfies the operator condition
           // 2. look for all resolved state values with matching values
           // 3. group state values, and select only those with matching values
+          //
+          // expiring entrants
+          // 1. look for all segment state values which are currently true
+          // 2. check that either they don't satisfy the operator condition
+          // 3. or they don't have a matching resolved state value
+
           const newEntrantsQuery = `
             insert into resolved_segment_state
             select
@@ -914,16 +919,14 @@ function segmentToResolvedState({
                   and cpsi.computed_property_id = ${computedPropertyIdParam}
                   and cpsi.state_id = ${stateIdParam}
                   and cpsi.indexed_value ${comparator} ${windowBoundParam}
-                  ${upperBoundClause}
-                  ${lowerBoundClause}
               )
-              group by
-                cps.workspace_id,
-                cps.computed_property_id,
-                cps.state_id,
-                cps.user_id
-              having
-                argMaxMerge(last_value) == ${lastValueParam}
+            group by
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id
+            having
+              argMaxMerge(last_value) == ${lastValueParam}
           `;
           queries.push(newEntrantsQuery);
 
