@@ -883,6 +883,54 @@ function segmentToResolvedState({
           queries.push(expiredQuery);
 
           const changedValueQuery = `
+            insert into resolved_segment_state
+            select
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id,
+              False,
+              max(cps.event_time),
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_v2 as cps
+            where
+              cps.workspace_id = ${workspaceIdParam}
+              and cps.type = 'segment'
+              and cps.computed_property_id = ${computedPropertyIdParam}
+              and cps.state_id = ${stateIdParam}
+              and (
+                cps.user_id
+              ) not in (
+                select
+                  rss.user_id,
+                from resolved_segment_state as rss
+                where
+                  rss.workspace_id = ${workspaceIdParam}
+                  and rss.segment_id = ${computedPropertyIdParam}
+                  and rss.state_id = ${stateIdParam}
+                  and rss.segment_state_value = True
+              )
+              and (
+                cps.user_id
+              ) not in (
+                select
+                  cpsi.user_id,
+                from computed_property_state_index cpsi
+                where
+                  cpsi.workspace_id = ${workspaceIdParam}
+                  and cpsi.type = 'segment'
+                  and cpsi.computed_property_id = ${computedPropertyIdParam}
+                  and cpsi.state_id = ${stateIdParam}
+                  ${upperBoundClause}
+                  ${lowerBoundClause}
+              )
+            group by
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id
+            having
+              argMaxMerge(last_value) != ${lastValueParam}
           `;
           queries.push(changedValueQuery);
 
