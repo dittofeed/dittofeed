@@ -806,8 +806,7 @@ function segmentToResolvedState({
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
           const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(Math.ceil(nowSeconds), "Int64")}`;
-          // FIXME lower bound clause needed but causing to fail
-          // FIXME truncate
+
           let lowerBoundClause = "";
           if (periodBound && periodBound > 0) {
             const lowerBoundInterval = getEventTimeInterval(
@@ -837,8 +836,11 @@ function segmentToResolvedState({
               : ">";
 
           const queries: string[] = [];
-          // FIXME
-          // FIXME check state merged last value
+
+          // expiring entrants
+          // 1. look for all segment state values which are currently true
+          // 2. look for all segment index values which don't satisfy the
+          // operator window condition
           const expiredQuery = `
             insert into resolved_segment_state
             select
@@ -888,6 +890,11 @@ function segmentToResolvedState({
           `;
           queries.push(expiredQuery);
 
+          // updated out of segment
+          // 1. look for all resolved segment state values which are currently
+          // true
+          // 2. look for segments whose values changed in the current period
+          // 3. check that they don't satisfy the last value condition
           const changedValueQuery = `
             insert into resolved_segment_state
             select
@@ -928,49 +935,11 @@ function segmentToResolvedState({
           `;
           queries.push(changedValueQuery);
 
-          // const eventTimeExpression: string | undefined =
-          //   node.operator.type === SegmentOperatorType.HasBeen ||
-          //   node.operator.type === SegmentOperatorType.Within
-          //     ? truncateEventTimeExpression(node.operator.windowSeconds)
-          //     : undefined;
-
-          // ${upperBoundClause}
-          // ${lowerBoundClause}
-          // and (
-          //   cps.user_id
-          // ) not in (
-          //   select
-          //     rss.user_id,
-          //   from resolved_segment_state as rss
-          //   where
-          //     rss.workspace_id = ${workspaceIdParam}
-          //     and rss.segment_id = ${computedPropertyIdParam}
-          //     and rss.state_id = ${stateIdParam}
-          //     and rss.segment_state_value = True
-          // )
-
-          // FIXME check state merged last value
-
-          // previous
-          // select from index values
-          // join state values across all time
-          // join resolved values
-          // insert value if it's within index value range and the last state value matches
-
-          // new logic
           // new entrants
-          // 1. look for all segment state values where satisfies the operator condition
-          // 2. look for all resolved state values with matching values
+          // 1. look for all segment index values which satisfy the operator
+          // window condition
+          // 2. look for all resolved state values with matching string values
           // 3. group state values, and select only those with matching values
-          //
-          // expiring entrants
-          // 1. look for all segment state values which are currently true
-          // 2. check that they don't satisfy the operator condition
-
-          // updated out of segment
-          // 1. look for all segment state values which are currently true
-          // 2. look for segments whose values changed in the last period
-          // 3. check that they don't satisfy the last value condition
           const newEntrantsQuery = `
             insert into resolved_segment_state
             select
@@ -1009,89 +978,6 @@ function segmentToResolvedState({
               argMaxMerge(last_value) == ${lastValueParam}
           `;
           queries.push(newEntrantsQuery);
-
-          // const query = `
-          //   insert into resolved_segment_state
-          //   select
-          //       cpsi.workspace_id,
-          //       cpsi.computed_property_id,
-          //       cpsi.state_id,
-          //       cpsi.user_id,
-          //       (
-          //         max(cpsi.indexed_value) ${comparator} ${upperBoundParam}
-          //         and argMax(state.merged_last_value, state.max_event_time) == ${lastValueParam}
-          //       ) has_been,
-          //       max(state.max_event_time),
-          //       toDateTime64(${nowSeconds}, 3) as assigned_at
-          //   from computed_property_state_index cpsi
-          //   full outer join (
-          //     select
-          //       workspace_id,
-          //       segment_id,
-          //       state_id,
-          //       user_id,
-          //       argMax(segment_state_value, computed_at) as segment_state_value,
-          //       max(max_event_time) as max_event_time
-          //     from resolved_segment_state
-          //     where
-          //       workspace_id = ${workspaceIdParam}
-          //       and segment_id = ${computedPropertyIdParam}
-          //       and state_id = ${stateIdParam}
-          //     group by
-          //       workspace_id,
-          //       segment_id,
-          //       state_id,
-          //       user_id
-          //   ) as rss on
-          //     rss.workspace_id  = cpsi.workspace_id
-          //     and rss.segment_id  = cpsi.computed_property_id
-          //     and rss.state_id  = cpsi.state_id
-          //     and rss.user_id  = cpsi.user_id
-          //   left join (
-          //     select
-          //       workspace_id,
-          //       type,
-          //       computed_property_id,
-          //       state_id,
-          //       user_id,
-          //       argMaxMerge(last_value) merged_last_value,
-          //       max(event_time) max_event_time
-          //     from computed_property_state_v2
-          //     where
-          //       type = 'segment'
-          //     group by
-          //       workspace_id,
-          //       type,
-          //       computed_property_id,
-          //       state_id,
-          //       user_id
-          //   ) state on
-          //     state.workspace_id = cpsi.workspace_id
-          //     and state.type = cpsi.type
-          //     and state.computed_property_id = cpsi.computed_property_id
-          //     and state.state_id = cpsi.state_id
-          //     and state.user_id = cpsi.user_id
-          //   where
-          //     cpsi.workspace_id = ${workspaceIdParam}
-          //     and cpsi.type = 'segment'
-          //     and cpsi.computed_property_id = ${computedPropertyIdParam}
-          //     and cpsi.state_id = ${stateIdParam}
-          //     and (
-          //       (
-          //           cpsi.indexed_value ${comparator} ${upperBoundParam}
-          //           and (
-          //               rss.workspace_id = ''
-          //               or rss.segment_state_value = False
-          //           )
-          //       )
-          //       or rss.segment_state_value = True
-          //     )
-          //   group by
-          //     cpsi.workspace_id,
-          //     cpsi.computed_property_id,
-          //     cpsi.state_id,
-          //     cpsi.user_id;
-          // `;
           return queries;
         }
         case SegmentOperatorType.Equals: {
