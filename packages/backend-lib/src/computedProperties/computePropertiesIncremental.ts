@@ -67,6 +67,18 @@ import {
   PeriodByComputedPropertyId,
 } from "./periods";
 
+/**
+ * Use to round event timestamps to the nearest interval, to reduce the
+ * cardinality of the data
+ * @param windowSeconds
+ * @returns
+ */
+function getEventTimeInterval(windowSeconds: number): number {
+  // Window data within 1 / 10th of the specified period, with a minumum
+  // window of 30 seconds, and a maximum window of 1 day.
+  return Math.min(Math.max(Math.floor(windowSeconds / 10), 1), 86400);
+}
+
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
   nodeId = "",
@@ -1400,14 +1412,6 @@ function toJsonPathParamCh({
   }
 
   return qb.addQueryValue(normalizedPath.value, "String");
-}
-
-// fixme reuse logic for for hasbeen
-
-function getEventTimeInterval(windowSeconds: number): number {
-  // Window data within 1 / 10th of the specified period, with a minumum
-  // window of 30 seconds, and a maximum window of 1 day.
-  return Math.min(Math.max(Math.floor(windowSeconds / 10), 1), 86400);
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
