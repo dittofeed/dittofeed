@@ -1395,8 +1395,6 @@ describe("computeProperties", () => {
     {
       description: "computes HasBeen operator trait segment",
       userProperties: [],
-      only: true,
-      // FIXME
       segments: [
         {
           name: "stuckOnboarding",
@@ -1602,6 +1600,8 @@ describe("computeProperties", () => {
       description:
         "computes HasBeen operator trait segment with less than comparator",
       userProperties: [],
+      // FIXME
+      only: true,
       segments: [
         {
           name: "recentlyStartedOnboarding",
