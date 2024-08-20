@@ -805,7 +805,7 @@ function segmentToResolvedState({
           const windowBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
-          const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(nowSeconds, "Int64")}`;
+          const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(Math.ceil(nowSeconds), "Int64")}`;
           const lowerBoundClause =
             periodBound && periodBound > 0
               ? `and cpsi.indexed_value >= ${qb.addQueryValue(periodBound, "Int64")}`
@@ -874,26 +874,7 @@ function segmentToResolvedState({
           queries.push(expiredQuery);
 
           // FIXME check state merged last value
-          const newEntrantsQuery = `
-            insert into resolved_segment_state
-            select
-              cpsi.workspace_id,
-              cpsi.computed_property_id,
-              cpsi.state_id,
-              cpsi.user_id,
-              True,
-              toDateTime64(cpsi.indexed_value, 3),
-              toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state_index cpsi
-            where
-              cpsi.workspace_id = ${workspaceIdParam}
-              and cpsi.type = 'segment'
-              and cpsi.computed_property_id = ${computedPropertyIdParam}
-              and cpsi.state_id = ${stateIdParam}
-              and cpsi.indexed_value ${comparator} ${windowBoundParam}
-              and cpsi.indexed_value 
-          `;
-          queries.push(newEntrantsQuery);
+
           // previous
           // select from index values
           // join state values across all time
@@ -905,6 +886,46 @@ function segmentToResolvedState({
           // time window, and satisfies the operator condition
           // 2. look for all resolved state values with matching values
           // 3. group state values, and select only those with matching values
+          const newEntrantsQuery = `
+            insert into resolved_segment_state
+            select
+              cps.workspace_id,
+              cps.computed_property_id,
+              cps.state_id,
+              cps.user_id,
+              True,
+              max(cps.event_time),
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_v2 as cps
+            where
+              cps.workspace_id = ${workspaceIdParam}
+              and cps.type = 'segment'
+              and cps.computed_property_id = ${computedPropertyIdParam}
+              and cps.state_id = ${stateIdParam}
+              and (
+                cps.user_id
+              ) in (
+                select
+                  cpsi.user_id,
+                from computed_property_state_index cpsi
+                where
+                  cpsi.workspace_id = ${workspaceIdParam}
+                  and cpsi.type = 'segment'
+                  and cpsi.computed_property_id = ${computedPropertyIdParam}
+                  and cpsi.state_id = ${stateIdParam}
+                  and cpsi.indexed_value ${comparator} ${windowBoundParam}
+                  ${upperBoundClause}
+                  ${lowerBoundClause}
+              )
+              group by
+                cps.workspace_id,
+                cps.computed_property_id,
+                cps.state_id,
+                cps.user_id
+              having
+                argMaxMerge(last_value) == ${lastValueParam}
+          `;
+          queries.push(newEntrantsQuery);
 
           // const query = `
           //   insert into resolved_segment_state
