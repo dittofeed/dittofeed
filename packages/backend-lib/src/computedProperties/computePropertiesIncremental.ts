@@ -806,10 +806,16 @@ function segmentToResolvedState({
             Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
           const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(Math.ceil(nowSeconds), "Int64")}`;
-          const lowerBoundClause =
-            periodBound && periodBound > 0
-              ? `and cpsi.indexed_value >= ${qb.addQueryValue(periodBound, "Int64")}`
-              : "";
+          // FIXME lower bound clause needed but causing to fail
+          // FIXME truncate
+          let lowerBoundClause = "";
+          if (periodBound && periodBound > 0) {
+            const lowerBoundInterval = getEventTimeInterval(
+              node.operator.windowSeconds,
+            );
+            const periodBoundSeconds = periodBound / 1000;
+            lowerBoundClause = `and cpsi.indexed_value >= toUnixTimestamp(toStartOfInterval(toDateTime64(${periodBoundSeconds}, 3), INTERVAL ${lowerBoundInterval} SECOND))`;
+          }
 
           const windowBoundParam = qb.addQueryValue(windowBound, "Int64");
           const lastValueParam = qb.addQueryValue(
@@ -898,6 +904,20 @@ function segmentToResolvedState({
               and cps.type = 'segment'
               and cps.computed_property_id = ${computedPropertyIdParam}
               and cps.state_id = ${stateIdParam}
+              and (
+                cps.user_id
+              ) in (
+                select
+                  cpsi.user_id,
+                from computed_property_state_index cpsi
+                where
+                  cpsi.workspace_id = ${workspaceIdParam}
+                  and cpsi.type = 'segment'
+                  and cpsi.computed_property_id = ${computedPropertyIdParam}
+                  and cpsi.state_id = ${stateIdParam}
+                  ${upperBoundClause}
+                  ${lowerBoundClause}
+              )
             group by
               cps.workspace_id,
               cps.computed_property_id,
@@ -908,6 +928,14 @@ function segmentToResolvedState({
           `;
           queries.push(changedValueQuery);
 
+          // const eventTimeExpression: string | undefined =
+          //   node.operator.type === SegmentOperatorType.HasBeen ||
+          //   node.operator.type === SegmentOperatorType.Within
+          //     ? truncateEventTimeExpression(node.operator.windowSeconds)
+          //     : undefined;
+
+          // ${upperBoundClause}
+          // ${lowerBoundClause}
           // and (
           //   cps.user_id
           // ) not in (
@@ -919,20 +947,6 @@ function segmentToResolvedState({
           //     and rss.segment_id = ${computedPropertyIdParam}
           //     and rss.state_id = ${stateIdParam}
           //     and rss.segment_state_value = True
-          // )
-          // and (
-          //   cps.user_id
-          // ) not in (
-          //   select
-          //     cpsi.user_id,
-          //   from computed_property_state_index cpsi
-          //   where
-          //     cpsi.workspace_id = ${workspaceIdParam}
-          //     and cpsi.type = 'segment'
-          //     and cpsi.computed_property_id = ${computedPropertyIdParam}
-          //     and cpsi.state_id = ${stateIdParam}
-          //     ${upperBoundClause}
-          //     ${lowerBoundClause}
           // )
 
           // FIXME check state merged last value
@@ -1499,13 +1513,16 @@ function toJsonPathParamCh({
   return qb.addQueryValue(normalizedPath.value, "String");
 }
 
-function truncateEventTimeExpression(windowSeconds: number): string {
+// fixme reuse logic for for hasbeen
+
+function getEventTimeInterval(windowSeconds: number): number {
   // Window data within 1 / 10th of the specified period, with a minumum
   // window of 30 seconds, and a maximum window of 1 day.
-  const eventTimeInterval = Math.min(
-    Math.max(Math.floor(windowSeconds / 10), 1),
-    86400,
-  );
+  return Math.min(Math.max(Math.floor(windowSeconds / 10), 1), 86400);
+}
+
+function truncateEventTimeExpression(windowSeconds: number): string {
+  const eventTimeInterval = getEventTimeInterval(windowSeconds);
   return `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(${eventTimeInterval})), 3)`;
 }
 
