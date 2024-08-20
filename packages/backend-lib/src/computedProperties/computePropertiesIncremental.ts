@@ -802,21 +802,22 @@ function segmentToResolvedState({
           return queries;
         }
         case SegmentOperatorType.HasBeen: {
-          const windowBound = Math.round(
-            Math.max(nowSeconds - node.operator.windowSeconds, 0),
+          const windowBound = Math.max(
+            nowSeconds - node.operator.windowSeconds,
+            0,
           );
+
+          const boundInterval = getEventTimeInterval(
+            node.operator.windowSeconds,
+          );
+
           const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(Math.ceil(nowSeconds), "Int64")}`;
 
           let lowerBoundClause = "";
           if (periodBound && periodBound > 0) {
-            const lowerBoundInterval = getEventTimeInterval(
-              node.operator.windowSeconds,
-            );
             const periodBoundSeconds = periodBound / 1000;
-            lowerBoundClause = `and cpsi.indexed_value >= toUnixTimestamp(toStartOfInterval(toDateTime64(${periodBoundSeconds}, 3), INTERVAL ${lowerBoundInterval} SECOND))`;
+            lowerBoundClause = `and cpsi.indexed_value >= toUnixTimestamp(toStartOfInterval(toDateTime64(${periodBoundSeconds}, 3), INTERVAL ${boundInterval} SECOND))`;
           }
-
-          const windowBoundParam = qb.addQueryValue(windowBound, "Int64");
           const lastValueParam = qb.addQueryValue(
             node.operator.value,
             "String",
@@ -834,6 +835,8 @@ function segmentToResolvedState({
             node.operator.comparator === SegmentHasBeenOperatorComparator.GTE
               ? "<="
               : ">";
+
+          const windowBoundClause = `and cpsi.indexed_value ${comparator} toUnixTimestamp(toStartOfInterval(toDateTime64(${windowBound}, 3), INTERVAL ${boundInterval} SECOND))`;
 
           const queries: string[] = [];
 
@@ -859,7 +862,7 @@ function segmentToResolvedState({
               and cps.state_id = ${stateIdParam}
               and (
                 cps.user_id
-              ) not in (
+              ) in (
                 select
                   rss.user_id,
                 from resolved_segment_state as rss
@@ -880,7 +883,7 @@ function segmentToResolvedState({
                   and cpsi.type = 'segment'
                   and cpsi.computed_property_id = ${computedPropertyIdParam}
                   and cpsi.state_id = ${stateIdParam}
-                  and cpsi.indexed_value ${comparator} ${windowBoundParam}
+                  ${windowBoundClause}
               )
             group by
               cps.workspace_id,
@@ -967,7 +970,7 @@ function segmentToResolvedState({
                   and cpsi.type = 'segment'
                   and cpsi.computed_property_id = ${computedPropertyIdParam}
                   and cpsi.state_id = ${stateIdParam}
-                  and cpsi.indexed_value ${comparator} ${windowBoundParam}
+                  ${windowBoundClause}
               )
             group by
               cps.workspace_id,
