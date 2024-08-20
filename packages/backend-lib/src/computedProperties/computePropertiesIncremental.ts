@@ -898,32 +898,6 @@ function segmentToResolvedState({
               and cps.type = 'segment'
               and cps.computed_property_id = ${computedPropertyIdParam}
               and cps.state_id = ${stateIdParam}
-              and (
-                cps.user_id
-              ) not in (
-                select
-                  rss.user_id,
-                from resolved_segment_state as rss
-                where
-                  rss.workspace_id = ${workspaceIdParam}
-                  and rss.segment_id = ${computedPropertyIdParam}
-                  and rss.state_id = ${stateIdParam}
-                  and rss.segment_state_value = True
-              )
-              and (
-                cps.user_id
-              ) not in (
-                select
-                  cpsi.user_id,
-                from computed_property_state_index cpsi
-                where
-                  cpsi.workspace_id = ${workspaceIdParam}
-                  and cpsi.type = 'segment'
-                  and cpsi.computed_property_id = ${computedPropertyIdParam}
-                  and cpsi.state_id = ${stateIdParam}
-                  ${upperBoundClause}
-                  ${lowerBoundClause}
-              )
             group by
               cps.workspace_id,
               cps.computed_property_id,
@@ -933,6 +907,33 @@ function segmentToResolvedState({
               argMaxMerge(last_value) != ${lastValueParam}
           `;
           queries.push(changedValueQuery);
+
+          // and (
+          //   cps.user_id
+          // ) not in (
+          //   select
+          //     rss.user_id,
+          //   from resolved_segment_state as rss
+          //   where
+          //     rss.workspace_id = ${workspaceIdParam}
+          //     and rss.segment_id = ${computedPropertyIdParam}
+          //     and rss.state_id = ${stateIdParam}
+          //     and rss.segment_state_value = True
+          // )
+          // and (
+          //   cps.user_id
+          // ) not in (
+          //   select
+          //     cpsi.user_id,
+          //   from computed_property_state_index cpsi
+          //   where
+          //     cpsi.workspace_id = ${workspaceIdParam}
+          //     and cpsi.type = 'segment'
+          //     and cpsi.computed_property_id = ${computedPropertyIdParam}
+          //     and cpsi.state_id = ${stateIdParam}
+          //     ${upperBoundClause}
+          //     ${lowerBoundClause}
+          // )
 
           // FIXME check state merged last value
 
