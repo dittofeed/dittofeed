@@ -2833,9 +2833,9 @@ export async function computeAssignments({
       });
     }
 
-    // TODO debug why ordering here is relevant for performed within segments
-    await Promise.all(segmentQueries.map(execAssignmentQueryGroup));
-    await Promise.all(userPropertyQueries.map(execAssignmentQueryGroup));
+    await Promise.all(
+      [...segmentQueries, ...userPropertyQueries].map(execAssignmentQueryGroup),
+    );
 
     await createPeriods({
       workspaceId,
