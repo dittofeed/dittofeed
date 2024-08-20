@@ -851,7 +851,19 @@ function segmentToResolvedState({
               and cps.state_id = ${stateIdParam}
               and (
                 cps.user_id
-              ) in (
+              ) not in (
+                select
+                  rss.user_id,
+                from resolved_segment_state as rss
+                where
+                  rss.workspace_id = ${workspaceIdParam}
+                  and rss.segment_id = ${computedPropertyIdParam}
+                  and rss.state_id = ${stateIdParam}
+                  and rss.segment_state_value = True
+              )
+              and (
+                cps.user_id
+              ) not in (
                 select
                   cpsi.user_id,
                 from computed_property_state_index cpsi
@@ -867,10 +879,12 @@ function segmentToResolvedState({
               cps.computed_property_id,
               cps.state_id,
               cps.user_id
-            having
-              argMaxMerge(last_value) == ${lastValueParam}
           `;
           queries.push(expiredQuery);
+
+          const changedValueQuery = `
+          `;
+          queries.push(changedValueQuery);
 
           // FIXME check state merged last value
 
@@ -888,9 +902,12 @@ function segmentToResolvedState({
           //
           // expiring entrants
           // 1. look for all segment state values which are currently true
-          // 2. check that either they don't satisfy the operator condition
-          // 3. or they don't have a matching resolved state value
+          // 2. check that they don't satisfy the operator condition
 
+          // updated out of segment
+          // 1. look for all segment state values which are currently true
+          // 2. look for segments whose values changed in the last period
+          // 3. check that they don't satisfy the last value condition
           const newEntrantsQuery = `
             insert into resolved_segment_state
             select
