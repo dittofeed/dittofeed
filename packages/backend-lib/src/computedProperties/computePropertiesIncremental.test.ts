@@ -1686,6 +1686,19 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "after remaining onboarding for over a week the user is no longer in recently started onboarding segment",
+          indexedStates: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "recentlyStartedOnboarding",
+              indexedValue:
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                  60480000,
+                ) / 1000,
+            }),
+          ],
           states: [
             ({ now }) => ({
               userId: "user-1",
