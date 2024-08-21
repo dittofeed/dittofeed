@@ -4599,8 +4599,8 @@ describe("computeProperties", () => {
           now += step.timeMs;
           break;
         case EventsStepType.Assert:
-          await Promise.all([
-            ...(step.users?.map(async (userOrFn) => {
+          const usersAssertions =
+            step.users?.map(async (userOrFn) => {
               let user: TableUser;
               if (typeof userOrFn === "function") {
                 user = userOrFn(stepContext);
@@ -4637,178 +4637,180 @@ describe("computeProperties", () => {
                     })
                   : null,
               ]);
-            }) ?? []),
-            step.states
-              ? (async () => {
-                  const states = await readStates({ workspaceId });
-                  const actualTestStates = states.map((s) =>
-                    toTestState(s, userProperties, segments),
+            }) ?? [];
+          const statesAssertions = step.states
+            ? (async () => {
+                const states = await readStates({ workspaceId });
+                const actualTestStates = states.map((s) =>
+                  toTestState(s, userProperties, segments),
+                );
+                for (const expected of step.states ?? []) {
+                  const expectedState =
+                    typeof expected === "function"
+                      ? expected(stepContext)
+                      : expected;
+
+                  const actualState = actualTestStates.find(
+                    (s) =>
+                      s.userId === expectedState.userId &&
+                      s.name === expectedState.name &&
+                      s.type === expectedState.type &&
+                      s.nodeId === expectedState.nodeId,
                   );
-                  for (const expected of step.states ?? []) {
-                    const expectedState =
-                      typeof expected === "function"
-                        ? expected(stepContext)
-                        : expected;
-
-                    const actualState = actualTestStates.find(
-                      (s) =>
-                        s.userId === expectedState.userId &&
-                        s.name === expectedState.name &&
-                        s.type === expectedState.type &&
-                        s.nodeId === expectedState.nodeId,
-                    );
-                    expect(
-                      actualState,
-                      `${["expected state", step.description]
-                        .filter((s) => !!s)
-                        .join(" - ")}:\n\n${JSON.stringify(
-                        expectedState,
-                        null,
-                        2,
-                      )}\n\nto be found in actual states:\n\n${JSON.stringify(
-                        actualTestStates,
-                        null,
-                        2,
-                      )}`,
-                    ).not.toBeUndefined();
-                    if (expectedState.lastValue) {
-                      expect(actualState, step.description).toHaveProperty(
-                        "lastValue",
-                        expectedState.lastValue,
-                      );
-                    }
-                    if (expectedState.uniqueCount) {
-                      expect(actualState, step.description).toHaveProperty(
-                        "uniqueCount",
-                        expectedState.uniqueCount,
-                      );
-                    }
-                    if (expectedState.maxEventTime) {
-                      expect(actualState, step.description).toHaveProperty(
-                        "maxEventTime",
-                        expectedState.maxEventTime,
-                      );
-                    }
-                  }
-                })()
-              : null,
-            step.indexedStates
-              ? (async () => {
-                  const indexedStates = await readIndexed({ workspaceId });
-                  const actualTestStates = indexedStates.map((s) =>
-                    toTestIndexedState(s, userProperties, segments),
-                  );
-                  for (const expected of step.indexedStates ?? []) {
-                    const expectedState =
-                      typeof expected === "function"
-                        ? expected(stepContext)
-                        : expected;
-
-                    const actualState = actualTestStates.find(
-                      (s) =>
-                        s.userId === expectedState.userId &&
-                        s.name === expectedState.name &&
-                        s.type === expectedState.type &&
-                        s.nodeId === expectedState.nodeId,
-                    );
-                    expect(
-                      actualState,
-                      `${["expected indexed state", step.description]
-                        .filter((s) => !!s)
-                        .join(" - ")}:\n\n${JSON.stringify(
-                        expectedState,
-                        null,
-                        2,
-                      )}\n\nto be found in actual indexed states:\n\n${JSON.stringify(
-                        actualTestStates,
-                        null,
-                        2,
-                      )}`,
-                    ).not.toBeUndefined();
-
+                  expect(
+                    actualState,
+                    `${["expected state", step.description]
+                      .filter((s) => !!s)
+                      .join(" - ")}:\n\n${JSON.stringify(
+                      expectedState,
+                      null,
+                      2,
+                    )}\n\nto be found in actual states:\n\n${JSON.stringify(
+                      actualTestStates,
+                      null,
+                      2,
+                    )}`,
+                  ).not.toBeUndefined();
+                  if (expectedState.lastValue) {
                     expect(actualState, step.description).toHaveProperty(
-                      "indexedValue",
-                      expectedState.indexedValue,
+                      "lastValue",
+                      expectedState.lastValue,
                     );
                   }
-                })()
-              : null,
-            step.periods
-              ? (async () => {
-                  const periods =
-                    await prisma().computedPropertyPeriod.findMany({
-                      where: {
-                        workspaceId,
-                      },
-                      orderBy: [
-                        {
-                          createdAt: "asc",
-                        },
-                      ],
-                    });
-                  const simplifiedPeriods = periods.map((p) => {
-                    const s: TestPeriod = {
-                      to: p.to.getTime() - now,
-                      step: p.step as ComputedPropertyStep,
-                    };
-                    s.from = p.from ? p.from.getTime() - now : undefined;
-                    return s;
-                  });
-                  expect(simplifiedPeriods, step.description).toEqual(
-                    step.periods,
-                  );
-                })()
-              : null,
-            step.resolvedSegmentStates
-              ? (async () => {
-                  const resolvedSegmentStates = await readResolvedSegmentStates(
-                    {
-                      workspaceId,
-                    },
-                  );
-                  const actualTestStates = resolvedSegmentStates.flatMap(
-                    (s) => {
-                      const resolved = toTestResolvedSegmentState(s, segments);
-                      return resolved ?? [];
-                    },
-                  );
-                  for (const expected of step.resolvedSegmentStates ?? []) {
-                    const actualState = actualTestStates.find(
-                      (s) =>
-                        s.userId === expected.userId &&
-                        s.name === expected.name,
+                  if (expectedState.uniqueCount) {
+                    expect(actualState, step.description).toHaveProperty(
+                      "uniqueCount",
+                      expectedState.uniqueCount,
                     );
-                    expect(
-                      actualState,
-                      `${["expected resolved segment state", step.description]
-                        .filter((s) => !!s)
-                        .join(" - ")}:\n\n${JSON.stringify(
-                        expected,
-                        null,
-                        2,
-                      )}\n\nto be found in actual resolved segment states:\n\n${JSON.stringify(
-                        actualTestStates,
-                        null,
-                        2,
-                      )}`,
-                    ).not.toBeUndefined();
+                  }
+                  if (expectedState.maxEventTime) {
+                    expect(actualState, step.description).toHaveProperty(
+                      "maxEventTime",
+                      expectedState.maxEventTime,
+                    );
+                  }
+                }
+              })()
+            : null;
+          const indexedStatesAssertions = step.indexedStates
+            ? (async () => {
+                const indexedStates = await readIndexed({ workspaceId });
+                const actualTestStates = indexedStates.map((s) =>
+                  toTestIndexedState(s, userProperties, segments),
+                );
+                for (const expected of step.indexedStates ?? []) {
+                  const expectedState =
+                    typeof expected === "function"
+                      ? expected(stepContext)
+                      : expected;
 
-                    expect(
-                      actualState,
-                      `${[
-                        "expected resolved segment state to have a different value",
-                        step.description,
-                      ]
-                        .filter((s) => !!s)
-                        .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`,
-                    ).toHaveProperty(
-                      "segmentStateValue",
-                      expected.segmentStateValue,
-                    );
-                  }
-                })()
-              : null,
-          ]);
+                  const actualState = actualTestStates.find(
+                    (s) =>
+                      s.userId === expectedState.userId &&
+                      s.name === expectedState.name &&
+                      s.type === expectedState.type &&
+                      s.nodeId === expectedState.nodeId,
+                  );
+                  expect(
+                    actualState,
+                    `${["expected indexed state", step.description]
+                      .filter((s) => !!s)
+                      .join(" - ")}:\n\n${JSON.stringify(
+                      expectedState,
+                      null,
+                      2,
+                    )}\n\nto be found in actual indexed states:\n\n${JSON.stringify(
+                      actualTestStates,
+                      null,
+                      2,
+                    )}`,
+                  ).not.toBeUndefined();
+
+                  expect(actualState, step.description).toHaveProperty(
+                    "indexedValue",
+                    expectedState.indexedValue,
+                  );
+                }
+              })()
+            : null;
+          const periodsAssertions = step.periods
+            ? (async () => {
+                const periods = await prisma().computedPropertyPeriod.findMany({
+                  where: {
+                    workspaceId,
+                  },
+                  orderBy: [
+                    {
+                      createdAt: "asc",
+                    },
+                  ],
+                });
+                const simplifiedPeriods = periods.map((p) => {
+                  const s: TestPeriod = {
+                    to: p.to.getTime() - now,
+                    step: p.step as ComputedPropertyStep,
+                  };
+                  s.from = p.from ? p.from.getTime() - now : undefined;
+                  return s;
+                });
+                expect(simplifiedPeriods, step.description).toEqual(
+                  step.periods,
+                );
+              })()
+            : null;
+          const resolvedSegmentStatesAssertions = step.resolvedSegmentStates
+            ? (async () => {
+                const resolvedSegmentStates = await readResolvedSegmentStates({
+                  workspaceId,
+                });
+                const actualTestStates = resolvedSegmentStates.flatMap((s) => {
+                  const resolved = toTestResolvedSegmentState(s, segments);
+                  return resolved ?? [];
+                });
+                for (const expected of step.resolvedSegmentStates ?? []) {
+                  const actualState = actualTestStates.find(
+                    (s) =>
+                      s.userId === expected.userId && s.name === expected.name,
+                  );
+                  expect(
+                    actualState,
+                    `${["expected resolved segment state", step.description]
+                      .filter((s) => !!s)
+                      .join(" - ")}:\n\n${JSON.stringify(
+                      expected,
+                      null,
+                      2,
+                    )}\n\nto be found in actual resolved segment states:\n\n${JSON.stringify(
+                      actualTestStates,
+                      null,
+                      2,
+                    )}`,
+                  ).not.toBeUndefined();
+
+                  expect(
+                    actualState,
+                    `${[
+                      "expected resolved segment state to have a different value",
+                      step.description,
+                    ]
+                      .filter((s) => !!s)
+                      .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`,
+                  ).toHaveProperty(
+                    "segmentStateValue",
+                    expected.segmentStateValue,
+                  );
+                }
+              })()
+            : null;
+
+          // start all work to assert, but then await assertions in the same
+          // order that they are computed in the tested code
+          await statesAssertions;
+          await periodsAssertions;
+          await indexedStatesAssertions;
+          await resolvedSegmentStatesAssertions;
+          await usersAssertions;
+
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
               (j) => j.name === assertedJourney.journeyName,
