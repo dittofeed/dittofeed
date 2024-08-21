@@ -379,6 +379,10 @@ interface TableUser {
   segments?: Record<string, boolean | null>;
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 enum EventsStepType {
   SubmitEvents = "SubmitEvents",
   ComputeProperties = "ComputeProperties",
@@ -4580,12 +4584,14 @@ describe("computeProperties", () => {
             now,
             userProperties,
           });
+          // await sleep(1000);
           await computeAssignments({
             workspaceId,
             segments,
             userProperties,
             now,
           });
+          // await sleep(1000);
           await processAssignments({
             workspaceId,
             segments,

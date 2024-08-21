@@ -2521,7 +2521,7 @@ export async function computeState({
           const query = `
             insert into computed_property_state_v2
             select
-              '${workspaceId}' as workspace_id,
+              ${workspaceIdParam} as workspace_id,
               '${subQuery.type}' as type,
               '${subQuery.computedPropertyId}' as computed_property_id,
               '${subQuery.stateId}' as state_id,
