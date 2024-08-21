@@ -2521,11 +2521,11 @@ export async function computeState({
           const query = `
             insert into computed_property_state_v2
             select
-              ue.workspace_id,
+              '${workspaceId}' as workspace_id,
               '${subQuery.type}' as type,
               '${subQuery.computedPropertyId}' as computed_property_id,
               '${subQuery.stateId}' as state_id,
-              ue.user_id,
+              ue.user_or_anonymous_id,
               argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
               uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
               ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"} as truncated_event_time,
@@ -2543,8 +2543,7 @@ export async function computeState({
               )
               ${lowerBoundClause}
             group by
-              ue.workspace_id,
-              ue.user_id,
+              ue.user_or_anonymous_id,
               ue.event_time
           `;
 
