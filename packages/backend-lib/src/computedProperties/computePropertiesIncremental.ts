@@ -2487,7 +2487,7 @@ export async function computeState({
     }, new Map());
 
     const nowSeconds = now / 1000;
-    const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
+    const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
     const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
       ([period, periodSubQueries]) => {
@@ -2509,7 +2509,7 @@ export async function computeState({
                 argMaxMerge(last_value) as last_value
               FROM computed_property_state_v2
               WHERE
-                workspace_id = ${workspaceIdClause}
+                workspace_id = ${workspaceIdParam}
                 AND type = '${subQuery.type}'
                 AND computed_property_id = '${subQuery.computedPropertyId}'
                 AND state_id = '${subQuery.stateId}'
@@ -2533,7 +2533,7 @@ export async function computeState({
               toDateTime64(${nowSeconds}, 3) as computed_at
             from user_events_v2 ue
             where
-              workspace_id = ${workspaceIdClause}
+              workspace_id = ${workspaceIdParam}
               and processing_time <= toDateTime64(${nowSeconds}, 3)
               and (${subQuery.condition})
               and (
