@@ -4134,9 +4134,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "after receiving an event within the time window, user satisfies new segment definition",
@@ -4489,6 +4486,10 @@ describe("computeProperties", () => {
       },
     });
     const workspaceId = workspace.id;
+    logger().debug(
+      { workspaceId, description: test.description },
+      "workspace created",
+    );
     let now = Date.now();
 
     let { userProperties, segments } = await upsertComputedProperties({
