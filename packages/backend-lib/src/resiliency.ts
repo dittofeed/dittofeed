@@ -6,6 +6,13 @@ import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
 import { ComputedPropertyStep, Workspace } from "./types";
 
+const PUBLIC_PREFIX = "DF_PUBLIC";
+
+const PUBLIC_LOGS = {
+  userCounts: `${PUBLIC_PREFIX}_USER_COUNTS`,
+  messageCounts: `${PUBLIC_PREFIX}_MESSAGE_COUNTS`,
+};
+
 function observeWorkspaceComputeLatencyInner({
   workspaces,
   periods,
@@ -100,7 +107,7 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
     userCountsRes.json<{ workspace_id: string; count: string }>(),
     messageCountsRes.json<{ workspace_id: string; count: string }>(),
   ]);
-  const userCounts: Record<string, number> = {};
+  const userCounts: [string, number][] = [];
 
   for (const row of userCountRows) {
     const count = Number.parseInt(row.count, 10);
@@ -111,10 +118,10 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
       );
       continue;
     }
-    userCounts[row.workspace_id] = count;
+    userCounts.push([row.workspace_id, count]);
   }
 
-  const messageCounts: Record<string, number> = {};
+  const messageCounts: [string, number][] = [];
 
   for (const row of messageCountRows) {
     const count = Number.parseInt(row.count, 10);
@@ -125,15 +132,24 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
       );
       continue;
     }
-    messageCounts[row.workspace_id] = count;
+    messageCounts.push([row.workspace_id, count]);
   }
 
   const firstWorkspace = workspaces[0]?.id;
 
-  publicLogger().info(
-    { userCounts, messageCounts, firstWorkspace },
-    "Public signal",
-  );
+  for (const [workspaceId, count] of userCounts) {
+    publicLogger().info(
+      { workspaceId, count, firstWorkspace },
+      PUBLIC_LOGS.userCounts,
+    );
+  }
+
+  for (const [workspaceId, count] of messageCounts) {
+    publicLogger().info(
+      { workspaceId, count, firstWorkspace },
+      PUBLIC_LOGS.messageCounts,
+    );
+  }
 }
 
 export async function emitGlobalSignals() {
