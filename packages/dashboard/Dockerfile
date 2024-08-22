@@ -16,8 +16,8 @@ RUN yarn workspaces focus isomorphic-lib && \
     yarn workspaces focus dashboard
 
 RUN mkdir -p packages/dashboard/public/public && \
-    curl https://raw.githubusercontent.com/dittofeed/sdk-web/e11047243065b8ec93ed133472f659d59cef2e1e/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
-    curl https://raw.githubusercontent.com/dittofeed/sdk-web/e11047243065b8ec93ed133472f659d59cef2e1e/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
 
 RUN yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib prisma generate && \
