@@ -19,7 +19,7 @@ function Journey() {
   }
 
   return (
-    <Box sx={{ display: "flex", width: "100%", height: "100vh" }}>
+    <Box sx={{ display: "flex", width: "100%", height: "100%" }}>
       <JourneyLayout journeyId={id}>
         <JourneysBuilder journeyId={id} />
       </JourneyLayout>

@@ -31,7 +31,10 @@ function Layout({
 
   return (
     <LayoutContext.Provider value={layoutProps}>
-      <Box sx={{ display: "flex", width: "100%", height: "100vh" }}>
+      <Box
+        id="df-layout"
+        sx={{ display: "flex", width: "100%", height: "100vh" }}
+      >
         <Header open={drawerOpen} handleDrawerToggle={toggleDrawer} />
         <Drawer open={drawerOpen} handleDrawerToggle={toggleDrawer} />
         <Box
