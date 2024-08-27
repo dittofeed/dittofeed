@@ -1,6 +1,7 @@
 import { getBroadcast } from "../../../broadcasts";
 import logger from "../../../logger";
 import prisma from "../../../prisma";
+import { findAllUserPropertyResources } from "../../../userProperties";
 import { computePropertiesIncremental } from "./computeProperties";
 
 export async function performBroadcastIncremental({
@@ -10,10 +11,15 @@ export async function performBroadcastIncremental({
   workspaceId: string;
   broadcastId: string;
 }) {
-  const broadcastResources = await getBroadcast({
-    workspaceId,
-    broadcastId,
-  });
+  const [broadcastResources, userProperties] = await Promise.all([
+    getBroadcast({
+      workspaceId,
+      broadcastId,
+    }),
+    findAllUserPropertyResources({
+      workspaceId,
+    }),
+  ]);
 
   if (!broadcastResources) {
     logger().error(
@@ -44,7 +50,7 @@ export async function performBroadcastIncremental({
     segments: [segment],
     journeys: [journey],
     now: triggeredAt.getTime(),
-    userProperties: [],
+    userProperties,
   });
 
   await prisma().broadcast.update({
