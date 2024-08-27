@@ -11,8 +11,9 @@
     "lint": "next lint"
   },
   "exports": {
-    "./*": "./dist/*.js",
-    ".": "./next.config.js"
+    "./*": ["./dist/*.js", "./dist/*.jsx"],
+    ".": "./next.config.js",
+    "./src/styles/*.css": "./src/styles/*.css"
   },
   "license": "LicenseRef-LICENSE",
   "dependencies": {
