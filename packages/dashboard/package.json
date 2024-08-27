@@ -11,7 +11,10 @@
     "lint": "next lint"
   },
   "exports": {
-    "./*": ["./dist/*.js", "./dist/*.jsx"],
+    "./*": [
+      "./dist/*.js",
+      "./dist/*.jsx"
+    ],
     ".": "./next.config.js",
     "./src/styles/*.css": "./src/styles/*.css"
   },
