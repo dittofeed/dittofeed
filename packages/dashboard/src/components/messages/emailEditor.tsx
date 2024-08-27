@@ -15,6 +15,7 @@ import {
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import { AddCircleOutline, RemoveCircleOutline } from "@mui/icons-material";
 import {
   ChannelType,
   CompletionStatus,
@@ -52,6 +53,13 @@ function fieldToReadable(field: string) {
 function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   const [open, setOpen] = React.useState(false);
   const { userProperties } = useAppStorePick(["userProperties"]);
+  const isEmailTemplate = draft.type === "Email";
+  const [header, setHeader] = React.useState<{ key: string; value: string }>({
+    key: "",
+    value: "",
+  });
+  const [showHeaderFields, setShowHeaderFields] = React.useState(false);
+
   const options = useMemo(() => {
     if (userProperties.type !== CompletionStatus.Successful) {
       return [];
@@ -60,9 +68,37 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
       .filter((up) => up.definition.type === UserPropertyDefinitionType.File)
       .map((up) => up.name);
   }, [userProperties]);
-  if (draft.type !== ChannelType.Email) {
+
+  React.useEffect(() => {
+    if (isEmailTemplate) {
+      setDraft((defn) => ({
+        ...defn,
+        headers:
+          header.key && header.value
+            ? { [header.key]: header.value }
+            : undefined,
+      }));
+    }
+  }, [header, setDraft, isEmailTemplate]);
+
+  if (!isEmailTemplate) {
     return null;
   }
+
+  const handleHeaderChange = (field: "key" | "value", value: string) => {
+    setHeader((prevHeader) => ({
+      ...prevHeader,
+      [field]: value,
+    }));
+  };
+
+  const toggleHeaderFields = () => {
+    setShowHeaderFields(!showHeaderFields);
+    if (showHeaderFields) {
+      setHeader({ key: "", value: "" });
+    }
+  };
+
   return (
     <>
       <Button onClick={() => setOpen(true)}> Options </Button>
@@ -103,11 +139,10 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
             }
             onChange={(_event, value) => {
               setDraft((defn) => {
-                if (defn.type !== ChannelType.Email) {
+                if (defn.type !== "Email") {
                   return defn;
                 }
-                defn.attachmentUserProperties = value;
-                return defn;
+                return { ...defn, attachmentUserProperties: value };
               });
             }}
             options={options}
@@ -117,6 +152,47 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
               <TextField {...params} label="Attachments" variant="outlined" />
             )}
           />
+
+          <Button
+            onClick={toggleHeaderFields}
+            startIcon={
+              showHeaderFields ? <RemoveCircleOutline /> : <AddCircleOutline />
+            }
+            disabled={disabled}
+            sx={{ mt: 3 }}
+          >
+            {showHeaderFields ? "Remove Custom Header" : "Add Custom Header"}
+          </Button>
+
+          {showHeaderFields && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginTop: 8,
+                paddingInline: 2,
+              }}
+            >
+              <TextField
+                label="Key"
+                value={header.key}
+                onChange={(e) => handleHeaderChange("key", e.target.value)}
+                variant="outlined"
+                fullWidth
+                disabled={disabled}
+                sx={{ mr: 1 }}
+              />
+              <TextField
+                label="Value"
+                value={header.value}
+                onChange={(e) => handleHeaderChange("value", e.target.value)}
+                variant="outlined"
+                fullWidth
+                disabled={disabled}
+                sx={{ mr: 1 }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

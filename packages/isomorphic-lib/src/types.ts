@@ -1010,6 +1010,9 @@ export const EmailTemplateResource = Type.Composite(
       type: Type.Literal(ChannelType.Email),
     }),
     EmailContents,
+    Type.Object({
+      headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+    }),
   ],
   {
     description: "Email template resource",
