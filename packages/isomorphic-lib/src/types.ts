@@ -1205,6 +1205,12 @@ export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
+  journeyMetadata: Type.Optional(
+    Type.Object({
+      journeyId: Type.String(),
+      nodeId: Type.String(),
+    }),
+  ),
   type: Type.Enum(ChannelType),
 });
 

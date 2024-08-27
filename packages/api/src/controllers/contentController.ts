@@ -30,6 +30,8 @@ import {
   GetMessageTemplatesRequest,
   GetMessageTemplatesResponse,
   InternalEventType,
+  JourneyDefinition,
+  JourneyNodeType,
   JsonResultType,
   MessageSkippedType,
   MessageTags,
@@ -236,10 +238,53 @@ export default async function contentController(fastify: FastifyInstance) {
           throw new Error("Mobile push templates unimplemented");
         }
       }
+      logger().debug(
+        {
+          body: request.body,
+        },
+        "loc1 upserting template for reset",
+      );
       const resource = await upsertMessageTemplate({
         ...request.body,
         definition,
       });
+      const { journeyMetadata } = request.body;
+      if (journeyMetadata) {
+        const { journeyId, nodeId } = journeyMetadata;
+        await prisma().$transaction(async (tx) => {
+          const journey = await tx.journey.findUnique({
+            where: {
+              id: journeyId,
+            },
+          });
+          if (!journey) {
+            return;
+          }
+          const definitionResult = schemaValidateWithErr(
+            journey.definition,
+            JourneyDefinition,
+          );
+          if (definitionResult.isErr()) {
+            return;
+          }
+          const journeyDefinition = definitionResult.value;
+          const node = journeyDefinition.nodes.find((n) => n.id === nodeId);
+
+          if (!node || node.type !== JourneyNodeType.MessageNode) {
+            return;
+          }
+          node.variant.type = request.body.type;
+
+          await tx.journey.update({
+            where: {
+              id: journeyId,
+            },
+            data: {
+              definition: journeyDefinition,
+            },
+          });
+        });
+      }
       return reply.status(200).send(resource);
     },
   );
