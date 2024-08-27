@@ -1213,6 +1213,21 @@
                   "id": {
                     "type": "string"
                   },
+                  "journeyMetadata": {
+                    "type": "object",
+                    "properties": {
+                      "journeyId": {
+                        "type": "string"
+                      },
+                      "nodeId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "journeyId",
+                      "nodeId"
+                    ]
+                  },
                   "type": {
                     "anyOf": [
                       {
@@ -33738,6 +33753,21 @@
                   },
                   "id": {
                     "type": "string"
+                  },
+                  "journeyMetadata": {
+                    "type": "object",
+                    "properties": {
+                      "journeyId": {
+                        "type": "string"
+                      },
+                      "nodeId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "journeyId",
+                      "nodeId"
+                    ]
                   },
                   "type": {
                     "anyOf": [
