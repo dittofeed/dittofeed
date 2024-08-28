@@ -13,10 +13,11 @@ export async function authenticateAdminApiKeyFull({
 }: {
   workspaceId: string;
   actualKey: string;
-}): Promise<string | null> {
+}): Promise<{ workspaceId: string; keyId: string } | null> {
   const apiKeysQuery = Prisma.sql`
       SELECT
         aak.id,
+        aak."workspaceId",
         s."configValue"
       FROM "AdminApiKey" aak
       JOIN "Secret" s ON aak."secretId" = s.id
@@ -29,9 +30,9 @@ export async function authenticateAdminApiKeyFull({
         )
     `;
   const apiKeys =
-    await prisma().$queryRaw<{ id: string; configValue: unknown }[]>(
-      apiKeysQuery,
-    );
+    await prisma().$queryRaw<
+      { id: string; workspaceId: string; configValue: unknown }[]
+    >(apiKeysQuery);
 
   if (!actualKey) {
     return null;
@@ -53,7 +54,10 @@ export async function authenticateAdminApiKeyFull({
     }
     if (definitionResult.value.key) {
       if (definitionResult.value.key === actualKey) {
-        return apiKey.id;
+        return {
+          workspaceId: apiKey.workspaceId,
+          keyId: apiKey.id,
+        };
       }
     }
   }
