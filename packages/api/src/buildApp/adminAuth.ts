@@ -65,7 +65,11 @@ export async function authenticateAdminApiKey({
 // eslint-disable-next-line @typescript-eslint/require-await
 const adminAuth = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const workspaceId = await getWorkspaceId(request);
+    const workspaceIdResult = await getWorkspaceId(request);
+    if (workspaceIdResult.isErr()) {
+      return reply.status(400).send();
+    }
+    const workspaceId = workspaceIdResult.value;
     if (!workspaceId) {
       return reply.status(401).send();
     }
