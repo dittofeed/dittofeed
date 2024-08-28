@@ -5,6 +5,7 @@ import prisma from "backend-lib/src/prisma";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { Result } from "neverthrow";
 
 const withWorkspaceId = Type.Object({
   workspaceId: Type.String(),
@@ -42,9 +43,18 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
   return null;
 }
 
+export enum GetWorkspaceIdErrorType {
+  MismatchedWorkspaceIds = "MismatchedWorkspaceIds",
+}
+
+export interface GetWorkspaceIdError {
+  type: GetWorkspaceIdErrorType;
+  message: string;
+}
+
 export async function getWorkspaceId(
   req: FastifyRequest,
-): Promise<string | null> {
+): Promise<Result<string | null, GetWorkspaceIdError>> {
   const bodyParam = schemaValidate(req.body, withWorkspaceId).unwrapOr(
     null,
   )?.workspaceId;
