@@ -7,6 +7,7 @@ import {
 import { OpenIdProfile } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+
 import { getWorkspaceId } from "../workspace";
 
 export function requestToSessionValue(request: FastifyRequest):
