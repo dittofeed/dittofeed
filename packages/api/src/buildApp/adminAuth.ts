@@ -7,13 +7,13 @@ import { AdminApiKeyDefinition } from "isomorphic-lib/src/types";
 
 import { getWorkspaceId } from "../workspace";
 
-export async function authenticateAdminApiKey({
+export async function authenticateAdminApiKeyFull({
   workspaceId,
   actualKey,
 }: {
   workspaceId: string;
   actualKey: string;
-}): Promise<boolean> {
+}): Promise<string | null> {
   const apiKeysQuery = Prisma.sql`
       SELECT
         aak.id,
@@ -34,9 +34,8 @@ export async function authenticateAdminApiKey({
     );
 
   if (!actualKey) {
-    return false;
+    return null;
   }
-  let matchingKey = false;
   for (const apiKey of apiKeys) {
     const definitionResult = schemaValidate(
       apiKey.configValue,
@@ -54,12 +53,25 @@ export async function authenticateAdminApiKey({
     }
     if (definitionResult.value.key) {
       if (definitionResult.value.key === actualKey) {
-        matchingKey = true;
-        break;
+        return apiKey.id;
       }
     }
   }
-  return matchingKey;
+  return null;
+}
+
+export async function authenticateAdminApiKey({
+  workspaceId,
+  actualKey,
+}: {
+  workspaceId: string;
+  actualKey: string;
+}): Promise<boolean> {
+  const apiKeyId = await authenticateAdminApiKeyFull({
+    workspaceId,
+    actualKey,
+  });
+  return apiKeyId !== null;
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
