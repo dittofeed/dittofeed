@@ -7,7 +7,7 @@ import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import { FastifyRequest } from "fastify";
 
 import config from "./config";
-import { getWorkspaceIdFromReq } from "./workspace";
+import { getWorkspaceId, getWorkspaceIdFromReq } from "./workspace";
 
 const apiConfig = config();
 const { apiServiceName: serviceName } = apiConfig;
@@ -24,7 +24,7 @@ const telemetryConfig: Parameters<
   "@opentelemetry/instrumentation-fastify": {
     requestHook: (span, info) => {
       const request = info.request as FastifyRequest;
-      const workspaceId = getWorkspaceIdFromReq(request);
+      const workspaceId = getWorkspaceIdFromReq(request).unwrapOr(null);
       if (workspaceId) {
         span.updateName("api-custom-request-hook");
         span.setAttribute("workspaceId", workspaceId);

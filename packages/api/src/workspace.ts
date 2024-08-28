@@ -11,38 +11,6 @@ const withWorkspaceId = Type.Object({
   workspaceId: Type.String(),
 });
 
-export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
-  const bodyParam = schemaValidate(req.body, withWorkspaceId).unwrapOr(
-    null,
-  )?.workspaceId;
-  if (bodyParam) {
-    logger().debug({ workspaceId: bodyParam }, "Found workspaceId in body.");
-    return bodyParam;
-  }
-
-  const queryParam = schemaValidate(req.query, withWorkspaceId).unwrapOr(
-    null,
-  )?.workspaceId;
-  if (queryParam) {
-    logger().debug({ workspaceId: queryParam }, "Found workspaceId in query.");
-    return queryParam;
-  }
-
-  const header = req.headers[WORKSPACE_ID_HEADER];
-
-  if (header instanceof Array && header[0]) {
-    logger().debug({ workspaceId: header[0] }, "Found workspaceId in header.");
-    return header[0];
-  }
-  if (header && typeof header === "string") {
-    logger().debug({ workspaceId: header }, "Found workspaceId in header.");
-    return header;
-  }
-
-  logger().debug("No workspaceId found in request.");
-  return null;
-}
-
 export enum GetWorkspaceIdErrorType {
   MismatchedWorkspaceIds = "MismatchedWorkspaceIds",
 }
@@ -52,9 +20,9 @@ export interface GetWorkspaceIdError {
   message: string;
 }
 
-export async function getWorkspaceId(
+export function getWorkspaceIdFromReq(
   req: FastifyRequest,
-): Promise<Result<string | null, GetWorkspaceIdError>> {
+): Result<string | null, GetWorkspaceIdError> {
   const workspaceIdSources: unknown[] = [req.body, req.query];
   const workspaceIdValues: string[] = [];
 
@@ -78,6 +46,20 @@ export async function getWorkspaceId(
     });
   }
   const [workspaceId] = workspaceIdValues;
+  if (workspaceId) {
+    return ok(workspaceId);
+  }
+  return ok(null);
+}
+
+export async function getWorkspaceId(
+  req: FastifyRequest,
+): Promise<Result<string | null, GetWorkspaceIdError>> {
+  const result = getWorkspaceIdFromReq(req);
+  if (result.isErr()) {
+    return result;
+  }
+  const workspaceId = result.value;
   if (workspaceId) {
     return ok(workspaceId);
   }
