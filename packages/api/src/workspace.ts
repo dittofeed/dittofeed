@@ -1,6 +1,5 @@
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
-import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";

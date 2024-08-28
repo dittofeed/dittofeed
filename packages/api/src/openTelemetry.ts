@@ -7,7 +7,7 @@ import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import { FastifyRequest } from "fastify";
 
 import config from "./config";
-import { getWorkspaceId, getWorkspaceIdFromReq } from "./workspace";
+import { getWorkspaceIdFromReq } from "./workspace";
 
 const apiConfig = config();
 const { apiServiceName: serviceName } = apiConfig;
