@@ -7,6 +7,7 @@ import {
 import { OpenIdProfile } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+import { getWorkspaceId } from "../workspace";
 
 export function requestToSessionValue(request: FastifyRequest):
   | {
@@ -42,7 +43,17 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
       }
     }
 
+    const requestWorkspaceIdResult = await getWorkspaceId(request);
+    if (requestWorkspaceIdResult.isErr()) {
+      return reply.status(400).send();
+    }
+
     const { workspace, member, memberRoles } = rc.value;
+    const workspaceId = requestWorkspaceIdResult.value;
+    if (workspaceId !== workspace.id) {
+      return reply.status(403).send();
+    }
+
     request.requestContext.set("workspace", workspace);
     request.requestContext.set("member", member);
     request.requestContext.set("memberRoles", memberRoles);
