@@ -10,6 +10,7 @@ import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
+import { DEFAULT_WRITE_KEY_NAME } from "./constants";
 import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
@@ -42,7 +43,7 @@ export async function bootstrapPostgres({
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
-}): Promise<Workspace> {
+}): Promise<{ workspace: Workspace; writeKey: string }> {
   logger().info(
     {
       workspaceName,
@@ -151,7 +152,14 @@ export async function bootstrapPostgres({
       },
     ];
 
+  const writeKeyValue = generateSecureKey(8);
+
   await Promise.all([
+    createWriteKey({
+      workspaceId,
+      writeKeyName: DEFAULT_WRITE_KEY_NAME,
+      writeKeyValue,
+    }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {
@@ -166,11 +174,6 @@ export async function bootstrapPostgres({
     ),
     upsertSubscriptionSecret({
       workspaceId,
-    }),
-    createWriteKey({
-      workspaceId,
-      writeKeyName: "default-write-key",
-      writeKeyValue: generateSecureKey(8),
     }),
     ...getDefaultMessageTemplates({
       workspaceId,
@@ -200,7 +203,7 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
-  return workspace;
+  return { workspace, writeKey: writeKeyValue };
 }
 
 async function bootstrapKafka() {
@@ -325,7 +328,7 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
   });
-  const workspaceId = workspace.id;
+  const workspaceId = workspace.workspace.id;
 
   const initialBootstrap = [
     bootstrapClickhouse().catch(

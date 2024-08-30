@@ -55,7 +55,7 @@ model Workspace {
   Children               WorkspaceRelation[]      @relation("ChildRelation")
 
   @@unique([name])
-  @@index([externalId])
+  @@unique([externalId])
 }
 
 model WorkspaceRelation {
