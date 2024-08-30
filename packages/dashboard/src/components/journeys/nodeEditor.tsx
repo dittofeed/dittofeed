@@ -27,10 +27,13 @@ import {
   ChannelType,
   CompletionStatus,
   DelayVariantType,
+  EmailProviderType,
   EntryNode,
   JourneyNodeType,
   MessageTemplateResource,
+  MobilePushProviderType,
   PartialSegmentResource,
+  SmsProviderType,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
@@ -325,7 +328,19 @@ function MessageNodeFields({
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.MessageNode) {
-        props.providerOverride = provider;
+        switch (props.channel) {
+          case ChannelType.Email:
+            props.providerOverride = provider as EmailProviderType;
+            break;
+          case ChannelType.Sms:
+            props.providerOverride = provider as SmsProviderType;
+            break;
+          case ChannelType.Webhook:
+            break;
+          case ChannelType.MobilePush:
+            props.providerOverride = provider as MobilePushProviderType;
+            break;
+        }
       }
     });
   };
@@ -406,12 +421,15 @@ function MessageNodeFields({
           />
         </Stack>
       ) : null}
-      <ChannelProviderAutocomplete
-        providerOverride={nodeProps.providerOverride}
-        channel={nodeProps.channel}
-        disabled={disabled}
-        handler={onProviderOverrideChangeHandler}
-      />
+      {nodeProps.channel === ChannelType.Email ||
+      nodeProps.channel === ChannelType.Sms ? (
+        <ChannelProviderAutocomplete
+          providerOverride={nodeProps.providerOverride}
+          channel={nodeProps.channel}
+          disabled={disabled}
+          handler={onProviderOverrideChangeHandler}
+        />
+      ) : null}
     </>
   );
 }
