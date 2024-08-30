@@ -137,7 +137,7 @@ export async function getDeliveryBody({
       AND user_or_anonymous_id = ${userIdParam}
       AND simpleJSONExtractString(properties, 'journeyId') = ${journeyIdParam}
       AND simpleJSONExtractString(properties, 'templateId') = ${templateIdParam}
-    ORDER BY process_time DESC
+    ORDER BY processing_time DESC
     LIMIT 1
   `;
   const result = await clickhouseClient().query({
