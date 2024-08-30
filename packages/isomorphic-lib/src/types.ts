@@ -1456,32 +1456,46 @@ export const ExitUiNodeProps = Type.Object({
 
 export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
 
-const EmailMessageUiNodeProps = Type.Object({
+export const EmailMessageUiNodeProps = Type.Object({
   channel: Type.Literal(ChannelType.Email),
   providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
 });
 
-const SmsMessageUiNodeProps = Type.Object({
+export type EmailMessageUiNodeProps = Static<typeof EmailMessageUiNodeProps>;
+
+export const SmsMessageUiNodeProps = Type.Object({
   channel: Type.Literal(ChannelType.Sms),
   providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
 });
 
-const MobilePushMessageUiNodeProps = Type.Object({
+export type SmsMessageUiNodeProps = Static<typeof SmsMessageUiNodeProps>;
+
+export const MobilePushMessageUiNodeProps = Type.Object({
   channel: Type.Literal(ChannelType.MobilePush),
   providerOverride: Type.Optional(Type.Enum(MobilePushProviderType)),
 });
 
-const WebhookMessageUiNodeProps = Type.Object({
+export type MobilePushMessageUiNodeProps = Static<
+  typeof MobilePushMessageUiNodeProps
+>;
+
+export const WebhookMessageUiNodeProps = Type.Object({
   channel: Type.Literal(ChannelType.Webhook),
 });
 
-const BaseMessageUiNodeProps = Type.Object({
+export type WebhookMessageUiNodeProps = Static<
+  typeof WebhookMessageUiNodeProps
+>;
+
+export const BaseMessageUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.MessageNode),
   name: Type.String(),
   templateId: Type.Optional(Type.String()),
   subscriptionGroupId: Type.Optional(Type.String()),
   syncProperties: Type.Optional(Type.Boolean()),
 });
+
+export type BaseMessageUiNodeProps = Static<typeof BaseMessageUiNodeProps>;
 
 export const MessageUiNodeProps = Type.Union([
   Type.Composite([BaseMessageUiNodeProps, EmailMessageUiNodeProps]),
