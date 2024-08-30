@@ -2893,10 +2893,20 @@ export type MessageSendSuccessVariant = Static<
   typeof MessageSendSuccessVariant
 >;
 
-export const MessageSendSuccess = Type.Object({
-  type: Type.Literal(InternalEventType.MessageSent),
+export const MessageSendSuccessContents = Type.Object({
   variant: MessageSendSuccessVariant,
 });
+
+export type MessageSendSuccessContents = Static<
+  typeof MessageSendSuccessContents
+>;
+
+export const MessageSendSuccess = Type.Composite([
+  Type.Object({
+    type: Type.Literal(InternalEventType.MessageSent),
+  }),
+  MessageSendSuccessContents,
+]);
 
 export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
 
