@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, WorkspaceType } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
@@ -10,6 +10,7 @@ import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
+import { DEFAULT_WRITE_KEY_NAME } from "./constants";
 import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
@@ -30,22 +31,24 @@ import {
   NodeEnvEnum,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
+  Workspace,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
 
-async function bootstrapPostgres({
+export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
+  workspaceType,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
-}): Promise<{ workspaceId: string }> {
-  await prismaMigrate();
-
+  workspaceType?: WorkspaceType;
+}): Promise<{ workspace: Workspace; writeKey: string }> {
   logger().info(
     {
       workspaceName,
       workspaceDomain,
+      workspaceType,
     },
     "Upserting workspace.",
   );
@@ -55,10 +58,12 @@ async function bootstrapPostgres({
     },
     update: {
       domain: workspaceDomain,
+      type: workspaceType,
     },
     create: {
       name: workspaceName,
       domain: workspaceDomain,
+      type: workspaceType,
     },
   });
   const workspaceId = workspace.id;
@@ -147,7 +152,14 @@ async function bootstrapPostgres({
       },
     ];
 
+  const writeKeyValue = generateSecureKey(8);
+
   await Promise.all([
+    createWriteKey({
+      workspaceId,
+      writeKeyName: DEFAULT_WRITE_KEY_NAME,
+      writeKeyValue,
+    }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {
@@ -162,11 +174,6 @@ async function bootstrapPostgres({
     ),
     upsertSubscriptionSecret({
       workspaceId,
-    }),
-    createWriteKey({
-      workspaceId,
-      writeKeyName: "default-write-key",
-      writeKeyValue: generateSecureKey(8),
     }),
     ...getDefaultMessageTemplates({
       workspaceId,
@@ -196,7 +203,7 @@ async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
-  return { workspaceId };
+  return { workspace, writeKey: writeKeyValue };
 }
 
 async function bootstrapKafka() {
@@ -316,10 +323,12 @@ export default async function bootstrap({
   workspaceName: string;
   workspaceDomain?: string;
 }): Promise<{ workspaceId: string }> {
-  const { workspaceId } = await bootstrapPostgres({
+  await prismaMigrate();
+  const workspace = await bootstrapPostgres({
     workspaceName,
     workspaceDomain,
   });
+  const workspaceId = workspace.workspace.id;
 
   const initialBootstrap = [
     bootstrapClickhouse().catch(

@@ -23,6 +23,7 @@ enum WorkspaceType {
 model Workspace {
   id                     String                   @id() @default(uuid()) @db.Uuid
   name                   String
+  externalId             String?
   domain                 String?
   type                   WorkspaceType            @default(Root)
   createdAt              DateTime                 @default(now())
@@ -54,6 +55,7 @@ model Workspace {
   Children               WorkspaceRelation[]      @relation("ChildRelation")
 
   @@unique([name])
+  @@unique([externalId])
 }
 
 model WorkspaceRelation {
