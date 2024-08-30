@@ -133,9 +133,11 @@ export async function getDeliveryBody({
     WHERE
       event = '${InternalEventType.MessageSent}'
       AND workspace_id = ${workspaceIdParam}
+      AND event_type = 'track'
       AND user_or_anonymous_id = ${userIdParam}
       AND simpleJSONExtractString(properties, 'journeyId') = ${journeyIdParam}
       AND simpleJSONExtractString(properties, 'templateId') = ${templateIdParam}
+    ORDER BY process_time DESC
     LIMIT 1
   `;
   const result = await clickhouseClient().query({
