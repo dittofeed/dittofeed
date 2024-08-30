@@ -1487,6 +1487,17 @@ export type WebhookMessageUiNodeProps = Static<
   typeof WebhookMessageUiNodeProps
 >;
 
+export const MessageChannelUiNodeProps = Type.Union([
+  EmailMessageUiNodeProps,
+  SmsMessageUiNodeProps,
+  MobilePushMessageUiNodeProps,
+  WebhookMessageUiNodeProps,
+]);
+
+export type MessageChannelUiNodeProps = Static<
+  typeof MessageChannelUiNodeProps
+>;
+
 export const BaseMessageUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.MessageNode),
   name: Type.String(),

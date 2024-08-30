@@ -329,14 +329,14 @@ export default async function contentController(fastify: FastifyInstance) {
           sendMessageParams = {
             ...baseSendMessageParams,
             channel: request.body.channel,
-            provider: request.body.provider,
+            providerOverride: request.body.provider,
           };
           break;
         }
         case ChannelType.Sms: {
           sendMessageParams = {
             ...baseSendMessageParams,
-            provider: request.body.provider,
+            providerOverride: request.body.provider,
             channel: request.body.channel,
             disableCallback: true,
           };
