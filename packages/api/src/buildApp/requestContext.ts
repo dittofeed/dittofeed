@@ -1,4 +1,5 @@
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
   RequestContextErrorType,
@@ -38,6 +39,7 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
         case RequestContextErrorType.ApplicationError:
           throw new Error(rc.error.message);
         case RequestContextErrorType.NotAuthenticated:
+          logger().debug({ rc: rc.error }, "Not authenticated");
           return reply.status(401).send();
         default:
           return reply.status(403).send();

@@ -5,6 +5,7 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
+  Box,
   Button,
   Drawer,
   IconButton,
@@ -35,6 +36,7 @@ import { immer } from "zustand/middleware/immer";
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
@@ -414,16 +416,9 @@ export function DeliveriesTable({
 
   const renderEmailPreviewBody = (body: string) => {
     return (
-      <iframe
-        srcDoc={`<!DOCTYPE html>${body}`}
-        title="email-body-preview"
-        style={{
-          border: "none",
-          height: "100%",
-          width: "100%",
-          padding: theme.spacing(1),
-        }}
-      />
+      <Box sx={{ padding: theme.spacing(1) }}>
+        <EmailPreviewBody body={body} />
+      </Box>
     );
   };
 
