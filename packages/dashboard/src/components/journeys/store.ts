@@ -10,6 +10,8 @@ import {
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  BaseMessageUiNodeProps,
+  ChannelType,
   CompletionStatus,
   DelayNode,
   DelayVariantType,
@@ -351,16 +353,33 @@ function journeyDefinitionFromStateBranch(
         }
 
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        let variant: MessageNode["variant"];
+        // ugly but if we combine these clauses into one then we get a type error.
+        if (uiNode.channel === ChannelType.Email) {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+            providerOverride: uiNode.providerOverride,
+          };
+        } else if (uiNode.channel === ChannelType.Sms) {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+            providerOverride: uiNode.providerOverride,
+          };
+        } else {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+          };
+        }
         const node: MessageNode = {
           id: nId,
           type: JourneyNodeType.MessageNode,
           name: uiNode.name,
           subscriptionGroupId: uiNode.subscriptionGroupId,
           syncProperties: uiNode.syncProperties,
-          variant: {
-            type: uiNode.channel,
-            templateId: uiNode.templateId,
-          },
+          variant,
           child,
         };
         nodes.push(node);
@@ -1185,14 +1204,51 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.MessageNode: {
-        const messageNode: MessageUiNodeProps = {
+        const baseMessageNode: BaseMessageUiNodeProps = {
           type: JourneyNodeType.MessageNode,
           templateId: node.variant.templateId,
-          channel: node.variant.type,
           name: node.name ?? "",
           subscriptionGroupId: node.subscriptionGroupId,
           syncProperties: node.syncProperties,
         };
+
+        let messageNode: MessageUiNodeProps;
+        switch (node.variant.type) {
+          case ChannelType.Email: {
+            messageNode = {
+              ...baseMessageNode,
+              channel: ChannelType.Email,
+              providerOverride: node.variant.providerOverride,
+            };
+            break;
+          }
+          case ChannelType.Sms: {
+            messageNode = {
+              ...baseMessageNode,
+              channel: ChannelType.Sms,
+              providerOverride: node.variant.providerOverride,
+            };
+            break;
+          }
+          case ChannelType.Webhook: {
+            messageNode = {
+              ...baseMessageNode,
+              channel: ChannelType.Webhook,
+            };
+            break;
+          }
+          case ChannelType.MobilePush: {
+            messageNode = {
+              ...baseMessageNode,
+              channel: ChannelType.MobilePush,
+              providerOverride: node.variant.providerOverride,
+            };
+            break;
+          }
+          default:
+            assertUnreachable(node.variant);
+        }
+
         nodesState.push(buildJourneyNode(nId, messageNode));
         nextNodeId = node.child;
 

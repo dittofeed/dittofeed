@@ -13,9 +13,10 @@ import {
 import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
-  ChannelType,
   InternalEventType,
   JSONValue,
+  MessageVariant,
+  RenameKey,
   TrackData,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
@@ -27,24 +28,21 @@ import {
 export { findNextLocalizedTime } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
-interface BaseSendParams {
+type BaseSendParams = {
   userId: string;
   workspaceId: string;
   runId: string;
   nodeId: string;
-  templateId: string;
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
-  channel: ChannelType;
-}
+} & RenameKey<MessageVariant, "type", "channel">;
 
 export type SendParams = Omit<BaseSendParams, "channel">;
 
-export interface SendParamsV2 extends SendParams {
-  channel: ChannelType;
+export type SendParamsV2 = BaseSendParams & {
   context?: Record<string, JSONValue>;
-}
+};
 
 async function sendMessageInner({
   userId,
@@ -55,8 +53,8 @@ async function sendMessageInner({
   journeyId,
   messageId,
   subscriptionGroupId,
-  channel,
   context,
+  ...rest
 }: SendParamsV2): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
@@ -92,12 +90,12 @@ async function sendMessageInner({
 
   const result = await sendMessage({
     workspaceId,
-    channel,
     useDraft: false,
     templateId,
     userId,
     userPropertyAssignments,
     subscriptionGroupDetails,
+    ...rest,
     messageTags: {
       workspaceId,
       runId,
@@ -106,7 +104,7 @@ async function sendMessageInner({
       templateId,
       messageId,
       userId,
-      channel,
+      channel: rest.channel,
     },
   });
   return result;

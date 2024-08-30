@@ -340,12 +340,12 @@ export interface SendMessageParametersBase {
 
 export interface SendMessageParametersEmail extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Email"];
-  provider?: EmailProviderType;
+  providerOverride?: EmailProviderType;
 }
 
 export interface SendMessageParametersSms extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Sms"];
-  provider?: SmsProviderType;
+  providerOverride?: SmsProviderType;
   disableCallback?: boolean;
 }
 
@@ -417,18 +417,18 @@ function renderValues<T extends TemplateDictionary<T>>({
 }
 
 async function getSmsProvider({
-  provider,
+  providerOverride,
   workspaceId,
 }: {
   workspaceId: string;
-  provider?: SmsProviderType;
+  providerOverride?: SmsProviderType;
 }): Promise<(SmsProvider & { secret: Secret | null }) | null> {
-  if (provider) {
+  if (providerOverride) {
     return prisma().smsProvider.findUnique({
       where: {
         workspaceId_type: {
           workspaceId,
-          type: provider,
+          type: providerOverride,
         },
       },
       include: {
@@ -462,18 +462,18 @@ function getMessageFileId({
 }
 
 async function getEmailProvider({
-  provider,
+  providerOverride,
   workspaceId,
 }: {
   workspaceId: string;
-  provider?: EmailProviderType;
+  providerOverride?: EmailProviderType;
 }): Promise<(EmailProvider & { secret: Secret | null }) | null> {
-  if (provider) {
+  if (providerOverride) {
     return prisma().emailProvider.findUnique({
       where: {
         workspaceId_type: {
           workspaceId,
-          type: provider,
+          type: providerOverride,
         },
       },
       include: {
@@ -503,7 +503,7 @@ export async function sendEmail({
   subscriptionGroupDetails,
   messageTags,
   userId,
-  provider,
+  providerOverride,
   useDraft,
 }: Omit<
   SendMessageParametersEmail,
@@ -519,7 +519,7 @@ export async function sendEmail({
     }),
     getEmailProvider({
       workspaceId,
-      provider,
+      providerOverride,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -1138,7 +1138,7 @@ export async function sendSms({
   userPropertyAssignments,
   subscriptionGroupDetails,
   useDraft,
-  provider,
+  providerOverride,
   userId,
   disableCallback = false,
 }: Omit<
@@ -1155,7 +1155,7 @@ export async function sendSms({
     }),
     getSmsProvider({
       workspaceId,
-      provider,
+      providerOverride,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -1531,6 +1531,7 @@ export async function sendWebhook({
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
+  logger().debug({ params }, "sending message");
   switch (params.channel) {
     case ChannelType.Email:
       return sendEmail(params);

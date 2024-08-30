@@ -84,7 +84,7 @@ describe("messaging", () => {
             type: SubscriptionGroupType.OptOut,
             action: null,
           },
-          provider: EmailProviderType.Test,
+          providerOverride: EmailProviderType.Test,
         });
         const unwrapped = unwrap(payload);
         if (unwrapped.type === InternalEventType.MessageSkipped) {

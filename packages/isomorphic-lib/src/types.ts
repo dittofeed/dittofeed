@@ -3,6 +3,10 @@ import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
+export type RenameKey<T, K extends keyof T, N extends string> = {
+  [P in keyof T as P extends K ? N : P]: T[P];
+};
+
 export enum JsonResultType {
   Ok = "Ok",
   Err = "Err",
@@ -78,7 +82,26 @@ export const ChannelType = {
   Webhook: "Webhook",
 } as const;
 
+export enum EmailProviderType {
+  Sendgrid = "SendGrid",
+  AmazonSes = "AmazonSes",
+  Resend = "Resend",
+  PostMark = "PostMark",
+  Smtp = "Smtp",
+  Test = "Test",
+}
+
+export enum MobilePushProviderType {
+  Firebase = "Firebase",
+  Test = "Test",
+}
+
 export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
+
+export enum SmsProviderType {
+  Twilio = "Twilio",
+  Test = "Test",
+}
 
 export const SubscriptionGroupResource = Type.Object({
   id: Type.String(),
@@ -686,6 +709,7 @@ export type RateLimitNode = Static<typeof RateLimitNode>;
 export const EmailMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
@@ -693,6 +717,7 @@ export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
 export const MobilePushMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.MobilePush),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(MobilePushProviderType)),
 });
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
@@ -700,6 +725,7 @@ export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 export const SmsMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
 });
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
@@ -718,7 +744,7 @@ export const MessageVariant = Type.Union([
   WebhookMessageVariant,
 ]);
 
-export type MessageVariants = Static<typeof MessageVariant>;
+export type MessageVariant = Static<typeof MessageVariant>;
 
 export const MessageNode = Type.Object(
   {
@@ -1263,20 +1289,6 @@ export type RequestStatus<V, E> =
   | SuccessfulRequest<V>
   | FailedRequest<E>;
 
-export enum EmailProviderType {
-  Sendgrid = "SendGrid",
-  AmazonSes = "AmazonSes",
-  Resend = "Resend",
-  PostMark = "PostMark",
-  Smtp = "Smtp",
-  Test = "Test",
-}
-
-export enum MobilePushProviderType {
-  Firebase = "Firebase",
-  Test = "Test",
-}
-
 export const TestEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1448,14 +1460,64 @@ export const ExitUiNodeProps = Type.Object({
 
 export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
 
-export const MessageUiNodeProps = Type.Object({
+export const EmailMessageUiNodeProps = Type.Object({
+  channel: Type.Literal(ChannelType.Email),
+  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type EmailMessageUiNodeProps = Static<typeof EmailMessageUiNodeProps>;
+
+export const SmsMessageUiNodeProps = Type.Object({
+  channel: Type.Literal(ChannelType.Sms),
+  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
+});
+
+export type SmsMessageUiNodeProps = Static<typeof SmsMessageUiNodeProps>;
+
+export const MobilePushMessageUiNodeProps = Type.Object({
+  channel: Type.Literal(ChannelType.MobilePush),
+  providerOverride: Type.Optional(Type.Enum(MobilePushProviderType)),
+});
+
+export type MobilePushMessageUiNodeProps = Static<
+  typeof MobilePushMessageUiNodeProps
+>;
+
+export const WebhookMessageUiNodeProps = Type.Object({
+  channel: Type.Literal(ChannelType.Webhook),
+});
+
+export type WebhookMessageUiNodeProps = Static<
+  typeof WebhookMessageUiNodeProps
+>;
+
+export const MessageChannelUiNodeProps = Type.Union([
+  EmailMessageUiNodeProps,
+  SmsMessageUiNodeProps,
+  MobilePushMessageUiNodeProps,
+  WebhookMessageUiNodeProps,
+]);
+
+export type MessageChannelUiNodeProps = Static<
+  typeof MessageChannelUiNodeProps
+>;
+
+export const BaseMessageUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.MessageNode),
   name: Type.String(),
   templateId: Type.Optional(Type.String()),
-  channel: Type.Enum(ChannelType),
   subscriptionGroupId: Type.Optional(Type.String()),
   syncProperties: Type.Optional(Type.Boolean()),
 });
+
+export type BaseMessageUiNodeProps = Static<typeof BaseMessageUiNodeProps>;
+
+export const MessageUiNodeProps = Type.Union([
+  Type.Composite([BaseMessageUiNodeProps, EmailMessageUiNodeProps]),
+  Type.Composite([BaseMessageUiNodeProps, SmsMessageUiNodeProps]),
+  Type.Composite([BaseMessageUiNodeProps, MobilePushMessageUiNodeProps]),
+  Type.Composite([BaseMessageUiNodeProps, WebhookMessageUiNodeProps]),
+]);
 
 export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
 
@@ -2695,11 +2757,6 @@ export const JourneyStatsRequest = Type.Object({
 });
 
 export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
-
-export enum SmsProviderType {
-  Twilio = "Twilio",
-  Test = "Test",
-}
 
 export const TwilioSecret = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),

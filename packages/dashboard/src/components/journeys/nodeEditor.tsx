@@ -27,10 +27,13 @@ import {
   ChannelType,
   CompletionStatus,
   DelayVariantType,
+  EmailProviderType,
   EntryNode,
   JourneyNodeType,
   MessageTemplateResource,
+  MobilePushProviderType,
   PartialSegmentResource,
+  SmsProviderType,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
@@ -47,6 +50,7 @@ import {
   WaitForUiNodeProps,
 } from "../../lib/types";
 import useLoadProperties from "../../lib/useLoadProperties";
+import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
@@ -320,6 +324,27 @@ function MessageNodeFields({
     });
   };
 
+  const onProviderOverrideChangeHandler = (provider: string | null) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.MessageNode) {
+        switch (props.channel) {
+          case ChannelType.Email:
+            props.providerOverride = provider as EmailProviderType;
+            break;
+          case ChannelType.Sms:
+            props.providerOverride = provider as SmsProviderType;
+            break;
+          case ChannelType.Webhook:
+            break;
+          case ChannelType.MobilePush:
+            props.providerOverride = provider as MobilePushProviderType;
+            break;
+        }
+      }
+    });
+  };
+
   return (
     <>
       <FormControl>
@@ -395,6 +420,15 @@ function MessageNodeFields({
             disabled={disabled}
           />
         </Stack>
+      ) : null}
+      {nodeProps.channel === ChannelType.Email ||
+      nodeProps.channel === ChannelType.Sms ? (
+        <ChannelProviderAutocomplete
+          providerOverride={nodeProps.providerOverride}
+          channel={nodeProps.channel}
+          disabled={disabled}
+          handler={onProviderOverrideChangeHandler}
+        />
       ) : null}
     </>
   );
