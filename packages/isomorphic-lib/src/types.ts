@@ -3,6 +3,10 @@ import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
+export type RenameKey<T, K extends keyof T, N extends string> = {
+  [P in keyof T as P extends K ? N : P]: T[P];
+};
+
 export enum JsonResultType {
   Ok = "Ok",
   Err = "Err",
@@ -740,7 +744,7 @@ export const MessageVariant = Type.Union([
   WebhookMessageVariant,
 ]);
 
-export type MessageVariants = Static<typeof MessageVariant>;
+export type MessageVariant = Static<typeof MessageVariant>;
 
 export const MessageNode = Type.Object(
   {

@@ -15,7 +15,8 @@ import {
   BadWorkspaceConfigurationType,
   InternalEventType,
   JSONValue,
-  MessageChannelUiNodeProps,
+  MessageVariant,
+  RenameKey,
   TrackData,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
@@ -32,11 +33,10 @@ type BaseSendParams = {
   workspaceId: string;
   runId: string;
   nodeId: string;
-  templateId: string;
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
-} & MessageChannelUiNodeProps;
+} & RenameKey<MessageVariant, "type", "channel">;
 
 export type SendParams = Omit<BaseSendParams, "channel">;
 

@@ -1531,6 +1531,7 @@ export async function sendWebhook({
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
+  logger().debug({ params }, "sending message");
   switch (params.channel) {
     case ChannelType.Email:
       return sendEmail(params);

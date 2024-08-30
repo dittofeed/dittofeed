@@ -8,15 +8,19 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
+import { omit } from "remeda";
 
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
+  ChannelType,
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
   JSONValue,
+  MessageVariant,
+  RenameKey,
   SegmentUpdate,
   WaitForNode,
 } from "../types";
@@ -286,21 +290,52 @@ export async function userJourneyWorkflow({
       }
       case JourneyNodeType.MessageNode: {
         const messageId = uuid4();
-        const messagePayload: activities.SendParams = {
+        const messagePayload: Omit<activities.SendParams, "templateId"> = {
           userId,
           workspaceId,
           journeyId,
           subscriptionGroupId: currentNode.subscriptionGroupId,
           runId,
           nodeId: currentNode.id,
-          templateId: currentNode.variant.templateId,
           messageId,
         };
 
+        let variant: RenameKey<MessageVariant, "type", "channel">;
+        switch (currentNode.variant.type) {
+          case ChannelType.Email: {
+            variant = {
+              ...omit(currentNode.variant, ["type"]),
+              channel: currentNode.variant.type,
+            };
+            break;
+          }
+          case ChannelType.Sms: {
+            variant = {
+              ...omit(currentNode.variant, ["type"]),
+              channel: currentNode.variant.type,
+            };
+            break;
+          }
+          case ChannelType.Webhook: {
+            variant = {
+              ...omit(currentNode.variant, ["type"]),
+              channel: currentNode.variant.type,
+            };
+            break;
+          }
+          case ChannelType.MobilePush: {
+            variant = {
+              ...omit(currentNode.variant, ["type"]),
+              channel: currentNode.variant.type,
+            };
+            break;
+          }
+        }
+
         const shouldContinue = await sendMessageV2({
-          channel: currentNode.variant.type,
           context,
           ...messagePayload,
+          ...variant,
         });
 
         if (!shouldContinue) {
