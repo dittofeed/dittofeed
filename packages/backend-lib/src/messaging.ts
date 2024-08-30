@@ -552,6 +552,7 @@ export async function sendEmail({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    tags: messageTags,
     templates: {
       from: {
         contents: messageTemplateDefinition.from,
@@ -1140,6 +1141,7 @@ export async function sendSms({
   useDraft,
   providerOverride,
   userId,
+  messageTags,
   disableCallback = false,
 }: Omit<
   SendMessageParametersSms,
@@ -1203,6 +1205,7 @@ export async function sendSms({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    tags: messageTags,
     templates: {
       body: {
         contents: messageTemplateDefinition.body,
