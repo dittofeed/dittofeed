@@ -47,6 +47,7 @@ import {
   WaitForUiNodeProps,
 } from "../../lib/types";
 import useLoadProperties from "../../lib/useLoadProperties";
+import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
@@ -320,6 +321,15 @@ function MessageNodeFields({
     });
   };
 
+  const onProviderOverrideChangeHandler = (provider: string | null) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.MessageNode) {
+        props.providerOverride = provider;
+      }
+    });
+  };
+
   return (
     <>
       <FormControl>
@@ -396,6 +406,12 @@ function MessageNodeFields({
           />
         </Stack>
       ) : null}
+      <ChannelProviderAutocomplete
+        providerOverride={nodeProps.providerOverride}
+        channel={nodeProps.channel}
+        disabled={disabled}
+        handler={onProviderOverrideChangeHandler}
+      />
     </>
   );
 }
