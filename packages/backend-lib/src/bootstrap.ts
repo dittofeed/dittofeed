@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, WorkspaceType } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
@@ -30,22 +30,24 @@ import {
   NodeEnvEnum,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
+  Workspace,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
 
-async function bootstrapPostgres({
+export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
+  workspaceType,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
-}): Promise<{ workspaceId: string }> {
-  await prismaMigrate();
-
+  workspaceType?: WorkspaceType;
+}): Promise<Workspace> {
   logger().info(
     {
       workspaceName,
       workspaceDomain,
+      workspaceType,
     },
     "Upserting workspace.",
   );
@@ -55,10 +57,12 @@ async function bootstrapPostgres({
     },
     update: {
       domain: workspaceDomain,
+      type: workspaceType,
     },
     create: {
       name: workspaceName,
       domain: workspaceDomain,
+      type: workspaceType,
     },
   });
   const workspaceId = workspace.id;
@@ -196,7 +200,7 @@ async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
-  return { workspaceId };
+  return workspace;
 }
 
 async function bootstrapKafka() {
@@ -316,10 +320,12 @@ export default async function bootstrap({
   workspaceName: string;
   workspaceDomain?: string;
 }): Promise<{ workspaceId: string }> {
-  const { workspaceId } = await bootstrapPostgres({
+  await prismaMigrate();
+  const workspace = await bootstrapPostgres({
     workspaceName,
     workspaceDomain,
   });
+  const workspaceId = workspace.id;
 
   const initialBootstrap = [
     bootstrapClickhouse().catch(
