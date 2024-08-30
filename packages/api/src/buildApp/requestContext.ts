@@ -1,4 +1,5 @@
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
   RequestContextErrorType,
@@ -9,7 +10,6 @@ import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
 import { getWorkspaceId } from "../workspace";
-import logger from "backend-lib/src/logger";
 
 export function requestToSessionValue(request: FastifyRequest):
   | {
