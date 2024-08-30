@@ -146,7 +146,10 @@ export async function getDeliveryBody({
     format: "JSONEachRow",
   });
   const results = await result.json();
-  const delivery = results[0] as { properties: string };
+  const delivery = results[0] as { properties: string } | undefined;
+  if (!delivery) {
+    return null;
+  }
   const propertiesResult = jsonParseSafe(delivery.properties);
   if (propertiesResult.isErr()) {
     return null;
