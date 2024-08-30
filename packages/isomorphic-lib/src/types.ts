@@ -78,7 +78,26 @@ export const ChannelType = {
   Webhook: "Webhook",
 } as const;
 
+export enum EmailProviderType {
+  Sendgrid = "SendGrid",
+  AmazonSes = "AmazonSes",
+  Resend = "Resend",
+  PostMark = "PostMark",
+  Smtp = "Smtp",
+  Test = "Test",
+}
+
+export enum MobilePushProviderType {
+  Firebase = "Firebase",
+  Test = "Test",
+}
+
 export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
+
+export enum SmsProviderType {
+  Twilio = "Twilio",
+  Test = "Test",
+}
 
 export const SubscriptionGroupResource = Type.Object({
   id: Type.String(),
@@ -686,6 +705,7 @@ export type RateLimitNode = Static<typeof RateLimitNode>;
 export const EmailMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
@@ -693,6 +713,7 @@ export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
 export const MobilePushMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.MobilePush),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(MobilePushProviderType)),
 });
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
@@ -700,6 +721,7 @@ export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 export const SmsMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   templateId: Type.String(),
+  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
 });
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
@@ -1262,20 +1284,6 @@ export type RequestStatus<V, E> =
   | InProgressRequest
   | SuccessfulRequest<V>
   | FailedRequest<E>;
-
-export enum EmailProviderType {
-  Sendgrid = "SendGrid",
-  AmazonSes = "AmazonSes",
-  Resend = "Resend",
-  PostMark = "PostMark",
-  Smtp = "Smtp",
-  Test = "Test",
-}
-
-export enum MobilePushProviderType {
-  Firebase = "Firebase",
-  Test = "Test",
-}
 
 export const TestEmailProvider = Type.Object({
   id: Type.String(),
@@ -2695,11 +2703,6 @@ export const JourneyStatsRequest = Type.Object({
 });
 
 export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
-
-export enum SmsProviderType {
-  Twilio = "Twilio",
-  Test = "Test",
-}
 
 export const TwilioSecret = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
