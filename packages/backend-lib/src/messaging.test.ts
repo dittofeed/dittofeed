@@ -1,4 +1,9 @@
-import { MessageTemplate, SubscriptionGroup, Workspace } from "@prisma/client";
+import {
+  MessageTemplate,
+  SubscriptionGroup,
+  Workspace,
+  WorkspaceType,
+} from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -58,11 +63,71 @@ describe("messaging", () => {
     });
   });
   describe("sendEmail", () => {
-    describe("when sent from a child workspace", () => {
-      it("should use the parent workspace's email provider", async () => {});
+    describe.only("when sent from a child workspace", () => {
+      let childWorkspace: Workspace;
+      let parentWorkspace: Workspace;
+      let template: MessageTemplate;
+      let subscriptionGroup: SubscriptionGroup;
+
+      beforeEach(async () => {
+        [parentWorkspace, childWorkspace] = await Promise.all([
+          prisma().workspace.create({
+            data: {
+              name: `parent-workspace-${randomUUID()}`,
+              type: WorkspaceType.Parent,
+            },
+          }),
+          prisma().workspace.create({
+            data: {
+              name: `child-workspace-${randomUUID()}`,
+              type: WorkspaceType.Child,
+            },
+          }),
+        ]);
+        await prisma().workspaceRelation.create({
+          data: {
+            parentWorkspaceId: parentWorkspace.id,
+            childWorkspaceId: childWorkspace.id,
+          },
+        });
+        ({ template, subscriptionGroup } =
+          await setupEmailTemplate(parentWorkspace));
+      });
+
+      it("should use the parent workspace's email provider", async () => {
+        const userId = 1234;
+        const email = "test@email.com";
+
+        const payload = await sendEmail({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId: template.id,
+            runId: "run-id-1",
+            nodeId: "node-id-1",
+            messageId: "message-id-1",
+          } satisfies MessageTags,
+          userPropertyAssignments: {
+            id: userId,
+            email,
+          },
+          userId: String(userId),
+          useDraft: false,
+          subscriptionGroupDetails: {
+            id: subscriptionGroup.id,
+            name: subscriptionGroup.name,
+            type: SubscriptionGroupType.OptOut,
+            action: null,
+          },
+          providerOverride: EmailProviderType.Test,
+        });
+        const unwrapped = unwrap(payload);
+        expect(unwrapped.type).toBe(InternalEventType.MessageSent);
+      });
     });
 
-    describe.only("when an email to a user with a numeric id includes an unsusbcribe link tag", () => {
+    describe("when an email to a user with a numeric id includes an unsusbcribe link tag", () => {
       let template: MessageTemplate;
       let subscriptionGroup: SubscriptionGroup;
       beforeEach(async () => {
