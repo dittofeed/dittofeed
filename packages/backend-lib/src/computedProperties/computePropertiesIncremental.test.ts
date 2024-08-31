@@ -824,11 +824,45 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
           users: [
             {
               id: "user-1",
               segments: {
                 test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "does not match",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
               },
             },
           ],
