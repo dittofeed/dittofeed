@@ -63,7 +63,7 @@ describe("messaging", () => {
     });
   });
   describe("sendEmail", () => {
-    describe.only("when sent from a child workspace", () => {
+    describe("when sent from a child workspace", () => {
       let childWorkspace: Workspace;
       let parentWorkspace: Workspace;
       let template: MessageTemplate;
@@ -90,8 +90,35 @@ describe("messaging", () => {
             childWorkspaceId: childWorkspace.id,
           },
         });
-        ({ template, subscriptionGroup } =
-          await setupEmailTemplate(parentWorkspace));
+        [template, subscriptionGroup] = await Promise.all([
+          prisma().messageTemplate.create({
+            data: {
+              workspaceId: childWorkspace.id,
+              name: `template-${randomUUID()}`,
+              definition: {
+                type: ChannelType.Email,
+                from: "support@company.com",
+                subject: "Hello",
+                body: "{% unsubscribe_link here %}.",
+              } satisfies EmailTemplateResource,
+            },
+          }),
+          prisma().subscriptionGroup.create({
+            data: {
+              workspaceId: childWorkspace.id,
+              name: `group-${randomUUID()}`,
+              type: "OptOut",
+              channel: ChannelType.Email,
+            },
+          }),
+          upsertSubscriptionSecret({
+            workspaceId: childWorkspace.id,
+          }),
+          upsertEmailProvider({
+            workspaceId: parentWorkspace.id,
+            type: EmailProviderType.Test,
+          }),
+        ]);
       });
 
       it("should use the parent workspace's email provider", async () => {
@@ -99,10 +126,10 @@ describe("messaging", () => {
         const email = "test@email.com";
 
         const payload = await sendEmail({
-          workspaceId: workspace.id,
+          workspaceId: childWorkspace.id,
           templateId: template.id,
           messageTags: {
-            workspaceId: workspace.id,
+            workspaceId: childWorkspace.id,
             templateId: template.id,
             runId: "run-id-1",
             nodeId: "node-id-1",
