@@ -15,6 +15,38 @@ import {
   SubscriptionGroupType,
 } from "./types";
 
+async function setupEmailTemplate(workspace: Workspace) {
+  const [template, subscriptionGroup] = await Promise.all([
+    prisma().messageTemplate.create({
+      data: {
+        workspaceId: workspace.id,
+        name: `template-${randomUUID()}`,
+        definition: {
+          type: ChannelType.Email,
+          from: "support@company.com",
+          subject: "Hello",
+          body: "{% unsubscribe_link here %}.",
+        } satisfies EmailTemplateResource,
+      },
+    }),
+    prisma().subscriptionGroup.create({
+      data: {
+        workspaceId: workspace.id,
+        name: `group-${randomUUID()}`,
+        type: "OptOut",
+        channel: ChannelType.Email,
+      },
+    }),
+    upsertEmailProvider({
+      workspaceId: workspace.id,
+      type: EmailProviderType.Test,
+    }),
+    upsertSubscriptionSecret({
+      workspaceId: workspace.id,
+    }),
+  ]);
+  return { template, subscriptionGroup };
+}
 describe("messaging", () => {
   let workspace: Workspace;
 
@@ -26,37 +58,15 @@ describe("messaging", () => {
     });
   });
   describe("sendEmail", () => {
-    describe("when an email to a user with a numeric id includes an unsusbcribe link tag", () => {
+    describe("when sent from a child workspace", () => {
+      it("should use the parent workspace's email provider", async () => {});
+    });
+
+    describe.only("when an email to a user with a numeric id includes an unsusbcribe link tag", () => {
       let template: MessageTemplate;
       let subscriptionGroup: SubscriptionGroup;
       beforeEach(async () => {
-        await upsertEmailProvider({
-          workspaceId: workspace.id,
-          type: EmailProviderType.Test,
-        });
-        await upsertSubscriptionSecret({
-          workspaceId: workspace.id,
-        });
-        template = await prisma().messageTemplate.create({
-          data: {
-            workspaceId: workspace.id,
-            name: `template-${randomUUID()}`,
-            definition: {
-              type: ChannelType.Email,
-              from: "support@company.com",
-              subject: "Hello",
-              body: "{% unsubscribe_link here %}.",
-            } satisfies EmailTemplateResource,
-          },
-        });
-        subscriptionGroup = await prisma().subscriptionGroup.create({
-          data: {
-            workspaceId: workspace.id,
-            name: `group-${randomUUID()}`,
-            type: "OptOut",
-            channel: ChannelType.Email,
-          },
-        });
+        ({ template, subscriptionGroup } = await setupEmailTemplate(workspace));
       });
       it("should render the tag", async () => {
         const userId = 1234;
