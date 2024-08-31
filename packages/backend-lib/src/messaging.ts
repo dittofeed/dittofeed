@@ -416,7 +416,7 @@ function renderValues<T extends TemplateDictionary<T>>({
   return ok(coercedResult);
 }
 
-async function getSmsProvider({
+async function getSmsProviderForWorkspace({
   providerOverride,
   workspaceId,
 }: {
@@ -451,6 +451,36 @@ async function getSmsProvider({
   return defaultProvider?.smsProvider ?? null;
 }
 
+async function getSmsProvider({
+  providerOverride,
+  workspaceId,
+}: {
+  workspaceId: string;
+  providerOverride?: SmsProviderType;
+}): Promise<(SmsProvider & { secret: Secret | null }) | null> {
+  const provider = await getSmsProviderForWorkspace({
+    workspaceId,
+    providerOverride,
+  });
+  logger().debug({ provider }, "sms provider");
+  if (provider) {
+    return provider;
+  }
+  const relation = await prisma().workspaceRelation.findFirst({
+    where: {
+      childWorkspaceId: workspaceId,
+    },
+  });
+  logger().debug({ relation }, "workspace relation");
+  if (!relation) {
+    return null;
+  }
+  return getSmsProviderForWorkspace({
+    workspaceId: relation.parentWorkspaceId,
+    providerOverride,
+  });
+}
+
 function getMessageFileId({
   messageId,
   name,
@@ -461,13 +491,15 @@ function getMessageFileId({
   return `${messageId}-${name}`;
 }
 
-async function getEmailProvider({
+type EmailProviderPayload = (EmailProvider & { secret: Secret | null }) | null;
+
+async function getEmailProviderForWorkspace({
   providerOverride,
   workspaceId,
 }: {
   workspaceId: string;
   providerOverride?: EmailProviderType;
-}): Promise<(EmailProvider & { secret: Secret | null }) | null> {
+}): Promise<EmailProviderPayload> {
   if (providerOverride) {
     return prisma().emailProvider.findUnique({
       where: {
@@ -494,6 +526,36 @@ async function getEmailProvider({
     },
   });
   return defaultProvider?.emailProvider ?? null;
+}
+
+async function getEmailProvider({
+  providerOverride,
+  workspaceId,
+}: {
+  workspaceId: string;
+  providerOverride?: EmailProviderType;
+}): Promise<EmailProviderPayload> {
+  const provider = await getEmailProviderForWorkspace({
+    workspaceId,
+    providerOverride,
+  });
+  logger().debug({ provider }, "email provider");
+  if (provider) {
+    return provider;
+  }
+  const relation = await prisma().workspaceRelation.findFirst({
+    where: {
+      childWorkspaceId: workspaceId,
+    },
+  });
+  logger().debug({ relation }, "workspace relation");
+  if (!relation) {
+    return null;
+  }
+  return getEmailProviderForWorkspace({
+    workspaceId: relation.parentWorkspaceId,
+    providerOverride,
+  });
 }
 
 export async function sendEmail({
