@@ -37,8 +37,10 @@ import {
   RandomBucketSegmentNode,
   RelationalOperators,
   SegmentEqualsOperator,
+  SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
   SegmentHasBeenOperatorComparator,
+  SegmentLessThanOperator,
   SegmentNode,
   SegmentNodeType,
   SegmentNotEqualsOperator,
@@ -175,12 +177,24 @@ const notEqualsOperatorOption = {
   label: "Not Equals",
 };
 
+const lessThanOperatorOption = {
+  id: SegmentOperatorType.LessThan,
+  label: "Less Than",
+};
+
+const greaterThanOrEqualOperatorOption = {
+  id: SegmentOperatorType.GreaterThanOrEqual,
+  label: "Greater Than Or Equal",
+};
+
 const operatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
+  lessThanOperatorOption,
+  greaterThanOrEqualOperatorOption,
 ];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
@@ -189,6 +203,8 @@ const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
   [SegmentOperatorType.Exists]: existsOperatorOption,
   [SegmentOperatorType.NotEquals]: notEqualsOperatorOption,
+  [SegmentOperatorType.LessThan]: lessThanOperatorOption,
+  [SegmentOperatorType.GreaterThanOrEqual]: greaterThanOrEqualOperatorOption,
 };
 const relationalOperatorNames: [RelationalOperators, string][] = [
   [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
@@ -262,16 +278,55 @@ function ValueSelect({
   };
 
   return (
-    <Stack direction="row" spacing={1}>
-      <Box sx={{ width: selectorWidth }}>
-        <TextField
-          disabled={disabled}
-          label="Value"
-          value={value}
-          onChange={handleChange}
-        />
-      </Box>
-    </Stack>
+    <Box sx={{ width: selectorWidth }}>
+      <TextField
+        disabled={disabled}
+        label="Value"
+        value={value}
+        onChange={handleChange}
+      />
+    </Box>
+  );
+}
+
+function NumericValueSelect({
+  nodeId,
+  operator,
+}: {
+  nodeId: string;
+  operator: SegmentLessThanOperator | SegmentGreaterThanOrEqualOperator;
+}) {
+  const { value } = operator;
+  const { disabled } = useContext(DisabledContext);
+
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData,
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateSegmentNodeData(nodeId, (node) => {
+      if (
+        node.type === SegmentNodeType.Trait &&
+        (node.operator.type === SegmentOperatorType.LessThan ||
+          node.operator.type === SegmentOperatorType.GreaterThanOrEqual)
+      ) {
+        node.operator.value = Number(e.target.value);
+      }
+    });
+  };
+
+  return (
+    <Box sx={{ width: selectorWidth }}>
+      <TextField
+        disabled={disabled}
+        label="Value"
+        value={value}
+        InputProps={{
+          type: "number",
+        }}
+        onChange={handleChange}
+      />
+    </Box>
   );
 }
 
@@ -833,6 +888,18 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = null;
       break;
     }
+    case SegmentOperatorType.LessThan: {
+      valueSelect = (
+        <NumericValueSelect nodeId={node.id} operator={node.operator} />
+      );
+      break;
+    }
+    case SegmentOperatorType.GreaterThanOrEqual: {
+      valueSelect = (
+        <NumericValueSelect nodeId={node.id} operator={node.operator} />
+      );
+      break;
+    }
     default: {
       assertUnreachable(node.operator);
     }
@@ -918,6 +985,20 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     nodeOperator = {
                       type: SegmentOperatorType.NotEquals,
                       value: "",
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.LessThan: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.LessThan,
+                      value: 0,
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.GreaterThanOrEqual: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.GreaterThanOrEqual,
+                      value: 0,
                     };
                     break;
                   }

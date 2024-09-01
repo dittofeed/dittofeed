@@ -1011,12 +1011,30 @@ function segmentToResolvedState({
             }),
           ];
         }
-        case SegmentOperatorType.NotEquals: {
+        case SegmentOperatorType.GreaterThanOrEqual: {
+          const varName = qb.getVariableName();
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+                node.operator.value,
+                "String",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.LessThan: {
+          const varName = qb.getVariableName();
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
                 node.operator.value,
                 "String",
               )}`,

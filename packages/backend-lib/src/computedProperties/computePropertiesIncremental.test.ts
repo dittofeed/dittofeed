@@ -824,11 +824,247 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
           users: [
             {
               id: "user-1",
               segments: {
                 test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "does not match",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a trait segment with the greater than operator",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "0",
+              path: "age",
+              operator: {
+                type: SegmentOperatorType.GreaterThanOrEqual,
+                value: 20.5,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 21.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              lastValue: "21.5",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              segmentStateValue: true,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 19.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a trait segment with the less than operator",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "0",
+              path: "age",
+              operator: {
+                type: SegmentOperatorType.LessThan,
+                value: 20.5,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 19.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              lastValue: "19.5",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              segmentStateValue: true,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 21.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
               },
             },
           ],

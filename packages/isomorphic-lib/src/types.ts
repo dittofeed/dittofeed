@@ -153,6 +153,8 @@ export enum SegmentOperatorType {
   HasBeen = "HasBeen",
   NotEquals = "NotEquals",
   Exists = "Exists",
+  GreaterThanOrEqual = "GreaterThanOrEqual",
+  LessThan = "LessThan",
 }
 
 export enum SegmentHasBeenOperatorComparator {
@@ -196,12 +198,30 @@ export const SegmentNotEqualsOperator = Type.Object({
 
 export type SegmentNotEqualsOperator = Static<typeof SegmentNotEqualsOperator>;
 
+export const SegmentGreaterThanOrEqualOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.GreaterThanOrEqual),
+  value: Type.Number(),
+});
+
+export type SegmentGreaterThanOrEqualOperator = Static<
+  typeof SegmentGreaterThanOrEqualOperator
+>;
+
+export const SegmentLessThanOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.LessThan),
+  value: Type.Number(),
+});
+
+export type SegmentLessThanOperator = Static<typeof SegmentLessThanOperator>;
+
 export const SegmentOperator = Type.Union([
   SegmentWithinOperator,
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,
   SegmentHasBeenOperator,
   ExistsOperator,
+  SegmentGreaterThanOrEqualOperator,
+  SegmentLessThanOperator,
 ]);
 
 export type SegmentOperator = Static<typeof SegmentOperator>;
