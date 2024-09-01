@@ -1461,6 +1461,18 @@ export function segmentNodeToStateSubQuery({
           },
         ];
       }
+      if (node.operator.type === SegmentOperatorType.GreaterThanOrEqual) {
+        const varName = qb.getVariableName();
+        return [
+          {
+            condition: `event_type == 'identify' and (toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) != NULL`,
+            type: "segment",
+            argMaxFloatValue: `assumeNotNull(${varName})`,
+            computedPropertyId: segment.id,
+            stateId,
+          },
+        ];
+      }
       const eventTimeExpression: string | undefined =
         node.operator.type === SegmentOperatorType.HasBeen ||
         node.operator.type === SegmentOperatorType.Within
