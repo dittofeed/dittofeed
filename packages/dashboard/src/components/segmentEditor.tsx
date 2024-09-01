@@ -502,6 +502,70 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         );
         break;
       }
+      case SegmentOperatorType.GreaterThanOrEqual: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.Performed) {
+              const newValue = Number(e.target.value);
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !==
+                  SegmentOperatorType.GreaterThanOrEqual ||
+                Number.isNaN(newValue)
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            InputProps={{
+              type: "number",
+            }}
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.LessThan: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.Performed) {
+              const newValue = Number(e.target.value);
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !==
+                  SegmentOperatorType.LessThan ||
+                Number.isNaN(newValue)
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            InputProps={{
+              type: "number",
+            }}
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
       case SegmentOperatorType.Exists: {
         operatorEl = null;
         break;
@@ -543,6 +607,12 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
+            {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.LessThan}>
+            {keyedOperatorOptions[SegmentOperatorType.LessThan].label}
           </MenuItem>
         </Select>
         {operatorEl}
