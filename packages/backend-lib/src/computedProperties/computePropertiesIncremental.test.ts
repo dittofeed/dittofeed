@@ -381,6 +381,7 @@ interface TableUser {
 
 enum EventsStepType {
   SubmitEvents = "SubmitEvents",
+  SubmitEventsTimes = "SubmitEventsTimes",
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
@@ -399,6 +400,12 @@ type EventBuilder = (ctx: StepContext) => TestEvent;
 interface SubmitEventsStep {
   type: EventsStepType.SubmitEvents;
   events: (TestEvent | EventBuilder)[];
+}
+
+interface SubmitEventsTimesStep {
+  type: EventsStepType.SubmitEventsTimes;
+  times: number;
+  events: ((ctx: StepContext, i: number) => TestEvent)[];
 }
 
 interface ComputePropertiesStep {
@@ -454,6 +461,7 @@ interface UpdateComputedPropertyStep {
 
 type TableStep =
   | SubmitEventsStep
+  | SubmitEventsTimesStep
   | ComputePropertiesStep
   | AssertStep
   | SleepStep
@@ -4888,6 +4896,20 @@ describe("computeProperties", () => {
               events.push(event(stepContext));
             } else {
               events.push(event);
+            }
+          }
+          await submitBatch({
+            workspaceId,
+            data: events,
+            now,
+          });
+          break;
+        }
+        case EventsStepType.SubmitEventsTimes: {
+          const events: TestEvent[] = [];
+          for (let i = 0; i < step.times; i++) {
+            for (const event of step.events) {
+              events.push(event(stepContext, i));
             }
           }
           await submitBatch({
