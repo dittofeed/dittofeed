@@ -1017,7 +1017,7 @@ function segmentToResolvedState({
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) != NUll and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
                 node.operator.value,
                 "String",
               )}`,

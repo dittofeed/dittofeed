@@ -879,7 +879,7 @@ describe("computeProperties", () => {
           definition: {
             entryNode: {
               type: SegmentNodeType.Trait,
-              id: randomUUID(),
+              id: "0",
               path: "age",
               operator: {
                 type: SegmentOperatorType.GreaterThanOrEqual,
@@ -910,6 +910,23 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is initially in the segment when they match",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              lastValue: "21.5",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              segmentStateValue: true,
+            },
+          ],
           users: [
             {
               id: "user-1",
