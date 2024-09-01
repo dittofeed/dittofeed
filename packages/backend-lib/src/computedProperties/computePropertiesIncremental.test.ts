@@ -4944,17 +4944,22 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.SubmitEventsTimes: {
-          const events: TestEvent[] = [];
+          const batchSize = 1000;
           for (let i = 0; i < step.times; i++) {
+            let events: TestEvent[] = [];
             for (const event of step.events) {
               events.push(event(stepContext, i));
             }
+
+            if (events.length >= batchSize || i === step.times - 1) {
+              await submitBatch({
+                workspaceId,
+                data: events,
+                now,
+              });
+              events = [];
+            }
           }
-          await submitBatch({
-            workspaceId,
-            data: events,
-            now,
-          });
           break;
         }
         case EventsStepType.DebugAssignments: {
