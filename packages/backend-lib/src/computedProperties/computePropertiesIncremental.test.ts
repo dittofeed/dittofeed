@@ -619,6 +619,44 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "can efficiently process a large number of user property assignments without OOM'ing",
+      // fixme
+      only: true,
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEventsTimes,
+          // succeeds with 10 but fails with 4,000,000
+          // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
+          times: 4000000,
+          // times: 10,
+          events: [
+            (_ctx, i) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: `user-${i}`,
+              traits: {
+                email: `test${i}@email.com`,
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+      ],
+    },
+    {
       description: "does not throw with an invalid trait user property",
       userProperties: [
         {
