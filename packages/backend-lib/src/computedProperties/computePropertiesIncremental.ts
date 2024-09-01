@@ -1012,7 +1012,23 @@ function segmentToResolvedState({
             }),
           ];
         }
-        case SegmentOperatorType.NotEquals: {
+        case SegmentOperatorType.GreaterThanOrEqual: {
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `argMaxMerge(last_value_float64) >= ${qb.addQueryValue(
+                node.operator.value,
+                "String",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.LessThan: {
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
