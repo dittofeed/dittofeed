@@ -871,7 +871,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment with the greater than operator",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -974,8 +973,6 @@ describe("computeProperties", () => {
     {
       description: "computes a trait segment with the less than operator",
       userProperties: [],
-      // FIXME test should not be passing
-      only: true,
       segments: [
         {
           name: "test",

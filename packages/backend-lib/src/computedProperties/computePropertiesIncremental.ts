@@ -1029,22 +1029,21 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.LessThan: {
-          // FIXME not hitting this code path
-          throw new Error("not implemented");
-          // return [
-          //   buildRecentUpdateSegmentQuery({
-          //     workspaceId,
-          //     stateId,
-          //     expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
-          //       node.operator.value,
-          //       "String",
-          //     )}`,
-          //     segmentId: segment.id,
-          //     now,
-          //     periodBound,
-          //     qb,
-          //   }),
-          // ];
+          const varName = qb.getVariableName();
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
+                node.operator.value,
+                "String",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
         }
         case SegmentOperatorType.Exists: {
           return [
