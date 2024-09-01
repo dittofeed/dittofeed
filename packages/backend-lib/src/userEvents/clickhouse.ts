@@ -101,6 +101,7 @@ export async function createUserEventsTables({
           state_id LowCardinality(String),
           user_id String,
           last_value AggregateFunction(argMax, String, DateTime64(3)),
+          last_value_float64 AggregateFunction(argMax, Float64, DateTime64(3)),
           unique_count AggregateFunction(uniq, String),
           event_time DateTime64(3),
           grouped_message_ids AggregateFunction(groupArray, String),

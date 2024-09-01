@@ -302,6 +302,7 @@ interface FullSubQueryData {
   computedPropertyId: string;
   stateId: string;
   argMaxValue?: string;
+  argMaxFloatValue?: string;
   uniqValue?: string;
   eventTimeExpression?: string;
   recordMessageId?: boolean;
@@ -2527,6 +2528,7 @@ export async function computeState({
               '${subQuery.stateId}' as state_id,
               ue.user_id,
               argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
+              argMaxState(${subQuery.argMaxFloatValue ?? "toFloat64(0)"} as last_value_float64, ue.event_time),
               uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
               ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"} as truncated_event_time,
               groupArrayState(${subQuery.recordMessageId ? "message_id" : "''"}  as grouped_message_id),

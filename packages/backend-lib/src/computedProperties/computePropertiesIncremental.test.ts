@@ -870,6 +870,91 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a trait segment with the greater than operator",
+      only: true,
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "age",
+              operator: {
+                type: SegmentOperatorType.GreaterThanOrEqual,
+                value: 20.5,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 21.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 19.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a nested trait segment",
       userProperties: [],
       segments: [
