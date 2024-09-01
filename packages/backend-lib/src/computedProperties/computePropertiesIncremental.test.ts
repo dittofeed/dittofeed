@@ -2386,7 +2386,7 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with greater than property operator",
-      // fixme
+      only: true,
       userProperties: [
         {
           name: "email",
@@ -2449,7 +2449,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "includes user who matches the property condition",
+          description: "includes a user above the age threshold",
           users: [
             {
               id: "user-1",
@@ -4917,7 +4917,7 @@ describe("computeProperties", () => {
         case EventsStepType.Sleep:
           now += step.timeMs;
           break;
-        case EventsStepType.Assert:
+        case EventsStepType.Assert: {
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
               let user: TableUser;
@@ -5128,7 +5128,7 @@ describe("computeProperties", () => {
           await periodsAssertions;
           await indexedStatesAssertions;
           await resolvedSegmentStatesAssertions;
-          await usersAssertions;
+          await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
@@ -5161,6 +5161,7 @@ describe("computeProperties", () => {
             }
           }
           break;
+        }
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({
             workspaceId,
