@@ -2385,6 +2385,104 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segments with numeric operators",
+      userProperties: [],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.GreaterThanOrEqual,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+        {
+          name: "performed2",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.LessThan,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                age: 18,
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+              properties: {
+                age: 22,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "includes a user above the age threshold",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
+                performed2: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+                performed2: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
       userProperties: [
@@ -4834,7 +4932,7 @@ describe("computeProperties", () => {
         case EventsStepType.Sleep:
           now += step.timeMs;
           break;
-        case EventsStepType.Assert:
+        case EventsStepType.Assert: {
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
               let user: TableUser;
@@ -5045,7 +5143,7 @@ describe("computeProperties", () => {
           await periodsAssertions;
           await indexedStatesAssertions;
           await resolvedSegmentStatesAssertions;
-          await usersAssertions;
+          await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
@@ -5078,6 +5176,7 @@ describe("computeProperties", () => {
             }
           }
           break;
+        }
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({
             workspaceId,

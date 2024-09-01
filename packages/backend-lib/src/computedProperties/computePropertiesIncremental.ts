@@ -1019,7 +1019,7 @@ function segmentToResolvedState({
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
                 node.operator.value,
-                "String",
+                "Float64",
               )}`,
               segmentId: segment.id,
               now,
@@ -1035,6 +1035,22 @@ function segmentToResolvedState({
               workspaceId,
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
+                node.operator.value,
+                "Float64",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.NotEquals: {
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
                 node.operator.value,
                 "String",
               )}`,
@@ -1519,6 +1535,20 @@ export function segmentNodeToStateSubQuery({
           }
           case SegmentOperatorType.Exists: {
             return `JSON_VALUE(properties, ${path}) != ''`;
+          }
+          case SegmentOperatorType.GreaterThanOrEqual: {
+            const varName = qb.getVariableName();
+            return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+              property.operator.value,
+              "Float64",
+            )}`;
+          }
+          case SegmentOperatorType.LessThan: {
+            const varName = qb.getVariableName();
+            return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
+              property.operator.value,
+              "Float64",
+            )}`;
           }
           default:
             throw new Error(
@@ -2454,11 +2484,7 @@ export async function computeState({
   return withSpan({ name: "compute-state" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
-    const qb = new ClickHouseQueryBuilder({
-      debug:
-        config().nodeEnv === NodeEnvEnum.Development ||
-        config().nodeEnv === NodeEnvEnum.Test,
-    });
+    const qb = new ClickHouseQueryBuilder();
     let subQueryData: FullSubQueryData[] = [];
 
     for (const segment of segments) {
