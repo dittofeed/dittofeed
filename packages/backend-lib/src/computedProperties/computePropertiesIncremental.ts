@@ -5,6 +5,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
+import pLimit, { Limit } from "p-limit";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -41,7 +42,6 @@ import {
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   ManualSegmentNode,
-  NodeEnvEnum,
   PerformedSegmentNode,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -66,6 +66,18 @@ import {
   getPeriodsByComputedPropertyId,
   PeriodByComputedPropertyId,
 } from "./periods";
+
+let LIMIT: Limit | null = null;
+
+function limit(): Limit {
+  if (!LIMIT) {
+    const concurrency = config().readQueryConcurrency;
+    const newLimit = pLimit(concurrency);
+    LIMIT = newLimit;
+    return newLimit;
+  }
+  return LIMIT;
+}
 
 /**
  * Use to round event timestamps to the nearest interval, to reduce the
