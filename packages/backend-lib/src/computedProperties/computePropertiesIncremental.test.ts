@@ -2385,16 +2385,8 @@ describe("computeProperties", () => {
       ],
     },
     {
-      description: "performed segment with greater than property operator",
-      userProperties: [
-        {
-          name: "email",
-          definition: {
-            type: UserPropertyDefinitionType.Trait,
-            path: "email",
-          },
-        },
-      ],
+      description: "performed segments with numeric operators",
+      userProperties: [],
       segments: [
         {
           name: "performed",
@@ -2410,6 +2402,28 @@ describe("computeProperties", () => {
                   path: "age",
                   operator: {
                     type: SegmentOperatorType.GreaterThanOrEqual,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+        {
+          name: "performed2",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.LessThan,
                     value: 20,
                   },
                 },
@@ -2454,12 +2468,14 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 performed: null,
+                performed2: true,
               },
             },
             {
               id: "user-2",
               segments: {
                 performed: true,
+                performed2: null,
               },
             },
           ],
