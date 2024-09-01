@@ -2386,7 +2386,7 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with greater than property operator",
-      only: true,
+      // fixme
       userProperties: [
         {
           name: "email",

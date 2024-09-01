@@ -1520,6 +1520,13 @@ export function segmentNodeToStateSubQuery({
           case SegmentOperatorType.Exists: {
             return `JSON_VALUE(properties, ${path}) != ''`;
           }
+          case SegmentOperatorType.GreaterThanOrEqual: {
+            const varName = qb.getVariableName();
+            return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+              property.operator.value,
+              "String",
+            )}`;
+          }
           default:
             throw new Error(
               `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
