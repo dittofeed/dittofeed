@@ -1029,20 +1029,22 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.LessThan: {
-          return [
-            buildRecentUpdateSegmentQuery({
-              workspaceId,
-              stateId,
-              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
-                node.operator.value,
-                "String",
-              )}`,
-              segmentId: segment.id,
-              now,
-              periodBound,
-              qb,
-            }),
-          ];
+          // FIXME not hitting this code path
+          throw new Error("not implemented");
+          // return [
+          //   buildRecentUpdateSegmentQuery({
+          //     workspaceId,
+          //     stateId,
+          //     expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
+          //       node.operator.value,
+          //       "String",
+          //     )}`,
+          //     segmentId: segment.id,
+          //     now,
+          //     periodBound,
+          //     qb,
+          //   }),
+          // ];
         }
         case SegmentOperatorType.Exists: {
           return [
