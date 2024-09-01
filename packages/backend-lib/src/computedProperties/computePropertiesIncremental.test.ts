@@ -2385,6 +2385,89 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segment with greater than property operator",
+      only: true,
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 2,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.GreaterThanOrEqual,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                age: 18,
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+              properties: {
+                age: 22,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "includes user who matches the property condition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
       userProperties: [
