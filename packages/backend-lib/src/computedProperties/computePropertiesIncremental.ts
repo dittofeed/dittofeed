@@ -302,7 +302,6 @@ interface FullSubQueryData {
   computedPropertyId: string;
   stateId: string;
   argMaxValue?: string;
-  argMaxFloatValue?: string;
   uniqValue?: string;
   eventTimeExpression?: string;
   recordMessageId?: boolean;
@@ -1013,11 +1012,12 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.GreaterThanOrEqual: {
+          const varName = qb.getVariableName();
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value_float64) >= ${qb.addQueryValue(
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) != NUll and assumeNotNull(${varName}) >= ${qb.addQueryValue(
                 node.operator.value,
                 "String",
               )}`,
@@ -1472,18 +1472,6 @@ export function segmentNodeToStateSubQuery({
                 ${varName}
               )
             `,
-            computedPropertyId: segment.id,
-            stateId,
-          },
-        ];
-      }
-      if (node.operator.type === SegmentOperatorType.GreaterThanOrEqual) {
-        const varName = qb.getVariableName();
-        return [
-          {
-            condition: `event_type == 'identify' and (toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) != NULL`,
-            type: "segment",
-            argMaxFloatValue: `assumeNotNull(${varName})`,
             computedPropertyId: segment.id,
             stateId,
           },
@@ -2556,7 +2544,6 @@ export async function computeState({
               '${subQuery.stateId}' as state_id,
               ue.user_id,
               argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
-              argMaxState(${subQuery.argMaxFloatValue ?? "toFloat64(0)"} as last_value_float64, ue.event_time),
               uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
               ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"} as truncated_event_time,
               groupArrayState(${subQuery.recordMessageId ? "message_id" : "''"}  as grouped_message_id),
