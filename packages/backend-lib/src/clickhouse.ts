@@ -77,6 +77,9 @@ export class ClickHouseQueryBuilder {
         case "Int64":
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `${value}`;
+        case "Float64":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          return `${value}`;
         default:
           throw new Error(
             `Unhandled data type in query builder debug mode: ${dataType}`,

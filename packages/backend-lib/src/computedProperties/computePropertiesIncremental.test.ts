@@ -2386,7 +2386,6 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with greater than property operator",
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -2405,7 +2404,7 @@ describe("computeProperties", () => {
               id: "1",
               event: "test",
               timesOperator: RelationalOperators.GreaterThanOrEqual,
-              times: 2,
+              times: 1,
               properties: [
                 {
                   path: "age",

@@ -1019,7 +1019,7 @@ function segmentToResolvedState({
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
                 node.operator.value,
-                "String",
+                "Float64",
               )}`,
               segmentId: segment.id,
               now,
@@ -1036,7 +1036,7 @@ function segmentToResolvedState({
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
                 node.operator.value,
-                "String",
+                "Float64",
               )}`,
               segmentId: segment.id,
               now,
@@ -1540,7 +1540,7 @@ export function segmentNodeToStateSubQuery({
             const varName = qb.getVariableName();
             return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
               property.operator.value,
-              "String",
+              "Float64",
             )}`;
           }
           default:
@@ -2477,11 +2477,7 @@ export async function computeState({
   return withSpan({ name: "compute-state" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
-    const qb = new ClickHouseQueryBuilder({
-      debug:
-        config().nodeEnv === NodeEnvEnum.Development ||
-        config().nodeEnv === NodeEnvEnum.Test,
-    });
+    const qb = new ClickHouseQueryBuilder();
     let subQueryData: FullSubQueryData[] = [];
 
     for (const segment of segments) {
