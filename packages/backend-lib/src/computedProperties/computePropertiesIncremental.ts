@@ -3265,6 +3265,10 @@ async function streamProcessAssignmentsPage({
   });
 }
 
+/**
+ * AssignmentProcessor is responsible for paginating through assignments to
+ * process, while applying a concurrency limit.
+ */
 class AssignmentProcessor {
   private pageSize = 1000;
   private page = 0;
@@ -3290,27 +3294,32 @@ class AssignmentProcessor {
 
       let retrieved = this.pageSize;
       while (retrieved <= this.pageSize) {
-        retrieved = await withSpan(
-          { name: "process-assignments-query-page" },
-          async (pageSpan) => {
-            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-            pageSpan.setAttribute("page", this.page);
-            pageSpan.setAttribute("pageSize", this.pageSize);
+        // Applies a concurrency limit to the query
+        retrieved = await readLimit()(() =>
+          withSpan(
+            { name: "process-assignments-query-page" },
+            async (pageSpan) => {
+              pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+              pageSpan.setAttribute("page", this.page);
+              pageSpan.setAttribute("pageSize", this.pageSize);
 
-            const offset = this.page * this.pageSize;
-            const query = buildProcessAssignmentsQuery({
-              ...this.params,
-              limit: this.pageSize,
-              offset,
-            });
+              const offset = this.page * this.pageSize;
+              const query = buildProcessAssignmentsQuery({
+                ...this.params,
+                limit: this.pageSize,
+                offset,
+              });
 
-            return streamProcessAssignmentsPage({
-              query,
-              workspaceId: this.params.workspaceId,
-              qb: this.qb,
-              journeys: this.journeys,
-            });
-          },
+              // Both paginates through the assignments, and streams results
+              // within a given page
+              return streamProcessAssignmentsPage({
+                query,
+                workspaceId: this.params.workspaceId,
+                qb: this.qb,
+                journeys: this.journeys,
+              });
+            },
+          ),
         );
 
         this.page += 1;
