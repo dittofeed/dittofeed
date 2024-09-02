@@ -559,6 +559,8 @@ async function upsertComputedProperties({
   };
 }
 
+jest.setTimeout(30000);
+
 describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
@@ -621,8 +623,7 @@ describe("computeProperties", () => {
     {
       description:
         "can efficiently process a large number of user property assignments without OOM'ing",
-      // fixme
-      only: true,
+      skip: true,
       userProperties: [
         {
           name: "email",

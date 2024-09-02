@@ -3264,10 +3264,11 @@ async function streamProcessAssignmentsPage({
         {
           err: e,
           pageQueryId,
+          rowsProcessed,
         },
         "failed to process rows",
       );
-      return rowsProcessed;
+      throw e;
     } finally {
       span.setAttribute("rowsProcessed", rowsProcessed);
     }
@@ -3307,7 +3308,7 @@ class AssignmentProcessor {
       span.setAttribute("processedForType", this.params.processedForType);
 
       let retrieved = this.pageSize;
-      while (retrieved <= this.pageSize) {
+      while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
         // Applies a concurrency limit to the query
         retrieved = await readLimit()(() =>
@@ -3338,7 +3339,16 @@ class AssignmentProcessor {
             },
           ),
         );
-
+        logger().debug(
+          {
+            workspaceId: this.params.workspaceId,
+            computedPropertyId: this.params.computedPropertyId,
+            type: this.params.type,
+            processedForType: this.params.processedForType,
+            retrieved,
+          },
+          "retrieved assignments",
+        );
         this.page += 1;
       }
     });
