@@ -381,6 +381,7 @@ interface TableUser {
 
 enum EventsStepType {
   SubmitEvents = "SubmitEvents",
+  SubmitEventsTimes = "SubmitEventsTimes",
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
@@ -399,6 +400,12 @@ type EventBuilder = (ctx: StepContext) => TestEvent;
 interface SubmitEventsStep {
   type: EventsStepType.SubmitEvents;
   events: (TestEvent | EventBuilder)[];
+}
+
+interface SubmitEventsTimesStep {
+  type: EventsStepType.SubmitEventsTimes;
+  times: number;
+  events: ((ctx: StepContext, i: number) => TestEvent)[];
 }
 
 interface ComputePropertiesStep {
@@ -454,6 +461,7 @@ interface UpdateComputedPropertyStep {
 
 type TableStep =
   | SubmitEventsStep
+  | SubmitEventsTimesStep
   | ComputePropertiesStep
   | AssertStep
   | SleepStep
@@ -551,6 +559,8 @@ async function upsertComputedProperties({
   };
 }
 
+jest.setTimeout(30000);
+
 describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
@@ -607,6 +617,43 @@ describe("computeProperties", () => {
               name: "email",
             },
           ],
+        },
+      ],
+    },
+    {
+      description:
+        "can efficiently process a large number of user property assignments without OOM'ing",
+      skip: true,
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEventsTimes,
+          // succeeds with 10 but fails with 4,000,000
+          // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
+          times: 4000000,
+          // times: 10,
+          events: [
+            (_ctx, i) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: `user-${i}`,
+              traits: {
+                email: `test${i}@email.com`,
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
         },
       ],
     },
@@ -4895,6 +4942,25 @@ describe("computeProperties", () => {
             data: events,
             now,
           });
+          break;
+        }
+        case EventsStepType.SubmitEventsTimes: {
+          const batchSize = 1000;
+          for (let i = 0; i < step.times; i++) {
+            let events: TestEvent[] = [];
+            for (const event of step.events) {
+              events.push(event(stepContext, i));
+            }
+
+            if (events.length >= batchSize || i === step.times - 1) {
+              await submitBatch({
+                workspaceId,
+                data: events,
+                now,
+              });
+              events = [];
+            }
+          }
           break;
         }
         case EventsStepType.DebugAssignments: {
