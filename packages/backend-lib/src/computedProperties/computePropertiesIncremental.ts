@@ -3290,7 +3290,7 @@ type AssignmentProcessorParams = (
  * process, while applying a concurrency limit.
  */
 class AssignmentProcessor {
-  private pageSize = 1000;
+  private pageSize;
 
   private page = 0;
 
@@ -3298,6 +3298,7 @@ class AssignmentProcessor {
 
   constructor(params: AssignmentProcessorParams) {
     this.params = params;
+    this.pageSize = config().readQueryPageSize;
   }
 
   async process() {

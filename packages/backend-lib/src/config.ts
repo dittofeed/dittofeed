@@ -415,7 +415,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize
       ? parseInt(rawConfig.readQueryPageSize)
-      : 200,
+      : 1000,
     readQueryConcurrency: rawConfig.readQueryConcurrency
       ? parseInt(rawConfig.readQueryConcurrency)
       : 10,
