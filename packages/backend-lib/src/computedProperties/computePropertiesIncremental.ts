@@ -3444,7 +3444,6 @@ export async function processAssignments({
       step: ComputedPropertyStep.ProcessAssignments,
     });
 
-    const queries: { query: string; qb: ClickHouseQueryBuilder }[] = [];
     const assignmentProcessors: AssignmentProcessor[] = [];
 
     for (const userProperty of userProperties) {
