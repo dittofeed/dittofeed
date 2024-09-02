@@ -67,16 +67,16 @@ import {
   PeriodByComputedPropertyId,
 } from "./periods";
 
-let LIMIT: Limit | null = null;
+let READ_LIMIT: Limit | null = null;
 
-function limit(): Limit {
-  if (!LIMIT) {
+function readLimit(): Limit {
+  if (!READ_LIMIT) {
     const concurrency = config().readQueryConcurrency;
     const newLimit = pLimit(concurrency);
-    LIMIT = newLimit;
+    READ_LIMIT = newLimit;
     return newLimit;
   }
-  return LIMIT;
+  return READ_LIMIT;
 }
 
 /**
@@ -3062,16 +3062,7 @@ async function processRows({
   return hasRows;
 }
 
-function buildProcessAssignmentsQuery({
-  workspaceId,
-  type,
-  computedPropertyId,
-  qb,
-  periodByComputedPropertyId,
-  computedPropertyVersion,
-  now,
-  ...rest
-}: {
+type ProcessAssignmentsQueryArgs = {
   workspaceId: string;
   computedPropertyId: string;
   qb: ClickHouseQueryBuilder;
@@ -3093,7 +3084,23 @@ function buildProcessAssignmentsQuery({
       processedForType: "integration";
       processedFor: string;
     }
-)): string {
+);
+
+function buildProcessAssignmentsQuery({
+  workspaceId,
+  type,
+  computedPropertyId,
+  qb,
+  periodByComputedPropertyId,
+  computedPropertyVersion,
+  now,
+  limit,
+  offset,
+  ...rest
+}: ProcessAssignmentsQueryArgs & {
+  limit: number;
+  offset: number;
+}): string {
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
     computedPropertyId,
@@ -3173,6 +3180,7 @@ function buildProcessAssignmentsQuery({
           type,
           computed_property_id,
           user_id
+        LIMIT ${offset}, ${limit}
     ) cpa
     LEFT JOIN (
       SELECT
@@ -3208,7 +3216,7 @@ function buildProcessAssignmentsQuery({
   return query;
 }
 
-async function paginateProcessAssignmentsQuery({
+async function streamProcessAssignmentsPage({
   query,
   qb,
   workspaceId,
@@ -3218,46 +3226,97 @@ async function paginateProcessAssignmentsQuery({
   workspaceId: string;
   qb: ClickHouseQueryBuilder;
   journeys: HasStartedJourneyResource[];
-}): Promise<void> {
-  return withSpan(
-    { name: "paginate-process-assignments-query" },
-    async (span) => {
-      const pageQueryId = getChCompatibleUuid();
+}): Promise<number> {
+  return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
+    const pageQueryId = getChCompatibleUuid();
+    span.setAttribute("workspaceId", workspaceId);
+    span.setAttribute("queryId", pageQueryId);
 
-      span.setAttribute("query", query);
-      span.setAttribute("workspaceId", workspaceId);
-      span.setAttribute("queryId", pageQueryId);
+    let rowsProcessed = 0;
+    try {
+      const resultSet = await chQuery({
+        query,
+        query_id: pageQueryId,
+        query_params: qb.getQueries(),
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
 
-      let rowsProcessed = 0;
-      try {
-        const resultSet = await chQuery({
-          query,
-          query_id: pageQueryId,
-          query_params: qb.getQueries(),
-          format: "JSONEachRow",
-          clickhouse_settings: { wait_end_of_query: 1 },
+      await streamClickhouseQuery(resultSet, async (rows) => {
+        rowsProcessed += rows.length;
+        await processRows({
+          rows,
+          workspaceId,
+          subscribedJourneys: journeys,
         });
+      });
+      return rowsProcessed;
+    } catch (e) {
+      logger().error(
+        {
+          err: e,
+          pageQueryId,
+        },
+        "failed to process rows",
+      );
+      return rowsProcessed;
+    }
+    span.setAttribute("rowsProcessed", rowsProcessed);
+  });
+}
 
-        await streamClickhouseQuery(resultSet, async (rows) => {
-          rowsProcessed += rows.length;
-          await processRows({
-            rows,
-            workspaceId,
-            subscribedJourneys: journeys,
-          });
-        });
-      } catch (e) {
-        logger().error(
-          {
-            err: e,
-            pageQueryId,
+class AssignmentProcessor {
+  private pageSize = 1000;
+  private page = 0;
+  private qb: ClickHouseQueryBuilder;
+  private params: ProcessAssignmentsQueryArgs;
+  private journeys: HasStartedJourneyResource[];
+
+  constructor(
+    params: ProcessAssignmentsQueryArgs,
+    journeys: HasStartedJourneyResource[],
+  ) {
+    this.qb = new ClickHouseQueryBuilder();
+    this.params = params;
+    this.journeys = journeys;
+  }
+
+  async process() {
+    return withSpan({ name: "process-assignments-query" }, async (span) => {
+      span.setAttribute("workspaceId", this.params.workspaceId);
+      span.setAttribute("computedPropertyId", this.params.computedPropertyId);
+      span.setAttribute("type", this.params.type);
+      span.setAttribute("processedForType", this.params.processedForType);
+
+      let retrieved = this.pageSize;
+      while (retrieved <= this.pageSize) {
+        retrieved = await withSpan(
+          { name: "process-assignments-query-page" },
+          async (pageSpan) => {
+            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+            pageSpan.setAttribute("page", this.page);
+            pageSpan.setAttribute("pageSize", this.pageSize);
+
+            const offset = this.page * this.pageSize;
+            const query = buildProcessAssignmentsQuery({
+              ...this.params,
+              limit: this.pageSize,
+              offset,
+            });
+
+            return streamProcessAssignmentsPage({
+              query,
+              workspaceId: this.params.workspaceId,
+              qb: this.qb,
+              journeys: this.journeys,
+            });
           },
-          "failed to process rows",
         );
+
+        this.page += 1;
       }
-      span.setAttribute("rowsProcessed", rowsProcessed);
-    },
-  );
+    });
+  }
 }
 
 export async function processAssignments({
@@ -3461,6 +3520,7 @@ export async function processAssignments({
       }
     }
 
+    // FIXME apply concurrency limit
     await Promise.all(
       queries.map(({ query, qb }) =>
         paginateProcessAssignmentsQuery({ query, qb, workspaceId, journeys }),
