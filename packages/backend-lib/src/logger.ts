@@ -1,5 +1,6 @@
 import * as HyperDX from "@hyperdx/node-opentelemetry";
-import pino from "pino";
+import pino, { DestinationStream } from "pino";
+import pinoPretty from "pino-pretty";
 
 import config from "./config";
 import { getServiceName } from "./openTelemetry/constants";
@@ -79,17 +80,15 @@ export function publicLogger(): Logger {
 export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
+    let destinationStream: DestinationStream | undefined;
     if (config().prettyLogs) {
       options = {
         level: config().logLevel,
-        transport: {
-          target: "pino-pretty",
-          options: {
-            translateTime: "HH:MM:ss Z",
-            ignore: "pid,hostname",
-          },
-        },
       };
+      destinationStream = pinoPretty({
+        translateTime: "HH:MM:ss Z",
+        ignore: "pid,hostname",
+      });
     } else {
       const { exportLogsHyperDx, hyperDxApiKey, logLevel } = config();
 
@@ -116,7 +115,7 @@ export default function logger(): Logger {
       }
     }
 
-    const l = pino(options);
+    const l = pino(options, destinationStream);
     LOGGER = l;
     return l;
   }
