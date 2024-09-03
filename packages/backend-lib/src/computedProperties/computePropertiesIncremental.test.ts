@@ -2197,6 +2197,82 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "any of user property with null values",
+      only: true,
+      segments: [],
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Group,
+            entry: "1",
+            nodes: [
+              {
+                type: UserPropertyDefinitionType.AnyOf,
+                id: "1",
+                children: ["2"],
+              },
+              {
+                type: UserPropertyDefinitionType.Performed,
+                id: "2",
+                event: "*",
+                path: "email",
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -300,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                email: null,
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                email: "test@test.com",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                email: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user-1 has email",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test@test.com",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "double nested segment with And and Or conditionals",
       segments: [
         {
