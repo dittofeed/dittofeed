@@ -416,7 +416,7 @@ export function DeliveriesTable({
 
   const renderEmailPreviewBody = (body: string) => {
     return (
-      <Box sx={{ padding: theme.spacing(1) }}>
+      <Box sx={{ padding: theme.spacing(1), height: "100%" }}>
         <EmailPreviewBody body={body} />
       </Box>
     );
