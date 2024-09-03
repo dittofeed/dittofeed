@@ -1,5 +1,6 @@
 import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
 import {
   generateDigest,
@@ -217,7 +218,20 @@ export default async function webhookController(fastify: FastifyInstance) {
             )) {
               span.setAttribute(key, value);
             }
-            await submitAmazonSesEvents(validated.value);
+            const result = await submitAmazonSesEvents(validated.value);
+            if (result.isErr()) {
+              logger().error(
+                {
+                  err: result.error,
+                },
+                "Error submitting AmazonSes events.",
+              );
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: result.error.message,
+              });
+              return reply.status(500).send();
+            }
             break;
           }
         }
