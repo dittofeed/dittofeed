@@ -1,5 +1,6 @@
 import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
 import {
   generateDigest,
@@ -15,6 +16,7 @@ import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
 import logger from "backend-lib/src/logger";
+import { withSpan } from "backend-lib/src/openTelemetry";
 import prisma from "backend-lib/src/prisma";
 import {
   AmazonSesEventPayload,
@@ -166,49 +168,76 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      logger().debug({ body: request.body }, "Received AmazonSES event.");
+      return withSpan({ name: "amazon-ses-webhook" }, async (span) => {
+        logger().debug({ body: request.body }, "Received AmazonSES event.");
 
-      // Validate the signature
-      const valid = await validSNSSignature(request.body);
+        // Validate the signature
+        const valid = await validSNSSignature(request.body);
 
-      if (valid.isErr()) {
-        logger().error("Invalid signature for AmazonSES webhook.", valid.error);
-        return reply.status(401).send({ message: "Invalid signature" });
-      }
-
-      const { body } = request;
-      switch (body.Type) {
-        // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
-        // UnsubscribeConfirmation type events occur when our application requests disabling
-        // the webhook. Since we never do this, we respond by re-confirming the subscription.
-        case AmazonSNSEventTypes.SubscriptionConfirmation:
-        case AmazonSNSEventTypes.UnsubscribeConfirmation:
-          /* eslint-disable-next-line no-case-declarations */
-          const confirmed = await confirmSubscription(body);
-          if (confirmed.isErr()) {
-            logger().error("Unable to confirm AmazonSNS subscription.", {
-              error: confirmed.error,
-            });
-            return reply.status(401).send({});
-          }
-          logger().debug("AmazonSES Subscription confirmed");
-          break;
-        case AmazonSNSEventTypes.Notification: {
-          const parsed: unknown = JSON.parse(body.Message);
-          const validated = schemaValidateWithErr(
-            parsed,
-            AmazonSesEventPayload,
+        if (valid.isErr()) {
+          logger().error(
+            "Invalid signature for AmazonSES webhook.",
+            valid.error,
           );
-          if (validated.isErr()) {
-            logger().error("Invalid AmazonSes event payload.", validated.error);
-            return reply.status(500).send();
-          }
-          await submitAmazonSesEvents(validated.value);
-          break;
+          return reply.status(401).send({ message: "Invalid signature" });
         }
-      }
 
-      return reply.status(200).send();
+        const { body } = request;
+        span.setAttribute("type", body.Type);
+        switch (body.Type) {
+          // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
+          // UnsubscribeConfirmation type events occur when our application requests disabling
+          // the webhook. Since we never do this, we respond by re-confirming the subscription.
+          case AmazonSNSEventTypes.SubscriptionConfirmation:
+          case AmazonSNSEventTypes.UnsubscribeConfirmation:
+            /* eslint-disable-next-line no-case-declarations */
+            const confirmed = await confirmSubscription(body);
+            if (confirmed.isErr()) {
+              logger().error("Unable to confirm AmazonSNS subscription.", {
+                error: confirmed.error,
+              });
+              return reply.status(401).send({});
+            }
+            logger().debug("AmazonSES Subscription confirmed");
+            break;
+          case AmazonSNSEventTypes.Notification: {
+            const parsed: unknown = JSON.parse(body.Message);
+            const validated = schemaValidateWithErr(
+              parsed,
+              AmazonSesEventPayload,
+            );
+            if (validated.isErr()) {
+              logger().error(
+                "Invalid AmazonSes event payload.",
+                validated.error,
+              );
+              return reply.status(500).send();
+            }
+            for (const [key, value] of Object.entries(
+              validated.value.mail.tags,
+            )) {
+              span.setAttribute(key, value);
+            }
+            const result = await submitAmazonSesEvents(validated.value);
+            if (result.isErr()) {
+              logger().error(
+                {
+                  err: result.error,
+                },
+                "Error submitting AmazonSes events.",
+              );
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: result.error.message,
+              });
+              return reply.status(500).send();
+            }
+            break;
+          }
+        }
+
+        return reply.status(200).send();
+      });
     },
   );
 
