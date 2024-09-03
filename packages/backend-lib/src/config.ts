@@ -197,7 +197,6 @@ export type Config = Overwrite<
     dashboardUrl: string;
     enableMobilePush: boolean;
     readQueryPageSize: number;
-    readQueryConcurrency: number;
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
     computePropertiesAttempts: number;
@@ -210,6 +209,7 @@ export type Config = Overwrite<
     blobStorageSecretAccessKey: string;
     blobStorageBucket: string;
     blobStorageRegion: string;
+    readQueryConcurrency: number;
     exportLogsHyperDx: boolean;
     dittofeedTelemetryDisabled: boolean;
     bootstrapSafe: boolean;
@@ -415,10 +415,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize
       ? parseInt(rawConfig.readQueryPageSize)
-      : 200,
+      : 1000,
     readQueryConcurrency: rawConfig.readQueryConcurrency
       ? parseInt(rawConfig.readQueryConcurrency)
-      : 2,
+      : 10,
     // 2 minutes in ms
     computePropertiesInterval: rawConfig.computePropertiesInterval
       ? parseInt(rawConfig.computePropertiesInterval)

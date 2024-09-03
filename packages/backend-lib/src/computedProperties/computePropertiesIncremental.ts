@@ -5,6 +5,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
+import pLimit, { Limit } from "p-limit";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -41,7 +42,6 @@ import {
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   ManualSegmentNode,
-  NodeEnvEnum,
   PerformedSegmentNode,
   RelationalOperators,
   SavedHasStartedJourneyResource,
@@ -66,6 +66,18 @@ import {
   getPeriodsByComputedPropertyId,
   PeriodByComputedPropertyId,
 } from "./periods";
+
+let READ_LIMIT: Limit | null = null;
+
+function readLimit(): Limit {
+  if (!READ_LIMIT) {
+    const concurrency = config().readQueryConcurrency;
+    const newLimit = pLimit(concurrency);
+    READ_LIMIT = newLimit;
+    return newLimit;
+  }
+  return READ_LIMIT;
+}
 
 /**
  * Use to round event timestamps to the nearest interval, to reduce the
@@ -1011,6 +1023,40 @@ function segmentToResolvedState({
             }),
           ];
         }
+        case SegmentOperatorType.GreaterThanOrEqual: {
+          const varName = qb.getVariableName();
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+                node.operator.value,
+                "Float64",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.LessThan: {
+          const varName = qb.getVariableName();
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
+                node.operator.value,
+                "Float64",
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
         case SegmentOperatorType.NotEquals: {
           return [
             buildRecentUpdateSegmentQuery({
@@ -1501,6 +1547,20 @@ export function segmentNodeToStateSubQuery({
           }
           case SegmentOperatorType.Exists: {
             return `JSON_VALUE(properties, ${path}) != ''`;
+          }
+          case SegmentOperatorType.GreaterThanOrEqual: {
+            const varName = qb.getVariableName();
+            return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
+              property.operator.value,
+              "Float64",
+            )}`;
+          }
+          case SegmentOperatorType.LessThan: {
+            const varName = qb.getVariableName();
+            return `(toFloat64OrNull(JSON_VALUE(properties, ${path})) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
+              property.operator.value,
+              "Float64",
+            )}`;
           }
           default:
             throw new Error(
@@ -2436,11 +2496,7 @@ export async function computeState({
   return withSpan({ name: "compute-state" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
-    const qb = new ClickHouseQueryBuilder({
-      debug:
-        config().nodeEnv === NodeEnvEnum.Development ||
-        config().nodeEnv === NodeEnvEnum.Test,
-    });
+    const qb = new ClickHouseQueryBuilder();
     let subQueryData: FullSubQueryData[] = [];
 
     for (const segment of segments) {
@@ -3006,6 +3062,38 @@ async function processRows({
   return hasRows;
 }
 
+interface BaseProcessAssignmentsQueryArgs {
+  workspaceId: string;
+  computedPropertyId: string;
+  qb: ClickHouseQueryBuilder;
+  computedPropertyVersion: string;
+  now: number;
+  periodByComputedPropertyId: PeriodByComputedPropertyId;
+}
+
+type SegmentProcessAssignmentsQueryArgs = BaseProcessAssignmentsQueryArgs & {
+  type: "segment";
+  processedForType: "journey" | "integration";
+  processedFor: string;
+};
+
+type UserPropertyProcessAssignmentsQueryArgs =
+  BaseProcessAssignmentsQueryArgs & {
+    type: "user_property";
+    processedForType: "integration";
+    processedFor: string;
+  };
+
+type PgProcessAssignmentsQueryArgs = BaseProcessAssignmentsQueryArgs & {
+  type: "segment" | "user_property";
+  processedForType: "pg";
+};
+
+type ProcessAssignmentsQueryArgs =
+  | SegmentProcessAssignmentsQueryArgs
+  | UserPropertyProcessAssignmentsQueryArgs
+  | PgProcessAssignmentsQueryArgs;
+
 function buildProcessAssignmentsQuery({
   workspaceId,
   type,
@@ -3014,30 +3102,13 @@ function buildProcessAssignmentsQuery({
   periodByComputedPropertyId,
   computedPropertyVersion,
   now,
+  limit,
+  offset,
   ...rest
-}: {
-  workspaceId: string;
-  computedPropertyId: string;
-  qb: ClickHouseQueryBuilder;
-  computedPropertyVersion: string;
-  now: number;
-  periodByComputedPropertyId: PeriodByComputedPropertyId;
-} & (
-  | {
-      type: "segment";
-      processedForType: "journey" | "integration";
-      processedFor: string;
-    }
-  | {
-      type: "segment" | "user_property";
-      processedForType: "pg";
-    }
-  | {
-      type: "user_property";
-      processedForType: "integration";
-      processedFor: string;
-    }
-)): string {
+}: ProcessAssignmentsQueryArgs & {
+  limit: number;
+  offset: number;
+}): string {
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
     computedPropertyId,
@@ -3117,6 +3188,7 @@ function buildProcessAssignmentsQuery({
           type,
           computed_property_id,
           user_id
+        LIMIT ${offset}, ${limit}
     ) cpa
     LEFT JOIN (
       SELECT
@@ -3152,7 +3224,7 @@ function buildProcessAssignmentsQuery({
   return query;
 }
 
-async function paginateProcessAssignmentsQuery({
+async function streamProcessAssignmentsPage({
   query,
   qb,
   workspaceId,
@@ -3162,46 +3234,126 @@ async function paginateProcessAssignmentsQuery({
   workspaceId: string;
   qb: ClickHouseQueryBuilder;
   journeys: HasStartedJourneyResource[];
-}): Promise<void> {
-  return withSpan(
-    { name: "paginate-process-assignments-query" },
-    async (span) => {
-      const pageQueryId = getChCompatibleUuid();
+}): Promise<number> {
+  return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
+    const pageQueryId = getChCompatibleUuid();
+    span.setAttribute("workspaceId", workspaceId);
+    span.setAttribute("queryId", pageQueryId);
 
-      span.setAttribute("query", query);
-      span.setAttribute("workspaceId", workspaceId);
-      span.setAttribute("queryId", pageQueryId);
+    let rowsProcessed = 0;
+    try {
+      const resultSet = await chQuery({
+        query,
+        query_id: pageQueryId,
+        query_params: qb.getQueries(),
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
 
-      let rowsProcessed = 0;
-      try {
-        const resultSet = await chQuery({
-          query,
-          query_id: pageQueryId,
-          query_params: qb.getQueries(),
-          format: "JSONEachRow",
-          clickhouse_settings: { wait_end_of_query: 1 },
+      await streamClickhouseQuery(resultSet, async (rows) => {
+        rowsProcessed += rows.length;
+        await processRows({
+          rows,
+          workspaceId,
+          subscribedJourneys: journeys,
         });
-
-        await streamClickhouseQuery(resultSet, async (rows) => {
-          rowsProcessed += rows.length;
-          await processRows({
-            rows,
-            workspaceId,
-            subscribedJourneys: journeys,
-          });
-        });
-      } catch (e) {
-        logger().error(
-          {
-            err: e,
-            pageQueryId,
-          },
-          "failed to process rows",
-        );
-      }
+      });
+      return rowsProcessed;
+    } catch (e) {
+      logger().error(
+        {
+          err: e,
+          pageQueryId,
+          rowsProcessed,
+        },
+        "failed to process rows",
+      );
+      throw e;
+    } finally {
       span.setAttribute("rowsProcessed", rowsProcessed);
-    },
-  );
+    }
+  });
+}
+
+type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "offset">;
+
+type AssignmentProcessorParams = (
+  | WithoutProcessorParams<SegmentProcessAssignmentsQueryArgs>
+  | WithoutProcessorParams<UserPropertyProcessAssignmentsQueryArgs>
+  | WithoutProcessorParams<PgProcessAssignmentsQueryArgs>
+) & {
+  journeys: HasStartedJourneyResource[];
+};
+
+/**
+ * AssignmentProcessor is responsible for paginating through assignments to
+ * process, while applying a concurrency limit.
+ */
+class AssignmentProcessor {
+  private pageSize;
+
+  private page = 0;
+
+  private params: AssignmentProcessorParams;
+
+  constructor(params: AssignmentProcessorParams) {
+    this.params = params;
+    this.pageSize = config().readQueryPageSize;
+  }
+
+  async process() {
+    return withSpan({ name: "process-assignments-query" }, async (span) => {
+      span.setAttribute("workspaceId", this.params.workspaceId);
+      span.setAttribute("computedPropertyId", this.params.computedPropertyId);
+      span.setAttribute("type", this.params.type);
+      span.setAttribute("processedForType", this.params.processedForType);
+
+      let retrieved = this.pageSize;
+      while (retrieved >= this.pageSize) {
+        const qb = new ClickHouseQueryBuilder();
+        // Applies a concurrency limit to the query
+        retrieved = await readLimit()(() =>
+          withSpan(
+            { name: "process-assignments-query-page" },
+            async (pageSpan) => {
+              pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+              pageSpan.setAttribute("page", this.page);
+              pageSpan.setAttribute("pageSize", this.pageSize);
+
+              const offset = this.page * this.pageSize;
+              const { journeys, ...processAssignmentsParams } = this.params;
+              const query = buildProcessAssignmentsQuery({
+                ...processAssignmentsParams,
+                limit: this.pageSize,
+                offset,
+                qb,
+              });
+
+              // Both paginates through the assignments, and streams results
+              // within a given page
+              return streamProcessAssignmentsPage({
+                query,
+                workspaceId: this.params.workspaceId,
+                qb,
+                journeys,
+              });
+            },
+          ),
+        );
+        logger().debug(
+          {
+            workspaceId: this.params.workspaceId,
+            computedPropertyId: this.params.computedPropertyId,
+            type: this.params.type,
+            processedForType: this.params.processedForType,
+            retrieved,
+          },
+          "retrieved assignments",
+        );
+        this.page += 1;
+      }
+    });
+  }
 }
 
 export async function processAssignments({
@@ -3292,40 +3444,34 @@ export async function processAssignments({
       step: ComputedPropertyStep.ProcessAssignments,
     });
 
-    const queries: { query: string; qb: ClickHouseQueryBuilder }[] = [];
+    const assignmentProcessors: AssignmentProcessor[] = [];
 
     for (const userProperty of userProperties) {
-      const qb = new ClickHouseQueryBuilder();
-      queries.push({
-        query: buildProcessAssignmentsQuery({
-          workspaceId,
-          type: "user_property",
-          processedForType: "pg",
-          computedPropertyId: userProperty.id,
-          periodByComputedPropertyId,
-          computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
-          now,
-          qb,
-        }),
-        qb,
+      const processor = new AssignmentProcessor({
+        workspaceId,
+        type: "user_property",
+        processedForType: "pg",
+        computedPropertyId: userProperty.id,
+        periodByComputedPropertyId,
+        computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
+        now,
+        journeys,
       });
+      assignmentProcessors.push(processor);
     }
 
     for (const segment of segments) {
-      const qb = new ClickHouseQueryBuilder();
-      queries.push({
-        query: buildProcessAssignmentsQuery({
-          workspaceId,
-          type: "segment",
-          processedForType: "pg",
-          computedPropertyId: segment.id,
-          periodByComputedPropertyId,
-          computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-          now,
-          qb,
-        }),
-        qb,
+      const processor = new AssignmentProcessor({
+        workspaceId,
+        type: "segment",
+        processedForType: "pg",
+        computedPropertyId: segment.id,
+        periodByComputedPropertyId,
+        computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+        now,
+        journeys,
       });
+      assignmentProcessors.push(processor);
     }
 
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
@@ -3334,21 +3480,18 @@ export async function processAssignments({
         continue;
       }
       for (const journeyId of Array.from(journeySet)) {
-        const qb = new ClickHouseQueryBuilder();
-        queries.push({
-          query: buildProcessAssignmentsQuery({
-            workspaceId,
-            type: "segment",
-            processedForType: "journey",
-            computedPropertyId: segmentId,
-            processedFor: journeyId,
-            periodByComputedPropertyId,
-            computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-            now,
-            qb,
-          }),
-          qb,
+        const processor = new AssignmentProcessor({
+          workspaceId,
+          type: "segment",
+          processedForType: "journey",
+          computedPropertyId: segmentId,
+          processedFor: journeyId,
+          periodByComputedPropertyId,
+          computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+          now,
+          journeys,
         });
+        assignmentProcessors.push(processor);
       }
     }
 
@@ -3360,21 +3503,18 @@ export async function processAssignments({
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
-        const qb = new ClickHouseQueryBuilder();
-        queries.push({
-          query: buildProcessAssignmentsQuery({
-            workspaceId,
-            type: "segment",
-            processedForType: "integration",
-            computedPropertyId: segmentId,
-            processedFor: integrationName,
-            periodByComputedPropertyId,
-            computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-            now,
-            qb,
-          }),
-          qb,
+        const processor = new AssignmentProcessor({
+          workspaceId,
+          type: "segment",
+          processedForType: "integration",
+          computedPropertyId: segmentId,
+          processedFor: integrationName,
+          periodByComputedPropertyId,
+          computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+          now,
+          journeys,
         });
+        assignmentProcessors.push(processor);
       }
     }
 
@@ -3386,29 +3526,23 @@ export async function processAssignments({
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
-        const qb = new ClickHouseQueryBuilder();
-        queries.push({
-          query: buildProcessAssignmentsQuery({
-            workspaceId,
-            type: "user_property",
-            processedForType: "integration",
-            computedPropertyId: userPropertyId,
-            processedFor: integrationName,
-            periodByComputedPropertyId,
-            computedPropertyVersion:
-              userProperty.definitionUpdatedAt.toString(),
-            now,
-            qb,
-          }),
-          qb,
+        const processor = new AssignmentProcessor({
+          workspaceId,
+          type: "user_property",
+          processedForType: "integration",
+          computedPropertyId: userPropertyId,
+          processedFor: integrationName,
+          periodByComputedPropertyId,
+          computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
+          now,
+          journeys,
         });
+        assignmentProcessors.push(processor);
       }
     }
 
     await Promise.all(
-      queries.map(({ query, qb }) =>
-        paginateProcessAssignmentsQuery({ query, qb, workspaceId, journeys }),
-      ),
+      assignmentProcessors.map((processor) => processor.process()),
     );
 
     await createPeriods({

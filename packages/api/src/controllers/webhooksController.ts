@@ -464,14 +464,18 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const workspaceId = await getWorkspaceId(request);
+      const workspaceIdResult = await getWorkspaceId(request);
+      if (workspaceIdResult.isErr()) {
+        return reply.status(400).send();
+      }
+      const workspaceId = workspaceIdResult.value;
       if (!workspaceId) {
         return reply.status(400).send({
           error: "Missing workspaceId. Try setting the df-workspace-id header.",
         });
       }
       const config = await prisma().segmentIOConfiguration.findUnique({
-        where: { workspaceId },
+        where: { workspaceId: workspaceIdResult.value },
       });
 
       if (!config) {

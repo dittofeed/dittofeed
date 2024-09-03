@@ -350,6 +350,10 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
                       workspaceId: broadcast.workspaceId,
                       id: templateId,
                       type: newChannel,
+                      journeyMetadata: {
+                        journeyId,
+                        nodeId: "broadcast-message",
+                      },
                     } satisfies ResetMessageTemplateResource,
                     headers: {
                       "Content-Type": "application/json",

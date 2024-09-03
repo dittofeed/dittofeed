@@ -7,16 +7,17 @@ import { AdminApiKeyDefinition } from "isomorphic-lib/src/types";
 
 import { getWorkspaceId } from "../workspace";
 
-export async function authenticateAdminApiKey({
+export async function authenticateAdminApiKeyFull({
   workspaceId,
   actualKey,
 }: {
   workspaceId: string;
   actualKey: string;
-}): Promise<boolean> {
+}): Promise<{ workspaceId: string; keyId: string } | null> {
   const apiKeysQuery = Prisma.sql`
       SELECT
         aak.id,
+        aak."workspaceId",
         s."configValue"
       FROM "AdminApiKey" aak
       JOIN "Secret" s ON aak."secretId" = s.id
@@ -29,14 +30,13 @@ export async function authenticateAdminApiKey({
         )
     `;
   const apiKeys =
-    await prisma().$queryRaw<{ id: string; configValue: unknown }[]>(
-      apiKeysQuery,
-    );
+    await prisma().$queryRaw<
+      { id: string; workspaceId: string; configValue: unknown }[]
+    >(apiKeysQuery);
 
   if (!actualKey) {
-    return false;
+    return null;
   }
-  let matchingKey = false;
   for (const apiKey of apiKeys) {
     const definitionResult = schemaValidate(
       apiKey.configValue,
@@ -54,18 +54,38 @@ export async function authenticateAdminApiKey({
     }
     if (definitionResult.value.key) {
       if (definitionResult.value.key === actualKey) {
-        matchingKey = true;
-        break;
+        return {
+          workspaceId: apiKey.workspaceId,
+          keyId: apiKey.id,
+        };
       }
     }
   }
-  return matchingKey;
+  return null;
+}
+
+export async function authenticateAdminApiKey({
+  workspaceId,
+  actualKey,
+}: {
+  workspaceId: string;
+  actualKey: string;
+}): Promise<boolean> {
+  const apiKeyId = await authenticateAdminApiKeyFull({
+    workspaceId,
+    actualKey,
+  });
+  return apiKeyId !== null;
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const adminAuth = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const workspaceId = await getWorkspaceId(request);
+    const workspaceIdResult = await getWorkspaceId(request);
+    if (workspaceIdResult.isErr()) {
+      return reply.status(400).send();
+    }
+    const workspaceId = workspaceIdResult.value;
     if (!workspaceId) {
       return reply.status(401).send();
     }

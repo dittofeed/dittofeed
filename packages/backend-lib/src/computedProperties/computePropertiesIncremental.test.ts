@@ -381,6 +381,7 @@ interface TableUser {
 
 enum EventsStepType {
   SubmitEvents = "SubmitEvents",
+  SubmitEventsTimes = "SubmitEventsTimes",
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
@@ -399,6 +400,12 @@ type EventBuilder = (ctx: StepContext) => TestEvent;
 interface SubmitEventsStep {
   type: EventsStepType.SubmitEvents;
   events: (TestEvent | EventBuilder)[];
+}
+
+interface SubmitEventsTimesStep {
+  type: EventsStepType.SubmitEventsTimes;
+  times: number;
+  events: ((ctx: StepContext, i: number) => TestEvent)[];
 }
 
 interface ComputePropertiesStep {
@@ -454,6 +461,7 @@ interface UpdateComputedPropertyStep {
 
 type TableStep =
   | SubmitEventsStep
+  | SubmitEventsTimesStep
   | ComputePropertiesStep
   | AssertStep
   | SleepStep
@@ -551,6 +559,8 @@ async function upsertComputedProperties({
   };
 }
 
+jest.setTimeout(30000);
+
 describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
@@ -607,6 +617,43 @@ describe("computeProperties", () => {
               name: "email",
             },
           ],
+        },
+      ],
+    },
+    {
+      description:
+        "can efficiently process a large number of user property assignments without OOM'ing",
+      skip: true,
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEventsTimes,
+          // succeeds with 10 but fails with 4,000,000
+          // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
+          times: 4000000,
+          // times: 10,
+          events: [
+            (_ctx, i) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: `user-${i}`,
+              traits: {
+                email: `test${i}@email.com`,
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
         },
       ],
     },
@@ -824,11 +871,247 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
           users: [
             {
               id: "user-1",
               segments: {
                 test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "does not match",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a trait segment with the greater than operator",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "0",
+              path: "age",
+              operator: {
+                type: SegmentOperatorType.GreaterThanOrEqual,
+                value: 20.5,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 21.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              lastValue: "21.5",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              segmentStateValue: true,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 19.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a trait segment with the less than operator",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "0",
+              path: "age",
+              operator: {
+                type: SegmentOperatorType.LessThan,
+                value: 20.5,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 19.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially in the segment when they match",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              lastValue: "19.5",
+            },
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "test",
+              nodeId: "0",
+              segmentStateValue: true,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                age: 21.5,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
               },
             },
           ],
@@ -2142,6 +2425,104 @@ describe("computeProperties", () => {
               id: "user-3",
               segments: {
                 performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "performed segments with numeric operators",
+      userProperties: [],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.GreaterThanOrEqual,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+        {
+          name: "performed2",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "age",
+                  operator: {
+                    type: SegmentOperatorType.LessThan,
+                    value: 20,
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                age: 18,
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+              properties: {
+                age: 22,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "includes a user above the age threshold",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
+                performed2: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+                performed2: null,
               },
             },
           ],
@@ -4563,6 +4944,25 @@ describe("computeProperties", () => {
           });
           break;
         }
+        case EventsStepType.SubmitEventsTimes: {
+          const batchSize = 1000;
+          for (let i = 0; i < step.times; i++) {
+            let events: TestEvent[] = [];
+            for (const event of step.events) {
+              events.push(event(stepContext, i));
+            }
+
+            if (events.length >= batchSize || i === step.times - 1) {
+              await submitBatch({
+                workspaceId,
+                data: events,
+                now,
+              });
+              events = [];
+            }
+          }
+          break;
+        }
         case EventsStepType.DebugAssignments: {
           const assignments = await readAssignments({ workspaceId });
           logger().warn(
@@ -4598,7 +4998,7 @@ describe("computeProperties", () => {
         case EventsStepType.Sleep:
           now += step.timeMs;
           break;
-        case EventsStepType.Assert:
+        case EventsStepType.Assert: {
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
               let user: TableUser;
@@ -4809,7 +5209,7 @@ describe("computeProperties", () => {
           await periodsAssertions;
           await indexedStatesAssertions;
           await resolvedSegmentStatesAssertions;
-          await usersAssertions;
+          await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
@@ -4842,6 +5242,7 @@ describe("computeProperties", () => {
             }
           }
           break;
+        }
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({
             workspaceId,

@@ -181,6 +181,10 @@ function mapSegmentOperator({
           subscriptionGroupMap,
         }),
       };
+    case SegmentOperatorType.GreaterThanOrEqual:
+      return operator;
+    case SegmentOperatorType.LessThan:
+      return operator;
     case SegmentOperatorType.Within:
       return operator;
     case SegmentOperatorType.Exists:
@@ -373,7 +377,13 @@ function mapUserPropertyDefinition<T extends MappedUserProperty>({
   return node;
 }
 
-// yarn admin transfer-resources --workspace-id='{workspaceId}' --destination-workspace-id='{destinationWorkspaceId}'
+/**
+ * Transfers resources from one workspace to another.
+ * Cli command to trigger:
+ * yarn admin transfer-resources --workspace-id='{workspaceId}' --destination-workspace-id='{destinationWorkspaceId}'
+ * @param workspaceId - The ID of the workspace to transfer resources from.
+ * @param destinationWorkspaceId - The ID of the workspace to transfer resources to.
+ */
 export async function transferResources({
   workspaceId,
   destinationWorkspaceId,

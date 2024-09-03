@@ -340,12 +340,12 @@ export interface SendMessageParametersBase {
 
 export interface SendMessageParametersEmail extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Email"];
-  provider?: EmailProviderType;
+  providerOverride?: EmailProviderType;
 }
 
 export interface SendMessageParametersSms extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Sms"];
-  provider?: SmsProviderType;
+  providerOverride?: SmsProviderType;
   disableCallback?: boolean;
 }
 
@@ -416,19 +416,19 @@ function renderValues<T extends TemplateDictionary<T>>({
   return ok(coercedResult);
 }
 
-async function getSmsProvider({
-  provider,
+async function getSmsProviderForWorkspace({
+  providerOverride,
   workspaceId,
 }: {
   workspaceId: string;
-  provider?: SmsProviderType;
+  providerOverride?: SmsProviderType;
 }): Promise<(SmsProvider & { secret: Secret | null }) | null> {
-  if (provider) {
+  if (providerOverride) {
     return prisma().smsProvider.findUnique({
       where: {
         workspaceId_type: {
           workspaceId,
-          type: provider,
+          type: providerOverride,
         },
       },
       include: {
@@ -451,6 +451,36 @@ async function getSmsProvider({
   return defaultProvider?.smsProvider ?? null;
 }
 
+async function getSmsProvider({
+  providerOverride,
+  workspaceId,
+}: {
+  workspaceId: string;
+  providerOverride?: SmsProviderType;
+}): Promise<(SmsProvider & { secret: Secret | null }) | null> {
+  const provider = await getSmsProviderForWorkspace({
+    workspaceId,
+    providerOverride,
+  });
+  logger().debug({ provider }, "sms provider");
+  if (provider) {
+    return provider;
+  }
+  const relation = await prisma().workspaceRelation.findFirst({
+    where: {
+      childWorkspaceId: workspaceId,
+    },
+  });
+  logger().debug({ relation }, "workspace relation");
+  if (!relation) {
+    return null;
+  }
+  return getSmsProviderForWorkspace({
+    workspaceId: relation.parentWorkspaceId,
+    providerOverride,
+  });
+}
+
 function getMessageFileId({
   messageId,
   name,
@@ -461,19 +491,21 @@ function getMessageFileId({
   return `${messageId}-${name}`;
 }
 
-async function getEmailProvider({
-  provider,
+type EmailProviderPayload = (EmailProvider & { secret: Secret | null }) | null;
+
+async function getEmailProviderForWorkspace({
+  providerOverride,
   workspaceId,
 }: {
   workspaceId: string;
-  provider?: EmailProviderType;
-}): Promise<(EmailProvider & { secret: Secret | null }) | null> {
-  if (provider) {
+  providerOverride?: EmailProviderType;
+}): Promise<EmailProviderPayload> {
+  if (providerOverride) {
     return prisma().emailProvider.findUnique({
       where: {
         workspaceId_type: {
           workspaceId,
-          type: provider,
+          type: providerOverride,
         },
       },
       include: {
@@ -496,6 +528,36 @@ async function getEmailProvider({
   return defaultProvider?.emailProvider ?? null;
 }
 
+async function getEmailProvider({
+  providerOverride,
+  workspaceId,
+}: {
+  workspaceId: string;
+  providerOverride?: EmailProviderType;
+}): Promise<EmailProviderPayload> {
+  const provider = await getEmailProviderForWorkspace({
+    workspaceId,
+    providerOverride,
+  });
+  logger().debug({ provider }, "email provider");
+  if (provider) {
+    return provider;
+  }
+  const relation = await prisma().workspaceRelation.findFirst({
+    where: {
+      childWorkspaceId: workspaceId,
+    },
+  });
+  logger().debug({ relation }, "workspace relation");
+  if (!relation) {
+    return null;
+  }
+  return getEmailProviderForWorkspace({
+    workspaceId: relation.parentWorkspaceId,
+    providerOverride,
+  });
+}
+
 export async function sendEmail({
   workspaceId,
   templateId,
@@ -503,7 +565,7 @@ export async function sendEmail({
   subscriptionGroupDetails,
   messageTags,
   userId,
-  provider,
+  providerOverride,
   useDraft,
 }: Omit<
   SendMessageParametersEmail,
@@ -519,7 +581,7 @@ export async function sendEmail({
     }),
     getEmailProvider({
       workspaceId,
-      provider,
+      providerOverride,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -552,6 +614,7 @@ export async function sendEmail({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    tags: messageTags,
     templates: {
       from: {
         contents: messageTemplateDefinition.from,
@@ -1138,8 +1201,9 @@ export async function sendSms({
   userPropertyAssignments,
   subscriptionGroupDetails,
   useDraft,
-  provider,
+  providerOverride,
   userId,
+  messageTags,
   disableCallback = false,
 }: Omit<
   SendMessageParametersSms,
@@ -1155,7 +1219,7 @@ export async function sendSms({
     }),
     getSmsProvider({
       workspaceId,
-      provider,
+      providerOverride,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -1203,6 +1267,7 @@ export async function sendSms({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    tags: messageTags,
     templates: {
       body: {
         contents: messageTemplateDefinition.body,
@@ -1531,6 +1596,7 @@ export async function sendWebhook({
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
+  logger().debug({ params }, "sending message");
   switch (params.channel) {
     case ChannelType.Email:
       return sendEmail(params);

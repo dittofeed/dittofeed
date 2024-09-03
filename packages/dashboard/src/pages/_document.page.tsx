@@ -9,14 +9,16 @@ import Document, {
   NextScript,
 } from "next/document";
 
+import { DittofeedAppProps } from "../components/app";
 import createEmotionCache from "../lib/createEmotionCache";
-import { DittofeedAppProps } from "./_app.page";
 
-interface DocumentProps extends DocumentInitialProps {
+export interface DittofeedDocumentProps extends DocumentInitialProps {
   emotionStyleTags: React.ReactNode[];
 }
 
-export default function DittofeedDocument({ emotionStyleTags }: DocumentProps) {
+export default function DittofeedDocument({
+  emotionStyleTags,
+}: DittofeedDocumentProps) {
   return (
     <Html>
       <Head>
@@ -41,7 +43,7 @@ export default function DittofeedDocument({ emotionStyleTags }: DocumentProps) {
 // it's compatible with static-site generation (SSG).
 DittofeedDocument.getInitialProps = async (
   ctx: DocumentContext,
-): Promise<DocumentProps & DocumentInitialProps> => {
+): Promise<DittofeedDocumentProps> => {
   // Resolution order
   //
   // On the server:

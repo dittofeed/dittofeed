@@ -1,6 +1,9 @@
 import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { omit } from "remeda";
 
 import {
@@ -14,6 +17,8 @@ import {
   ChannelType,
   EmailEventList,
   InternalEventType,
+  MessageSendSuccessContents,
+  MessageSendSuccessVariant,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
@@ -103,6 +108,58 @@ export function parseSearchDeliveryRow(
     return null;
   }
   return itemResult.value;
+}
+
+export async function getDeliveryBody({
+  workspaceId,
+  journeyId,
+  templateId,
+  userId,
+}: {
+  workspaceId: string;
+  journeyId: string;
+  userId: string;
+  templateId: string;
+}): Promise<MessageSendSuccessVariant | null> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const journeyIdParam = qb.addQueryValue(journeyId, "String");
+  const templateIdParam = qb.addQueryValue(templateId, "String");
+  const query = `
+    SELECT
+      properties
+    FROM user_events_v2
+    WHERE
+      event = '${InternalEventType.MessageSent}'
+      AND workspace_id = ${workspaceIdParam}
+      AND event_type = 'track'
+      AND user_or_anonymous_id = ${userIdParam}
+      AND simpleJSONExtractString(properties, 'journeyId') = ${journeyIdParam}
+      AND simpleJSONExtractString(properties, 'templateId') = ${templateIdParam}
+    ORDER BY processing_time DESC
+    LIMIT 1
+  `;
+  const result = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
+  const results = await result.json();
+  const delivery = results[0] as { properties: string } | undefined;
+  if (!delivery) {
+    return null;
+  }
+  const propertiesResult = jsonParseSafe(delivery.properties);
+  if (propertiesResult.isErr()) {
+    return null;
+  }
+  const parsedResult = schemaValidateWithErr(
+    propertiesResult.value,
+    MessageSendSuccessContents,
+  ).unwrapOr(null);
+
+  return parsedResult?.variant ?? null;
 }
 
 export async function searchDeliveries({
