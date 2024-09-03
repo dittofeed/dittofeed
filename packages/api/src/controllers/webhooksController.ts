@@ -176,14 +176,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         return reply.status(401).send({ message: "Invalid signature" });
       }
 
-      switch (request.body.Type) {
+      const { body } = request;
+      switch (body.Type) {
         // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
         // UnsubscribeConfirmation type events occur when our application requests disabling
         // the webhook. Since we never do this, we respond by re-confirming the subscription.
         case AmazonSNSEventTypes.SubscriptionConfirmation:
         case AmazonSNSEventTypes.UnsubscribeConfirmation:
           /* eslint-disable-next-line no-case-declarations */
-          const confirmed = await confirmSubscription(request.body);
+          const confirmed = await confirmSubscription(body);
           if (confirmed.isErr()) {
             logger().error("Unable to confirm AmazonSNS subscription.", {
               error: confirmed.error,
@@ -193,9 +194,16 @@ export default async function webhookController(fastify: FastifyInstance) {
           logger().debug("AmazonSES Subscription confirmed");
           break;
         case AmazonSNSEventTypes.Notification: {
-          await submitAmazonSesEvents(
-            JSON.parse(request.body.Message) as AmazonSesEventPayload,
+          const parsed: unknown = JSON.parse(body.Message);
+          const validated = schemaValidateWithErr(
+            parsed,
+            AmazonSesEventPayload,
           );
+          if (validated.isErr()) {
+            logger().error("Invalid AmazonSes event payload.", validated.error);
+            return reply.status(500).send();
+          }
+          await submitAmazonSesEvents(validated.value);
           break;
         }
         default: {
