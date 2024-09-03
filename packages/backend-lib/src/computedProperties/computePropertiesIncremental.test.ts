@@ -2198,7 +2198,6 @@ describe("computeProperties", () => {
     },
     {
       description: "any of user property with null values",
-      only: true,
       segments: [],
       userProperties: [
         {
@@ -2261,6 +2260,15 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user-1 has email",
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              name: "email",
+              nodeId: "2",
+              lastValue: "test@test.com",
+            },
+          ],
           users: [
             {
               id: "user-1",

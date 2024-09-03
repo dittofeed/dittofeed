@@ -1748,9 +1748,11 @@ function leafUserPropertyToSubQuery({
   userProperty,
   child,
   qb,
+  excludeNulls = false,
 }: {
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
+  excludeNulls?: boolean;
   qb: ClickHouseQueryBuilder;
 }): SubQueryData | null {
   switch (child.type) {
@@ -1766,8 +1768,12 @@ function leafUserPropertyToSubQuery({
       if (!path) {
         return null;
       }
+      const conditions = ["event_type == 'identify'"];
+      if (excludeNulls) {
+        conditions.push(`JSON_VALUE(properties, ${path}) is not Null`);
+      }
       return {
-        condition: `event_type == 'identify'`,
+        condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
         argMaxValue: `JSON_VALUE(properties, ${path})`,
@@ -1819,6 +1825,9 @@ function leafUserPropertyToSubQuery({
       if (prefixCondition) {
         conditions.push(prefixCondition);
       }
+      if (excludeNulls) {
+        conditions.push(`JSON_VALUE(properties, ${path}) is not Null`);
+      }
       if (propertiesCondition) {
         conditions.push(`(${propertiesCondition})`);
       }
@@ -1853,11 +1862,13 @@ function groupedUserPropertyToSubQuery({
   group,
   node,
   qb,
+  excludeNulls = false,
 }: {
   userProperty: SavedUserPropertyResource;
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
+  excludeNulls?: boolean;
 }): SubQueryData[] {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
@@ -1877,6 +1888,7 @@ function groupedUserPropertyToSubQuery({
         return groupedUserPropertyToSubQuery({
           userProperty,
           node: childNode,
+          excludeNulls: true,
           group,
           qb,
         });
@@ -1887,6 +1899,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
 
       if (!subQuery) {
@@ -1899,6 +1912,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
 
       if (!subQuery) {
@@ -1911,6 +1925,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
       if (!subQuery) {
         return [];
