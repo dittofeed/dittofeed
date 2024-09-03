@@ -206,9 +206,6 @@ export default async function webhookController(fastify: FastifyInstance) {
           await submitAmazonSesEvents(validated.value);
           break;
         }
-        default: {
-          logger().error("Unknown AmazonSes event type");
-        }
       }
 
       return reply.status(200).send();

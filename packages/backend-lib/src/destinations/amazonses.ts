@@ -8,6 +8,7 @@ import {
   SESv2Client,
   SESv2ServiceException,
 } from "@aws-sdk/client-sesv2";
+import { SourceType } from "isomorphic-lib/src/constants";
 import { err, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
@@ -16,6 +17,7 @@ import { v5 as uuidv5 } from "uuid";
 import { submitBatch } from "../apps/batch";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
+import { withSpan } from "../openTelemetry";
 import {
   AmazonSesConfig,
   AmazonSesEventPayload,
@@ -25,10 +27,10 @@ import {
   AmazonSNSSubscriptionEvent,
   AmazonSNSUnsubscribeEvent,
   BatchTrackData,
+  EmailProviderType,
   EventType,
   InternalEventType,
 } from "../types";
-import { withSpan } from "../openTelemetry";
 
 function unwrapTag(tagName: string, tags: Record<string, string[]>) {
   if (!tags[tagName]) {
@@ -185,6 +187,10 @@ export async function submitAmazonSesEvents(
       submitBatch({
         workspaceId,
         data: {
+          context: {
+            source: SourceType.Webhook,
+            provider: EmailProviderType.AmazonSes,
+          },
           batch: items,
           ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
         },
