@@ -1,3 +1,4 @@
+import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import { ErrorResponse, Resend } from "resend";
@@ -10,6 +11,7 @@ import {
   BatchAppData,
   BatchItem,
   BatchTrackData,
+  EmailProviderType,
   EventType,
   InternalEventType,
   ResendEvent,
@@ -133,6 +135,10 @@ export async function submitResendEvents({
   events: ResendEvent[];
 }) {
   const data: BatchAppData = {
+    context: {
+      source: SourceType.Webhook,
+      provider: EmailProviderType.Resend,
+    },
     batch: events.flatMap((e) =>
       resendEventToDF({ workspaceId, resendEvent: e })
         .mapErr((error) => {

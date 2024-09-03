@@ -1,5 +1,6 @@
 // postmark doesn't directly exports the types we need
 /* eslint-disable import/no-extraneous-dependencies */
+import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import { Message, ServerClient } from "postmark";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
@@ -14,6 +15,7 @@ import {
   BatchAppData,
   BatchItem,
   BatchTrackData,
+  EmailProviderType,
   EventType,
   InternalEventType,
   PostMarkEvent,
@@ -148,6 +150,10 @@ export async function submitPostmarkEvents({
   events: PostMarkEvent[];
 }) {
   const data: BatchAppData = {
+    context: {
+      source: SourceType.Webhook,
+      provider: EmailProviderType.PostMark,
+    },
     batch: events.flatMap((e) =>
       postMarkEventToDF({ workspaceId, postMarkEvent: e })
         .mapErr((error) => {

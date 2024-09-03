@@ -8,6 +8,7 @@ import {
   SESv2Client,
   SESv2ServiceException,
 } from "@aws-sdk/client-sesv2";
+import { SourceType } from "isomorphic-lib/src/constants";
 import { err, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
@@ -16,6 +17,7 @@ import { v5 as uuidv5 } from "uuid";
 import { submitBatch } from "../apps/batch";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
+import { withSpan } from "../openTelemetry";
 import {
   AmazonSesConfig,
   AmazonSesEventPayload,
@@ -25,6 +27,7 @@ import {
   AmazonSNSSubscriptionEvent,
   AmazonSNSUnsubscribeEvent,
   BatchTrackData,
+  EmailProviderType,
   EventType,
   InternalEventType,
 } from "../types";
@@ -120,71 +123,81 @@ export async function sendMail({
 export async function submitAmazonSesEvents(
   event: AmazonSesEventPayload,
 ): Promise<ResultAsync<void, Error>> {
-  // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
-  logger().debug(event);
+  return withSpan({ name: "submit-amazon-ses-events" }, async (span) => {
+    // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
+    logger().debug(event);
 
-  const workspaceId = unwrapTag("workspaceId", event.mail.tags);
-  const userId = unwrapTag("userId", event.mail.tags);
+    const workspaceId = unwrapTag("workspaceId", event.mail.tags);
+    const userId = unwrapTag("userId", event.mail.tags);
 
-  if (!workspaceId) {
-    return err(new Error("Workspace id not found"));
-  }
+    for (const [key, value] of Object.entries(event.mail.tags)) {
+      span.setAttribute(key, value);
+    }
 
-  let timestamp: string;
-  let eventName: InternalEventType;
-  switch (event.eventType) {
-    case AmazonSesNotificationType.Bounce:
-      eventName = InternalEventType.EmailBounced;
-      timestamp = event.bounce.timestamp;
-      break;
-    case AmazonSesNotificationType.Complaint:
-      eventName = InternalEventType.EmailMarkedSpam;
-      timestamp = event.complaint.timestamp;
-      break;
-    case AmazonSesNotificationType.Delivery:
-      eventName = InternalEventType.EmailDelivered;
-      timestamp = event.delivery.timestamp;
-      break;
-    case AmazonSesNotificationType.Open:
-      eventName = InternalEventType.EmailOpened;
-      timestamp = event.open.timestamp;
-      break;
-    case AmazonSesNotificationType.Click:
-      eventName = InternalEventType.EmailClicked;
-      timestamp = event.click.timestamp;
-      break;
-    default:
-      return err(
-        new Error(`Unhandled Amazon SES event type: ${event.eventType}`),
-      );
-  }
+    if (!workspaceId) {
+      return err(new Error("Workspace id not found"));
+    }
 
-  const messageId = uuidv5(event.mail.messageId, workspaceId);
+    let timestamp: string;
+    let eventName: InternalEventType;
+    switch (event.eventType) {
+      case AmazonSesNotificationType.Bounce:
+        eventName = InternalEventType.EmailBounced;
+        timestamp = event.bounce.timestamp;
+        break;
+      case AmazonSesNotificationType.Complaint:
+        eventName = InternalEventType.EmailMarkedSpam;
+        timestamp = event.complaint.timestamp;
+        break;
+      case AmazonSesNotificationType.Delivery:
+        eventName = InternalEventType.EmailDelivered;
+        timestamp = event.delivery.timestamp;
+        break;
+      case AmazonSesNotificationType.Open:
+        eventName = InternalEventType.EmailOpened;
+        timestamp = event.open.timestamp;
+        break;
+      case AmazonSesNotificationType.Click:
+        eventName = InternalEventType.EmailClicked;
+        timestamp = event.click.timestamp;
+        break;
+      default:
+        return err(
+          new Error(`Unhandled Amazon SES event type: ${event.eventType}`),
+        );
+    }
 
-  const items: BatchTrackData[] = [];
-  if (userId) {
-    items.push({
-      type: EventType.Track,
-      event: eventName,
-      userId,
-      messageId,
-      timestamp,
-      properties: {
-        email: event.mail.destination[0],
-        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
-      },
-    });
-  }
-  return ResultAsync.fromPromise(
-    submitBatch({
-      workspaceId,
-      data: {
-        batch: items,
-        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
-      },
-    }),
-    (e) => (e instanceof Error ? e : Error(e as string)),
-  );
+    const messageId = uuidv5(event.mail.messageId, workspaceId);
+
+    const items: BatchTrackData[] = [];
+    if (userId) {
+      items.push({
+        type: EventType.Track,
+        event: eventName,
+        userId,
+        messageId,
+        timestamp,
+        properties: {
+          email: event.mail.destination[0],
+          ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
+        },
+      });
+    }
+    return ResultAsync.fromPromise(
+      submitBatch({
+        workspaceId,
+        data: {
+          context: {
+            source: SourceType.Webhook,
+            provider: EmailProviderType.AmazonSes,
+          },
+          batch: items,
+          ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
+        },
+      }),
+      (e) => (e instanceof Error ? e : Error(e as string)),
+    );
+  });
 }
 
 export async function validSNSSignature(payload: AmazonSNSEvent) {
