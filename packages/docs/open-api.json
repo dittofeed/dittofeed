@@ -322,6 +322,24 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -444,6 +462,24 @@
                                   },
                                   "replyTo": {
                                     "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
                                   },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
@@ -611,6 +647,24 @@
                           "replyTo": {
                             "type": "string"
                           },
+                          "headers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          },
                           "attachmentUserProperties": {
                             "description": "Names of user properties to attach to the email as attachments.",
                             "type": "array",
@@ -735,6 +789,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -918,6 +990,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -1040,6 +1130,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
@@ -1376,6 +1484,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -1498,6 +1624,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
@@ -18121,6 +18265,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -36871,6 +37033,24 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -36993,6 +37173,24 @@
                                   },
                                   "replyTo": {
                                     "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
                                   },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
@@ -37160,6 +37358,24 @@
                           "replyTo": {
                             "type": "string"
                           },
+                          "headers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          },
                           "attachmentUserProperties": {
                             "description": "Names of user properties to attach to the email as attachments.",
                             "type": "array",
@@ -37284,6 +37500,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -37467,6 +37701,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -37589,6 +37841,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
@@ -37925,6 +38195,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -38047,6 +38335,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
