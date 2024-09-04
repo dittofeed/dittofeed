@@ -216,7 +216,7 @@ export default async function webhookController(fastify: FastifyInstance) {
               return reply.status(500).send();
             }
             for (const [key, value] of Object.entries(
-              validated.value.mail.tags,
+              validated.value.mail.tags ?? {},
             )) {
               span.setAttribute(key, value);
             }
