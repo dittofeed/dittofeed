@@ -86,7 +86,7 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
       if (defn.type !== ChannelType.Email) {
         return defn;
       }
-      const headers = defn.headers ?? [];
+      const headers = defn.headers ? [...defn.headers] : [];
       const existing = headers[index];
       headers[index] = {
         name: field === "name" ? value : existing?.name ?? "",
