@@ -1770,7 +1770,7 @@ function leafUserPropertyToSubQuery({
       }
       const conditions = ["event_type == 'identify'"];
       if (excludeNulls) {
-        conditions.push(`JSON_VALUE(properties, ${path}) is not Null`);
+        conditions.push(`JSON_VALUE(properties, ${path}) != 'null'`);
       }
       return {
         condition: conditions.join(" and "),
@@ -1826,7 +1826,7 @@ function leafUserPropertyToSubQuery({
         conditions.push(prefixCondition);
       }
       if (excludeNulls) {
-        conditions.push(`JSON_VALUE(properties, ${path}) is not Null`);
+        conditions.push(`JSON_VALUE(properties, ${path}) != 'null'`);
       }
       if (propertiesCondition) {
         conditions.push(`(${propertiesCondition})`);

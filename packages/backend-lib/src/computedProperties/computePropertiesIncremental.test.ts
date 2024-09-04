@@ -2209,12 +2209,17 @@ describe("computeProperties", () => {
               {
                 type: UserPropertyDefinitionType.AnyOf,
                 id: "1",
-                children: ["2"],
+                children: ["2", "3"],
               },
               {
                 type: UserPropertyDefinitionType.Performed,
                 id: "2",
                 event: "*",
+                path: "email",
+              },
+              {
+                type: UserPropertyDefinitionType.Trait,
+                id: "3",
                 path: "email",
               },
             ],
@@ -2236,7 +2241,7 @@ describe("computeProperties", () => {
             },
             {
               type: EventType.Track,
-              offsetMs: -100,
+              offsetMs: -200,
               userId: "user-1",
               event: "test",
               properties: {
@@ -2252,11 +2257,39 @@ describe("computeProperties", () => {
                 email: null,
               },
             },
+            {
+              type: EventType.Identify,
+              offsetMs: -300,
+              userId: "user-1",
+              traits: {
+                email: null,
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -200,
+              userId: "user-1",
+              traits: {
+                email: "test@test.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: null,
+              },
+            },
           ],
         },
         {
           type: EventsStepType.ComputeProperties,
         },
+        {
+          type: EventsStepType.DebugAssignments,
+        },
+
         {
           type: EventsStepType.Assert,
           description: "user-1 has email",
@@ -2266,6 +2299,13 @@ describe("computeProperties", () => {
               type: "user_property",
               name: "email",
               nodeId: "2",
+              lastValue: "test@test.com",
+            },
+            {
+              userId: "user-1",
+              type: "user_property",
+              name: "email",
+              nodeId: "3",
               lastValue: "test@test.com",
             },
           ],
