@@ -382,6 +382,17 @@ export type AmazonSNSUnsubscribeEvent = Static<
   typeof AmazonSNSUnsubscribeEvent
 >;
 
+export const AmazonSesEventPayload = Type.Union([
+  AmazonSesBounceEvent,
+  AmazonSesClickEvent,
+  AmazonSesComplaintEvent,
+  AmazonSesDeliveryEvent,
+  AmazonSesOpenEvent,
+  AmazonSesSendEvent,
+]);
+
+export type AmazonSesEventPayload = Static<typeof AmazonSesEventPayload>;
+
 export const AmazonSNSNotificationEvent = Type.Object({
   Type: Type.Literal(AmazonSNSEventTypes.Notification),
   Message: Type.String(),
@@ -394,17 +405,6 @@ export const AmazonSNSNotificationEvent = Type.Object({
   SigningCertURL: Type.String(),
   UnsubscribeURL: Type.String(),
 });
-
-export const AmazonSesEventPayload = Type.Union([
-  AmazonSesBounceEvent,
-  AmazonSesClickEvent,
-  AmazonSesComplaintEvent,
-  AmazonSesDeliveryEvent,
-  AmazonSesOpenEvent,
-  AmazonSesSendEvent,
-]);
-
-export type AmazonSesEventPayload = Static<typeof AmazonSesEventPayload>;
 
 export type AmazonSNSNotificationEvent = Static<
   typeof AmazonSNSNotificationEvent
