@@ -208,8 +208,10 @@ export default async function webhookController(fastify: FastifyInstance) {
             );
             if (validated.isErr()) {
               logger().error(
+                {
+                  err: validated.error,
+                },
                 "Invalid AmazonSes event payload.",
-                validated.error,
               );
               return reply.status(500).send();
             }
