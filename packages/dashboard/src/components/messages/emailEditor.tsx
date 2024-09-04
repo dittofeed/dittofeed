@@ -185,7 +185,8 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
           >
             {(draft.headers ?? []).map((header, index) => (
               <Stack
-                key={header.name}
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
                 direction="row"
                 spacing={2}
                 sx={{ width: "100%" }}
