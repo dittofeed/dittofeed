@@ -110,7 +110,6 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
     return null;
   }
 
-  // FIXME typing cheader name causes to lose value
   return (
     <>
       <Button onClick={() => setOpen(true)}> Options </Button>
