@@ -113,11 +113,12 @@ export async function submitAmazonSesEvents(
   return withSpan({ name: "submit-amazon-ses-events" }, async (span) => {
     // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
     logger().debug(event);
+    const tags = event.mail.tags ?? {};
 
-    const workspaceId = unwrapTag("workspaceId", event.mail.tags);
-    const userId = unwrapTag("userId", event.mail.tags);
+    const workspaceId = unwrapTag("workspaceId", tags);
+    const userId = unwrapTag("userId", tags);
 
-    for (const [key, value] of Object.entries(event.mail.tags)) {
+    for (const [key, value] of Object.entries(tags)) {
       span.setAttribute(key, value);
     }
 
@@ -165,8 +166,8 @@ export async function submitAmazonSesEvents(
         messageId,
         timestamp,
         properties: {
-          email: event.mail.destination[0],
-          ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
+          email: event.mail.destination?.[0],
+          ...R.pick(tags, MESSAGE_METADATA_FIELDS),
         },
       });
     }
@@ -179,7 +180,7 @@ export async function submitAmazonSesEvents(
             provider: EmailProviderType.AmazonSes,
           },
           batch: items,
-          ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
+          ...R.pick(tags, MESSAGE_METADATA_FIELDS),
         },
       }),
       (e) => (e instanceof Error ? e : Error(e as string)),
