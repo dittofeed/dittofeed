@@ -1042,7 +1042,14 @@ export const EmailContents = Type.Object({
   body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
-  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+  headers: Type.Optional(
+    Type.Array(
+      Type.Object({
+        name: Type.String(),
+        value: Type.String(),
+      }),
+    ),
+  ),
   attachmentUserProperties: Type.Optional(
     Type.Array(Type.String(), {
       description:
