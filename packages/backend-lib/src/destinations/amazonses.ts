@@ -65,24 +65,11 @@ export async function sendMail({
     },
   });
 
-  const replyTo = mailData.replyTo
-    ? {
-        ReplyToAddresses: [mailData.replyTo],
-      }
-    : {};
-
-  const tags = mailData.tags
-    ? {
-        Tags: Object.keys(mailData.tags).reduce(
-          (a: MessageTag[], k: string) => {
-            return mailData.tags
-              ? [{ Name: k, Value: mailData.tags[k] }, ...a]
-              : a;
-          },
-          [],
-        ),
-      }
-    : {};
+  const tags: MessageTag[] | undefined = mailData.tags
+    ? Object.keys(mailData.tags).reduce((a: MessageTag[], k: string) => {
+        return mailData.tags ? [{ Name: k, Value: mailData.tags[k] }, ...a] : a;
+      }, [])
+    : undefined;
 
   const input: SendEmailRequest = {
     FromEmailAddress: mailData.from,
@@ -109,8 +96,8 @@ export async function sendMail({
           : undefined,
       },
     },
-    ...tags,
-    ...replyTo,
+    EmailTags: tags,
+    ReplyToAddresses: mailData.replyTo ? [mailData.replyTo] : undefined,
   };
 
   const command = new SendEmailCommand(input);
