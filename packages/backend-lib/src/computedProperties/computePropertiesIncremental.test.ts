@@ -2287,10 +2287,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-
-        {
           type: EventsStepType.Assert,
           description: "user-1 has email",
           states: [
