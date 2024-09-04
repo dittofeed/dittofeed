@@ -667,6 +667,42 @@ export async function sendEmail({
   // don't pass an empty string for reply to values
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
   const to = identifier;
+
+  let customHeaders: Record<string, string> | undefined;
+  if (messageTemplateDefinition.headers) {
+    const headersToRender: Record<
+      string,
+      {
+        contents: string;
+      }
+    > = {};
+    for (const header of messageTemplateDefinition.headers) {
+      headersToRender[header.name] = {
+        contents: header.value,
+      };
+    }
+    const renderedCustomHeaders = renderValues({
+      userProperties: userPropertyAssignments,
+      identifierKey,
+      subscriptionGroupId: subscriptionGroupDetails?.id,
+      workspaceId,
+      tags: messageTags,
+      templates: headersToRender,
+    });
+    if (renderedCustomHeaders.isErr()) {
+      const { error, field } = renderedCustomHeaders.error;
+      return err({
+        type: InternalEventType.BadWorkspaceConfiguration,
+        variant: {
+          type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+          field,
+          error,
+        },
+      });
+    }
+    customHeaders = renderedCustomHeaders.value;
+  }
+
   const unsubscribeHeadersResult: Result<
     UnsubscribeHeaders,
     MessageTemplateRenderError
@@ -693,6 +729,11 @@ export async function sendEmail({
   const unsubscribeHeaders = unsubscribeHeadersResult?.value as
     | Record<string, string>
     | undefined;
+
+  const headers = {
+    ...customHeaders,
+    ...unsubscribeHeaders,
+  };
 
   const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 
@@ -812,7 +853,7 @@ export async function sendEmail({
         body,
         host,
         port: numPort,
-        headers: unsubscribeHeaders,
+        headers,
         attachments: smtpAttachments,
       });
       if (result.isErr()) {
@@ -832,7 +873,7 @@ export async function sendEmail({
           body,
           to,
           subject,
-          headers: unsubscribeHeaders,
+          headers,
           replyTo,
           provider: {
             type: EmailProviderType.Smtp,
@@ -869,7 +910,7 @@ export async function sendEmail({
         subject,
         html: body,
         replyTo,
-        headers: unsubscribeHeaders,
+        headers,
         attachments: sendgridAttachments,
         customArgs: {
           workspaceId,
@@ -915,7 +956,7 @@ export async function sendEmail({
           body,
           to,
           subject,
-          headers: unsubscribeHeaders,
+          headers,
           replyTo,
           provider: {
             type: EmailProviderType.Sendgrid,
@@ -940,7 +981,7 @@ export async function sendEmail({
         subject,
         html: body,
         replyTo,
-        headers: unsubscribeHeaders,
+        headers,
         tags: {
           workspaceId,
           templateId,
@@ -991,7 +1032,7 @@ export async function sendEmail({
           body,
           to,
           subject,
-          headers: unsubscribeHeaders,
+          headers,
           replyTo,
           provider: {
             type: EmailProviderType.AmazonSes,
@@ -1024,7 +1065,7 @@ export async function sendEmail({
         subject,
         html: body,
         reply_to: replyTo,
-        headers: unsubscribeHeaders,
+        headers,
         tags: messageTags
           ? Object.entries(messageTags).map(([name, value]) => ({
               name,
@@ -1069,7 +1110,7 @@ export async function sendEmail({
           from,
           body,
           to,
-          headers: unsubscribeHeaders,
+          headers,
           subject,
           replyTo,
           provider: {
@@ -1109,12 +1150,13 @@ export async function sendEmail({
         HtmlBody: body,
         ReplyTo: replyTo,
         Attachments: postmarkAttachments,
-        Headers: unsubscribeHeaders
-          ? Object.entries(unsubscribeHeaders).map(([name, value]) => ({
-              Name: name,
-              Value: value,
-            }))
-          : undefined,
+        Headers:
+          Object.keys(headers).length > 0
+            ? Object.entries(headers).map(([name, value]) => ({
+                Name: name,
+                Value: value,
+              }))
+            : undefined,
         Metadata: {
           recipient: to,
           from,
@@ -1161,7 +1203,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
-          headers: unsubscribeHeaders,
+          headers,
           provider: {
             type: EmailProviderType.PostMark,
           },
@@ -1178,7 +1220,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
-          headers: unsubscribeHeaders,
+          headers,
           provider: {
             type: EmailProviderType.Test,
           },

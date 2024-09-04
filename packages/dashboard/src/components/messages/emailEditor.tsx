@@ -178,6 +178,8 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
             sx={{
               maxHeight: "200px",
               overflowY: "auto",
+              width: "100%",
+              pt: 1,
               pr: 1,
             }}
           >
@@ -185,12 +187,14 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
               <Stack
                 key={header.name}
                 direction="row"
-                spacing={1}
+                spacing={2}
+                sx={{ width: "100%" }}
                 alignItems="center"
               >
                 <TextField
                   label="Header Name"
                   value={header.name}
+                  sx={{ flex: 1 }}
                   onChange={(e) =>
                     updateCustomHeader(index, "name", e.target.value)
                   }
@@ -198,6 +202,7 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
                   size="small"
                 />
                 <TextField
+                  sx={{ flex: 1 }}
                   label="Header Value"
                   value={header.value}
                   onChange={(e) =>

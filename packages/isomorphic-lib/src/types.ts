@@ -1073,7 +1073,7 @@ export const EmailTemplateResource = Type.Composite(
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const EmailConfiguration = Type.Composite([
-  EmailContents,
+  Type.Omit(EmailContents, ["headers"]),
   Type.Object({
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
@@ -2939,7 +2939,7 @@ export const MessageEmailSuccess = Type.Composite([
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
-  EmailContents,
+  Type.Omit(EmailContents, ["headers"]),
 ]);
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
