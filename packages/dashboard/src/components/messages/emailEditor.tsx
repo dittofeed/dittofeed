@@ -1,6 +1,8 @@
 import { html } from "@codemirror/lang-html";
 import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Autocomplete,
   Button,
@@ -8,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  IconButton,
   Stack,
   SxProps,
   TextField,
@@ -60,9 +63,53 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
       .filter((up) => up.definition.type === UserPropertyDefinitionType.File)
       .map((up) => up.name);
   }, [userProperties]);
+
+  const addCustomHeader = () => {
+    setDraft((defn) => {
+      if (defn.type !== ChannelType.Email) {
+        return defn;
+      }
+      const headers = defn.headers ?? [];
+      return {
+        ...defn,
+        headers: [...headers, { name: "", value: "" }],
+      };
+    });
+  };
+
+  const updateCustomHeader = (
+    index: number,
+    field: "name" | "value",
+    value: string,
+  ) => {
+    setDraft((defn) => {
+      if (defn.type !== ChannelType.Email) {
+        return defn;
+      }
+      const headers = defn.headers ? [...defn.headers] : [];
+      const existing = headers[index];
+      headers[index] = {
+        name: field === "name" ? value : existing?.name ?? "",
+        value: field === "value" ? value : existing?.value ?? "",
+      };
+      return { ...defn, headers };
+    });
+  };
+
+  const removeCustomHeader = (index: number) => {
+    setDraft((defn) => {
+      if (defn.type !== ChannelType.Email) {
+        return defn;
+      }
+      const headers = (defn.headers ?? []).filter((_, i) => i !== index);
+      return { ...defn, headers };
+    });
+  };
+
   if (draft.type !== ChannelType.Email) {
     return null;
   }
+
   return (
     <>
       <Button onClick={() => setOpen(true)}> Options </Button>
@@ -106,8 +153,7 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
                 if (defn.type !== ChannelType.Email) {
                   return defn;
                 }
-                defn.attachmentUserProperties = value;
-                return defn;
+                return { ...defn, attachmentUserProperties: value };
               });
             }}
             options={options}
@@ -117,6 +163,65 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
               <TextField {...params} label="Attachments" variant="outlined" />
             )}
           />
+
+          <Button
+            startIcon={<AddIcon />}
+            onClick={addCustomHeader}
+            disabled={disabled}
+            sx={{ mt: 2, mb: 1 }}
+          >
+            Add Custom Header
+          </Button>
+
+          <Stack
+            spacing={2}
+            sx={{
+              maxHeight: "200px",
+              overflowY: "auto",
+              width: "100%",
+              pt: 1,
+              pr: 1,
+            }}
+          >
+            {(draft.headers ?? []).map((header, index) => (
+              <Stack
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
+                direction="row"
+                spacing={2}
+                sx={{ width: "100%" }}
+                alignItems="center"
+              >
+                <TextField
+                  label="Header Name"
+                  value={header.name}
+                  sx={{ flex: 1 }}
+                  onChange={(e) =>
+                    updateCustomHeader(index, "name", e.target.value)
+                  }
+                  disabled={disabled}
+                  size="small"
+                />
+                <TextField
+                  sx={{ flex: 1 }}
+                  label="Header Value"
+                  value={header.value}
+                  onChange={(e) =>
+                    updateCustomHeader(index, "value", e.target.value)
+                  }
+                  disabled={disabled}
+                  size="small"
+                />
+                <IconButton
+                  onClick={() => removeCustomHeader(index)}
+                  disabled={disabled}
+                  size="small"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Stack>
+            ))}
+          </Stack>
         </DialogContent>
       </Dialog>
     </>
