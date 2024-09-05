@@ -3415,7 +3415,7 @@ export const AmazonSesMailFields = Type.Object({
   subject: Type.String(),
   html: Type.String(),
   replyTo: Type.Optional(Type.String()),
-  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
+  tags: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
