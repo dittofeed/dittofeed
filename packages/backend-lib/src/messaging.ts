@@ -975,7 +975,7 @@ export async function sendEmail({
           },
         });
       }
-      const mailData: AmazonSesMailFields = {
+      const mailData: Parameters<typeof sendMailAmazonSes>[0]["mailData"] = {
         to,
         from,
         subject,
