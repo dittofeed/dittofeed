@@ -229,6 +229,7 @@ export default async function webhookController(fastify: FastifyInstance) {
               logger().error(
                 {
                   err: result.error,
+                  notification: validated.value,
                 },
                 "Error submitting AmazonSes events.",
               );
