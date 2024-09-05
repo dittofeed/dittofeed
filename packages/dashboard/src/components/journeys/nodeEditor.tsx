@@ -330,15 +330,18 @@ function MessageNodeFields({
       if (props.type === JourneyNodeType.MessageNode) {
         switch (props.channel) {
           case ChannelType.Email:
-            props.providerOverride = provider as EmailProviderType;
+            props.providerOverride =
+              (provider as EmailProviderType | null) ?? undefined;
             break;
           case ChannelType.Sms:
-            props.providerOverride = provider as SmsProviderType;
+            props.providerOverride =
+              (provider as SmsProviderType | null) ?? undefined;
             break;
           case ChannelType.Webhook:
             break;
           case ChannelType.MobilePush:
-            props.providerOverride = provider as MobilePushProviderType;
+            props.providerOverride =
+              (provider as MobilePushProviderType | null) ?? undefined;
             break;
         }
       }
