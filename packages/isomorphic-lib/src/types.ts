@@ -1836,6 +1836,7 @@ export const EmptyResponse = Type.String({
 export type EmptyResponse = Static<typeof EmptyResponse>;
 
 export const DeleteJourneyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 

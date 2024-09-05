@@ -42,6 +42,12 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
           logger().debug({ rc: rc.error }, "Not authenticated");
           return reply.status(401).send();
         default:
+          logger().error(
+            {
+              err: rc.error,
+            },
+            "unknown request context error",
+          );
           return reply.status(403).send();
       }
     }
@@ -54,6 +60,13 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
     const { workspace, member, memberRoles } = rc.value;
     const workspaceId = requestWorkspaceIdResult.value;
     if (workspaceId !== workspace.id) {
+      logger().error(
+        {
+          workspaceId,
+          workspaceIdFromRequest: workspace.id,
+        },
+        "workspace id does not match",
+      );
       return reply.status(403).send();
     }
 
