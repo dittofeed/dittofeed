@@ -215,9 +215,13 @@ export default async function webhookController(fastify: FastifyInstance) {
               );
               return reply.status(500).send();
             }
-            for (const [key, value] of Object.entries(
+            for (const [key, values] of Object.entries(
               validated.value.mail.tags ?? {},
             )) {
+              const [value] = values;
+              if (!value) {
+                continue;
+              }
               span.setAttribute(key, value);
             }
             const result = await submitAmazonSesEvents(validated.value);

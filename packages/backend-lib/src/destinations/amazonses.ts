@@ -66,9 +66,10 @@ export async function sendMail({
   });
 
   const tags: MessageTag[] | undefined = mailData.tags
-    ? Object.keys(mailData.tags).reduce((a: MessageTag[], k: string) => {
-        return mailData.tags ? [{ Name: k, Value: mailData.tags[k] }, ...a] : a;
-      }, [])
+    ? Object.entries(mailData.tags).map(([Name, Value]) => ({
+        Name,
+        Value: Value[0] ?? "",
+      }))
     : undefined;
 
   const input: SendEmailRequest = {
