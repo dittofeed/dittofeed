@@ -8573,11 +8573,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -36453,11 +36457,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
