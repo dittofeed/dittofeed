@@ -33,14 +33,6 @@ import {
   InternalEventType,
 } from "../types";
 
-function unwrapTag(tagName: string, tags: Record<string, string[]>) {
-  if (!tags[tagName]) {
-    return null;
-  }
-
-  return tags[tagName]?.[0] ?? null;
-}
-
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
 function guardResponseError(e: unknown): SESv2ServiceException {
@@ -115,10 +107,22 @@ export async function submitAmazonSesEvents(
   return withSpan({ name: "submit-amazon-ses-events" }, async (span) => {
     // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
     logger().debug(event);
-    const tags = event.mail.tags ?? {};
+    let tags: Record<string, string>;
+    if (event.mail.tags) {
+      const mappedTags: Record<string, string> = {};
+      for (const [key, values] of Object.entries(event.mail.tags)) {
+        const [value] = values;
+        if (value) {
+          mappedTags[key] = value;
+        }
+      }
+      tags = mappedTags;
+    } else {
+      tags = {};
+    }
 
-    const workspaceId = unwrapTag("workspaceId", tags);
-    const userId = unwrapTag("userId", tags);
+    const workspaceId = tags.workspaceId ?? null;
+    const userId = tags.userId ?? null;
 
     for (const [key, value] of Object.entries(tags)) {
       span.setAttribute(key, value);
@@ -158,6 +162,7 @@ export async function submitAmazonSesEvents(
     }
 
     const messageId = uuidv5(event.mail.messageId, workspaceId);
+    const metadataTags = R.pick(tags, MESSAGE_METADATA_FIELDS);
 
     const items: BatchTrackData[] = [];
     if (userId) {
@@ -169,7 +174,7 @@ export async function submitAmazonSesEvents(
         timestamp,
         properties: {
           email: event.mail.destination?.[0],
-          ...R.pick(tags, MESSAGE_METADATA_FIELDS),
+          ...metadataTags,
         },
       });
     }
@@ -182,7 +187,7 @@ export async function submitAmazonSesEvents(
             provider: EmailProviderType.AmazonSes,
           },
           batch: items,
-          ...R.pick(tags, MESSAGE_METADATA_FIELDS),
+          ...metadataTags,
         },
       }),
       (e) => (e instanceof Error ? e : Error(e as string)),
