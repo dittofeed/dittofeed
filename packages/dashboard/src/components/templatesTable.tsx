@@ -43,6 +43,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     setMessageTemplateDeleteRequest,
     messageTemplateDeleteRequest,
     deleteMessage: deleteMessageTemplate,
+    workspace,
   } = useAppStorePick([
     "apiBase",
     "messages",
@@ -50,6 +51,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     "setMessageTemplateDeleteRequest",
     "messageTemplateDeleteRequest",
     "deleteMessage",
+    "workspace",
   ]);
 
   const journeysUsedBy: MinimalJourneyMap = useMemo(() => {
@@ -181,18 +183,24 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     routeName = "sms";
   }
 
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  if (!workspaceId) {
+    return null;
+  }
   return (
     <ResourceTable<Row>
       getHref={(id) => `/templates/${routeName}/${id}`}
       rows={rows}
       onDelete={({ row: currentRow }) => {
         const definition = currentRow.draft ?? currentRow.definition;
-        if (!definition) {
+        if (!definition || !workspaceId) {
           return;
         }
         const deleteData: DeleteMessageTemplateRequest = {
           id: currentRow.id,
           type: definition.type,
+          workspaceId,
         };
         const handleDelete = apiRequestHandlerFactory({
           request: messageTemplateDeleteRequest,
