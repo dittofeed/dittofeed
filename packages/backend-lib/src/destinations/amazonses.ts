@@ -12,6 +12,7 @@ import { SourceType } from "isomorphic-lib/src/constants";
 import { err, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
+import { Overwrite } from "utility-types";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
@@ -54,7 +55,7 @@ export async function sendMail({
   mailData,
 }: {
   config: AmazonSesConfig;
-  mailData: AmazonSesMailFields;
+  mailData: Overwrite<AmazonSesMailFields, { tags?: Record<string, string> }>;
 }): Promise<Result<SendEmailCommandOutput, SESv2ServiceException>> {
   const { accessKeyId, secretAccessKey, region } = config;
   const client = new SESv2Client({
@@ -68,7 +69,7 @@ export async function sendMail({
   const tags: MessageTag[] | undefined = mailData.tags
     ? Object.entries(mailData.tags).map(([Name, Value]) => ({
         Name,
-        Value: Value[0] ?? "",
+        Value,
       }))
     : undefined;
 
