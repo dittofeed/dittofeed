@@ -950,6 +950,7 @@ export const UpsertSegmentResource = Type.Intersect([
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
 export const DeleteSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 
@@ -1273,6 +1274,7 @@ export type ResetMessageTemplateResource = Static<
 >;
 
 export const DeleteMessageTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
   type: Type.Enum(ChannelType),
 });
@@ -1836,6 +1838,7 @@ export const EmptyResponse = Type.String({
 export type EmptyResponse = Static<typeof EmptyResponse>;
 
 export const DeleteJourneyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 

@@ -149,6 +149,7 @@ export default function SegmentsTable() {
             method: "DELETE",
             url: `${apiBase}/api/segments`,
             data: {
+              workspaceId: workspace.id,
               id: currentRow.id,
             },
             headers: {
