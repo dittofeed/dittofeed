@@ -65,6 +65,13 @@ export async function sendMail({
       }))
     : undefined;
 
+  logger().info(
+    {
+      tags,
+    },
+    "sending ses tags",
+  );
+
   const input: SendEmailRequest = {
     FromEmailAddress: mailData.from,
     Destination: {
