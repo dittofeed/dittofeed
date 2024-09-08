@@ -1,7 +1,14 @@
 import { List, ListItem, ListItemText, Stack } from "@mui/material";
 import logger from "backend-lib/src/logger";
+import prisma from "backend-lib/src/prisma";
+// Import or define the toSegmentResource function
+import { toSegmentResource } from "backend-lib/src/segments";
 import { getUsers } from "backend-lib/src/users";
-import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  GetUsersResponse,
+  SavedSegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
 import DashboardContent from "../../../components/dashboardContent";
@@ -24,10 +31,17 @@ export const getServerSideProps: GetServerSideProps<
     return { notFound: true };
   }
 
-  const usersResult = await getUsers({
-    workspaceId: dfContext.workspace.id,
-    userIds: [userId],
-  });
+  const [usersResult, segments] = await Promise.all([
+    getUsers({
+      workspaceId: dfContext.workspace.id,
+      userIds: [userId],
+    }),
+    prisma().segment.findMany({
+      where: {
+        workspaceId: dfContext.workspace.id,
+      },
+    }),
+  ]);
 
   if (usersResult.isErr()) {
     logger().error({ err: usersResult.error }, "Unable to retrieve user");
@@ -40,8 +54,15 @@ export const getServerSideProps: GetServerSideProps<
     return { notFound: true };
   }
 
+  const segmentResources: SavedSegmentResource[] = segments.flatMap((segment) =>
+    toSegmentResource(segment).unwrapOr([]),
+  );
+
   const serverInitialState: PreloadedState = {
-    // Add any necessary initial state here
+    segments: {
+      type: CompletionStatus.Successful,
+      value: segmentResources,
+    },
   };
 
   return {

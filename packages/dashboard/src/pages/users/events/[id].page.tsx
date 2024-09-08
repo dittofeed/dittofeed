@@ -1,11 +1,13 @@
 import { Stack } from "@mui/material";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { toJourneyResource } from "backend-lib/src/journeys";
-import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
-import { getUsers } from "backend-lib/src/users";
-import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
+import { toSegmentResource } from "backend-lib/src/segments";
+import {
+  CompletionStatus,
+  SavedSegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
 import DashboardContent from "../../../components/dashboardContent";
@@ -17,7 +19,7 @@ import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 interface UserEventsPageProps {
-  user: GetUsersResponse["users"][0];
+  userId: string;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -28,42 +30,30 @@ export const getServerSideProps: GetServerSideProps<
     return { notFound: true };
   }
 
-  const [usersResult, messageTemplates, broadcasts, journeys, segments] =
-    await Promise.all([
-      getUsers({
+  const [messageTemplates, broadcasts, journeys, segments] = await Promise.all([
+    findMessageTemplates({
+      workspaceId: dfContext.workspace.id,
+    }),
+    prisma().broadcast.findMany({
+      where: {
         workspaceId: dfContext.workspace.id,
-        userIds: [userId],
-      }),
-      findMessageTemplates({
+      },
+    }),
+    prisma().journey.findMany({
+      where: {
         workspaceId: dfContext.workspace.id,
-      }),
-      prisma().broadcast.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
-      }),
-      prisma().journey.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
-      }),
-      prisma().segment.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
-      }),
-    ]);
+      },
+    }),
+    prisma().segment.findMany({
+      where: {
+        workspaceId: dfContext.workspace.id,
+      },
+    }),
+  ]);
 
-  if (usersResult.isErr()) {
-    logger().error({ err: usersResult.error }, "Unable to retrieve user");
-    throw new Error("Unable to retrieve user");
-  }
-
-  const [user] = usersResult.value.users;
-
-  if (!user) {
-    return { notFound: true };
-  }
+  const segmentResources: SavedSegmentResource[] = segments.flatMap((segment) =>
+    toSegmentResource(segment).unwrapOr([]),
+  );
 
   const serverInitialState: PreloadedState = {
     messages: {
@@ -77,7 +67,7 @@ export const getServerSideProps: GetServerSideProps<
     },
     segments: {
       type: CompletionStatus.Successful,
-      value: segments,
+      value: segmentResources,
     },
   };
 
@@ -85,20 +75,20 @@ export const getServerSideProps: GetServerSideProps<
     props: addInitialStateToProps({
       serverInitialState,
       dfContext,
-      props: { user },
+      props: { userId },
     }),
   };
 });
 
-const UserEvents: NextPage<UserEventsPageProps> = function UserEvents(props) {
-  const { user } = props;
-
+const UserEvents: NextPage<UserEventsPageProps> = function UserEvents({
+  userId,
+}) {
   return (
     <DashboardContent>
-      <UserTabs userId={user.id} />
+      <UserTabs userId={userId} />
       <Stack spacing={2} sx={{ padding: 2, width: "100%" }}>
         <SubtleHeader>Events</SubtleHeader>
-        <EventsTable userId={user.id} />
+        <EventsTable userId={userId} />
       </Stack>
     </DashboardContent>
   );

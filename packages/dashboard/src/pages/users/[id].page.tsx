@@ -4,7 +4,7 @@ import { Stack, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import logger from "backend-lib/src/logger";
 import { getUsers } from "backend-lib/src/users";
-import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
+import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
 import DashboardContent from "../../components/dashboardContent";
