@@ -14,10 +14,11 @@ import { GetServerSideProps, NextPage } from "next";
 import DashboardContent from "../../../components/dashboardContent";
 import { SubtleHeader } from "../../../components/headers";
 import { ResourceListItemButton } from "../../../components/resourceList";
-import { UserTabs } from "../../../components/UserTabs";
+import { UserTabs } from "../../../components/userTabs";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
+import { UserLayout } from "../../../components/userLayout";
 
 interface UserSegmentsPageProps {
   user: GetUsersResponse["users"][0];
@@ -80,9 +81,8 @@ const UserSegments: NextPage<UserSegmentsPageProps> = function UserSegments(
   const { user } = props;
 
   return (
-    <DashboardContent>
-      <UserTabs userId={user.id} />
-      <Stack spacing={2} sx={{ padding: 2, width: "100%" }}>
+    <UserLayout userId={user.id}>
+      <Stack spacing={2} sx={{ padding: 2, width: "100%", height: "100%" }}>
         <SubtleHeader>Segments</SubtleHeader>
         <List
           sx={{
@@ -101,7 +101,7 @@ const UserSegments: NextPage<UserSegmentsPageProps> = function UserSegments(
           ))}
         </List>
       </Stack>
-    </DashboardContent>
+    </UserLayout>
   );
 };
 

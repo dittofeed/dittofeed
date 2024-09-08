@@ -8,10 +8,9 @@ import { getUsers } from "backend-lib/src/users";
 import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import DashboardContent from "../../../components/dashboardContent";
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import { SubtleHeader } from "../../../components/headers";
-import { UserTabs } from "../../../components/UserTabs";
+import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
@@ -86,13 +85,12 @@ const UserDeliveries: NextPage<UserDeliveriesPageProps> =
     const { user } = props;
 
     return (
-      <DashboardContent>
-        <UserTabs userId={user.id} />
-        <Stack spacing={2} sx={{ padding: 2, width: "100%" }}>
+      <UserLayout userId={user.id}>
+        <Stack spacing={2} sx={{ padding: 2, width: "100%", height: "100%" }}>
           <SubtleHeader>Deliveries</SubtleHeader>
           <DeliveriesTable userId={user.id} />
         </Stack>
-      </DashboardContent>
+      </UserLayout>
     );
   };
 

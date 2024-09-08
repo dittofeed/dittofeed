@@ -1,15 +1,14 @@
 import { json as codeMirrorJson } from "@codemirror/lang-json";
 import { EditorView } from "@codemirror/view";
-import { Stack, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import logger from "backend-lib/src/logger";
 import { getUsers } from "backend-lib/src/users";
 import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import DashboardContent from "../../components/dashboardContent";
 import { SubtleHeader } from "../../components/headers";
-import { UserTabs } from "../../components/UserTabs";
+import { UserLayout } from "../../components/userLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
@@ -67,25 +66,22 @@ const User: NextPage<UserPageProps> = function User(props) {
   );
 
   return (
-    <DashboardContent>
-      <UserTabs userId={user.id} />
-      <Stack spacing={2} sx={{ padding: 2, width: "100%" }}>
-        <SubtleHeader>User Properties</SubtleHeader>
-        <ReactCodeMirror
-          value={properties}
-          readOnly
-          extensions={[
-            codeMirrorJson(),
-            EditorView.lineWrapping,
-            EditorView.theme({
-              "&": {
-                fontFamily: theme.typography.fontFamily,
-              },
-            }),
-          ]}
-        />
-      </Stack>
-    </DashboardContent>
+    <UserLayout userId={user.id}>
+      <SubtleHeader>User Properties</SubtleHeader>
+      <ReactCodeMirror
+        value={properties}
+        readOnly
+        extensions={[
+          codeMirrorJson(),
+          EditorView.lineWrapping,
+          EditorView.theme({
+            "&": {
+              fontFamily: theme.typography.fontFamily,
+            },
+          }),
+        ]}
+      />
+    </UserLayout>
   );
 };
 

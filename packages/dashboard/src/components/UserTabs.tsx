@@ -1,14 +1,15 @@
 import { Stack, Tab, Tabs } from "@mui/material";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { useAppStorePick } from "../lib/appStore";
-import DeleteDialog from "./confirmDeleteDialog";
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import {
   CompletionStatus,
-  EmptyResponse,
   DeleteUsersRequest,
+  EmptyResponse,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
+import { useRouter } from "next/router";
+
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
+import { useAppStorePick } from "../lib/appStore";
+import DeleteDialog from "./confirmDeleteDialog";
 
 interface UserTabsProps {
   userId: string;
@@ -16,7 +17,8 @@ interface UserTabsProps {
 
 export function UserTabs({ userId }: UserTabsProps) {
   const router = useRouter();
-  const currentTab = router.pathname.split("/")[2] || "properties";
+  const pathSegments = router.pathname.split("/");
+  const currentTab = pathSegments[pathSegments.length - 2];
 
   const { userDeleteRequest, setUserDeleteRequest, workspace, apiBase } =
     useAppStorePick([
@@ -66,7 +68,7 @@ export function UserTabs({ userId }: UserTabsProps) {
       <Tabs value={currentTab}>
         <Tab
           label="Properties"
-          value="properties"
+          value="users"
           component={Link}
           href={`/users/${userId}`}
         />

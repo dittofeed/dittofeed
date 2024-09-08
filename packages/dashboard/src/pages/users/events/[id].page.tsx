@@ -10,10 +10,9 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import DashboardContent from "../../../components/dashboardContent";
 import { EventsTable } from "../../../components/eventsTable";
 import { SubtleHeader } from "../../../components/headers";
-import { UserTabs } from "../../../components/UserTabs";
+import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
@@ -84,13 +83,12 @@ const UserEvents: NextPage<UserEventsPageProps> = function UserEvents({
   userId,
 }) {
   return (
-    <DashboardContent>
-      <UserTabs userId={userId} />
-      <Stack spacing={2} sx={{ padding: 2, width: "100%" }}>
+    <UserLayout userId={userId}>
+      <Stack spacing={2} sx={{ padding: 2, width: "100%", height: "100%" }}>
         <SubtleHeader>Events</SubtleHeader>
         <EventsTable userId={userId} />
       </Stack>
-    </DashboardContent>
+    </UserLayout>
   );
 };
 
