@@ -1,4 +1,4 @@
-import { Stack, Tab, Tabs } from "@mui/material";
+import { Box, Stack, Tab, Tabs } from "@mui/material";
 import {
   CompletionStatus,
   DeleteUsersRequest,
@@ -91,11 +91,14 @@ export function UserTabs({ userId }: UserTabsProps) {
           href={`/users/deliveries/${userId}`}
         />
       </Tabs>
-      <DeleteDialog
-        onConfirm={handleDelete}
-        title="Confirm Deletion"
-        message="Are you sure you want to delete this User?"
-      />
+      <Box sx={{ p: 2 }}>
+        <DeleteDialog
+          color="error"
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this User?"
+        />
+      </Box>
     </Stack>
   );
 }
