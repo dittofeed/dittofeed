@@ -920,24 +920,15 @@ describe("computeProperties", () => {
       description:
         "computes a trait segment which is defined after the relevant event has been issued",
       only: true,
-      userProperties: [],
-      segments: [
+      userProperties: [
         {
-          name: "test",
+          name: "id",
           definition: {
-            entryNode: {
-              type: SegmentNodeType.Trait,
-              id: "1",
-              path: "env",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "test",
-              },
-            },
-            nodes: [],
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
+      segments: [],
       steps: [
         {
           type: EventsStepType.SubmitEvents,
@@ -957,7 +948,45 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "user is initially in the segment when they match",
+          description:
+            "user initially is not in the segment before it is defined",
+          users: [
+            {
+              id: "user-1",
+              segments: {},
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "test",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Trait,
+                  id: "1",
+                  path: "env",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "test",
+                  },
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is in the segment after it is defined",
           users: [
             {
               id: "user-1",
