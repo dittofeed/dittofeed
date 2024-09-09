@@ -917,6 +917,120 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "computes a trait segment which is defined after the relevant event has been issued",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user initially is not in the segment before it is defined",
+          users: [
+            {
+              id: "user-1",
+              segments: {},
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "test",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Trait,
+                  id: "1",
+                  path: "env",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "test",
+                  },
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is in the segment after it is defined",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "does not match",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment when they no longer match",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a trait segment with the greater than operator",
       userProperties: [],
       segments: [
