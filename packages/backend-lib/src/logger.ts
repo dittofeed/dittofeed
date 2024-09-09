@@ -52,6 +52,9 @@ export function publicLogger(): Logger {
 
     const options: PinoConf = {
       level,
+      base: {
+        "service.version": config().appVersion,
+      },
       mixin: HyperDX.getPinoMixinFunction,
       transport: {
         targets: [
@@ -87,7 +90,7 @@ export default function logger(): Logger {
     const baseOptions: PinoConf = {
       level: logLevel,
       base: {
-        appVersion,
+        "service.version": appVersion,
       },
     };
 

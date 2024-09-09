@@ -32,7 +32,7 @@ const telemetryConfig: Parameters<
       }
       const { appVersion } = backendConfig();
       if (appVersion) {
-        span.setAttribute("appVersion", appVersion);
+        span.setAttribute("service.version", appVersion);
       }
     },
   },

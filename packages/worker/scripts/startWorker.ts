@@ -27,6 +27,7 @@ import workerLogger from "../src/workerLogger";
 
 async function run() {
   const workerConfig = config();
+  const { appVersion } = backendConfig();
 
   if (backendConfig().logConfig) {
     logger().info(
@@ -34,7 +35,7 @@ async function run() {
         ...backendConfig(),
         ...workerConfig,
       },
-      "Initialized with config"
+      "Initialized with config",
     );
   }
   const otel = initOpenTelemetry({
@@ -50,6 +51,9 @@ async function run() {
         instrumentType: InstrumentType.HISTOGRAM,
       }),
     ],
+    resourceAttributes: {
+      "service.version": appVersion,
+    },
   });
 
   Runtime.install({ logger: workerLogger });
@@ -81,7 +85,7 @@ async function run() {
           (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
       },
-      workerLogger
+      workerLogger,
     ),
     reuseV8Context: config().reuseContext,
     maxCachedWorkflows: config().maxCachedWorkflows,

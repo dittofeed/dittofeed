@@ -111,13 +111,12 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
     messageCountsRes.json<{ workspace_id: string; count: string }>(),
   ]);
   const userCounts: [string, number][] = [];
-  const { appVersion } = config();
 
   for (const row of userCountRows) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
-      logger().error(
-        { workspaceId: row.workspace_id, count: row.count, appVersion },
+      publicLogger().error(
+        { workspaceId: row.workspace_id, count: row.count },
         "Could not parse user count",
       );
       continue;
@@ -130,8 +129,8 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   for (const row of messageCountRows) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
-      logger().error(
-        { workspaceId: row.workspace_id, count: row.count, appVersion },
+      publicLogger().error(
+        { workspaceId: row.workspace_id, count: row.count },
         "Could not parse message count",
       );
       continue;
@@ -143,14 +142,14 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
 
   for (const [workspaceId, count] of userCounts) {
     publicLogger().info(
-      { workspaceId, count, firstWorkspace, appVersion },
+      { workspaceId, count, firstWorkspace },
       PUBLIC_LOGS.userCounts,
     );
   }
 
   for (const [workspaceId, count] of messageCounts) {
     publicLogger().info(
-      { workspaceId, count, firstWorkspace, appVersion },
+      { workspaceId, count, firstWorkspace },
       PUBLIC_LOGS.messageCounts,
     );
   }
