@@ -33,6 +33,7 @@ function observeWorkspaceComputeLatencyInner({
   const histogram = getMeter().createHistogram(
     WORKSPACE_COMPUTE_LATENCY_METRIC,
   );
+  const { appVersion } = config();
 
   for (const workspace of workspaces) {
     const maxTo = maxToByWorkspaceId.get(workspace.id);
@@ -51,12 +52,14 @@ function observeWorkspaceComputeLatencyInner({
     histogram.record(latency, {
       workspaceId: workspace.id,
       workspaceName: workspace.name,
+      appVersion,
     });
     logger().info(
       {
         workspaceId: workspace.id,
         workspaceName: workspace.name,
         latency,
+        appVersion,
       },
       "Observed workspace compute latency.",
     );
@@ -108,12 +111,13 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
     messageCountsRes.json<{ workspace_id: string; count: string }>(),
   ]);
   const userCounts: [string, number][] = [];
+  const { appVersion } = config();
 
   for (const row of userCountRows) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
       logger().error(
-        { workspaceId: row.workspace_id, count: row.count },
+        { workspaceId: row.workspace_id, count: row.count, appVersion },
         "Could not parse user count",
       );
       continue;
@@ -127,7 +131,7 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
       logger().error(
-        { workspaceId: row.workspace_id, count: row.count },
+        { workspaceId: row.workspace_id, count: row.count, appVersion },
         "Could not parse message count",
       );
       continue;
@@ -139,14 +143,14 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
 
   for (const [workspaceId, count] of userCounts) {
     publicLogger().info(
-      { workspaceId, count, firstWorkspace },
+      { workspaceId, count, firstWorkspace, appVersion },
       PUBLIC_LOGS.userCounts,
     );
   }
 
   for (const [workspaceId, count] of messageCounts) {
     publicLogger().info(
-      { workspaceId, count, firstWorkspace },
+      { workspaceId, count, firstWorkspace, appVersion },
       PUBLIC_LOGS.messageCounts,
     );
   }

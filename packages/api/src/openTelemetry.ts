@@ -3,6 +3,7 @@ import {
   InstrumentType,
   View,
 } from "@opentelemetry/sdk-metrics";
+import backendConfig from "backend-lib/src/config";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import { FastifyRequest } from "fastify";
 
@@ -25,9 +26,13 @@ const telemetryConfig: Parameters<
     requestHook: (span, info) => {
       const request = info.request as FastifyRequest;
       const workspaceId = getWorkspaceIdFromReq(request).unwrapOr(null);
+      span.updateName("api-custom-request-hook");
       if (workspaceId) {
-        span.updateName("api-custom-request-hook");
         span.setAttribute("workspaceId", workspaceId);
+      }
+      const { appVersion } = backendConfig();
+      if (appVersion) {
+        span.setAttribute("appVersion", appVersion);
       }
     },
   },
