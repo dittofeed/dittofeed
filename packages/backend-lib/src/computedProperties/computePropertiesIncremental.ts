@@ -3327,22 +3327,23 @@ class AssignmentProcessor {
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
         // Applies a concurrency limit to the query
-        retrieved = await readLimit()(() =>
-          withSpan(
-            { name: "process-assignments-query-page" },
-            async (pageSpan) => {
+
+        const offset = this.page * this.pageSize;
+        const { journeys, ...processAssignmentsParams } = this.params;
+        const query = buildProcessAssignmentsQuery({
+          ...processAssignmentsParams,
+          limit: this.pageSize,
+          offset,
+          qb,
+        });
+
+        retrieved = await withSpan(
+          { name: "process-assignments-query-page" },
+          async (pageSpan) =>
+            readLimit()(async () => {
               pageSpan.setAttribute("workspaceId", this.params.workspaceId);
               pageSpan.setAttribute("page", this.page);
               pageSpan.setAttribute("pageSize", this.pageSize);
-
-              const offset = this.page * this.pageSize;
-              const { journeys, ...processAssignmentsParams } = this.params;
-              const query = buildProcessAssignmentsQuery({
-                ...processAssignmentsParams,
-                limit: this.pageSize,
-                offset,
-                qb,
-              });
 
               // Both paginates through the assignments, and streams results
               // within a given page
@@ -3354,8 +3355,7 @@ class AssignmentProcessor {
               });
               pageSpan.setAttribute("retrieved", pageRetrieved);
               return pageRetrieved;
-            },
-          ),
+            }),
         );
         logger().debug(
           {
