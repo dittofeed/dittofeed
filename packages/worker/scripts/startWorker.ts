@@ -34,7 +34,7 @@ async function run() {
         ...backendConfig(),
         ...workerConfig,
       },
-      "Initialized with config"
+      "Initialized with config",
     );
   }
   const otel = initOpenTelemetry({
@@ -81,7 +81,7 @@ async function run() {
           (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
       },
-      workerLogger
+      workerLogger,
     ),
     reuseV8Context: config().reuseContext,
     maxCachedWorkflows: config().maxCachedWorkflows,
