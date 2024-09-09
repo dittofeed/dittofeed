@@ -3346,12 +3346,14 @@ class AssignmentProcessor {
 
               // Both paginates through the assignments, and streams results
               // within a given page
-              return streamProcessAssignmentsPage({
+              const pageRetrieved = await streamProcessAssignmentsPage({
                 query,
                 workspaceId: this.params.workspaceId,
                 qb,
                 journeys,
               });
+              pageSpan.setAttribute("retrieved", pageRetrieved);
+              return pageRetrieved;
             },
           ),
         );
