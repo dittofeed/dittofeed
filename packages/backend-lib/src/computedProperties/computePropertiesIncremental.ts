@@ -3244,22 +3244,23 @@ async function streamProcessAssignmentsPage({
   qb,
   workspaceId,
   journeys,
+  queryId,
 }: {
   query: string;
   workspaceId: string;
+  queryId: string;
   qb: ClickHouseQueryBuilder;
   journeys: HasStartedJourneyResource[];
 }): Promise<number> {
   return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
-    const pageQueryId = getChCompatibleUuid();
     span.setAttribute("workspaceId", workspaceId);
-    span.setAttribute("queryId", pageQueryId);
+    span.setAttribute("queryId", queryId);
 
     let rowsProcessed = 0;
     try {
       const resultSet = await chQuery({
         query,
-        query_id: pageQueryId,
+        query_id: queryId,
         query_params: qb.getQueries(),
         format: "JSONEachRow",
         clickhouse_settings: { wait_end_of_query: 1 },
@@ -3278,7 +3279,7 @@ async function streamProcessAssignmentsPage({
       logger().error(
         {
           err: e,
-          pageQueryId,
+          queryId,
           rowsProcessed,
         },
         "failed to process rows",
@@ -3327,23 +3328,26 @@ class AssignmentProcessor {
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
         // Applies a concurrency limit to the query
-        retrieved = await readLimit()(() =>
-          withSpan(
-            { name: "process-assignments-query-page" },
-            async (pageSpan) => {
-              pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-              pageSpan.setAttribute("page", this.page);
-              pageSpan.setAttribute("pageSize", this.pageSize);
 
-              const offset = this.page * this.pageSize;
-              const { journeys, ...processAssignmentsParams } = this.params;
-              const query = buildProcessAssignmentsQuery({
-                ...processAssignmentsParams,
-                limit: this.pageSize,
-                offset,
-                qb,
-              });
+        const offset = this.page * this.pageSize;
+        const { journeys, ...processAssignmentsParams } = this.params;
+        const query = buildProcessAssignmentsQuery({
+          ...processAssignmentsParams,
+          limit: this.pageSize,
+          offset,
+          qb,
+        });
 
+        retrieved = await withSpan(
+          { name: "process-assignments-query-page" },
+          async (pageSpan) => {
+            const pageQueryId = getChCompatibleUuid();
+            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+            pageSpan.setAttribute("page", this.page);
+            pageSpan.setAttribute("pageSize", this.pageSize);
+            pageSpan.setAttribute("queryId", pageQueryId);
+
+            return readLimit()(async () => {
               // Both paginates through the assignments, and streams results
               // within a given page
               const pageRetrieved = await streamProcessAssignmentsPage({
@@ -3351,11 +3355,12 @@ class AssignmentProcessor {
                 workspaceId: this.params.workspaceId,
                 qb,
                 journeys,
+                queryId: pageQueryId,
               });
               pageSpan.setAttribute("retrieved", pageRetrieved);
               return pageRetrieved;
-            },
-          ),
+            });
+          },
         );
         logger().debug(
           {
