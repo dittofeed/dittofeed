@@ -11,14 +11,12 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import DashboardContent from "../../../components/dashboardContent";
 import { SubtleHeader } from "../../../components/headers";
 import { ResourceListItemButton } from "../../../components/resourceList";
-import { UserTabs } from "../../../components/userTabs";
+import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
-import { UserLayout } from "../../../components/userLayout";
 
 interface UserSegmentsPageProps {
   user: GetUsersResponse["users"][0];
