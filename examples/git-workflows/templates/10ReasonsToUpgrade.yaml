@@ -1,4 +1,0 @@
-name: '10 Reasons to Upgrade'
-definition:
-  from: '{{ user.accountManager | default: "hello@company.com"}}'
-  subject: 'Hi {{ user.fullname | default: "there"}}!'

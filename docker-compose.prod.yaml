@@ -50,7 +50,7 @@ services:
       - postgres
       - temporal
     env_file:
-      - .env
+      - .env  
     environment:
       <<: *backend-app-env
     networks:

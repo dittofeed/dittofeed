@@ -1,11 +1,13 @@
-# use buster in the build step, lite in the production step
-FROM node:20-slim AS builder
+FROM node:20-slim
+
+ARG APP_VERSION
+ENV APP_VERSION=${APP_VERSION}
+ENV NODE_ENV=production
 
 WORKDIR /app
 
 RUN apt-get update -y && \
-    apt-get install -y openssl && \
-    apt-get install -y curl
+    apt-get install -y openssl curl
 
 COPY . .
 
@@ -24,28 +26,8 @@ RUN yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib build && \
     yarn workspace dashboard build
 
-# Production image, copy all the files and run next
-FROM node:20-slim AS runner
-
-WORKDIR /app
-
-RUN yarn set version 4.1.1
-
-RUN apt-get update -y && \
-    apt-get install -y openssl
-
-ENV NODE_ENV=production
-
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder /app/packages/dashboard/.next/standalone/packages/dashboard ./
-COPY --from=builder /app/packages/dashboard/.next/standalone/node_modules ./node_modules
-# static and public should be on CDN
-COPY --from=builder /app/packages/dashboard/.next/static ./.next/static
-COPY --from=builder /app/packages/dashboard/public ./public
-COPY --from=builder /app/.yarn ./.yarn
-COPY --from=builder /app/*.json /app/yarn.lock /app/.yarnrc.yml ./
-
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Clean up unnecessary files to reduce image size
+RUN rm -rf /app/packages/*/src /app/packages/*/tests
 
 EXPOSE 3000
 

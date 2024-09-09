@@ -1,55 +1,58 @@
-# Rebuild the source code only when needed
+# use buster in the build step, lite in the production step
 FROM node:20-slim AS builder
 
-WORKDIR /service
+# Add this line to accept the build argument
+ARG APP_VERSION
+
+WORKDIR /app
+
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    apt-get install -y curl
+
+COPY . .
 
 RUN yarn set version 4.1.1
 
-RUN apt-get update -y && \
-    apt-get install -y openssl
+RUN yarn workspaces focus isomorphic-lib && \
+    yarn workspaces focus backend-lib && \
+    yarn workspaces focus dashboard
 
-COPY *.json yarn.lock .yarnrc.yml ./
-COPY .yarn .yarn
-COPY ./packages/worker/*.json ./packages/worker/
-COPY ./packages/backend-lib/*.json ./packages/backend-lib/
-COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
+RUN mkdir -p packages/dashboard/public/public && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
 
-RUN yarn workspaces focus worker --production && \
-    cp -R node_modules production_node_modules
-RUN yarn workspaces focus worker
+RUN yarn workspace isomorphic-lib build && \
+    yarn workspace backend-lib prisma generate && \
+    yarn workspace backend-lib build && \
+    yarn workspace dashboard build
 
-COPY ./packages/backend-lib/ ./packages/backend-lib
-COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
-COPY ./packages/worker/ ./packages/worker
-
-RUN yarn workspace backend-lib prisma generate && \
-    yarn workspace worker build
-
-# Production image
+# Production image, copy all the files and run next
 FROM node:20-slim AS runner
 
-WORKDIR /service
+WORKDIR /app
 
 RUN yarn set version 4.1.1
 
 RUN apt-get update -y && \
     apt-get install -y openssl
-
-COPY --from=builder /service/production_node_modules ./node_modules
-COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /service/package.json ./package.json
-COPY --from=builder /service/*.json /service/yarn.lock /service/.yarnrc.yml ./
-COPY --from=builder /service/.yarn .yarn
-
-COPY --from=builder /service/packages/worker/dist ./packages/worker/dist
-COPY --from=builder /service/packages/worker/package.json ./packages/worker/package.json
-
-COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
-COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
-
-COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
-COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
 ENV NODE_ENV=production
 
-CMD ["yarn", "workspace", "worker", "node", "./dist/scripts/startWorker.js"]
+# Add this line to set the environment variable
+# ENV APP_VERSION=${APP_VERSION}
+
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder /app/packages/dashboard/.next/standalone/packages/dashboard ./
+COPY --from=builder /app/packages/dashboard/.next/standalone/node_modules ./node_modules
+# static and public should be on CDN
+COPY --from=builder /app/packages/dashboard/.next/static ./.next/static
+COPY --from=builder /app/packages/dashboard/public ./public
+COPY --from=builder /app/.yarn ./.yarn
+COPY --from=builder /app/*.json /app/yarn.lock /app/.yarnrc.yml ./
+
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
