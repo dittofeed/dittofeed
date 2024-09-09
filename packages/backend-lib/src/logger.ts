@@ -81,20 +81,26 @@ export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
     let destinationStream: DestinationStream | undefined;
+
+    const { appVersion, logLevel } = config();
+    // Add appVersion to the base options
+    const baseOptions: PinoConf = {
+      level: logLevel,
+      base: {
+        appVersion,
+      },
+    };
+
     if (config().prettyLogs) {
-      options = {
-        level: config().logLevel,
-      };
+      options = baseOptions;
       destinationStream = pinoPretty({
         translateTime: "HH:MM:ss Z",
         ignore: "pid,hostname",
       });
     } else {
-      const { exportLogsHyperDx, hyperDxApiKey, logLevel } = config();
+      const { exportLogsHyperDx, hyperDxApiKey } = config();
 
-      options = {
-        level: logLevel,
-      };
+      options = baseOptions;
       if (config().googleOps) {
         Object.assign(options, googleOpsConfig);
       } else if (exportLogsHyperDx && hyperDxApiKey) {
