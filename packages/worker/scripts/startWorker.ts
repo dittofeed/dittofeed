@@ -51,9 +51,6 @@ async function run() {
         instrumentType: InstrumentType.HISTOGRAM,
       }),
     ],
-    resourceAttributes: {
-      "service.version": appVersion,
-    },
   });
 
   Runtime.install({ logger: workerLogger });

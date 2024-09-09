@@ -67,10 +67,11 @@ export function initOpenTelemetry({
   meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   setServiceName(serviceName);
-  const { otelCollector, startOtel } = config();
+  const { otelCollector, startOtel, appVersion } = config();
 
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+    "service.version": appVersion,
   });
 
   const traceExporter = new OTLPTraceExporter({
