@@ -101,6 +101,9 @@ export default async function router(
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(journeysController, { prefix: "/journeys" }),
         f.register(contentController, { prefix: "/content" }),
+        f.register(subscriptionGroupsController, {
+          prefix: "/subscription-groups",
+        }),
       ]);
     },
     { prefix: "/api/admin" },
