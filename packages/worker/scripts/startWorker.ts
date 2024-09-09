@@ -27,7 +27,6 @@ import workerLogger from "../src/workerLogger";
 
 async function run() {
   const workerConfig = config();
-  const { appVersion } = backendConfig();
 
   if (backendConfig().logConfig) {
     logger().info(
