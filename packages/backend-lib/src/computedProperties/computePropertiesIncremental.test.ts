@@ -919,7 +919,6 @@ describe("computeProperties", () => {
     {
       description:
         "computes a trait segment which is defined after the relevant event has been issued",
-      only: true,
       userProperties: [
         {
           name: "id",
