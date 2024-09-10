@@ -3323,6 +3323,7 @@ class AssignmentProcessor {
       span.setAttribute("computedPropertyId", this.params.computedPropertyId);
       span.setAttribute("type", this.params.type);
       span.setAttribute("processedForType", this.params.processedForType);
+      const queryIds: string[] = [];
 
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
@@ -3335,6 +3336,7 @@ class AssignmentProcessor {
             const offset = this.page * this.pageSize;
             const { journeys, ...processAssignmentsParams } = this.params;
             const pageQueryId = getChCompatibleUuid();
+            queryIds.push(pageQueryId);
 
             pageSpan.setAttribute("workspaceId", this.params.workspaceId);
             pageSpan.setAttribute("page", this.page);
@@ -3374,7 +3376,9 @@ class AssignmentProcessor {
         );
         this.page += 1;
       }
+
       span.setAttribute("processedPages", this.page);
+      span.setAttribute("queryIds", queryIds);
     });
   }
 }
