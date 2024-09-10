@@ -3339,6 +3339,15 @@ class AssignmentProcessor {
             queryIds.push(pageQueryId);
 
             pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+            pageSpan.setAttribute(
+              "computedPropertyId",
+              this.params.computedPropertyId,
+            );
+            pageSpan.setAttribute("type", this.params.type);
+            pageSpan.setAttribute(
+              "processedForType",
+              this.params.processedForType,
+            );
             pageSpan.setAttribute("page", this.page);
             pageSpan.setAttribute("pageSize", this.pageSize);
             pageSpan.setAttribute("queryId", pageQueryId);
