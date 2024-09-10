@@ -3323,31 +3323,33 @@ class AssignmentProcessor {
       span.setAttribute("computedPropertyId", this.params.computedPropertyId);
       span.setAttribute("type", this.params.type);
       span.setAttribute("processedForType", this.params.processedForType);
+      const queryIds: string[] = [];
 
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
         // Applies a concurrency limit to the query
 
-        const offset = this.page * this.pageSize;
-        const { journeys, ...processAssignmentsParams } = this.params;
-        const query = buildProcessAssignmentsQuery({
-          ...processAssignmentsParams,
-          limit: this.pageSize,
-          offset,
-          qb,
-        });
-
         retrieved = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
+            const offset = this.page * this.pageSize;
+            const { journeys, ...processAssignmentsParams } = this.params;
             const pageQueryId = getChCompatibleUuid();
+            queryIds.push(pageQueryId);
+
             pageSpan.setAttribute("workspaceId", this.params.workspaceId);
             pageSpan.setAttribute("page", this.page);
             pageSpan.setAttribute("pageSize", this.pageSize);
             pageSpan.setAttribute("queryId", pageQueryId);
 
             return readLimit()(async () => {
+              const query = buildProcessAssignmentsQuery({
+                ...processAssignmentsParams,
+                limit: this.pageSize,
+                offset,
+                qb,
+              });
               // Both paginates through the assignments, and streams results
               // within a given page
               const pageRetrieved = await streamProcessAssignmentsPage({
@@ -3362,7 +3364,7 @@ class AssignmentProcessor {
             });
           },
         );
-        logger().debug(
+        logger().info(
           {
             workspaceId: this.params.workspaceId,
             computedPropertyId: this.params.computedPropertyId,
@@ -3374,6 +3376,9 @@ class AssignmentProcessor {
         );
         this.page += 1;
       }
+
+      span.setAttribute("processedPages", this.page);
+      span.setAttribute("queryIds", queryIds);
     });
   }
 }
