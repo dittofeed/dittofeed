@@ -3196,7 +3196,6 @@ function buildProcessAssignmentsQuery({
         workspace_id = ${workspaceIdParam}
         AND type = ${typeParam}
         AND computed_property_id = ${computedPropertyIdParam}
-        AND assigned_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
       GROUP BY
           workspace_id,
