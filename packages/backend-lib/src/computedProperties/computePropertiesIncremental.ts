@@ -3332,20 +3332,22 @@ class AssignmentProcessor {
         retrieved = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
+            const offset = this.page * this.pageSize;
+            const { journeys, ...processAssignmentsParams } = this.params;
+            const pageQueryId = getChCompatibleUuid();
+
+            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+            pageSpan.setAttribute("page", this.page);
+            pageSpan.setAttribute("pageSize", this.pageSize);
+            pageSpan.setAttribute("queryId", pageQueryId);
+
             return readLimit()(async () => {
-              const offset = this.page * this.pageSize;
-              const { journeys, ...processAssignmentsParams } = this.params;
               const query = buildProcessAssignmentsQuery({
                 ...processAssignmentsParams,
                 limit: this.pageSize,
                 offset,
                 qb,
               });
-              const pageQueryId = getChCompatibleUuid();
-              pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-              pageSpan.setAttribute("page", this.page);
-              pageSpan.setAttribute("pageSize", this.pageSize);
-              pageSpan.setAttribute("queryId", pageQueryId);
               // Both paginates through the assignments, and streams results
               // within a given page
               const pageRetrieved = await streamProcessAssignmentsPage({
