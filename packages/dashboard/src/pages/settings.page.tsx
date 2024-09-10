@@ -26,7 +26,6 @@ import {
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
-import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
