@@ -2549,7 +2549,6 @@ export type WriteKeyResource = Static<typeof WriteKeyResource>;
 
 export const UpsertWriteKeyResource = Type.Object({
   writeKeyName: Type.String(),
-  writeKeyValue: Type.String(),
   workspaceId: Type.String(),
 });
 export type UpsertWriteKeyResource = Static<typeof UpsertWriteKeyResource>;

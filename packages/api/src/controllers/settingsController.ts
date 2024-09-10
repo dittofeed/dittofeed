@@ -1,7 +1,7 @@
 /* eslint-disable arrow-body-style */
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
@@ -156,12 +156,11 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, writeKeyName, writeKeyValue } = request.body;
+      const { workspaceId, writeKeyName } = request.body;
 
-      await createWriteKey({
+      await getOrCreateWriteKey({
         workspaceId,
         writeKeyName,
-        writeKeyValue,
       });
       return reply.status(204).send();
     },

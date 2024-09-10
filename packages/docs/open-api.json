@@ -15810,16 +15810,12 @@
                   "writeKeyName": {
                     "type": "string"
                   },
-                  "writeKeyValue": {
-                    "type": "string"
-                  },
                   "workspaceId": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "writeKeyName",
-                  "writeKeyValue",
                   "workspaceId"
                 ]
               }

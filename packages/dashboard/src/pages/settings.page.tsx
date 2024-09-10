@@ -24,7 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
-import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
@@ -266,10 +266,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       serverInitialState.writeKeys = [writeKey];
     } else {
       serverInitialState.writeKeys = [
-        await createWriteKey({
+        await getOrCreateWriteKey({
           workspaceId,
           writeKeyName: "default-write-key",
-          writeKeyValue: generateSecureKey(8),
         }),
       ];
     }
