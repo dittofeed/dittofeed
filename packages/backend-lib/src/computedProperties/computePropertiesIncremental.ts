@@ -3203,7 +3203,6 @@ function buildProcessAssignmentsQuery({
           type,
           computed_property_id,
           user_id
-        LIMIT ${offset}, ${limit}
     ) cpa
     LEFT JOIN (
       SELECT
@@ -3235,6 +3234,7 @@ function buildProcessAssignmentsQuery({
             pcp.user_id != ''
         )
     )
+    LIMIT ${offset}, ${limit}
   `;
   return query;
 }
