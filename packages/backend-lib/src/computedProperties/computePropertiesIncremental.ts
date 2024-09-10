@@ -3323,6 +3323,10 @@ class AssignmentProcessor {
       span.setAttribute("computedPropertyId", this.params.computedPropertyId);
       span.setAttribute("type", this.params.type);
       span.setAttribute("processedForType", this.params.processedForType);
+      span.setAttribute(
+        "computedPropertyVersion",
+        this.params.computedPropertyVersion,
+      );
       const queryIds: string[] = [];
 
       let retrieved = this.pageSize;
@@ -3351,6 +3355,10 @@ class AssignmentProcessor {
             pageSpan.setAttribute("page", this.page);
             pageSpan.setAttribute("pageSize", this.pageSize);
             pageSpan.setAttribute("queryId", pageQueryId);
+            pageSpan.setAttribute(
+              "computedPropertyVersion",
+              this.params.computedPropertyVersion,
+            );
 
             return readLimit()(async () => {
               const query = buildProcessAssignmentsQuery({
