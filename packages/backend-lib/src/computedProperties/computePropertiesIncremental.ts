@@ -3362,7 +3362,7 @@ class AssignmentProcessor {
             });
           },
         );
-        logger().debug(
+        logger().info(
           {
             workspaceId: this.params.workspaceId,
             computedPropertyId: this.params.computedPropertyId,
@@ -3374,6 +3374,7 @@ class AssignmentProcessor {
         );
         this.page += 1;
       }
+      span.setAttribute("processedPages", this.page);
     });
   }
 }
