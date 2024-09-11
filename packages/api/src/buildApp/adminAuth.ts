@@ -24,9 +24,9 @@ export async function authenticateAdminApiKeyFull({
       WHERE
         aak."workspaceId" = CAST(${workspaceId} AS UUID)
         OR aak."workspaceId" IN (
-          SELECT wr."childWorkspaceId"
+          SELECT wr."parentWorkspaceId"
           FROM "WorkspaceRelation" wr
-          WHERE wr."parentWorkspaceId" = CAST(${workspaceId} AS UUID)
+          WHERE wr."childWorkspaceId" = CAST(${workspaceId} AS UUID)
         )
     `;
   const apiKeys =
@@ -35,6 +35,12 @@ export async function authenticateAdminApiKeyFull({
     >(apiKeysQuery);
 
   if (!actualKey) {
+    logger().info(
+      {
+        workspaceId,
+      },
+      "Empty API key",
+    );
     return null;
   }
   for (const apiKey of apiKeys) {
@@ -61,6 +67,15 @@ export async function authenticateAdminApiKeyFull({
       }
     }
   }
+
+  logger().debug(
+    {
+      workspaceId,
+      actualKey,
+      apiKeys,
+    },
+    "API key not found among workspace's API keys",
+  );
   return null;
 }
 
@@ -83,14 +98,36 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
     const workspaceIdResult = await getWorkspaceId(request);
     if (workspaceIdResult.isErr()) {
+      logger().info(
+        {
+          err: workspaceIdResult.error,
+          path: request.url,
+          method: request.method,
+        },
+        "Error getting workspaceId for admin auth",
+      );
       return reply.status(400).send();
     }
     const workspaceId = workspaceIdResult.value;
     if (!workspaceId) {
+      logger().info(
+        {
+          path: request.url,
+          method: request.method,
+        },
+        "workspace id missing for request",
+      );
       return reply.status(401).send();
     }
     const actualKey = request.headers.authorization?.trim().split(" ")[1];
     if (!actualKey) {
+      logger().info(
+        {
+          path: request.url,
+          method: request.method,
+        },
+        "API key missing for request",
+      );
       return reply.status(401).send();
     }
     const authenticated = await authenticateAdminApiKey({
@@ -98,6 +135,14 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
       actualKey,
     });
     if (!authenticated) {
+      logger().info(
+        {
+          path: request.url,
+          method: request.method,
+          workspaceId,
+        },
+        "API key not authenticated",
+      );
       return reply.status(401).send();
     }
   });
