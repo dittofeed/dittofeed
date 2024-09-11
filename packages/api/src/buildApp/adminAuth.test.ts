@@ -70,15 +70,16 @@ describe("authenticateAdminApiKey", () => {
     });
   });
 
-  describe("when the admin api key exists in a child workspace", () => {
+  describe("when authenticating against a child workspace with a key from the parent workspace", () => {
     let workspace: Workspace;
+    let childWorkspace: Workspace;
     let adminApiKey: string;
 
     beforeEach(async () => {
       workspace = await prisma().workspace.create({
         data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Parent },
       });
-      const childWorkspace = await prisma().workspace.create({
+      childWorkspace = await prisma().workspace.create({
         data: {
           name: `Child Workspace ${uuidv4()}`,
           type: WorkspaceType.Child,
@@ -92,14 +93,14 @@ describe("authenticateAdminApiKey", () => {
       });
       adminApiKey = unwrap(
         await createAdminApiKey({
-          workspaceId: childWorkspace.id,
+          workspaceId: workspace.id,
           name: "my-admin-api-key",
         }),
       ).apiKey;
     });
     it("should return true", async () => {
       const result = await authenticateAdminApiKey({
-        workspaceId: workspace.id,
+        workspaceId: childWorkspace.id,
         actualKey: adminApiKey,
       });
       expect(result).toBe(true);
