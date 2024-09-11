@@ -39,16 +39,19 @@ export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
   workspaceType,
+  workspaceExternalId,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
+  workspaceExternalId?: string;
 }): Promise<{ workspace: Workspace; writeKey: string }> {
   logger().info(
     {
       workspaceName,
       workspaceDomain,
       workspaceType,
+      workspaceExternalId,
     },
     "Upserting workspace.",
   );
@@ -59,11 +62,13 @@ export async function bootstrapPostgres({
     update: {
       domain: workspaceDomain,
       type: workspaceType,
+      externalId: workspaceExternalId,
     },
     create: {
       name: workspaceName,
       domain: workspaceDomain,
       type: workspaceType,
+      externalId: workspaceExternalId,
     },
   });
   const workspaceId = workspace.id;
