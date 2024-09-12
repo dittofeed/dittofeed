@@ -15,6 +15,7 @@ import logger from "./logger";
 import prisma from "./prisma";
 import {
   EventType,
+  GetUserSubscriptionsRequest,
   InternalEventType,
   SavedSubscriptionGroupResource,
   SegmentDefinition,
@@ -319,10 +320,7 @@ export function buildSubscriptionChangeEvent({
 export async function getUserSubscriptions({
   workspaceId,
   userId,
-}: {
-  workspaceId: string;
-  userId: string;
-}): Promise<UserSubscriptionResource[]> {
+}: GetUserSubscriptionsRequest): Promise<UserSubscriptionResource[]> {
   const subscriptionGroups = await prisma().subscriptionGroup.findMany({
     where: {
       workspaceId,

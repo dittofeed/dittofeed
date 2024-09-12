@@ -3640,3 +3640,22 @@ export const ManualSegmentUploadCsvHeaders = Type.Object({
 export type ManualSegmentUploadCsvHeaders = Static<
   typeof ManualSegmentUploadCsvHeaders
 >;
+
+export const GetUserSubscriptionsRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+});
+
+export type GetUserSubscriptionsRequest = Static<
+  typeof GetUserSubscriptionsRequest
+>;
+
+export const GetUserSubscriptionsResponse = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  subscriptionGroups: Type.Array(UserSubscriptionResource),
+});
+
+export type GetUserSubscriptionsResponse = Static<
+  typeof GetUserSubscriptionsResponse
+>;
