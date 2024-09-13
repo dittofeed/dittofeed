@@ -6,18 +6,25 @@ import {
 import React from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
 export default function JourneysTable() {
-  const setJourneyDeleteRequest = useAppStore(
-    (store) => store.setJourneyDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const journeyDeleteRequest = useAppStore(
-    (store) => store.journeyDeleteRequest,
-  );
-  const deleteJourney = useAppStore((store) => store.deleteJourney);
+  const {
+    workspace,
+    apiBase,
+    deleteJourney,
+    journeyDeleteRequest,
+    setJourneyDeleteRequest,
+    journeys: journeysResult,
+  } = useAppStorePick([
+    "workspace",
+    "apiBase",
+    "deleteJourney",
+    "journeyDeleteRequest",
+    "setJourneyDeleteRequest",
+    "journeys",
+  ]);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -29,7 +36,6 @@ export default function JourneysTable() {
     deleteJourney(deleteRequest.id);
   };
 
-  const journeysResult = useAppStore((store) => store.journeys);
   const journeys =
     journeysResult.type === CompletionStatus.Successful
       ? journeysResult.value
@@ -45,6 +51,12 @@ export default function JourneysTable() {
     };
     journeysRow.push(row);
   });
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+
+  if (!workspaceId) {
+    return null;
+  }
 
   return (
     <ResourceTable
@@ -64,8 +76,9 @@ export default function JourneysTable() {
             method: "DELETE",
             url: `${apiBase}/api/journeys`,
             data: {
+              workspaceId,
               id: currentRow.id,
-            },
+            } satisfies DeleteJourneyRequest,
             headers: {
               "Content-Type": "application/json",
             },

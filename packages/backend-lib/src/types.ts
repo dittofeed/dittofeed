@@ -224,33 +224,36 @@ export enum AmazonSesComplaintSubType {
 }
 
 export const AmazonSesMailData = Type.Object({
+  // Thes fields are required because we use them for application logic.
+  // Otherwise we default to making all fields optional, because we don't want
+  // to fail our webhook if they're not present.
   timestamp: Type.String(),
   messageId: Type.String(),
-  source: Type.String(),
-  sourceArn: Type.String(),
-  sourceIp: Type.String(),
-  sendingAccountId: Type.String(),
-  callerIdentity: Type.String(),
-  destination: Type.Array(Type.String()),
+  source: Type.Optional(Type.String()),
+  sourceArn: Type.Optional(Type.String()),
+  sourceIp: Type.Optional(Type.String()),
+  sendingAccountId: Type.Optional(Type.String()),
+  callerIdentity: Type.Optional(Type.String()),
+  destination: Type.Optional(Type.Array(Type.String())),
   headers: Type.Optional(
     Type.Array(
       Type.Object({
-        name: Type.String(),
-        value: Type.String(),
+        name: Type.Optional(Type.String()),
+        value: Type.Optional(Type.String()),
       }),
     ),
   ),
   headersTruncated: Type.Optional(Type.Boolean()),
   commonHeaders: Type.Optional(
     Type.Object({
-      from: Type.Array(Type.String()),
-      to: Type.Array(Type.String()),
-      date: Type.String(),
-      messageId: Type.String(),
-      subject: Type.String(),
+      from: Type.Optional(Type.Array(Type.String())),
+      to: Type.Optional(Type.Array(Type.String())),
+      date: Type.Optional(Type.String()),
+      messageId: Type.Optional(Type.String()),
+      subject: Type.Optional(Type.String()),
     }),
   ),
-  tags: Type.Record(Type.String(), Type.Array(Type.String())),
+  tags: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
 });
 
 export type AmazonSesMailData = Static<typeof AmazonSesMailData>;
@@ -259,11 +262,11 @@ export const AmazonSesClickEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Click),
   mail: AmazonSesMailData,
   click: Type.Object({
-    ipAddress: Type.String(),
+    ipAddress: Type.Optional(Type.String()),
     timestamp: Type.String(),
-    userAgent: Type.String(),
-    link: Type.String(),
-    linkTags: Type.String(), // This type may not be correct
+    userAgent: Type.Optional(Type.String()),
+    link: Type.Optional(Type.String()),
+    linkTags: Type.Optional(Type.String()), // This type may not be correct
   }),
 });
 
@@ -271,9 +274,9 @@ export const AmazonSesOpenEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Open),
   mail: AmazonSesMailData,
   open: Type.Object({
-    ipAddress: Type.String(),
+    ipAddress: Type.Optional(Type.String()),
     timestamp: Type.String(),
-    userAgent: Type.String(),
+    userAgent: Type.Optional(Type.String()),
   }),
 });
 
@@ -286,7 +289,7 @@ export const AmazonSesRejectEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Reject),
   mail: AmazonSesMailData,
   reject: Type.Object({
-    reason: Type.String(),
+    reason: Type.Optional(Type.String()),
   }),
 });
 
@@ -294,18 +297,20 @@ export const AmazonSesBounceEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Bounce),
   mail: AmazonSesMailData,
   bounce: Type.Object({
-    bounceType: Type.Enum(AmazonSesBounceType),
-    bounceSubType: Type.Enum(AmazonSesBounceSubType),
-    bouncedRecipients: Type.Array(
-      Type.Object({
-        emailAddress: Type.String(),
-        action: Type.Optional(Type.String()),
-        status: Type.Optional(Type.String()),
-        diagnosticCode: Type.Optional(Type.String()),
-      }),
+    bounceType: Type.Optional(Type.Enum(AmazonSesBounceType)),
+    bounceSubType: Type.Optional(Type.Enum(AmazonSesBounceSubType)),
+    bouncedRecipients: Type.Optional(
+      Type.Array(
+        Type.Object({
+          emailAddress: Type.String(),
+          action: Type.Optional(Type.String()),
+          status: Type.Optional(Type.String()),
+          diagnosticCode: Type.Optional(Type.String()),
+        }),
+      ),
     ),
     timestamp: Type.String(),
-    feedbackId: Type.String(),
+    feedbackId: Type.Optional(Type.String()),
     remoteMtaIp: Type.Optional(Type.String()),
     reportingMTA: Type.Optional(Type.String()),
   }),
@@ -315,14 +320,16 @@ export const AmazonSesComplaintEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Complaint),
   mail: AmazonSesMailData,
   complaint: Type.Object({
-    complainedRecipients: Type.Array(
-      Type.Object({
-        email: Type.String(),
-      }),
+    complainedRecipients: Type.Optional(
+      Type.Array(
+        Type.Object({
+          email: Type.String(),
+        }),
+      ),
     ),
     timestamp: Type.String(),
-    feedbackId: Type.String(),
-    complaintSubType: Type.Enum(AmazonSesComplaintSubType),
+    feedbackId: Type.Optional(Type.String()),
+    complaintSubType: Type.Optional(Type.Enum(AmazonSesComplaintSubType)),
     userAgent: Type.Optional(Type.String()),
     complaintFeedbackType: Type.Optional(Type.String()),
     arrivalDate: Type.Optional(Type.String()),
@@ -334,11 +341,11 @@ export const AmazonSesDeliveryEvent = Type.Object({
   mail: AmazonSesMailData,
   delivery: Type.Object({
     timestamp: Type.String(),
-    processingTimeMillis: Type.Integer(),
-    recipients: Type.Array(Type.String()),
-    smtpResponse: Type.String(),
-    reportingMTA: Type.String(),
-    remoteMtaIp: Type.String(),
+    processingTimeMillis: Type.Optional(Type.Integer()),
+    recipients: Type.Optional(Type.Array(Type.String())),
+    smtpResponse: Type.Optional(Type.String()),
+    reportingMTA: Type.Optional(Type.String()),
+    remoteMtaIp: Type.Optional(Type.String()),
   }),
 });
 
@@ -382,6 +389,17 @@ export type AmazonSNSUnsubscribeEvent = Static<
   typeof AmazonSNSUnsubscribeEvent
 >;
 
+export const AmazonSesEventPayload = Type.Union([
+  AmazonSesBounceEvent,
+  AmazonSesClickEvent,
+  AmazonSesComplaintEvent,
+  AmazonSesDeliveryEvent,
+  AmazonSesOpenEvent,
+  AmazonSesSendEvent,
+]);
+
+export type AmazonSesEventPayload = Static<typeof AmazonSesEventPayload>;
+
 export const AmazonSNSNotificationEvent = Type.Object({
   Type: Type.Literal(AmazonSNSEventTypes.Notification),
   Message: Type.String(),
@@ -394,17 +412,6 @@ export const AmazonSNSNotificationEvent = Type.Object({
   SigningCertURL: Type.String(),
   UnsubscribeURL: Type.String(),
 });
-
-export const AmazonSesEventPayload = Type.Union([
-  AmazonSesBounceEvent,
-  AmazonSesClickEvent,
-  AmazonSesComplaintEvent,
-  AmazonSesDeliveryEvent,
-  AmazonSesOpenEvent,
-  AmazonSesSendEvent,
-]);
-
-export type AmazonSesEventPayload = Static<typeof AmazonSesEventPayload>;
 
 export type AmazonSNSNotificationEvent = Static<
   typeof AmazonSNSNotificationEvent

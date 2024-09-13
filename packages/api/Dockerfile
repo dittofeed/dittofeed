@@ -1,6 +1,9 @@
 # Rebuild the source code only when needed
 FROM node:20-slim AS builder
 
+# Add this line to accept the build argument
+ARG APP_VERSION
+
 WORKDIR /service
 
 RUN yarn set version 4.1.1
@@ -51,6 +54,7 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-ENV NODE_ENV=production
+# Add this line to set the environment variable
+ENV APP_VERSION=${APP_VERSION}
 
 CMD ["yarn", "workspace", "api", "node", "./dist/scripts/startServer.js"]

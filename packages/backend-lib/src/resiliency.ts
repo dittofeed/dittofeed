@@ -33,6 +33,7 @@ function observeWorkspaceComputeLatencyInner({
   const histogram = getMeter().createHistogram(
     WORKSPACE_COMPUTE_LATENCY_METRIC,
   );
+  const { appVersion } = config();
 
   for (const workspace of workspaces) {
     const maxTo = maxToByWorkspaceId.get(workspace.id);
@@ -51,12 +52,14 @@ function observeWorkspaceComputeLatencyInner({
     histogram.record(latency, {
       workspaceId: workspace.id,
       workspaceName: workspace.name,
+      appVersion,
     });
     logger().info(
       {
         workspaceId: workspace.id,
         workspaceName: workspace.name,
         latency,
+        appVersion,
       },
       "Observed workspace compute latency.",
     );
@@ -112,7 +115,7 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   for (const row of userCountRows) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
-      logger().error(
+      publicLogger().error(
         { workspaceId: row.workspace_id, count: row.count },
         "Could not parse user count",
       );
@@ -126,7 +129,7 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   for (const row of messageCountRows) {
     const count = Number.parseInt(row.count, 10);
     if (Number.isNaN(count)) {
-      logger().error(
+      publicLogger().error(
         { workspaceId: row.workspace_id, count: row.count },
         "Could not parse message count",
       );

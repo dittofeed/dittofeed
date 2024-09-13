@@ -1,5 +1,6 @@
 import * as HyperDX from "@hyperdx/node-opentelemetry";
-import pino from "pino";
+import pino, { DestinationStream } from "pino";
+import pinoPretty from "pino-pretty";
 
 import config from "./config";
 import { getServiceName } from "./openTelemetry/constants";
@@ -51,6 +52,9 @@ export function publicLogger(): Logger {
 
     const options: PinoConf = {
       level,
+      base: {
+        "service.version": config().appVersion,
+      },
       mixin: HyperDX.getPinoMixinFunction,
       transport: {
         targets: [
@@ -79,23 +83,27 @@ export function publicLogger(): Logger {
 export default function logger(): Logger {
   if (!LOGGER) {
     let options: PinoConf;
-    if (config().prettyLogs) {
-      options = {
-        level: config().logLevel,
-        transport: {
-          target: "pino-pretty",
-          options: {
-            translateTime: "HH:MM:ss Z",
-            ignore: "pid,hostname",
-          },
-        },
-      };
-    } else {
-      const { exportLogsHyperDx, hyperDxApiKey, logLevel } = config();
+    let destinationStream: DestinationStream | undefined;
 
-      options = {
-        level: logLevel,
-      };
+    const { appVersion, logLevel } = config();
+    // Add appVersion to the base options
+    const baseOptions: PinoConf = {
+      level: logLevel,
+      base: {
+        "service.version": appVersion,
+      },
+    };
+
+    if (config().prettyLogs) {
+      options = baseOptions;
+      destinationStream = pinoPretty({
+        translateTime: "HH:MM:ss Z",
+        ignore: "pid,hostname",
+      });
+    } else {
+      const { exportLogsHyperDx, hyperDxApiKey } = config();
+
+      options = baseOptions;
       if (config().googleOps) {
         Object.assign(options, googleOpsConfig);
       } else if (exportLogsHyperDx && hyperDxApiKey) {
@@ -116,7 +124,7 @@ export default function logger(): Logger {
       }
     }
 
-    const l = pino(options);
+    const l = pino(options, destinationStream);
     LOGGER = l;
     return l;
   }

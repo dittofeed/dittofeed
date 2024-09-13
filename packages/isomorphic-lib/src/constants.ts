@@ -78,3 +78,7 @@ export const MESSAGE_EVENTS = [
   InternalEventType.SmsDelivered,
   InternalEventType.SmsFailed,
 ];
+
+export enum SourceType {
+  Webhook = "webhook",
+}

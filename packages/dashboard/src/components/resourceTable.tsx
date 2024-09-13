@@ -125,6 +125,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
       {
         field: "name",
         headerName: "Name",
+        sortable: true, // Enable sorting for the name column
       },
       ...additionalColumns,
       {
@@ -198,6 +199,11 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
       disableRowSelectionOnClick
       autoPageSize
       getRowHeight={() => "auto"}
+      initialState={{
+        sorting: {
+          sortModel: [{ field: "name", sort: "asc" }], // Set initial sorting by name in ascending order
+        },
+      }}
     />
   );
 }

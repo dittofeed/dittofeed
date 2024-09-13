@@ -1,6 +1,9 @@
 # use buster in the build step, lite in the production step
 FROM node:20-slim AS builder
 
+# Add this line to accept the build argument
+ARG APP_VERSION
+
 WORKDIR /app
 
 RUN apt-get update -y && \
@@ -35,6 +38,9 @@ RUN apt-get update -y && \
     apt-get install -y openssl
 
 ENV NODE_ENV=production
+
+# Add this line to set the environment variable
+ENV APP_VERSION=${APP_VERSION}
 
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder /app/packages/dashboard/.next/standalone/packages/dashboard ./

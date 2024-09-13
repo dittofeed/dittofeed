@@ -1748,9 +1748,11 @@ function leafUserPropertyToSubQuery({
   userProperty,
   child,
   qb,
+  excludeNulls = false,
 }: {
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
+  excludeNulls?: boolean;
   qb: ClickHouseQueryBuilder;
 }): SubQueryData | null {
   switch (child.type) {
@@ -1766,8 +1768,12 @@ function leafUserPropertyToSubQuery({
       if (!path) {
         return null;
       }
+      const conditions = ["event_type == 'identify'"];
+      if (excludeNulls) {
+        conditions.push(`JSON_VALUE(properties, ${path}) != 'null'`);
+      }
       return {
-        condition: `event_type == 'identify'`,
+        condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
         argMaxValue: `JSON_VALUE(properties, ${path})`,
@@ -1819,6 +1825,9 @@ function leafUserPropertyToSubQuery({
       if (prefixCondition) {
         conditions.push(prefixCondition);
       }
+      if (excludeNulls) {
+        conditions.push(`JSON_VALUE(properties, ${path}) != 'null'`);
+      }
       if (propertiesCondition) {
         conditions.push(`(${propertiesCondition})`);
       }
@@ -1853,11 +1862,13 @@ function groupedUserPropertyToSubQuery({
   group,
   node,
   qb,
+  excludeNulls = false,
 }: {
   userProperty: SavedUserPropertyResource;
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
+  excludeNulls?: boolean;
 }): SubQueryData[] {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
@@ -1877,6 +1888,7 @@ function groupedUserPropertyToSubQuery({
         return groupedUserPropertyToSubQuery({
           userProperty,
           node: childNode,
+          excludeNulls: true,
           group,
           qb,
         });
@@ -1887,6 +1899,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
 
       if (!subQuery) {
@@ -1899,6 +1912,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
 
       if (!subQuery) {
@@ -1911,6 +1925,7 @@ function groupedUserPropertyToSubQuery({
         userProperty,
         child: node,
         qb,
+        excludeNulls,
       });
       if (!subQuery) {
         return [];
@@ -3181,14 +3196,12 @@ function buildProcessAssignmentsQuery({
         workspace_id = ${workspaceIdParam}
         AND type = ${typeParam}
         AND computed_property_id = ${computedPropertyIdParam}
-        AND assigned_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
       GROUP BY
           workspace_id,
           type,
           computed_property_id,
           user_id
-        LIMIT ${offset}, ${limit}
     ) cpa
     LEFT JOIN (
       SELECT
@@ -3220,6 +3233,7 @@ function buildProcessAssignmentsQuery({
             pcp.user_id != ''
         )
     )
+    LIMIT ${offset}, ${limit}
   `;
   return query;
 }
@@ -3229,22 +3243,23 @@ async function streamProcessAssignmentsPage({
   qb,
   workspaceId,
   journeys,
+  queryId,
 }: {
   query: string;
   workspaceId: string;
+  queryId: string;
   qb: ClickHouseQueryBuilder;
   journeys: HasStartedJourneyResource[];
 }): Promise<number> {
   return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
-    const pageQueryId = getChCompatibleUuid();
     span.setAttribute("workspaceId", workspaceId);
-    span.setAttribute("queryId", pageQueryId);
+    span.setAttribute("queryId", queryId);
 
     let rowsProcessed = 0;
     try {
       const resultSet = await chQuery({
         query,
-        query_id: pageQueryId,
+        query_id: queryId,
         query_params: qb.getQueries(),
         format: "JSONEachRow",
         clickhouse_settings: { wait_end_of_query: 1 },
@@ -3263,7 +3278,7 @@ async function streamProcessAssignmentsPage({
       logger().error(
         {
           err: e,
-          pageQueryId,
+          queryId,
           rowsProcessed,
         },
         "failed to process rows",
@@ -3307,40 +3322,65 @@ class AssignmentProcessor {
       span.setAttribute("computedPropertyId", this.params.computedPropertyId);
       span.setAttribute("type", this.params.type);
       span.setAttribute("processedForType", this.params.processedForType);
+      span.setAttribute(
+        "computedPropertyVersion",
+        this.params.computedPropertyVersion,
+      );
+      const queryIds: string[] = [];
 
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
         // Applies a concurrency limit to the query
-        retrieved = await readLimit()(() =>
-          withSpan(
-            { name: "process-assignments-query-page" },
-            async (pageSpan) => {
-              pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-              pageSpan.setAttribute("page", this.page);
-              pageSpan.setAttribute("pageSize", this.pageSize);
 
-              const offset = this.page * this.pageSize;
-              const { journeys, ...processAssignmentsParams } = this.params;
+        retrieved = await withSpan(
+          { name: "process-assignments-query-page" },
+          async (pageSpan) => {
+            const offset = this.page * this.pageSize;
+            const { journeys, ...processAssignmentsParams } = this.params;
+            const pageQueryId = getChCompatibleUuid();
+            queryIds.push(pageQueryId);
+
+            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+            pageSpan.setAttribute(
+              "computedPropertyId",
+              this.params.computedPropertyId,
+            );
+            pageSpan.setAttribute("type", this.params.type);
+            pageSpan.setAttribute(
+              "processedForType",
+              this.params.processedForType,
+            );
+            pageSpan.setAttribute("page", this.page);
+            pageSpan.setAttribute("pageSize", this.pageSize);
+            pageSpan.setAttribute("queryId", pageQueryId);
+            pageSpan.setAttribute(
+              "computedPropertyVersion",
+              this.params.computedPropertyVersion,
+            );
+
+            return readLimit()(async () => {
               const query = buildProcessAssignmentsQuery({
                 ...processAssignmentsParams,
                 limit: this.pageSize,
                 offset,
                 qb,
               });
-
               // Both paginates through the assignments, and streams results
               // within a given page
-              return streamProcessAssignmentsPage({
+              const pageRetrieved = await streamProcessAssignmentsPage({
                 query,
                 workspaceId: this.params.workspaceId,
                 qb,
                 journeys,
+                queryId: pageQueryId,
               });
-            },
-          ),
+              pageSpan.setAttribute("retrieved", pageRetrieved);
+              return pageRetrieved;
+            });
+          },
         );
-        logger().debug(
+        logger().info(
           {
             workspaceId: this.params.workspaceId,
             computedPropertyId: this.params.computedPropertyId,
@@ -3352,6 +3392,9 @@ class AssignmentProcessor {
         );
         this.page += 1;
       }
+
+      span.setAttribute("processedPages", this.page);
+      span.setAttribute("queryIds", queryIds);
     });
   }
 }

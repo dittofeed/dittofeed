@@ -322,6 +322,24 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -444,6 +462,24 @@
                                   },
                                   "replyTo": {
                                     "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
                                   },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
@@ -611,6 +647,24 @@
                           "replyTo": {
                             "type": "string"
                           },
+                          "headers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          },
                           "attachmentUserProperties": {
                             "description": "Names of user properties to attach to the email as attachments.",
                             "type": "array",
@@ -735,6 +789,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -918,6 +990,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -1041,6 +1131,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -1128,6 +1236,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   },
@@ -1161,6 +1272,7 @@
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id",
                   "type"
                 ]
@@ -1376,6 +1488,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -1498,6 +1628,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
@@ -8429,11 +8577,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -15279,11 +15431,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -18121,6 +18277,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -30171,11 +30345,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -36291,11 +36469,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -36871,6 +37053,24 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -36993,6 +37193,24 @@
                                   },
                                   "replyTo": {
                                     "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
                                   },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
@@ -37160,6 +37378,24 @@
                           "replyTo": {
                             "type": "string"
                           },
+                          "headers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          },
                           "attachmentUserProperties": {
                             "description": "Names of user properties to attach to the email as attachments.",
                             "type": "array",
@@ -37284,6 +37520,24 @@
                               },
                               "replyTo": {
                                 "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
                               },
                               "attachmentUserProperties": {
                                 "description": "Names of user properties to attach to the email as attachments.",
@@ -37467,6 +37721,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -37590,6 +37862,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -37677,6 +37967,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   },
@@ -37710,6 +38003,7 @@
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id",
                   "type"
                 ]
@@ -37925,6 +38219,24 @@
                             "replyTo": {
                               "type": "string"
                             },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
+                            },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
                               "type": "array",
@@ -38047,6 +38359,24 @@
                             },
                             "replyTo": {
                               "type": "string"
+                            },
+                            "headers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "value"
+                                ]
+                              }
                             },
                             "attachmentUserProperties": {
                               "description": "Names of user properties to attach to the email as attachments.",
@@ -38717,6 +39047,290 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/subscription-groups/": {
+      "put": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Create or update a subscription group.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "channel": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Email"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MobilePush"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Sms"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
+                      }
+                    ]
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "OptIn"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "OptOut"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "workspaceId",
+                  "name",
+                  "channel",
+                  "type"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Email"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "MobilePush"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Sms"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Webhook"
+                          ]
+                        }
+                      ]
+                    },
+                    "type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "OptIn"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "OptOut"
+                          ]
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "name",
+                    "channel",
+                    "type",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "rowErrors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "row": {
+                            "type": "number"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "error"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Delete a subscription group and its corresponding segment.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/subscription-groups/upload-csv": {
+      "post": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-subscription-group-id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
         }
       }

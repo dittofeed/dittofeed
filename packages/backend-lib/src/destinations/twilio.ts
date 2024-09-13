@@ -1,3 +1,4 @@
+import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
@@ -9,6 +10,7 @@ import {
   BatchTrackData,
   EventType,
   InternalEventType,
+  SmsProviderType,
   TwilioInboundSchema,
   TwilioMessageStatus,
 } from "../types";
@@ -117,6 +119,10 @@ export async function submitTwilioEvents({
     submitBatch({
       workspaceId,
       data: {
+        context: {
+          source: SourceType.Webhook,
+          provider: SmsProviderType.Twilio,
+        },
         batch: [item],
       },
     }),

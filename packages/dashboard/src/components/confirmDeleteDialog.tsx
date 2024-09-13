@@ -7,21 +7,21 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  IconButtonProps,
 } from "@mui/material";
 import React, { useState } from "react";
 
-interface DeleteDialogProps {
+interface DeleteDialogProps extends Omit<IconButtonProps, "onClick"> {
   onConfirm: () => void;
   title: string;
   message: string;
-  disabled?: boolean;
 }
 
 function DeleteDialog({
   onConfirm,
   title,
   message,
-  disabled,
+  ...iconButtonProps
 }: DeleteDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -44,7 +44,7 @@ function DeleteDialog({
       <IconButton
         edge="end"
         onClick={(event) => handleOpen(event)}
-        disabled={disabled}
+        {...iconButtonProps}
       >
         <DeleteIcon />
       </IconButton>

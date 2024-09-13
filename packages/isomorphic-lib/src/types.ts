@@ -950,6 +950,7 @@ export const UpsertSegmentResource = Type.Intersect([
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
 export const DeleteSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 
@@ -1042,6 +1043,14 @@ export const EmailContents = Type.Object({
   body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
+  headers: Type.Optional(
+    Type.Array(
+      Type.Object({
+        name: Type.String(),
+        value: Type.String(),
+      }),
+    ),
+  ),
   attachmentUserProperties: Type.Optional(
     Type.Array(Type.String(), {
       description:
@@ -1065,7 +1074,7 @@ export const EmailTemplateResource = Type.Composite(
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const EmailConfiguration = Type.Composite([
-  EmailContents,
+  Type.Omit(EmailContents, ["headers"]),
   Type.Object({
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
@@ -1265,6 +1274,7 @@ export type ResetMessageTemplateResource = Static<
 >;
 
 export const DeleteMessageTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
   type: Type.Enum(ChannelType),
 });
@@ -1828,6 +1838,7 @@ export const EmptyResponse = Type.String({
 export type EmptyResponse = Static<typeof EmptyResponse>;
 
 export const DeleteJourneyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 
@@ -2931,7 +2942,7 @@ export const MessageEmailSuccess = Type.Composite([
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
-  EmailContents,
+  Type.Omit(EmailContents, ["headers"]),
 ]);
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
@@ -3407,7 +3418,7 @@ export const AmazonSesMailFields = Type.Object({
   subject: Type.String(),
   html: Type.String(),
   replyTo: Type.Optional(Type.String()),
-  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
+  tags: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 

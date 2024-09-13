@@ -104,6 +104,7 @@ const BaseRawConfigProps = {
   exportLogsHyperDx: Type.Optional(BoolStr),
   hyperDxApiKey: Type.Optional(Type.String()),
   dittofeedTelemetryDisabled: Type.Optional(BoolStr),
+  appVersion: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
