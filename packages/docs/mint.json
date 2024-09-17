@@ -76,6 +76,7 @@
             {
               "group": "Upgrade Guide",
               "pages": [
+                "deployment/self-hosted/upgrade-guide/v0-17-0",
                 "deployment/self-hosted/upgrade-guide/v0-16-0",
                 "deployment/self-hosted/upgrade-guide/v0-15-0",
                 "deployment/self-hosted/upgrade-guide/v0-14-0",
