@@ -1,11 +1,48 @@
 {
   "name": "emailo",
   "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/cjs/emailo.js",
+  "module": "./dist/esm/emailo.js",
+  "types": "./dist/cjs/emailo.d.ts",
   "exports": {
-    "./*": "./dist/*.js"
+    ".": {
+      "types": "./dist/cjs/emailo.d.ts",
+      "import": "./dist/esm/emailo.js",
+      "require": "./dist/cjs/emailo.js"
+    },
+    "./*": {
+      "types": "./dist/cjs/*.d.ts",
+      "import": "./dist/esm/*.js",
+      "require": "./dist/cjs/*.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "check": "tsc --build",
+    "build": "tsc --build && tsc --build tsconfig.esm.json"
   },
   "dependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "eslint": "^8.43.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "prettier": "3.2.5",
+    "typescript": "5.2.2"
   },
   "license": "LicenseRef-LICENSE"
 }

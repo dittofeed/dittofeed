@@ -22,5 +22,8 @@
     {
       "path": "../backend-lib",
     },
+    {
+      "path": "../emailo",
+    },
   ],
 }

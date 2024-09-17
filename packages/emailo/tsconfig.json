@@ -1,8 +1,19 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "dist/cjs",
+    "jsx": "react",
+    "jsxFactory": "React.createElement",
+    "jsxFragmentFactory": "React.Fragment",
+    "declaration": true,
+    "esModuleInterop": true,
+    "declarationMap": true,
+    "module": "commonjs",
+    "sourceMap": true,
+    "rootDir": "./src",
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node"
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["./src/**/*.ts", "./test/**/*.ts", "./scripts/**/*.ts"]
+  "include": ["./src/**/*.ts", "./test/**/*.ts", "./scripts/**/*.ts", "./src/**/*.tsx"]
 }
