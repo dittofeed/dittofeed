@@ -22,10 +22,13 @@
   "scripts": {
     "lint": "eslint src/",
     "check": "tsc --build",
-    "build": "tsc --build && tsc --build tsconfig.esm.json"
+    "build": "tsc --build && tsc --build tsconfig.cjs.json"
   },
   "dependencies": {
     "@css-hooks/react": "^2.0.4",
+    "@tiptap/extension-color": "^2.7.1",
+    "@tiptap/extension-list-item": "^2.7.1",
+    "@tiptap/extension-text-style": "^2.7.1",
     "@tiptap/react": "^2.7.1",
     "@tiptap/starter-kit": "^2.7.1",
     "react": "^18.0.0",
