@@ -1,9 +1,11 @@
 {
   "name": "emailo",
   "version": "0.0.1",
-  "private": false,
-  "scripts": {},
-  "exports": {},
-  "dependencies": {},
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "dependencies": {
+    "react": "^18.0.0"
+  },
   "license": "LicenseRef-LICENSE"
 }

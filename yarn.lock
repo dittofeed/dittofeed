@@ -11703,6 +11703,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"emailo@workspace:packages/emailo":
+  version: 0.0.0-use.local
+  resolution: "emailo@workspace:packages/emailo"
+  dependencies:
+    react: "npm:^18.0.0"
+  languageName: unknown
+  linkType: soft
+
 "emitter-listener@npm:^1.0.1":
   version: 1.1.2
   resolution: "emitter-listener@npm:1.1.2"
