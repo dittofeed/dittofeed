@@ -1,3 +1,11 @@
+.emailo {
+  --purple-light: #e9d5ff;
+  --black: #000000;
+  --white: #ffffff;
+  --gray-2: #e5e5e5;
+  --gray-3: #d4d4d4;
+}
+
 .emailo .tiptap :first-child {
   margin-top: 0;
 }
