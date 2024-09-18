@@ -7711,6 +7711,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tiptap/suggestion@npm:^2.7.1":
+  version: 2.7.1
+  resolution: "@tiptap/suggestion@npm:2.7.1"
+  peerDependencies:
+    "@tiptap/core": ^2.7.0
+    "@tiptap/pm": ^2.7.0
+  checksum: 10/c1875bf9c0ed9c2dd5490aa0524061dfbdf9b27a8e69f50de5eba2279550a5da1579eb30e4d95784b14b8a302350d58741ed0a6bdec592358ea646a7305f75bb
+  languageName: node
+  linkType: hard
+
 "@tootallnate/once@npm:2":
   version: 2.0.0
   resolution: "@tootallnate/once@npm:2.0.0"
@@ -12345,11 +12355,14 @@ __metadata:
   dependencies:
     "@css-hooks/react": "npm:^2.0.4"
     "@tippyjs/react": "npm:^4.2.6"
+    "@tiptap/core": "npm:^2.7.1"
     "@tiptap/extension-color": "npm:^2.7.1"
     "@tiptap/extension-list-item": "npm:^2.7.1"
     "@tiptap/extension-text-style": "npm:^2.7.1"
+    "@tiptap/pm": "npm:^2.7.1"
     "@tiptap/react": "npm:^2.7.1"
     "@tiptap/starter-kit": "npm:^2.7.1"
+    "@tiptap/suggestion": "npm:^2.7.1"
     "@types/react": "npm:^18.0.0"
     "@types/react-dom": "npm:^18.0.0"
     classnames: "npm:^2.5.1"
@@ -12363,6 +12376,7 @@ __metadata:
     eslint-plugin-react: "npm:^7.32.2"
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
+    lucide-react: "npm:^0.441.0"
     prettier: "npm:3.2.5"
     react: "npm:^18.0.0"
     react-dom: "npm:^18.0.0"
@@ -17390,6 +17404,15 @@ __metadata:
     lodash.clonedeep: "npm:^4.5.0"
     lru-cache: "npm:~4.0.0"
   checksum: 10/a13361a11c64bc5af1a7cadba4c24b2afbe11396533e222ed092723a6928e27e14f56c1402535667d4e801d8ee49a9c0fd73a20bd6806f5f92d2f4ba102026ec
+  languageName: node
+  linkType: hard
+
+"lucide-react@npm:^0.441.0":
+  version: 0.441.0
+  resolution: "lucide-react@npm:0.441.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+  checksum: 10/c423ed98e1e7b28408991dc52675e98b11547e12c3d4e4b0c25cc5eb611b1535cad9136434ef54677c43ce34c6211981cb76fe92415a6aa7c66c4f5d9b0380b8
   languageName: node
   linkType: hard
 

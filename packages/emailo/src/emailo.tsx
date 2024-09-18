@@ -13,6 +13,8 @@ import StarterKit from "@tiptap/starter-kit";
 import classNames from "classnames";
 import React from "react";
 
+import { SlashCommand } from "./tipTapExtensions/slashCommand";
+
 function MenuBar() {
   const { editor } = useCurrentEditor();
 
@@ -223,6 +225,7 @@ const extensions = [
       keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
     },
   }),
+  SlashCommand,
 ];
 
 const content = `
@@ -265,24 +268,6 @@ export function Emailo({ className }: { className?: string }) {
         extensions={extensions}
         content={content}
       />
-    </div>
-  );
-}
-const content2 = "<p>Hello World!</p>";
-
-const extensions2 = [StarterKit];
-
-export function Emailo2() {
-  const editor = useEditor({
-    extensions: extensions2,
-    content: content2,
-  });
-
-  return (
-    <div className="emailo">
-      <EditorContent editor={editor} />
-      <FloatingMenu editor={editor}>This is the floating menu</FloatingMenu>
-      <BubbleMenu editor={editor}>This is the bubble menu</BubbleMenu>
     </div>
   );
 }

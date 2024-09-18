@@ -20,6 +20,7 @@
     "./src/**/*.ts",
     "./test/**/*.ts",
     "./scripts/**/*.ts",
-    "./src/**/*.tsx"
-, "scripts/snippetEntry.tsx"  ]
+    "./src/**/*.tsx",
+    "scripts/snippetEntry.tsx"
+  ]
 }
