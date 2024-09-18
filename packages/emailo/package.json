@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@css-hooks/react": "^2.0.4",
+    "@tippyjs/react": "^4.2.6",
     "@tiptap/extension-color": "^2.7.1",
     "@tiptap/extension-list-item": "^2.7.1",
     "@tiptap/extension-text-style": "^2.7.1",
@@ -36,7 +37,8 @@
     "@tiptap/starter-kit": "^2.7.1",
     "classnames": "^2.5.1",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "tippy.js": "^6.3.7"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",

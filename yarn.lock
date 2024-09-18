@@ -7408,6 +7408,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tippyjs/react@npm:^4.2.6":
+  version: 4.2.6
+  resolution: "@tippyjs/react@npm:4.2.6"
+  dependencies:
+    tippy.js: "npm:^6.3.1"
+  peerDependencies:
+    react: ">=16.8"
+    react-dom: ">=16.8"
+  checksum: 10/7bb842e9598a842329d21e31d0dc30b61f703b86f5c3832846a778000883838f98b8609881fec34d5e44ae7d6738cb594403a7df47280b54b900d5af5e256dd3
+  languageName: node
+  linkType: hard
+
 "@tiptap/core@npm:^2.7.1":
   version: 2.7.1
   resolution: "@tiptap/core@npm:2.7.1"
@@ -12332,6 +12344,7 @@ __metadata:
   resolution: "emailo@workspace:packages/emailo"
   dependencies:
     "@css-hooks/react": "npm:^2.0.4"
+    "@tippyjs/react": "npm:^4.2.6"
     "@tiptap/extension-color": "npm:^2.7.1"
     "@tiptap/extension-list-item": "npm:^2.7.1"
     "@tiptap/extension-text-style": "npm:^2.7.1"
@@ -12353,6 +12366,7 @@ __metadata:
     prettier: "npm:3.2.5"
     react: "npm:^18.0.0"
     react-dom: "npm:^18.0.0"
+    tippy.js: "npm:^6.3.7"
     typescript: "npm:5.2.2"
     vite: "npm:^5.4.6"
   languageName: unknown
@@ -22888,7 +22902,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tippy.js@npm:^6.3.7":
+"tippy.js@npm:^6.3.1, tippy.js@npm:^6.3.7":
   version: 6.3.7
   resolution: "tippy.js@npm:6.3.7"
   dependencies:
