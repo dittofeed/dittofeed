@@ -261,13 +261,13 @@ const content = `
 
 // eslint-disable-next-line react/require-default-props
 export function Emailo({ className }: { className?: string }) {
+  const editor = useEditor({
+    extensions,
+    content,
+  });
   return (
     <div className={cn("emailo", className)}>
-      <EditorProvider
-        slotBefore={<MenuBar />}
-        extensions={extensions}
-        content={content}
-      />
+      <EditorContent editor={editor} />
     </div>
   );
 }
