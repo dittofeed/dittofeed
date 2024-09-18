@@ -10699,6 +10699,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"classnames@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "classnames@npm:2.5.1"
+  checksum: 10/58eb394e8817021b153bb6e7d782cfb667e4ab390cb2e9dac2fc7c6b979d1cc2b2a733093955fc5c94aa79ef5c8c89f11ab77780894509be6afbb91dddd79d15
+  languageName: node
+  linkType: hard
+
 "clean-css@npm:^4.2.1":
   version: 4.2.4
   resolution: "clean-css@npm:4.2.4"
@@ -12059,6 +12066,7 @@ __metadata:
     "@tiptap/starter-kit": "npm:^2.7.1"
     "@types/react": "npm:^18.0.0"
     "@types/react-dom": "npm:^18.0.0"
+    classnames: "npm:^2.5.1"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb: "npm:^19.0.4"
     eslint-config-airbnb-typescript: "npm:^17.0.0"

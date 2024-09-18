@@ -1,8 +1,16 @@
 import { Color } from "@tiptap/extension-color";
 import ListItem from "@tiptap/extension-list-item";
 import TextStyle from "@tiptap/extension-text-style";
-import { EditorProvider, useCurrentEditor } from "@tiptap/react";
+import {
+  BubbleMenu,
+  EditorContent,
+  EditorProvider,
+  FloatingMenu,
+  useCurrentEditor,
+  useEditor,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import classNames from "classnames";
 import React from "react";
 
 function MenuBar() {
@@ -204,7 +212,7 @@ function MenuBar() {
 
 const extensions = [
   Color.configure({ types: [TextStyle.name, ListItem.name] }),
-  // TextStyle.configure({ types: [ListItem.name] }),
+  TextStyle.configure({ types: [ListItem.name] } as any),
   StarterKit.configure({
     bulletList: {
       keepMarks: true,
@@ -248,12 +256,33 @@ const content = `
 </blockquote>
 `;
 
-export function Emailo() {
+// eslint-disable-next-line react/require-default-props
+export function Emailo({ className }: { className?: string }) {
   return (
-    <EditorProvider
-      slotBefore={<MenuBar />}
-      extensions={extensions}
-      content={content}
-    />
+    <div className={classNames("emailo", className)}>
+      <EditorProvider
+        slotBefore={<MenuBar />}
+        extensions={extensions}
+        content={content}
+      />
+    </div>
+  );
+}
+const content2 = "<p>Hello World!</p>";
+
+const extensions2 = [StarterKit];
+
+export function Emailo2() {
+  const editor = useEditor({
+    extensions: extensions2,
+    content: content2,
+  });
+
+  return (
+    <div className="emailo">
+      <EditorContent editor={editor} />
+      <FloatingMenu editor={editor}>This is the floating menu</FloatingMenu>
+      <BubbleMenu editor={editor}>This is the bubble menu</BubbleMenu>
+    </div>
   );
 }

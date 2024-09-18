@@ -2,7 +2,8 @@
   "name": "emailo",
   "version": "0.0.1",
   "files": [
-    "dist"
+    "dist",
+    "styles"
   ],
   "main": "./dist/cjs/emailo.js",
   "module": "./dist/esm/emailo.js",
@@ -17,7 +18,8 @@
       "types": "./dist/cjs/*.d.ts",
       "import": "./dist/esm/*.js",
       "require": "./dist/cjs/*.js"
-    }
+    },
+    "./styles/*": "./styles/*"
   },
   "scripts": {
     "lint": "eslint src/",
@@ -31,6 +33,7 @@
     "@tiptap/extension-text-style": "^2.7.1",
     "@tiptap/react": "^2.7.1",
     "@tiptap/starter-kit": "^2.7.1",
+    "classnames": "^2.5.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
