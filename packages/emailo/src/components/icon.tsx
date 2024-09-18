@@ -1,12 +1,27 @@
-import React from "react";
+import { icons } from "lucide-react";
+import React, { memo } from "react";
 
-export function Icon({
-  name,
-  className,
-}: {
-  name: string;
-  // eslint-disable-next-line react/require-default-props
+import { cn } from "../utils";
+
+export type IconProps = {
+  name: keyof typeof icons;
   className?: string;
-}) {
-  return <div>{name}</div>;
-}
+  strokeWidth?: number;
+};
+
+export const Icon = memo(({ name, className, strokeWidth }: IconProps) => {
+  const IconComponent = icons[name];
+
+  if (!IconComponent) {
+    return null;
+  }
+
+  return (
+    <IconComponent
+      className={cn("w-4 h-4", className)}
+      strokeWidth={strokeWidth || 2.5}
+    />
+  );
+});
+
+Icon.displayName = "Icon";

@@ -8,7 +8,7 @@ import Suggestion, {
 import tippy from "tippy.js";
 
 import { GROUPS } from "./slashCommand/groups";
-import { MenuList } from "./slashCommand/MenuList";
+import { MenuList } from "./slashCommand/menuList";
 
 const extensionName = "slashCommand";
 
@@ -262,7 +262,9 @@ export const SlashCommand = Extension.create({
                   scrollHandler,
                 );
               }
-              component.destroy();
+              if (component) {
+                component.destroy();
+              }
             },
           };
         },

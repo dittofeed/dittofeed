@@ -10,10 +10,10 @@ import {
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import classNames from "classnames";
 import React from "react";
 
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
+import { cn } from "./utils";
 
 function MenuBar() {
   const { editor } = useCurrentEditor();
@@ -262,7 +262,7 @@ const content = `
 // eslint-disable-next-line react/require-default-props
 export function Emailo({ className }: { className?: string }) {
   return (
-    <div className={classNames("emailo", className)}>
+    <div className={cn("emailo", className)}>
       <EditorProvider
         slotBefore={<MenuBar />}
         extensions={extensions}
