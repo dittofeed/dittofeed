@@ -24,7 +24,8 @@
   "scripts": {
     "lint": "eslint src/",
     "check": "tsc --build",
-    "build": "tsc --build && tsc --build tsconfig.cjs.json"
+    "build": "tsc --build && tsc --build tsconfig.cjs.json",
+    "dev": "vite"
   },
   "dependencies": {
     "@css-hooks/react": "^2.0.4",
@@ -51,7 +52,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "prettier": "3.2.5",
-    "typescript": "5.2.2"
+    "typescript": "5.2.2",
+    "vite": "^5.4.6"
   },
   "license": "LicenseRef-LICENSE"
 }

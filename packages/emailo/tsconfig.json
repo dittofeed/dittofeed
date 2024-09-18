@@ -12,6 +12,7 @@
     "sourceMap": true,
     "rootDir": "./src",
     "allowSyntheticDefaultImports": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
     "moduleResolution": "node"
   },
   "exclude": ["node_modules", "dist"],
@@ -20,5 +21,5 @@
     "./test/**/*.ts",
     "./scripts/**/*.ts",
     "./src/**/*.tsx"
-  ]
+, "scripts/snippetEntry.tsx"  ]
 }
