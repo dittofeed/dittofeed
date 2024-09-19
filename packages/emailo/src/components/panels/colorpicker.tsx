@@ -4,7 +4,7 @@ import { HexColorPicker } from "react-colorful";
 import { themeColors } from "../../constants";
 import { Icon } from "../icon";
 import { Toolbar } from "../toolbar";
-import { ColorButton } from "./colorPicker/ColorButton";
+import { ColorButton } from "./colorPicker/colorButton";
 
 export type ColorPickerProps = {
   color?: string;

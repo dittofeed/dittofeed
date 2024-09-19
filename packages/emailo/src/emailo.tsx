@@ -13,8 +13,10 @@ import StarterKit from "@tiptap/starter-kit";
 import React from "react";
 
 import { ContentItemMenu } from "./components/contentItemMenu";
+import { TextMenu } from "./components/textMenu";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { cn } from "./utils";
+import extensions from "./extensions";
 
 function MenuBar() {
   const { editor } = useCurrentEditor();
@@ -213,22 +215,6 @@ function MenuBar() {
   );
 }
 
-const extensions = [
-  Color.configure({ types: [TextStyle.name, ListItem.name] }),
-  TextStyle.configure({ types: [ListItem.name] } as any),
-  StarterKit.configure({
-    bulletList: {
-      keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-    },
-    orderedList: {
-      keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-    },
-  }),
-  SlashCommand,
-];
-
 const content = `
 <h2>
   Hi there,
@@ -266,10 +252,12 @@ export function Emailo({ className }: { className?: string }) {
     extensions,
     content,
   });
+  if (!editor) return null;
   return (
     <div className={cn("emailo", className)}>
       <EditorContent editor={editor} />
       {/* <ContentItemMenu editor={editor} /> */}
+      <TextMenu editor={editor} />
     </div>
   );
 }

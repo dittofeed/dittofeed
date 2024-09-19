@@ -1,17 +1,17 @@
 import * as Popover from "@radix-ui/react-popover";
-import React, { BubbleMenu, Editor } from "@tiptap/react";
-import { memo } from "react";
+import { BubbleMenu, Editor } from "@tiptap/react";
+import React, { memo } from "react";
 
 import { ContentTypePicker } from "./contentTypePicker";
 import { EditLinkPopover } from "./editLinkPopover";
 import { FontFamilyPicker } from "./fontFamilyPicker";
 import { FontSizePicker } from "./fontSizePicker";
-import { useTextmenuCommands } from "./hooks/useTextmenuCommands";
-import { useTextmenuContentTypes } from "./hooks/useTextmenuContentTypes";
-import { useTextmenuStates } from "./hooks/useTextmenuStates";
 import { Icon } from "./icon";
-import { ColorPicker } from "./panels";
+import { ColorPicker } from "./panels/colorpicker";
 import { Surface } from "./surface";
+import { useTextmenuCommands } from "./textMenu/hooks/useTextmenuCommands";
+import { useTextmenuContentTypes } from "./textMenu/hooks/useTextmenuContentTypes";
+import { useTextmenuStates } from "./textMenu/hooks/useTextmenuStates";
 import { Toolbar } from "./toolbar";
 
 // We memorize the button so each button is not rerendered
@@ -26,7 +26,7 @@ export type TextMenuProps = {
   editor: Editor;
 };
 
-export const TextMenu = ({ editor }: TextMenuProps) => {
+export function TextMenu({ editor }: TextMenuProps) {
   const commands = useTextmenuCommands(editor);
   const states = useTextmenuStates(editor);
   const blockOptions = useTextmenuContentTypes(editor);
@@ -61,7 +61,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
     >
       <Toolbar.Wrapper>
         <Toolbar.Divider />
-        <MemoContentTypePicker options={blockOptions} />
+        <MemoContentTypePicker options={blockOptions as any} />
         <MemoFontFamilyPicker
           onChange={commands.onSetFont}
           value={states.currentFont || ""}
@@ -213,4 +213,4 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       </Toolbar.Wrapper>
     </BubbleMenu>
   );
-};
+}
