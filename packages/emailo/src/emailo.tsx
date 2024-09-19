@@ -3,6 +3,7 @@ import ListItem from "@tiptap/extension-list-item";
 import TextStyle from "@tiptap/extension-text-style";
 import {
   BubbleMenu,
+  Editor,
   EditorContent,
   EditorProvider,
   FloatingMenu,
@@ -215,49 +216,34 @@ function MenuBar() {
   );
 }
 
-const content = `
-<h2>
-  Hi there,
-</h2>
-<p>
-  this is a <em>basic</em> example of <strong>Tiptap</strong>. Sure, there are all kind of basic text styles you'd probably expect from a text editor. But wait until you see the lists:
-</p>
-<ul>
-  <li>
-    That's a bullet list with one …
-  </li>
-  <li>
-    … or two list items.
-  </li>
-</ul>
-<p>
-  Isn't that great? And all of that is editable. But wait, there's more. Let's try a code block:
-</p>
-<pre><code class="language-css">body {
-  display: none;
-}</code></pre>
-<p>
-  I know, I know, this is impressive. It's only the tip of the iceberg though. Give it a try and click a little bit around. Don't forget to check the other examples too.
-</p>
-<blockquote>
-  Wow, that's amazing. Good work, boy! 👏
-  <br />
-  — Mom
-</blockquote>
-`;
+export interface EmailoState {
+  editor: Editor;
+}
 
-// eslint-disable-next-line react/require-default-props
-export function Emailo({ className }: { className?: string }) {
+export function useEmailo({ content }: { content: string }): EmailoState {
   const editor = useEditor({
     extensions,
     content,
   });
-  if (!editor) return null;
+  if (!editor) {
+    throw new Error("No editor found");
+  }
+  return { editor };
+}
+
+// eslint-disable-next-line react/require-default-props
+export function Emailo({
+  className,
+  state,
+}: {
+  className?: string;
+  state: EmailoState;
+}) {
   return (
     <div className={cn("emailo", className)}>
-      <EditorContent editor={editor} />
+      <EditorContent editor={state.editor} />
       {/* <ContentItemMenu editor={editor} /> */}
-      <TextMenu editor={editor} />
+      <TextMenu editor={state.editor} />
     </div>
   );
 }
