@@ -10958,6 +10958,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"birpc@npm:^0.2.14":
+  version: 0.2.17
+  resolution: "birpc@npm:0.2.17"
+  checksum: 10/884c7833d0ae4e39780315da5b35c82ec5270c1b5a5fc60eff994101382e197facfe54c7459c0549f4efd3987768c99430d6cb09d45486835a4fe34184695626
+  languageName: node
+  linkType: hard
+
 "bl@npm:^4.0.3, bl@npm:^4.1.0":
   version: 4.1.0
   resolution: "bl@npm:4.1.0"
@@ -13060,6 +13067,7 @@ __metadata:
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
     fast-deep-equal: "npm:^3.1.3"
     lucide-react: "npm:^0.441.0"
+    mjml: "npm:^4.14.1"
     postcss: "npm:^8.4.47"
     prettier: "npm:3.2.5"
     react: "npm:^18.0.0"
@@ -13071,6 +13079,7 @@ __metadata:
     tippy.js: "npm:^6.3.7"
     typescript: "npm:5.2.2"
     vite: "npm:^5.4.6"
+    vite-dev-rpc: "npm:^0.1.4"
   languageName: unknown
   linkType: soft
 
@@ -25116,6 +25125,27 @@ __metadata:
     unist-util-stringify-position: "npm:^4.0.0"
     vfile-message: "npm:^4.0.0"
   checksum: 10/7f8412f9ce7709d3be4041fd68a159e2cf96f9c9a4f095bcb18d1561009757b8efb37b71d0ae087e5202fe0e3b3162aae0adf92e30e2448a45645912c23c4ab2
+  languageName: node
+  linkType: hard
+
+"vite-dev-rpc@npm:^0.1.4":
+  version: 0.1.4
+  resolution: "vite-dev-rpc@npm:0.1.4"
+  dependencies:
+    birpc: "npm:^0.2.14"
+    vite-hot-client: "npm:^0.2.3"
+  peerDependencies:
+    vite: ^2.9.0 || ^3.0.0-0 || ^4.0.0-0 || ^5.0.0-0
+  checksum: 10/8d6fbc6b90e0126b89bead92cc2615f84c01bf13e9f0e08193c33bb0a8abcaa0cdc7ba423a1425ba7d99bf1cb23f9635ea0cf8c37840a92f70df0428b7b9e8eb
+  languageName: node
+  linkType: hard
+
+"vite-hot-client@npm:^0.2.3":
+  version: 0.2.3
+  resolution: "vite-hot-client@npm:0.2.3"
+  peerDependencies:
+    vite: ^2.6.0 || ^3.0.0 || ^4.0.0 || ^5.0.0-0
+  checksum: 10/f8eacae85c51708a7a6355e5bb61995884387a7887cf085b0a6bab3af0a35a4311afc612fbe407f3fffbd11bf7d1f6bfc05cc78f6accbda78d2dc02b23ae706d
   languageName: node
   linkType: hard
 

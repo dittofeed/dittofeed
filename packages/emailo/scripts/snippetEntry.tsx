@@ -1,7 +1,20 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import { createRPCClient } from "vite-dev-rpc";
 
+import { Button } from "../src/components/button";
 import { Emailo, useEmailo } from "../src/emailo";
+import { toMjml } from "../src/toMjml";
+
+if (!import.meta.hot) {
+  throw new Error("Hot module replacement is not supported in production");
+}
+const rpc = createRPCClient<
+  {
+    mjmlToHtml: (html: string) => string;
+  },
+  unknown
+>("rpc", import.meta.hot);
 
 const root = document.getElementById("root");
 if (!root) {
@@ -39,20 +52,78 @@ const content = `
 </blockquote>
 `;
 
+function RenderedPreview({ html }: { html: string }) {
+  const [rendered, setRendered] = useState(html);
+  useEffect(() => {
+    rpc.mjmlToHtml(html).then(setRendered);
+  }, [html]);
+
+  return <div dangerouslySetInnerHTML={{ __html: rendered }} />;
+}
+
 function Main() {
   const state = useEmailo({ content });
+  const [view, setView] = useState<
+    "editor" | "json" | "pre-rendered-preview" | "rendered-preview"
+  >("editor");
+
+  let body;
+  switch (view) {
+    case "editor":
+      body = <Emailo state={state} />;
+      break;
+    case "json":
+      body = <pre>{JSON.stringify(state.editor.getJSON(), null, 2)}</pre>;
+      break;
+    case "pre-rendered-preview":
+      body = toMjml({ content: state.editor.getJSON() });
+      break;
+    case "rendered-preview":
+      body = (
+        <RenderedPreview html={toMjml({ content: state.editor.getJSON() })} />
+      );
+      break;
+  }
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex items-center justify-center w-full">
-        <div>header</div>
+      <div className="flex items-center justify-center w-full space-x-4">
+        <Button
+          type="button"
+          onClick={() => setView("editor")}
+          variant={view === "editor" ? "primary" : "ghost"}
+        >
+          Editor
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setView("json")}
+          variant={view === "json" ? "primary" : "ghost"}
+        >
+          JSON
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setView("pre-rendered-preview")}
+          variant={view === "pre-rendered-preview" ? "primary" : "ghost"}
+        >
+          Pre-rendered Preview
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setView("rendered-preview")}
+          variant={view === "rendered-preview" ? "primary" : "ghost"}
+        >
+          Rendered Preview
+        </Button>
       </div>
-      <div>
-        <Emailo state={state} />
-      </div>
+      <div>{body}</div>
     </div>
   );
 }
 
+/**
+ * Entry point for the emailo snippet, used for development with vite.
+ */
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <Main />

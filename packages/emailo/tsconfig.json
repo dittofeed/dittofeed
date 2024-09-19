@@ -21,6 +21,7 @@
     "./test/**/*.ts",
     "./scripts/**/*.ts",
     "./src/**/*.tsx",
-    "scripts/snippetEntry.tsx"
+    "./scripts/rpc.ts",
+    "./scripts/snippetEntry.tsx"
   ]
 }

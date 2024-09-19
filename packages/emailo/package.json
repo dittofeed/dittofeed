@@ -55,7 +55,8 @@
     "react-colorful": "^5.6.1",
     "react-dom": "^18.0.0",
     "tailwind-merge": "^2.5.2",
-    "tippy.js": "^6.3.7"
+    "tippy.js": "^6.3.7",
+    "vite-dev-rpc": "^0.1.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
@@ -71,6 +72,7 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
+    "mjml": "^4.14.1",
     "postcss": "^8.4.47",
     "prettier": "3.2.5",
     "tailwindcss": "^3.4.12",
