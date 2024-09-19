@@ -1,6 +1,6 @@
 import { Editor } from "@tiptap/core";
 
-import extensions from "../extensions";
+import extensions from "../tipTapExtensions";
 
 export const isTableGripSelected = (node: HTMLElement) => {
   let container = node;

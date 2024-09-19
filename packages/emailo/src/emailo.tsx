@@ -14,9 +14,9 @@ import React from "react";
 
 import { ContentItemMenu } from "./components/contentItemMenu";
 import { TextMenu } from "./components/textMenu";
+import extensions from "./tipTapExtensions";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { cn } from "./utils";
-import extensions from "./extensions";
 
 function MenuBar() {
   const { editor } = useCurrentEditor();
