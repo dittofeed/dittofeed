@@ -12,6 +12,7 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import React from "react";
 
+import { ContentItemMenu } from "./components/contentItemMenu";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { cn } from "./utils";
 
@@ -268,6 +269,7 @@ export function Emailo({ className }: { className?: string }) {
   return (
     <div className={cn("emailo", className)}>
       <EditorContent editor={editor} />
+      {/* <ContentItemMenu editor={editor} /> */}
     </div>
   );
 }
