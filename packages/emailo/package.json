@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@css-hooks/react": "^2.0.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
     "@radix-ui/react-popover": "^1.1.1",
     "@tippyjs/react": "^4.2.6",
     "@tiptap/core": "^2.7.1",
@@ -42,6 +43,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.441.0",
     "react": "^18.0.0",
+    "react-colorful": "^5.6.1",
     "react-dom": "^18.0.0",
     "tailwind-merge": "^2.5.2",
     "tippy.js": "^6.3.7"
