@@ -115,6 +115,10 @@ function toMjmlHelper({
     }
     case "bulletList":
       return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;">${resolvedContent}</ul>`;
+    case "orderedList": {
+      const start = content.attrs?.start ?? 1;
+      return `<ol style="list-style-type: decimal; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;" start="${start}">${resolvedContent}</ol>`;
+    }
     case "listItem":
       return `<li style="margin-top: 4px; margin-bottom: 4px;">${resolvedContent}</li>`;
     case "codeBlock":
@@ -136,16 +140,16 @@ function toMjmlHelper({
         .map((c) => toMjmlHelper({ content: c }))
         .join("");
 
-      return `
-        <div style="border-left: 4px solid black; padding-left: 16px; padding-top: 8px; padding-bottom: 8px; margin-top: 56px; margin-bottom: 56px;">
-          <blockquote style="margin: 0; padding: 0; font-size: 18px; line-height: 1.5; color: #111827; font-size: inherit;">
-            ${quoteText}
-          </blockquote>
-          <p style="margin-top: 16px; margin-bottom: 0; font-size: 14px; line-height: 1.25; color: #6b7280;">
-            ${captionText}
-          </p>
-        </div>
-      `;
+      // prettier-ignore
+      // eslint-disable-next-line prefer-template
+      return '<div style="border-left: 4px solid black; padding-left: 16px; padding-top: 8px; padding-bottom: 8px; margin-top: 56px; margin-bottom: 56px;">' +
+        '<blockquote style="margin: 0; padding: 0; font-size: 18px; line-height: 1.5; color: #111827; font-size: inherit;">' +
+          quoteText +
+        '</blockquote>' +
+        '<p style="margin-top: 16px; margin-bottom: 0; font-size: 14px; line-height: 1.25; color: #6b7280;">' +
+          captionText +
+        '</p>' +
+      '</div>';
     }
     case "horizontalRule":
       return '<hr style="border: 0; border-top: 1px solid #e5e7eb; margin-top: 12px;" />';
