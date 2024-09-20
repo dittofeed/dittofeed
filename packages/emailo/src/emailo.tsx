@@ -167,6 +167,7 @@ function MenuBar() {
         >
           Code block
         </button>
+        {/* FIXME: Blockquote is not working in template */}
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}

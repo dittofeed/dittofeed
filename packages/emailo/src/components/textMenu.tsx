@@ -116,14 +116,14 @@ export function TextMenu({ editor }: TextMenuProps) {
         </MemoButton>
         <EditLinkPopover onSetLink={commands.onLink} />
         <Popover.Root>
-          <Popover.Trigger asChild>
+          {/* <Popover.Trigger asChild>
             <MemoButton
               active={!!states.currentHighlight}
               tooltip="Highlight text"
             >
               <Icon name="Highlighter" />
             </MemoButton>
-          </Popover.Trigger>
+          </Popover.Trigger> */}
           <Popover.Content side="top" sideOffset={8} asChild>
             <Surface className="p-1">
               <MemoColorPicker

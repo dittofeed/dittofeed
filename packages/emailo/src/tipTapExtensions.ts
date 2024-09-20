@@ -10,8 +10,10 @@ import { Typography } from "@tiptap/extension-typography";
 import { Underline } from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 
+import { BlockquoteFigure } from "./tipTapExtensions/blockquoteFigure";
 import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
+import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 
 const extensions = [
@@ -40,6 +42,8 @@ const extensions = [
   FontSize,
   Subscript,
   Superscript,
+  Selection,
+  BlockquoteFigure,
 ];
 
 export default extensions;

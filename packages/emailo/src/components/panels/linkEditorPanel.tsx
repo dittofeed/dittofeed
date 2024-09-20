@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { Button } from "../button";
 import { Icon } from "../icon";
@@ -48,11 +48,11 @@ export const useLinkEditorState = ({
   };
 };
 
-export const LinkEditorPanel = ({
+export function LinkEditorPanel({
   onSetLink,
   initialOpenInNewTab,
   initialUrl,
-}: LinkEditorPanelProps) => {
+}: LinkEditorPanelProps) {
   const state = useLinkEditorState({
     onSetLink,
     initialOpenInNewTab,
@@ -62,6 +62,7 @@ export const LinkEditorPanel = ({
   return (
     <Surface className="p-2">
       <form onSubmit={state.handleSubmit} className="flex items-center gap-2">
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className="flex items-center gap-2 p-2 rounded-lg bg-neutral-100 dark:bg-neutral-900 cursor-text">
           <Icon name="Link" className="flex-none text-black dark:text-white" />
           <input
@@ -82,6 +83,7 @@ export const LinkEditorPanel = ({
         </Button>
       </form>
       <div className="mt-3">
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className="flex items-center justify-start gap-2 text-sm font-semibold cursor-pointer select-none text-neutral-500 dark:text-neutral-400">
           Open in new tab
           <Toggle
@@ -92,4 +94,4 @@ export const LinkEditorPanel = ({
       </div>
     </Surface>
   );
-};
+}
