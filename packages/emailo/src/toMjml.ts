@@ -27,6 +27,7 @@ function toMjmlHelper({
       return resolvedContent;
     case "text": {
       let text = content.text ?? "";
+      let fontFamilyStyle = "";
       if (content.marks) {
         content.marks.forEach((mark) => {
           switch (mark.type) {
@@ -36,11 +37,16 @@ function toMjmlHelper({
             case "italic":
               text = `<em>${text}</em>`;
               break;
+            case "textStyle":
+              if (mark.attrs?.fontFamily) {
+                fontFamilyStyle = `style="font-family: ${mark.attrs.fontFamily};"`;
+              }
+              break;
             // Add more mark types as needed
           }
         });
       }
-      return text;
+      return fontFamilyStyle ? `<span ${fontFamilyStyle}>${text}</span>` : text;
     }
     case "heading": {
       let fontSize: string;
