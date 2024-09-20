@@ -28,7 +28,9 @@ const extensions = [
     },
   }),
   SlashCommand,
-  FontFamily,
+  FontFamily.configure({
+    fonts: ["Arial", "Helvetica", "sans-serif"],
+  }),
   Typography,
   Underline,
   TextAlign,

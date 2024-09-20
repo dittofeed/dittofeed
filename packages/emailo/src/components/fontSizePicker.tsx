@@ -7,11 +7,10 @@ import { Surface } from "./surface";
 import { Toolbar } from "./toolbar";
 
 const FONT_SIZES = [
-  { label: "Smaller", value: "12px" },
-  { label: "Small", value: "14px" },
-  { label: "Medium", value: "" },
-  { label: "Large", value: "18px" },
-  { label: "Extra Large", value: "24px" },
+  { label: "Small", value: "10" },
+  { label: "Medium", value: "12pt" },
+  { label: "Large", value: "16pt" },
+  { label: "Extra Large", value: "22pt" },
 ];
 
 export type FontSizePickerProps = {

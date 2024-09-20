@@ -9,7 +9,7 @@
     @apply bg-white text-neutral-900 dark:text-white dark:bg-black;
     @apply antialiased;
 
-    font-size: 16px;
+    font-size: 10pt;
   }
 }
 

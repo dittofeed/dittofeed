@@ -55,10 +55,19 @@ const content = `
 function RenderedPreview({ html }: { html: string }) {
   const [rendered, setRendered] = useState(html);
   useEffect(() => {
-    rpc.mjmlToHtml(html).then(setRendered);
+    rpc
+      .mjmlToHtml(html)
+      .then(setRendered)
+      .catch((e) => console.error("mjmlToHtml error", e.message));
   }, [html]);
 
-  return <div dangerouslySetInnerHTML={{ __html: rendered }} />;
+  return (
+    <iframe
+      srcDoc={rendered}
+      style={{ width: "100%", height: "100%", border: "none" }}
+      title="Rendered Email Preview"
+    />
+  );
 }
 
 function Main() {
@@ -85,7 +94,7 @@ function Main() {
       break;
   }
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-4 h-full">
       <div className="flex items-center justify-center w-full space-x-4">
         <Button
           type="button"
@@ -116,7 +125,7 @@ function Main() {
           Rendered Preview
         </Button>
       </div>
-      <div>{body}</div>
+      <div className="flex-1">{body}</div>
     </div>
   );
 }

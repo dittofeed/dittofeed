@@ -10,17 +10,20 @@ const FONT_FAMILY_GROUPS = [
   {
     label: "Sans Serif",
     options: [
-      { label: "Inter", value: "" },
       { label: "Arial", value: "Arial" },
+      { label: "Calibri", value: "Calibri" },
       { label: "Helvetica", value: "Helvetica" },
+      { label: "Tahoma", value: "Tahoma" },
+      { label: "Trebuchet MS", value: "Trebuchet MS" },
+      { label: "Verdana", value: "Verdana" },
     ],
   },
   {
     label: "Serif",
     options: [
-      { label: "Times New Roman", value: "Times" },
-      { label: "Garamond", value: "Garamond" },
+      { label: "Times New Roman", value: "Times New Roman" },
       { label: "Georgia", value: "Georgia" },
+      { label: "Palatino", value: "Palatino" },
     ],
   },
   {
@@ -42,8 +45,8 @@ export type FontFamilyPickerProps = {
 };
 
 export function FontFamilyPicker({ onChange, value }: FontFamilyPickerProps) {
-  const currentValue = FONT_FAMILIES.find((size) => size.value === value);
-  const currentFontLabel = currentValue?.label.split(" ")[0] || "Inter";
+  const currentValue = FONT_FAMILIES.find((font) => font.value === value);
+  const currentFontLabel = currentValue?.label ?? "Arial";
 
   const selectFont = useCallback(
     (font: string) => () => onChange(font),
