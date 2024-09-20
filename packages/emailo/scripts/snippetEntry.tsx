@@ -62,11 +62,18 @@ function RenderedPreview({ html }: { html: string }) {
   }, [html]);
 
   return (
-    <iframe
-      srcDoc={rendered}
-      style={{ width: "100%", height: "100%", border: "none" }}
-      title="Rendered Email Preview"
-    />
+    <div
+      className="w-full h-full"
+      style={{
+        padding: "20px 32px",
+      }}
+    >
+      <iframe
+        srcDoc={rendered}
+        style={{ width: "100%", height: "100%", border: "none" }}
+        title="Rendered Email Preview"
+      />
+    </div>
   );
 }
 
