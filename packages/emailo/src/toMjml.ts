@@ -15,7 +15,7 @@ function toMjmlHelper({
     content.content?.map((c, index) =>
       toMjmlHelper({
         content: c,
-        parentType: content.type,
+        // Remove the parentType parameter
         childIndex: index,
         isLastChild: index === (content.content?.length ?? 1) - 1,
       }),
@@ -147,6 +147,8 @@ function toMjmlHelper({
         </div>
       `;
     }
+    case "horizontalRule":
+      return '<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />';
     default:
       console.error("Unsupported node type", content.type, content);
       return "";
