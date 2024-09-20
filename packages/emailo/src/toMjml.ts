@@ -80,7 +80,8 @@ export function toMjml({ content }: { content: JSONContent }): string {
   return "<mjml>" +
     "<mj-head>" +
       "<mj-attributes>" +
-        '<mj-all font-family="Arial, Helvetica, sans-serif" font-size="12pt" />' +
+        '<mj-all font-family="Arial, Helvetica, sans-serif" font-size="12pt" line-height="inherit" color="inherit"/>' +
+        '<mj-text line-height="1.5" />' +
       "</mj-attributes>" +
       "<mj-style>" +
         "pre { background-color: #f4f4f4; padding: 10px; border-radius: 4px; }" +
@@ -88,9 +89,9 @@ export function toMjml({ content }: { content: JSONContent }): string {
         "ul { margin: 0; }" +
       "</mj-style>" +
     "</mj-head>" +
-    "<mj-body>" +
-      "<mj-section>" +
-        "<mj-column>" + resolvedContent + "</mj-column>" +
+    "<mj-body width=\"2400px\">" +
+      "<mj-section full-width=\"full-width\">" +
+        "<mj-column width=\"100%\">" + resolvedContent + "</mj-column>" +
       "</mj-section>" +
     "</mj-body>" +
   "</mjml>";

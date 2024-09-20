@@ -12,8 +12,12 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.emailo.root {
+  @apply w-full mx-auto;
+}
+
 .ProseMirror {
-  @apply caret-black dark:caret-white outline-0 pr-8 pl-20 py-16 z-0 lg:pl-8 lg:pr-8 mx-auto max-w-2xl;
+  @apply caret-black dark:caret-white outline-0 pr-8 pl-20 py-[20px] z-0 lg:pl-8 lg:pr-8 mx-auto max-w-[2400px];
 
   .selection {
     @apply inline-block;
@@ -33,10 +37,10 @@
   }
 
   .ProseMirror-gapcursor {
-    @apply relative w-full max-w-2xl mx-auto;
+    @apply relative w-full max-w-[2400px] mx-auto;
 
     &:after {
-      @apply border-t-black/40 dark:border-t-white/40 w-full -top-[1.5em] max-w-2xl mx-auto left-0 right-0;
+      @apply border-t-black/40 dark:border-t-white/40 w-full -top-[1.5em] max-w-[2400px] mx-auto left-0 right-0;
     }
   }
 }
