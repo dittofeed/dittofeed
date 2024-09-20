@@ -148,7 +148,7 @@ function toMjmlHelper({
       `;
     }
     case "horizontalRule":
-      return '<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />';
+      return '<hr style="border: 0; border-top: 1px solid #e5e7eb; margin-top: 12px;" />';
     default:
       console.error("Unsupported node type", content.type, content);
       return "";
