@@ -104,7 +104,7 @@ function toMjmlHelper({
           fontSize = "14px";
           break;
       }
-      return `<p style="font-size:${fontSize}; font-weight:bold" >${resolvedContent}</p>`;
+      return `<p style="font-size:${fontSize}; font-weight:bold; margin: 0;">${resolvedContent}</p>`;
     }
     case "paragraph": {
       const style =
@@ -114,11 +114,11 @@ function toMjmlHelper({
       return `<p ${style}>${resolvedContent}</p>`;
     }
     case "bulletList":
-      return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 8px; margin-bottom: 8px;">${resolvedContent}</ul>`;
+      return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;">${resolvedContent}</ul>`;
     case "listItem":
       return `<li style="margin-top: 4px; margin-bottom: 4px;">${resolvedContent}</li>`;
     case "codeBlock":
-      return `<pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px;"><code>${content.content?.[0]?.text ?? ""}</code></pre>`;
+      return `<pre style="background-color: #404040; color: white; padding: 16px; border-radius: 4px; margin-top: 48px; margin-bottom: 48px;"><code>${content.content?.[0]?.text ?? ""}</code></pre>`;
     case "blockquote":
       return `<blockquote>${resolvedContent}</blockquote>`;
     case "hardBreak":
@@ -137,11 +137,11 @@ function toMjmlHelper({
         .join("");
 
       return `
-        <div style="border-left: 4px solid black; padding-left: 16px; padding-top: 8px; padding-bottom: 8px; margin-top: 52px; margin-bottom: 52px;">
+        <div style="border-left: 4px solid black; padding-left: 16px; padding-top: 8px; padding-bottom: 8px; margin-top: 56px; margin-bottom: 56px;">
           <blockquote style="margin: 0; padding: 0; font-size: 18px; line-height: 1.5; color: #111827; font-size: inherit;">
             ${quoteText}
           </blockquote>
-          <p style="margin-top: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.25; color: #6b7280;">
+          <p style="margin-top: 16px; margin-bottom: 0; font-size: 14px; line-height: 1.25; color: #6b7280;">
             ${captionText}
           </p>
         </div>
