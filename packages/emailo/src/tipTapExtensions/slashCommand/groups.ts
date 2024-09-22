@@ -81,6 +81,15 @@ export const GROUPS: Group[] = [
     title: "Insert",
     commands: [
       {
+        name: "userVariable",
+        label: "User Variable",
+        iconName: "User",
+        description: "Insert a user variable",
+        action: (editor) => {
+          editor.chain().focus().setUserVariable().run();
+        },
+      },
+      {
         name: "horizontalRule",
         label: "Horizontal Rule",
         iconName: "Minus",
