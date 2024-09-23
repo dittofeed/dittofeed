@@ -45,13 +45,12 @@ export const SlashCommand = Extension.create({
         editor: this.editor,
         char: "/",
         allowSpaces: true,
-        startOfLine: true,
+        startOfLine: false,
         pluginKey: new PluginKey(extensionName),
         allow: ({ state, range }) => {
           const $from = state.doc.resolve(range.from);
           const isRootDepth = $from.depth === 1;
           const isParagraph = $from.parent.type.name === "paragraph";
-          const isStartOfNode = $from.parent.textContent?.charAt(0) === "/";
           // TODO
           const isInColumn = this.editor.isActive("column");
 
@@ -60,11 +59,10 @@ export const SlashCommand = Extension.create({
           );
           const isValidAfterContent = !afterContent?.endsWith("  ");
 
-          return (
-            ((isRootDepth && isParagraph && isStartOfNode) ||
-              (isInColumn && isParagraph && isStartOfNode)) &&
-            isValidAfterContent
-          );
+          const allowed =
+            ((isRootDepth && isParagraph) || (isInColumn && isParagraph)) &&
+            isValidAfterContent;
+          return allowed;
         },
         command: ({ editor, props }: { editor: Editor; props: any }) => {
           const { view, state } = editor;

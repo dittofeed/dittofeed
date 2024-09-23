@@ -15,11 +15,10 @@ function UserPropertyComponent({
   getPos,
   updateAttributes,
 }: NodeViewProps) {
-  console.log("UserPropertyComponent");
   const attribute = node.attrs as UserPropertyAttributes;
   return (
-    <NodeViewWrapper className="user-property">
-      <div>User Property: {attribute.variableName}</div>
+    <NodeViewWrapper className="user-property" as="span">
+      User Property: {attribute.variableName}
     </NodeViewWrapper>
   );
 }
@@ -68,28 +67,13 @@ export const UserProperty = Node.create<UserPropertyAttributes>({
     return {
       setUserProperty:
         () =>
-        ({ chain }) => {
-          console.log("loc2 setUserProperty", {
-            name: this.name,
-          });
-          // return chain()
-          //   .insertContent({
-          //     type: "paragraph",
-          //     content: [
-          //       {
-          //         type: "text",
-          //         text: "User Property: myUserVariable",
-          //       },
-          //     ],
-          //   })
-          //   .run();
-          return chain()
+        ({ chain }) =>
+          chain()
             .insertContent({
               type: this.name,
               attrs: { variableName: "myUserVariable" },
             })
-            .run();
-        },
+            .run(),
     };
   },
 });
