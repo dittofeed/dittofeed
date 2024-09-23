@@ -3,7 +3,8 @@
   "name": "Dittofeed",
   "logo": {
     "dark": "/logo/dark.png",
-    "light": "/logo/light.png"
+    "light": "/logo/light.png",
+    "href": "https://dittofeed.com"
   },
   "api": {
     "baseUrl": "http://localhost:3001",
@@ -179,7 +180,7 @@
             "resources/templates/email-editor",
             "resources/templates/mjml",
             "resources/templates/liquid-presets",
-            "resources/templates/free-email-templates",
+            "resources/templates/free-mjml-email-templates",
             "resources/templates/sms-editor",
             "resources/templates/webhook-editor"
           ]
