@@ -7,7 +7,27 @@ import {
 import React from "react";
 
 interface UserPropertyAttributes {
+  step: "selecting" | "selected";
   variableName: string;
+}
+
+function UserPropertySelected({ variableName }: { variableName: string }) {
+  const expression = variableName.includes(" ")
+    ? `user['${variableName.replace(/'/g, "\\'")}']`
+    : `user.${variableName}`;
+  return <span> {`{{ ${expression} }} `}</span>;
+}
+
+function UserPropertyForm({
+  variableName,
+  getPos,
+  updateAttributes,
+}: {
+  variableName: string;
+  getPos: NodeViewProps["getPos"];
+  updateAttributes: NodeViewProps["updateAttributes"];
+}) {
+  return <span>{`{{ ${variableName} }}`}</span>;
 }
 
 function UserPropertyComponent({

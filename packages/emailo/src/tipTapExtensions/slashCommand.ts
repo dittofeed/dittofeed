@@ -62,6 +62,7 @@ export const SlashCommand = Extension.create({
           const allowed =
             ((isRootDepth && isParagraph) || (isInColumn && isParagraph)) &&
             isValidAfterContent;
+
           return allowed;
         },
         command: ({ editor, props }: { editor: Editor; props: any }) => {
