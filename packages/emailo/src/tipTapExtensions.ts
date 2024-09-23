@@ -15,6 +15,7 @@ import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
 import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
+import { UserProperty } from "./tipTapExtensions/userProperty";
 
 const extensions = [
   Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -34,7 +35,6 @@ const extensions = [
     fonts: ["Arial", "Helvetica", "sans-serif"],
   }),
   Typography,
-  Underline,
   TextAlign,
   Link,
   Underline,
@@ -44,6 +44,7 @@ const extensions = [
   Superscript,
   Selection,
   BlockquoteFigure,
+  UserProperty,
 ];
 
 export default extensions;

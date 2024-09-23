@@ -86,7 +86,8 @@ export const GROUPS: Group[] = [
         iconName: "User",
         description: "Insert a user variable",
         action: (editor) => {
-          editor.chain().focus().setUserVariable().run();
+          console.log("loc3 setUserProperty");
+          editor.chain().focus().setUserProperty().run();
         },
       },
       {
