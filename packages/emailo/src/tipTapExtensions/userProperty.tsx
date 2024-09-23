@@ -18,7 +18,7 @@ function UserPropertyComponent({
   console.log("UserPropertyComponent");
   const attribute = node.attrs as UserPropertyAttributes;
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper className="user-property">
       <div>User Property: {attribute.variableName}</div>
     </NodeViewWrapper>
   );
@@ -36,9 +36,9 @@ declare module "@tiptap/core" {
 export const UserProperty = Node.create<UserPropertyAttributes>({
   name: "userProperty",
   atom: true,
-  group: "block",
-  // isolating: true,
-  // inline: true,
+  group: "inline",
+  isolating: true,
+  inline: true,
 
   addAttributes() {
     return {
