@@ -28,11 +28,9 @@ function UserPropertySelected({ variableName }: { variableName: string }) {
     ? `user['${variableName.replace(/'/g, "\\'")}']`
     : `user.${variableName}`;
   return (
-    <span>
-      <code className="bg-gray-100 font-mono p-1 rounded">
-        {`{{ ${expression} }}`}
-      </code>{" "}
-    </span>
+    <code>
+      <u>{`{{ ${expression} }}`}</u>
+    </code>
   );
 }
 
@@ -72,8 +70,6 @@ function Select({
     </>
   );
 }
-
-const FORM_DEFAULT_VALUE_ID = "user-property-form-default-value";
 
 function UserPropertyFormContent({
   properties,
@@ -135,12 +131,10 @@ function UserPropertyForm({
   variableName,
   defaultValue,
   updateAttributes,
-  step,
   removeUserProperty,
 }: {
   properties: Property[];
   variableName: string;
-  step: "selecting" | "selected";
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
   removeUserProperty: () => void;
@@ -151,7 +145,7 @@ function UserPropertyForm({
     <Popover.Root
       open={visible}
       onOpenChange={(open) => {
-        if (!open && step === "selected") {
+        if (!open) {
           removeUserProperty();
         }
         setVisible(open);
@@ -160,7 +154,7 @@ function UserPropertyForm({
       <Popover.Trigger asChild>
         <span className="user-property-form-trigger" />
       </Popover.Trigger>
-      <Popover.Content autoFocus side="right">
+      <Popover.Content autoFocus side="top">
         <UserPropertyFormContent
           properties={properties}
           variableName={variableName}
@@ -177,6 +171,7 @@ function UserPropertyComponent({
   updateAttributes,
   editor,
 }: NodeViewProps) {
+  const [visible, setVisible] = useState(true);
   const attribute = node.attrs as UserPropertyAttributes;
   const properties = useMemo(
     () =>
@@ -185,28 +180,26 @@ function UserPropertyComponent({
     [editor],
   );
 
-  const removeUserProperty = () => {
-    editor.commands.removeUserProperty();
-  };
-
-  let body;
-  if (attribute.step === "selected") {
-    body = <UserPropertySelected variableName={attribute.variableName} />;
-  } else {
-    body = (
-      <UserPropertyForm
-        properties={properties}
-        variableName={attribute.variableName}
-        defaultValue={attribute.defaultValue}
-        updateAttributes={updateAttributes}
-        step={attribute.step}
-        removeUserProperty={removeUserProperty}
-      />
-    );
-  }
   return (
     <NodeViewWrapper className="user-property" as="span">
-      {body}
+      <Popover.Root
+        open={visible}
+        onOpenChange={(open) => {
+          setVisible(open);
+        }}
+      >
+        <Popover.Trigger>
+          <UserPropertySelected variableName={attribute.variableName} />
+        </Popover.Trigger>
+        <Popover.Content autoFocus side="right">
+          <UserPropertyFormContent
+            properties={properties}
+            variableName={attribute.variableName}
+            defaultValue={attribute.defaultValue}
+            updateAttributes={updateAttributes}
+          />
+        </Popover.Content>
+      </Popover.Root>
     </NodeViewWrapper>
   );
 }
