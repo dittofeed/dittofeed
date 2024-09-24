@@ -45,7 +45,7 @@ const extensions = [
   Selection,
   BlockquoteFigure,
   UserProperty.configure({
-    properties: [{ name: "name" }, { name: "age" }],
+    properties: [{ name: "name" }, { name: "age" }, { name: "family name" }],
   }),
 ];
 

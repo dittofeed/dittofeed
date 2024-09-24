@@ -27,11 +27,7 @@ function UserPropertySelected({ variableName }: { variableName: string }) {
   const expression = variableName.includes(" ")
     ? `user['${variableName.replace(/'/g, "\\'")}']`
     : `user.${variableName}`;
-  return (
-    <code>
-      <u>{`{{ ${expression} }}`}</u>
-    </code>
-  );
+  return <code className="underline inline">{`{{ ${expression} }}`}</code>;
 }
 
 function Select({
@@ -76,17 +72,17 @@ function UserPropertyFormContent({
   variableName,
   defaultValue,
   updateAttributes,
+  close,
 }: {
   properties: Property[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
+  close: () => void;
 }) {
   const handleSubmit = (e: React.FormEvent) => {
+    close();
     e.preventDefault();
-    updateAttributes({
-      step: "selected",
-    });
   };
 
   return (
@@ -126,46 +122,6 @@ function UserPropertyFormContent({
   );
 }
 
-function UserPropertyForm({
-  properties,
-  variableName,
-  defaultValue,
-  updateAttributes,
-  removeUserProperty,
-}: {
-  properties: Property[];
-  variableName: string;
-  defaultValue: string;
-  updateAttributes: NodeViewProps["updateAttributes"];
-  removeUserProperty: () => void;
-}) {
-  const [visible, setVisible] = useState(true);
-
-  return (
-    <Popover.Root
-      open={visible}
-      onOpenChange={(open) => {
-        if (!open) {
-          removeUserProperty();
-        }
-        setVisible(open);
-      }}
-    >
-      <Popover.Trigger asChild>
-        <span className="user-property-form-trigger" />
-      </Popover.Trigger>
-      <Popover.Content autoFocus side="top">
-        <UserPropertyFormContent
-          properties={properties}
-          variableName={variableName}
-          defaultValue={defaultValue}
-          updateAttributes={updateAttributes}
-        />
-      </Popover.Content>
-    </Popover.Root>
-  );
-}
-
 function UserPropertyComponent({
   node,
   updateAttributes,
@@ -194,6 +150,7 @@ function UserPropertyComponent({
         <Popover.Content autoFocus side="right">
           <UserPropertyFormContent
             properties={properties}
+            close={() => setVisible(false)}
             variableName={attribute.variableName}
             defaultValue={attribute.defaultValue}
             updateAttributes={updateAttributes}
@@ -235,9 +192,6 @@ export const UserProperty = Node.create<UserPropertyOptions>({
     return {
       variableName: {
         default: this.options.properties[0].name,
-      },
-      step: {
-        default: "selecting",
       },
       defaultValue: {
         default: "",
