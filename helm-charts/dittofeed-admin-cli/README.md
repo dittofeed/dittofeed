@@ -9,21 +9,23 @@ This helm chart provides a convenient mechanism for deploying dittofeed-admin-cl
 The following example values deploy dittofeed-admin-cli.
 
 ```bash
-helm upgrade --install demo ./dittofeed/helm-charts/dittofeed \
-  -f dittofeed-values.yaml \
-  --atomic --wait
+helm upgrade --install dittofeed-admin-cli ./dittofeed/helm-charts/dittofeed-admin-cli
+```
+
+Then you can exec into the pod:
+
+```bash
+kubectl exec -it deployment/dittofeed-admin-cli -- /bin/bash
+```
+
+Then run the cli:
+
+```bash
+./admin.sh bootstrap
 ```
 
 ```yaml
-temporal:
-  env:
-    - name: POSTGRES_SEEDS
-      value: "demo-postgresql.default.svc.cluster.local"
-    - name: POSTGRES_USER
-      value: "postgres"
-    - name: POSTGRES_PWD
-      value: "password"
-
+# Example env variables:
 env:
   # assuming your are in the default namespace
   - name: DATABASE_HOST
