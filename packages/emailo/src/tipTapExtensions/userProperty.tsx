@@ -13,7 +13,7 @@ interface Property {
 }
 
 interface UserPropertyOptions {
-  properties: Property[];
+  properties: [Property, ...Property[]];
 }
 
 // https://flowbite.com/docs/forms/select/
@@ -27,29 +27,41 @@ function UserPropertySelected({ variableName }: { variableName: string }) {
   const expression = variableName.includes(" ")
     ? `user['${variableName.replace(/'/g, "\\'")}']`
     : `user.${variableName}`;
-  return <span>{`{{ ${expression} }} `}</span>;
+  return (
+    <span>
+      <code className="bg-gray-100 font-mono p-1 rounded">
+        {`{{ ${expression} }}`}
+      </code>{" "}
+    </span>
+  );
 }
 
 function Select({
   id,
   label,
   options,
+  value,
+  onChange,
 }: {
   id: string;
   label: string;
   options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
     <>
       <label
         htmlFor={id}
-        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+        className="block mb-2 text-sm font-medium text-gray-700"
       >
         {label}
       </label>
       <select
         id={id}
         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -68,16 +80,24 @@ function UserPropertyFormContent({
   variableName,
   defaultValue,
   updateAttributes,
-  removeUserProperty,
 }: {
   properties: Property[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
-  removeUserProperty: () => void;
 }) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateAttributes({
+      step: "selected",
+    });
+  };
+
   return (
-    <form className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-lg flex flex-row items-center space-x-4">
+    <form
+      className="user-property-form p-2 bg-white border border-neutral-300 rounded-lg shadow-lg flex flex-row items-center space-x-4"
+      onSubmit={handleSubmit}
+    >
       <div>
         <Select
           id="user-property-select"
@@ -86,12 +106,14 @@ function UserPropertyFormContent({
             value: property.name,
             label: property.name,
           }))}
+          value={variableName}
+          onChange={(value) => updateAttributes({ variableName: value })}
         />
       </div>
       <div>
         <label
           htmlFor="user-property-form-default-value"
-          className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+          className="block mb-2 text-sm font-medium text-gray-700"
         >
           Default Value
         </label>
@@ -113,10 +135,12 @@ function UserPropertyForm({
   variableName,
   defaultValue,
   updateAttributes,
+  step,
   removeUserProperty,
 }: {
   properties: Property[];
   variableName: string;
+  step: "selecting" | "selected";
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
   removeUserProperty: () => void;
@@ -127,7 +151,7 @@ function UserPropertyForm({
     <Popover.Root
       open={visible}
       onOpenChange={(open) => {
-        if (!open) {
+        if (!open && step === "selected") {
           removeUserProperty();
         }
         setVisible(open);
@@ -136,13 +160,12 @@ function UserPropertyForm({
       <Popover.Trigger asChild>
         <span className="user-property-form-trigger" />
       </Popover.Trigger>
-      <Popover.Content autoFocus>
+      <Popover.Content autoFocus side="right">
         <UserPropertyFormContent
           properties={properties}
           variableName={variableName}
           defaultValue={defaultValue}
           updateAttributes={updateAttributes}
-          removeUserProperty={removeUserProperty}
         />
       </Popover.Content>
     </Popover.Root>
@@ -176,6 +199,7 @@ function UserPropertyComponent({
         variableName={attribute.variableName}
         defaultValue={attribute.defaultValue}
         updateAttributes={updateAttributes}
+        step={attribute.step}
         removeUserProperty={removeUserProperty}
       />
     );
@@ -206,14 +230,18 @@ export const UserProperty = Node.create<UserPropertyOptions>({
 
   addOptions() {
     return {
-      properties: [],
+      properties: [
+        {
+          name: "myUserVariable",
+        },
+      ],
     };
   },
 
   addAttributes() {
     return {
       variableName: {
-        default: "myUserVariable",
+        default: this.options.properties[0].name,
       },
       step: {
         default: "selecting",
@@ -248,7 +276,6 @@ export const UserProperty = Node.create<UserPropertyOptions>({
           chain()
             .insertContent({
               type: this.name,
-              attrs: { variableName: "myUserVariable" },
             })
             .blur()
             .run(),
