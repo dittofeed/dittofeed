@@ -6,7 +6,7 @@ import {
   NodeViewWrapper,
   ReactNodeViewRenderer,
 } from "@tiptap/react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 interface Property {
   name: string;
@@ -20,13 +20,14 @@ interface UserPropertyOptions {
 interface UserPropertyAttributes {
   step: "selecting" | "selected";
   variableName: string;
+  defaultValue: string;
 }
 
 function UserPropertySelected({ variableName }: { variableName: string }) {
   const expression = variableName.includes(" ")
     ? `user['${variableName.replace(/'/g, "\\'")}']`
     : `user.${variableName}`;
-  return <span> {`{{ ${expression} }} `}</span>;
+  return <span>{`{{ ${expression} }} `}</span>;
 }
 
 function Select({
@@ -60,56 +61,78 @@ function Select({
   );
 }
 
-function UserPropertyForm({
+function UserPropertyFormContent({
   properties,
   variableName,
-  getPos,
+  defaultValue,
   updateAttributes,
 }: {
   properties: Property[];
   variableName: string;
-  getPos: NodeViewProps["getPos"];
+  defaultValue: string;
+  updateAttributes: NodeViewProps["updateAttributes"];
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useLayoutEffect(() => {
+    debugger;
+    if (inputRef.current) {
+      debugger;
+      inputRef.current.focus();
+    }
+    // if (visible && inputRef.current) {
+    //   inputRef.current.focus();
+    // }
+  }, []);
+
+  return (
+    <div className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-lg">
+      <Select
+        id="user-property-select"
+        label="User Property"
+        options={properties.map((property) => ({
+          value: property.name,
+          label: property.name,
+        }))}
+      />
+      <input
+        ref={inputRef}
+        type="text"
+        id="user-property-default-value"
+        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        placeholder="Default Value"
+        value={defaultValue}
+        onChange={(e) => updateAttributes({ defaultValue: e.target.value })}
+      />
+    </div>
+  );
+}
+
+function UserPropertyForm({
+  properties,
+  variableName,
+  defaultValue,
+  updateAttributes,
+}: {
+  properties: Property[];
+  variableName: string;
+  defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
 }) {
   const [visible, setVisible] = useState(true);
-  // return (
-  //   <Tippy
-  //     visible={visible}
-  //     placement="right"
-  //     content={
-  //       <div className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-sm">
-  //         <button type="button">foo</button>
-  //         <Select
-  //           id="user-property-select"
-  //           label="User Property"
-  //           options={properties.map((property) => ({
-  //             value: property.name,
-  //             label: property.name,
-  //           }))}
-  //         />
-  //       </div>
-  //     }
-  //   >
-  //     <span />
-  //   </Tippy>
-  // );
 
   return (
-    <Popover.Root open={visible}>
-      <Popover.Trigger>
-        <span />
+    <Popover.Root open={visible} defaultOpen>
+      <Popover.Trigger asChild>
+        <span className="user-property-form-trigger" />
       </Popover.Trigger>
-      <Popover.Content>
-        <div className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-sm">
-          <Select
-            id="user-property-select"
-            label="User Property"
-            options={properties.map((property) => ({
-              value: property.name,
-              label: property.name,
-            }))}
-          />
-        </div>
+      <Popover.Content autoFocus>
+        <UserPropertyFormContent
+          properties={properties}
+          variableName={variableName}
+          defaultValue={defaultValue}
+          updateAttributes={updateAttributes}
+        />
       </Popover.Content>
     </Popover.Root>
   );
@@ -117,15 +140,17 @@ function UserPropertyForm({
 
 function UserPropertyComponent({
   node,
-  getPos,
   updateAttributes,
   editor,
 }: NodeViewProps) {
   const attribute = node.attrs as UserPropertyAttributes;
-  const properties: Property[] =
-    editor.extensionManager.extensions.find(
-      (extension) => extension.name === "userProperty",
-    )?.options.properties || [];
+  const properties: Property[] = useMemo(
+    () =>
+      editor.extensionManager.extensions.find(
+        (extension) => extension.name === "userProperty",
+      )?.options.properties || [],
+    [editor],
+  );
 
   let body;
   if (attribute.step === "selected") {
@@ -135,7 +160,7 @@ function UserPropertyComponent({
       <UserPropertyForm
         properties={properties}
         variableName={attribute.variableName}
-        getPos={getPos}
+        defaultValue={attribute.defaultValue}
         updateAttributes={updateAttributes}
       />
     );
@@ -176,6 +201,9 @@ export const UserProperty = Node.create<UserPropertyOptions>({
       },
       step: {
         default: "selecting",
+      },
+      defaultValue: {
+        default: "",
       },
     };
   },
