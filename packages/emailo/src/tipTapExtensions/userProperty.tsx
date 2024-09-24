@@ -68,11 +68,13 @@ function UserPropertyFormContent({
   variableName,
   defaultValue,
   updateAttributes,
+  removeUserProperty,
 }: {
   properties: Property[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
+  removeUserProperty: () => void;
 }) {
   return (
     <form className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-lg flex flex-row items-center space-x-4">
@@ -111,16 +113,26 @@ function UserPropertyForm({
   variableName,
   defaultValue,
   updateAttributes,
+  removeUserProperty,
 }: {
   properties: Property[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
+  removeUserProperty: () => void;
 }) {
   const [visible, setVisible] = useState(true);
 
   return (
-    <Popover.Root defaultOpen>
+    <Popover.Root
+      open={visible}
+      onOpenChange={(open) => {
+        if (!open) {
+          removeUserProperty();
+        }
+        setVisible(open);
+      }}
+    >
       <Popover.Trigger asChild>
         <span className="user-property-form-trigger" />
       </Popover.Trigger>
@@ -130,6 +142,7 @@ function UserPropertyForm({
           variableName={variableName}
           defaultValue={defaultValue}
           updateAttributes={updateAttributes}
+          removeUserProperty={removeUserProperty}
         />
       </Popover.Content>
     </Popover.Root>
@@ -142,13 +155,16 @@ function UserPropertyComponent({
   editor,
 }: NodeViewProps) {
   const attribute = node.attrs as UserPropertyAttributes;
-  const properties: Property[] = useMemo(
+  const properties = useMemo(
     () =>
-      editor.extensionManager.extensions.find(
-        (extension) => extension.name === "userProperty",
-      )?.options.properties || [],
+      editor.extensionManager.extensions.find((e) => e.name === "userProperty")
+        ?.options.properties || [],
     [editor],
   );
+
+  const removeUserProperty = () => {
+    editor.commands.removeUserProperty();
+  };
 
   let body;
   if (attribute.step === "selected") {
@@ -160,6 +176,7 @@ function UserPropertyComponent({
         variableName={attribute.variableName}
         defaultValue={attribute.defaultValue}
         updateAttributes={updateAttributes}
+        removeUserProperty={removeUserProperty}
       />
     );
   }
@@ -175,6 +192,7 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     userProperty: {
       setUserProperty: () => ReturnType;
+      removeUserProperty: () => ReturnType;
     };
   }
 }
@@ -234,6 +252,10 @@ export const UserProperty = Node.create<UserPropertyOptions>({
             })
             .blur()
             .run(),
+      removeUserProperty:
+        () =>
+        ({ chain }) =>
+          chain().deleteSelection().run(),
     };
   },
 });
