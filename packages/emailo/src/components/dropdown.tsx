@@ -2,17 +2,17 @@ import React from "react";
 
 import { cn } from "../utils";
 
-export const DropdownCategoryTitle = ({
+export function DropdownCategoryTitle({
   children,
 }: {
   children: React.ReactNode;
-}) => {
+}) {
   return (
     <div className="text-[.65rem] font-semibold mb-1 uppercase text-neutral-500 dark:text-neutral-400 px-1.5">
       {children}
     </div>
   );
-};
+}
 
 export const DropdownButton = React.forwardRef<
   HTMLButtonElement,
@@ -37,6 +37,7 @@ export const DropdownButton = React.forwardRef<
 
   return (
     <button
+      type="button"
       className={buttonClass}
       disabled={disabled}
       onClick={onClick}

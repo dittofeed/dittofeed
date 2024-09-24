@@ -38,7 +38,7 @@ const isCategory = (
   option: ContentTypePickerOption | ContentTypePickerCategory,
 ): option is ContentTypePickerCategory => option.type === "category";
 
-export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
+export function ContentTypePicker({ options }: ContentTypePickerProps) {
   const activeItem = useMemo(
     () =>
       options.find((option) => option.type === "option" && option.isActive()),
@@ -87,4 +87,4 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
       </Dropdown.Content>
     </Dropdown.Root>
   );
-};
+}

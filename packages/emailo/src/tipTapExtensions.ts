@@ -44,7 +44,9 @@ const extensions = [
   Superscript,
   Selection,
   BlockquoteFigure,
-  UserProperty,
+  UserProperty.configure({
+    properties: [{ name: "name" }, { name: "age" }],
+  }),
 ];
 
 export default extensions;
