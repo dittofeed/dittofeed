@@ -93,6 +93,26 @@ function UserPropertyForm({
   //     <span />
   //   </Tippy>
   // );
+
+  return (
+    <Popover.Root open={visible}>
+      <Popover.Trigger>
+        <span />
+      </Popover.Trigger>
+      <Popover.Content>
+        <div className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-sm">
+          <Select
+            id="user-property-select"
+            label="User Property"
+            options={properties.map((property) => ({
+              value: property.name,
+              label: property.name,
+            }))}
+          />
+        </div>
+      </Popover.Content>
+    </Popover.Root>
+  );
 }
 
 function UserPropertyComponent({
