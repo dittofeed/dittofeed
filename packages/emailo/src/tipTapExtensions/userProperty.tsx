@@ -40,7 +40,7 @@ function Select({
   options: { value: string; label: string }[];
 }) {
   return (
-    <form className="max-w-sm mx-auto">
+    <>
       <label
         htmlFor={id}
         className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -57,9 +57,11 @@ function Select({
           </option>
         ))}
       </select>
-    </form>
+    </>
   );
 }
+
+const FORM_DEFAULT_VALUE_ID = "user-property-form-default-value";
 
 function UserPropertyFormContent({
   properties,
@@ -72,39 +74,35 @@ function UserPropertyFormContent({
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
 }) {
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useLayoutEffect(() => {
-    debugger;
-    if (inputRef.current) {
-      debugger;
-      inputRef.current.focus();
-    }
-    // if (visible && inputRef.current) {
-    //   inputRef.current.focus();
-    // }
-  }, []);
-
   return (
-    <div className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-lg">
-      <Select
-        id="user-property-select"
-        label="User Property"
-        options={properties.map((property) => ({
-          value: property.name,
-          label: property.name,
-        }))}
-      />
-      <input
-        ref={inputRef}
-        type="text"
-        id="user-property-default-value"
-        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-        placeholder="Default Value"
-        value={defaultValue}
-        onChange={(e) => updateAttributes({ defaultValue: e.target.value })}
-      />
-    </div>
+    <form className="user-property-form p-2 bg-white border border-neutral-100 rounded-lg shadow-lg flex flex-row items-center space-x-4">
+      <div>
+        <Select
+          id="user-property-select"
+          label="User Property"
+          options={properties.map((property) => ({
+            value: property.name,
+            label: property.name,
+          }))}
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="user-property-form-default-value"
+          className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+        >
+          Default Value
+        </label>
+        <input
+          type="text"
+          id="user-property-form-default-value"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          placeholder="Default Value"
+          value={defaultValue}
+          onChange={(e) => updateAttributes({ defaultValue: e.target.value })}
+        />
+      </div>
+    </form>
   );
 }
 
@@ -122,7 +120,7 @@ function UserPropertyForm({
   const [visible, setVisible] = useState(true);
 
   return (
-    <Popover.Root open={visible} defaultOpen>
+    <Popover.Root defaultOpen>
       <Popover.Trigger asChild>
         <span className="user-property-form-trigger" />
       </Popover.Trigger>
@@ -234,6 +232,7 @@ export const UserProperty = Node.create<UserPropertyOptions>({
               type: this.name,
               attrs: { variableName: "myUserVariable" },
             })
+            .blur()
             .run(),
     };
   },
