@@ -172,7 +172,7 @@ function UserPropertyComponent({
             defaultValue={attribute.defaultValue}
           />
         </Popover.Trigger>
-        <Popover.Content autoFocus side="right">
+        <Popover.Content autoFocus side="top">
           <UserPropertyFormContent
             properties={properties}
             close={() => setVisible(false)}
