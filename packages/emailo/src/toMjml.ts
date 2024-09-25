@@ -114,11 +114,18 @@ function toMjmlHelper({
       return `<p style="font-size:${fontSize}; font-weight:bold; margin: 0;">${resolvedContent}</p>`;
     }
     case "paragraph": {
-      const style =
+      const style = [
         childIndex === 0 || isLastChild
-          ? 'style="margin: 0;"'
-          : 'style="margin-top: 24px; margin-bottom: 24px;"';
-      return `<p ${style}>${resolvedContent}</p>`;
+          ? "margin: 0;"
+          : "margin-top: 24px; margin-bottom: 24px;",
+      ];
+
+      if (content.attrs?.textAlign) {
+        style.push(`text-align: ${content.attrs.textAlign};`);
+      }
+
+      const styleAttr = `style="${style.join(" ")}"`;
+      return `<p ${styleAttr}>${resolvedContent}</p>`;
     }
     case "bulletList":
       return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;">${resolvedContent}</ul>`;
