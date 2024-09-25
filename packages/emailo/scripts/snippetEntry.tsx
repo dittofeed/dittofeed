@@ -101,7 +101,20 @@ function Rendered({ html }: { html: string }) {
 }
 
 function Main() {
-  const state = useEmailo({ content });
+  const state = useEmailo({
+    content,
+    userProperties: [
+      {
+        name: "name",
+      },
+      {
+        name: "age",
+      },
+      {
+        name: "favoriteColor",
+      },
+    ],
+  });
   const [view, setView] = useState<
     "editor" | "json" | "pre-rendered-preview" | "rendered-preview" | "rendered"
   >("editor");

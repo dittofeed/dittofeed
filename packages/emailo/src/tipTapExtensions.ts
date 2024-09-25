@@ -17,36 +17,44 @@ import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { UserProperty } from "./tipTapExtensions/userProperty";
 
-const extensions = [
-  Color.configure({ types: [TextStyle.name, ListItem.name] }),
-  TextStyle.configure({ types: [ListItem.name] } as any),
-  StarterKit.configure({
-    bulletList: {
-      keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-    },
-    orderedList: {
-      keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-    },
-  }),
-  SlashCommand,
-  FontFamily.configure({
-    fonts: ["Arial", "Helvetica", "sans-serif"],
-  }),
-  Typography,
-  TextAlign,
-  Link,
-  Underline,
-  Highlight,
-  FontSize,
-  Subscript,
-  Superscript,
-  Selection,
-  BlockquoteFigure,
-  UserProperty.configure({
-    properties: [{ name: "name" }, { name: "age" }, { name: "family name" }],
-  }),
-];
-
-export default extensions;
+export function getExtensions({
+  userProperties,
+}: {
+  userProperties: [UserProperty, ...UserProperty[]];
+}) {
+  const extensions = [
+    Color.configure({ types: [TextStyle.name, ListItem.name] }),
+    TextStyle.configure({ types: [ListItem.name] } as any),
+    StarterKit.configure({
+      bulletList: {
+        keepMarks: true,
+        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      },
+      orderedList: {
+        keepMarks: true,
+        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      },
+    }),
+    SlashCommand,
+    FontFamily.configure({
+      fonts: ["Arial", "Helvetica", "sans-serif"],
+    }),
+    Typography,
+    TextAlign.configure({
+      types: ["paragraph"],
+      alignments: ["left", "center", "right", "justify"],
+    }),
+    Link,
+    Underline,
+    Highlight,
+    FontSize,
+    Subscript,
+    Superscript,
+    Selection,
+    BlockquoteFigure,
+    UserProperty.configure({
+      properties: userProperties,
+    }),
+  ];
+  return extensions;
+}

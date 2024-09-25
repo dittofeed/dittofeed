@@ -1,7 +1,5 @@
 import { Editor } from "@tiptap/core";
 
-import extensions from "../tipTapExtensions";
-
 export const isTableGripSelected = (node: HTMLElement) => {
   let container = node;
 
@@ -25,8 +23,17 @@ export const isTableGripSelected = (node: HTMLElement) => {
   return false;
 };
 
-export const isCustomNodeSelected = (editor: Editor, node: HTMLElement) =>
-  extensions.some((extension) => editor.isActive(extension.name)) ||
-  isTableGripSelected(node);
+export const isCustomNodeSelected = (
+  editor: Editor,
+  node: HTMLElement,
+  customExtensions: string[],
+) => {
+  const extensionIsActive = customExtensions.some((extension) =>
+    editor.isActive(extension),
+  );
+
+  const isTableSelected = isTableGripSelected(node);
+  return extensionIsActive || isTableSelected;
+};
 
 export default isCustomNodeSelected;

@@ -7,12 +7,12 @@ import {
 } from "@tiptap/react";
 import React, { useMemo, useState } from "react";
 
-interface Property {
+export interface UserProperty {
   name: string;
 }
 
 interface UserPropertyOptions {
-  properties: [Property, ...Property[]];
+  properties: [UserProperty, ...UserProperty[]];
 }
 
 export interface UserPropertyAttributes {
@@ -96,7 +96,7 @@ function UserPropertyFormContent({
   updateAttributes,
   close,
 }: {
-  properties: Property[];
+  properties: UserProperty[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];

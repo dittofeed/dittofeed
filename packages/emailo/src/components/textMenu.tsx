@@ -1,7 +1,8 @@
 import * as Popover from "@radix-ui/react-popover";
-import { BubbleMenu, Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react";
 import React, { memo } from "react";
 
+import { EmailoState } from "../types";
 import { ContentTypePicker } from "./contentTypePicker";
 import { EditLinkPopover } from "./editLinkPopover";
 import { FontFamilyPicker } from "./fontFamilyPicker";
@@ -23,12 +24,13 @@ const MemoFontSizePicker = memo(FontSizePicker);
 const MemoContentTypePicker = memo(ContentTypePicker);
 
 export type TextMenuProps = {
-  editor: Editor;
+  state: EmailoState;
 };
 
-export function TextMenu({ editor }: TextMenuProps) {
+export function TextMenu({ state }: TextMenuProps) {
+  const { editor, customExtensions } = state;
   const commands = useTextmenuCommands(editor);
-  const states = useTextmenuStates(editor);
+  const states = useTextmenuStates(editor, customExtensions);
   const blockOptions = useTextmenuContentTypes(editor);
 
   return (
@@ -59,7 +61,7 @@ export function TextMenu({ editor }: TextMenuProps) {
       shouldShow={states.shouldShow}
       updateDelay={100}
     >
-      <Toolbar.Wrapper>
+      <Toolbar.Wrapper className="text-menu">
         <Toolbar.Divider />
         <MemoContentTypePicker options={blockOptions as any} />
         <MemoFontFamilyPicker
