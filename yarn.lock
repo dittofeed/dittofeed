@@ -13066,6 +13066,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
     fast-deep-equal: "npm:^3.1.3"
+    liquidjs: "npm:^10.7.1"
     lucide-react: "npm:^0.441.0"
     mjml: "npm:^4.14.1"
     postcss: "npm:^8.4.47"

@@ -72,6 +72,7 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
+    "liquidjs": "^10.7.1",
     "mjml": "^4.14.1",
     "postcss": "^8.4.47",
     "prettier": "3.2.5",

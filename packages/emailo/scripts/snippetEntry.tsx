@@ -11,7 +11,7 @@ if (!import.meta.hot) {
 }
 const rpc = createRPCClient<
   {
-    mjmlToHtml: (html: string) => string;
+    mjmlToHtml: (html: string, user?: Record<string, any>) => string;
   },
   unknown
 >("rpc", import.meta.hot);
@@ -72,10 +72,38 @@ function RenderedPreview({ html }: { html: string }) {
   );
 }
 
+function Rendered({ html }: { html: string }) {
+  const [rendered, setRendered] = useState(html);
+  useEffect(() => {
+    rpc
+      .mjmlToHtml(html, {
+        name: "test",
+        age: 20,
+      })
+      .then(setRendered)
+      .catch((e) => console.error("mjmlToHtml error", e.message));
+  }, [html]);
+
+  return (
+    <div
+      className="w-full h-full"
+      style={{
+        padding: "20px 32px",
+      }}
+    >
+      <iframe
+        srcDoc={rendered}
+        style={{ width: "100%", height: "100%", border: "none" }}
+        title="Rendered Email Preview"
+      />
+    </div>
+  );
+}
+
 function Main() {
   const state = useEmailo({ content });
   const [view, setView] = useState<
-    "editor" | "json" | "pre-rendered-preview" | "rendered-preview"
+    "editor" | "json" | "pre-rendered-preview" | "rendered-preview" | "rendered"
   >("editor");
 
   let body;
@@ -93,6 +121,13 @@ function Main() {
       body = (
         <RenderedPreview
           html={toMjml({ content: state.editor.getJSON(), mode: "preview" })}
+        />
+      );
+      break;
+    case "rendered":
+      body = (
+        <Rendered
+          html={toMjml({ content: state.editor.getJSON(), mode: "render" })}
         />
       );
       break;
@@ -127,6 +162,13 @@ function Main() {
           variant={view === "rendered-preview" ? "primary" : "ghost"}
         >
           Rendered Preview
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setView("rendered")}
+          variant={view === "rendered" ? "primary" : "ghost"}
+        >
+          Rendered
         </Button>
       </div>
       <div className="flex-1">{body}</div>

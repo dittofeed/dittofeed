@@ -1,9 +1,23 @@
+import { Liquid } from "liquidjs";
 import mjml2html from "mjml";
 
-function mjmlToHtml(html: string) {
-  const result = mjml2html(html);
-  console.log("loc0", html);
-  console.log("loc1", result.html);
+export const liquidEngine = new Liquid({
+  strictVariables: true,
+  lenientIf: true,
+  relativeReference: false,
+});
+
+function mjmlToHtml(html: string, user?: Record<string, any>) {
+  let liquidRendered: string;
+  if (user) {
+    liquidRendered = liquidEngine.parseAndRenderSync(html, {
+      user,
+    }) as string;
+  } else {
+    liquidRendered = html;
+  }
+
+  const result = mjml2html(liquidRendered);
   if (result.errors.length > 0) {
     console.error("mjml result.errors", result.errors);
     throw new Error(JSON.stringify(result.errors));
