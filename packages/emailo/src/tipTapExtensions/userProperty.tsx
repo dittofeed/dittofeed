@@ -1,5 +1,4 @@
 import * as Popover from "@radix-ui/react-popover";
-import Tippy from "@tippyjs/react";
 import { mergeAttributes, Node } from "@tiptap/core";
 import {
   NodeViewProps,
@@ -16,18 +15,41 @@ interface UserPropertyOptions {
   properties: [Property, ...Property[]];
 }
 
-// https://flowbite.com/docs/forms/select/
-interface UserPropertyAttributes {
-  step: "selecting" | "selected";
+export interface UserPropertyAttributes {
   variableName: string;
   defaultValue: string;
 }
 
-function UserPropertySelected({ variableName }: { variableName: string }) {
-  const expression = variableName.includes(" ")
+export function userPropertyToExpression({
+  variableName,
+  defaultValue,
+}: {
+  variableName: string;
+  defaultValue: string;
+}) {
+  const baseExpression = variableName.includes(" ")
     ? `user['${variableName.replace(/'/g, "\\'")}']`
     : `user.${variableName}`;
-  return <code className="underline inline">{`{{ ${expression} }}`}</code>;
+  const expression =
+    defaultValue.length > 0
+      ? `${baseExpression} | default: '${defaultValue}'`
+      : baseExpression;
+
+  return `{{ ${expression} }}`;
+}
+
+function UserPropertySelected({
+  variableName,
+  defaultValue,
+}: {
+  variableName: string;
+  defaultValue: string;
+}) {
+  return (
+    <code className="underline inline">
+      {userPropertyToExpression({ variableName, defaultValue })}
+    </code>
+  );
 }
 
 function Select({
@@ -145,7 +167,10 @@ function UserPropertyComponent({
         }}
       >
         <Popover.Trigger>
-          <UserPropertySelected variableName={attribute.variableName} />
+          <UserPropertySelected
+            variableName={attribute.variableName}
+            defaultValue={attribute.defaultValue}
+          />
         </Popover.Trigger>
         <Popover.Content autoFocus side="right">
           <UserPropertyFormContent

@@ -87,11 +87,13 @@ function Main() {
       body = <pre>{JSON.stringify(state.editor.getJSON(), null, 2)}</pre>;
       break;
     case "pre-rendered-preview":
-      body = toMjml({ content: state.editor.getJSON() });
+      body = toMjml({ content: state.editor.getJSON(), mode: "preview" });
       break;
     case "rendered-preview":
       body = (
-        <RenderedPreview html={toMjml({ content: state.editor.getJSON() })} />
+        <RenderedPreview
+          html={toMjml({ content: state.editor.getJSON(), mode: "preview" })}
+        />
       );
       break;
   }

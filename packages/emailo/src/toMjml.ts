@@ -1,23 +1,30 @@
 import { JSONContent } from "@tiptap/core";
 
+import {
+  UserPropertyAttributes,
+  userPropertyToExpression,
+} from "./tipTapExtensions/userProperty";
+
+type Mode = "preview" | "render";
+
 function toMjmlHelper({
   content,
-  // parentType, // Removed unused parameter
   childIndex = 0,
   isLastChild = false,
+  mode,
 }: {
   content: JSONContent;
-  // parentType?: string; // Removed unused parameter
   childIndex?: number;
   isLastChild?: boolean;
+  mode: Mode;
 }): string {
   const resolvedContent: string = (
     content.content?.map((c, index) =>
       toMjmlHelper({
         content: c,
-        // Remove the parentType parameter
         childIndex: index,
         isLastChild: index === (content.content?.length ?? 1) - 1,
+        mode,
       }),
     ) ?? []
   ).join("");
@@ -58,7 +65,7 @@ function toMjmlHelper({
               text = `<s>${text}</s>`;
               break;
             case "code":
-              text = `<code>${text}</code>`;
+              text = `<code style="background-color: #171717; border-radius: 2px; color: white;">${text}</code>`;
               break;
             case "highlight":
               styles.push("background-color: yellow");
@@ -134,10 +141,10 @@ function toMjmlHelper({
         content.content?.find((c) => c.type === "quoteCaption")?.content ?? [];
 
       const quoteText = quoteContent
-        .map((c) => toMjmlHelper({ content: c }))
+        .map((c) => toMjmlHelper({ content: c, mode }))
         .join("");
       const captionText = captionContent
-        .map((c) => toMjmlHelper({ content: c }))
+        .map((c) => toMjmlHelper({ content: c, mode }))
         .join("");
 
       // prettier-ignore
@@ -153,14 +160,36 @@ function toMjmlHelper({
     }
     case "horizontalRule":
       return '<hr style="border: 0; border-top: 1px solid #e5e7eb; margin-top: 12px;" />';
+    case "userProperty": {
+      const { variableName, defaultValue } =
+        content.attrs as UserPropertyAttributes;
+
+      const expression = userPropertyToExpression({
+        variableName,
+        defaultValue,
+      });
+      switch (mode) {
+        case "preview":
+          return `<code style="background-color: #171717; border-radius: 2px; color: white;">${expression}</code>`;
+        case "render":
+          return expression;
+      }
+      break;
+    }
     default:
       console.error("Unsupported node type", content.type, content);
       return "";
   }
 }
 
-export function toMjml({ content }: { content: JSONContent }): string {
-  const resolvedContent = toMjmlHelper({ content });
+export function toMjml({
+  content,
+  mode,
+}: {
+  content: JSONContent;
+  mode: Mode;
+}): string {
+  const resolvedContent = toMjmlHelper({ content, mode });
   // prettier-ignore
   // eslint-disable-next-line prefer-template
   return "<mjml>" +
