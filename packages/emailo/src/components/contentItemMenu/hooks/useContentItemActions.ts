@@ -74,12 +74,12 @@ const useContentItemActions = (
             if (currentNodeIsEmptyParagraph) {
               tr.insertText("/", currentNodePos, currentNodePos + 1);
             } else {
-              tr.insert(
-                insertPos,
-                state.schema.nodes.paragraph.create(null, [
-                  state.schema.text("/"),
-                ]),
-              );
+              const node = state.schema.nodes?.paragraph?.create(null, [
+                state.schema.text("/"),
+              ]);
+              if (node) {
+                tr.insert(insertPos, node);
+              }
             }
 
             return dispatch(tr);

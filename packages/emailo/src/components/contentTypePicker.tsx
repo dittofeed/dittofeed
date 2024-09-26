@@ -82,6 +82,7 @@ export function ContentTypePicker({ options }: ContentTypePickerProps) {
                 </div>
               );
             }
+            return null;
           })}
         </Surface>
       </Dropdown.Content>

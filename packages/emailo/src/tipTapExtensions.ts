@@ -39,7 +39,7 @@ export function getExtensions({
     SlashCommand,
     FontFamily.configure({
       fonts: ["Arial", "Helvetica", "sans-serif"],
-    }),
+    } as any),
     Typography,
     TextAlign.configure({
       types: ["paragraph"],
