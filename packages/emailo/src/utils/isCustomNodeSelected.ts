@@ -23,13 +23,16 @@ export const isTableGripSelected = (node: HTMLElement) => {
   return false;
 };
 
+const formattableCustomNodes = new Set(["unsubscribeLink"]);
+
 export const isCustomNodeSelected = (
   editor: Editor,
   node: HTMLElement,
   customExtensions: string[],
 ) => {
-  const extensionIsActive = customExtensions.some((extension) =>
-    editor.isActive(extension),
+  const extensionIsActive = customExtensions.some(
+    (extension) =>
+      !formattableCustomNodes.has(extension) && editor.isActive(extension),
   );
 
   const isTableSelected = isTableGripSelected(node);

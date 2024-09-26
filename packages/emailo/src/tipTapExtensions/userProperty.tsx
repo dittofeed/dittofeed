@@ -191,7 +191,6 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     userProperty: {
       setUserProperty: () => ReturnType;
-      removeUserProperty: () => ReturnType;
     };
   }
 }
@@ -251,10 +250,6 @@ export const UserProperty = Node.create<UserPropertyOptions>({
             })
             .blur()
             .run(),
-      removeUserProperty:
-        () =>
-        ({ chain }) =>
-          chain().deleteSelection().run(),
     };
   },
 });

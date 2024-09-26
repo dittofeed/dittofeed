@@ -116,7 +116,7 @@ export function TextMenu({ state }: TextMenuProps) {
         <MemoButton tooltip="Code block" onClick={commands.onCodeBlock}>
           <Icon name="FileCode" />
         </MemoButton>
-        <EditLinkPopover onSetLink={commands.onLink} />
+        <EditLinkPopover onSetLink={commands.onLink} editor={editor} />
         <Popover.Root>
           {/* <Popover.Trigger asChild>
             <MemoButton

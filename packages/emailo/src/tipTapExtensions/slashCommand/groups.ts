@@ -85,10 +85,15 @@ export const GROUPS: Group[] = [
         label: "User Variable",
         iconName: "User",
         description: "Insert a user variable",
-        action: (editor) => {
-          console.log("loc3 setUserProperty");
-          editor.chain().focus().setUserProperty().run();
-        },
+        action: (editor) => editor.chain().focus().setUserProperty().run(),
+      },
+      {
+        name: "unsubscribeLink",
+        label: "Unsubscribe Link",
+        iconName: "Link",
+        description: "Insert a link to unsubscribe from the subscription group",
+        action: (editor) =>
+          editor.chain().focus().insertUnsubscribeLink().run(),
       },
       {
         name: "horizontalRule",

@@ -16,6 +16,7 @@ import { Link } from "./tipTapExtensions/link";
 import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { UserProperty } from "./tipTapExtensions/userProperty";
+import { UnsubscribeLink } from "./unsubscribeLink";
 
 export function getExtensions({
   userProperties,
@@ -55,6 +56,7 @@ export function getExtensions({
     UserProperty.configure({
       properties: userProperties,
     }),
+    UnsubscribeLink,
   ];
   return extensions;
 }
