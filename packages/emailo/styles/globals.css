@@ -10,6 +10,11 @@
 
     font-size: 12pt;
   }
+
+  a {
+    color: initial;
+    text-decoration: underline;
+  }
 }
 
 html,

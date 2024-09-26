@@ -5,7 +5,64 @@ import {
   userPropertyToExpression,
 } from "./tipTapExtensions/userProperty";
 
+import { UnsubscribeLinkAttributes } from "./unsubscribeLink"; // Add this import
+
 type Mode = "preview" | "render";
+
+// New function to handle text styling
+function applyTextStyles(
+  text: string,
+  marks: any[],
+): { styledText: string; styles: string[] } {
+  let styledText = text;
+  const styles: string[] = [];
+
+  marks?.forEach((mark) => {
+    switch (mark.type) {
+      case "bold":
+        styledText = `<strong>${styledText}</strong>`;
+        break;
+      case "italic":
+        styledText = `<em>${styledText}</em>`;
+        break;
+      case "textStyle":
+        if (mark.attrs?.fontFamily) {
+          styles.push(`font-family: ${mark.attrs.fontFamily}`);
+        }
+        if (mark.attrs?.fontSize) {
+          styles.push(`font-size: ${mark.attrs.fontSize}`);
+        }
+        if (mark.attrs?.color) {
+          styles.push(`color: ${mark.attrs.color}`);
+        }
+        break;
+      case "link":
+        styledText = `<a href="${mark.attrs?.href}" target="${mark.attrs?.target}" rel="${mark.attrs?.rel}">${styledText}</a>`;
+        break;
+      case "underline":
+        styledText = `<u>${styledText}</u>`;
+        break;
+      case "strike":
+        styledText = `<s>${styledText}</s>`;
+        break;
+      case "code":
+        styledText = `<code style="background-color: #171717; border-radius: 2px; color: white;">${styledText}</code>`;
+        break;
+      case "highlight":
+        styles.push("background-color: yellow");
+        break;
+      case "superscript":
+        styledText = `<sup>${styledText}</sup>`;
+        break;
+      case "subscript":
+        styledText = `<sub>${styledText}</sub>`;
+        break;
+      // Add more mark types as needed
+    }
+  });
+
+  return { styledText, styles };
+}
 
 function toMjmlHelper({
   content,
@@ -33,55 +90,12 @@ function toMjmlHelper({
     case "doc":
       return resolvedContent;
     case "text": {
-      let text = content.text ?? "";
-      const styles: string[] = [];
-      if (content.marks) {
-        content.marks.forEach((mark) => {
-          switch (mark.type) {
-            case "bold":
-              text = `<strong>${text}</strong>`;
-              break;
-            case "italic":
-              text = `<em>${text}</em>`;
-              break;
-            case "textStyle":
-              if (mark.attrs?.fontFamily) {
-                styles.push(`font-family: ${mark.attrs.fontFamily}`);
-              }
-              if (mark.attrs?.fontSize) {
-                styles.push(`font-size: ${mark.attrs.fontSize}`);
-              }
-              if (mark.attrs?.color) {
-                styles.push(`color: ${mark.attrs.color}`);
-              }
-              break;
-            case "link":
-              text = `<a href="${mark.attrs?.href}" target="${mark.attrs?.target}" rel="${mark.attrs?.rel}">${text}</a>`;
-              break;
-            case "underline":
-              text = `<u>${text}</u>`;
-              break;
-            case "strike":
-              text = `<s>${text}</s>`;
-              break;
-            case "code":
-              text = `<code style="background-color: #171717; border-radius: 2px; color: white;">${text}</code>`;
-              break;
-            case "highlight":
-              styles.push("background-color: yellow");
-              break;
-            case "superscript":
-              text = `<sup>${text}</sup>`;
-              break;
-            case "subscript":
-              text = `<sub>${text}</sub>`;
-              break;
-            // Add more mark types as needed
-          }
-        });
-      }
+      const { styledText, styles } = applyTextStyles(
+        content.text ?? "",
+        content.marks ?? [],
+      );
       const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";
-      return styleAttr ? `<span${styleAttr}>${text}</span>` : text;
+      return styleAttr ? `<span${styleAttr}>${styledText}</span>` : styledText;
     }
     case "heading": {
       let fontSize: string;
@@ -182,6 +196,16 @@ function toMjmlHelper({
           return expression;
       }
       break;
+    }
+    case "unsubscribeLink": {
+      const { linkText } = content.attrs as UnsubscribeLinkAttributes;
+      const { styledText, styles } = applyTextStyles(
+        linkText,
+        content.marks ?? [],
+      );
+
+      const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";
+      return `<a href="{{unsubscribe_url}}" target="_blank" rel="noopener noreferrer"${styleAttr}>${styledText}</a>`;
     }
     default:
       console.error("Unsupported node type", content.type, content);

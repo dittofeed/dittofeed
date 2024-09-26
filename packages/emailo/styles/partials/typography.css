@@ -52,10 +52,6 @@
     @apply mt-8;
   }
 
-  a.link {
-    @apply text-blue-500 font-extrabold dark:text-blue-400;
-  }
-
   mark {
     @apply bg-red-500 rounded-sm decoration-clone text-inherit py-1 px-0 dark:bg-red-400;
   }
