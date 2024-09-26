@@ -41,7 +41,7 @@ export const getServerSideProps: GetServerSideProps<
     rc.error.type !== RequestContextErrorType.EmailNotVerified;
 
   const props: WaitingRoomProps = {
-    refreshUrl: oauthStartUrl ?? "/waiting-room",
+    refreshUrl: oauthStartUrl ?? "/login",
     emailVerified,
   };
   if (signoutUrl) {
