@@ -12,6 +12,7 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(
     ref,
   ) => {
     const surfaceClass = cn(
+      "emailo",
       className,
       "bg-white rounded-lg dark:bg-black",
       withShadow ? "shadow-sm" : "",

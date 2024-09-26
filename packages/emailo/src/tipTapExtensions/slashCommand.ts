@@ -34,6 +34,14 @@ export const SlashCommand = Extension.create({
             name: "flip",
             enabled: false,
           },
+          {
+            name: "applyClass",
+            enabled: true,
+            phase: "write",
+            fn: (data) => {
+              data.state.elements.popper.classList.add("emailo");
+            },
+          },
         ],
       },
     });

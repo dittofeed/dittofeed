@@ -72,7 +72,7 @@ export function Tooltip({
         {...tippyOptions}
         render={renderTooltip}
       >
-        <span>{children}</span>
+        <span className="emailo">{children}</span>
       </Tippy>
     );
   }
