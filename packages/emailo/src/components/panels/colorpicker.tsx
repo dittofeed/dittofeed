@@ -27,14 +27,18 @@ export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
 
     if (!isCorrectColor) {
       if (onChange) {
-        onChange("");
+        queueMicrotask(() => {
+          onChange("");
+        });
       }
 
       return;
     }
 
     if (onChange) {
-      onChange(colorInputValue);
+      queueMicrotask(() => {
+        onChange(colorInputValue);
+      });
     }
   }, [colorInputValue, onChange]);
 
@@ -43,7 +47,7 @@ export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
       <HexColorPicker
         className="w-full"
         color={color || ""}
-        onChange={onChange}
+        onChange={(color) => queueMicrotask(() => onChange?.(color))}
       />
       <input
         type="text"
@@ -59,10 +63,13 @@ export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
             active={currentColor === color}
             color={currentColor}
             key={currentColor}
-            onColorChange={onChange}
+            onColorChange={(color) => queueMicrotask(() => onChange?.(color))}
           />
         ))}
-        <Toolbar.Button tooltip="Reset color to default" onClick={onClear}>
+        <Toolbar.Button
+          tooltip="Reset color to default"
+          onClick={() => queueMicrotask(() => onClear?.())}
+        >
           <Icon name="Undo" />
         </Toolbar.Button>
       </div>
