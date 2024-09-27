@@ -9,11 +9,11 @@ import { UnsubscribeLinkAttributes } from "./unsubscribeLink"; // Add this impor
 
 type Mode = "preview" | "render";
 
-// New function to handle text styling
-function applyTextStyles(
-  text: string,
-  marks: any[],
-): { styledText: string; styles: string[] } {
+// Updated function with named parameters
+function applyTextStyles({ text, marks }: { text: string; marks: any[] }): {
+  styledText: string;
+  styles: string[];
+} {
   let styledText = text;
   const styles: string[] = [];
 
@@ -90,10 +90,10 @@ function toMjmlHelper({
     case "doc":
       return resolvedContent;
     case "text": {
-      const { styledText, styles } = applyTextStyles(
-        content.text ?? "",
-        content.marks ?? [],
-      );
+      const { styledText, styles } = applyTextStyles({
+        text: content.text ?? "",
+        marks: content.marks ?? [],
+      });
       const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";
       return styleAttr ? `<span${styleAttr}>${styledText}</span>` : styledText;
     }
@@ -199,10 +199,10 @@ function toMjmlHelper({
     }
     case "unsubscribeLink": {
       const { linkText } = content.attrs as UnsubscribeLinkAttributes;
-      const { styledText, styles } = applyTextStyles(
-        linkText,
-        content.marks ?? [],
-      );
+      const { styledText, styles } = applyTextStyles({
+        text: linkText,
+        marks: content.marks ?? [],
+      });
 
       const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";
       return `<a href="{{unsubscribe_url}}" target="_blank" rel="noopener noreferrer"${styleAttr}>${styledText}</a>`;
