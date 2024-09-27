@@ -16,6 +16,13 @@
   @apply w-full mx-auto;
 }
 
+a {
+  all: unset;
+  cursor: pointer;
+  color: #0000ee;
+  text-decoration: underline;
+}
+
 .ProseMirror {
   @apply caret-black dark:caret-white outline-0 pr-8 pl-20 py-[20px] z-0 lg:pl-8 lg:pr-8 mx-auto max-w-[2400px];
 

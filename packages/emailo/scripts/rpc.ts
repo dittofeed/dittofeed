@@ -19,8 +19,8 @@ function mjmlToHtml(html: string, user?: Record<string, any>) {
 
   const result = mjml2html(liquidRendered);
   if (result.errors.length > 0) {
-    console.error("mjml result.errors", result.errors);
-    throw new Error(JSON.stringify(result.errors));
+    console.error("mjml result.errors", result);
+    throw new Error("mjml result.errors");
   }
   return result.html;
 }

@@ -146,7 +146,7 @@ function Main() {
       break;
   }
   return (
-    <div className="flex flex-col space-y-4 h-full emailo">
+    <div className="flex flex-col space-y-4 h-full">
       <div className="flex items-center justify-center w-full space-x-4">
         <Button
           type="button"

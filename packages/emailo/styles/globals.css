@@ -11,10 +11,12 @@
     font-size: 12pt;
   }
 
-  /* a {
-    color: initial;
+  a {
+    all: unset;
+    cursor: pointer;
+    color: #0000ee;
     text-decoration: underline;
-  } */
+  }
 }
 
 html,
