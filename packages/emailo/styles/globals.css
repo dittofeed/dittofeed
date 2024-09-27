@@ -12,10 +12,8 @@
   }
 
   a {
-    all: unset;
-    cursor: pointer;
-    color: #0000ee;
-    text-decoration: underline;
+    /* all: unset;
+    text-decoration: underline; */
   }
 }
 
