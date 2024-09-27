@@ -10,7 +10,15 @@ import { UnsubscribeLinkAttributes } from "./unsubscribeLink"; // Add this impor
 type Mode = "preview" | "render";
 
 // Updated function with named parameters
-function applyTextStyles({ text, marks }: { text: string; marks: any[] }): {
+function applyTextStyles({
+  text,
+  marks,
+  defaultTextStyles,
+}: {
+  text: string;
+  marks: any[];
+  defaultTextStyles?: Record<string, string>;
+}): {
   styledText: string;
   styles: string[];
 } {
@@ -25,19 +33,24 @@ function applyTextStyles({ text, marks }: { text: string; marks: any[] }): {
       case "italic":
         styledText = `<em>${styledText}</em>`;
         break;
-      case "textStyle":
-        if (mark.attrs?.fontFamily) {
-          styles.push(`font-family: ${mark.attrs.fontFamily}`);
+      case "textStyle": {
+        const fontFamily =
+          mark.attrs?.fontFamily ?? defaultTextStyles?.fontFamily;
+        if (fontFamily) {
+          styles.push(`font-family: ${fontFamily}`);
         }
-        if (mark.attrs?.fontSize) {
-          styles.push(`font-size: ${mark.attrs.fontSize}`);
+        const fontSize = mark.attrs?.fontSize ?? defaultTextStyles?.fontSize;
+        if (fontSize) {
+          styles.push(`font-size: ${fontSize}`);
         }
-        if (mark.attrs?.color) {
-          styles.push(`color: ${mark.attrs.color}`);
+        const color = mark.attrs?.color ?? defaultTextStyles?.color;
+        if (color) {
+          styles.push(`color: ${color}`);
         }
         break;
+      }
       case "link":
-        styledText = `<a href="${mark.attrs?.href}" target="${mark.attrs?.target}" rel="${mark.attrs?.rel}">${styledText}</a>`;
+        styledText = `<a href="${mark.attrs?.href}" target="${mark.attrs?.target}" rel="${mark.attrs?.rel}" style="color: inherit; text-decoration: underline;">${styledText}</a>`;
         break;
       case "underline":
         styledText = `<u>${styledText}</u>`;
@@ -202,6 +215,9 @@ function toMjmlHelper({
       const { styledText, styles } = applyTextStyles({
         text: linkText,
         marks: content.marks ?? [],
+        defaultTextStyles: {
+          color: "inherit",
+        },
       });
 
       const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";

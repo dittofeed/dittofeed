@@ -14,6 +14,18 @@ export type ColorPickerProps = {
 
 export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
   const [colorInputValue, setColorInputValue] = useState(color || "");
+  const handleColorChangeCallback = useCallback(
+    (newColor: string) => {
+      queueMicrotask(() => {
+        try {
+          onChange?.(newColor);
+        } catch (error) {
+          console.error("Error in color change callback:", error);
+        }
+      });
+    },
+    [onChange],
+  );
 
   const handleColorUpdate = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,28 +38,23 @@ export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
     const isCorrectColor = /^#([0-9A-F]{3}){1,2}$/i.test(colorInputValue);
 
     if (!isCorrectColor) {
-      if (onChange) {
-        queueMicrotask(() => {
-          onChange("");
-        });
+      if (handleColorChangeCallback) {
+        handleColorChangeCallback("");
       }
-
       return;
     }
 
-    if (onChange) {
-      queueMicrotask(() => {
-        onChange(colorInputValue);
-      });
+    if (handleColorChangeCallback) {
+      handleColorChangeCallback(colorInputValue);
     }
-  }, [colorInputValue, onChange]);
+  }, [colorInputValue, handleColorChangeCallback]);
 
   return (
     <div className="flex flex-col gap-2">
       <HexColorPicker
         className="w-full"
         color={color || ""}
-        onChange={(color) => queueMicrotask(() => onChange?.(color))}
+        onChange={handleColorChangeCallback}
       />
       <input
         type="text"
@@ -63,12 +70,16 @@ export function ColorPicker({ color, onChange, onClear }: ColorPickerProps) {
             active={currentColor === color}
             color={currentColor}
             key={currentColor}
-            onColorChange={(color) => queueMicrotask(() => onChange?.(color))}
+            onColorChange={handleColorChangeCallback}
           />
         ))}
         <Toolbar.Button
           tooltip="Reset color to default"
-          onClick={() => queueMicrotask(() => onClear?.())}
+          onClick={() => {
+            queueMicrotask(() => {
+              onClear?.();
+            });
+          }}
         >
           <Icon name="Undo" />
         </Toolbar.Button>
