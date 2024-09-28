@@ -7,7 +7,17 @@ export const liquidEngine = new Liquid({
   relativeReference: false,
 });
 
-function mjmlToHtml(html: string, user?: Record<string, any>) {
+export interface MJMLError {
+  message: string;
+  line: number;
+  formattedMessage: string;
+  tagName: string;
+}
+
+function mjmlToHtml(
+  html: string,
+  user?: Record<string, any>,
+): string | MJMLError[] {
   let liquidRendered: string;
   if (user) {
     liquidRendered = liquidEngine.parseAndRenderSync(html, {
@@ -19,8 +29,12 @@ function mjmlToHtml(html: string, user?: Record<string, any>) {
 
   const result = mjml2html(liquidRendered);
   if (result.errors.length > 0) {
-    console.error("mjml result.errors", result);
-    throw new Error("mjml result.errors");
+    return result.errors.map((e) => ({
+      message: e.message,
+      line: e.line,
+      formattedMessage: e.formattedMessage,
+      tagName: e.tagName,
+    }));
   }
   return result.html;
 }

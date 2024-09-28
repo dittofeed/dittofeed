@@ -25,5 +25,8 @@ export default defineConfig({
       fileName: (format) => `dittofeed.${format}.js`,
     },
   },
+  optimizeDeps: {
+    force: true,
+  },
   plugins: [RpcPlugin()],
 });

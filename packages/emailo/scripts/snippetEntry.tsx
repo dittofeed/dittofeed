@@ -5,13 +5,18 @@ import { createRPCClient } from "vite-dev-rpc";
 import { Button } from "../src/components/button";
 import { Emailo, useEmailo } from "../src/emailo";
 import { toMjml } from "../src/toMjml";
+import { MJMLError } from "./rpc";
 
 if (!import.meta.hot) {
   throw new Error("Hot module replacement is not supported in production");
 }
+
 const rpc = createRPCClient<
   {
-    mjmlToHtml: (html: string, user?: Record<string, any>) => string;
+    mjmlToHtml: (
+      html: string,
+      user?: Record<string, any>,
+    ) => string | MJMLError[];
   },
   unknown
 >("rpc", import.meta.hot);
@@ -50,10 +55,13 @@ const content = `
 function RenderedPreview({ html }: { html: string }) {
   const [rendered, setRendered] = useState(html);
   useEffect(() => {
-    rpc
-      .mjmlToHtml(html)
-      .then(setRendered)
-      .catch((e) => console.error("mjmlToHtml error", e.message));
+    rpc.mjmlToHtml(html).then((result) => {
+      if (Array.isArray(result)) {
+        setRendered(result.map((e) => e.formattedMessage).join("\n"));
+      } else {
+        setRendered(result);
+      }
+    });
   }, [html]);
 
   return (
@@ -75,13 +83,13 @@ function RenderedPreview({ html }: { html: string }) {
 function Rendered({ html }: { html: string }) {
   const [rendered, setRendered] = useState(html);
   useEffect(() => {
-    rpc
-      .mjmlToHtml(html, {
-        name: "test",
-        age: 20,
-      })
-      .then(setRendered)
-      .catch((e) => console.error("mjmlToHtml error", e.message));
+    rpc.mjmlToHtml(html).then((result) => {
+      if (Array.isArray(result)) {
+        setRendered(result.map((e) => e.formattedMessage).join("\n"));
+      } else {
+        setRendered(result);
+      }
+    });
   }, [html]);
 
   return (
@@ -94,7 +102,7 @@ function Rendered({ html }: { html: string }) {
       <iframe
         srcDoc={rendered}
         style={{ width: "100%", height: "100%", border: "none" }}
-        title="Rendered Email Preview"
+        title="Rendered Email"
       />
     </div>
   );
