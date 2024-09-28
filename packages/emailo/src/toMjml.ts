@@ -4,7 +4,6 @@ import {
   UserPropertyAttributes,
   userPropertyToExpression,
 } from "./tipTapExtensions/userProperty";
-
 import { UnsubscribeLinkAttributes } from "./unsubscribeLink"; // Add this import
 
 type Mode = "preview" | "render";
@@ -212,16 +211,24 @@ function toMjmlHelper({
     }
     case "unsubscribeLink": {
       const { linkText } = content.attrs as UnsubscribeLinkAttributes;
-      const { styledText, styles } = applyTextStyles({
-        text: linkText,
-        marks: content.marks ?? [],
-        defaultTextStyles: {
-          color: "inherit",
+      return toMjmlHelper({
+        content: {
+          type: "text",
+          text: linkText,
+          marks: [
+            {
+              type: "link",
+              attrs: {
+                href: "{{ unsubscribe_url }}",
+                target: "_blank",
+                rel: "noopener noreferrer nofollow",
+                class: null,
+              },
+            },
+          ],
         },
+        mode,
       });
-
-      const styleAttr = styles.length > 0 ? ` style="${styles.join(";")}"` : "";
-      return `<a href="{{unsubscribe_url}}" target="_blank" rel="noopener noreferrer"${styleAttr}>${styledText}</a>`;
     }
     default:
       console.error("Unsupported node type", content.type, content);
