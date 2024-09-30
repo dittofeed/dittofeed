@@ -3362,8 +3362,6 @@ type AssignmentProcessorParams = (
 class AssignmentProcessor {
   private pageSize;
 
-  // private page = 0;
-
   private params: AssignmentProcessorParams;
 
   constructor(params: AssignmentProcessorParams) {
@@ -3381,77 +3379,19 @@ class AssignmentProcessor {
         "computedPropertyVersion",
         this.params.computedPropertyVersion,
       );
-      const queryIds: string[] = [];
 
-      // let retrieved = this.pageSize;
-      // while (retrieved >= this.pageSize) {
-      //   const qb = new ClickHouseQueryBuilder();
-      //   // Applies a concurrency limit to the query
+      const [
+        { queryIds: queryIdsNonEmpty, page: pageNonEmpty },
+        { queryIds: queryIdsEmpty, page: pageEmpty },
+      ] = await Promise.all([
+        this.paginateProcessAssignments(false),
+        this.paginateProcessAssignments(true),
+      ]);
 
-      //   retrieved = await withSpan(
-      //     { name: "process-assignments-query-page" },
-      //     async (pageSpan) => {
-      //       const offset = this.page * this.pageSize;
-      //       const { journeys, ...processAssignmentsParams } = this.params;
-      //       const pageQueryId = getChCompatibleUuid();
-      //       queryIds.push(pageQueryId);
-
-      //       pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-      //       pageSpan.setAttribute(
-      //         "computedPropertyId",
-      //         this.params.computedPropertyId,
-      //       );
-      //       pageSpan.setAttribute("type", this.params.type);
-      //       pageSpan.setAttribute(
-      //         "processedForType",
-      //         this.params.processedForType,
-      //       );
-      //       pageSpan.setAttribute("page", this.page);
-      //       pageSpan.setAttribute("pageSize", this.pageSize);
-      //       pageSpan.setAttribute("queryId", pageQueryId);
-      //       pageSpan.setAttribute(
-      //         "computedPropertyVersion",
-      //         this.params.computedPropertyVersion,
-      //       );
-
-      //       return readLimit()(async () => {
-      //         const query = buildProcessAssignmentsQuery({
-      //           ...processAssignmentsParams,
-      //           limit: this.pageSize,
-      //           offset,
-      //           qb,
-      //         });
-      //         // Both paginates through the assignments, and streams results
-      //         // within a given page
-      //         const pageRetrieved = await streamProcessAssignmentsPage({
-      //           query,
-      //           workspaceId: this.params.workspaceId,
-      //           qb,
-      //           journeys,
-      //           queryId: pageQueryId,
-      //         });
-      //         pageSpan.setAttribute("retrieved", pageRetrieved);
-      //         return pageRetrieved;
-      //       });
-      //     },
-      //   );
-      //   logger().info(
-      //     {
-      //       workspaceId: this.params.workspaceId,
-      //       computedPropertyId: this.params.computedPropertyId,
-      //       type: this.params.type,
-      //       processedForType: this.params.processedForType,
-      //       retrieved,
-      //     },
-      //     "retrieved assignments",
-      //   );
-      //   this.page += 1;
-      // }
-
-      // FIXME
-      span.setAttribute("processedPagesEmpty", 0);
-      span.setAttribute("processedPagesNonEmpty", 0);
-      span.setAttribute("queryIds", queryIds);
+      span.setAttribute("processedPagesEmpty", pageEmpty);
+      span.setAttribute("processedPagesNonEmpty", pageNonEmpty);
+      span.setAttribute("emptyQueryIds", queryIdsEmpty);
+      span.setAttribute("nonEmptyQueryIds", queryIdsNonEmpty);
     });
   }
 
