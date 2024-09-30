@@ -4,7 +4,7 @@ import {
   UserPropertyAttributes,
   userPropertyToExpression,
 } from "./tipTapExtensions/userProperty";
-import { UnsubscribeLinkAttributes } from "./unsubscribeLink"; // Add this import
+import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink"; // Add this import
 
 type Mode = "preview" | "render";
 
