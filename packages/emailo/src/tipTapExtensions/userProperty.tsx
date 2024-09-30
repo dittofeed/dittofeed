@@ -206,7 +206,7 @@ export const UserProperty = Node.create<UserPropertyOptions>({
     return {
       properties: [
         {
-          name: "myUserVariable",
+          name: "myUserProperty",
         },
       ],
     };

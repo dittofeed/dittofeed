@@ -1,10 +1,10 @@
 import { JSONContent } from "@tiptap/core";
 
+import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink"; // Add this import
 import {
   UserPropertyAttributes,
   userPropertyToExpression,
 } from "./tipTapExtensions/userProperty";
-import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink"; // Add this import
 
 type Mode = "preview" | "render";
 
@@ -219,7 +219,7 @@ function toMjmlHelper({
             {
               type: "link",
               attrs: {
-                href: "{{ unsubscribe_url }}",
+                href: "{% unsubscribe_url %}",
                 target: "_blank",
                 rel: "noopener noreferrer nofollow",
                 class: null,

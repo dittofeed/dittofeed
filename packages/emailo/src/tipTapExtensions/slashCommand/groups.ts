@@ -81,10 +81,10 @@ export const GROUPS: Group[] = [
     title: "Insert",
     commands: [
       {
-        name: "userVariable",
-        label: "User Variable",
+        name: "userProperty",
+        label: "User Property",
         iconName: "User",
-        description: "Insert a user variable",
+        description: "Insert a user property",
         action: (editor) => editor.chain().focus().setUserProperty().run(),
       },
       {
