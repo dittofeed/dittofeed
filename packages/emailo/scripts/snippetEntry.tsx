@@ -57,7 +57,7 @@ function RenderedPreview({ html }: { html: string }) {
   useEffect(() => {
     rpc.mjmlToHtml(html).then((result) => {
       if (Array.isArray(result)) {
-        setRendered(result.map((e) => e.formattedMessage).join("\n"));
+        setRendered(JSON.stringify(result, null, 2));
       } else {
         setRendered(result);
       }
@@ -83,13 +83,18 @@ function RenderedPreview({ html }: { html: string }) {
 function Rendered({ html }: { html: string }) {
   const [rendered, setRendered] = useState(html);
   useEffect(() => {
-    rpc.mjmlToHtml(html).then((result) => {
-      if (Array.isArray(result)) {
-        setRendered(result.map((e) => e.formattedMessage).join("\n"));
-      } else {
-        setRendered(result);
-      }
-    });
+    rpc
+      .mjmlToHtml(html, {
+        age: 20,
+        name: "John",
+      })
+      .then((result) => {
+        if (Array.isArray(result)) {
+          setRendered(JSON.stringify(result, null, 2));
+        } else {
+          setRendered(result);
+        }
+      });
   }, [html]);
 
   return (

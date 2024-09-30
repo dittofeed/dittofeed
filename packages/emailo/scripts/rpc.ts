@@ -7,6 +7,12 @@ export const liquidEngine = new Liquid({
   relativeReference: false,
 });
 
+liquidEngine.registerTag("unsubscribe_url", {
+  render() {
+    return "https://dittofeed.com";
+  },
+});
+
 export interface MJMLError {
   message: string;
   line: number;
