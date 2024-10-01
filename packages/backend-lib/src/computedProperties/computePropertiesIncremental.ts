@@ -3161,10 +3161,10 @@ function buildProcessAssignmentsQuery({
     let existingNonEmptyCondition: string;
     switch (type) {
       case "segment":
-        existingNonEmptyCondition = "pcp.latest_segment_value = true";
+        existingNonEmptyCondition = "pcp.segment_value = true";
         break;
       case "user_property":
-        existingNonEmptyCondition = `pcp.latest_user_property_value != '""' AND pcp.latest_user_property_value != ''`;
+        existingNonEmptyCondition = `pcp.user_property_value != '""' AND pcp.user_property_value != ''`;
         break;
     }
     return `
@@ -3475,92 +3475,6 @@ class AssignmentProcessor {
     }
     return { queryIds, page };
   }
-
-  async processNonEmpty() {}
-
-  async processEmpty() {}
-
-  // async processV1() {
-  //   return withSpan({ name: "process-assignments-query" }, async (span) => {
-  //     span.setAttribute("workspaceId", this.params.workspaceId);
-  //     span.setAttribute("computedPropertyId", this.params.computedPropertyId);
-  //     span.setAttribute("type", this.params.type);
-  //     span.setAttribute("processedForType", this.params.processedForType);
-  //     span.setAttribute(
-  //       "computedPropertyVersion",
-  //       this.params.computedPropertyVersion,
-  //     );
-  //     const queryIds: string[] = [];
-
-  //     let retrieved = this.pageSize;
-  //     while (retrieved >= this.pageSize) {
-  //       const qb = new ClickHouseQueryBuilder();
-  //       // Applies a concurrency limit to the query
-
-  //       retrieved = await withSpan(
-  //         { name: "process-assignments-query-page" },
-  //         async (pageSpan) => {
-  //           const offset = this.page * this.pageSize;
-  //           const { journeys, ...processAssignmentsParams } = this.params;
-  //           const pageQueryId = getChCompatibleUuid();
-  //           queryIds.push(pageQueryId);
-
-  //           pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-  //           pageSpan.setAttribute(
-  //             "computedPropertyId",
-  //             this.params.computedPropertyId,
-  //           );
-  //           pageSpan.setAttribute("type", this.params.type);
-  //           pageSpan.setAttribute(
-  //             "processedForType",
-  //             this.params.processedForType,
-  //           );
-  //           pageSpan.setAttribute("page", this.page);
-  //           pageSpan.setAttribute("pageSize", this.pageSize);
-  //           pageSpan.setAttribute("queryId", pageQueryId);
-  //           pageSpan.setAttribute(
-  //             "computedPropertyVersion",
-  //             this.params.computedPropertyVersion,
-  //           );
-
-  //           return readLimit()(async () => {
-  //             const query = buildProcessAssignmentsQuery({
-  //               ...processAssignmentsParams,
-  //               limit: this.pageSize,
-  //               offset,
-  //               qb,
-  //             });
-  //             // Both paginates through the assignments, and streams results
-  //             // within a given page
-  //             const pageRetrieved = await streamProcessAssignmentsPage({
-  //               query,
-  //               workspaceId: this.params.workspaceId,
-  //               qb,
-  //               journeys,
-  //               queryId: pageQueryId,
-  //             });
-  //             pageSpan.setAttribute("retrieved", pageRetrieved);
-  //             return pageRetrieved;
-  //           });
-  //         },
-  //       );
-  //       logger().info(
-  //         {
-  //           workspaceId: this.params.workspaceId,
-  //           computedPropertyId: this.params.computedPropertyId,
-  //           type: this.params.type,
-  //           processedForType: this.params.processedForType,
-  //           retrieved,
-  //         },
-  //         "retrieved assignments",
-  //       );
-  //       this.page += 1;
-  //     }
-
-  //     span.setAttribute("processedPages", this.page);
-  //     span.setAttribute("queryIds", queryIds);
-  //   });
-  // }
 }
 
 export async function processAssignments({
@@ -3661,7 +3575,6 @@ export async function processAssignments({
         computedPropertyId: userProperty.id,
         periodByComputedPropertyId,
         computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
-        now,
         journeys,
       });
       assignmentProcessors.push(processor);
@@ -3694,7 +3607,6 @@ export async function processAssignments({
           processedFor: journeyId,
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-          now,
           journeys,
         });
         assignmentProcessors.push(processor);
