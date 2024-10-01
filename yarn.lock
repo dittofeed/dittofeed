@@ -12324,6 +12324,7 @@ __metadata:
     backend-lib: "npm:0.0.3"
     dagre: "npm:^0.8.5"
     date-fns: "npm:^2.29.3"
+    emailo: "npm:0.0.1"
     escape-html: "npm:^1.0.3"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb: "npm:^19.0.4"
@@ -13026,7 +13027,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emailo@workspace:packages/emailo":
+"emailo@npm:0.0.1, emailo@workspace:packages/emailo":
   version: 0.0.0-use.local
   resolution: "emailo@workspace:packages/emailo"
   dependencies:

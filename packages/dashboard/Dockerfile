@@ -16,6 +16,7 @@ RUN yarn set version 4.1.1
 
 RUN yarn workspaces focus isomorphic-lib && \
     yarn workspaces focus backend-lib && \
+    yarn workspaces focus emailo && \
     yarn workspaces focus dashboard
 
 RUN mkdir -p packages/dashboard/public/public && \
@@ -25,6 +26,7 @@ RUN mkdir -p packages/dashboard/public/public && \
 RUN yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
+    yarn workspace emailo build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
