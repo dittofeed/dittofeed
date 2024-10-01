@@ -3167,6 +3167,7 @@ function buildProcessAssignmentsQuery({
         existingNonEmptyCondition = `pcp.user_property_value != '""' AND pcp.user_property_value != ''`;
         break;
     }
+    // FIXME do argmax in processed
     return `
       SELECT
         cpa.workspace_id,
@@ -3262,6 +3263,7 @@ function buildProcessAssignmentsQuery({
     ) cpa
     WHERE
       ${nonEmptyCondition}
+      -- FIXME
       AND (
         cpa.workspace_id,
         cpa.type,
