@@ -3380,13 +3380,10 @@ class AssignmentProcessor {
         this.params.computedPropertyVersion,
       );
 
-      const [
-        { queryIds: queryIdsNonEmpty, page: pageNonEmpty },
-        { queryIds: queryIdsEmpty, page: pageEmpty },
-      ] = await Promise.all([
-        this.paginateProcessAssignments(false),
-        this.paginateProcessAssignments(true),
-      ]);
+      const { queryIds: queryIdsNonEmpty, page: pageNonEmpty } =
+        await this.paginateProcessAssignments(false);
+      const { queryIds: queryIdsEmpty, page: pageEmpty } =
+        await this.paginateProcessAssignments(true);
 
       span.setAttribute("processedPagesEmpty", pageEmpty);
       span.setAttribute("processedPagesNonEmpty", pageNonEmpty);
