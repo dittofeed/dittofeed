@@ -1,7 +1,7 @@
 # use buster in the build step, lite in the production step
 FROM node:20-slim AS builder
 
-# Add this line to accept the build argument
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /app
@@ -32,6 +32,9 @@ RUN yarn workspace isomorphic-lib build && \
 # Production image, copy all the files and run next
 FROM node:20-slim AS runner
 
+# Redefine the ARG in the production stage
+ARG APP_VERSION
+
 WORKDIR /app
 
 RUN yarn set version 4.1.1
@@ -41,7 +44,7 @@ RUN apt-get update -y && \
 
 ENV NODE_ENV=production
 
-# Add this line to set the environment variable
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 # https://nextjs.org/docs/advanced-features/output-file-tracing

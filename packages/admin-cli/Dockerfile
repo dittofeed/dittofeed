@@ -1,6 +1,7 @@
 # Rebuild the source code only when needed
 FROM node:20-buster AS builder
 
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /service
@@ -34,6 +35,7 @@ RUN yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
     yarn workspace admin-cli build
 
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 ENTRYPOINT ["./admin.sh"]
