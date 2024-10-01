@@ -14,6 +14,7 @@ COPY ./packages/worker/*.json ./packages/worker/
 COPY ./packages/admin-cli/*.json ./packages/admin-cli/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
+COPY ./packages/emailo/*.json ./packages/emailo/
 
 RUN yarn set version 4.1.1
 RUN yarn workspaces focus lite --production && \
@@ -26,11 +27,13 @@ COPY ./packages/api/ ./packages/api
 COPY ./packages/dashboard/ ./packages/dashboard
 COPY ./packages/worker/ ./packages/worker
 COPY ./packages/admin-cli/ ./packages/admin-cli
+COPY ./packages/emailo/ ./packages/emailo
 
 RUN yarn workspace backend-lib prisma generate && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
+    yarn workspace emailo build && \
     yarn workspace dashboard build
 
 COPY ./packages/lite/ ./packages/lite
@@ -53,6 +56,9 @@ COPY --from=builder /service/.yarn .yarn
 
 COPY --from=builder /service/packages/lite/dist ./packages/lite/dist
 COPY --from=builder /service/packages/lite/package.json ./packages/lite/package.json
+
+COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
+COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
 
 COPY --from=builder /service/packages/dashboard/dist ./packages/dashboard/dist
 COPY --from=builder /service/packages/dashboard/.next ./packages/dashboard/.next

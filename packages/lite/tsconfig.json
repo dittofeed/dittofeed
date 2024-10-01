@@ -28,6 +28,9 @@
       "path": "../dashboard"
     },
     {
+      "path": "../emailo"
+    },
+    {
       "path": "../worker"
     },
     {
