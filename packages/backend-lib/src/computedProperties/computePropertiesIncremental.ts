@@ -3161,10 +3161,10 @@ function buildProcessAssignmentsQuery({
     let existingNonEmptyCondition: string;
     switch (type) {
       case "segment":
-        existingNonEmptyCondition = "pcp.segment_value = true";
+        existingNonEmptyCondition = "inner.latest_segment_value = true";
         break;
       case "user_property":
-        existingNonEmptyCondition = `pcp.user_property_value != '""' AND pcp.user_property_value != ''`;
+        existingNonEmptyCondition = `inner.latest_user_property_value != '""' AND inner.latest_user_property_value != ''`;
         break;
     }
     // FIXME do argmax in processed
@@ -3210,21 +3210,40 @@ function buildProcessAssignmentsQuery({
           ${processedForParam},
           ${processedForTypeParam}
         ) IN (
-          SELECT
+          SELECT (
             workspace_id,
             type,
             computed_property_id,
             user_id,
             processed_for,
             processed_for_type
-          FROM processed_computed_properties_v2 as pcp
+          ) FROM (
+            SELECT
+              workspace_id,
+              type,
+              computed_property_id,
+              user_id,
+              processed_for,
+              processed_for_type,
+              argMax(segment_value, processed_at) as latest_segment_value,
+              argMax(user_property_value, processed_at) as latest_user_property_value
+            FROM processed_computed_properties_v2 as pcp
+            WHERE
+              workspace_id = ${workspaceIdParam}
+              AND type = ${typeParam}
+              AND computed_property_id = ${computedPropertyIdParam}
+              AND processed_for_type = ${processedForTypeParam}
+              AND processed_for = ${processedForParam}
+            GROUP BY
+              workspace_id,
+              type,
+              computed_property_id,
+              user_id,
+              processed_for,
+              processed_for_type
+          ) as inner
           WHERE
-            workspace_id = ${workspaceIdParam}
-            AND type = ${typeParam}
-            AND computed_property_id = ${computedPropertyIdParam}
-            AND processed_for_type = ${processedForTypeParam}
-            AND processed_for = ${processedForParam}
-            AND ${existingNonEmptyCondition}
+            ${existingNonEmptyCondition}
         )
       LIMIT ${offset}, ${limit}
     `;
@@ -3263,7 +3282,6 @@ function buildProcessAssignmentsQuery({
     ) cpa
     WHERE
       ${nonEmptyCondition}
-      -- FIXME
       AND (
         cpa.workspace_id,
         cpa.type,
@@ -3279,8 +3297,8 @@ function buildProcessAssignmentsQuery({
           type,
           computed_property_id,
           user_id,
-          segment_value,
-          user_property_value,
+          argMax(segment_value, processed_at) segment_value,
+          argMax(user_property_value, processed_at) user_property_value,
           processed_for,
           processed_for_type
         FROM processed_computed_properties_v2
@@ -3290,6 +3308,13 @@ function buildProcessAssignmentsQuery({
           AND computed_property_id = ${computedPropertyIdParam}
           AND processed_for_type = ${processedForTypeParam}
           AND processed_for = ${processedForParam}
+        GROUP BY
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          processed_for,
+          processed_for_type
       )
     LIMIT ${offset}, ${limit}
   `;
