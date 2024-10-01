@@ -275,6 +275,7 @@ async function signalJourney({
     type: "segment",
   };
 
+  // If the user is not in the segment, we don't need to signal the journey.
   if (!segmentUpdate.currentlyInSegment) {
     return;
   }
@@ -3407,11 +3408,13 @@ class AssignmentProcessor {
         this.params.computedPropertyVersion,
       );
 
-      // FIXME parallelize
-      const { queryIds: queryIdsNonEmpty, page: pageNonEmpty } =
-        await this.paginateProcessAssignments(false);
-      const { queryIds: queryIdsEmpty, page: pageEmpty } =
-        await this.paginateProcessAssignments(true);
+      const [
+        { queryIds: queryIdsNonEmpty, page: pageNonEmpty },
+        { queryIds: queryIdsEmpty, page: pageEmpty },
+      ] = await Promise.all([
+        this.paginateProcessAssignments(false),
+        this.paginateProcessAssignments(true),
+      ]);
 
       span.setAttribute("processedPagesEmpty", pageEmpty);
       span.setAttribute("processedPagesNonEmpty", pageNonEmpty);
@@ -3435,11 +3438,6 @@ class AssignmentProcessor {
     let retrieved = this.pageSize;
     let page = 0;
     const queryIds: string[] = [];
-    // We don't need to process empty assignments for journeys which only need
-    // to receive true signals.
-    if (forEmpty && this.params.processedForType === "journey") {
-      return { queryIds, page };
-    }
 
     while (retrieved >= this.pageSize) {
       const qb = new ClickHouseQueryBuilder();

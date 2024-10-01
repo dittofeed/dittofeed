@@ -4454,8 +4454,6 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
-      // FIXME
-      only: true,
       userProperties: [
         {
           name: "id",
@@ -4608,7 +4606,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          // FIXME
           description:
             "then after resubmitting the event the user enters the segment a second time",
           states: [
