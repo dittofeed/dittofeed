@@ -45,6 +45,7 @@ function createNewConnections({
   target,
   addNodes,
   subscriptionGroups,
+  setSelectedNodeId,
 }: {
   nodeType: JourneyUiBodyNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
@@ -52,6 +53,7 @@ function createNewConnections({
   source: string;
   target: string;
   subscriptionGroups: SavedSubscriptionGroupResource[];
+  setSelectedNodeId: AppState["setSelectedNodeId"];
 }) {
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
@@ -64,6 +66,7 @@ function createNewConnections({
   });
 
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
+  setSelectedNodeId(newTargetId);
 }
 
 function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
@@ -80,6 +83,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     setJourneyStatsRequest,
     viewDraft,
     subscriptionGroups,
+    setSelectedNodeId,
   } = useAppStorePick([
     "apiBase",
     "setNodes",
@@ -93,6 +97,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "upsertJourneyStats",
     "viewDraft",
     "subscriptionGroups",
+    "setSelectedNodeId",
   ]);
 
   useJourneyStats({
@@ -122,6 +127,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           addNodes,
           nodes,
           subscriptionGroups,
+          setSelectedNodeId,
         });
       }
     }
