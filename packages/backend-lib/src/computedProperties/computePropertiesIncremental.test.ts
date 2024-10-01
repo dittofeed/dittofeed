@@ -4608,6 +4608,15 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "then after resubmitting the event the user enters the segment a second time",
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              uniqueCount: 3,
+              name: "recentlyPerformed",
+            },
+          ],
           users: [
             {
               id: "user-1",
@@ -5171,6 +5180,12 @@ describe("computeProperties", () => {
               events.push(event);
             }
           }
+          logger().debug(
+            {
+              events,
+            },
+            "submitEvents step",
+          );
           await submitBatch({
             workspaceId,
             data: events,
@@ -5208,6 +5223,13 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.ComputeProperties:
+          logger().debug(
+            {
+              segments,
+              userProperties,
+            },
+            "computeProperties step",
+          );
           await computeState({
             workspaceId,
             segments,
@@ -5231,6 +5253,12 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Sleep:
           now += step.timeMs;
+          logger().debug(
+            {
+              now,
+            },
+            "sleep step",
+          );
           break;
         case EventsStepType.Assert: {
           const usersAssertions =

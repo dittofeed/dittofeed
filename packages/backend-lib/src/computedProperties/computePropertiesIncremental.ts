@@ -1,4 +1,4 @@
-/* eslint-disable no-await-in-loop */
+/* eslint-disable @typescript-eslint/no-loop-func,no-await-in-loop */
 
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -275,6 +275,7 @@ async function signalJourney({
     type: "segment",
   };
 
+  // If the user is not in the segment, we don't need to signal the journey.
   if (!segmentUpdate.currentlyInSegment) {
     return;
   }
@@ -3082,7 +3083,6 @@ interface BaseProcessAssignmentsQueryArgs {
   computedPropertyId: string;
   qb: ClickHouseQueryBuilder;
   computedPropertyVersion: string;
-  now: number;
   periodByComputedPropertyId: PeriodByComputedPropertyId;
 }
 
@@ -3116,13 +3116,14 @@ function buildProcessAssignmentsQuery({
   qb,
   periodByComputedPropertyId,
   computedPropertyVersion,
-  now,
   limit,
   offset,
+  forEmpty,
   ...rest
 }: ProcessAssignmentsQueryArgs & {
   limit: number;
   offset: number;
+  forEmpty: boolean;
 }): string {
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
@@ -3137,13 +3138,13 @@ function buildProcessAssignmentsQuery({
     "String",
   );
   const typeParam = qb.addQueryValue(type, "String");
-  let typeCondition: string;
+  let nonEmptyCondition: string;
   switch (type) {
     case "segment":
-      typeCondition = "cpa.latest_segment_value = true";
+      nonEmptyCondition = "cpa.latest_segment_value = true";
       break;
     case "user_property":
-      typeCondition = `cpa.latest_user_property_value != '""' AND cpa.latest_user_property_value != ''`;
+      nonEmptyCondition = `cpa.latest_user_property_value != '""' AND cpa.latest_user_property_value != ''`;
       break;
   }
 
@@ -3156,23 +3157,99 @@ function buildProcessAssignmentsQuery({
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
-  const nowSeconds = now / 1000;
 
-  /**
-   * This query is a bit complicated, so here's a breakdown of what it does:
-   *
-   * 1. It reads all the computed property assignments for the workspace.
-   * 2. It joins the computed property assignments with the processed computed
-   * properties table to filter out assignments that have already been
-   * processed.
-   * 3. It filters out "empty assignments" (assignments where the user property
-   * value is empty, or the segment value is false) if the property has not
-   * already been assigned.
-   * 4. It filters out false segment assignments to journeys.
-   */
-  // TODO remove left join
-  const query = `
-   SELECT
+  if (forEmpty) {
+    let existingNonEmptyCondition: string;
+    switch (type) {
+      case "segment":
+        existingNonEmptyCondition = "inner.latest_segment_value = true";
+        break;
+      case "user_property":
+        existingNonEmptyCondition = `inner.latest_user_property_value != '""' AND inner.latest_user_property_value != ''`;
+        break;
+    }
+    return `
+      SELECT
+        cpa.workspace_id,
+        cpa.type,
+        cpa.computed_property_id,
+        cpa.user_id,
+        cpa.latest_segment_value,
+        cpa.latest_user_property_value,
+        cpa.max_assigned_at,
+        ${processedForParam} as processed_for,
+        ${processedForTypeParam} as processed_for_type
+      FROM (
+        SELECT
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id,
+            max(assigned_at) max_assigned_at,
+            argMax(segment_value, assigned_at) latest_segment_value,
+            argMax(user_property_value, assigned_at) latest_user_property_value
+        FROM computed_property_assignments_v2
+        WHERE
+          workspace_id = ${workspaceIdParam}
+          AND type = ${typeParam}
+          AND computed_property_id = ${computedPropertyIdParam}
+          ${lowerBoundClause}
+        GROUP BY
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id
+      ) cpa
+      WHERE
+        NOT (${nonEmptyCondition})
+        AND (
+          cpa.workspace_id,
+          cpa.type,
+          cpa.computed_property_id,
+          cpa.user_id,
+          ${processedForParam},
+          ${processedForTypeParam}
+        ) IN (
+          SELECT (
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id,
+            processed_for,
+            processed_for_type
+          ) FROM (
+            SELECT
+              workspace_id,
+              type,
+              computed_property_id,
+              user_id,
+              processed_for,
+              processed_for_type,
+              argMax(segment_value, processed_at) as latest_segment_value,
+              argMax(user_property_value, processed_at) as latest_user_property_value
+            FROM processed_computed_properties_v2 as pcp
+            WHERE
+              workspace_id = ${workspaceIdParam}
+              AND type = ${typeParam}
+              AND computed_property_id = ${computedPropertyIdParam}
+              AND processed_for_type = ${processedForTypeParam}
+              AND processed_for = ${processedForParam}
+            GROUP BY
+              workspace_id,
+              type,
+              computed_property_id,
+              user_id,
+              processed_for,
+              processed_for_type
+          ) as inner
+          WHERE
+            ${existingNonEmptyCondition}
+        )
+      LIMIT ${offset}, ${limit}
+    `;
+  }
+  return `
+    SELECT
       cpa.workspace_id,
       cpa.type,
       cpa.computed_property_id,
@@ -3203,39 +3280,44 @@ function buildProcessAssignmentsQuery({
           computed_property_id,
           user_id
     ) cpa
-    LEFT JOIN (
-      SELECT
-        user_id,
-        argMax(segment_value, processed_at) segment_value,
-        argMax(user_property_value, processed_at) user_property_value
-      FROM processed_computed_properties_v2
-      WHERE
-        workspace_id = ${workspaceIdParam}
-        AND type = ${typeParam}
-        AND computed_property_id = ${computedPropertyIdParam}
-        AND processed_for_type = ${processedForTypeParam}
-        AND processed_for = ${processedForParam}
-      GROUP BY
-        workspace_id,
-        computed_property_id,
-        user_id,
-        processed_for_type,
-        processed_for
-    ) pcp
-    ON cpa.user_id = pcp.user_id
-    WHERE (
-      cpa.latest_user_property_value != pcp.user_property_value
-      OR cpa.latest_segment_value != pcp.segment_value
-    )
-    AND (
-        (${typeCondition})
-        OR (
-            pcp.user_id != ''
-        )
-    )
+    WHERE
+      ${nonEmptyCondition}
+      AND (
+        cpa.workspace_id,
+        cpa.type,
+        cpa.computed_property_id,
+        cpa.user_id,
+        cpa.latest_segment_value,
+        cpa.latest_user_property_value,
+        ${processedForParam},
+        ${processedForTypeParam}
+      ) NOT IN (
+        SELECT
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          argMax(segment_value, processed_at) segment_value,
+          argMax(user_property_value, processed_at) user_property_value,
+          processed_for,
+          processed_for_type
+        FROM processed_computed_properties_v2
+        WHERE
+          workspace_id = ${workspaceIdParam}
+          AND type = ${typeParam}
+          AND computed_property_id = ${computedPropertyIdParam}
+          AND processed_for_type = ${processedForTypeParam}
+          AND processed_for = ${processedForParam}
+        GROUP BY
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          processed_for,
+          processed_for_type
+      )
     LIMIT ${offset}, ${limit}
   `;
-  return query;
 }
 
 async function streamProcessAssignmentsPage({
@@ -3307,8 +3389,6 @@ type AssignmentProcessorParams = (
 class AssignmentProcessor {
   private pageSize;
 
-  private page = 0;
-
   private params: AssignmentProcessorParams;
 
   constructor(params: AssignmentProcessorParams) {
@@ -3326,76 +3406,104 @@ class AssignmentProcessor {
         "computedPropertyVersion",
         this.params.computedPropertyVersion,
       );
-      const queryIds: string[] = [];
 
-      let retrieved = this.pageSize;
-      while (retrieved >= this.pageSize) {
-        const qb = new ClickHouseQueryBuilder();
-        // Applies a concurrency limit to the query
+      const [
+        { queryIds: queryIdsNonEmpty, page: pageNonEmpty },
+        { queryIds: queryIdsEmpty, page: pageEmpty },
+      ] = await Promise.all([
+        this.paginateProcessAssignments(false),
+        this.paginateProcessAssignments(true),
+      ]);
 
-        retrieved = await withSpan(
-          { name: "process-assignments-query-page" },
-          async (pageSpan) => {
-            const offset = this.page * this.pageSize;
-            const { journeys, ...processAssignmentsParams } = this.params;
-            const pageQueryId = getChCompatibleUuid();
-            queryIds.push(pageQueryId);
+      span.setAttribute("processedPagesEmpty", pageEmpty);
+      span.setAttribute("processedPagesNonEmpty", pageNonEmpty);
+      span.setAttribute("emptyQueryIds", queryIdsEmpty);
+      span.setAttribute("nonEmptyQueryIds", queryIdsNonEmpty);
 
-            pageSpan.setAttribute("workspaceId", this.params.workspaceId);
-            pageSpan.setAttribute(
-              "computedPropertyId",
-              this.params.computedPropertyId,
-            );
-            pageSpan.setAttribute("type", this.params.type);
-            pageSpan.setAttribute(
-              "processedForType",
-              this.params.processedForType,
-            );
-            pageSpan.setAttribute("page", this.page);
-            pageSpan.setAttribute("pageSize", this.pageSize);
-            pageSpan.setAttribute("queryId", pageQueryId);
-            pageSpan.setAttribute(
-              "computedPropertyVersion",
-              this.params.computedPropertyVersion,
-            );
-
-            return readLimit()(async () => {
-              const query = buildProcessAssignmentsQuery({
-                ...processAssignmentsParams,
-                limit: this.pageSize,
-                offset,
-                qb,
-              });
-              // Both paginates through the assignments, and streams results
-              // within a given page
-              const pageRetrieved = await streamProcessAssignmentsPage({
-                query,
-                workspaceId: this.params.workspaceId,
-                qb,
-                journeys,
-                queryId: pageQueryId,
-              });
-              pageSpan.setAttribute("retrieved", pageRetrieved);
-              return pageRetrieved;
-            });
-          },
-        );
-        logger().info(
-          {
-            workspaceId: this.params.workspaceId,
-            computedPropertyId: this.params.computedPropertyId,
-            type: this.params.type,
-            processedForType: this.params.processedForType,
-            retrieved,
-          },
-          "retrieved assignments",
-        );
-        this.page += 1;
-      }
-
-      span.setAttribute("processedPages", this.page);
-      span.setAttribute("queryIds", queryIds);
+      logger().debug(
+        {
+          pageEmpty,
+          pageNonEmpty,
+        },
+        "paginateProcessAssignments",
+      );
     });
+  }
+
+  async paginateProcessAssignments(forEmpty: boolean): Promise<{
+    queryIds: string[];
+    page: number;
+  }> {
+    let retrieved = this.pageSize;
+    let page = 0;
+    const queryIds: string[] = [];
+
+    while (retrieved >= this.pageSize) {
+      const qb = new ClickHouseQueryBuilder();
+
+      retrieved = await withSpan(
+        { name: "process-assignments-query-page" },
+        async (pageSpan) => {
+          const offset = page * this.pageSize;
+          const { journeys, ...processAssignmentsParams } = this.params;
+          const pageQueryId = getChCompatibleUuid();
+          queryIds.push(pageQueryId);
+
+          pageSpan.setAttribute("workspaceId", this.params.workspaceId);
+          pageSpan.setAttribute("forEmpty", forEmpty);
+          pageSpan.setAttribute(
+            "computedPropertyId",
+            this.params.computedPropertyId,
+          );
+          pageSpan.setAttribute("type", this.params.type);
+          pageSpan.setAttribute(
+            "processedForType",
+            this.params.processedForType,
+          );
+          pageSpan.setAttribute("page", page);
+          pageSpan.setAttribute("pageSize", this.pageSize);
+          pageSpan.setAttribute("queryId", pageQueryId);
+          pageSpan.setAttribute(
+            "computedPropertyVersion",
+            this.params.computedPropertyVersion,
+          );
+
+          // Applies a concurrency limit to the query
+          return readLimit()(async () => {
+            const query = buildProcessAssignmentsQuery({
+              ...processAssignmentsParams,
+              forEmpty,
+              limit: this.pageSize,
+              offset,
+              qb,
+            });
+            // Both paginates through the assignments, and streams results
+            // within a given page
+            const pageRetrieved = await streamProcessAssignmentsPage({
+              query,
+              workspaceId: this.params.workspaceId,
+              qb,
+              journeys,
+              queryId: pageQueryId,
+            });
+            pageSpan.setAttribute("retrieved", pageRetrieved);
+            return pageRetrieved;
+          });
+        },
+      );
+      logger().info(
+        {
+          workspaceId: this.params.workspaceId,
+          computedPropertyId: this.params.computedPropertyId,
+          type: this.params.type,
+          processedForType: this.params.processedForType,
+          retrieved,
+        },
+        "retrieved assignments",
+      );
+      page += 1;
+    }
+    return { queryIds, page };
   }
 }
 
@@ -3497,7 +3605,6 @@ export async function processAssignments({
         computedPropertyId: userProperty.id,
         periodByComputedPropertyId,
         computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
-        now,
         journeys,
       });
       assignmentProcessors.push(processor);
@@ -3511,7 +3618,6 @@ export async function processAssignments({
         computedPropertyId: segment.id,
         periodByComputedPropertyId,
         computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-        now,
         journeys,
       });
       assignmentProcessors.push(processor);
@@ -3531,7 +3637,6 @@ export async function processAssignments({
           processedFor: journeyId,
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-          now,
           journeys,
         });
         assignmentProcessors.push(processor);
@@ -3554,7 +3659,6 @@ export async function processAssignments({
           processedFor: integrationName,
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-          now,
           journeys,
         });
         assignmentProcessors.push(processor);
@@ -3577,7 +3681,6 @@ export async function processAssignments({
           processedFor: integrationName,
           periodByComputedPropertyId,
           computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
-          now,
           journeys,
         });
         assignmentProcessors.push(processor);
