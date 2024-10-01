@@ -3170,9 +3170,9 @@ function buildProcessAssignmentsQuery({
     }
     return `
       SELECT
-        cpa.workspace_id,
-        cpa.type,
-        cpa.computed_property_id,
+        ${workspaceIdParam} as workspace_id,
+        ${typeParam} as type,
+        ${computedPropertyIdParam} as computed_property_id,
         cpa.user_id,
         cpa.latest_segment_value,
         cpa.latest_user_property_value,
@@ -3181,9 +3181,6 @@ function buildProcessAssignmentsQuery({
         ${processedForTypeParam} as processed_for_type
       FROM (
         SELECT
-            workspace_id,
-            type,
-            computed_property_id,
             user_id,
             max(assigned_at) max_assigned_at,
             argMax(segment_value, assigned_at) latest_segment_value,
@@ -3195,10 +3192,7 @@ function buildProcessAssignmentsQuery({
           AND computed_property_id = ${computedPropertyIdParam}
           ${lowerBoundClause}
         GROUP BY
-            workspace_id,
-            type,
-            computed_property_id,
-            user_id
+          user_id
       ) cpa
       WHERE
         NOT (${nonEmptyCondition})
