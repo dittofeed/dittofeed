@@ -3203,28 +3203,13 @@ function buildProcessAssignmentsQuery({
       WHERE
         NOT (${nonEmptyCondition})
         AND (
-          cpa.workspace_id,
-          cpa.type,
-          cpa.computed_property_id,
-          cpa.user_id,
-          ${processedForParam},
-          ${processedForTypeParam}
+          cpa.user_id
         ) IN (
           SELECT (
-            workspace_id,
-            type,
-            computed_property_id,
-            user_id,
-            processed_for,
-            processed_for_type
+            user_id
           ) FROM (
             SELECT
-              workspace_id,
-              type,
-              computed_property_id,
               user_id,
-              processed_for,
-              processed_for_type,
               argMax(segment_value, processed_at) as latest_segment_value,
               argMax(user_property_value, processed_at) as latest_user_property_value
             FROM processed_computed_properties_v2 as pcp
@@ -3235,12 +3220,7 @@ function buildProcessAssignmentsQuery({
               AND processed_for_type = ${processedForTypeParam}
               AND processed_for = ${processedForParam}
             GROUP BY
-              workspace_id,
-              type,
-              computed_property_id,
-              user_id,
-              processed_for,
-              processed_for_type
+              user_id
           ) as inner
           WHERE
             ${existingNonEmptyCondition}
