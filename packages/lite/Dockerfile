@@ -1,5 +1,8 @@
 FROM node:20-buster AS builder
 
+# Accept the build argument in the builder stage
+ARG APP_VERSION
+
 WORKDIR /service
 
 RUN apt-get update -y && \
@@ -41,6 +44,9 @@ RUN yarn workspace lite build
 
 # Production image
 FROM node:20-buster AS runner
+
+# Redefine the ARG in the production stage
+ARG APP_VERSION
 
 ARG WORKSPACE_NAME='Default'
 
@@ -85,7 +91,8 @@ ENV NODE_ENV=production \
     PRE_BUILT=true \
     AUTH_MODE='single-tenant' \
     WORKSPACE_NAME=${WORKSPACE_NAME} \
-    PATH="$PATH:/root/.temporalio/bin"
+    PATH="$PATH:/root/.temporalio/bin" \
+    APP_VERSION=${APP_VERSION}
 
 # provide admin-cli scripts entrypoint
 COPY ./packages/admin-cli/scripts/install-deps.sh ./

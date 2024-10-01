@@ -1,7 +1,7 @@
 # Rebuild the source code only when needed
 FROM node:20-slim AS builder
 
-# Add this line to accept the build argument
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /service
@@ -31,6 +31,9 @@ RUN yarn workspace backend-lib prisma generate && \
 # Production image
 FROM node:20-slim AS runner
 
+# Redefine the ARG in the production stage
+ARG APP_VERSION
+
 WORKDIR /service
 
 RUN yarn set version 4.1.1
@@ -53,7 +56,7 @@ COPY --from=builder /service/packages/backend-lib/package.json ./packages/backen
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-# Add this line to set the environment variable
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 CMD ["yarn", "workspace", "worker", "node", "./dist/scripts/startWorker.js"]
