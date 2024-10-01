@@ -3380,6 +3380,7 @@ class AssignmentProcessor {
         this.params.computedPropertyVersion,
       );
 
+      // FIXME parallelize
       const { queryIds: queryIdsNonEmpty, page: pageNonEmpty } =
         await this.paginateProcessAssignments(false);
       const { queryIds: queryIdsEmpty, page: pageEmpty } =
@@ -3389,6 +3390,14 @@ class AssignmentProcessor {
       span.setAttribute("processedPagesNonEmpty", pageNonEmpty);
       span.setAttribute("emptyQueryIds", queryIdsEmpty);
       span.setAttribute("nonEmptyQueryIds", queryIdsNonEmpty);
+
+      logger().debug(
+        {
+          pageEmpty,
+          pageNonEmpty,
+        },
+        "paginateProcessAssignments",
+      );
     });
   }
 
@@ -3407,7 +3416,6 @@ class AssignmentProcessor {
 
     while (retrieved >= this.pageSize) {
       const qb = new ClickHouseQueryBuilder();
-      // Applies a concurrency limit to the query
 
       retrieved = await withSpan(
         { name: "process-assignments-query-page" },
@@ -3436,6 +3444,7 @@ class AssignmentProcessor {
             this.params.computedPropertyVersion,
           );
 
+          // Applies a concurrency limit to the query
           return readLimit()(async () => {
             const query = buildProcessAssignmentsQuery({
               ...processAssignmentsParams,
