@@ -3168,7 +3168,6 @@ function buildProcessAssignmentsQuery({
         existingNonEmptyCondition = `inner.latest_user_property_value != '""' AND inner.latest_user_property_value != ''`;
         break;
     }
-    // FIXME do argmax in processed
     return `
       SELECT
         cpa.workspace_id,
