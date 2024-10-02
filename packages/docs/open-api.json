@@ -203,7 +203,7 @@
             "schema": {
               "type": "string"
             },
-            "in": "path",
+            "in": "query",
             "name": "workspaceId",
             "required": true
           }
@@ -9022,7 +9022,7 @@
             "schema": {
               "type": "string"
             },
-            "in": "path",
+            "in": "query",
             "name": "workspaceId",
             "required": true
           }
@@ -23936,7 +23936,7 @@
             "schema": {
               "type": "string"
             },
-            "in": "path",
+            "in": "query",
             "name": "workspaceId",
             "required": true
           }
@@ -36934,7 +36934,7 @@
             "schema": {
               "type": "string"
             },
-            "in": "path",
+            "in": "query",
             "name": "workspaceId",
             "required": true
           }

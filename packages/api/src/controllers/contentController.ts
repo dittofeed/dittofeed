@@ -160,7 +160,7 @@ export default async function contentController(fastify: FastifyInstance) {
       schema: {
         description: "Get message templates",
         tags: ["Content"],
-        params: GetMessageTemplatesRequest,
+        querystring: GetMessageTemplatesRequest,
         response: {
           200: GetMessageTemplatesResponse,
         },
@@ -169,7 +169,7 @@ export default async function contentController(fastify: FastifyInstance) {
     async (request, reply) => {
       const templateModels = await prisma().messageTemplate.findMany({
         where: {
-          workspaceId: request.params.workspaceId,
+          workspaceId: request.query.workspaceId,
         },
       });
       const templates = templateModels.map((t) =>

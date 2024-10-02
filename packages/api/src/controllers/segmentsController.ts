@@ -54,7 +54,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
       schema: {
         description: "Get all segments.",
         tags: ["Segments"],
-        params: GetSegmentsRequest,
+        querystring: GetSegmentsRequest,
         response: {
           200: GetSegmentsResponse,
         },
@@ -63,7 +63,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const segmentModels = await prisma().segment.findMany({
         where: {
-          workspaceId: request.params.workspaceId,
+          workspaceId: request.query.workspaceId,
         },
       });
       const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
