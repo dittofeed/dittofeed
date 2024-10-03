@@ -3162,6 +3162,9 @@ function buildProcessAssignmentsQuery({
   const cursorClause = cursor
     ? `and cpa.user_id > ${qb.addQueryValue(cursor, "String")}`
     : "";
+  const innerCursorClause = cursor
+    ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
+    : "";
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3198,9 +3201,11 @@ function buildProcessAssignmentsQuery({
         workspace_id = ${workspaceIdParam}
         AND type = ${typeParam}
         AND computed_property_id = ${computedPropertyIdParam}
+        ${innerCursorClause}
         ${lowerBoundClause}
       GROUP BY
         user_id
+      ORDER BY user_id ASC
     ) cpa
     LEFT ANY JOIN (
       SELECT
@@ -3214,8 +3219,10 @@ function buildProcessAssignmentsQuery({
         AND computed_property_id = ${computedPropertyIdParam}
         AND processed_for_type = ${processedForTypeParam}
         AND processed_for = ${processedForParam}
+        ${innerCursorClause}
       GROUP BY
         user_id
+      ORDER BY user_id ASC
     ) pcp
     ON cpa.user_id = pcp.user_id
     WHERE
@@ -3229,7 +3236,6 @@ function buildProcessAssignmentsQuery({
               pcp.user_id != ''
           )
       )
-      ${cursorClause}
     ORDER BY cpa.user_id ASC
     LIMIT ${limit}
   `;
