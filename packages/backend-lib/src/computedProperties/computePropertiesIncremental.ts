@@ -3381,6 +3381,7 @@ class AssignmentProcessor {
             });
           },
         );
+        // FIXME for some reason retrieved is < pageSize despite not paginating fully
         logger().info(
           {
             workspaceId: this.params.workspaceId,
