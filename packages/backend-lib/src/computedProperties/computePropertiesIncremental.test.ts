@@ -437,6 +437,7 @@ interface AssertStep {
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
   states?: (TestState | ((ctx: StepContext) => TestState))[];
+  userCount?: number;
   periods?: TestPeriod[];
   journeys?: TestSignals[];
   resolvedSegmentStates?: TestResolvedSegmentState[];
@@ -5300,6 +5301,22 @@ describe("computeProperties", () => {
                   : null,
               ]);
             }) ?? [];
+          const userCountAssertion = step.userCount
+            ? (async () => {
+                const userCount = await prisma().userPropertyAssignment.groupBy(
+                  {
+                    by: ["userId"],
+                    where: {
+                      workspaceId,
+                    },
+                    _count: {
+                      _all: true,
+                    },
+                  },
+                );
+                expect(userCount, step.description).toEqual(step.userCount);
+              })()
+            : null;
           const statesAssertions = step.states
             ? (async () => {
                 const states = await readStates({ workspaceId });
@@ -5471,6 +5488,7 @@ describe("computeProperties", () => {
           await periodsAssertions;
           await indexedStatesAssertions;
           await resolvedSegmentStatesAssertions;
+          await userCountAssertion;
           await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
