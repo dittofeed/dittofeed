@@ -13,7 +13,6 @@ import {
   command,
   getChCompatibleUuid,
   query as chQuery,
-  streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
@@ -2924,14 +2923,13 @@ async function processRows({
   rows: unknown[];
   workspaceId: string;
   subscribedJourneys: HasStartedJourneyResource[];
-}): Promise<boolean> {
+}): Promise<string | null> {
   logger().trace(
     {
       rows,
     },
     "processRows",
   );
-  let hasRows = false;
   const assignments: ComputedAssignment[] = rows
     .map((json) => {
       const result = schemaValidateWithErr(json, ComputedAssignment);
@@ -2946,15 +2944,13 @@ async function processRows({
       return result.value;
     })
     .flat();
-
+  const cursor = assignments[assignments.length - 1]?.user_id ?? null;
   const pgUserPropertyAssignments: ComputedAssignment[] = [];
   const pgSegmentAssignments: ComputedAssignment[] = [];
   const journeySegmentAssignments: ComputedAssignment[] = [];
   const integrationAssignments: ComputedAssignment[] = [];
 
   for (const assignment of assignments) {
-    hasRows = true;
-
     let assignmentCategory: ComputedAssignment[];
     if (assignment.processed_for_type === "pg") {
       switch (assignment.type) {
@@ -3081,7 +3077,7 @@ async function processRows({
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
   });
-  return hasRows;
+  return cursor;
 }
 
 interface BaseProcessAssignmentsQueryArgs {
@@ -3125,11 +3121,11 @@ function buildProcessAssignmentsQuery({
   computedPropertyVersion,
   now,
   limit,
-  offset,
+  cursor,
   ...rest
 }: ProcessAssignmentsQueryArgs & {
   limit: number;
-  offset: number;
+  cursor: string | null;
 }): string {
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
@@ -3163,6 +3159,9 @@ function buildProcessAssignmentsQuery({
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
+  const cursorClause = cursor
+    ? `and cpa.user_id > ${qb.addQueryValue(cursor, "String")}`
+    : "";
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3219,78 +3218,82 @@ function buildProcessAssignmentsQuery({
         user_id
     ) pcp
     ON cpa.user_id = pcp.user_id
-    WHERE (
-      cpa.latest_user_property_value != pcp.user_property_value
-      OR cpa.latest_segment_value != pcp.segment_value
-    )
-    AND (
-        (${typeCondition})
-        OR (
-            pcp.user_id != ''
-        )
-    )
-    LIMIT ${offset}, ${limit}
+    WHERE
+      (
+        cpa.latest_user_property_value != pcp.user_property_value
+        OR cpa.latest_segment_value != pcp.segment_value
+      )
+      AND (
+          (${typeCondition})
+          OR (
+              pcp.user_id != ''
+          )
+      )
+      ${cursorClause}
+    ORDER BY cpa.user_id ASC
+    LIMIT ${limit}
   `;
   return query;
 }
 
-async function streamProcessAssignmentsPage({
-  query,
-  qb,
-  workspaceId,
-  journeys,
-  queryId,
-}: {
-  query: string;
-  workspaceId: string;
-  queryId: string;
-  qb: ClickHouseQueryBuilder;
-  journeys: HasStartedJourneyResource[];
-}): Promise<number> {
-  return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
-    span.setAttribute("workspaceId", workspaceId);
-    span.setAttribute("queryId", queryId);
+// FIXME  delete
+// async function streamProcessAssignmentsPage({
+//   query,
+//   qb,
+//   workspaceId,
+//   journeys,
+//   queryId,
+// }: {
+//   query: string;
+//   workspaceId: string;
+//   queryId: string;
+//   qb: ClickHouseQueryBuilder;
+//   journeys: HasStartedJourneyResource[];
+// }): Promise<number> {
+//   return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
+//     span.setAttribute("workspaceId", workspaceId);
+//     span.setAttribute("queryId", queryId);
 
-    let rowsProcessed = 0;
-    try {
-      const resultSet = await chQuery({
-        query,
-        query_id: queryId,
-        query_params: qb.getQueries(),
-        format: "JSONEachRow",
-        clickhouse_settings: {
-          wait_end_of_query: 1,
-          max_execution_time: 15000,
-          join_algorithm: "grace_hash",
-        },
-      });
+//     let rowsProcessed = 0;
+//     try {
+//       const resultSet = await chQuery({
+//         query,
+//         query_id: queryId,
+//         query_params: qb.getQueries(),
+//         format: "JSONEachRow",
+//         clickhouse_settings: {
+//           wait_end_of_query: 1,
+//           max_execution_time: 15000,
+//           join_algorithm: "grace_hash",
+//         },
+//       });
 
-      await streamClickhouseQuery(resultSet, async (rows) => {
-        rowsProcessed += rows.length;
-        await processRows({
-          rows,
-          workspaceId,
-          subscribedJourneys: journeys,
-        });
-      });
-      return rowsProcessed;
-    } catch (e) {
-      logger().error(
-        {
-          err: e,
-          queryId,
-          rowsProcessed,
-        },
-        "failed to process rows",
-      );
-      throw e;
-    } finally {
-      span.setAttribute("rowsProcessed", rowsProcessed);
-    }
-  });
-}
+//       await streamClickhouseQuery(resultSet, async (rows) => {
+//         rowsProcessed += rows.length;
+//         await processRows({
+//           rows,
+//           workspaceId,
+//           subscribedJourneys: journeys,
+//         });
+//       });
+//       return rowsProcessed;
+//     } catch (e) {
+//       logger().error(
+//         {
+//           err: e,
+//           queryId,
+//           rowsProcessed,
+//         },
+//         "failed to process rows",
+//       );
+//       throw e;
+//     } finally {
+//       span.setAttribute("rowsProcessed", rowsProcessed);
+//     }
+//   });
+// }
 
-type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "offset">;
+type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "cursor">;
 
 type AssignmentProcessorParams = (
   | WithoutProcessorParams<SegmentProcessAssignmentsQueryArgs>
@@ -3327,7 +3330,7 @@ class AssignmentProcessor {
         this.params.computedPropertyVersion,
       );
       const queryIds: string[] = [];
-
+      let cursor: string | null = null;
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
@@ -3336,7 +3339,6 @@ class AssignmentProcessor {
         retrieved = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
-            const offset = this.page * this.pageSize;
             const { journeys, ...processAssignmentsParams } = this.params;
             const pageQueryId = getChCompatibleUuid();
             queryIds.push(pageQueryId);
@@ -3363,11 +3365,9 @@ class AssignmentProcessor {
               const query = buildProcessAssignmentsQuery({
                 ...processAssignmentsParams,
                 limit: this.pageSize,
-                offset,
+                cursor,
                 qb,
               });
-              // Both paginates through the assignments, and streams results
-              // within a given page
 
               const resultSet = await chQuery({
                 query,
@@ -3381,8 +3381,7 @@ class AssignmentProcessor {
                 },
               });
               const resultRows = await resultSet.json();
-
-              await processRows({
+              cursor = await processRows({
                 rows: resultRows,
                 workspaceId: this.params.workspaceId,
                 subscribedJourneys: journeys,
@@ -3394,24 +3393,20 @@ class AssignmentProcessor {
             });
           },
         );
-        // FIXME for some reason retrieved is < pageSize despite not paginating fully
-        // last page
-        // workspaceId: "2e76fc5b-dca8-48f9-b2ab-656439a66335"
-        // computedPropertyId: "d670bb2b-2611-41ef-a2bd-e7b0f071fbda"
-        // type: "user_property"
-        // processedForType: "pg"
-        // page: 250
-        // pageSize: 2000
-        // retrieved: 0
+        // +   "assignmentUserCount": 1000000,
+        // +   "eventsUserCount": 1000000,
+        // +   "processedUserCount": 500000,
+        // +   "stateUserCount": 1000000,
+        // +   "userPropertyUserCount": 500000,
         logger().info(
           {
+            retrieved,
+            page: this.page,
+            pageSize: this.pageSize,
             workspaceId: this.params.workspaceId,
             computedPropertyId: this.params.computedPropertyId,
             type: this.params.type,
             processedForType: this.params.processedForType,
-            page: this.page,
-            pageSize: this.pageSize,
-            retrieved,
           },
           "retrieved assignments",
         );

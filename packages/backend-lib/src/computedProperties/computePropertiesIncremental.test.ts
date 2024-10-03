@@ -85,7 +85,7 @@ async function getUserPropertyUserCount(workspaceId: string) {
 async function getAssignmentUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
-    select uniq(user_id) as user_count
+    select uniqExact(user_id) as user_count
     from computed_property_assignments_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
@@ -100,7 +100,7 @@ async function getAssignmentUserCount(workspaceId: string) {
 async function getStateUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
-    select uniq(user_id) as user_count
+    select uniqExact(user_id) as user_count
     from computed_property_state_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
@@ -115,8 +115,23 @@ async function getStateUserCount(workspaceId: string) {
 async function getProcessedUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
-    select uniq(user_id) as user_count
+    select uniqExact(user_id) as user_count
     from processed_computed_properties_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: { user_count: number }[] } = await response.json();
+  return Number(values.data[0]?.user_count ?? 0);
+}
+
+async function getEventsUserCount(workspaceId: string) {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select uniqExact(user_id) as user_count
+    from user_events_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
   const response = await clickhouseClient().query({
@@ -133,13 +148,16 @@ async function getUserCounts(workspaceId: string) {
     stateUserCount,
     assignmentUserCount,
     processedUserCount,
+    eventsUserCount,
   ] = await Promise.all([
     getUserPropertyUserCount(workspaceId),
     getStateUserCount(workspaceId),
     getAssignmentUserCount(workspaceId),
     getProcessedUserCount(workspaceId),
+    getEventsUserCount(workspaceId),
   ]);
   return {
+    eventsUserCount,
     userPropertyUserCount,
     stateUserCount,
     assignmentUserCount,
@@ -733,7 +751,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          userCount: 4000000,
+          userCount: 1000000,
         },
       ],
     },
@@ -5393,6 +5411,7 @@ describe("computeProperties", () => {
                 const userCounts = await getUserCounts(workspaceId);
 
                 expect(userCounts, step.description).toEqual({
+                  eventsUserCount: step.userCount,
                   processedUserCount: step.userCount,
                   userPropertyUserCount: step.userCount,
                   stateUserCount: step.userCount,
