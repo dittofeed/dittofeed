@@ -3242,63 +3242,6 @@ function buildProcessAssignmentsQuery({
   return query;
 }
 
-// FIXME  delete
-// async function streamProcessAssignmentsPage({
-//   query,
-//   qb,
-//   workspaceId,
-//   journeys,
-//   queryId,
-// }: {
-//   query: string;
-//   workspaceId: string;
-//   queryId: string;
-//   qb: ClickHouseQueryBuilder;
-//   journeys: HasStartedJourneyResource[];
-// }): Promise<number> {
-//   return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
-//     span.setAttribute("workspaceId", workspaceId);
-//     span.setAttribute("queryId", queryId);
-
-//     let rowsProcessed = 0;
-//     try {
-//       const resultSet = await chQuery({
-//         query,
-//         query_id: queryId,
-//         query_params: qb.getQueries(),
-//         format: "JSONEachRow",
-//         clickhouse_settings: {
-//           wait_end_of_query: 1,
-//           max_execution_time: 15000,
-//           join_algorithm: "grace_hash",
-//         },
-//       });
-
-//       await streamClickhouseQuery(resultSet, async (rows) => {
-//         rowsProcessed += rows.length;
-//         await processRows({
-//           rows,
-//           workspaceId,
-//           subscribedJourneys: journeys,
-//         });
-//       });
-//       return rowsProcessed;
-//     } catch (e) {
-//       logger().error(
-//         {
-//           err: e,
-//           queryId,
-//           rowsProcessed,
-//         },
-//         "failed to process rows",
-//       );
-//       throw e;
-//     } finally {
-//       span.setAttribute("rowsProcessed", rowsProcessed);
-//     }
-//   });
-// }
-
 type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "cursor">;
 
 type AssignmentProcessorParams = (
@@ -3399,11 +3342,6 @@ class AssignmentProcessor {
             });
           },
         );
-        // +   "assignmentUserCount": 1000000,
-        // +   "eventsUserCount": 1000000,
-        // +   "processedUserCount": 500000,
-        // +   "stateUserCount": 1000000,
-        // +   "userPropertyUserCount": 500000,
         logger().info(
           {
             retrieved,

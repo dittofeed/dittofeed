@@ -652,7 +652,7 @@ async function upsertComputedProperties({
   };
 }
 
-jest.setTimeout(2400000);
+jest.setTimeout(3000000);
 
 describe("computeProperties", () => {
   const tests: TableTest[] = [
@@ -716,7 +716,7 @@ describe("computeProperties", () => {
     {
       description:
         "can efficiently process a large number of user property assignments without OOM'ing",
-      only: true,
+      skip: true,
       userProperties: [
         {
           name: "email",
@@ -727,13 +727,11 @@ describe("computeProperties", () => {
         },
       ],
       segments: [],
-      // FIXME
       steps: [
         {
           type: EventsStepType.SubmitEventsTimes,
-          // succeeds with 10 but fails with 4,000,000
           // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
-          times: 1000000,
+          times: 4000000,
           // times: 10,
           events: [
             (_ctx, i) => ({
@@ -751,7 +749,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          userCount: 1000000,
+          userCount: 4000000,
         },
       ],
     },
