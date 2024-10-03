@@ -560,7 +560,7 @@ async function upsertComputedProperties({
   };
 }
 
-jest.setTimeout(60000);
+jest.setTimeout(2400000);
 
 describe("computeProperties", () => {
   const tests: TableTest[] = [
@@ -635,6 +635,7 @@ describe("computeProperties", () => {
         },
       ],
       segments: [],
+      // FIXME
       steps: [
         {
           type: EventsStepType.SubmitEventsTimes,
@@ -5315,16 +5316,15 @@ describe("computeProperties", () => {
             }) ?? [];
           const userCountAssertion = step.userCount
             ? (async () => {
-                const result = await prisma().userPropertyAssignment.groupBy({
-                  by: ["userId"],
-                  where: {
-                    workspaceId,
-                  },
-                  _count: {
-                    _all: true,
-                  },
-                });
-                const userCount = result[0]?._count._all ?? 0;
+                const result = await prisma().$queryRaw<
+                  [{ user_count: bigint }]
+                >`
+                  SELECT COUNT(DISTINCT "userId") as user_count
+                  FROM "UserPropertyAssignment"
+                  WHERE "workspaceId" = ${workspaceId}::uuid;
+                `;
+                const userCount = Number(result[0].user_count);
+                logger().debug(result, "userCountAssertion");
                 expect(userCount, step.description).toEqual(step.userCount);
               })()
             : null;

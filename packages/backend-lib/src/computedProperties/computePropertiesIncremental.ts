@@ -2625,6 +2625,7 @@ export async function computeState({
             clickhouse_settings: {
               wait_end_of_query: 1,
               function_json_value_return_type_allow_complex: 1,
+              max_execution_time: 15000,
             },
           });
         });
@@ -2656,7 +2657,10 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
           command({
             query: q,
             query_params: qb.getQueries(),
-            clickhouse_settings: { wait_end_of_query: 1 },
+            clickhouse_settings: {
+              wait_end_of_query: 1,
+              max_execution_time: 15000,
+            },
           }),
         ),
       );
@@ -2664,7 +2668,10 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
       await command({
         query,
         query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          max_execution_time: 15000,
+        },
       });
     }
   }
@@ -2918,7 +2925,7 @@ async function processRows({
   workspaceId: string;
   subscribedJourneys: HasStartedJourneyResource[];
 }): Promise<boolean> {
-  logger().debug(
+  logger().trace(
     {
       rows,
     },
@@ -3254,6 +3261,7 @@ async function streamProcessAssignmentsPage({
         format: "JSONEachRow",
         clickhouse_settings: {
           wait_end_of_query: 1,
+          max_execution_time: 15000,
           join_algorithm: "grace_hash",
         },
       });
@@ -3379,6 +3387,8 @@ class AssignmentProcessor {
             computedPropertyId: this.params.computedPropertyId,
             type: this.params.type,
             processedForType: this.params.processedForType,
+            page: this.page,
+            pageSize: this.pageSize,
             retrieved,
           },
           "retrieved assignments",
