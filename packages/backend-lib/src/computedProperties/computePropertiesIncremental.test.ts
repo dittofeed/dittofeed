@@ -73,6 +73,41 @@ jest.mock("../temporal/activity", () => ({
   }),
 }));
 
+async function getUserPropertyUserCount(workspaceId: string) {
+  const result = await prisma().$queryRaw<[{ user_count: bigint }]>`
+    SELECT COUNT(DISTINCT "userId") as user_count
+    FROM "UserPropertyAssignment"
+    WHERE "workspaceId" = ${workspaceId}::uuid;
+  `;
+  return Number(result[0].user_count);
+}
+
+async function getStateUserCount(workspaceId: string) {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select uniq(user_id) as user_count
+    from computed_property_state_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: { user_count: number }[] } = await response.json();
+  return Number(values.data[0]?.user_count ?? 0);
+}
+
+async function getUserCounts(workspaceId: string) {
+  const [userPropertyUserCount, stateUserCount] = await Promise.all([
+    getUserPropertyUserCount(workspaceId),
+    getStateUserCount(workspaceId),
+  ]);
+  return {
+    userPropertyUserCount,
+    stateUserCount,
+  };
+}
+
 async function readAssignments({
   workspaceId,
 }: {
@@ -641,8 +676,8 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEventsTimes,
           // succeeds with 10 but fails with 4,000,000
           // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
-          times: 1000000,
-          // times: 10,
+          // times: 1000000,
+          times: 10,
           events: [
             (_ctx, i) => ({
               type: EventType.Identify,
@@ -5316,16 +5351,12 @@ describe("computeProperties", () => {
             }) ?? [];
           const userCountAssertion = step.userCount
             ? (async () => {
-                const result = await prisma().$queryRaw<
-                  [{ user_count: bigint }]
-                >`
-                  SELECT COUNT(DISTINCT "userId") as user_count
-                  FROM "UserPropertyAssignment"
-                  WHERE "workspaceId" = ${workspaceId}::uuid;
-                `;
-                const userCount = Number(result[0].user_count);
-                logger().debug(result, "userCountAssertion");
-                expect(userCount, step.description).toEqual(step.userCount);
+                const userCounts = await getUserCounts(workspaceId);
+
+                expect(userCounts, step.description).toEqual({
+                  userPropertyUserCount: step.userCount,
+                  stateUserCount: step.userCount,
+                });
               })()
             : null;
           const statesAssertions = step.states

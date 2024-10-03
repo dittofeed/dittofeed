@@ -3163,7 +3163,6 @@ function buildProcessAssignmentsQuery({
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
-  const nowSeconds = now / 1000;
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3396,6 +3395,14 @@ class AssignmentProcessor {
           },
         );
         // FIXME for some reason retrieved is < pageSize despite not paginating fully
+        // last page
+        // workspaceId: "2e76fc5b-dca8-48f9-b2ab-656439a66335"
+        // computedPropertyId: "d670bb2b-2611-41ef-a2bd-e7b0f071fbda"
+        // type: "user_property"
+        // processedForType: "pg"
+        // page: 250
+        // pageSize: 2000
+        // retrieved: 0
         logger().info(
           {
             workspaceId: this.params.workspaceId,
