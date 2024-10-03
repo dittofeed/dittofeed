@@ -3369,13 +3369,27 @@ class AssignmentProcessor {
               });
               // Both paginates through the assignments, and streams results
               // within a given page
-              const pageRetrieved = await streamProcessAssignmentsPage({
+
+              const resultSet = await chQuery({
                 query,
-                workspaceId: this.params.workspaceId,
-                qb,
-                journeys,
-                queryId: pageQueryId,
+                query_id: pageQueryId,
+                query_params: qb.getQueries(),
+                format: "JSONEachRow",
+                clickhouse_settings: {
+                  wait_end_of_query: 1,
+                  max_execution_time: 15000,
+                  join_algorithm: "grace_hash",
+                },
               });
+              const resultRows = await resultSet.json();
+
+              await processRows({
+                rows: resultRows,
+                workspaceId: this.params.workspaceId,
+                subscribedJourneys: journeys,
+              });
+
+              const pageRetrieved = resultRows.length;
               pageSpan.setAttribute("retrieved", pageRetrieved);
               return pageRetrieved;
             });
