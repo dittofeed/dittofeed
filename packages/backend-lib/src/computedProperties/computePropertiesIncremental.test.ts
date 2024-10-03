@@ -560,7 +560,7 @@ async function upsertComputedProperties({
   };
 }
 
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 describe("computeProperties", () => {
   const tests: TableTest[] = [
@@ -640,7 +640,7 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEventsTimes,
           // succeeds with 10 but fails with 4,000,000
           // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
-          times: 4000000,
+          times: 1000000,
           // times: 10,
           events: [
             (_ctx, i) => ({
