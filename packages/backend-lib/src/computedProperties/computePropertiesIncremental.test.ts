@@ -436,8 +436,8 @@ interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
-  states?: (TestState | ((ctx: StepContext) => TestState))[];
   userCount?: number;
+  states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
   resolvedSegmentStates?: TestResolvedSegmentState[];
@@ -624,7 +624,7 @@ describe("computeProperties", () => {
     {
       description:
         "can efficiently process a large number of user property assignments without OOM'ing",
-      skip: true,
+      only: true,
       userProperties: [
         {
           name: "email",
@@ -655,6 +655,10 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          userCount: 4000001,
         },
       ],
     },
@@ -5196,8 +5200,9 @@ describe("computeProperties", () => {
         }
         case EventsStepType.SubmitEventsTimes: {
           const batchSize = 1000;
+          let events: TestEvent[] = [];
+
           for (let i = 0; i < step.times; i++) {
-            let events: TestEvent[] = [];
             for (const event of step.events) {
               events.push(event(stepContext, i));
             }
@@ -5303,17 +5308,16 @@ describe("computeProperties", () => {
             }) ?? [];
           const userCountAssertion = step.userCount
             ? (async () => {
-                const userCount = await prisma().userPropertyAssignment.groupBy(
-                  {
-                    by: ["userId"],
-                    where: {
-                      workspaceId,
-                    },
-                    _count: {
-                      _all: true,
-                    },
+                const result = await prisma().userPropertyAssignment.groupBy({
+                  by: ["userId"],
+                  where: {
+                    workspaceId,
                   },
-                );
+                  _count: {
+                    _all: true,
+                  },
+                });
+                const userCount = result[0]?._count._all ?? 0;
                 expect(userCount, step.description).toEqual(step.userCount);
               })()
             : null;
