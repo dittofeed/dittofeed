@@ -82,6 +82,21 @@ async function getUserPropertyUserCount(workspaceId: string) {
   return Number(result[0].user_count);
 }
 
+async function getAssignmentUserCount(workspaceId: string) {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select uniq(user_id) as user_count
+    from computed_property_assignments_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: { user_count: number }[] } = await response.json();
+  return Number(values.data[0]?.user_count ?? 0);
+}
+
 async function getStateUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
@@ -97,14 +112,38 @@ async function getStateUserCount(workspaceId: string) {
   return Number(values.data[0]?.user_count ?? 0);
 }
 
+async function getProcessedUserCount(workspaceId: string) {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select uniq(user_id) as user_count
+    from processed_computed_properties_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: { user_count: number }[] } = await response.json();
+  return Number(values.data[0]?.user_count ?? 0);
+}
+
 async function getUserCounts(workspaceId: string) {
-  const [userPropertyUserCount, stateUserCount] = await Promise.all([
+  const [
+    userPropertyUserCount,
+    stateUserCount,
+    assignmentUserCount,
+    processedUserCount,
+  ] = await Promise.all([
     getUserPropertyUserCount(workspaceId),
     getStateUserCount(workspaceId),
+    getAssignmentUserCount(workspaceId),
+    getProcessedUserCount(workspaceId),
   ]);
   return {
     userPropertyUserCount,
     stateUserCount,
+    assignmentUserCount,
+    processedUserCount,
   };
 }
 
@@ -676,8 +715,8 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEventsTimes,
           // succeeds with 10 but fails with 4,000,000
           // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
-          // times: 1000000,
-          times: 10,
+          times: 1000000,
+          // times: 10,
           events: [
             (_ctx, i) => ({
               type: EventType.Identify,
@@ -694,7 +733,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          userCount: 4000001,
+          userCount: 4000000,
         },
       ],
     },
@@ -5354,8 +5393,10 @@ describe("computeProperties", () => {
                 const userCounts = await getUserCounts(workspaceId);
 
                 expect(userCounts, step.description).toEqual({
+                  processedUserCount: step.userCount,
                   userPropertyUserCount: step.userCount,
                   stateUserCount: step.userCount,
+                  assignmentUserCount: step.userCount,
                 });
               })()
             : null;
