@@ -53,13 +53,6 @@ export async function submitBatch({
     };
   });
 
-  logger().debug(
-    {
-      workspaceId,
-      userEvents,
-    },
-    "inserting user events",
-  );
   await insertUserEvents({
     workspaceId,
     userEvents,

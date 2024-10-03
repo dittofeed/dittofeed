@@ -5208,6 +5208,13 @@ describe("computeProperties", () => {
             }
 
             if (events.length >= batchSize || i === step.times - 1) {
+              logger().debug(
+                {
+                  batchSize,
+                  batch: i,
+                },
+                "test:SubmitEventsTimes",
+              );
               await submitBatch({
                 workspaceId,
                 data: events,
