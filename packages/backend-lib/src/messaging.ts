@@ -38,7 +38,6 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
-  type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   BlobStorageFile,

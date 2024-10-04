@@ -220,7 +220,7 @@ export async function command(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-command" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().debug(`clickhouse-command: ${params.query}`);
+    logger().trace(`clickhouse-command: ${params.query}`);
     return client.command({ query_id: queryId, ...params });
   });
 }
@@ -237,7 +237,7 @@ export async function query(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().debug(`clickhouse-query: ${params.query}`);
+    logger().trace(`clickhouse-query: ${params.query}`);
     return client.query<"JSONEachRow">({
       query_id: queryId,
       ...params,
