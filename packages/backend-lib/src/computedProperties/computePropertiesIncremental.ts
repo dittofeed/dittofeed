@@ -3119,7 +3119,6 @@ function buildProcessAssignmentsQuery({
   qb,
   periodByComputedPropertyId,
   computedPropertyVersion,
-  now,
   limit,
   cursor,
   ...rest
@@ -3159,9 +3158,6 @@ function buildProcessAssignmentsQuery({
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
-  const cursorClause = cursor
-    ? `and cpa.user_id > ${qb.addQueryValue(cursor, "String")}`
-    : "";
   const innerCursorClause = cursor
     ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
     : "";
@@ -3283,9 +3279,7 @@ class AssignmentProcessor {
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
-        // Applies a concurrency limit to the query
-
-        retrieved = await withSpan(
+        const results = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
             const { journeys, ...processAssignmentsParams } = this.params;
@@ -3330,7 +3324,7 @@ class AssignmentProcessor {
                 },
               });
               const resultRows = await resultSet.json();
-              cursor = await processRows({
+              const nextCursor = await processRows({
                 rows: resultRows,
                 workspaceId: this.params.workspaceId,
                 subscribedJourneys: journeys,
@@ -3338,10 +3332,13 @@ class AssignmentProcessor {
 
               const pageRetrieved = resultRows.length;
               pageSpan.setAttribute("retrieved", pageRetrieved);
-              return pageRetrieved;
+              return { retrieved: pageRetrieved, cursor: nextCursor };
             });
           },
         );
+        cursor = results.cursor;
+        retrieved = results.retrieved;
+
         logger().info(
           {
             retrieved,
