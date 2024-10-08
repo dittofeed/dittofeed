@@ -2,6 +2,7 @@ import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { validate } from "uuid";
 
+import { generateSecureKey } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
 import { OpenIdProfile, WriteKeyResource } from "./types";
@@ -67,13 +68,11 @@ export async function validateWriteKey({
     : null;
 }
 
-export async function createWriteKey({
-  writeKeyValue,
+export async function getOrCreateWriteKey({
   writeKeyName,
   workspaceId,
 }: {
   workspaceId: string;
-  writeKeyValue: string;
   writeKeyName: string;
 }): Promise<WriteKeyResource> {
   logger().info(
@@ -83,7 +82,29 @@ export async function createWriteKey({
     },
     "creating write key",
   );
+  const writeKeyValue = generateSecureKey(8);
+
   const resource = await prisma().$transaction(async (tx) => {
+    const existingSecret = await tx.secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: writeKeyName,
+        },
+      },
+      include: {
+        WriteKey: true,
+      },
+    });
+    const existingWriteKey = existingSecret?.WriteKey[0];
+    if (existingSecret?.value && existingWriteKey) {
+      return {
+        workspaceId: existingSecret.workspaceId,
+        writeKeyName: existingSecret.name,
+        writeKeyValue: existingSecret.value,
+        secretId: existingSecret.id,
+      };
+    }
     // Try to find the secret, create if it doesn't exist
     const secret = await tx.secret.upsert({
       where: {
