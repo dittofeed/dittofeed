@@ -29,6 +29,8 @@ export default function DittofeedDocument({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
         />
         <meta name="emotion-insertion-point" content="" />
+        {/* disable indexing the dashboard */}
+        <meta name="robots" content="noindex, nofollow" />
         {emotionStyleTags}
       </Head>
       <body>
