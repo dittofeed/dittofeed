@@ -35,7 +35,6 @@ export default async function router(
   // endpoints with standard authorization
   await fastify.register(
     async (f: DittofeedFastifyInstance) => {
-      // async (f) => {
       if (opts?.registerAuthentication) {
         logger().info("registering authentication");
         await opts.registerAuthentication(f);
