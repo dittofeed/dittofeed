@@ -2119,6 +2119,17 @@ export const UserSubscriptionsUpdate = Type.Intersect([
 
 export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
+export const UserSubscriptionsAdminUpdate = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  changes: Type.Array(Type.Object({
+    subscriptionGroupId: Type.String(),
+    isSubscribed: Type.Boolean(),
+  })),
+});
+
+export type UserSubscriptionsAdminUpdate = Static<typeof UserSubscriptionsAdminUpdate>;
+
 const RenderMessageTemplateRequestContent = Type.Object({
   value: Type.String(),
   mjml: Type.Optional(Type.Boolean()),
@@ -3639,4 +3650,23 @@ export const ManualSegmentUploadCsvHeaders = Type.Object({
 
 export type ManualSegmentUploadCsvHeaders = Static<
   typeof ManualSegmentUploadCsvHeaders
+>;
+
+export const GetUserSubscriptionsRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+});
+
+export type GetUserSubscriptionsRequest = Static<
+  typeof GetUserSubscriptionsRequest
+>;
+
+export const GetUserSubscriptionsResponse = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  subscriptionGroups: Type.Array(UserSubscriptionResource),
+});
+
+export type GetUserSubscriptionsResponse = Static<
+  typeof GetUserSubscriptionsResponse
 >;

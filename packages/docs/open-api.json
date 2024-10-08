@@ -18824,6 +18824,79 @@
         }
       }
     },
+    "/api/users/subscriptions": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "description": "Get subscriptions for a user",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "subscriptionGroups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "isSubscribed": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "isSubscribed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "workspaceId",
+                    "userId",
+                    "subscriptionGroups"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/webhooks/sendgrid": {
       "post": {
         "tags": [
@@ -22475,6 +22548,79 @@
                 "schema": {
                   "description": "An empty String",
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/subscriptions": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "description": "Get subscriptions for a user",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "subscriptionGroups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "isSubscribed": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "isSubscribed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "workspaceId",
+                    "userId",
+                    "subscriptionGroups"
+                  ]
                 }
               }
             }
