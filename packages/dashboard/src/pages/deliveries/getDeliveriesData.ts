@@ -28,6 +28,7 @@ export async function getDeliveriesData({
       },
     }),
   ]);
+
   return {
     messages: {
       type: CompletionStatus.Successful,

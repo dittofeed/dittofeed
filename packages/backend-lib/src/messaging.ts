@@ -108,8 +108,10 @@ export function enrichMessageTemplate({
     name,
     workspaceId,
     type,
-    definition: enrichedDefinition.value,
     updatedAt: Number(updatedAt),
+    ...(enrichedDefinition.value
+      ? { definition: enrichedDefinition.value }
+      : {}),
     ...(enrichedDraft.value ? { draft: enrichedDraft.value } : {}),
   };
 
