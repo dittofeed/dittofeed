@@ -103,15 +103,19 @@ export function enrichMessageTemplate({
       new Error("message template has neither a draft nor a definition"),
     );
   }
-  return ok({
+  const enriched: MessageTemplateResource = {
     id,
     name,
     workspaceId,
     type,
-    definition: enrichedDefinition.value,
-    draft: enrichedDraft.value,
     updatedAt: Number(updatedAt),
-  });
+    ...(enrichedDefinition.value
+      ? { definition: enrichedDefinition.value }
+      : {}),
+    ...(enrichedDraft.value ? { draft: enrichedDraft.value } : {}),
+  };
+
+  return ok(enriched);
 }
 
 export async function findMessageTemplate({

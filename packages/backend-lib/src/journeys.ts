@@ -96,11 +96,15 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { definition, status, createdAt, updatedAt } = result.value;
+  const { definition, draft, status, createdAt, updatedAt, ...rest } =
+    result.value;
   const baseResource = {
-    ...result.value,
+    ...rest,
+    ...(definition ? { definition } : {}),
+    ...(draft ? { draft } : {}),
     createdAt: createdAt.getTime(),
     updatedAt: updatedAt.getTime(),
+    status,
   };
   if (status === JourneyStatus.NotStarted) {
     return ok({
@@ -119,8 +123,6 @@ export function toJourneyResource(
   return ok({
     ...baseResource,
     definition,
-    createdAt: createdAt.getTime(),
-    updatedAt: updatedAt.getTime(),
   });
 }
 
