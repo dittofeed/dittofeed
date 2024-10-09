@@ -5,7 +5,7 @@ import { DeliveriesTable } from "../components/deliveriesTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
-import { getDeliveriesData } from "./deliveries/getServerSideProps";
+import { getDeliveriesData } from "./deliveries/getDeliveriesData";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
