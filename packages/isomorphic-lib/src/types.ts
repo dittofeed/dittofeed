@@ -2122,13 +2122,17 @@ export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 export const UserSubscriptionsAdminUpdate = Type.Object({
   workspaceId: Type.String(),
   userId: Type.String(),
-  changes: Type.Array(Type.Object({
-    subscriptionGroupId: Type.String(),
-    isSubscribed: Type.Boolean(),
-  })),
+  changes: Type.Array(
+    Type.Object({
+      subscriptionGroupId: Type.String(),
+      isSubscribed: Type.Boolean(),
+    }),
+  ),
 });
 
-export type UserSubscriptionsAdminUpdate = Static<typeof UserSubscriptionsAdminUpdate>;
+export type UserSubscriptionsAdminUpdate = Static<
+  typeof UserSubscriptionsAdminUpdate
+>;
 
 const RenderMessageTemplateRequestContent = Type.Object({
   value: Type.String(),
@@ -3632,6 +3636,11 @@ export const WhiteLabelFeatureConfig = Type.Object({
   type: Type.Literal(FeatureNamesEnum.WhiteLabel),
   favicon: Type.Optional(Type.String()),
   title: Type.Optional(Type.String()),
+  dashboardHeadTitle: Type.Optional(Type.String()),
+  dashboardHeadDescription: Type.Optional(Type.String()),
+  dashboardHeadIcon: Type.Optional(Type.String()),
+  dashboardHeadColor: Type.Optional(Type.String()),
+  dashboardHeadBackgroundColor: Type.Optional(Type.String()),
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
