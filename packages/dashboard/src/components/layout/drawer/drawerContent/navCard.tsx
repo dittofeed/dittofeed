@@ -10,6 +10,7 @@ function NavCard() {
   if (features.WhiteLabel) {
     return null;
   }
+  // FIXME
   return (
     <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
       <Stack alignItems="center" spacing={2.5} p={2}>

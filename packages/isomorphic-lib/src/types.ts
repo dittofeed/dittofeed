@@ -3636,11 +3636,11 @@ export const WhiteLabelFeatureConfig = Type.Object({
   type: Type.Literal(FeatureNamesEnum.WhiteLabel),
   favicon: Type.Optional(Type.String()),
   title: Type.Optional(Type.String()),
-  dashboardHeadTitle: Type.Optional(Type.String()),
-  dashboardHeadDescription: Type.Optional(Type.String()),
-  dashboardHeadIcon: Type.Optional(Type.String()),
-  dashboardHeadColor: Type.Optional(Type.String()),
-  dashboardHeadBackgroundColor: Type.Optional(Type.String()),
+  navCardTitle: Type.Optional(Type.String()),
+  navCardDescription: Type.Optional(Type.String()),
+  navCardIcon: Type.Optional(Type.String()),
+  navCardColor: Type.Optional(Type.String()),
+  navCardBackgroundColor: Type.Optional(Type.String()),
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
