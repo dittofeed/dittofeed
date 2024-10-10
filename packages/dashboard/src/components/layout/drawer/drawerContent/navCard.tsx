@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 
 import { useAppStorePick } from "../../../../lib/appStore";
 import MainCard from "../../../mainCard";
@@ -32,16 +32,26 @@ function NavCard() {
     ? whiteLabelConfig.navCardDescription ?? null
     : "Customer Engagement";
 
+  const icon = whiteLabelConfig?.navCardIcon ? (
+    <img
+      style={{
+        height: "2rem",
+      }}
+      src={whiteLabelConfig?.navCardIcon}
+      alt="Nav Card Icon"
+    />
+  ) : null;
+
   return (
     <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
       <Stack alignItems="center" spacing={2.5} p={2} width="100%">
+        {icon}
         <Typography
           variant="h5"
           sx={{
             overflowWrap: "break-word",
             wordBreak: "break-word",
             hyphens: "auto",
-            width: "100%",
             textAlign: "center",
             whiteSpace: "pre-wrap",
           }}
