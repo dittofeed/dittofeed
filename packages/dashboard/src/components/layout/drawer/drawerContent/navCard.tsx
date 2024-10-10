@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 
 import { useAppStorePick } from "../../../../lib/appStore";
 import MainCard from "../../../mainCard";

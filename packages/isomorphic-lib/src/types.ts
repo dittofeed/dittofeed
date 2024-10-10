@@ -3639,8 +3639,6 @@ export const WhiteLabelFeatureConfig = Type.Object({
   navCardTitle: Type.Optional(Type.String()),
   navCardDescription: Type.Optional(Type.String()),
   navCardIcon: Type.Optional(Type.String()),
-  navCardColor: Type.Optional(Type.String()),
-  navCardBackgroundColor: Type.Optional(Type.String()),
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
