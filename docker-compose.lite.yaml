@@ -131,6 +131,7 @@ volumes:
   postgres:
   clickhouse_lib:
   clickhouse_log:
+  blob-storage:
 
 networks:
   dittofeed-network-lite:
