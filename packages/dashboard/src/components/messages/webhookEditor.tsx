@@ -123,6 +123,9 @@ export default function WebhookEditor({
         );
       }}
       renderEditorBody={({ draft, setDraft }) => {
+        if (draft.type !== ChannelType.Webhook) {
+          return null;
+        }
         return (
           <ReactCodeMirror
             value={draft.body}

@@ -614,6 +614,7 @@ export async function sendEmail({
   const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
   let emailBody: string;
   if ("emailContentsType" in messageTemplateDefinition) {
+    // FIXME
     throw new Error("Low code emails are not supported yet");
   } else {
     emailBody = messageTemplateDefinition.body;

@@ -20,6 +20,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
   EphemeralRequestStatus,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
@@ -370,12 +371,13 @@ export function DeliveriesTable({
         if ("variant" in item) {
           to = item.variant.to;
           channel = item.variant.type;
+          const { variant } = item;
 
-          if (item.variant.type === ChannelType.Webhook) {
-            const { request, response } = item.variant;
+          if (variant.type === ChannelType.Webhook) {
+            const { request, response } = variant;
             body = JSON.stringify({ request, response }, null, 2);
           } else {
-            body = item.variant.body;
+            body = variant.body;
           }
 
           if (item.variant.type === ChannelType.Email) {

@@ -21,6 +21,9 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
+  EmailTemplateResource,
+  MessageTemplateResourceDraft,
   RenderMessageTemplateRequestContents,
   UserPropertyDefinitionType,
   WorkspaceMemberResource,
@@ -228,9 +231,17 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   );
 }
 
-const draftToPreview: DraftToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (
+  definition: MessageTemplateResourceDraft,
+) => {
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
+  }
+  let body: string;
+  if ("emailContentsType" in definition) {
+    throw new Error("Low code emails are not supported yet");
+  } else {
+    body = definition.body;
   }
   const content: RenderMessageTemplateRequestContents = {
     from: {
@@ -241,7 +252,7 @@ const draftToPreview: DraftToPreview = (definition) => {
     },
     body: {
       mjml: true,
-      value: definition.body,
+      value: body,
     },
   };
   if (definition.replyTo) {
@@ -376,6 +387,10 @@ export default function EmailEditor({
       renderEditorBody={({ draft, setDraft, disabled: disabledOverride }) => {
         if (draft.type !== ChannelType.Email) {
           return null;
+        }
+        if ("emailContentsType" in draft) {
+          // FIXME
+          throw new Error("Low code emails are not supported yet");
         }
         return (
           <ReactCodeMirror
