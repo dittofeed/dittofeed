@@ -1058,6 +1058,35 @@ export const BaseEmailContents = Type.Object({
   ),
 });
 
+export const LowCodeEmailJsonBody = Type.Recursive((self) =>
+  Type.Intersect([
+    Type.Object({
+      type: Type.Optional(Type.String()),
+      attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+      content: Type.Optional(Type.Array(self)),
+      marks: Type.Optional(
+        Type.Array(
+          Type.Intersect([
+            Type.Object({
+              type: Type.String(),
+              attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+            }),
+            Type.Record(Type.String(), Type.Any()),
+          ]),
+        ),
+      ),
+      text: Type.Optional(Type.String()),
+    }),
+    Type.Record(Type.String(), Type.Any()),
+  ]),
+);
+
+export type LowCodeEmailJsonBody = Static<typeof LowCodeEmailJsonBody>;
+
+export enum EmailContentsType {
+  LowCode = "LowCode",
+}
+
 export type BaseEmailContents = Static<typeof BaseEmailContents>;
 
 export const CodeEmailContents = Type.Composite([
@@ -1069,7 +1098,20 @@ export const CodeEmailContents = Type.Composite([
 
 export type CodeEmailContents = Static<typeof CodeEmailContents>;
 
-export const EmailContents = Type.Union([CodeEmailContents]);
+export const LowCodeEmailContents = Type.Composite([
+  BaseEmailContents,
+  Type.Object({
+    type: Type.Literal(EmailContentsType.LowCode),
+    body: LowCodeEmailJsonBody,
+  }),
+]);
+
+export type LowCodeEmailContents = Static<typeof LowCodeEmailContents>;
+
+export const EmailContents = Type.Union([
+  CodeEmailContents,
+  LowCodeEmailContents,
+]);
 
 export const EmailTemplateResource = Type.Composite(
   [
