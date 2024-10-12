@@ -1,10 +1,10 @@
 import { JSONContent } from "@tiptap/core";
 
-import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink"; // Add this import
+import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
   UserPropertyAttributes,
   userPropertyToExpression,
-} from "./tipTapExtensions/userProperty";
+} from "./tipTapExtensions/userProperty/utils";
 
 type Mode = "preview" | "render";
 

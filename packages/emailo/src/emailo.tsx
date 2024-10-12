@@ -3,9 +3,11 @@ import React from "react";
 
 import { TextMenu } from "./components/textMenu";
 import { getExtensions } from "./tipTapExtensions";
-import { UserProperty } from "./tipTapExtensions/userProperty";
+import { UserProperty } from "./tipTapExtensions/userProperty/utils";
 import { EmailoState } from "./types";
 import { cn } from "./utils";
+
+export { toMjml } from "./toMjml";
 
 export * from "./types";
 

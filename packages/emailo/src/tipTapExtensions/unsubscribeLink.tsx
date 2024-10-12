@@ -7,27 +7,7 @@ import {
 } from "@tiptap/react";
 import React, { useState } from "react";
 
-export interface UnsubscribeLinkAttributes {
-  linkText: string;
-}
-
-export function userPropertyToExpression({
-  variableName,
-  defaultValue,
-}: {
-  variableName: string;
-  defaultValue: string;
-}) {
-  const baseExpression = variableName.includes(" ")
-    ? `user['${variableName.replace(/'/g, "\\'")}']`
-    : `user.${variableName}`;
-  const expression =
-    defaultValue.length > 0
-      ? `${baseExpression} | default: '${defaultValue}'`
-      : baseExpression;
-
-  return `{{ ${expression} }}`;
-}
+import { UnsubscribeLinkAttributes } from "./unsubscribeLink/utils";
 
 function UnsubscribeLinkForm({
   linkText,

@@ -1,5 +1,6 @@
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
+import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
@@ -614,8 +615,11 @@ export async function sendEmail({
   const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
   let emailBody: string;
   if ("emailContentsType" in messageTemplateDefinition) {
-    // FIXME
-    throw new Error("Low code emails are not supported yet");
+    const mjml = toMjml({
+      content: messageTemplateDefinition.body,
+      mode: "render",
+    });
+    emailBody = mjml;
   } else {
     emailBody = messageTemplateDefinition.body;
   }

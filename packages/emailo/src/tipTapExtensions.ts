@@ -15,13 +15,14 @@ import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
 import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
+import { UserProperty as UserPropertyType } from "./tipTapExtensions/userProperty/utils";
 import { UserProperty } from "./tipTapExtensions/userProperty";
 import { UnsubscribeLink } from "./tipTapExtensions/unsubscribeLink";
 
 export function getExtensions({
   userProperties,
 }: {
-  userProperties: [UserProperty, ...UserProperty[]];
+  userProperties: [UserPropertyType, ...UserPropertyType[]];
 }) {
   const extensions = [
     Color.configure({ types: [TextStyle.name, ListItem.name] }),

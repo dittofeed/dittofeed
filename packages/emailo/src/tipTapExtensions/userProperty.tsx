@@ -7,36 +7,12 @@ import {
 } from "@tiptap/react";
 import React, { useMemo, useState } from "react";
 
-export interface UserProperty {
-  name: string;
-}
-
-interface UserPropertyOptions {
-  properties: [UserProperty, ...UserProperty[]];
-}
-
-export interface UserPropertyAttributes {
-  variableName: string;
-  defaultValue: string;
-}
-
-export function userPropertyToExpression({
-  variableName,
-  defaultValue,
-}: {
-  variableName: string;
-  defaultValue: string;
-}) {
-  const baseExpression = variableName.includes(" ")
-    ? `user['${variableName.replace(/'/g, "\\'")}']`
-    : `user.${variableName}`;
-  const expression =
-    defaultValue.length > 0
-      ? `${baseExpression} | default: '${defaultValue}'`
-      : baseExpression;
-
-  return `{{ ${expression} }}`;
-}
+import {
+  UserPropertyAttributes,
+  userPropertyToExpression,
+  UserPropertyOptions,
+  UserProperty as UserPropertyType,
+} from "./userProperty/utils";
 
 function UserPropertySelected({
   variableName,
@@ -96,7 +72,7 @@ function UserPropertyFormContent({
   updateAttributes,
   close,
 }: {
-  properties: UserProperty[];
+  properties: UserPropertyType[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
