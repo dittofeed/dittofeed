@@ -1101,7 +1101,7 @@ export type CodeEmailContents = Static<typeof CodeEmailContents>;
 export const LowCodeEmailContents = Type.Composite([
   BaseEmailContents,
   Type.Object({
-    type: Type.Literal(EmailContentsType.LowCode),
+    emailContentsType: Type.Literal(EmailContentsType.LowCode),
     body: LowCodeEmailJsonBody,
   }),
 ]);
@@ -1113,7 +1113,27 @@ export const EmailContents = Type.Union([
   LowCodeEmailContents,
 ]);
 
-export const EmailTemplateResource = Type.Composite(
+export const EmailTemplateResource = Type.Union(
+  [
+    Type.Composite([
+      Type.Object({
+        type: Type.Literal(ChannelType.Email),
+      }),
+      CodeEmailContents,
+    ]),
+    Type.Composite([
+      Type.Object({
+        type: Type.Literal(ChannelType.Email),
+      }),
+      LowCodeEmailContents,
+    ]),
+  ],
+  {
+    description: "Email template resource",
+  },
+);
+
+Type.Composite(
   [
     Type.Object({
       type: Type.Literal(ChannelType.Email),
