@@ -612,6 +612,12 @@ export async function sendEmail({
     });
   }
   const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
+  let emailBody: string;
+  if ("emailContentsType" in messageTemplateDefinition) {
+    throw new Error("Low code emails are not supported yet");
+  } else {
+    emailBody = messageTemplateDefinition.body;
+  }
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -626,7 +632,7 @@ export async function sendEmail({
         contents: messageTemplateDefinition.subject,
       },
       body: {
-        contents: messageTemplateDefinition.body,
+        contents: emailBody,
         mjml: true,
       },
       replyTo: {
