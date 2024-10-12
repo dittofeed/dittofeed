@@ -7,6 +7,8 @@ import { UserProperty } from "./tipTapExtensions/userProperty";
 import { EmailoState } from "./types";
 import { cn } from "./utils";
 
+export * from "./types";
+
 export function useEmailo({
   content,
   userProperties,
@@ -36,7 +38,6 @@ export function Emailo({
   return (
     <div className={cn("emailo", className)}>
       <EditorContent editor={state.editor} />
-      {/* <ContentItemMenu editor={editor} /> */}
       <TextMenu state={state} />
     </div>
   );

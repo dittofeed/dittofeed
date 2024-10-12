@@ -1038,9 +1038,8 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export const EmailContents = Type.Object({
+export const BaseEmailContents = Type.Object({
   from: Type.String(),
-  body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
   headers: Type.Optional(
@@ -1058,6 +1057,19 @@ export const EmailContents = Type.Object({
     }),
   ),
 });
+
+export type BaseEmailContents = Static<typeof BaseEmailContents>;
+
+export const CodeEmailContents = Type.Composite([
+  BaseEmailContents,
+  Type.Object({
+    body: Type.String(),
+  }),
+]);
+
+export type CodeEmailContents = Static<typeof CodeEmailContents>;
+
+export const EmailContents = Type.Union([CodeEmailContents]);
 
 export const EmailTemplateResource = Type.Composite(
   [
