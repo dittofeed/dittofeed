@@ -13,14 +13,17 @@ export * from "./types";
 export function useEmailo({
   content,
   userProperties,
+  onUpdate,
 }: {
   content: string | EmailoJsonContent;
   userProperties: UserProperty[];
+  onUpdate?: (content: EmailoJsonContent) => void;
 }): EmailoState {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({
     extensions,
     content,
+    onUpdate,
   });
   if (!editor) {
     throw new Error("No editor found");
@@ -32,14 +35,16 @@ export function useEmailo({
 export function Emailo({
   className,
   state,
+  disabled,
 }: {
   className?: string;
+  disabled?: boolean;
   state: EmailoState;
 }) {
   return (
     <div className={cn("emailo", className)}>
-      <EditorContent editor={state.editor} />
-      <TextMenu state={state} />
+      <EditorContent editor={state.editor} readOnly={disabled} />
+      {!disabled && <TextMenu state={state} />}
     </div>
   );
 }
