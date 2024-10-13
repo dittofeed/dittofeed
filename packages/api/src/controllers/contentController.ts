@@ -13,6 +13,7 @@ import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import prisma from "backend-lib/src/prisma";
 import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
+import { toMjml } from "emailo/src/toMjml";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
@@ -132,23 +133,28 @@ export default async function contentController(fastify: FastifyInstance) {
       const responseContents: RenderMessageTemplateResponse["contents"] =
         R.mapValues(contents, (content) => {
           let value: RenderMessageTemplateResponseContent;
-          const baseOptions: Omit<RenderLiquidOptions, "template"> = {
+          let template: string;
+
+          if (content.type !== RenderMessageTemplateType.Emailo) {
+            template = content.value;
+          } else {
+            const mjml = toMjml({ content: content.value, mode: "render" });
+            template = mjml;
+          }
+          const options: RenderLiquidOptions = {
             workspaceId,
             subscriptionGroupId,
             userProperties,
             identifierKey,
             secrets: templateSecrets,
+            template,
+            mjml:
+              content.type === RenderMessageTemplateType.Mjml ||
+              content.type === RenderMessageTemplateType.Emailo,
             tags: tagsWithMessageId,
           };
           try {
-            const rendered = renderLiquid({
-              workspaceId,
-              subscriptionGroupId,
-              userProperties,
-              identifierKey,
-              secrets: templateSecrets,
-              tags: tagsWithMessageId,
-            });
+            const rendered = renderLiquid(options);
             value = {
               type: JsonResultType.Ok,
               value: rendered,
