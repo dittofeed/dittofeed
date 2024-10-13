@@ -1,6 +1,3 @@
-import { html } from "@codemirror/lang-html";
-import { lintGutter } from "@codemirror/lint";
-import { EditorView } from "@codemirror/view";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -17,7 +14,6 @@ import {
   Theme,
   useTheme,
 } from "@mui/material";
-import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   CompletionStatus,
@@ -35,6 +31,7 @@ import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
 } from "../templateEditor";
+import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 import LowCodeEmailBodyEditor from "./lowCodeEmailBodyEditor";
 
 const USER_TO = "{{user.email}}";
@@ -392,35 +389,15 @@ export default function EmailEditor({
             <LowCodeEmailBodyEditor
               draft={draft}
               setDraft={setDraft}
-              disabled={disabled ?? false}
+              disabled={disabledOverride}
             />
           );
-          throw new Error("Low code emails are not supported yet");
         }
         return (
-          <ReactCodeMirror
-            value={draft.body}
-            onChange={(value) => {
-              setDraft((defn) => {
-                if (defn.type !== ChannelType.Email) {
-                  return defn;
-                }
-
-                defn.body = value;
-                return defn;
-              });
-            }}
-            readOnly={disabledOverride}
-            extensions={[
-              html(),
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              EditorView.lineWrapping,
-              lintGutter(),
-            ]}
+          <CodeEmailBodyEditor
+            draft={draft}
+            setDraft={setDraft}
+            disabled={disabledOverride}
           />
         );
       }}
