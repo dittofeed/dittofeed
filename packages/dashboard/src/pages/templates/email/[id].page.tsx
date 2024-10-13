@@ -38,7 +38,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     if (typeof ctx.query.name === "string") {
       name = ctx.query.name;
     }
-    const emailContentType = schemaValidateWithErr(
+    const emailContentsType = schemaValidateWithErr(
       ctx.query.emailContentType,
       EmailContentsTypeEnum,
     ).unwrapOr(EmailContentsType.Code);
@@ -72,9 +72,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: name ?? `New Email Message - ${templateId}`,
           id: templateId,
-          definition: defaultEmailDefinition(
-            defaultEmailProvider as DefaultEmailProviderResource | undefined,
-          ) satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition({
+            emailContentsType,
+            emailProvider: defaultEmailProvider as
+              | DefaultEmailProviderResource
+              | undefined,
+          }) satisfies EmailTemplateResource,
         },
         update: {},
       });

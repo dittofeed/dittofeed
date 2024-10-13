@@ -5,6 +5,7 @@ import {
   BadWorkspaceConfigurationType,
   ChannelType,
   DefaultEmailProviderResource,
+  EmailContentsType,
   EmailProviderSecret,
   EmailProviderType,
   EmailTemplateResource,
@@ -647,16 +648,29 @@ export const defaultEmailBody = `<!DOCTYPE html>
   </body>
 </html>`;
 
-export function defaultEmailDefinition(
-  emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">,
-): EmailTemplateResource {
-  return {
+export function defaultEmailDefinition({
+  emailContentsType,
+  emailProvider,
+}: {
+  emailContentsType: EmailContentsType;
+  emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">;
+}): EmailTemplateResource {
+  const baseTemplate = {
     type: ChannelType.Email,
     subject: "Hi {{ user.firstName | default: 'there'}}!",
     from: emailProvider?.fromAddress
       ? emailProvider.fromAddress
       : '{{ user.accountManager | default: "hello@company.com"}}',
     replyTo: "",
-    body: defaultEmailBody,
   };
+
+  switch (emailContentsType) {
+    case EmailContentsType.Code:
+      return {
+        ...baseTemplate,
+        body: defaultEmailBody,
+      };
+    case EmailContentsType.LowCode:
+      throw new Error("LowCode not implemented");
+  }
 }
