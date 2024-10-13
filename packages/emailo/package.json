@@ -14,7 +14,7 @@
       "import": "./dist/esm/src/emailo.js",
       "require": "./dist/cjs/src/emailo.js"
     },
-    "./*": {
+    "./src/*": {
       "types": "./dist/cjs/src/*.d.ts",
       "import": "./dist/esm/src/*.js",
       "require": "./dist/cjs/src/*.js"
