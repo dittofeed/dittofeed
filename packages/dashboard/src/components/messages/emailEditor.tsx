@@ -21,8 +21,6 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   CompletionStatus,
-  EmailContentsType,
-  EmailTemplateResource,
   MessageTemplateResourceDraft,
   RenderMessageTemplateRequestContents,
   UserPropertyDefinitionType,
@@ -37,6 +35,7 @@ import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
 } from "../templateEditor";
+import LowCodeEmailBodyEditor from "./lowCodeEmailBodyEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -389,7 +388,13 @@ export default function EmailEditor({
           return null;
         }
         if ("emailContentsType" in draft) {
-          // FIXME
+          return (
+            <LowCodeEmailBodyEditor
+              draft={draft}
+              setDraft={setDraft}
+              disabled={disabled ?? false}
+            />
+          );
           throw new Error("Low code emails are not supported yet");
         }
         return (
