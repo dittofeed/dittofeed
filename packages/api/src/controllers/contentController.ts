@@ -26,6 +26,7 @@ import {
   ChannelType,
   DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
+  EmailContentsType,
   EmailProviderType,
   EmptyResponse,
   GetMessageTemplatesRequest,
@@ -232,7 +233,7 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let definition: MessageTemplateResourceDefinition;
-      const { workspaceId } = request.body;
+      const { workspaceId, emailContentsType } = request.body;
       switch (request.body.type) {
         case ChannelType.Email: {
           const defaultEmailProvider =
@@ -242,9 +243,10 @@ export default async function contentController(fastify: FastifyInstance) {
               },
             })) as DefaultEmailProviderResource | null;
 
-          definition = defaultEmailDefinition(
-            defaultEmailProvider ?? undefined,
-          );
+          definition = defaultEmailDefinition({
+            emailProvider: defaultEmailProvider ?? undefined,
+            emailContentsType: emailContentsType ?? EmailContentsType.Code,
+          });
           break;
         }
         case ChannelType.Sms: {
@@ -259,12 +261,6 @@ export default async function contentController(fastify: FastifyInstance) {
           throw new Error("Mobile push templates unimplemented");
         }
       }
-      logger().debug(
-        {
-          body: request.body,
-        },
-        "loc1 upserting template for reset",
-      );
       const resource = await upsertMessageTemplate({
         ...request.body,
         definition,

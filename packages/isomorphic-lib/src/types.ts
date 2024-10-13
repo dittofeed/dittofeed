@@ -1341,6 +1341,7 @@ export const ResetMessageTemplateResource = Type.Object({
     }),
   ),
   type: Type.Enum(ChannelType),
+  emailContentsType: Type.Optional(Type.Enum(EmailContentsType)),
 });
 
 export type ResetMessageTemplateResource = Static<
