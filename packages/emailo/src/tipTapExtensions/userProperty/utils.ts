@@ -3,7 +3,7 @@ export interface UserProperty {
 }
 
 export interface UserPropertyOptions {
-  properties: [UserProperty, ...UserProperty[]];
+  properties: UserProperty[];
 }
 
 export interface UserPropertyAttributes {

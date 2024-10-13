@@ -1117,11 +1117,26 @@ const BaseEmailTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.Email),
 });
 
+export const CodeEmailTemplateResource = Type.Composite([
+  BaseEmailTemplateResource,
+  CodeEmailContents,
+]);
+
+export type CodeEmailTemplateResource = Static<
+  typeof CodeEmailTemplateResource
+>;
+
+export const LowCodeEmailTemplateResource = Type.Composite([
+  BaseEmailTemplateResource,
+  LowCodeEmailContents,
+]);
+
+export type LowCodeEmailTemplateResource = Static<
+  typeof LowCodeEmailTemplateResource
+>;
+
 export const EmailTemplateResource = Type.Union(
-  [
-    Type.Composite([BaseEmailTemplateResource, CodeEmailContents]),
-    Type.Composite([BaseEmailTemplateResource, LowCodeEmailContents]),
-  ],
+  [CodeEmailTemplateResource, LowCodeEmailTemplateResource],
   {
     description: "Email template resource",
   },

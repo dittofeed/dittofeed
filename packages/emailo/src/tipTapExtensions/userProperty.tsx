@@ -8,10 +8,10 @@ import {
 import React, { useMemo, useState } from "react";
 
 import {
-  UserPropertyAttributes,
-  userPropertyToExpression,
-  UserPropertyOptions,
   UserProperty as UserPropertyType,
+  UserPropertyAttributes,
+  UserPropertyOptions,
+  userPropertyToExpression,
 } from "./userProperty/utils";
 
 function UserPropertySelected({
@@ -191,7 +191,7 @@ export const UserProperty = Node.create<UserPropertyOptions>({
   addAttributes() {
     return {
       variableName: {
-        default: this.options.properties[0].name,
+        default: this.options.properties[0]?.name ?? "",
       },
       defaultValue: {
         default: "",

@@ -8,7 +8,6 @@ import { EmailoJsonContent, EmailoState } from "./types";
 import { cn } from "./utils";
 
 export { toMjml } from "./toMjml";
-
 export * from "./types";
 
 export function useEmailo({
@@ -16,7 +15,7 @@ export function useEmailo({
   userProperties,
 }: {
   content: string | EmailoJsonContent;
-  userProperties: [UserProperty, ...UserProperty[]];
+  userProperties: UserProperty[];
 }): EmailoState {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({

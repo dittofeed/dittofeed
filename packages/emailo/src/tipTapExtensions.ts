@@ -1,3 +1,4 @@
+import { Extension, Mark, Node } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -15,10 +16,9 @@ import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
 import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
-import { UserProperty as UserPropertyType } from "./tipTapExtensions/userProperty/utils";
-import { UserProperty } from "./tipTapExtensions/userProperty";
 import { UnsubscribeLink } from "./tipTapExtensions/unsubscribeLink";
-import { Extension, Mark, Node } from "@tiptap/core";
+import { UserProperty } from "./tipTapExtensions/userProperty";
+import { UserProperty as UserPropertyType } from "./tipTapExtensions/userProperty/utils";
 
 type ExtensionOrMarkOrNode = Extension | Mark | Node;
 let EXTENSIONS: ExtensionOrMarkOrNode[] | null = null;
@@ -33,7 +33,7 @@ export function getExtensionNames(): string[] {
 export function getExtensions({
   userProperties,
 }: {
-  userProperties: [UserPropertyType, ...UserPropertyType[]];
+  userProperties: UserPropertyType[];
 }): ExtensionOrMarkOrNode[] {
   if (!EXTENSIONS) {
     EXTENSIONS = [
