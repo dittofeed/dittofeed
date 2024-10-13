@@ -1,5 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { renderLiquid } from "backend-lib/src/liquid";
+import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
   enrichMessageTemplate,
@@ -42,6 +42,7 @@ import {
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
+  RenderMessageTemplateType,
   ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
   WebhookSecret,
@@ -115,19 +116,33 @@ export default async function contentController(fastify: FastifyInstance) {
         });
       }
 
-      const identifierKey =
-        channel !== ChannelType.Webhook
-          ? CHANNEL_IDENTIFIERS[channel]
-          : contents.identifierKey?.value;
+      let identifierKey: string;
+      if (channel === ChannelType.Webhook) {
+        if (
+          contents.identifierKey?.type === RenderMessageTemplateType.PlainText
+        ) {
+          identifierKey = contents.identifierKey.value;
+        } else {
+          throw new Error("Invalid webhook render content type");
+        }
+      } else {
+        identifierKey = CHANNEL_IDENTIFIERS[channel];
+      }
 
       const responseContents: RenderMessageTemplateResponse["contents"] =
         R.mapValues(contents, (content) => {
           let value: RenderMessageTemplateResponseContent;
+          const baseOptions: Omit<RenderLiquidOptions, "template"> = {
+            workspaceId,
+            subscriptionGroupId,
+            userProperties,
+            identifierKey,
+            secrets: templateSecrets,
+            tags: tagsWithMessageId,
+          };
           try {
             const rendered = renderLiquid({
               workspaceId,
-              template: content.value,
-              mjml: content.mjml,
               subscriptionGroupId,
               userProperties,
               identifierKey,

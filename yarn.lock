@@ -10869,6 +10869,7 @@ __metadata:
     date-fns-tz: "npm:^2.0.0"
     deepmerge: "npm:^4.2.2"
     dotenv: "npm:^16.0.3"
+    emailo: "npm:0.0.1"
     escape-html: "npm:^1.0.3"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb: "npm:^19.0.4"

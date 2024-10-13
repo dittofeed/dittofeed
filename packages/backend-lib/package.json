@@ -87,6 +87,7 @@
     "@typescript-eslint/eslint-plugin": "^5.60.0",
     "@typescript-eslint/parser": "^5.60.0",
     "deepmerge": "^4.2.2",
+    "emailo": "0.0.1",
     "eslint": "^8.43.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-airbnb-typescript": "^17.0.0",
