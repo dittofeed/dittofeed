@@ -1,0 +1,50 @@
+import { Emailo, useEmailo } from "emailo";
+import {
+  ChannelType,
+  CompletionStatus,
+  LowCodeEmailTemplateResource,
+} from "isomorphic-lib/src/types";
+import { Overwrite } from "utility-types";
+
+import { useAppStorePick } from "../../lib/appStore";
+import { RenderEditorParams } from "../templateEditor";
+
+type LowCodeProps = Overwrite<
+  RenderEditorParams,
+  {
+    draft: LowCodeEmailTemplateResource;
+  }
+>;
+
+export default function LowCodeEmailBodyEditor({
+  draft,
+  disabled,
+  setDraft,
+}: LowCodeProps) {
+  const content = draft.body;
+  const { userProperties: userPropertiesRequest } = useAppStorePick([
+    "userProperties",
+  ]);
+  const userProperties =
+    userPropertiesRequest.type === CompletionStatus.Successful
+      ? userPropertiesRequest.value
+      : [];
+
+  const state = useEmailo({
+    content,
+    userProperties: userProperties.map((userProperty) => ({
+      name: userProperty.name,
+    })),
+    onUpdate: (updatedContent) => {
+      setDraft((defn) => {
+        if (defn.type !== ChannelType.Email || !("emailContentsType" in defn)) {
+          return defn;
+        }
+
+        defn.body = updatedContent;
+        return defn;
+      });
+    },
+  });
+  return <Emailo state={state} disabled={disabled} />;
+}
