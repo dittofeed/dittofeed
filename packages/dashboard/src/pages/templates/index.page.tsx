@@ -17,6 +17,7 @@ import {
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -29,7 +30,6 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
-import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -179,10 +179,10 @@ function TemplateListContents() {
               disabled={!newName}
               onClick={() => {
                 router.push(
-                  messageTemplatePath({
+                  `${messageTemplatePath({
                     id: newItemId,
                     channel: selectedTemplateType,
-                  }),
+                  })}?name=${newName}`,
                 );
               }}
             >
