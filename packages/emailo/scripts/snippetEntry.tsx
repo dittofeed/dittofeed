@@ -106,6 +106,10 @@ function Main() {
     "editor" | "json" | "pre-rendered-preview" | "rendered-preview" | "rendered"
   >("editor");
 
+  if (!state) {
+    return null;
+  }
+
   let body;
   switch (view) {
     case "editor":

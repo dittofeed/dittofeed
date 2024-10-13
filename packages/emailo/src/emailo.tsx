@@ -18,7 +18,7 @@ export function useEmailo({
   content: string | EmailoJsonContent;
   userProperties: UserProperty[];
   onUpdate?: (content: EmailoJsonContent) => void;
-}): EmailoState {
+}): EmailoState | null {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({
     extensions,
@@ -26,7 +26,7 @@ export function useEmailo({
     onUpdate,
   });
   if (!editor) {
-    throw new Error("No editor found");
+    return null;
   }
   return { editor };
 }

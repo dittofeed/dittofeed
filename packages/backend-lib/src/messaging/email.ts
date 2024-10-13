@@ -1,4 +1,5 @@
 import { EmailProvider } from "@prisma/client";
+import { defaultEmailoContent } from "emailo";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
@@ -671,6 +672,10 @@ export function defaultEmailDefinition({
         body: defaultEmailBody,
       };
     case EmailContentsType.LowCode:
-      throw new Error("LowCode not implemented");
+      return {
+        ...baseTemplate,
+        emailContentsType: EmailContentsType.LowCode,
+        body: defaultEmailoContent,
+      };
   }
 }
