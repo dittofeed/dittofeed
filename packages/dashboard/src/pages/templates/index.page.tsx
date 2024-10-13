@@ -18,7 +18,11 @@ import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
-import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  EmailContentsType,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -103,6 +107,9 @@ function TemplateListContents() {
   const [selectedTemplateType, setSelectedTemplateType] = useState<ChannelType>(
     ChannelType.Email,
   );
+  const [emailContentType, setEmailContentType] = useState<EmailContentsType>(
+    EmailContentsType.LowCode,
+  );
   const router = useRouter();
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -171,6 +178,28 @@ function TemplateListContents() {
                 Mobile Push
               </ToggleButton>
             </ToggleButtonGroup>
+            {selectedTemplateType === ChannelType.Email && (
+              <ToggleButtonGroup
+                value={emailContentType}
+                exclusive
+                color="primary"
+                onChange={(_, newType) => {
+                  setEmailContentType(newType);
+                }}
+                aria-label="email content type"
+                sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+              >
+                <ToggleButton
+                  value={EmailContentsType.LowCode}
+                  aria-label="low code"
+                >
+                  Low Code
+                </ToggleButton>
+                <ToggleButton value={EmailContentsType.Code} aria-label="code">
+                  Code
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
@@ -178,11 +207,16 @@ function TemplateListContents() {
               variant="contained"
               disabled={!newName}
               onClick={() => {
+                const queryParams = new URLSearchParams();
+                queryParams.set("name", newName);
+                if (selectedTemplateType === ChannelType.Email) {
+                  queryParams.set("emailContentType", emailContentType);
+                }
                 router.push(
                   `${messageTemplatePath({
                     id: newItemId,
                     channel: selectedTemplateType,
-                  })}?name=${newName}`,
+                  })}?${queryParams.toString()}`,
                 );
               }}
             >

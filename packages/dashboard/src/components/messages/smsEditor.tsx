@@ -5,6 +5,7 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   RenderMessageTemplateRequestContents,
+  RenderMessageTemplateType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import React from "react";
@@ -27,6 +28,7 @@ const draftToPreview: DraftToPreview = (definition) => {
   }
   const content: RenderMessageTemplateRequestContents = {
     body: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.body,
     },
   };

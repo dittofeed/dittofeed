@@ -1064,6 +1064,7 @@ export const LowCodeEmailJsonBody = Type.Recursive((self) =>
 export type LowCodeEmailJsonBody = Static<typeof LowCodeEmailJsonBody>;
 
 export enum EmailContentsType {
+  Code = "Code",
   LowCode = "LowCode",
 }
 

@@ -1,6 +1,7 @@
 import { html } from "@codemirror/lang-html";
 import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
+import { useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
@@ -22,6 +23,7 @@ export default function CodeEmailBodyEditor({
   setDraft,
   disabled,
 }: Props) {
+  const theme = useTheme();
   return (
     <ReactCodeMirror
       value={draft.body}
