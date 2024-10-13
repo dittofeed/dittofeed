@@ -2,12 +2,16 @@ import { AddCircleOutline } from "@mui/icons-material";
 import {
   Box,
   Button,
-  IconButton,
-  Menu,
-  MenuItem,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Stack,
   Tab,
   Tabs,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
@@ -15,7 +19,7 @@ import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Link from "next/link";
+import { useRouter } from "next/router";
 import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -25,6 +29,7 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -92,8 +97,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 function TemplateListContents() {
   const enableMobilePush = useAppStore((store) => store.enableMobilePush);
   const [tab, setTab] = useState<number>(0);
-  const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const [newItemId, setNewItemId] = useState(() => uuid());
+  const [newName, setNewName] = useState("");
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<ChannelType>(
+    ChannelType.Email,
+  );
+  const router = useRouter();
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -114,37 +124,73 @@ function TemplateListContents() {
         <Button
           startIcon={<AddCircleOutline />}
           variant="contained"
-          onClick={(event: React.MouseEvent<HTMLElement>) => {
+          onClick={() => {
             setNewItemId(uuid());
-            setNewAnchorEl(event.currentTarget);
+            setOpenCreateDialog(true);
           }}
         >
           Create Template
         </Button>
-        <Menu
-          open={Boolean(newAnchorEl)}
-          onClose={() => setNewAnchorEl(null)}
-          anchorEl={newAnchorEl}
+        <Dialog
+          open={openCreateDialog}
+          onClose={() => setOpenCreateDialog(false)}
         >
-          <MenuItem component={Link} href={`/templates/email/${newItemId}`}>
-            Email
-          </MenuItem>
-          <MenuItem component={Link} href={`/templates/sms/${newItemId}`}>
-            SMS
-          </MenuItem>
-          <MenuItem component={Link} href={`/templates/webhook/${newItemId}`}>
-            Webhook
-          </MenuItem>
-          <MenuItem
-            component={Link}
-            disabled={!enableMobilePush}
-            href={`/templates/mobile-push/${newItemId}`}
-          >
-            Mobile Push
-          </MenuItem>
-        </Menu>
+          <DialogTitle>Create New Template</DialogTitle>
+          <DialogContent>
+            <TextField
+              sx={{ width: "100%", mt: 2 }}
+              autoFocus
+              label="Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <ToggleButtonGroup
+              value={selectedTemplateType}
+              exclusive
+              color="primary"
+              onChange={(_, newType) => {
+                setSelectedTemplateType(newType);
+              }}
+              aria-label="template type"
+              sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+            >
+              <ToggleButton value={ChannelType.Email} aria-label="email">
+                Email
+              </ToggleButton>
+              <ToggleButton value={ChannelType.Sms} aria-label="sms">
+                SMS
+              </ToggleButton>
+              <ToggleButton value={ChannelType.Webhook} aria-label="webhook">
+                Webhook
+              </ToggleButton>
+              <ToggleButton
+                value={ChannelType.MobilePush}
+                aria-label="mobile push"
+                disabled={!enableMobilePush}
+              >
+                Mobile Push
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={!newName}
+              onClick={() => {
+                router.push(
+                  messageTemplatePath({
+                    id: newItemId,
+                    channel: selectedTemplateType,
+                  }),
+                );
+              }}
+            >
+              Create
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Stack>
-
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs
           value={tab}
