@@ -144,62 +144,67 @@ function TemplateListContents() {
         >
           <DialogTitle>Create New Template</DialogTitle>
           <DialogContent>
-            <TextField
-              sx={{ width: "100%", mt: 2 }}
-              autoFocus
-              label="Name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <ToggleButtonGroup
-              value={selectedTemplateType}
-              exclusive
-              color="primary"
-              onChange={(_, newType) => {
-                setSelectedTemplateType(newType);
-              }}
-              aria-label="template type"
-              sx={{ display: "flex", justifyContent: "center", mt: 2 }}
-            >
-              <ToggleButton value={ChannelType.Email} aria-label="email">
-                Email
-              </ToggleButton>
-              <ToggleButton value={ChannelType.Sms} aria-label="sms">
-                SMS
-              </ToggleButton>
-              <ToggleButton value={ChannelType.Webhook} aria-label="webhook">
-                Webhook
-              </ToggleButton>
-              <ToggleButton
-                value={ChannelType.MobilePush}
-                aria-label="mobile push"
-                disabled={!enableMobilePush}
-              >
-                Mobile Push
-              </ToggleButton>
-            </ToggleButtonGroup>
-            {selectedTemplateType === ChannelType.Email && (
+            <Stack alignItems="flex-start">
+              <TextField
+                sx={{ width: "100%", mt: 2 }}
+                autoFocus
+                label="Name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
               <ToggleButtonGroup
-                value={emailContentType}
+                value={selectedTemplateType}
                 exclusive
                 color="primary"
                 onChange={(_, newType) => {
-                  setEmailContentType(newType);
+                  setSelectedTemplateType(newType);
                 }}
-                aria-label="email content type"
+                aria-label="template type"
                 sx={{ display: "flex", justifyContent: "center", mt: 2 }}
               >
-                <ToggleButton
-                  value={EmailContentsType.LowCode}
-                  aria-label="low code"
-                >
-                  Low Code
+                <ToggleButton value={ChannelType.Email} aria-label="email">
+                  Email
                 </ToggleButton>
-                <ToggleButton value={EmailContentsType.Code} aria-label="code">
-                  Code
+                <ToggleButton value={ChannelType.Sms} aria-label="sms">
+                  SMS
+                </ToggleButton>
+                <ToggleButton value={ChannelType.Webhook} aria-label="webhook">
+                  Webhook
+                </ToggleButton>
+                <ToggleButton
+                  value={ChannelType.MobilePush}
+                  aria-label="mobile push"
+                  disabled={!enableMobilePush}
+                >
+                  Mobile Push
                 </ToggleButton>
               </ToggleButtonGroup>
-            )}
+              {selectedTemplateType === ChannelType.Email && (
+                <ToggleButtonGroup
+                  value={emailContentType}
+                  exclusive
+                  color="primary"
+                  onChange={(_, newType) => {
+                    setEmailContentType(newType);
+                  }}
+                  aria-label="email content type"
+                  sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+                >
+                  <ToggleButton
+                    value={EmailContentsType.LowCode}
+                    aria-label="low code"
+                  >
+                    Low Code
+                  </ToggleButton>
+                  <ToggleButton
+                    value={EmailContentsType.Code}
+                    aria-label="code"
+                  >
+                    Code
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              )}
+            </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
