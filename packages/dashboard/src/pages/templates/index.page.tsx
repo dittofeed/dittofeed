@@ -1,6 +1,7 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import {
   Box,
+  Button,
   IconButton,
   Menu,
   MenuItem,
@@ -110,17 +111,16 @@ function TemplateListContents() {
         <Typography sx={{ padding: 1 }} variant="h5">
           Message Library
         </Typography>
-        <IconButton
+        <Button
+          startIcon={<AddCircleOutline />}
+          variant="contained"
           onClick={(event: React.MouseEvent<HTMLElement>) => {
             setNewItemId(uuid());
             setNewAnchorEl(event.currentTarget);
           }}
         >
-          <AddCircleOutline />
-        </IconButton>
-        <Typography variant="button" sx={{ ml: 1 }}>
           Create Template
-        </Typography>
+        </Button>
         <Menu
           open={Boolean(newAnchorEl)}
           onClose={() => setNewAnchorEl(null)}
