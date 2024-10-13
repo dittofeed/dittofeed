@@ -24,12 +24,18 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
     const templateId = ctx.params?.id;
+    let name: string | null = null;
 
     if (typeof templateId !== "string" || !validate(templateId)) {
       return {
         notFound: true,
       };
     }
+
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
+    }
+
     const workspaceId = dfContext.workspace.id;
 
     const [emailTemplate, userProperties, defaultEmailProvider] =
@@ -57,7 +63,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         where: { id: templateId },
         create: {
           workspaceId,
-          name: `New Email Message - ${templateId}`,
+          name: name ?? `New Email Message - ${templateId}`,
           id: templateId,
           definition: defaultEmailDefinition(
             defaultEmailProvider as DefaultEmailProviderResource | undefined,

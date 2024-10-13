@@ -105,15 +105,19 @@ export default function SegmentList() {
     <Tooltip title="download user segments" placement="right" arrow>
       <LoadingButton
         loading={segmentDownloadRequest.type === CompletionStatus.InProgress}
+        variant="outlined"
         startIcon={<DownloadForOffline />}
         onClick={handleDownload}
-      />
+      >
+        Download User Segments
+      </LoadingButton>
     </Tooltip>
   );
   return (
     <DashboardContent>
       <ResourceListContainer
         title="Segments"
+        titleSingular="Segment"
         newItemHref={(newItemId) => `/segments/${newItemId}`}
         controls={controls}
       >
