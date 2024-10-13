@@ -1,5 +1,5 @@
 import { AddCircleOutline } from "@mui/icons-material";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { Button, IconButton, Stack, Typography } from "@mui/material";
 import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { ComputedPropertyStep } from "backend-lib/src/types";
@@ -122,13 +122,15 @@ function UserPropertyListContents() {
         <Typography sx={{ padding: 1 }} variant="h5">
           User Properties
         </Typography>
-        <IconButton
+        <Button
+          variant="contained"
+          startIcon={<AddCircleOutline />}
           onClick={() => {
             path.push(`/user-properties/${uuid()}`);
           }}
         >
-          <AddCircleOutline />
-        </IconButton>
+          Create User Property
+        </Button>
       </Stack>
       <UserPropertiesTable />
     </Stack>

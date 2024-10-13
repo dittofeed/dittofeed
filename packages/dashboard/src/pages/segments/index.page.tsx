@@ -114,6 +114,7 @@ export default function SegmentList() {
     <DashboardContent>
       <ResourceListContainer
         title="Segments"
+        titleSingular="Segment"
         newItemHref={(newItemId) => `/segments/${newItemId}`}
         controls={controls}
       >

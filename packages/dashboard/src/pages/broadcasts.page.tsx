@@ -39,6 +39,7 @@ export default function Broadcasts() {
     <DashboardContent>
       <ResourceListContainer
         title="Broadcasts"
+        titleSingular="Broadcast"
         newItemHref={(newItemId) => `/broadcasts/segment/${newItemId}`}
       >
         <BroadcastsTable />

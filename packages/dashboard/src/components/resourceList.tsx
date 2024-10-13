@@ -1,6 +1,6 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import {
-  IconButton,
+  Button,
   List,
   ListItemButton,
   Stack,
@@ -58,11 +58,13 @@ export function ResourceListContainer({
   title,
   newItemHref,
   controls,
+  titleSingular,
 }: {
   children: React.ReactNode;
   controls?: React.ReactNode;
   newItemHref: (id: string) => string;
   title: string;
+  titleSingular: string;
 }) {
   const [newItemId, setNewItemId] = useState(() => uuid());
   const href = useMemo(() => newItemHref(newItemId), [newItemHref, newItemId]);
@@ -85,15 +87,17 @@ export function ResourceListContainer({
         <Stack direction="row" spacing={1} alignItems="center">
           {controls}
           <Tooltip title="create new" placement="right" arrow>
-            <IconButton
+            <Button
+              variant="contained"
+              startIcon={<AddCircleOutline />}
               LinkComponent={Link}
               href={href}
               onClick={() => {
                 setNewItemId(uuid());
               }}
             >
-              <AddCircleOutline />
-            </IconButton>
+              Create {titleSingular}
+            </Button>
           </Tooltip>
         </Stack>
       </Stack>
