@@ -18,11 +18,13 @@ import {
   ChannelType,
   CompletionStatus,
   MessageTemplateResourceDraft,
+  RenderMessageTemplateRequestContent,
   RenderMessageTemplateRequestContents,
   RenderMessageTemplateType,
   UserPropertyDefinitionType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useMemo } from "react";
 
@@ -33,7 +35,6 @@ import TemplateEditor, {
   RenderEditorParams,
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
-import LowCodeEmailBodyEditor from "./lowCodeEmailBodyEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -234,11 +235,17 @@ const draftToPreview: DraftToPreview = (
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
   }
-  let body: string;
+  let body: RenderMessageTemplateRequestContent;
   if ("emailContentsType" in definition) {
-    throw new Error("Low code emails are not supported yet");
+    body = {
+      type: RenderMessageTemplateType.Emailo,
+      value: definition.body,
+    };
   } else {
-    body = definition.body;
+    body = {
+      type: RenderMessageTemplateType.Mjml,
+      value: definition.body,
+    };
   }
   const content: RenderMessageTemplateRequestContents = {
     from: {
@@ -249,10 +256,7 @@ const draftToPreview: DraftToPreview = (
       type: RenderMessageTemplateType.PlainText,
       value: definition.subject,
     },
-    body: {
-      type: RenderMessageTemplateType.Mjml,
-      value: body,
-    },
+    body,
   };
   if (definition.replyTo) {
     content.replyTo = {
@@ -262,6 +266,11 @@ const draftToPreview: DraftToPreview = (
   }
   return content;
 };
+
+const LowCodeEmailBodyEditor = dynamic(
+  () => import("./lowCodeEmailBodyEditor"),
+  { ssr: false },
+);
 
 export default function EmailEditor({
   hideTitle,

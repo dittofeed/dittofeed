@@ -460,6 +460,7 @@ export default function TemplateEditor({
       ? messageTemplateDraftToDefinition(editedTemplate.draft).unwrapOr(null)
       : null;
 
+    // FIXME not working with low code
     if (
       !definitionFromDraft ||
       deepEquals(definitionFromDraft, template.definition)

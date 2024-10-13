@@ -8,6 +8,7 @@ import { Overwrite } from "utility-types";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { RenderEditorParams } from "../templateEditor";
+import { Box } from "@mui/material";
 
 type LowCodeProps = Overwrite<
   RenderEditorParams,
@@ -46,5 +47,12 @@ export default function LowCodeEmailBodyEditor({
       });
     },
   });
-  return <Emailo state={state} disabled={disabled} />;
+  if (!state) {
+    return null;
+  }
+  return (
+    <Box p={2}>
+      <Emailo state={state} disabled={disabled} />
+    </Box>
+  );
 }
