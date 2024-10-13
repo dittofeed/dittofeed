@@ -4,7 +4,7 @@ import React from "react";
 import { TextMenu } from "./components/textMenu";
 import { getExtensions } from "./tipTapExtensions";
 import { UserProperty } from "./tipTapExtensions/userProperty/utils";
-import { EmailoState } from "./types";
+import { EmailoJsonContent, EmailoState } from "./types";
 import { cn } from "./utils";
 
 export { toMjml } from "./toMjml";
@@ -15,7 +15,7 @@ export function useEmailo({
   content,
   userProperties,
 }: {
-  content: string;
+  content: string | EmailoJsonContent;
   userProperties: [UserProperty, ...UserProperty[]];
 }): EmailoState {
   const extensions = getExtensions({ userProperties });
@@ -26,7 +26,7 @@ export function useEmailo({
   if (!editor) {
     throw new Error("No editor found");
   }
-  return { editor, customExtensions: extensions.map((ext) => ext.name) };
+  return { editor };
 }
 
 // eslint-disable-next-line react/require-default-props

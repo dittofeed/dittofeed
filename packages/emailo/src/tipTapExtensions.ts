@@ -18,46 +18,59 @@ import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { UserProperty as UserPropertyType } from "./tipTapExtensions/userProperty/utils";
 import { UserProperty } from "./tipTapExtensions/userProperty";
 import { UnsubscribeLink } from "./tipTapExtensions/unsubscribeLink";
+import { Extension, Mark, Node } from "@tiptap/core";
+
+type ExtensionOrMarkOrNode = Extension | Mark | Node;
+let EXTENSIONS: ExtensionOrMarkOrNode[] | null = null;
+
+export function getExtensionNames(): string[] {
+  if (!EXTENSIONS) {
+    throw new Error("Extensions not initialized");
+  }
+  return EXTENSIONS.map((ext) => ext.name);
+}
 
 export function getExtensions({
   userProperties,
 }: {
   userProperties: [UserPropertyType, ...UserPropertyType[]];
-}) {
-  const extensions = [
-    Color.configure({ types: [TextStyle.name, ListItem.name] }),
-    TextStyle.configure({ types: [ListItem.name] } as any),
-    StarterKit.configure({
-      bulletList: {
-        keepMarks: true,
-        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-      },
-      orderedList: {
-        keepMarks: true,
-        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
-      },
-    }),
-    SlashCommand,
-    FontFamily.configure({
-      fonts: ["Arial", "Helvetica", "sans-serif"],
-    } as any),
-    Typography,
-    TextAlign.configure({
-      types: ["paragraph"],
-      alignments: ["left", "center", "right", "justify"],
-    }),
-    Link,
-    Underline,
-    Highlight,
-    FontSize,
-    Subscript,
-    Superscript,
-    Selection,
-    BlockquoteFigure,
-    UserProperty.configure({
-      properties: userProperties,
-    }),
-    UnsubscribeLink,
-  ];
-  return extensions;
+}): ExtensionOrMarkOrNode[] {
+  if (!EXTENSIONS) {
+    EXTENSIONS = [
+      Color.configure({ types: [TextStyle.name, ListItem.name] }),
+      TextStyle.configure({ types: [ListItem.name] } as any),
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        },
+      }),
+      SlashCommand,
+      FontFamily.configure({
+        fonts: ["Arial", "Helvetica", "sans-serif"],
+      } as any),
+      Typography,
+      TextAlign.configure({
+        types: ["paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+      }),
+      Link,
+      Underline,
+      Highlight,
+      FontSize,
+      Subscript,
+      Superscript,
+      Selection,
+      BlockquoteFigure,
+      UserProperty.configure({
+        properties: userProperties,
+      }),
+      UnsubscribeLink,
+    ];
+  }
+  return EXTENSIONS;
 }

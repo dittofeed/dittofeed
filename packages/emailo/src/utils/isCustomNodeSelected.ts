@@ -1,4 +1,5 @@
 import { Editor } from "@tiptap/core";
+import { getExtensionNames } from "../tipTapExtensions";
 
 export const isTableGripSelected = (node: HTMLElement) => {
   let container = node;
@@ -25,12 +26,8 @@ export const isTableGripSelected = (node: HTMLElement) => {
 
 const formattableCustomNodes = new Set(["unsubscribeLink"]);
 
-export const isCustomNodeSelected = (
-  editor: Editor,
-  node: HTMLElement,
-  customExtensions: string[],
-) => {
-  const extensionIsActive = customExtensions.some(
+export const isCustomNodeSelected = (editor: Editor, node: HTMLElement) => {
+  const extensionIsActive = getExtensionNames().some(
     (extension) =>
       !formattableCustomNodes.has(extension) && editor.isActive(extension),
   );

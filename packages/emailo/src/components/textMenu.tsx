@@ -28,9 +28,9 @@ export type TextMenuProps = {
 };
 
 export function TextMenu({ state }: TextMenuProps) {
-  const { editor, customExtensions } = state;
+  const { editor } = state;
   const commands = useTextmenuCommands(editor);
-  const states = useTextmenuStates(editor, customExtensions);
+  const states = useTextmenuStates(editor);
   const blockOptions = useTextmenuContentTypes(editor);
 
   return (
