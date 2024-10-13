@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { createRPCClient } from "vite-dev-rpc";
 
 import { Button } from "../src/components/button";
-import { Emailo, useEmailo } from "../src/emailo";
+import { defaultEmailoContent, Emailo, useEmailo } from "../src/emailo";
 import { toMjml } from "../src/toMjml";
 import { MJMLError } from "./rpc";
 
@@ -25,32 +25,6 @@ const root = document.getElementById("root");
 if (!root) {
   throw new Error("No root element found");
 }
-
-const content = `
-<h2>
-  Hi there,
-</h2>
-<p>
-  this is a <em>basic</em> example of <strong>Tiptap</strong>. Sure, there are all kind of basic text styles you'd probably expect from a text editor. But wait until you see the lists:
-</p>
-<ul>
-  <li>
-    That's a bullet list with one …
-  </li>
-  <li>
-    … or two list items.
-  </li>
-</ul>
-<p>
-  Isn't that great? And all of that is editable. But wait, there's more. Let's try a code block:
-</p>
-<pre><code class="language-css">body {
-  display: none;
-}</code></pre>
-<p>
-  I know, I know, this is impressive. It's only the tip of the iceberg though. Give it a try and click a little bit around. Don't forget to check the other examples too.
-</p>
-`;
 
 function RenderedPreview({ html }: { html: string }) {
   const [rendered, setRendered] = useState(html);
@@ -115,7 +89,7 @@ function Rendered({ html }: { html: string }) {
 
 function Main() {
   const state = useEmailo({
-    content,
+    content: defaultEmailoContent,
     userProperties: [
       {
         name: "name",
