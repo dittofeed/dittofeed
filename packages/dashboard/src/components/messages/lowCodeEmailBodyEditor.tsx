@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { Emailo, useEmailo } from "emailo";
 import {
   ChannelType,
@@ -8,7 +9,6 @@ import { Overwrite } from "utility-types";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { RenderEditorParams } from "../templateEditor";
-import { Box } from "@mui/material";
 
 type LowCodeProps = Overwrite<
   RenderEditorParams,
@@ -42,7 +42,7 @@ export default function LowCodeEmailBodyEditor({
           return defn;
         }
 
-        defn.body = updatedContent;
+        defn.body = updatedContent.editor.getJSON();
         return defn;
       });
     },

@@ -1,4 +1,4 @@
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, UseEditorOptions } from "@tiptap/react";
 import React from "react";
 
 import { TextMenu } from "./components/textMenu";
@@ -17,7 +17,7 @@ export function useEmailo({
 }: {
   content: string | EmailoJsonContent;
   userProperties: UserProperty[];
-  onUpdate?: (content: EmailoJsonContent) => void;
+  onUpdate?: UseEditorOptions["onUpdate"];
 }): EmailoState | null {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({

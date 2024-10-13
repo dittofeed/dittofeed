@@ -461,6 +461,7 @@ export default function TemplateEditor({
       : null;
 
     // FIXME not working with low code
+    debugger;
     if (
       !definitionFromDraft ||
       deepEquals(definitionFromDraft, template.definition)
