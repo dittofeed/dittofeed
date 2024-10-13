@@ -1,5 +1,5 @@
 import { AddCircleOutline } from "@mui/icons-material";
-import { Button, IconButton, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { ComputedPropertyStep } from "backend-lib/src/types";
