@@ -118,6 +118,9 @@ function TemplateListContents() {
         >
           <AddCircleOutline />
         </IconButton>
+        <Typography variant="button" sx={{ ml: 1 }}>
+          Create Template
+        </Typography>
         <Menu
           open={Boolean(newAnchorEl)}
           onClose={() => setNewAnchorEl(null)}
