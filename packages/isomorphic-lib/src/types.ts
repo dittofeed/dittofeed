@@ -2205,10 +2205,44 @@ export type UserSubscriptionsAdminUpdate = Static<
   typeof UserSubscriptionsAdminUpdate
 >;
 
-const RenderMessageTemplateRequestContent = Type.Object({
+export enum RenderMessageTemplateType {
+  Emailo = "Emailo",
+  Mjml = "Mjml",
+  PlainText = "PlainText",
+}
+
+export const RenderMessageTemplateRequestContentMjml = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.Mjml),
   value: Type.String(),
-  mjml: Type.Optional(Type.Boolean()),
 });
+
+export type RenderMessageTemplateRequestContentMjml = Static<
+  typeof RenderMessageTemplateRequestContentMjml
+>;
+
+export const RenderMessageTemplateRequestContentPlainText = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.PlainText),
+  value: Type.String(),
+});
+
+export type RenderMessageTemplateRequestContentPlainText = Static<
+  typeof RenderMessageTemplateRequestContentPlainText
+>;
+
+export const RenderMessageTemplateRequestContentEmailo = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.Emailo),
+  value: LowCodeEmailJsonBody,
+});
+
+export type RenderMessageTemplateRequestContentEmailo = Static<
+  typeof RenderMessageTemplateRequestContentEmailo
+>;
+
+export const RenderMessageTemplateRequestContent = Type.Union([
+  RenderMessageTemplateRequestContentPlainText,
+  RenderMessageTemplateRequestContentEmailo,
+  RenderMessageTemplateRequestContentMjml,
+]);
 
 export type RenderMessageTemplateRequestContent = Static<
   typeof RenderMessageTemplateRequestContent
