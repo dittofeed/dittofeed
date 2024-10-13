@@ -1068,6 +1068,8 @@ export enum EmailContentsType {
   LowCode = "LowCode",
 }
 
+export const EmailContentsTypeEnum = Type.Enum(EmailContentsType);
+
 export const BaseEmailContents = Type.Object({
   from: Type.String(),
   subject: Type.String(),
