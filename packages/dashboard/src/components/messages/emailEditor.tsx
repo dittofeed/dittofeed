@@ -19,6 +19,7 @@ import {
   CompletionStatus,
   MessageTemplateResourceDraft,
   RenderMessageTemplateRequestContents,
+  RenderMessageTemplateType,
   UserPropertyDefinitionType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
@@ -241,18 +242,21 @@ const draftToPreview: DraftToPreview = (
   }
   const content: RenderMessageTemplateRequestContents = {
     from: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.from,
     },
     subject: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.subject,
     },
     body: {
-      mjml: true,
+      type: RenderMessageTemplateType.Mjml,
       value: body,
     },
   };
   if (definition.replyTo) {
     content.replyTo = {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.replyTo,
     };
   }
