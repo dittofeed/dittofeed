@@ -616,11 +616,15 @@ export default function TemplateEditor({
     if (debouncedDraft) {
       return debouncedDraft;
     }
+    // important for rendering draft on first render if present
+    if (template?.draft) {
+      return template.draft;
+    }
     if (!template?.definition) {
       return null;
     }
     return messageTemplateDefinitionToDraft(template.definition);
-  }, [debouncedDraft, template?.definition]);
+  }, [debouncedDraft, template?.draft, template?.definition]);
 
   useEffect(() => {
     (async () => {
