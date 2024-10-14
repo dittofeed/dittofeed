@@ -19,12 +19,12 @@
       "import": "./dist/esm/src/*.js",
       "require": "./dist/cjs/src/*.js"
     },
-    "./styles/*": "./styles/*"
+    "./styles.css": "./dist/style.css"
   },
   "scripts": {
     "lint": "eslint src/",
     "check": "tsc --build",
-    "build": "NODE_ENV=production tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json && vite build",
+    "build": "NODE_ENV=production vite build && tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json",
     "dev": "vite"
   },
   "dependencies": {

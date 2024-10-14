@@ -1,3 +1,5 @@
+import "emailo/styles.css";
+
 import { Box } from "@mui/material";
 import { Emailo, useEmailo } from "emailo";
 import {

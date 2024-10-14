@@ -26,7 +26,17 @@ if (process.env.NODE_ENV === "production") {
   config = {
     build: {
       ...baseBuildConfig,
+      rollupOptions: {
+        input: "./src/prod.js",
+        output: {
+          entryFileNames: "[name].js",
+          assetFileNames: "[name].css",
+        },
+      },
+      emptyOutDir: true,
       cssCodeSplit: false,
+      sourcemap: false,
+      cssMinify: true,
     },
   };
 } else {
