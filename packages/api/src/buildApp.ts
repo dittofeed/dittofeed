@@ -15,6 +15,7 @@ import {
 import { OpenAPIV3_1 } from "openapi-types";
 import qs from "qs";
 
+import { SHARED_SCHEMAS } from "./buildApp/addSharedSchemas";
 import cors from "./buildApp/cors";
 import multipart from "./buildApp/multipart";
 import router from "./buildApp/router";
@@ -111,6 +112,10 @@ async function buildApp(opts?: BuildAppOpts) {
   }
 
   await Promise.all(fastifyPluginPromises);
+
+  SHARED_SCHEMAS.forEach((schema) => {
+    server.addSchema(schema);
+  });
 
   await Promise.all([
     server.register((f) => router(f, opts)),

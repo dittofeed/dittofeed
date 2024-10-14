@@ -1038,27 +1038,31 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export const LowCodeEmailJsonBody = Type.Recursive((self) =>
-  Type.Intersect([
-    Type.Object({
-      type: Type.Optional(Type.String()),
-      attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
-      content: Type.Optional(Type.Array(self)),
-      marks: Type.Optional(
-        Type.Array(
-          Type.Intersect([
-            Type.Object({
-              type: Type.String(),
-              attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
-            }),
-            Type.Record(Type.String(), Type.Any()),
-          ]),
+export const LowCodeEmailJsonBody = Type.Recursive(
+  (self) =>
+    Type.Composite([
+      Type.Object({
+        type: Type.Optional(Type.String()),
+        attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+        content: Type.Optional(Type.Array(self)),
+        marks: Type.Optional(
+          Type.Array(
+            Type.Composite([
+              Type.Object({
+                type: Type.String(),
+                attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+              }),
+              Type.Record(Type.String(), Type.Any()),
+            ]),
+          ),
         ),
-      ),
-      text: Type.Optional(Type.String()),
-    }),
-    Type.Record(Type.String(), Type.Any()),
-  ]),
+        text: Type.Optional(Type.String()),
+      }),
+      Type.Record(Type.String(), Type.Any()),
+    ]),
+  {
+    $id: "LowCodeEmailJsonBody",
+  },
 );
 
 export type LowCodeEmailJsonBody = Static<typeof LowCodeEmailJsonBody>;
@@ -1104,7 +1108,7 @@ export type CodeEmailContents = Static<typeof CodeEmailContents>;
 export const LowCodeEmailContents = Type.Composite([
   Type.Object({
     emailContentsType: Type.Literal(EmailContentsType.LowCode),
-    body: LowCodeEmailJsonBody,
+    body: Type.Ref(LowCodeEmailJsonBody),
   }),
   BaseEmailContents,
 ]);
@@ -1281,6 +1285,9 @@ const MessageTemplateResourceProperties = {
 
 export const MessageTemplateResource = Type.Object(
   MessageTemplateResourceProperties,
+  {
+    $id: "MessageTemplateResource",
+  },
 );
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
@@ -1303,17 +1310,27 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
-export const GetMessageTemplatesRequest = Type.Object({
-  workspaceId: Type.String(),
-});
+export const GetMessageTemplatesRequest = Type.Object(
+  {
+    workspaceId: Type.String(),
+  },
+  {
+    $id: "GetMessageTemplatesRequest",
+  },
+);
 
 export type GetMessageTemplatesRequest = Static<
   typeof GetMessageTemplatesRequest
 >;
 
-export const GetMessageTemplatesResponse = Type.Object({
-  templates: Type.Array(MessageTemplateResource),
-});
+export const GetMessageTemplatesResponse = Type.Object(
+  {
+    templates: Type.Array(MessageTemplateResource),
+  },
+  {
+    $id: "GetMessageTemplatesResponse",
+  },
+);
 
 export type GetMessageTemplatesResponse = Static<
   typeof GetMessageTemplatesResponse
