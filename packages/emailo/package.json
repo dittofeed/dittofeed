@@ -24,7 +24,7 @@
   "scripts": {
     "lint": "eslint src/",
     "check": "tsc --build",
-    "build": "tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json",
+    "build": "NODE_ENV=production tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json && vite build",
     "dev": "vite"
   },
   "dependencies": {
