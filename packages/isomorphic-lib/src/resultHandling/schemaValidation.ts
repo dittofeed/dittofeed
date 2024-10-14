@@ -4,6 +4,7 @@ import JsonBigint from "json-bigint";
 import { err, ok, Result } from "neverthrow";
 
 import { isObject } from "../objects";
+import { TYPE_REFS } from "../typeRefs";
 import { JSONValue } from "../types";
 
 const JSON_BIG_INT = JsonBigint({ storeAsString: true });
@@ -12,7 +13,7 @@ export function schemaValidate<S extends TSchema>(
   val: unknown,
   schema: S,
 ): Result<Static<S>, ValueError[]> {
-  if (Value.Check(schema, val)) {
+  if (Value.Check(schema, TYPE_REFS, val)) {
     return ok(val);
   }
   const errors = Array.from(Value.Errors(schema, val));
@@ -23,7 +24,7 @@ export function schemaValidateWithErr<S extends TSchema>(
   val: unknown,
   schema: S,
 ): Result<Static<S>, Error> {
-  if (Value.Check(schema, val)) {
+  if (Value.Check(schema, TYPE_REFS, val)) {
     return ok(val);
   }
   const errors = Array.from(Value.Errors(schema, val));
