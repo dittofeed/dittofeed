@@ -46,7 +46,6 @@ export default function LowCodeEmailBodyEditor({
 
         const json = updatedContent.editor.getJSON();
         defn.body = json;
-        console.log("updatedContent", json);
         return defn;
       });
     },
@@ -54,9 +53,5 @@ export default function LowCodeEmailBodyEditor({
   if (!state) {
     return null;
   }
-  return (
-    <Box p={0}>
-      <Emailo state={state} disabled={disabled} />
-    </Box>
-  );
+  return <Emailo state={state} disabled={disabled} />;
 }

@@ -151,7 +151,11 @@ function toMjmlHelper({
       }
 
       const styleAttr = `style="${style.join(" ")}"`;
-      return `<p ${styleAttr}>${resolvedContent}</p>`;
+
+      // Ensure empty paragraphs are rendered
+      const paragraphContent = resolvedContent || "<br>";
+
+      return `<p ${styleAttr}>${paragraphContent}</p>`;
     }
     case "bulletList":
       return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;">${resolvedContent}</ul>`;

@@ -1,6 +1,7 @@
 import { Extension, Mark, Node } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
 import { FontFamily } from "@tiptap/extension-font-family";
+import HardBreak from "@tiptap/extension-hard-break";
 import { Highlight } from "@tiptap/extension-highlight";
 import ListItem from "@tiptap/extension-list-item";
 import { Subscript } from "@tiptap/extension-subscript";
@@ -49,6 +50,7 @@ export function getExtensions({
           keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
         },
       }),
+      HardBreak,
       SlashCommand,
       FontFamily.configure({
         fonts: ["Arial", "Helvetica", "sans-serif"],
