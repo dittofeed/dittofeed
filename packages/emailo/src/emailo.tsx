@@ -24,6 +24,7 @@ export function useEmailo({
     extensions,
     content,
     onUpdate,
+    immediatelyRender: false,
   });
   if (!editor) {
     return null;

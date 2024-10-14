@@ -42,7 +42,9 @@ export default function LowCodeEmailBodyEditor({
           return defn;
         }
 
-        defn.body = updatedContent.editor.getJSON();
+        const json = updatedContent.editor.getJSON();
+        defn.body = json;
+        console.log("updatedContent", json);
         return defn;
       });
     },
