@@ -49,7 +49,7 @@ function UnsubscribeLinkForm({
 }
 
 function UnsubscribeLinkComponent({ node, updateAttributes }: NodeViewProps) {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const attribute = node.attrs as UnsubscribeLinkAttributes;
 
   return (

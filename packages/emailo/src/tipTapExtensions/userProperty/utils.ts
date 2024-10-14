@@ -9,6 +9,7 @@ export interface UserPropertyOptions {
 export interface UserPropertyAttributes {
   variableName: string;
   defaultValue: string;
+  defaultOpen: boolean;
 }
 
 export function userPropertyToExpression({

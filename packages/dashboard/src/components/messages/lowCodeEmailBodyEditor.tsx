@@ -55,7 +55,7 @@ export default function LowCodeEmailBodyEditor({
     return null;
   }
   return (
-    <Box p={2}>
+    <Box p={0}>
       <Emailo state={state} disabled={disabled} />
     </Box>
   );

@@ -125,8 +125,8 @@ function UserPropertyComponent({
   updateAttributes,
   editor,
 }: NodeViewProps) {
-  const [visible, setVisible] = useState(true);
   const attribute = node.attrs as UserPropertyAttributes;
+  const [visible, setVisible] = useState(attribute.defaultOpen);
   const properties = useMemo(
     () =>
       editor.extensionManager.extensions.find((e) => e.name === "userProperty")
@@ -196,6 +196,9 @@ export const UserProperty = Node.create<UserPropertyOptions>({
       defaultValue: {
         default: "",
       },
+      defaultOpen: {
+        default: false,
+      },
     };
   },
 
@@ -223,6 +226,9 @@ export const UserProperty = Node.create<UserPropertyOptions>({
           chain()
             .insertContent({
               type: this.name,
+              attrs: {
+                defaultOpen: true,
+              },
             })
             .blur()
             .run(),
