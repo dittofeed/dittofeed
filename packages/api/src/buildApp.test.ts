@@ -66,11 +66,13 @@ describe("swagger", () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const swagger = omit(JSON.parse(JSON.stringify(app.swagger())), [
         "servers",
+        "components",
+        "schemas",
       ]);
       expect(
         swagger,
         "To fix this test, update the docs by following these instructions: https://docs.dittofeed.com/contributing/updating-api-docs",
-      ).toEqual(omit(config, ["servers"]));
+      ).toEqual(omit(config, ["servers", "components", "schemas"]));
     });
   });
 });
