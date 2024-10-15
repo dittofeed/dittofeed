@@ -1,4 +1,3 @@
-// FIXME import css
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -431,7 +430,11 @@ export default function EmailEditor({
             border: "none",
             height: "100%",
             width: "100%",
-            padding: theme.spacing(1),
+            backgroundColor: "white",
+            paddingTop: "1rem",
+            paddingBottom: "1rem",
+            paddingLeft: "2rem",
+            paddingRight: "2rem",
           }}
         />
       )}

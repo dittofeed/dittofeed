@@ -1100,7 +1100,11 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="left" className="editor-body">
+      <BodyBox
+        direction="left"
+        className="editor-body"
+        sx={{ backgroundColor: "white" }}
+      >
         {renderEditorBody(renderEditorParams)}
       </BodyBox>
     </Stack>

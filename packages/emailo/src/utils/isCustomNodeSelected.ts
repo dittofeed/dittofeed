@@ -1,5 +1,8 @@
 import { Editor } from "@tiptap/core";
-import { getExtensionNames } from "../tipTapExtensions";
+
+import { BlockquoteFigure } from "../tipTapExtensions/blockquoteFigure";
+import { Link } from "../tipTapExtensions/link";
+import { UserProperty } from "../tipTapExtensions/userProperty";
 
 export const isTableGripSelected = (node: HTMLElement) => {
   let container = node;
@@ -24,16 +27,21 @@ export const isTableGripSelected = (node: HTMLElement) => {
   return false;
 };
 
-const formattableCustomNodes = new Set(["unsubscribeLink"]);
+const CUSTOM_NODES = [
+  "codeBlock",
+  "horizontalRule",
+  Link.name,
+  BlockquoteFigure.name,
+  UserProperty.name,
+];
 
 export const isCustomNodeSelected = (editor: Editor, node: HTMLElement) => {
-  const extensionIsActive = getExtensionNames().some(
-    (extension) =>
-      !formattableCustomNodes.has(extension) && editor.isActive(extension),
+  const customNodeIsActive = CUSTOM_NODES.some((extension) =>
+    editor.isActive(extension),
   );
 
   const isTableSelected = isTableGripSelected(node);
-  return extensionIsActive || isTableSelected;
+  return customNodeIsActive || isTableSelected;
 };
 
 export default isCustomNodeSelected;
