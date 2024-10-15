@@ -42,6 +42,9 @@ jobs:
         if: ${{ inputs.is_backend == 'true' }}
         run: yarn workspace backend-lib prisma generate
 
+      - name: Emailo Build
+        run: yarn workspace emailo build
+
       - name: Run lint
         run: yarn workspace ${{ inputs.package-name }} lint
 
