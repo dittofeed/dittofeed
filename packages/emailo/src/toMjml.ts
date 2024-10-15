@@ -1,4 +1,4 @@
-import { JSONContent } from "@tiptap/core";
+import { JSONContent, Mark } from "@tiptap/core";
 
 import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
@@ -15,7 +15,7 @@ function applyTextStyles({
   defaultTextStyles,
 }: {
   text: string;
-  marks: any[];
+  marks?: any[];
   defaultTextStyles?: Record<string, string>;
 }): {
   styledText: string;
@@ -215,11 +215,13 @@ function toMjmlHelper({
     }
     case "unsubscribeLink": {
       const { linkText } = content.attrs as UnsubscribeLinkAttributes;
+      const marks = content.marks ?? []; // Include existing marks
       return toMjmlHelper({
         content: {
           type: "text",
           text: linkText,
           marks: [
+            ...marks, // Preserve existing marks
             {
               type: "link",
               attrs: {
