@@ -36,7 +36,7 @@ jobs:
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn workspaces focus ${{ inputs.package-name }}
+        run: yarn
 
       - name: Prisma generate
         if: ${{ inputs.is_backend == 'true' }}
