@@ -20,7 +20,6 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   ChannelType,
   CompletionStatus,
-  EmailContentsType,
   EphemeralRequestStatus,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
