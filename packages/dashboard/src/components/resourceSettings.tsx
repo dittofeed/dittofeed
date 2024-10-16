@@ -1,16 +1,16 @@
 import BrightnessHighIcon from "@mui/icons-material/BrightnessHigh";
 import LanguageIcon from "@mui/icons-material/Language";
 import NightlightIcon from "@mui/icons-material/Nightlight";
-import SettingsIcon from "@mui/icons-material/Settings";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import {
   Autocomplete,
   AutocompleteProps,
+  Button,
   Paper,
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface SettingsCommand {
   label: string;
@@ -44,6 +44,7 @@ const settingsCommands: SettingsCommand[] = [
 export function ResourceSettings() {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const autocompleteRef = useRef<HTMLInputElement>(null);
 
   const handleCommandSelect: AutocompleteProps<
     SettingsCommand,
@@ -54,42 +55,55 @@ export function ResourceSettings() {
     if (value) {
       value.action();
       setInputValue("");
+      setOpen(false); // Close dropdown after selection
     }
   };
 
+  useEffect(() => {
+    if (open && autocompleteRef.current) {
+      autocompleteRef.current.focus();
+    }
+  }, [open]);
+
   return (
-    <Autocomplete
-      open={open}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      inputValue={inputValue}
-      onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
-      options={settingsCommands}
-      getOptionLabel={(option) => option.label}
-      onChange={handleCommandSelect}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Settings"
-          variant="outlined"
-          InputProps={{
-            ...params.InputProps,
-            startAdornment: <SettingsIcon />,
+    <>
+      <Button onClick={() => setOpen((prev) => !prev)}>...</Button>
+      {open && (
+        <Autocomplete
+          autoFocus
+          ref={autocompleteRef}
+          ListboxProps={{
+            sx: {
+              padding: 0,
+            },
+          }}
+          open={open}
+          onOpen={() => setOpen(true)}
+          onClose={() => setOpen(false)}
+          inputValue={inputValue}
+          onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
+          options={settingsCommands}
+          getOptionLabel={(option) => option.label}
+          onChange={handleCommandSelect}
+          renderInput={(params) => (
+            <TextField {...params} label="Settings" variant="outlined" />
+          )}
+          renderOption={(props, option) => (
+            <Paper component="li" {...props}>
+              <Typography
+                variant="body2"
+                style={{ display: "flex", alignItems: "center" }}
+              >
+                {option.icon}
+                <span style={{ marginLeft: "8px" }}>{option.label}</span>
+              </Typography>
+            </Paper>
+          )}
+          sx={{
+            width: 300,
           }}
         />
       )}
-      renderOption={(props, option) => (
-        <Paper component="li" {...props}>
-          <Typography
-            variant="body2"
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            {option.icon}
-            <span style={{ marginLeft: "8px" }}>{option.label}</span>
-          </Typography>
-        </Paper>
-      )}
-      style={{ width: 300 }}
-    />
+    </>
   );
 }
