@@ -25481,6 +25481,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
     backend-lib: "npm:0.0.3"
+    emailo: "npm:0.0.1"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb-base: "npm:^15.0.0"
     eslint-config-airbnb-typescript: "npm:^17.0.0"

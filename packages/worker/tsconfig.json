@@ -12,6 +12,9 @@
     },
     {
       "path": "../isomorphic-lib"
+    },
+    {
+      "path": "../emailo"
     }
   ]
 }
