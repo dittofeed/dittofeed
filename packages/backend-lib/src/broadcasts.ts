@@ -3,6 +3,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
   ChannelType,
+  EmailContentsType,
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
@@ -180,7 +181,8 @@ export async function upsertBroadcast({
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: defaultEmailDefinition({
-          fromAddress: defaultEmailProvider?.fromAddress ?? null,
+          emailContentsType: EmailContentsType.Code,
+          emailProvider: defaultEmailProvider ?? undefined,
         }),
       },
       update: {},

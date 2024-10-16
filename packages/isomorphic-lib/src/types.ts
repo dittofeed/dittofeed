@@ -1038,9 +1038,45 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export const EmailContents = Type.Object({
+export const LowCodeEmailJsonBody = Type.Recursive(
+  (self) =>
+    Type.Composite([
+      Type.Object({
+        type: Type.Optional(Type.String()),
+        attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+        content: Type.Optional(Type.Array(self)),
+        marks: Type.Optional(
+          Type.Array(
+            Type.Composite([
+              Type.Object({
+                type: Type.String(),
+                attrs: Type.Optional(Type.Record(Type.String(), Type.Any())),
+              }),
+              Type.Record(Type.String(), Type.Any()),
+            ]),
+          ),
+        ),
+        text: Type.Optional(Type.String()),
+      }),
+      Type.Record(Type.String(), Type.Any()),
+    ]),
+  {
+    $id: "LowCodeEmailJsonBody",
+    title: "LowCodeEmailJsonBody",
+  },
+);
+
+export type LowCodeEmailJsonBody = Static<typeof LowCodeEmailJsonBody>;
+
+export enum EmailContentsType {
+  Code = "Code",
+  LowCode = "LowCode",
+}
+
+export const EmailContentsTypeEnum = Type.Enum(EmailContentsType);
+
+export const BaseEmailContents = Type.Object({
   from: Type.String(),
-  body: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
   headers: Type.Optional(
@@ -1059,13 +1095,56 @@ export const EmailContents = Type.Object({
   ),
 });
 
-export const EmailTemplateResource = Type.Composite(
-  [
-    Type.Object({
-      type: Type.Literal(ChannelType.Email),
-    }),
-    EmailContents,
-  ],
+export type BaseEmailContents = Static<typeof BaseEmailContents>;
+
+export const CodeEmailContents = Type.Composite([
+  BaseEmailContents,
+  Type.Object({
+    body: Type.String(),
+  }),
+]);
+
+export type CodeEmailContents = Static<typeof CodeEmailContents>;
+
+export const LowCodeEmailContents = Type.Composite([
+  Type.Object({
+    emailContentsType: Type.Literal(EmailContentsType.LowCode),
+    body: Type.Ref(LowCodeEmailJsonBody),
+  }),
+  BaseEmailContents,
+]);
+
+export type LowCodeEmailContents = Static<typeof LowCodeEmailContents>;
+
+export const EmailContents = Type.Union([
+  CodeEmailContents,
+  LowCodeEmailContents,
+]);
+
+const BaseEmailTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+});
+
+export const CodeEmailTemplateResource = Type.Composite([
+  BaseEmailTemplateResource,
+  CodeEmailContents,
+]);
+
+export type CodeEmailTemplateResource = Static<
+  typeof CodeEmailTemplateResource
+>;
+
+export const LowCodeEmailTemplateResource = Type.Composite([
+  BaseEmailTemplateResource,
+  LowCodeEmailContents,
+]);
+
+export type LowCodeEmailTemplateResource = Static<
+  typeof LowCodeEmailTemplateResource
+>;
+
+export const EmailTemplateResource = Type.Union(
+  [CodeEmailTemplateResource, LowCodeEmailTemplateResource],
   {
     description: "Email template resource",
   },
@@ -1074,7 +1153,7 @@ export const EmailTemplateResource = Type.Composite(
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const EmailConfiguration = Type.Composite([
-  Type.Omit(EmailContents, ["headers"]),
+  Type.Omit(CodeEmailContents, ["headers"]),
   Type.Object({
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
@@ -1207,6 +1286,9 @@ const MessageTemplateResourceProperties = {
 
 export const MessageTemplateResource = Type.Object(
   MessageTemplateResourceProperties,
+  {
+    $id: "MessageTemplateResource",
+  },
 );
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
@@ -1229,17 +1311,27 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
-export const GetMessageTemplatesRequest = Type.Object({
-  workspaceId: Type.String(),
-});
+export const GetMessageTemplatesRequest = Type.Object(
+  {
+    workspaceId: Type.String(),
+  },
+  {
+    $id: "GetMessageTemplatesRequest",
+  },
+);
 
 export type GetMessageTemplatesRequest = Static<
   typeof GetMessageTemplatesRequest
 >;
 
-export const GetMessageTemplatesResponse = Type.Object({
-  templates: Type.Array(MessageTemplateResource),
-});
+export const GetMessageTemplatesResponse = Type.Object(
+  {
+    templates: Type.Array(MessageTemplateResource),
+  },
+  {
+    $id: "GetMessageTemplatesResponse",
+  },
+);
 
 export type GetMessageTemplatesResponse = Static<
   typeof GetMessageTemplatesResponse
@@ -1267,6 +1359,7 @@ export const ResetMessageTemplateResource = Type.Object({
     }),
   ),
   type: Type.Enum(ChannelType),
+  emailContentsType: Type.Optional(Type.Enum(EmailContentsType)),
 });
 
 export type ResetMessageTemplateResource = Static<
@@ -2134,10 +2227,44 @@ export type UserSubscriptionsAdminUpdate = Static<
   typeof UserSubscriptionsAdminUpdate
 >;
 
-const RenderMessageTemplateRequestContent = Type.Object({
+export enum RenderMessageTemplateType {
+  Emailo = "Emailo",
+  Mjml = "Mjml",
+  PlainText = "PlainText",
+}
+
+export const RenderMessageTemplateRequestContentMjml = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.Mjml),
   value: Type.String(),
-  mjml: Type.Optional(Type.Boolean()),
 });
+
+export type RenderMessageTemplateRequestContentMjml = Static<
+  typeof RenderMessageTemplateRequestContentMjml
+>;
+
+export const RenderMessageTemplateRequestContentPlainText = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.PlainText),
+  value: Type.String(),
+});
+
+export type RenderMessageTemplateRequestContentPlainText = Static<
+  typeof RenderMessageTemplateRequestContentPlainText
+>;
+
+export const RenderMessageTemplateRequestContentEmailo = Type.Object({
+  type: Type.Literal(RenderMessageTemplateType.Emailo),
+  value: LowCodeEmailJsonBody,
+});
+
+export type RenderMessageTemplateRequestContentEmailo = Static<
+  typeof RenderMessageTemplateRequestContentEmailo
+>;
+
+export const RenderMessageTemplateRequestContent = Type.Union([
+  RenderMessageTemplateRequestContentPlainText,
+  RenderMessageTemplateRequestContentEmailo,
+  RenderMessageTemplateRequestContentMjml,
+]);
 
 export type RenderMessageTemplateRequestContent = Static<
   typeof RenderMessageTemplateRequestContent
@@ -2956,7 +3083,7 @@ export const MessageEmailSuccess = Type.Composite([
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
-  Type.Omit(EmailContents, ["headers"]),
+  Type.Omit(CodeEmailContents, ["headers"]),
 ]);
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
@@ -3372,7 +3499,7 @@ export const SearchDeliveriesResponseItem = Type.Union([
       to: Type.String(),
       channel: Type.Literal(ChannelType.Email),
     }),
-    Type.Partial(EmailContents),
+    Type.Partial(CodeEmailContents),
     BaseDeliveryItem,
   ]),
   Type.Composite([

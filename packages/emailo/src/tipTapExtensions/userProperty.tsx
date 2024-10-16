@@ -7,36 +7,12 @@ import {
 } from "@tiptap/react";
 import React, { useMemo, useState } from "react";
 
-export interface UserProperty {
-  name: string;
-}
-
-interface UserPropertyOptions {
-  properties: [UserProperty, ...UserProperty[]];
-}
-
-export interface UserPropertyAttributes {
-  variableName: string;
-  defaultValue: string;
-}
-
-export function userPropertyToExpression({
-  variableName,
-  defaultValue,
-}: {
-  variableName: string;
-  defaultValue: string;
-}) {
-  const baseExpression = variableName.includes(" ")
-    ? `user['${variableName.replace(/'/g, "\\'")}']`
-    : `user.${variableName}`;
-  const expression =
-    defaultValue.length > 0
-      ? `${baseExpression} | default: '${defaultValue}'`
-      : baseExpression;
-
-  return `{{ ${expression} }}`;
-}
+import {
+  UserProperty as UserPropertyType,
+  UserPropertyAttributes,
+  UserPropertyOptions,
+  userPropertyToExpression,
+} from "./userProperty/utils";
 
 function UserPropertySelected({
   variableName,
@@ -96,7 +72,7 @@ function UserPropertyFormContent({
   updateAttributes,
   close,
 }: {
-  properties: UserProperty[];
+  properties: UserPropertyType[];
   variableName: string;
   defaultValue: string;
   updateAttributes: NodeViewProps["updateAttributes"];
@@ -149,8 +125,8 @@ function UserPropertyComponent({
   updateAttributes,
   editor,
 }: NodeViewProps) {
-  const [visible, setVisible] = useState(true);
   const attribute = node.attrs as UserPropertyAttributes;
+  const [visible, setVisible] = useState(attribute.defaultOpen);
   const properties = useMemo(
     () =>
       editor.extensionManager.extensions.find((e) => e.name === "userProperty")
@@ -215,10 +191,13 @@ export const UserProperty = Node.create<UserPropertyOptions>({
   addAttributes() {
     return {
       variableName: {
-        default: this.options.properties[0].name,
+        default: this.options.properties[0]?.name ?? "",
       },
       defaultValue: {
         default: "",
+      },
+      defaultOpen: {
+        default: false,
       },
     };
   },
@@ -247,6 +226,9 @@ export const UserProperty = Node.create<UserPropertyOptions>({
           chain()
             .insertContent({
               type: this.name,
+              attrs: {
+                defaultOpen: true,
+              },
             })
             .blur()
             .run(),

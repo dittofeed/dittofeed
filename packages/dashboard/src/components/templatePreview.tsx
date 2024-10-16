@@ -43,11 +43,21 @@ function TemplatePreview({
       spacing={1}
     >
       <Stack>{previewHeader}</Stack>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        className="preview-header"
+        sx={{
+          height: "36px",
+        }}
+      >
         <FormLabel sx={{ paddingLeft: 1 }}>{bodyPreviewHeading}</FormLabel>
         {visibilityHandler}
       </Stack>
-      <BodyBox direction="right">{previewBody}</BodyBox>
+      <BodyBox direction="right" className="preview-body">
+        {previewBody}
+      </BodyBox>
     </Stack>
   );
 }

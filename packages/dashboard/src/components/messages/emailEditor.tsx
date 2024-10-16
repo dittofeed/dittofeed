@@ -1,6 +1,3 @@
-import { html } from "@codemirror/lang-html";
-import { lintGutter } from "@codemirror/lint";
-import { EditorView } from "@codemirror/view";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -17,14 +14,17 @@ import {
   Theme,
   useTheme,
 } from "@mui/material";
-import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   CompletionStatus,
+  MessageTemplateResourceDraft,
+  RenderMessageTemplateRequestContent,
   RenderMessageTemplateRequestContents,
+  RenderMessageTemplateType,
   UserPropertyDefinitionType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useMemo } from "react";
 
@@ -34,6 +34,7 @@ import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
 } from "../templateEditor";
+import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -228,29 +229,48 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   );
 }
 
-const draftToPreview: DraftToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (
+  definition: MessageTemplateResourceDraft,
+) => {
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
   }
+  let body: RenderMessageTemplateRequestContent;
+  if ("emailContentsType" in definition) {
+    body = {
+      type: RenderMessageTemplateType.Emailo,
+      value: definition.body,
+    };
+  } else {
+    body = {
+      type: RenderMessageTemplateType.Mjml,
+      value: definition.body,
+    };
+  }
   const content: RenderMessageTemplateRequestContents = {
     from: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.from,
     },
     subject: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.subject,
     },
-    body: {
-      mjml: true,
-      value: definition.body,
-    },
+    body,
   };
   if (definition.replyTo) {
     content.replyTo = {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.replyTo,
     };
   }
   return content;
 };
+
+const LowCodeEmailBodyEditor = dynamic(
+  () => import("./lowCodeEmailBodyEditor"),
+  { ssr: false },
+);
 
 export default function EmailEditor({
   hideTitle,
@@ -377,30 +397,20 @@ export default function EmailEditor({
         if (draft.type !== ChannelType.Email) {
           return null;
         }
+        if ("emailContentsType" in draft) {
+          return (
+            <LowCodeEmailBodyEditor
+              draft={draft}
+              setDraft={setDraft}
+              disabled={disabledOverride}
+            />
+          );
+        }
         return (
-          <ReactCodeMirror
-            value={draft.body}
-            onChange={(value) => {
-              setDraft((defn) => {
-                if (defn.type !== ChannelType.Email) {
-                  return defn;
-                }
-
-                defn.body = value;
-                return defn;
-              });
-            }}
-            readOnly={disabledOverride}
-            extensions={[
-              html(),
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              EditorView.lineWrapping,
-              lintGutter(),
-            ]}
+          <CodeEmailBodyEditor
+            draft={draft}
+            setDraft={setDraft}
+            disabled={disabledOverride}
           />
         );
       }}
@@ -420,7 +430,11 @@ export default function EmailEditor({
             border: "none",
             height: "100%",
             width: "100%",
-            padding: theme.spacing(1),
+            backgroundColor: "white",
+            paddingTop: "20px",
+            paddingBottom: "20px",
+            paddingLeft: "30px",
+            paddingRight: "30px",
           }}
         />
       )}

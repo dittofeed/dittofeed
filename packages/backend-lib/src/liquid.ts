@@ -139,16 +139,7 @@ liquidEngine.registerTag("unsubscribe_url", {
 const MJML_NOT_PRESENT_ERROR =
   "Check that your structure is correct and enclosed in <mjml> tags";
 
-export function renderLiquid({
-  template,
-  userProperties,
-  workspaceId,
-  subscriptionGroupId,
-  identifierKey,
-  secrets = {},
-  mjml = false,
-  tags,
-}: {
+export interface RenderLiquidOptions {
   template?: string;
   mjml?: boolean;
   identifierKey?: string;
@@ -158,7 +149,18 @@ export function renderLiquid({
   workspaceId: string;
   // TODO [DF-471] make this field required and render tags in the user property field
   tags?: MessageTags;
-}): string {
+}
+
+export function renderLiquid({
+  template,
+  userProperties,
+  workspaceId,
+  subscriptionGroupId,
+  identifierKey,
+  secrets = {},
+  mjml = false,
+  tags,
+}: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
   }

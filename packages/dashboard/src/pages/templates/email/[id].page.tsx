@@ -3,9 +3,12 @@ import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DefaultEmailProviderResource,
+  EmailContentsType,
+  EmailContentsTypeEnum,
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -35,6 +38,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     if (typeof ctx.query.name === "string") {
       name = ctx.query.name;
     }
+    const emailContentsType = schemaValidateWithErr(
+      ctx.query.emailContentType,
+      EmailContentsTypeEnum,
+    ).unwrapOr(EmailContentsType.Code);
 
     const workspaceId = dfContext.workspace.id;
 
@@ -65,9 +72,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: name ?? `New Email Message - ${templateId}`,
           id: templateId,
-          definition: defaultEmailDefinition(
-            defaultEmailProvider as DefaultEmailProviderResource | undefined,
-          ) satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition({
+            emailContentsType,
+            emailProvider: defaultEmailProvider as
+              | DefaultEmailProviderResource
+              | undefined,
+          }) satisfies EmailTemplateResource,
         },
         update: {},
       });

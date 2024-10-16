@@ -5,26 +5,26 @@
     "dist",
     "styles"
   ],
-  "main": "./dist/cjs/emailo.js",
-  "module": "./dist/esm/emailo.js",
-  "types": "./dist/cjs/emailo.d.ts",
+  "main": "./dist/cjs/src/emailo.js",
+  "module": "./dist/esm/src/emailo.js",
+  "types": "./dist/cjs/src/emailo.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/cjs/emailo.d.ts",
-      "import": "./dist/esm/emailo.js",
-      "require": "./dist/cjs/emailo.js"
+      "types": "./dist/cjs/src/emailo.d.ts",
+      "import": "./dist/esm/src/emailo.js",
+      "require": "./dist/cjs/src/emailo.js"
     },
-    "./*": {
-      "types": "./dist/cjs/*.d.ts",
-      "import": "./dist/esm/*.js",
-      "require": "./dist/cjs/*.js"
+    "./src/*": {
+      "types": "./dist/cjs/src/*.d.ts",
+      "import": "./dist/esm/src/*.js",
+      "require": "./dist/cjs/src/*.js"
     },
-    "./styles/*": "./styles/*"
+    "./styles.css": "./dist/style.css"
   },
   "scripts": {
     "lint": "eslint src/",
     "check": "tsc --build",
-    "build": "tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json",
+    "build": "NODE_ENV=production vite build && tsc --build tsconfig.esm.json && tsc --build tsconfig.cjs.json",
     "dev": "vite"
   },
   "dependencies": {

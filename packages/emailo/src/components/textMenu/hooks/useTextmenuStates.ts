@@ -6,10 +6,7 @@ import { isCustomNodeSelected } from "../../../utils/isCustomNodeSelected";
 import { isTextSelected } from "../../../utils/isTextSelected";
 import { ShouldShowProps } from "../types";
 
-export const useTextmenuStates = (
-  editor: Editor,
-  customExtensions: string[],
-) => {
+export const useTextmenuStates = (editor: Editor) => {
   const states = useEditorState({
     editor,
     selector: (ctx) => ({
@@ -44,11 +41,12 @@ export const useTextmenuStates = (
       const nodeDOM = view.nodeDOM(from || 0) as HTMLElement;
       const node = nodeDOM || domAtPos;
 
-      if (isCustomNodeSelected(editor, node, customExtensions)) {
+      if (isCustomNodeSelected(editor, node)) {
         return false;
       }
 
-      return isTextSelected({ editor });
+      const selected = isTextSelected({ editor });
+      return selected;
     },
     [editor],
   );

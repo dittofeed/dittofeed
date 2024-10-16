@@ -14,7 +14,48 @@
         "in": "header"
       }
     },
-    "schemas": {}
+    "schemas": {
+      "def-0": {
+        "title": "LowCodeEmailJsonBody",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "attrs": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          "marks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "attrs": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "paths": {
     "/api/": {
@@ -76,17 +117,98 @@
                   "contents": {
                     "type": "object",
                     "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "string"
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "PlainText"
+                              ]
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
                         },
-                        "mjml": {
-                          "type": "boolean"
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Emailo"
+                              ]
+                            },
+                            "value": {
+                              "title": "LowCodeEmailJsonBody",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string"
+                                },
+                                "attrs": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "content": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  }
+                                },
+                                "marks": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string"
+                                      },
+                                      "attrs": {
+                                        "type": "object",
+                                        "additionalProperties": {}
+                                      }
+                                    },
+                                    "required": [
+                                      "type"
+                                    ]
+                                  }
+                                },
+                                "text": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Mjml"
+                              ]
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
                         }
-                      },
-                      "required": [
-                        "value"
                       ]
                     }
                   },
@@ -302,57 +424,122 @@
                               },
                               {
                                 "description": "Email template resource",
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Email"
-                                    ]
-                                  },
-                                  "from": {
-                                    "type": "string"
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  },
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "replyTo": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "name": {
-                                          "type": "string"
-                                        },
-                                        "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
                                           "type": "string"
                                         }
                                       },
-                                      "required": [
-                                        "name",
-                                        "value"
-                                      ]
-                                    }
+                                      "body": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "from",
+                                      "subject",
+                                      "body"
+                                    ]
                                   },
-                                  "attachmentUserProperties": {
-                                    "description": "Names of user properties to attach to the email as attachments.",
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "emailContentsType": {
+                                        "type": "string",
+                                        "enum": [
+                                          "LowCode"
+                                        ]
+                                      },
+                                      "body": {
+                                        "$ref": "#/components/schemas/def-0"
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "emailContentsType",
+                                      "body",
+                                      "from",
+                                      "subject"
+                                    ]
                                   }
-                                },
-                                "required": [
-                                  "type",
-                                  "from",
-                                  "body",
-                                  "subject"
                                 ]
                               },
                               {
@@ -443,57 +630,122 @@
                               },
                               {
                                 "description": "Email template resource",
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Email"
-                                    ]
-                                  },
-                                  "from": {
-                                    "type": "string"
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  },
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "replyTo": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "name": {
-                                          "type": "string"
-                                        },
-                                        "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
                                           "type": "string"
                                         }
                                       },
-                                      "required": [
-                                        "name",
-                                        "value"
-                                      ]
-                                    }
+                                      "body": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "from",
+                                      "subject",
+                                      "body"
+                                    ]
                                   },
-                                  "attachmentUserProperties": {
-                                    "description": "Names of user properties to attach to the email as attachments.",
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "emailContentsType": {
+                                        "type": "string",
+                                        "enum": [
+                                          "LowCode"
+                                        ]
+                                      },
+                                      "body": {
+                                        "$ref": "#/components/schemas/def-0"
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "emailContentsType",
+                                      "body",
+                                      "from",
+                                      "subject"
+                                    ]
                                   }
-                                },
-                                "required": [
-                                  "type",
-                                  "from",
-                                  "body",
-                                  "subject"
                                 ]
                               },
                               {
@@ -550,7 +802,8 @@
                           "name",
                           "type",
                           "updatedAt"
-                        ]
+                        ],
+                        "title": "MessageTemplateResource"
                       }
                     }
                   },
@@ -627,57 +880,122 @@
                       },
                       {
                         "description": "Email template resource",
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "Email"
-                            ]
-                          },
-                          "from": {
-                            "type": "string"
-                          },
-                          "body": {
-                            "type": "string"
-                          },
-                          "subject": {
-                            "type": "string"
-                          },
-                          "replyTo": {
-                            "type": "string"
-                          },
-                          "headers": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string"
-                                },
-                                "value": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "name",
-                                "value"
-                              ]
-                            }
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "from",
+                              "subject",
+                              "body"
+                            ]
                           },
-                          "attachmentUserProperties": {
-                            "description": "Names of user properties to attach to the email as attachments.",
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "emailContentsType": {
+                                "type": "string",
+                                "enum": [
+                                  "LowCode"
+                                ]
+                              },
+                              "body": {
+                                "$ref": "#/components/schemas/def-0"
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "emailContentsType",
+                              "body",
+                              "from",
+                              "subject"
+                            ]
                           }
-                        },
-                        "required": [
-                          "type",
-                          "from",
-                          "body",
-                          "subject"
                         ]
                       },
                       {
@@ -770,57 +1088,122 @@
                           },
                           {
                             "description": "Email template resource",
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "Email"
-                                ]
-                              },
-                              "from": {
-                                "type": "string"
-                              },
-                              "body": {
-                                "type": "string"
-                              },
-                              "subject": {
-                                "type": "string"
-                              },
-                              "replyTo": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "name": {
-                                      "type": "string"
-                                    },
-                                    "value": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Email"
+                                    ]
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "subject": {
+                                    "type": "string"
+                                  },
+                                  "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
                                       "type": "string"
                                     }
                                   },
-                                  "required": [
-                                    "name",
-                                    "value"
-                                  ]
-                                }
+                                  "body": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "from",
+                                  "subject",
+                                  "body"
+                                ]
                               },
-                              "attachmentUserProperties": {
-                                "description": "Names of user properties to attach to the email as attachments.",
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Email"
+                                    ]
+                                  },
+                                  "emailContentsType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LowCode"
+                                    ]
+                                  },
+                                  "body": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "subject": {
+                                    "type": "string"
+                                  },
+                                  "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "emailContentsType",
+                                  "body",
+                                  "from",
+                                  "subject"
+                                ]
                               }
-                            },
-                            "required": [
-                              "type",
-                              "from",
-                              "body",
-                              "subject"
                             ]
                           },
                           {
@@ -970,57 +1353,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -1111,57 +1559,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -1367,6 +1880,22 @@
                         ]
                       }
                     ]
+                  },
+                  "emailContentsType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Code"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "LowCode"
+                        ]
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -1468,57 +1997,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -1609,57 +2203,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -2089,9 +2748,6 @@
                                         "from": {
                                           "type": "string"
                                         },
-                                        "body": {
-                                          "type": "string"
-                                        },
                                         "subject": {
                                           "type": "string"
                                         },
@@ -2104,6 +2760,9 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "body": {
+                                          "type": "string"
                                         }
                                       },
                                       "required": [
@@ -2111,8 +2770,8 @@
                                         "provider",
                                         "to",
                                         "from",
-                                        "body",
-                                        "subject"
+                                        "subject",
+                                        "body"
                                       ]
                                     },
                                     {
@@ -18142,9 +18801,6 @@
                                   "from": {
                                     "type": "string"
                                   },
-                                  "body": {
-                                    "type": "string"
-                                  },
                                   "subject": {
                                     "type": "string"
                                   },
@@ -18157,6 +18813,9 @@
                                     "items": {
                                       "type": "string"
                                     }
+                                  },
+                                  "body": {
+                                    "type": "string"
                                   }
                                 },
                                 "required": [
@@ -18164,8 +18823,8 @@
                                   "provider",
                                   "to",
                                   "from",
-                                  "body",
-                                  "subject"
+                                  "subject",
+                                  "body"
                                 ]
                               },
                               "sentAt": {
@@ -18265,9 +18924,6 @@
                               "from": {
                                 "type": "string"
                               },
-                              "body": {
-                                "type": "string"
-                              },
                               "subject": {
                                 "type": "string"
                               },
@@ -18298,6 +18954,9 @@
                                 "items": {
                                   "type": "string"
                                 }
+                              },
+                              "body": {
+                                "type": "string"
                               },
                               "sentAt": {
                                 "type": "string"
@@ -36949,17 +37608,98 @@
                   "contents": {
                     "type": "object",
                     "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "string"
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "PlainText"
+                              ]
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
                         },
-                        "mjml": {
-                          "type": "boolean"
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Emailo"
+                              ]
+                            },
+                            "value": {
+                              "title": "LowCodeEmailJsonBody",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string"
+                                },
+                                "attrs": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "content": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  }
+                                },
+                                "marks": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string"
+                                      },
+                                      "attrs": {
+                                        "type": "object",
+                                        "additionalProperties": {}
+                                      }
+                                    },
+                                    "required": [
+                                      "type"
+                                    ]
+                                  }
+                                },
+                                "text": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Mjml"
+                              ]
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "value"
+                          ]
                         }
-                      },
-                      "required": [
-                        "value"
                       ]
                     }
                   },
@@ -37175,57 +37915,122 @@
                               },
                               {
                                 "description": "Email template resource",
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Email"
-                                    ]
-                                  },
-                                  "from": {
-                                    "type": "string"
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  },
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "replyTo": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "name": {
-                                          "type": "string"
-                                        },
-                                        "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
                                           "type": "string"
                                         }
                                       },
-                                      "required": [
-                                        "name",
-                                        "value"
-                                      ]
-                                    }
+                                      "body": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "from",
+                                      "subject",
+                                      "body"
+                                    ]
                                   },
-                                  "attachmentUserProperties": {
-                                    "description": "Names of user properties to attach to the email as attachments.",
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "emailContentsType": {
+                                        "type": "string",
+                                        "enum": [
+                                          "LowCode"
+                                        ]
+                                      },
+                                      "body": {
+                                        "$ref": "#/components/schemas/def-0"
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "emailContentsType",
+                                      "body",
+                                      "from",
+                                      "subject"
+                                    ]
                                   }
-                                },
-                                "required": [
-                                  "type",
-                                  "from",
-                                  "body",
-                                  "subject"
                                 ]
                               },
                               {
@@ -37316,57 +38121,122 @@
                               },
                               {
                                 "description": "Email template resource",
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Email"
-                                    ]
-                                  },
-                                  "from": {
-                                    "type": "string"
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  },
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "replyTo": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "name": {
-                                          "type": "string"
-                                        },
-                                        "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
                                           "type": "string"
                                         }
                                       },
-                                      "required": [
-                                        "name",
-                                        "value"
-                                      ]
-                                    }
+                                      "body": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "from",
+                                      "subject",
+                                      "body"
+                                    ]
                                   },
-                                  "attachmentUserProperties": {
-                                    "description": "Names of user properties to attach to the email as attachments.",
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Email"
+                                        ]
+                                      },
+                                      "emailContentsType": {
+                                        "type": "string",
+                                        "enum": [
+                                          "LowCode"
+                                        ]
+                                      },
+                                      "body": {
+                                        "$ref": "#/components/schemas/def-0"
+                                      },
+                                      "from": {
+                                        "type": "string"
+                                      },
+                                      "subject": {
+                                        "type": "string"
+                                      },
+                                      "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "type": "string"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "attachmentUserProperties": {
+                                        "description": "Names of user properties to attach to the email as attachments.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "emailContentsType",
+                                      "body",
+                                      "from",
+                                      "subject"
+                                    ]
                                   }
-                                },
-                                "required": [
-                                  "type",
-                                  "from",
-                                  "body",
-                                  "subject"
                                 ]
                               },
                               {
@@ -37500,57 +38370,122 @@
                       },
                       {
                         "description": "Email template resource",
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "Email"
-                            ]
-                          },
-                          "from": {
-                            "type": "string"
-                          },
-                          "body": {
-                            "type": "string"
-                          },
-                          "subject": {
-                            "type": "string"
-                          },
-                          "replyTo": {
-                            "type": "string"
-                          },
-                          "headers": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string"
-                                },
-                                "value": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "name",
-                                "value"
-                              ]
-                            }
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "from",
+                              "subject",
+                              "body"
+                            ]
                           },
-                          "attachmentUserProperties": {
-                            "description": "Names of user properties to attach to the email as attachments.",
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "emailContentsType": {
+                                "type": "string",
+                                "enum": [
+                                  "LowCode"
+                                ]
+                              },
+                              "body": {
+                                "$ref": "#/components/schemas/def-0"
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "emailContentsType",
+                              "body",
+                              "from",
+                              "subject"
+                            ]
                           }
-                        },
-                        "required": [
-                          "type",
-                          "from",
-                          "body",
-                          "subject"
                         ]
                       },
                       {
@@ -37643,57 +38578,122 @@
                           },
                           {
                             "description": "Email template resource",
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "Email"
-                                ]
-                              },
-                              "from": {
-                                "type": "string"
-                              },
-                              "body": {
-                                "type": "string"
-                              },
-                              "subject": {
-                                "type": "string"
-                              },
-                              "replyTo": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "name": {
-                                      "type": "string"
-                                    },
-                                    "value": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Email"
+                                    ]
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "subject": {
+                                    "type": "string"
+                                  },
+                                  "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
                                       "type": "string"
                                     }
                                   },
-                                  "required": [
-                                    "name",
-                                    "value"
-                                  ]
-                                }
+                                  "body": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "from",
+                                  "subject",
+                                  "body"
+                                ]
                               },
-                              "attachmentUserProperties": {
-                                "description": "Names of user properties to attach to the email as attachments.",
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Email"
+                                    ]
+                                  },
+                                  "emailContentsType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LowCode"
+                                    ]
+                                  },
+                                  "body": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "subject": {
+                                    "type": "string"
+                                  },
+                                  "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "emailContentsType",
+                                  "body",
+                                  "from",
+                                  "subject"
+                                ]
                               }
-                            },
-                            "required": [
-                              "type",
-                              "from",
-                              "body",
-                              "subject"
                             ]
                           },
                           {
@@ -37843,57 +38843,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -37984,57 +39049,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -38240,6 +39370,22 @@
                         ]
                       }
                     ]
+                  },
+                  "emailContentsType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Code"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "LowCode"
+                        ]
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -38341,57 +39487,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -38482,57 +39693,122 @@
                         },
                         {
                           "description": "Email template resource",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "Email"
-                              ]
-                            },
-                            "from": {
-                              "type": "string"
-                            },
-                            "body": {
-                              "type": "string"
-                            },
-                            "subject": {
-                              "type": "string"
-                            },
-                            "replyTo": {
-                              "type": "string"
-                            },
-                            "headers": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "value": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "name",
-                                  "value"
-                                ]
-                              }
+                                "body": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "from",
+                                "subject",
+                                "body"
+                              ]
                             },
-                            "attachmentUserProperties": {
-                              "description": "Names of user properties to attach to the email as attachments.",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Email"
+                                  ]
+                                },
+                                "emailContentsType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "LowCode"
+                                  ]
+                                },
+                                "body": {
+                                  "$ref": "#/components/schemas/def-0"
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                },
+                                "replyTo": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "name",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "attachmentUserProperties": {
+                                  "description": "Names of user properties to attach to the email as attachments.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "emailContentsType",
+                                "body",
+                                "from",
+                                "subject"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "from",
-                            "body",
-                            "subject"
                           ]
                         },
                         {
@@ -38962,9 +40238,6 @@
                                         "from": {
                                           "type": "string"
                                         },
-                                        "body": {
-                                          "type": "string"
-                                        },
                                         "subject": {
                                           "type": "string"
                                         },
@@ -38977,6 +40250,9 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "body": {
+                                          "type": "string"
                                         }
                                       },
                                       "required": [
@@ -38984,8 +40260,8 @@
                                         "provider",
                                         "to",
                                         "from",
-                                        "body",
-                                        "subject"
+                                        "subject",
+                                        "body"
                                       ]
                                     },
                                     {

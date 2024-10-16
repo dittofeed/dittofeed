@@ -18,7 +18,11 @@ import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
-import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  EmailContentsType,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -103,12 +107,29 @@ function TemplateListContents() {
   const [selectedTemplateType, setSelectedTemplateType] = useState<ChannelType>(
     ChannelType.Email,
   );
+  const [emailContentType, setEmailContentType] = useState<EmailContentsType>(
+    EmailContentsType.LowCode,
+  );
   const router = useRouter();
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
 
+  const handleCreateTemplate = () => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("name", newName);
+    if (selectedTemplateType === ChannelType.Email) {
+      queryParams.set("emailContentType", emailContentType);
+    }
+    setOpenCreateDialog(false);
+    router.push(
+      `${messageTemplatePath({
+        id: newItemId,
+        channel: selectedTemplateType,
+      })}?${queryParams.toString()}`,
+    );
+  };
   return (
     <Stack
       sx={{
@@ -137,54 +158,80 @@ function TemplateListContents() {
         >
           <DialogTitle>Create New Template</DialogTitle>
           <DialogContent>
-            <TextField
-              sx={{ width: "100%", mt: 2 }}
-              autoFocus
-              label="Name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <ToggleButtonGroup
-              value={selectedTemplateType}
-              exclusive
-              color="primary"
-              onChange={(_, newType) => {
-                setSelectedTemplateType(newType);
-              }}
-              aria-label="template type"
-              sx={{ display: "flex", justifyContent: "center", mt: 2 }}
-            >
-              <ToggleButton value={ChannelType.Email} aria-label="email">
-                Email
-              </ToggleButton>
-              <ToggleButton value={ChannelType.Sms} aria-label="sms">
-                SMS
-              </ToggleButton>
-              <ToggleButton value={ChannelType.Webhook} aria-label="webhook">
-                Webhook
-              </ToggleButton>
-              <ToggleButton
-                value={ChannelType.MobilePush}
-                aria-label="mobile push"
-                disabled={!enableMobilePush}
+            <Stack alignItems="flex-start">
+              <TextField
+                sx={{ width: "100%", mt: 2 }}
+                autoFocus
+                label="Name"
+                value={newName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCreateTemplate();
+                  }
+                }}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+              <ToggleButtonGroup
+                value={selectedTemplateType}
+                exclusive
+                color="primary"
+                onChange={(_, newType) => {
+                  setSelectedTemplateType(newType);
+                }}
+                aria-label="template type"
+                sx={{ display: "flex", justifyContent: "center", mt: 2 }}
               >
-                Mobile Push
-              </ToggleButton>
-            </ToggleButtonGroup>
+                <ToggleButton value={ChannelType.Email} aria-label="email">
+                  Email
+                </ToggleButton>
+                <ToggleButton value={ChannelType.Sms} aria-label="sms">
+                  SMS
+                </ToggleButton>
+                <ToggleButton value={ChannelType.Webhook} aria-label="webhook">
+                  Webhook
+                </ToggleButton>
+                <ToggleButton
+                  value={ChannelType.MobilePush}
+                  aria-label="mobile push"
+                  disabled={!enableMobilePush}
+                >
+                  Mobile Push
+                </ToggleButton>
+              </ToggleButtonGroup>
+              {selectedTemplateType === ChannelType.Email && (
+                <ToggleButtonGroup
+                  value={emailContentType}
+                  exclusive
+                  color="primary"
+                  onChange={(_, newType) => {
+                    setEmailContentType(newType);
+                  }}
+                  aria-label="email content type"
+                  sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+                >
+                  <ToggleButton
+                    value={EmailContentsType.LowCode}
+                    aria-label="low code"
+                  >
+                    Low Code
+                  </ToggleButton>
+                  <ToggleButton
+                    value={EmailContentsType.Code}
+                    aria-label="code"
+                  >
+                    Code
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              )}
+            </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
             <Button
               variant="contained"
               disabled={!newName}
-              onClick={() => {
-                router.push(
-                  `${messageTemplatePath({
-                    id: newItemId,
-                    channel: selectedTemplateType,
-                  })}?name=${newName}`,
-                );
-              }}
+              onClick={handleCreateTemplate}
             >
               Create
             </Button>

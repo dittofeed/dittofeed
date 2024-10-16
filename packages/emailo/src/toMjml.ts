@@ -1,10 +1,10 @@
-import { JSONContent } from "@tiptap/core";
+import { JSONContent, Mark } from "@tiptap/core";
 
-import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink"; // Add this import
+import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
   UserPropertyAttributes,
   userPropertyToExpression,
-} from "./tipTapExtensions/userProperty";
+} from "./tipTapExtensions/userProperty/utils";
 
 type Mode = "preview" | "render";
 
@@ -15,7 +15,7 @@ function applyTextStyles({
   defaultTextStyles,
 }: {
   text: string;
-  marks: any[];
+  marks?: any[];
   defaultTextStyles?: Record<string, string>;
 }): {
   styledText: string;
@@ -151,7 +151,11 @@ function toMjmlHelper({
       }
 
       const styleAttr = `style="${style.join(" ")}"`;
-      return `<p ${styleAttr}>${resolvedContent}</p>`;
+
+      // Ensure empty paragraphs are rendered
+      const paragraphContent = resolvedContent || "<br>";
+
+      return `<p ${styleAttr}>${paragraphContent}</p>`;
     }
     case "bulletList":
       return `<ul style="list-style-type: disc; padding-left: 32px; padding-right: 32px; margin-top: 32px; margin-bottom: 32px;">${resolvedContent}</ul>`;
@@ -211,11 +215,13 @@ function toMjmlHelper({
     }
     case "unsubscribeLink": {
       const { linkText } = content.attrs as UnsubscribeLinkAttributes;
+      const marks = content.marks ?? []; // Include existing marks
       return toMjmlHelper({
         content: {
           type: "text",
           text: linkText,
           marks: [
+            ...marks, // Preserve existing marks
             {
               type: "link",
               attrs: {

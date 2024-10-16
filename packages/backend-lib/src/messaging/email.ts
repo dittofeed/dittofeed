@@ -1,10 +1,12 @@
 import { EmailProvider } from "@prisma/client";
+import { defaultEmailoContent } from "emailo";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   BadWorkspaceConfigurationType,
   ChannelType,
   DefaultEmailProviderResource,
+  EmailContentsType,
   EmailProviderSecret,
   EmailProviderType,
   EmailTemplateResource,
@@ -647,16 +649,33 @@ export const defaultEmailBody = `<!DOCTYPE html>
   </body>
 </html>`;
 
-export function defaultEmailDefinition(
-  emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">,
-): EmailTemplateResource {
-  return {
+export function defaultEmailDefinition({
+  emailContentsType,
+  emailProvider,
+}: {
+  emailContentsType: EmailContentsType;
+  emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">;
+}): EmailTemplateResource {
+  const baseTemplate = {
     type: ChannelType.Email,
     subject: "Hi {{ user.firstName | default: 'there'}}!",
     from: emailProvider?.fromAddress
       ? emailProvider.fromAddress
       : '{{ user.accountManager | default: "hello@company.com"}}',
     replyTo: "",
-    body: defaultEmailBody,
   };
+
+  switch (emailContentsType) {
+    case EmailContentsType.Code:
+      return {
+        ...baseTemplate,
+        body: defaultEmailBody,
+      };
+    case EmailContentsType.LowCode:
+      return {
+        ...baseTemplate,
+        emailContentsType: EmailContentsType.LowCode,
+        body: defaultEmailoContent,
+      };
+  }
 }

@@ -36,11 +36,14 @@ jobs:
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn workspaces focus ${{ inputs.package-name }}
+        run: yarn
 
       - name: Prisma generate
         if: ${{ inputs.is_backend == 'true' }}
         run: yarn workspace backend-lib prisma generate
+
+      - name: Emailo Build
+        run: yarn workspace emailo build
 
       - name: Run lint
         run: yarn workspace ${{ inputs.package-name }} lint
@@ -95,6 +98,9 @@ jobs:
       - name: Prisma generate
         if: ${{ inputs.is_backend == 'true' }}
         run: yarn workspace backend-lib prisma generate
+
+      - name: Emailo Build
+        run: yarn workspace emailo build
 
       - name: Build Package
         run: yarn workspace ${{ inputs.package-name }} check
