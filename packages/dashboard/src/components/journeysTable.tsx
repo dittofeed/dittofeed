@@ -1,3 +1,4 @@
+import { Chip, ChipProps } from "@mui/material";
 import {
   CompletionStatus,
   DeleteJourneyRequest,
@@ -8,7 +9,6 @@ import React from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
-import { Chip, ChipProps } from "@mui/material";
 
 export default function JourneysTable() {
   const {
