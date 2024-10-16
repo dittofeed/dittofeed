@@ -116,6 +116,20 @@ function TemplateListContents() {
     setTab(newValue);
   };
 
+  const handleCreateTemplate = () => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("name", newName);
+    if (selectedTemplateType === ChannelType.Email) {
+      queryParams.set("emailContentType", emailContentType);
+    }
+    setOpenCreateDialog(false);
+    router.push(
+      `${messageTemplatePath({
+        id: newItemId,
+        channel: selectedTemplateType,
+      })}?${queryParams.toString()}`,
+    );
+  };
   return (
     <Stack
       sx={{
@@ -150,6 +164,12 @@ function TemplateListContents() {
                 autoFocus
                 label="Name"
                 value={newName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCreateTemplate();
+                  }
+                }}
                 onChange={(e) => setNewName(e.target.value)}
               />
               <ToggleButtonGroup
@@ -211,19 +231,7 @@ function TemplateListContents() {
             <Button
               variant="contained"
               disabled={!newName}
-              onClick={() => {
-                const queryParams = new URLSearchParams();
-                queryParams.set("name", newName);
-                if (selectedTemplateType === ChannelType.Email) {
-                  queryParams.set("emailContentType", emailContentType);
-                }
-                router.push(
-                  `${messageTemplatePath({
-                    id: newItemId,
-                    channel: selectedTemplateType,
-                  })}?${queryParams.toString()}`,
-                );
-              }}
+              onClick={handleCreateTemplate}
             >
               Create
             </Button>
