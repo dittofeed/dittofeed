@@ -21,6 +21,7 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../publisher";
+import { ResourceSettings } from "../resourceSettings";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import JourneyStepper from "./stepper";
 import {
@@ -312,6 +313,7 @@ export default function JourneyLayout({
           <PublisherDraftToggle status={publisherStatuses.draftToggle} />
         </Stack>
         <Publisher status={publisherStatuses.publisher} title={journey.name} />
+        <ResourceSettings />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
