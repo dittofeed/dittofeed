@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState, useRef, useEffect } from "react";
+import Popover from "@mui/material/Popover";
 
 interface SettingsCommand {
   label: string;
@@ -43,6 +44,7 @@ const settingsCommands: SettingsCommand[] = [
 
 export function ResourceSettings() {
   const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [inputValue, setInputValue] = useState("");
   const autocompleteRef = useRef<HTMLInputElement>(null);
 
@@ -59,6 +61,16 @@ export function ResourceSettings() {
     }
   };
 
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+    setOpen(false);
+  };
+
   useEffect(() => {
     if (open && autocompleteRef.current) {
       autocompleteRef.current.focus();
@@ -67,19 +79,35 @@ export function ResourceSettings() {
 
   return (
     <>
-      <Button onClick={() => setOpen((prev) => !prev)}>...</Button>
-      {open && (
+      <Button onClick={handleClick}>...</Button>
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        sx={{
+          "& .MuiPopover-paper": {
+            overflow: "visible",
+          },
+        }}
+      >
         <Autocomplete
           autoFocus
           ref={autocompleteRef}
+          disablePortal
+          open
           ListboxProps={{
             sx: {
               padding: 0,
             },
           }}
-          open={open}
-          onOpen={() => setOpen(true)}
-          onClose={() => setOpen(false)}
           inputValue={inputValue}
           onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
           options={settingsCommands}
@@ -89,7 +117,13 @@ export function ResourceSettings() {
             <TextField {...params} label="Settings" variant="outlined" />
           )}
           renderOption={(props, option) => (
-            <Paper component="li" {...props}>
+            <Paper
+              component="li"
+              {...props}
+              sx={{
+                borderRadius: 0,
+              }}
+            >
               <Typography
                 variant="body2"
                 style={{ display: "flex", alignItems: "center" }}
@@ -99,11 +133,9 @@ export function ResourceSettings() {
               </Typography>
             </Paper>
           )}
-          sx={{
-            width: 300,
-          }}
+          sx={{ width: 300, padding: "8px", height: "100%" }}
         />
-      )}
+      </Popover>
     </>
   );
 }
