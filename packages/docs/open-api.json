@@ -16,6 +16,7 @@
     },
     "schemas": {
       "def-0": {
+        "title": "LowCodeEmailJsonBody",
         "type": "object",
         "properties": {
           "type": {
@@ -52,8 +53,7 @@
           "text": {
             "type": "string"
           }
-        },
-        "title": "LowCodeEmailJsonBody"
+        }
       }
     }
   },
@@ -146,6 +146,7 @@
                               ]
                             },
                             "value": {
+                              "title": "LowCodeEmailJsonBody",
                               "type": "object",
                               "properties": {
                                 "type": {
@@ -37636,6 +37637,7 @@
                               ]
                             },
                             "value": {
+                              "title": "LowCodeEmailJsonBody",
                               "type": "object",
                               "properties": {
                                 "type": {

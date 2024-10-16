@@ -69,10 +69,11 @@ describe("swagger", () => {
         "components",
         "schemas",
       ]);
+      const expected = omit(config, ["servers", "components", "schemas"]);
       expect(
         swagger,
         "To fix this test, update the docs by following these instructions: https://docs.dittofeed.com/contributing/updating-api-docs",
-      ).toEqual(omit(config, ["servers", "components", "schemas"]));
+      ).toEqual(expected);
     });
   });
 });

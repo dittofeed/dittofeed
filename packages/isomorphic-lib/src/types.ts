@@ -1062,6 +1062,7 @@ export const LowCodeEmailJsonBody = Type.Recursive(
     ]),
   {
     $id: "LowCodeEmailJsonBody",
+    title: "LowCodeEmailJsonBody",
   },
 );
 
