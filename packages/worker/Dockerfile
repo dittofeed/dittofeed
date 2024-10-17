@@ -15,6 +15,7 @@ COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
 COPY ./packages/worker/*.json ./packages/worker/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
+COPY ./packages/emailo/*.json ./packages/emailo/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
 RUN yarn workspaces focus worker --production && \
@@ -22,6 +23,7 @@ RUN yarn workspaces focus worker --production && \
 RUN yarn workspaces focus worker
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
+COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/worker/ ./packages/worker
 
@@ -52,6 +54,9 @@ COPY --from=builder /service/packages/worker/package.json ./packages/worker/pack
 
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
 COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
+
+COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
+COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
