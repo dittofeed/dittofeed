@@ -11,6 +11,7 @@ import React, { useEffect, useMemo } from "react";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
+import { copyToClipboard } from "../../lib/copyToClipboard";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -33,6 +34,20 @@ import {
   journeyToState,
   shouldDraftBeUpdated,
 } from "./store";
+
+function formatCurl(journey: SavedJourneyResource) {
+  return `curl --request PUT \
+  --url https://app.dittofeed.com/api/journeys/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "id": "${journey.id}",
+  "workspaceId": "${journey.workspaceId}",
+  "name": "${journey.name}",
+  "canRunMultiple": ${journey.canRunMultiple},
+  "updatedAt": ${journey.updatedAt},
+  "definition": ${JSON.stringify(journey.definition, null, 2)}
+}'`;
+}
 
 export default function JourneyLayout({
   journeyId,
@@ -287,18 +302,41 @@ export default function JourneyLayout({
     setViewDraft,
   ]);
 
-  const settingsCommands: SettingsCommand[] = [
-    {
-      label: "Copy journey definition as JSON",
-      icon: <ContentCopyOutlined />,
-      action: () => console.log("Toggling light mode"),
-    },
-    {
-      label: "Copy journey definition as CURL",
-      icon: <ContentCopyTwoTone />,
-      action: () => console.log("Toggling light mode"),
-    },
-  ];
+  const settingsCommands: SettingsCommand[] = useMemo(() => {
+    return [
+      {
+        label: "Copy journey definition as JSON",
+        icon: <ContentCopyOutlined />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          copyToClipboard({
+            value: JSON.stringify(journey.definition),
+            successNotice: "Journey definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy journey definition.",
+          });
+        },
+      },
+      {
+        label: "Copy journey definition as CURL",
+        icon: <ContentCopyTwoTone />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          const curl = formatCurl(journey);
+          copyToClipboard({
+            value: curl,
+            successNotice: "Journey definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy journey definition.",
+          });
+        },
+      },
+    ];
+  }, [journey]);
 
   if (!journey || !publisherStatuses) {
     return null;
