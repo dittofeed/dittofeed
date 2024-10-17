@@ -1,3 +1,5 @@
+import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
+import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
 import { Stack, useTheme } from "@mui/material";
 import { deepEquals } from "isomorphic-lib/src/equality";
 import {
@@ -9,6 +11,7 @@ import React, { useEffect, useMemo } from "react";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
+import { copyToClipboard } from "../../lib/copyToClipboard";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -21,6 +24,7 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../publisher";
+import { SettingsCommand, SettingsMenu } from "../settingsMenu";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import JourneyStepper from "./stepper";
 import {
@@ -30,6 +34,20 @@ import {
   journeyToState,
   shouldDraftBeUpdated,
 } from "./store";
+
+function formatCurl(journey: SavedJourneyResource) {
+  return `curl --request PUT \
+  --url https://app.dittofeed.com/api/journeys/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "id": "${journey.id}",
+  "workspaceId": "${journey.workspaceId}",
+  "name": "${journey.name}",
+  "canRunMultiple": ${journey.canRunMultiple},
+  "updatedAt": ${journey.updatedAt},
+  "definition": ${JSON.stringify(journey.definition, null, 2)}
+}'`;
+}
 
 export default function JourneyLayout({
   journeyId,
@@ -284,6 +302,42 @@ export default function JourneyLayout({
     setViewDraft,
   ]);
 
+  const settingsCommands: SettingsCommand[] = useMemo(() => {
+    return [
+      {
+        label: "Copy journey definition as JSON",
+        icon: <ContentCopyOutlined />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          copyToClipboard({
+            value: JSON.stringify(journey.definition),
+            successNotice: "Journey definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy journey definition.",
+          });
+        },
+      },
+      {
+        label: "Copy journey definition as CURL",
+        icon: <ContentCopyTwoTone />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          const curl = formatCurl(journey);
+          copyToClipboard({
+            value: curl,
+            successNotice: "Journey definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy journey definition.",
+          });
+        },
+      },
+    ];
+  }, [journey]);
+
   if (!journey || !publisherStatuses) {
     return null;
   }
@@ -312,6 +366,15 @@ export default function JourneyLayout({
           <PublisherDraftToggle status={publisherStatuses.draftToggle} />
         </Stack>
         <Publisher status={publisherStatuses.publisher} title={journey.name} />
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          sx={{
+            flex: 1,
+          }}
+        >
+          <SettingsMenu commands={settingsCommands} />
+        </Stack>
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
