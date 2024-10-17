@@ -1930,27 +1930,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@css-hooks/core@npm:2.0.4":
-  version: 2.0.4
-  resolution: "@css-hooks/core@npm:2.0.4"
-  checksum: 10/a066b466b6929b110a69e08b63675b2c5475c11c02692dba8251a39c8c424f014ce175da5aff8f45291b65a5648a3585477216ca000113a1e7f9daa2e3c68325
-  languageName: node
-  linkType: hard
-
-"@css-hooks/react@npm:^2.0.4":
-  version: 2.0.4
-  resolution: "@css-hooks/react@npm:2.0.4"
-  dependencies:
-    "@css-hooks/core": "npm:2.0.4"
-  peerDependencies:
-    "@types/react": ">=16 <19"
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-  checksum: 10/51f436c53a1b14869ae19012b01040405d1c3342358727b3f2b8b6a55ee577a62a8a5416dbb92df5518e378823d4f49c3ae34a5da8d2e5f16a303adeedd5d381
-  languageName: node
-  linkType: hard
-
 "@ctrl/tinycolor@npm:^3.6.1":
   version: 3.6.1
   resolution: "@ctrl/tinycolor@npm:3.6.1"
@@ -13033,7 +13012,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "emailo@workspace:packages/emailo"
   dependencies:
-    "@css-hooks/react": "npm:^2.0.4"
     "@radix-ui/react-dropdown-menu": "npm:^2.1.1"
     "@radix-ui/react-popover": "npm:^1.1.1"
     "@tippyjs/react": "npm:^4.2.6"
@@ -13073,9 +13051,9 @@ __metadata:
     mjml: "npm:^4.14.1"
     postcss: "npm:^8.4.47"
     prettier: "npm:3.2.5"
-    react: "npm:^18.0.0"
+    react: "npm:18.3.1"
     react-colorful: "npm:^5.6.1"
-    react-dom: "npm:^18.0.0"
+    react-dom: "npm:18.3.1"
     tailwind-merge: "npm:^2.5.2"
     tailwindcss: "npm:^3.4.12"
     tailwindcss-animate: "npm:^1.0.7"
