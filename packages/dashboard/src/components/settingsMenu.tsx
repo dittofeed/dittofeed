@@ -127,7 +127,7 @@ export function SettingsMenu({ commands }: { commands: SettingsCommand[] }) {
               </Typography>
             </Paper>
           )}
-          getOptionDisabled={(option) => option.disabled} // {{ edit_2 }}
+          getOptionDisabled={(option) => option.disabled ?? false}
           sx={{ width: 300, padding: 0, height: "100%" }}
         />
       </Popover>
