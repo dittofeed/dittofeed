@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import Popover from "@mui/material/Popover";
 
 interface SettingsCommand {
@@ -46,7 +46,7 @@ export function ResourceSettings() {
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const autocompleteRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null); // Updated ref
 
   const handleCommandSelect: AutocompleteProps<
     SettingsCommand,
@@ -71,12 +71,6 @@ export function ResourceSettings() {
     setOpen(false);
   };
 
-  useEffect(() => {
-    if (open && autocompleteRef.current) {
-      autocompleteRef.current.focus();
-    }
-  }, [open]);
-
   return (
     <>
       <Button onClick={handleClick}>...</Button>
@@ -84,6 +78,11 @@ export function ResourceSettings() {
         open={open}
         anchorEl={anchorEl}
         onClose={handleClose}
+        TransitionProps={{
+          onEntered: () => {
+            inputRef.current?.focus();
+          },
+        }}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "left",
@@ -99,7 +98,6 @@ export function ResourceSettings() {
         }}
       >
         <Autocomplete
-          ref={autocompleteRef}
           disablePortal
           open
           ListboxProps={{
@@ -116,10 +114,10 @@ export function ResourceSettings() {
           onChange={handleCommandSelect}
           renderInput={(params) => (
             <TextField
-              autoFocus
               {...params}
               label="Settings"
               variant="filled"
+              inputRef={inputRef} // Attached ref to TextField's input
             />
           )}
           renderOption={(props, option) => (
