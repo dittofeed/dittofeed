@@ -328,7 +328,15 @@ export default function JourneyLayout({
           <PublisherDraftToggle status={publisherStatuses.draftToggle} />
         </Stack>
         <Publisher status={publisherStatuses.publisher} title={journey.name} />
-        <SettingsMenu commands={settingsCommands} />
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          sx={{
+            flex: 1,
+          }}
+        >
+          <SettingsMenu commands={settingsCommands} />
+        </Stack>
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
