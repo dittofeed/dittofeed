@@ -99,13 +99,14 @@ export function ResourceSettings() {
         }}
       >
         <Autocomplete
-          autoFocus
           ref={autocompleteRef}
           disablePortal
           open
           ListboxProps={{
             sx: {
               padding: 0,
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
             },
           }}
           inputValue={inputValue}
@@ -114,7 +115,12 @@ export function ResourceSettings() {
           getOptionLabel={(option) => option.label}
           onChange={handleCommandSelect}
           renderInput={(params) => (
-            <TextField {...params} label="Settings" variant="outlined" />
+            <TextField
+              autoFocus
+              {...params}
+              label="Settings"
+              variant="filled"
+            />
           )}
           renderOption={(props, option) => (
             <Paper
@@ -122,6 +128,7 @@ export function ResourceSettings() {
               {...props}
               sx={{
                 borderRadius: 0,
+                width: 300,
               }}
             >
               <Typography
@@ -133,7 +140,7 @@ export function ResourceSettings() {
               </Typography>
             </Paper>
           )}
-          sx={{ width: 300, padding: "8px", height: "100%" }}
+          sx={{ width: 300, padding: 0, height: "100%" }}
         />
       </Popover>
     </>
