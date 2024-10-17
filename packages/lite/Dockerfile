@@ -22,7 +22,7 @@ COPY ./packages/emailo/*.json ./packages/emailo/
 RUN yarn set version 4.1.1
 RUN yarn workspaces focus lite --production && \
     cp -R node_modules production_node_modules
-RUN yarn workspaces focus lite
+RUN yarn workspaces focus lite emailo
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
@@ -32,11 +32,11 @@ COPY ./packages/worker/ ./packages/worker
 COPY ./packages/admin-cli/ ./packages/admin-cli
 COPY ./packages/emailo/ ./packages/emailo
 
-RUN yarn workspace backend-lib prisma generate && \
+RUN yarn workspace emailo build && \
+    yarn workspace backend-lib prisma generate && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
-    yarn workspace emailo build && \
     yarn workspace dashboard build
 
 COPY ./packages/lite/ ./packages/lite

@@ -14,19 +14,16 @@ COPY . .
 
 RUN yarn set version 4.1.1
 
-RUN yarn workspaces focus isomorphic-lib && \
-    yarn workspaces focus backend-lib && \
-    yarn workspaces focus emailo && \
-    yarn workspaces focus dashboard
+RUN yarn workspaces focus isomorphic-lib emailo backend-lib dashboard
 
 RUN mkdir -p packages/dashboard/public/public && \
     curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
     curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
 
-RUN yarn workspace isomorphic-lib build && \
+RUN yarn workspace emailo build && \
+    yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
-    yarn workspace emailo build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
