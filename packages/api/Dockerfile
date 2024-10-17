@@ -16,11 +16,13 @@ COPY .yarn .yarn
 COPY ./packages/api/*.json ./packages/api/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
+COPY ./packages/emailo/*.json ./packages/emailo/
 
 RUN yarn workspaces focus api --production && \
     cp -R node_modules production_node_modules
 RUN yarn workspaces focus api
 
+COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
@@ -57,6 +59,8 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
+COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
+COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
 # Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
