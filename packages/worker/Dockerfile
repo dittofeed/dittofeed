@@ -20,14 +20,15 @@ COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
 RUN yarn workspaces focus worker --production && \
     cp -R node_modules production_node_modules
-RUN yarn workspaces focus worker
+RUN yarn workspaces focus worker emailo
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/worker/ ./packages/worker
 
-RUN yarn workspace backend-lib prisma generate && \
+RUN yarn workspace emailo build && \
+    yarn workspace backend-lib prisma generate && \
     yarn workspace worker build
 
 # Production image
