@@ -9,6 +9,7 @@ import {
   Paper,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import React, { useState, useRef } from "react";
 import Popover from "@mui/material/Popover";
@@ -47,6 +48,7 @@ export function ResourceSettings() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null); // Updated ref
+  const theme = useTheme();
 
   const handleCommandSelect: AutocompleteProps<
     SettingsCommand,
@@ -73,7 +75,17 @@ export function ResourceSettings() {
 
   return (
     <>
-      <Button onClick={handleClick}>...</Button>
+      <Button
+        onClick={handleClick}
+        size="small"
+        sx={{
+          color: theme.palette.grey[800],
+          fontWeight: 800,
+          fontSize: 18,
+        }}
+      >
+        ...
+      </Button>
       <Popover
         open={open}
         anchorEl={anchorEl}
@@ -108,6 +120,7 @@ export function ResourceSettings() {
             },
           }}
           inputValue={inputValue}
+          disableClearable
           onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
           options={settingsCommands}
           getOptionLabel={(option) => option.label}
