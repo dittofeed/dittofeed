@@ -378,10 +378,16 @@ export async function cli() {
               let files: { path: string; contents: string }[];
               switch (definition.type) {
                 case ChannelType.Email: {
+                  const bodyContents: string =
+                    "EmailContentsType" in definition &&
+                    typeof definition.body === "string"
+                      ? definition.body
+                      : JSON.stringify(definition.body);
+
                   files = [
                     {
                       path: path.join(templateDir, "body.liquid.html"),
-                      contents: definition.body,
+                      contents: bodyContents,
                     },
                     {
                       path: path.join(templateDir, "subject.liquid.html"),
