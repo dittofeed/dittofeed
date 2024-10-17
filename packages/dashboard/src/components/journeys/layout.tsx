@@ -1,3 +1,5 @@
+import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
+import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
 import { Stack, useTheme } from "@mui/material";
 import { deepEquals } from "isomorphic-lib/src/equality";
 import {
@@ -21,7 +23,7 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../publisher";
-import { ResourceSettings } from "../resourceSettings";
+import { SettingsCommand, SettingsMenu } from "../settingsMenu";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import JourneyStepper from "./stepper";
 import {
@@ -285,6 +287,19 @@ export default function JourneyLayout({
     setViewDraft,
   ]);
 
+  const settingsCommands: SettingsCommand[] = [
+    {
+      label: "Copy journey definition as JSON",
+      icon: <ContentCopyOutlined />,
+      action: () => console.log("Toggling light mode"),
+    },
+    {
+      label: "Copy journey definition as CURL",
+      icon: <ContentCopyTwoTone />,
+      action: () => console.log("Toggling light mode"),
+    },
+  ];
+
   if (!journey || !publisherStatuses) {
     return null;
   }
@@ -313,7 +328,7 @@ export default function JourneyLayout({
           <PublisherDraftToggle status={publisherStatuses.draftToggle} />
         </Stack>
         <Publisher status={publisherStatuses.publisher} title={journey.name} />
-        <ResourceSettings />
+        <SettingsMenu commands={settingsCommands} />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
