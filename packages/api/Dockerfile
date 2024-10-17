@@ -20,14 +20,15 @@ COPY ./packages/emailo/*.json ./packages/emailo/
 
 RUN yarn workspaces focus api --production && \
     cp -R node_modules production_node_modules
-RUN yarn workspaces focus api
+RUN yarn workspaces focus api emailo
 
 COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
 
-RUN yarn workspace backend-lib prisma generate && \
+RUN yarn workspace emailo build && \
+    yarn workspace backend-lib prisma generate && \
     yarn workspace api build
 
 # Production image
