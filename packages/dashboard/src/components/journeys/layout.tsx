@@ -36,9 +36,10 @@ import {
 } from "./store";
 
 function formatCurl(journey: SavedJourneyResource) {
-  return `curl --request PUT \
-  --url https://app.dittofeed.com/api/journeys/ \
-  --header 'Content-Type: application/json' \
+  return `curl --request PUT \\
+  --url https://app.dittofeed.com/api/admin/journeys \\
+  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
+  --header 'Content-Type: application/json' \\
   --data '{
   "id": "${journey.id}",
   "workspaceId": "${journey.workspaceId}",
