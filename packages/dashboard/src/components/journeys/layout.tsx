@@ -44,7 +44,6 @@ function formatCurl(journey: SavedJourneyResource) {
   "workspaceId": "${journey.workspaceId}",
   "name": "${journey.name}",
   "canRunMultiple": ${journey.canRunMultiple},
-  "updatedAt": ${journey.updatedAt},
   "definition": ${JSON.stringify(journey.definition, null, 2)}
 }'`;
 }
