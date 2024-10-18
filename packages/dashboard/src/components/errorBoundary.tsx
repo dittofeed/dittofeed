@@ -21,7 +21,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error("Error occurred:", this.props.message, error, errorInfo);
+    const { message } = this.state;
+    const messages = ["client error occurred"];
+    if (message) {
+      messages.push(message);
+    }
+    messages.push(":");
+    console.error(messages.join(" "), error, errorInfo);
   }
 
   override render(): ReactNode {
