@@ -71,7 +71,7 @@ export default function JourneysTable() {
           renderCell: (params) => {
             let color: ChipProps["color"];
             switch (params.value) {
-              case "NotStarted":
+              case "Not Started":
                 color = "default";
                 break;
               case "Running":
