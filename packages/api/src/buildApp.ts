@@ -81,6 +81,10 @@ async function buildApp(opts?: BuildAppOpts) {
     },
   });
 
+  TYPE_REFS.forEach((schema) => {
+    server.addSchema(schema);
+  });
+
   // needs to be registered before routes
   const fastifyPluginPromises: PromiseLike<unknown>[] = [
     server.register(fastifyRequestContext),
@@ -112,10 +116,6 @@ async function buildApp(opts?: BuildAppOpts) {
   }
 
   await Promise.all(fastifyPluginPromises);
-
-  TYPE_REFS.forEach((schema) => {
-    server.addSchema(schema);
-  });
 
   await Promise.all([
     server.register((f) => router(f, opts)),
