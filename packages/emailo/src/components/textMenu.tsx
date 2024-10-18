@@ -4,7 +4,7 @@ import React, { memo } from "react";
 
 import { EmailoState } from "../types";
 import { ContentTypePicker } from "./contentTypePicker";
-import { EditLinkPopover } from "./editLinkPopover";
+import { EditLinkPopover, useEditLinkPopover } from "./editLinkPopover";
 import { FontFamilyPicker } from "./fontFamilyPicker";
 import { FontSizePicker } from "./fontSizePicker";
 import { Icon } from "./icon";
@@ -22,6 +22,7 @@ const MemoColorPicker = memo(ColorPicker);
 const MemoFontFamilyPicker = memo(FontFamilyPicker);
 const MemoFontSizePicker = memo(FontSizePicker);
 const MemoContentTypePicker = memo(ContentTypePicker);
+const MemoEditLinkPopover = memo(EditLinkPopover);
 
 export type TextMenuProps = {
   state: EmailoState;
@@ -32,6 +33,7 @@ export function TextMenu({ state }: TextMenuProps) {
   const commands = useTextmenuCommands(editor);
   const states = useTextmenuStates(editor);
   const blockOptions = useTextmenuContentTypes(editor);
+  const { isUnsubscribeLinkSelected } = useEditLinkPopover({ editor });
 
   return (
     <BubbleMenu
@@ -116,7 +118,10 @@ export function TextMenu({ state }: TextMenuProps) {
         <MemoButton tooltip="Code block" onClick={commands.onCodeBlock}>
           <Icon name="FileCode" />
         </MemoButton>
-        <EditLinkPopover onSetLink={commands.onLink} editor={editor} />
+        <MemoEditLinkPopover
+          onSetLink={commands.onLink}
+          isUnsubscribeLinkSelected={isUnsubscribeLinkSelected}
+        />
         <Popover.Root>
           {/* <Popover.Trigger asChild>
             <MemoButton
