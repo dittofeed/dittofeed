@@ -19,9 +19,10 @@ import SegmentLayout from "./[id]/segmentLayout";
 export const getServerSideProps = getSegmentServerSideProps;
 
 function formatCurl(segment: SegmentResource) {
-  return `curl --request PUT \
-  --url https://app.dittofeed.com/api/segments/ \
-  --header 'Content-Type: application/json' \
+  return `curl --request PUT \\
+  --url https://app.dittofeed.com/api/admin/segments \\
+  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
+  --header 'Content-Type: application/json' \\
   --data '{
   "id": "${segment.id}",
   "workspaceId": "${segment.workspaceId}",
