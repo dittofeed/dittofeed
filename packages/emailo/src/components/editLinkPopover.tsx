@@ -4,20 +4,28 @@ import React from "react";
 
 import { isNodeTypeSelected } from "../utils/isNodeTypeSelected";
 import { Icon } from "./icon";
-import { LinkEditorPanel } from "./panels";
+// change path
+import { LinkEditorPanel } from "./panels/linkEditorPanel";
 import { Toolbar } from "./toolbar";
 
 export type EditLinkPopoverProps = {
   onSetLink: (link: string, openInNewTab?: boolean) => void;
-  editor: Editor;
+  isUnsubscribeLinkSelected: boolean;
 };
 
-export function EditLinkPopover({ editor, onSetLink }: EditLinkPopoverProps) {
+export function useEditLinkPopover({ editor }: { editor: Editor }) {
   const isUnsubscribeLinkSelected = isNodeTypeSelected(
     editor,
     "unsubscribeLink",
   );
 
+  return { isUnsubscribeLinkSelected };
+}
+
+export function EditLinkPopover({
+  isUnsubscribeLinkSelected,
+  onSetLink,
+}: EditLinkPopoverProps) {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>

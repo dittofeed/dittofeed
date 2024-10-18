@@ -77,6 +77,7 @@ import {
 } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
+import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
@@ -1105,7 +1106,7 @@ export default function TemplateEditor({
         className="editor-body"
         sx={{ backgroundColor: "white" }}
       >
-        {renderEditorBody(renderEditorParams)}
+        <ErrorBoundary>{renderEditorBody(renderEditorParams)}</ErrorBoundary>
       </BodyBox>
     </Stack>
   );
