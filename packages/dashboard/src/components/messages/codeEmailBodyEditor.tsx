@@ -7,6 +7,7 @@ import {
   ChannelType,
   CodeEmailTemplateResource,
 } from "isomorphic-lib/src/types";
+import React, { useCallback, useMemo } from "react";
 import { Overwrite } from "utility-types";
 
 import { RenderEditorParams } from "../templateEditor";
@@ -18,36 +19,47 @@ type Props = Overwrite<
   }
 >;
 
-export default function CodeEmailBodyEditor({
+export default React.memo(function CodeEmailBodyEditor({
   draft,
   setDraft,
   disabled,
 }: Props) {
   const theme = useTheme();
+
+  const extensions = useMemo(
+    () => [
+      html(),
+      EditorView.theme({
+        "&": {
+          fontFamily: theme.typography.fontFamily,
+        },
+      }),
+      EditorView.lineWrapping,
+      lintGutter(),
+    ],
+    [theme],
+  );
+
+  const handleChange = useCallback(
+    (value: string) => {
+      setDraft((defn) => {
+        if (defn.type !== ChannelType.Email) {
+          return defn;
+        }
+
+        defn.body = value;
+        return defn;
+      });
+    },
+    [setDraft],
+  );
+
   return (
     <ReactCodeMirror
       value={draft.body}
-      onChange={(value) => {
-        setDraft((defn) => {
-          if (defn.type !== ChannelType.Email) {
-            return defn;
-          }
-
-          defn.body = value;
-          return defn;
-        });
-      }}
+      onChange={handleChange}
       readOnly={disabled}
-      extensions={[
-        html(),
-        EditorView.theme({
-          "&": {
-            fontFamily: theme.typography.fontFamily,
-          },
-        }),
-        EditorView.lineWrapping,
-        lintGutter(),
-      ]}
+      extensions={extensions}
     />
   );
-}
+});
