@@ -24,6 +24,12 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
         notFound: true,
       };
     }
+    let name: string;
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
+    } else {
+      name = `Subscription Group - ${id}`;
+    }
     const workspaceId = dfContext.workspace.id;
     const subscriptionGroup = await prisma().subscriptionGroup.findUnique({
       where: {
@@ -56,7 +62,7 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
       serverInitialState.editedSubscriptionGroup = {
         workspaceId,
         id,
-        name: `Subscription Group - ${id}`,
+        name,
         type: SubscriptionGroupType.OptOut,
         channel: ChannelType.Email,
       };

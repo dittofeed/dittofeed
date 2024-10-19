@@ -14,10 +14,12 @@ export function getSegmentConfigState({
   segment,
   segmentId: id,
   messageTemplates,
+  name,
   subscriptionGroups,
 }: {
   workspaceId: string;
   segmentId: string;
+  name?: string;
   messageTemplates: MessageTemplateResource[];
   subscriptionGroups: SavedSubscriptionGroupResource[];
   segment: SavedSegmentResource | null;
@@ -38,7 +40,7 @@ export function getSegmentConfigState({
     segmentResource = segment;
   } else {
     segmentResource = {
-      name: `My Segment - ${id}`,
+      name: name ?? `My Segment - ${id}`,
       id,
       workspaceId,
       definition: DEFAULT_SEGMENT_DEFINITION,
