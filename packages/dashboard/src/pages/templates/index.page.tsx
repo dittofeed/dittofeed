@@ -25,7 +25,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
@@ -103,6 +103,7 @@ function TemplateListContents() {
   const [tab, setTab] = useState<number>(0);
   const [newItemId, setNewItemId] = useState(() => uuid());
   const [newName, setNewName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [selectedTemplateType, setSelectedTemplateType] = useState<ChannelType>(
     ChannelType.Email,
@@ -154,6 +155,11 @@ function TemplateListContents() {
         </Button>
         <Dialog
           open={openCreateDialog}
+          TransitionProps={{
+            onEntered: () => {
+              inputRef.current?.focus();
+            },
+          }}
           onClose={() => setOpenCreateDialog(false)}
         >
           <DialogTitle>Create New Template</DialogTitle>
@@ -161,8 +167,8 @@ function TemplateListContents() {
             <Stack alignItems="flex-start">
               <TextField
                 sx={{ width: "100%", mt: 2 }}
-                autoFocus
                 label="Name"
+                inputRef={inputRef}
                 value={newName}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
