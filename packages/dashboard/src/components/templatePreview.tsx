@@ -14,6 +14,7 @@ const BodyBox = styled(Box, {
   ({ theme, direction }) => ({
     flex: 1,
     flexBasis: 0,
+    padding: 0,
     overflow: "scroll",
     border: `1px solid ${theme.palette.grey[200]}`,
     ...(direction === "left"
@@ -42,7 +43,13 @@ function TemplatePreview({
       }}
       spacing={1}
     >
-      <Stack>{previewHeader}</Stack>
+      <Stack
+        sx={{
+          width: "100%",
+        }}
+      >
+        {previewHeader}
+      </Stack>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -50,12 +57,24 @@ function TemplatePreview({
         className="preview-header"
         sx={{
           height: "36px",
+          width: "100%",
         }}
       >
         <FormLabel sx={{ paddingLeft: 1 }}>{bodyPreviewHeading}</FormLabel>
         {visibilityHandler}
       </Stack>
-      <BodyBox direction="right" className="preview-body">
+      <BodyBox
+        direction="right"
+        className="preview-body"
+        sx={{
+          width: "100%",
+          backgroundColor: "white",
+          paddingTop: "20px",
+          paddingBottom: "20px",
+          paddingLeft: "30px",
+          paddingRight: "30px",
+        }}
+      >
         {previewBody}
       </BodyBox>
     </Stack>

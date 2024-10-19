@@ -431,10 +431,10 @@ export default function EmailEditor({
             height: "100%",
             width: "100%",
             backgroundColor: "white",
-            paddingTop: "20px",
-            paddingBottom: "20px",
-            paddingLeft: "30px",
-            paddingRight: "30px",
+            // paddingTop: "20px",
+            // paddingBottom: "20px",
+            // paddingLeft: "30px",
+            // paddingRight: "30px",
           }}
         />
       )}
