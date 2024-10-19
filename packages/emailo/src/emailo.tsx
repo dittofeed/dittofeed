@@ -100,7 +100,33 @@ export const defaultEmailoContent = {
         },
         {
           type: "text",
-          text: ". Use it to format emails with:",
+          text: ". ",
+        },
+      ],
+    },
+    {
+      type: "paragraph",
+      attrs: {
+        textAlign: "left",
+        class: null,
+      },
+      content: [
+        {
+          type: "text",
+          text: "Type “/” to open the command menu to create new blocks.",
+        },
+      ],
+    },
+    {
+      type: "paragraph",
+      attrs: {
+        textAlign: "left",
+        class: null,
+      },
+      content: [
+        {
+          type: "text",
+          text: "Use these blocks format emails with:",
         },
       ],
     },
@@ -167,6 +193,7 @@ export const defaultEmailoContent = {
           attrs: {
             variableName: "name",
             defaultValue: "there",
+            defaultOpen: false,
           },
         },
       ],
@@ -193,6 +220,94 @@ export const defaultEmailoContent = {
         {
           type: "text",
           text: 'function foo() {\n  console.log("bar")\n}',
+        },
+      ],
+    },
+    {
+      type: "paragraph",
+      attrs: {
+        textAlign: "left",
+        class: null,
+      },
+      content: [
+        {
+          type: "text",
+          text: "You can also highlight text to ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "italic",
+            },
+          ],
+          text: "format",
+        },
+        {
+          type: "text",
+          text: " ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "bold",
+            },
+          ],
+          text: "it",
+        },
+        {
+          type: "text",
+          text: " ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "underline",
+            },
+          ],
+          text: "in",
+        },
+        {
+          type: "text",
+          text: " ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "textStyle",
+              attrs: {
+                color: null,
+                fontFamily: "Courier",
+                fontSize: null,
+              },
+            },
+          ],
+          text: "various",
+        },
+        {
+          type: "text",
+          text: " ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "textStyle",
+              attrs: {
+                color: "#f50404",
+                fontFamily: null,
+                fontSize: null,
+              },
+            },
+          ],
+          text: "ways",
+        },
+        {
+          type: "text",
+          text: ".",
         },
       ],
     },
