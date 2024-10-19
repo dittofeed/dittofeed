@@ -20,6 +20,10 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
         notFound: true,
       };
     }
+    let name: string | undefined;
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
+    }
 
     const workspaceId = dfContext.workspace.id;
     const [segment, subscriptionGroups, messageTemplates] = await Promise.all([
@@ -39,6 +43,7 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
     ]);
     const serverInitialState = getSegmentConfigState({
       segment: segment ? unwrap(toSegmentResource(segment)) : null,
+      name,
       segmentId: id,
       workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>
