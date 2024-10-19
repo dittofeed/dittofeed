@@ -1,16 +1,22 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import {
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   List,
   ListItemButton,
   Stack,
   SxProps,
+  TextField,
   Theme,
   Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 export function ResourceListItemButton({
@@ -69,6 +75,18 @@ export function ResourceListContainer({
   const [newItemId, setNewItemId] = useState(() => uuid());
   const href = useMemo(() => newItemHref(newItemId), [newItemHref, newItemId]);
 
+  const router = useRouter();
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [newName, setNewName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreate = useCallback(() => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("name", newName);
+    setOpenCreateDialog(false);
+    router.push(`${href}?${queryParams.toString()}`);
+  }, [href, newName, router]);
+
   return (
     <Stack
       sx={{
@@ -90,10 +108,9 @@ export function ResourceListContainer({
             <Button
               variant="contained"
               startIcon={<AddCircleOutline />}
-              LinkComponent={Link}
-              href={href}
               onClick={() => {
                 setNewItemId(uuid());
+                setOpenCreateDialog(true);
               }}
             >
               Create {titleSingular}
@@ -102,6 +119,45 @@ export function ResourceListContainer({
         </Stack>
       </Stack>
       {children}
+
+      <Dialog
+        open={openCreateDialog}
+        onClose={() => setOpenCreateDialog(false)}
+        TransitionProps={{
+          onEntered: () => {
+            inputRef.current?.focus();
+          },
+        }}
+      >
+        <DialogTitle>Create New {titleSingular}</DialogTitle>
+        <DialogContent>
+          <Stack alignItems="flex-start">
+            <TextField
+              sx={{ width: "100%", mt: 2 }}
+              label="Name"
+              inputRef={inputRef}
+              value={newName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleCreate();
+                }
+              }}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!newName}
+            onClick={handleCreate}
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
