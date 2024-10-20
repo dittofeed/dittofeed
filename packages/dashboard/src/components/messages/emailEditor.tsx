@@ -53,6 +53,35 @@ function fieldToReadable(field: string) {
   }
 }
 
+function PreviewIframe({ body }: { body?: string }) {
+  const newBody = useMemo(() => {
+    if (!body) {
+      return null;
+    }
+    const withNewStyle = body.replace(
+      "</head>",
+      "<style type='text/css'>body { padding-left: 30px; padding-right: 30px; padding-top: 20px; padding-bottom: 20px; }</style></head>",
+    );
+    return `<!DOCTYPE html>${withNewStyle}`;
+  }, [body]);
+
+  if (!newBody) {
+    return null;
+  }
+  return (
+    <iframe
+      srcDoc={newBody}
+      title="email-body-preview"
+      style={{
+        border: "none",
+        height: "100%",
+        width: "100%",
+        backgroundColor: "white",
+      }}
+    />
+  );
+}
+
 function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   const [open, setOpen] = React.useState(false);
   const { userProperties } = useAppStorePick(["userProperties"]);
@@ -423,20 +452,7 @@ export default function EmailEditor({
         />
       )}
       renderPreviewBody={({ rendered }) => (
-        <iframe
-          srcDoc={`<!DOCTYPE html>${rendered.body ?? ""}`}
-          title="email-body-preview"
-          style={{
-            border: "none",
-            height: "100%",
-            width: "100%",
-            backgroundColor: "white",
-            // paddingTop: "20px",
-            // paddingBottom: "20px",
-            // paddingLeft: "30px",
-            // paddingRight: "30px",
-          }}
-        />
+        <PreviewIframe body={rendered.body} />
       )}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
