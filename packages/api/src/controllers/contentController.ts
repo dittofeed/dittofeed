@@ -118,16 +118,8 @@ export default async function contentController(fastify: FastifyInstance) {
         });
       }
 
-      let identifierKey: string;
-      if (channel === ChannelType.Webhook) {
-        if (
-          contents.identifierKey?.type === RenderMessageTemplateType.PlainText
-        ) {
-          identifierKey = contents.identifierKey.value;
-        } else {
-          throw new Error("Invalid webhook render content type");
-        }
-      } else {
+      let identifierKey: string | undefined;
+      if (channel !== ChannelType.Webhook) {
         identifierKey = CHANNEL_IDENTIFIERS[channel];
       }
 
