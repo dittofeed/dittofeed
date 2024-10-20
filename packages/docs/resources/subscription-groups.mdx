@@ -142,7 +142,7 @@ When journey message nodes have subscription groups associated with them, unsubs
 You can also use the `unsubscribe_url` liquid tag to just render the unsubscribe url, without the link element. This can be useful if you want to customize the unsubscribe link styling.
 
 ```html
-<a class="custom-unsubscribe-link" href={% unsubscribe_url %}>custom unsubscribe link</a>
+<a class="custom-unsubscribe-link" href="{% unsubscribe_url %}">custom unsubscribe link</a>
 ```
 
 On loading the Subscription Management page, users will be either subscribed or unsubscribed to a specific subscription group.
