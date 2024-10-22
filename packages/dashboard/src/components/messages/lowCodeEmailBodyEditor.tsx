@@ -6,6 +6,7 @@ import {
   CompletionStatus,
   LowCodeEmailTemplateResource,
 } from "isomorphic-lib/src/types";
+import { useEffect } from "react";
 import { Overwrite } from "utility-types";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -53,9 +54,15 @@ export default function LowCodeEmailBodyEditor({
       });
     },
   });
+
+  // Reset content when toggling draft view
+  useEffect(() => {
+    state?.editor.commands.setContent(content);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inDraftView]);
+
   if (!state) {
     return null;
   }
-  debugger;
   return <Emailo state={state} disabled={disabled} />;
 }

@@ -764,20 +764,16 @@ export default function TemplateEditor({
 
   const renderEditorParams: RenderEditorParams | null = useMemo(() => {
     if (!template?.definition) {
-      console.log("loc1 !template?.definition");
       return null;
     }
     const draft: MessageTemplateResourceDraft | undefined =
       (viewDraft ? editedTemplate?.draft : undefined) ??
       messageTemplateDefinitionToDraft(template.definition);
 
-    console.log("loc2 draft", viewDraft, editedTemplate?.draft);
     const inDraftView =
       publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
       viewDraft;
 
-    console.log("loc3 inDraftView", inDraftView);
-    debugger;
     return {
       draft,
       disabled: Boolean(disabled) || !inDraftView,
