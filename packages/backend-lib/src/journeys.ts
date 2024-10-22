@@ -3,7 +3,6 @@ import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
-import { getUnsafe } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -227,7 +226,10 @@ function getEdgePercentRaw({
     if (childId === targetId) {
       continue;
     }
-    const siblingCount = getUnsafe(nodeProcessedMap, childId);
+    const siblingCount = nodeProcessedMap.get(childId);
+    if (siblingCount === undefined) {
+      continue;
+    }
     siblingsCount += siblingCount;
   }
 
