@@ -16,12 +16,15 @@ type LowCodeProps = Overwrite<
   {
     draft: LowCodeEmailTemplateResource;
   }
->;
+> & {
+  inDraftView: boolean;
+};
 
 export default function LowCodeEmailBodyEditor({
   draft,
   disabled,
   setDraft,
+  inDraftView,
 }: LowCodeProps) {
   const content = draft.body;
   const { userProperties: userPropertiesRequest } = useAppStorePick([
@@ -53,5 +56,6 @@ export default function LowCodeEmailBodyEditor({
   if (!state) {
     return null;
   }
+  debugger;
   return <Emailo state={state} disabled={disabled} />;
 }

@@ -422,7 +422,12 @@ export default function EmailEditor({
           </Stack>
         );
       }}
-      renderEditorBody={({ draft, setDraft, disabled: disabledOverride }) => {
+      renderEditorBody={({
+        draft,
+        setDraft,
+        disabled: disabledOverride,
+        inDraftView,
+      }) => {
         if (draft.type !== ChannelType.Email) {
           return null;
         }
@@ -432,6 +437,7 @@ export default function EmailEditor({
               draft={draft}
               setDraft={setDraft}
               disabled={disabledOverride}
+              inDraftView={inDraftView}
             />
           );
         }
@@ -440,6 +446,7 @@ export default function EmailEditor({
             draft={draft}
             setDraft={setDraft}
             disabled={disabledOverride}
+            inDraftView={inDraftView}
           />
         );
       }}
