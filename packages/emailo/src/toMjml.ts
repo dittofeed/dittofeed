@@ -1,4 +1,4 @@
-import { JSONContent, Mark } from "@tiptap/core";
+import { JSONContent } from "@tiptap/core";
 
 import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
@@ -111,26 +111,37 @@ function toMjmlHelper({
     }
     case "heading": {
       let fontSize: string;
+      let lineHeight: string;
       const level = content.attrs?.level ?? 1;
 
       switch (level) {
         case 1:
           fontSize = "30px";
+          lineHeight = "36px";
           break;
         case 2:
           fontSize = "24px";
+          lineHeight = "32px";
           break;
         case 3:
           fontSize = "20px";
+          lineHeight = "28px";
           break;
         case 4:
           fontSize = "18px";
+          lineHeight = "28px";
           break;
         case 5:
           fontSize = "16px";
+          lineHeight = "24px";
+          break;
+        case 6:
+          fontSize = "14px";
+          lineHeight = "20px";
           break;
         default:
-          fontSize = "14px";
+          fontSize = "16px";
+          lineHeight = "24px";
           break;
       }
 
@@ -141,6 +152,7 @@ function toMjmlHelper({
           attrs: {
             ...content.attrs,
             fontSize,
+            lineHeight,
             fontWeight: "bold",
           },
           content: content.content,
@@ -163,6 +175,10 @@ function toMjmlHelper({
 
       if (content.attrs?.fontSize) {
         style.push(`font-size: ${content.attrs.fontSize};`);
+      }
+
+      if (content.attrs?.lineHeight) {
+        style.push(`line-height: ${content.attrs.lineHeight};`);
       }
 
       if (content.attrs?.fontWeight) {
