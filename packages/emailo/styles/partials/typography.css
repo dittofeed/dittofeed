@@ -41,18 +41,6 @@
       @apply font-bold first:mt-0 last:mb-0;
     }
 
-    h1,
-    h2,
-    h3 {
-      @apply mt-12;
-    }
-
-    h4,
-    h5,
-    h6 {
-      @apply mt-8;
-    }
-
     mark {
       @apply bg-red-500 rounded-sm decoration-clone text-inherit py-1 px-0 dark:bg-red-400;
     }
