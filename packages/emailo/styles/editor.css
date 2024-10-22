@@ -9,10 +9,6 @@
       @apply first:mt-0 last:mb-0;
     }
 
-    & > * + * {
-      margin-top: 0.75em;
-    }
-
     .node-imageUpload {
       @apply rounded border-2 border-dotted border-black border-opacity-10 p-2 dark:border-neutral-500;
       transition: border 160ms cubic-bezier(0.45, 0.05, 0.55, 0.95);

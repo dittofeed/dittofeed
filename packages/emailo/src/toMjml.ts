@@ -1,4 +1,4 @@
-import { JSONContent, Mark } from "@tiptap/core";
+import { JSONContent } from "@tiptap/core";
 
 import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
@@ -111,33 +111,56 @@ function toMjmlHelper({
     }
     case "heading": {
       let fontSize: string;
-      let level: number;
-      if (content.attrs?.level && typeof content.attrs.level === "number") {
-        level = content.attrs.level;
-      } else {
-        level = 1;
-      }
+      let lineHeight: string;
+      const level = content.attrs?.level ?? 1;
+
       switch (level) {
         case 1:
-          fontSize = "32px";
+          fontSize = "30px";
+          lineHeight = "36px";
           break;
         case 2:
           fontSize = "24px";
+          lineHeight = "32px";
           break;
         case 3:
           fontSize = "20px";
+          lineHeight = "28px";
           break;
         case 4:
           fontSize = "18px";
+          lineHeight = "28px";
           break;
         case 5:
           fontSize = "16px";
+          lineHeight = "24px";
+          break;
+        case 6:
+          fontSize = "14px";
+          lineHeight = "20px";
           break;
         default:
-          fontSize = "14px";
+          fontSize = "16px";
+          lineHeight = "24px";
           break;
       }
-      return `<p style="font-size:${fontSize}; font-weight:bold; margin: 0;">${resolvedContent}</p>`;
+
+      // Pass heading attributes to paragraph case
+      return toMjmlHelper({
+        content: {
+          type: "paragraph",
+          attrs: {
+            ...content.attrs,
+            fontSize,
+            lineHeight,
+            fontWeight: "bold",
+          },
+          content: content.content,
+        },
+        childIndex,
+        isLastChild,
+        mode,
+      });
     }
     case "paragraph": {
       const style = [
@@ -148,6 +171,22 @@ function toMjmlHelper({
 
       if (content.attrs?.textAlign) {
         style.push(`text-align: ${content.attrs.textAlign};`);
+      }
+
+      if (content.attrs?.fontSize) {
+        style.push(`font-size: ${content.attrs.fontSize};`);
+      }
+
+      if (content.attrs?.lineHeight) {
+        style.push(`line-height: ${content.attrs.lineHeight};`);
+      }
+
+      if (content.attrs?.fontWeight) {
+        style.push(`font-weight: ${content.attrs.fontWeight};`);
+      }
+
+      if (content.attrs?.margin) {
+        style.push(`margin: ${content.attrs.margin};`);
       }
 
       const styleAttr = `style="${style.join(" ")}"`;
