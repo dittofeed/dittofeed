@@ -115,7 +115,7 @@ function toMjmlHelper({
 
       switch (level) {
         case 1:
-          fontSize = "32px";
+          fontSize = "30px";
           break;
         case 2:
           fontSize = "24px";
