@@ -27,6 +27,7 @@ export default function LowCodeEmailBodyEditor({
   const { userProperties: userPropertiesRequest } = useAppStorePick([
     "userProperties",
   ]);
+  console.log("loc1 disabled", disabled);
   const userProperties =
     userPropertiesRequest.type === CompletionStatus.Successful
       ? userPropertiesRequest.value

@@ -42,6 +42,8 @@ export function Emailo({
   disabled?: boolean;
   state: EmailoState;
 }) {
+  // FIXME read only not working
+  console.log("loc2 disabled emailo", disabled);
   return (
     <div className={cn("emailo", className)}>
       <EditorContent editor={state.editor} readOnly={disabled} />
