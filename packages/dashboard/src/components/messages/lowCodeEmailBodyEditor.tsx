@@ -27,7 +27,6 @@ export default function LowCodeEmailBodyEditor({
   const { userProperties: userPropertiesRequest } = useAppStorePick([
     "userProperties",
   ]);
-  console.log("loc1 disabled", disabled);
   const userProperties =
     userPropertiesRequest.type === CompletionStatus.Successful
       ? userPropertiesRequest.value
@@ -38,6 +37,7 @@ export default function LowCodeEmailBodyEditor({
     userProperties: userProperties.map((userProperty) => ({
       name: userProperty.name,
     })),
+    disabled,
     onUpdate: (updatedContent) => {
       setDraft((defn) => {
         if (defn.type !== ChannelType.Email || !("emailContentsType" in defn)) {

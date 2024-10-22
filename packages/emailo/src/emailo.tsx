@@ -14,16 +14,19 @@ export function useEmailo({
   content,
   userProperties,
   onUpdate,
+  disabled,
 }: {
   content: string | EmailoJsonContent;
   userProperties: UserProperty[];
   onUpdate?: UseEditorOptions["onUpdate"];
+  disabled?: boolean;
 }): EmailoState | null {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({
     extensions,
     content,
     onUpdate,
+    editable: !disabled,
     immediatelyRender: false,
   });
   if (!editor) {
@@ -39,11 +42,9 @@ export function Emailo({
   disabled,
 }: {
   className?: string;
-  disabled?: boolean;
   state: EmailoState;
+  disabled?: boolean;
 }) {
-  // FIXME read only not working
-  console.log("loc2 disabled emailo", disabled);
   return (
     <div className={cn("emailo", className)}>
       <EditorContent editor={state.editor} readOnly={disabled} />
