@@ -240,6 +240,7 @@ export interface RenderEditorParams {
   setDraft: SetDraft;
   draft: MessageTemplateResourceDraft;
   disabled: boolean;
+  inDraftView: boolean;
 }
 
 export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
@@ -776,6 +777,7 @@ export default function TemplateEditor({
     return {
       draft,
       disabled: Boolean(disabled) || !inDraftView,
+      inDraftView,
       setDraft: (setter) =>
         setState((stateDraft) => {
           let currentDefinition: MessageTemplateResourceDraft | null = null;

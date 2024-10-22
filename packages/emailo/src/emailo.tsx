@@ -14,16 +14,19 @@ export function useEmailo({
   content,
   userProperties,
   onUpdate,
+  disabled,
 }: {
   content: string | EmailoJsonContent;
   userProperties: UserProperty[];
   onUpdate?: UseEditorOptions["onUpdate"];
+  disabled?: boolean;
 }): EmailoState | null {
   const extensions = getExtensions({ userProperties });
   const editor = useEditor({
     extensions,
     content,
     onUpdate,
+    editable: !disabled,
     immediatelyRender: false,
   });
   if (!editor) {
@@ -39,8 +42,8 @@ export function Emailo({
   disabled,
 }: {
   className?: string;
-  disabled?: boolean;
   state: EmailoState;
+  disabled?: boolean;
 }) {
   return (
     <div className={cn("emailo", className)}>
