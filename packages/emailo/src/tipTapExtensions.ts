@@ -53,7 +53,12 @@ export function getExtensions({
       FontFamily.configure({
         fonts: ["Arial", "Helvetica", "sans-serif"],
       } as any),
-      Typography,
+      Typography.configure({
+        openDoubleQuote: '"',
+        closeDoubleQuote: '"',
+        openSingleQuote: "'",
+        closeSingleQuote: "'",
+      }),
       TextAlign.configure({
         types: ["paragraph"],
         alignments: ["left", "center", "right", "justify"],
