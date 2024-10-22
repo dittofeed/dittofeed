@@ -11,7 +11,7 @@ export function generateDigest({
 }) {
   return crypto
     .createHmac("sha1", sharedSecret)
-    .update(Buffer.from(rawBody, "utf-8"))
+    .update(rawBody, "utf-8")
     .digest("hex");
 }
 
