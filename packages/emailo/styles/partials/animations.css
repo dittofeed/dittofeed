@@ -9,7 +9,7 @@
   }
 
   @keyframes spinner {
-    12.5 % {
+    12.5% {
       x: 13px;
       y: 1px;
     }
