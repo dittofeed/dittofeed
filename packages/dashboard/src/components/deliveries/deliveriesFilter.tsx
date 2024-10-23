@@ -213,11 +213,42 @@ export function NewDeliveriesFilterButton({
           break;
         case DeliveriesFilterCommandType.KeyParent:
           setState((draft) => {
-            draft.stage = {
-              type: StageType.SelectItem,
-              key: value.key,
-              children: [],
-            };
+            switch (value.key) {
+              case "template":
+                draft.stage = {
+                  type: StageType.SelectItem,
+                  key: value.key,
+                  children: [],
+                };
+                break;
+              case "to":
+                draft.stage = {
+                  type: StageType.SelectValue,
+                  key: value.key,
+                  value: {
+                    type: FilterType.Value,
+                    value: "",
+                  },
+                };
+                break;
+              case "from":
+                draft.stage = {
+                  type: StageType.SelectValue,
+                  key: value.key,
+                  value: {
+                    type: FilterType.Value,
+                    value: "",
+                  },
+                };
+                break;
+              case "status":
+                draft.stage = {
+                  type: StageType.SelectItem,
+                  key: value.key,
+                  children: [],
+                };
+                break;
+            }
           });
           break;
         default:
