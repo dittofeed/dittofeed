@@ -388,11 +388,11 @@ export function NewDeliveriesFilterButton({
       draft.stage = { type: StageType.SelectKey };
     });
   };
-  // onEntered loc1 null
   // hook.js:608 MUI: The value provided to Autocomplete is invalid.
   // None of the options match with `{"label":"Template","type":"SelectKey","filterKey":"template"}`.
   // You can use the `isOptionEqualToValue` prop to customize the equality test. Error Component Stack
   //     at Autocomplete (Autocomplete.js:434:17)
+  // FIXME from selecting template
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
