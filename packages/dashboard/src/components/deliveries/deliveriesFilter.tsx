@@ -21,52 +21,50 @@ export interface BaseDeliveriesFilterCommand {
 }
 
 export enum DeliveriesFilterCommandType {
-  Leaf = "Leaf",
-  Parent = "Parent",
+  KeyLeaf = "KeyLeaf",
+  KeyParent = "KeyParent",
+  ValueParent = "ValueParent",
 }
 
-export enum FilterValueType {
-  NameValue = "NameValue",
-  FreeText = "FreeText",
-}
+export type Key = "template" | "status" | "to" | "from";
 
-export type Key = "template" | "user" | "status" | "to" | "from";
+export type KeyLeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
+  type: DeliveriesFilterCommandType.KeyLeaf;
+  id: string;
+};
 
-export type NameValueLeafDeliveriesFilterCommand =
-  BaseDeliveriesFilterCommand & {
-    type: DeliveriesFilterCommandType.Leaf;
-    valueType: FilterValueType.NameValue;
-    id: string;
-  };
-
-export type FreeTextLeafDeliveriesFilterCommand =
-  BaseDeliveriesFilterCommand & {
-    type: DeliveriesFilterCommandType.Leaf;
-    valueType: FilterValueType.FreeText;
-  };
-
-export type ParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.Parent;
+export type KeyParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
+  type: DeliveriesFilterCommandType.KeyParent;
   key: Key;
-  children: NameValueLeafDeliveriesFilterCommand[];
+  children: KeyLeafDeliveriesFilterCommand[];
+};
+
+export type ValueParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
+  type: DeliveriesFilterCommandType.ValueParent;
+  key: Key;
 };
 
 export type DeliveriesFilterCommand =
-  | NameValueLeafDeliveriesFilterCommand
-  | ParentDeliveriesFilterCommand;
+  | KeyLeafDeliveriesFilterCommand
+  | KeyParentDeliveriesFilterCommand;
 
-export interface NameIdFilterValue {
-  type: FilterValueType.NameValue;
+export enum FilterType {
+  Key = "Key",
+  Value = "Value",
+}
+
+export interface NameIdFilter {
+  type: FilterType.Key;
   // Map of filter ID to filter label
   value: Map<string, string>;
 }
 
-export interface FreeTextFilterValue {
-  type: FilterValueType.FreeText;
+export interface ValueFilter {
+  type: FilterType.Value;
   value: string;
 }
 
-export type FilterValue = NameIdFilterValue | FreeTextFilterValue;
+export type Filter = NameIdFilter | ValueFilter;
 
 export enum StageType {
   SelectKey = "SelectKey",
@@ -78,14 +76,19 @@ export interface SelectKeyStage {
   type: StageType.SelectKey;
 }
 
+export interface SelectItem extends BaseDeliveriesFilterCommand {
+  id: string;
+}
+
 export interface SelectItemStage {
   type: StageType.SelectItem;
   key: Key;
+  children: SelectItem[];
 }
 export interface SelectValueStage {
   type: StageType.SelectValue;
   key: Key;
-  value: FilterValue;
+  value: Filter;
 }
 
 export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
@@ -99,7 +102,7 @@ export interface DeliveriesState {
   filters: Map<
     // Filter Key e.g. templateId
     Key,
-    FilterValue
+    Filter
   >;
 }
 
@@ -156,51 +159,39 @@ export function NewDeliveriesFilterButton({
       return [
         {
           label: "Template",
-          type: DeliveriesFilterCommandType.Parent,
+          type: DeliveriesFilterCommandType.KeyParent,
           key: "template",
           children: [],
         },
         {
           label: "To",
-          type: DeliveriesFilterCommandType.Parent,
+          type: DeliveriesFilterCommandType.KeyParent,
           key: "to",
           children: [],
         },
         {
           label: "From",
-          type: DeliveriesFilterCommandType.Parent,
+          type: DeliveriesFilterCommandType.KeyParent,
           key: "from",
           children: [],
         },
         {
           label: "Status",
-          type: DeliveriesFilterCommandType.Parent,
+          type: DeliveriesFilterCommandType.KeyParent,
           key: "status",
-          children: [],
-        },
-        {
-          label: "User",
-          type: DeliveriesFilterCommandType.Parent,
-          key: "user",
           children: [],
         },
       ];
     }
-    switch (state.parentKey) {
+    switch (state.stage.key) {
       case "template":
-        return [];
-      case "user":
         return [];
       case "status":
         return [];
-      case "to":
-        return [];
-      case "from":
-        return [];
       default:
-        assertUnreachable(state.parentKey);
+        return [];
     }
-  }, [state.parentKey]);
+  }, [state.stage]);
 
   const handleCommandSelect: AutocompleteProps<
     DeliveriesFilterCommand,
@@ -210,22 +201,36 @@ export function NewDeliveriesFilterButton({
   >["onChange"] = (_event, value) => {
     if (value) {
       switch (value.type) {
-        case DeliveriesFilterCommandType.Leaf:
+        case DeliveriesFilterCommandType.KeyLeaf:
           setState((draft) => {
-            if (!draft.parentKey) {
+            const { stage } = draft;
+            if (stage.type !== StageType.SelectItem) {
               return draft;
             }
             draft.inputValue = "";
             draft.open = false;
-            const existing = draft.filters.get(draft.parentKey) ?? new Map();
-            existing.set(value.id, value.label);
-            draft.filters.set(draft.parentKey, existing);
+            const maybeExisting = draft.filters.get(stage.key);
+            if (maybeExisting?.type === FilterType.Value) {
+              console.error("Expected key filter value");
+              return draft;
+            }
+            const existing = maybeExisting ?? {
+              type: FilterType.Key,
+              value: new Map(),
+            };
+
+            existing.value.set(value.id, value.label);
+            draft.filters.set(stage.key, existing);
             return draft;
           });
           break;
-        case DeliveriesFilterCommandType.Parent:
+        case DeliveriesFilterCommandType.KeyParent:
           setState((draft) => {
-            draft.parentKey = value.key;
+            draft.stage = {
+              type: StageType.SelectItem,
+              key: value.key,
+              children: [],
+            };
           });
           break;
         default:
@@ -245,7 +250,7 @@ export function NewDeliveriesFilterButton({
     setState((draft) => {
       draft.anchorEl = null;
       draft.open = false;
-      draft.parentKey = null;
+      draft.stage = { type: StageType.SelectKey };
     });
   };
 
