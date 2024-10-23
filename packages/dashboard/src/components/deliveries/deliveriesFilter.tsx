@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { Updater, useImmer } from "use-immer";
 
 export interface BaseDeliveriesFilterCommand {
@@ -25,6 +25,8 @@ export enum DeliveriesFilterCommandType {
   Parent = "Parent",
 }
 
+type Key = "template" | "user" | "status" | "to" | "from";
+
 export type LeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.Leaf;
   id: string;
@@ -32,6 +34,7 @@ export type LeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
 
 export type ParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.Parent;
+  key: Key;
   children: LeafDeliveriesFilterCommand[];
 };
 
@@ -43,12 +46,11 @@ interface DeliveriesState {
   open: boolean;
   anchorEl: HTMLElement | null;
   inputValue: string;
-  visibleCommands: DeliveriesFilterCommand[];
+  parentKey: Key | null;
   inputRef: React.RefObject<HTMLInputElement>;
-  currentFilterKey: string | null;
   filters: Map<
     // Filter Key e.g. templateId
-    string,
+    Key,
     Map<
       // Filter ID e.g. 16469e6e-5981-4ac7-91f8-6ca34b13a637
       string,
@@ -60,16 +62,16 @@ interface DeliveriesState {
 
 type SetDeliveriesState = Updater<DeliveriesState>;
 
-export function useDeliveriesFilterState(
-  commands: DeliveriesFilterCommand[],
-): [DeliveriesState, SetDeliveriesState] {
+export function useDeliveriesFilterState(): [
+  DeliveriesState,
+  SetDeliveriesState,
+] {
   return useImmer<DeliveriesState>({
     open: false,
     anchorEl: null,
     inputValue: "",
-    visibleCommands: commands,
+    visibleCommands: null,
     inputRef: useRef<HTMLInputElement>(null),
-    currentFilterKey: null,
     filters: new Map(),
   });
 }
@@ -89,7 +91,7 @@ export function SelectedDeliveriesFilters({
         label={`${key} = ${label}`}
         onDelete={() =>
           setState((draft) => {
-            draft.filters.delete(key);
+            draft.filters.delete(key as Key);
           })
         }
       />
@@ -106,6 +108,56 @@ export function NewDeliveriesFilterButton({
   setState: SetDeliveriesState;
 }) {
   const theme = useTheme();
+  const commands: DeliveriesFilterCommand[] = useMemo(() => {
+    if (!state.parentKey) {
+      return [
+        {
+          label: "Template",
+          type: DeliveriesFilterCommandType.Parent,
+          key: "template",
+          children: [],
+        },
+        {
+          label: "To",
+          type: DeliveriesFilterCommandType.Parent,
+          key: "to",
+          children: [],
+        },
+        {
+          label: "From",
+          type: DeliveriesFilterCommandType.Parent,
+          key: "from",
+          children: [],
+        },
+        {
+          label: "Status",
+          type: DeliveriesFilterCommandType.Parent,
+          key: "status",
+          children: [],
+        },
+        {
+          label: "User",
+          type: DeliveriesFilterCommandType.Parent,
+          key: "user",
+          children: [],
+        },
+      ];
+    }
+    switch (state.parentKey) {
+      case "template":
+        return [];
+      case "user":
+        return [];
+      case "status":
+        return [];
+      case "to":
+        return [];
+      case "from":
+        return [];
+      default:
+        assertUnreachable(state.parentKey);
+    }
+  }, [state.parentKey]);
 
   const handleCommandSelect: AutocompleteProps<
     DeliveriesFilterCommand,
@@ -117,21 +169,20 @@ export function NewDeliveriesFilterButton({
       switch (value.type) {
         case DeliveriesFilterCommandType.Leaf:
           setState((draft) => {
-            if (!draft.currentFilterKey) {
+            if (!draft.parentKey) {
               return draft;
             }
             draft.inputValue = "";
             draft.open = false;
-            const existing = draft.filters.get(value.id) ?? new Map();
+            const existing = draft.filters.get(draft.parentKey) ?? new Map();
             existing.set(value.id, value.label);
-            draft.filters.set(draft.currentFilterKey, existing);
+            draft.filters.set(draft.parentKey, existing);
             return draft;
           });
           break;
         case DeliveriesFilterCommandType.Parent:
           setState((draft) => {
-            draft.visibleCommands = value.children;
-            draft.currentFilterKey = value.label;
+            draft.parentKey = value.key;
           });
           break;
         default:
@@ -151,7 +202,7 @@ export function NewDeliveriesFilterButton({
     setState((draft) => {
       draft.anchorEl = null;
       draft.open = false;
-      draft.currentFilterKey = null;
+      draft.parentKey = null;
     });
   };
 
@@ -209,7 +260,7 @@ export function NewDeliveriesFilterButton({
               draft.inputValue = newInputValue;
             })
           }
-          options={state.visibleCommands}
+          options={commands}
           getOptionLabel={(option) => option.label}
           onChange={handleCommandSelect}
           renderInput={(params) => (
