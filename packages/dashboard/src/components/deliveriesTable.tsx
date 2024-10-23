@@ -35,6 +35,11 @@ import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
+import {
+  NewDeliveriesFilterButton,
+  SelectedDeliveriesFilters,
+  useDeliveriesFilterState,
+} from "./deliveries/deliveriesFilter";
 import EmailPreviewHeader from "./emailPreviewHeader";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
@@ -223,6 +228,8 @@ export function DeliveriesTable({
   ]);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  const [deliveriesFilterState, setDeliveriesFilterState] =
+    useDeliveriesFilterState();
 
   React.useEffect(() => {
     (async () => {
@@ -485,6 +492,16 @@ export function DeliveriesTable({
   return (
     <>
       <Stack sx={{ width: "100%" }} spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <NewDeliveriesFilterButton
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+          />
+          <SelectedDeliveriesFilters
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+          />
+        </Stack>
         <DataGrid
           rows={rows}
           loading={paginationRequest.type === CompletionStatus.InProgress}
