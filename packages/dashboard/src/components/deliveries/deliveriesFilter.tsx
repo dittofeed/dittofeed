@@ -9,9 +9,8 @@ import {
   useTheme,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
-import { Draft } from "immer";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Updater, useImmer } from "use-immer";
 
 export interface BaseDeliveriesFilterCommand {
@@ -27,12 +26,12 @@ export enum DeliveriesFilterCommandType {
 
 export type LeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.Leaf;
-  action: () => void;
+  id: string;
 };
 
 export type ParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.Parent;
-  children: DeliveriesFilterCommand[];
+  children: LeafDeliveriesFilterCommand[];
 };
 
 export type DeliveriesFilterCommand =
@@ -45,6 +44,17 @@ interface DeliveriesState {
   inputValue: string;
   visibleCommands: DeliveriesFilterCommand[];
   inputRef: React.RefObject<HTMLInputElement>;
+  currentFilterKey: string | null;
+  filters: Map<
+    // Filter Key e.g. templateId
+    string,
+    Map<
+      // Filter ID e.g. 16469e6e-5981-4ac7-91f8-6ca34b13a637
+      string,
+      // Filter Label e.g. My Template Name
+      string
+    >
+  >;
 }
 
 type SetDeliveriesState = Updater<DeliveriesState>;
@@ -58,6 +68,8 @@ export function useDeliveriesFilterState(
     inputValue: "",
     visibleCommands: commands,
     inputRef: useRef<HTMLInputElement>(null),
+    currentFilterKey: null,
+    filters: new Map(),
   });
 }
 
@@ -80,14 +92,21 @@ export function DeliveriesFilter({
       switch (value.type) {
         case DeliveriesFilterCommandType.Leaf:
           setState((draft) => {
+            if (!draft.currentFilterKey) {
+              return draft;
+            }
             draft.inputValue = "";
             draft.open = false;
+            const existing = draft.filters.get(value.id) ?? new Map();
+            existing.set(value.id, value.label);
+            draft.filters.set(draft.currentFilterKey, existing);
+            return draft;
           });
-          value.action();
           break;
         case DeliveriesFilterCommandType.Parent:
           setState((draft) => {
             draft.visibleCommands = value.children;
+            draft.currentFilterKey = value.label;
           });
           break;
         default:
@@ -107,6 +126,7 @@ export function DeliveriesFilter({
     setState((draft) => {
       draft.anchorEl = null;
       draft.open = false;
+      draft.currentFilterKey = null;
     });
   };
 
