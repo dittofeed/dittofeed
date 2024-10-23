@@ -374,6 +374,65 @@ export function NewDeliveriesFilterButton({
     });
   };
 
+  let popoverBody: React.ReactNode;
+  if (state.stage.type === StageType.SelectValue) {
+    popoverBody = <>standin</>;
+  } else {
+    popoverBody = (
+      <Autocomplete
+        disablePortal
+        open
+        ListboxProps={{
+          sx: {
+            padding: 0,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+          },
+        }}
+        inputValue={state.inputValue}
+        disableClearable
+        onInputChange={(event, newInputValue) =>
+          setState((draft) => {
+            draft.inputValue = newInputValue;
+          })
+        }
+        options={commands}
+        getOptionLabel={(option) => option.label}
+        onChange={handleCommandSelect}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Settings"
+            variant="filled"
+            inputRef={state.inputRef}
+          />
+        )}
+        renderOption={(props, option) => (
+          <Paper
+            component="li"
+            {...props}
+            sx={{
+              opacity: option.disabled ? 0.5 : 1,
+              pointerEvents: option.disabled ? "none" : "auto",
+              borderRadius: 0,
+              width: 300,
+            }}
+          >
+            <Typography
+              variant="body2"
+              style={{ display: "flex", alignItems: "center" }}
+            >
+              {option.icon}
+              <span style={{ marginLeft: "8px" }}>{option.label}</span>
+            </Typography>
+          </Paper>
+        )}
+        getOptionDisabled={(option) => option.disabled ?? false}
+        sx={{ width: 300, padding: 0, height: "100%" }}
+      />
+    );
+  }
+
   return (
     <>
       <Button
@@ -411,57 +470,7 @@ export function NewDeliveriesFilterButton({
           },
         }}
       >
-        <Autocomplete
-          disablePortal
-          open
-          ListboxProps={{
-            sx: {
-              padding: 0,
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-            },
-          }}
-          inputValue={state.inputValue}
-          disableClearable
-          onInputChange={(event, newInputValue) =>
-            setState((draft) => {
-              draft.inputValue = newInputValue;
-            })
-          }
-          options={commands}
-          getOptionLabel={(option) => option.label}
-          onChange={handleCommandSelect}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Settings"
-              variant="filled"
-              inputRef={state.inputRef}
-            />
-          )}
-          renderOption={(props, option) => (
-            <Paper
-              component="li"
-              {...props}
-              sx={{
-                opacity: option.disabled ? 0.5 : 1,
-                pointerEvents: option.disabled ? "none" : "auto",
-                borderRadius: 0,
-                width: 300,
-              }}
-            >
-              <Typography
-                variant="body2"
-                style={{ display: "flex", alignItems: "center" }}
-              >
-                {option.icon}
-                <span style={{ marginLeft: "8px" }}>{option.label}</span>
-              </Typography>
-            </Paper>
-          )}
-          getOptionDisabled={(option) => option.disabled ?? false}
-          sx={{ width: 300, padding: 0, height: "100%" }}
-        />
+        {popoverBody}
       </Popover>
     </>
   );
