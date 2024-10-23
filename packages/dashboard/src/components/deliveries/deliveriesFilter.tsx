@@ -458,7 +458,13 @@ export function NewDeliveriesFilterButton({
         getOptionLabel={(option) => option.label}
         onChange={handleCommandSelect}
         renderInput={(params) => (
-          <TextField {...params} autoFocus label="Settings" variant="filled" />
+          <TextField
+            {...params}
+            autoFocus
+            label="Settings"
+            variant="filled"
+            inputRef={inputRef}
+          />
         )}
         renderOption={(props, option) => {
           const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
