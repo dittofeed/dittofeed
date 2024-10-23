@@ -99,11 +99,7 @@ export interface DeliveriesState {
   anchorEl: HTMLElement | null;
   inputValue: string;
   stage: Stage;
-  filters: Map<
-    // Filter Key e.g. templateId
-    Key,
-    Filter
-  >;
+  filters: Map<Key, Filter>;
 }
 
 type SetDeliveriesState = Updater<DeliveriesState>;
@@ -229,11 +225,13 @@ export function NewDeliveriesFilterButton({
 
               existing.value.set(value.id, value.label);
               draft.filters.set(currentStage.filterKey, existing);
+              draft.stage = { type: StageType.SelectKey };
               return draft;
             });
             break;
           case DeliveriesFilterCommandType.SelectKey:
             setState((draft) => {
+              draft.inputValue = "";
               switch (value.filterKey) {
                 case "template": {
                   const templates =
@@ -435,9 +433,9 @@ export function NewDeliveriesFilterButton({
         }}
       />
     );
-  } else {
+  } else if (commands.length > 0) {
     popoverBody = (
-      <Autocomplete
+      <Autocomplete<DeliveriesFilterCommand>
         disablePortal
         open
         ListboxProps={{
@@ -447,8 +445,8 @@ export function NewDeliveriesFilterButton({
             borderTopRightRadius: 0,
           },
         }}
+        value={null}
         inputValue={state.inputValue}
-        disableClearable
         onInputChange={(event, newInputValue) =>
           setState((draft) => {
             draft.inputValue = newInputValue;
@@ -456,7 +454,9 @@ export function NewDeliveriesFilterButton({
         }
         options={commands}
         getOptionLabel={(option) => option.label}
-        onChange={handleCommandSelect}
+        onChange={(event, value, reason, details) => {
+          handleCommandSelect(event, value, reason, details);
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -496,6 +496,8 @@ export function NewDeliveriesFilterButton({
         sx={{ width: 300, padding: 0, height: "100%" }}
       />
     );
+  } else {
+    popoverBody = null;
   }
 
   return (
@@ -518,7 +520,6 @@ export function NewDeliveriesFilterButton({
         onClose={handleClose}
         TransitionProps={{
           onEntered: () => {
-            console.log("onEntered loc1", inputRef.current);
             inputRef.current?.focus();
           },
         }}
