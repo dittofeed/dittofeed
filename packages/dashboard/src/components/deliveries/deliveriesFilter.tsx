@@ -45,6 +45,7 @@ export type ValueParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
 };
 
 export type DeliveriesFilterCommand =
+  | ValueParentDeliveriesFilterCommand
   | KeyLeafDeliveriesFilterCommand
   | KeyParentDeliveriesFilterCommand;
 
@@ -231,6 +232,22 @@ export function NewDeliveriesFilterButton({
               key: value.key,
               children: [],
             };
+          });
+          break;
+        case DeliveriesFilterCommandType.ValueParent:
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectItem) {
+              return draft;
+            }
+            draft.stage = {
+              type: StageType.SelectValue,
+              key: value.key,
+              value: {
+                type: FilterType.Value,
+                value: "",
+              },
+            };
+            return draft;
           });
           break;
         default:
