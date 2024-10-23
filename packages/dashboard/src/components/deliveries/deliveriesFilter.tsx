@@ -49,7 +49,7 @@ interface DeliveriesState {
 
 type SetDeliveriesState = Updater<DeliveriesState>;
 
-function useDeliveriesFilterState(
+export function useDeliveriesFilterState(
   commands: DeliveriesFilterCommand[],
 ): [DeliveriesState, SetDeliveriesState] {
   return useImmer<DeliveriesState>({
