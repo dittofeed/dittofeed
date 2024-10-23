@@ -11,7 +11,12 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, Present } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  InternalEventType,
+  Present,
+} from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Updater, useImmer } from "use-immer";
 
@@ -28,7 +33,7 @@ export enum DeliveriesFilterCommandType {
   SelectKey = "SelectKey",
 }
 
-export type Key = "template" | "status" | "to" | "from";
+export type Key = "template" | "status" | "to" | "from" | "channel";
 
 export type SelectItemCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.SelectItem;
@@ -257,13 +262,92 @@ export function NewDeliveriesFilterButton({
                     },
                   };
                   break;
-                case "status":
+                case "status": {
+                  const children: SelectItemCommand[] = [
+                    {
+                      label: "Sent",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.MessageSent,
+                    },
+                    {
+                      label: "Email Bounced",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailBounced,
+                    },
+                    {
+                      label: "Email Marked as Spam",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailMarkedSpam,
+                    },
+                    {
+                      label: "Email Opened",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailOpened,
+                    },
+                    {
+                      label: "Email Link Clicked",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailClicked,
+                    },
+                    {
+                      label: "Email Delivered",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailDelivered,
+                    },
+                    {
+                      label: "Email Bounced",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailDelivered,
+                    },
+                    {
+                      label: "Email Dropped",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailDropped,
+                    },
+                    {
+                      label: "Sms Delivered",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.SmsDelivered,
+                    },
+                    {
+                      label: "Sms Failed",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.SmsFailed,
+                    },
+                  ];
                   draft.stage = {
                     type: StageType.SelectItem,
                     key: value.key,
-                    children: [],
+                    children,
                   };
                   break;
+                }
+                case "channel": {
+                  const children: SelectItemCommand[] = [
+                    {
+                      label: "Email",
+                      id: ChannelType.Email,
+                      type: DeliveriesFilterCommandType.SelectItem,
+                    },
+                    {
+                      label: "SMS",
+                      id: ChannelType.Sms,
+                      type: DeliveriesFilterCommandType.SelectItem,
+                    },
+                    {
+                      label: "Webhook",
+                      id: ChannelType.Webhook,
+                      type: DeliveriesFilterCommandType.SelectItem,
+                    },
+                  ];
+
+                  draft.stage = {
+                    type: StageType.SelectItem,
+                    key: value.key,
+                    children,
+                  };
+                  break;
+                }
               }
             });
             break;
