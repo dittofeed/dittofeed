@@ -3,6 +3,7 @@ import {
   Autocomplete,
   AutocompleteProps,
   Button,
+  Chip,
   Paper,
   TextField,
   Typography,
@@ -73,7 +74,31 @@ export function useDeliveriesFilterState(
   });
 }
 
-export function DeliveriesFilter({
+export function SelectedDeliveriesFilters({
+  state,
+  setState,
+}: {
+  state: DeliveriesState;
+  setState: SetDeliveriesState;
+}) {
+  const filterChips = Object.entries(state.filters).map(([key, filters]) => {
+    const label = Array.from(filters.values()).join(" OR ");
+    return (
+      <Chip
+        key={key}
+        label={`${key} = ${label}`}
+        onDelete={() =>
+          setState((draft) => {
+            draft.filters.delete(key);
+          })
+        }
+      />
+    );
+  });
+  return <>{filterChips}</>;
+}
+
+export function NewDeliveriesFilterButton({
   state,
   setState,
 }: {
