@@ -17,7 +17,8 @@ import {
   InternalEventType,
   Present,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
+import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -387,6 +388,11 @@ export function NewDeliveriesFilterButton({
       draft.stage = { type: StageType.SelectKey };
     });
   };
+  // onEntered loc1 null
+  // hook.js:608 MUI: The value provided to Autocomplete is invalid.
+  // None of the options match with `{"label":"Template","type":"SelectKey","filterKey":"template"}`.
+  // You can use the `isOptionEqualToValue` prop to customize the equality test. Error Component Stack
+  //     at Autocomplete (Autocomplete.js:434:17)
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
@@ -395,7 +401,6 @@ export function NewDeliveriesFilterButton({
         autoFocus
         label={state.stage.label}
         value={state.stage.value.value}
-        ref={inputRef}
         onChange={(event) =>
           setState((draft) => {
             if (draft.stage.type !== StageType.SelectValue) {
@@ -455,26 +460,32 @@ export function NewDeliveriesFilterButton({
         renderInput={(params) => (
           <TextField {...params} autoFocus label="Settings" variant="filled" />
         )}
-        renderOption={(props, option) => (
-          <Paper
-            component="li"
-            {...props}
-            sx={{
-              opacity: option.disabled ? 0.5 : 1,
-              pointerEvents: option.disabled ? "none" : "auto",
-              borderRadius: 0,
-              width: 300,
-            }}
-          >
-            <Typography
-              variant="body2"
-              style={{ display: "flex", alignItems: "center" }}
+        renderOption={(props, option) => {
+          const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
+            key: string;
+          };
+          return (
+            <Paper
+              component="li"
+              key={option.label}
+              {...omit(propsWithKey, ["key"])}
+              sx={{
+                opacity: option.disabled ? 0.5 : 1,
+                pointerEvents: option.disabled ? "none" : "auto",
+                borderRadius: 0,
+                width: 300,
+              }}
             >
-              {option.icon}
-              <span style={{ marginLeft: "8px" }}>{option.label}</span>
-            </Typography>
-          </Paper>
-        )}
+              <Typography
+                variant="body2"
+                style={{ display: "flex", alignItems: "center" }}
+              >
+                {option.icon}
+                <span style={{ marginLeft: "8px" }}>{option.label}</span>
+              </Typography>
+            </Paper>
+          );
+        }}
         getOptionDisabled={(option) => option.disabled ?? false}
         sx={{ width: 300, padding: 0, height: "100%" }}
       />
@@ -501,7 +512,7 @@ export function NewDeliveriesFilterButton({
         onClose={handleClose}
         TransitionProps={{
           onEntered: () => {
-            console.log("onEntered loc1");
+            console.log("onEntered loc1", inputRef.current);
             inputRef.current?.focus();
           },
         }}
