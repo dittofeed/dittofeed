@@ -166,6 +166,7 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
+  channel,
   userId,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
@@ -181,6 +182,12 @@ export async function searchDeliveries({
   const userIdClause = userId
     ? `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
         userId,
+        "String",
+      )}`
+    : "";
+  const channelClause = channel
+    ? `AND JSON_VALUE(properties, '$.variant.type') = ${queryBuilder.addQueryValue(
+        channel,
         "String",
       )}`
     : "";
@@ -207,6 +214,7 @@ export async function searchDeliveries({
       WHERE
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}
+        ${channelClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING

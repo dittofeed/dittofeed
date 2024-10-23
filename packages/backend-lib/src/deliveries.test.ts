@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { times } from "remeda";
+import { times, type } from "remeda";
 
 import { submitBatch } from "./apps/batch";
 import {
@@ -15,6 +15,7 @@ import {
   EventType,
   InternalEventType,
   MessageSendSuccess,
+  SmsProviderType,
 } from "./types";
 
 describe("deliveries", () => {
@@ -335,6 +336,79 @@ describe("deliveries", () => {
         });
         expect(deliveries.items).toHaveLength(1);
         expect(deliveries.items[0]?.journeyId).toEqual(journeyId);
+      });
+    });
+
+    describe("when filtering by channel", () => {
+      let channel: ChannelType;
+      beforeEach(async () => {
+        channel = ChannelType.Email;
+
+        const messageSentEvents: Omit<MessageSendSuccess, "type">[] = [
+          {
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: "test-to@email.com",
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.Sendgrid,
+              },
+            },
+          },
+          {
+            variant: {
+              type: ChannelType.Sms,
+              to: "+1234567890",
+              body: "body",
+              provider: {
+                type: SmsProviderType.Twilio,
+                sid: randomUUID(),
+              },
+            },
+          },
+        ];
+        const events: BatchItem[] = messageSentEvents.map(
+          (messageSentEvent) => ({
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          }),
+        );
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+      it("returns the correct number of items", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          channel,
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]).toEqual(
+          expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            variant: expect.objectContaining({
+              type: channel,
+            }),
+          }),
+        );
       });
     });
 
