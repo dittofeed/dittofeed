@@ -169,6 +169,8 @@ export async function searchDeliveries({
   channels,
   userId,
   to,
+  statuses,
+  templateIds,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -198,6 +200,13 @@ export async function searchDeliveries({
         "Array(String)",
       )}`
     : "";
+  const statusClause = statuses
+    ? `AND last_event IN ${queryBuilder.addQueryValue(
+        statuses,
+        "Array(String)",
+      )}`
+    : "";
+
   const query = `
     SELECT 
       argMax(event, event_time) last_event,
@@ -229,7 +238,8 @@ export async function searchDeliveries({
       origin_message_id != ''
       ${journeyIdClause}
       ${userIdClause}
-    ORDER BY sent_at DESC
+      ${statusClause}
+    ORDER BY sent_at DESC, origin_message_id ASC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
       "UInt64",

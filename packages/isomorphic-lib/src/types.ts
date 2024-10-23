@@ -3467,6 +3467,8 @@ export const SearchDeliveriesRequest = Type.Object({
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
   to: Type.Optional(Type.Array(Type.String())),
+  statuses: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;

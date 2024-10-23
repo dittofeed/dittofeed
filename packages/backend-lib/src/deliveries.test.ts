@@ -199,6 +199,179 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when searching by status", () => {
+      beforeEach(async () => {
+        const userId = randomUUID();
+        const now = new Date();
+
+        function generateEvent({
+          offset,
+          event,
+          properties,
+          messageId,
+        }: {
+          offset: number;
+          event: string;
+          properties: Record<string, unknown>;
+          messageId?: string;
+        }): BatchItem {
+          return {
+            userId,
+            timestamp: new Date(now.getTime() + offset).toISOString(),
+            type: EventType.Track,
+            messageId: messageId ?? randomUUID(),
+            event,
+            properties: {
+              ...properties,
+            },
+          };
+        }
+
+        const journeyId = randomUUID();
+        const nodeId1 = randomUUID();
+        const nodeId2 = randomUUID();
+        const nodeId3 = randomUUID();
+        const runId = randomUUID();
+        const templateId1 = randomUUID();
+        const templateId2 = randomUUID();
+        const templateId3 = randomUUID();
+        const messageId1 = randomUUID();
+        const messageId2 = randomUUID();
+        const messageId3 = randomUUID();
+
+        const node1Properties = {
+          workspaceId,
+          journeyId,
+          nodeId: nodeId1,
+          runId,
+          templateId: templateId1,
+          messageId: messageId1,
+        };
+
+        const node2Properties = {
+          workspaceId,
+          journeyId,
+          nodeId: nodeId2,
+          runId,
+          templateId: templateId2,
+          messageId: messageId2,
+        };
+
+        const node3Properties = {
+          workspaceId,
+          journeyId,
+          nodeId: nodeId3,
+          runId,
+          templateId: templateId3,
+          messageId: messageId3,
+        };
+
+        const messageSentEvent1: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body1",
+            subject: "subject1",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+
+        const messageSentEvent2: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body2",
+            subject: "subject2",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+
+        // past format form backwards compatibility
+        const messageSentEvent3 = {
+          channel: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body2",
+          subject: "subject2",
+        };
+
+        // Submit email events
+        const events: BatchItem[] = [
+          generateEvent({
+            offset: 0,
+            event: InternalEventType.MessageSent,
+            messageId: messageId1,
+            properties: {
+              ...node1Properties,
+              ...messageSentEvent1,
+            },
+          }),
+          generateEvent({
+            offset: 10,
+            event: InternalEventType.EmailDelivered,
+            properties: node1Properties,
+          }),
+          generateEvent({
+            offset: 20,
+            event: InternalEventType.EmailOpened,
+            properties: node1Properties,
+          }),
+          generateEvent({
+            offset: 10,
+            event: InternalEventType.MessageSent,
+            messageId: messageId2,
+            properties: {
+              ...node2Properties,
+              ...messageSentEvent2,
+            },
+          }),
+          generateEvent({
+            offset: 20,
+            event: InternalEventType.EmailBounced,
+            properties: node2Properties,
+          }),
+          // check that backwards compatible
+          generateEvent({
+            offset: 40,
+            event: InternalEventType.MessageSent,
+            messageId: messageId3,
+            properties: {
+              ...node3Properties,
+              ...messageSentEvent3,
+            },
+          }),
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+
+      it("returns the correct email events", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          statuses: [
+            InternalEventType.MessageSent,
+            InternalEventType.EmailBounced,
+          ],
+        });
+        expect(deliveries.items).toHaveLength(2);
+        expect(deliveries.items.map((d) => d.status)).toEqual([
+          InternalEventType.MessageSent,
+          InternalEventType.EmailBounced,
+        ]);
+      });
+    });
+
     describe("when filtering by user id", () => {
       let userId: string;
       beforeEach(async () => {
@@ -448,7 +621,7 @@ describe("deliveries", () => {
             variant: {
               type: ChannelType.Email,
               from: "test-from@email.com",
-              to: "+5555555555",
+              to: "bad-to@email.com",
               body: "body",
               subject: "subject",
               provider: {
