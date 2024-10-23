@@ -129,20 +129,32 @@ export function SelectedDeliveriesFilters({
   state: DeliveriesState;
   setState: SetDeliveriesState;
 }) {
-  const filterChips = Object.entries(state.filters).map(([key, filters]) => {
-    const label = Array.from(filters.values()).join(" OR ");
-    return (
-      <Chip
-        key={key}
-        label={`${key} = ${label}`}
-        onDelete={() =>
-          setState((draft) => {
-            draft.filters.delete(key as Key);
-          })
+  const filterChips = Array.from(state.filters.entries()).map(
+    ([key, filters]) => {
+      let label: string;
+      switch (filters.type) {
+        case FilterType.Key: {
+          label = Array.from(filters.value.values()).join(" OR ");
+          break;
         }
-      />
-    );
-  });
+        case FilterType.Value: {
+          label = filters.value;
+          break;
+        }
+      }
+      return (
+        <Chip
+          key={key}
+          label={`${key} = ${label}`}
+          onDelete={() =>
+            setState((draft) => {
+              draft.filters.delete(key as Key);
+            })
+          }
+        />
+      );
+    },
+  );
   return <>{filterChips}</>;
 }
 
