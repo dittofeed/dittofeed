@@ -492,7 +492,7 @@ export function DeliveriesTable({
   return (
     <>
       <Stack sx={{ width: "100%" }} spacing={1}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ p: 1 }}>
           <NewDeliveriesFilterButton
             state={deliveriesFilterState}
             setState={setDeliveriesFilterState}

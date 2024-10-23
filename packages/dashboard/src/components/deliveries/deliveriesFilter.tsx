@@ -386,17 +386,13 @@ export function NewDeliveriesFilterButton({
       draft.stage = { type: StageType.SelectKey };
     });
   };
-  // hook.js:608 MUI: The value provided to Autocomplete is invalid.
-  // None of the options match with `{"label":"Template","type":"SelectKey","filterKey":"template"}`.
-  // You can use the `isOptionEqualToValue` prop to customize the equality test. Error Component Stack
-  //     at Autocomplete (Autocomplete.js:434:17)
-  // FIXME from selecting template
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
     popoverBody = (
       <TextField
         autoFocus
+        variant="filled"
         label={state.stage.label}
         value={state.stage.value.value}
         onChange={(event) =>
@@ -414,20 +410,21 @@ export function NewDeliveriesFilterButton({
           }
           event.preventDefault();
 
-          const value = state.inputValue;
           setState((draft) => {
             if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            if (draft.stage.value.type !== FilterType.Value) {
               return draft;
             }
             // Set the filter
             draft.filters.set(draft.stage.filterKey, {
               type: FilterType.Value,
-              value,
+              value: draft.stage.value.value,
             });
             // Reset and close
             draft.open = false;
             draft.stage = { type: StageType.SelectKey };
-            draft.inputValue = "";
             return draft;
           });
         }}
@@ -505,12 +502,8 @@ export function NewDeliveriesFilterButton({
       <Button
         onClick={handleClick}
         startIcon={<AddCircleOutline />}
-        size="small"
-        sx={{
-          color: theme.palette.grey[800],
-          fontWeight: 800,
-          fontSize: 18,
-        }}
+        variant="contained"
+        color="info"
       >
         Add Filter
       </Button>
