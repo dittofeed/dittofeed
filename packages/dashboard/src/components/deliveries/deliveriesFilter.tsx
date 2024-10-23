@@ -28,26 +28,17 @@ export enum DeliveriesFilterCommandType {
 
 export type Key = "template" | "status" | "to" | "from";
 
-export type KeyLeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
+export type SelectItemCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.KeyLeaf;
   id: string;
 };
 
-export type KeyParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
+export type SelectKeyCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.KeyParent;
   key: Key;
-  children: KeyLeafDeliveriesFilterCommand[];
 };
 
-export type ValueParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.ValueParent;
-  key: Key;
-};
-
-export type DeliveriesFilterCommand =
-  | ValueParentDeliveriesFilterCommand
-  | KeyLeafDeliveriesFilterCommand
-  | KeyParentDeliveriesFilterCommand;
+export type DeliveriesFilterCommand = SelectItemCommand | SelectKeyCommand;
 
 export enum FilterType {
   Key = "Key",
@@ -77,14 +68,10 @@ export interface SelectKeyStage {
   type: StageType.SelectKey;
 }
 
-export interface SelectItem extends BaseDeliveriesFilterCommand {
-  id: string;
-}
-
 export interface SelectItemStage {
   type: StageType.SelectItem;
   key: Key;
-  children: SelectItem[];
+  children: SelectItemCommand[];
 }
 export interface SelectValueStage {
   type: StageType.SelectValue;
@@ -155,44 +142,43 @@ export function NewDeliveriesFilterButton({
   setState: SetDeliveriesState;
 }) {
   const theme = useTheme();
+  const { stage } = state;
   const commands: DeliveriesFilterCommand[] = useMemo(() => {
-    if (state.stage.type === StageType.SelectKey) {
-      return [
-        {
-          label: "Template",
-          type: DeliveriesFilterCommandType.KeyParent,
-          key: "template",
-          children: [],
-        },
-        {
-          label: "To",
-          type: DeliveriesFilterCommandType.KeyParent,
-          key: "to",
-          children: [],
-        },
-        {
-          label: "From",
-          type: DeliveriesFilterCommandType.KeyParent,
-          key: "from",
-          children: [],
-        },
-        {
-          label: "Status",
-          type: DeliveriesFilterCommandType.KeyParent,
-          key: "status",
-          children: [],
-        },
-      ];
-    }
-    switch (state.stage.key) {
-      case "template":
+    switch (stage.type) {
+      case StageType.SelectKey: {
+        return [
+          {
+            label: "Template",
+            type: DeliveriesFilterCommandType.KeyParent,
+            key: "template",
+          },
+          {
+            label: "To",
+            type: DeliveriesFilterCommandType.KeyParent,
+            key: "to",
+          },
+          {
+            label: "From",
+            type: DeliveriesFilterCommandType.KeyParent,
+            key: "from",
+          },
+          {
+            label: "Status",
+            type: DeliveriesFilterCommandType.KeyParent,
+            key: "status",
+          },
+        ];
+      }
+      case StageType.SelectValue: {
         return [];
-      case "status":
-        return [];
+      }
+      case StageType.SelectItem: {
+        return stage.children;
+      }
       default:
-        return [];
+        assertUnreachable(stage);
     }
-  }, [state.stage]);
+  }, [stage]);
 
   const handleCommandSelect: AutocompleteProps<
     DeliveriesFilterCommand,
@@ -204,13 +190,13 @@ export function NewDeliveriesFilterButton({
       switch (value.type) {
         case DeliveriesFilterCommandType.KeyLeaf:
           setState((draft) => {
-            const { stage } = draft;
-            if (stage.type !== StageType.SelectItem) {
+            const { stage: currentStage } = draft;
+            if (currentStage.type !== StageType.SelectItem) {
               return draft;
             }
             draft.inputValue = "";
             draft.open = false;
-            const maybeExisting = draft.filters.get(stage.key);
+            const maybeExisting = draft.filters.get(currentStage.key);
             if (maybeExisting?.type === FilterType.Value) {
               console.error("Expected key filter value");
               return draft;
@@ -221,7 +207,7 @@ export function NewDeliveriesFilterButton({
             };
 
             existing.value.set(value.id, value.label);
-            draft.filters.set(stage.key, existing);
+            draft.filters.set(currentStage.key, existing);
             return draft;
           });
           break;
@@ -232,22 +218,6 @@ export function NewDeliveriesFilterButton({
               key: value.key,
               children: [],
             };
-          });
-          break;
-        case DeliveriesFilterCommandType.ValueParent:
-          setState((draft) => {
-            if (draft.stage.type !== StageType.SelectItem) {
-              return draft;
-            }
-            draft.stage = {
-              type: StageType.SelectValue,
-              key: value.key,
-              value: {
-                type: FilterType.Value,
-                value: "",
-              },
-            };
-            return draft;
           });
           break;
         default:
