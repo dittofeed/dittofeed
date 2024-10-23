@@ -25,24 +25,50 @@ export enum DeliveriesFilterCommandType {
   Parent = "Parent",
 }
 
-type Key = "template" | "user" | "status" | "to" | "from";
+export enum FilterValueType {
+  NameValue = "NameValue",
+  FreeText = "FreeText",
+}
 
-export type LeafDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.Leaf;
-  id: string;
-};
+export type Key = "template" | "user" | "status" | "to" | "from";
+
+export type NameValueLeafDeliveriesFilterCommand =
+  BaseDeliveriesFilterCommand & {
+    type: DeliveriesFilterCommandType.Leaf;
+    valueType: FilterValueType.NameValue;
+    id: string;
+  };
+
+export type FreeTextLeafDeliveriesFilterCommand =
+  BaseDeliveriesFilterCommand & {
+    type: DeliveriesFilterCommandType.Leaf;
+    valueType: FilterValueType.FreeText;
+  };
 
 export type ParentDeliveriesFilterCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.Parent;
   key: Key;
-  children: LeafDeliveriesFilterCommand[];
+  children: NameValueLeafDeliveriesFilterCommand[];
 };
 
 export type DeliveriesFilterCommand =
-  | LeafDeliveriesFilterCommand
+  | NameValueLeafDeliveriesFilterCommand
   | ParentDeliveriesFilterCommand;
 
-interface DeliveriesState {
+export interface NameIdFilterValue {
+  type: FilterValueType.NameValue;
+  // Map of filter ID to filter label
+  value: Map<string, string>;
+}
+
+export interface FreeTextFilterValue {
+  type: FilterValueType.FreeText;
+  value: string;
+}
+
+export type FilterValue = NameIdFilterValue | FreeTextFilterValue;
+
+export interface DeliveriesState {
   open: boolean;
   anchorEl: HTMLElement | null;
   inputValue: string;
@@ -51,12 +77,7 @@ interface DeliveriesState {
   filters: Map<
     // Filter Key e.g. templateId
     Key,
-    Map<
-      // Filter ID e.g. 16469e6e-5981-4ac7-91f8-6ca34b13a637
-      string,
-      // Filter Label e.g. My Template Name
-      string
-    >
+    FilterValue
   >;
 }
 
@@ -70,7 +91,7 @@ export function useDeliveriesFilterState(): [
     open: false,
     anchorEl: null,
     inputValue: "",
-    visibleCommands: null,
+    parentKey: null,
     inputRef: useRef<HTMLInputElement>(null),
     filters: new Map(),
   });
