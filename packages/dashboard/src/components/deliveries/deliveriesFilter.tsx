@@ -42,7 +42,7 @@ export type SelectItemCommand = BaseDeliveriesFilterCommand & {
 
 export type SelectKeyCommand = BaseDeliveriesFilterCommand & {
   type: DeliveriesFilterCommandType.SelectKey;
-  key: Key;
+  filterKey: Key;
 };
 
 export type DeliveriesFilterCommand = SelectItemCommand | SelectKeyCommand;
@@ -81,13 +81,13 @@ export interface SelectKeyStage {
 
 export interface SelectItemStage {
   type: StageType.SelectItem;
-  key: Key;
+  filterKey: Key;
   children: SelectItemCommand[];
 }
 export interface SelectValueStage {
   type: StageType.SelectValue;
   label: string;
-  key: Key;
+  filterKey: Key;
   value: Filter;
 }
 
@@ -98,7 +98,6 @@ export interface DeliveriesState {
   anchorEl: HTMLElement | null;
   inputValue: string;
   stage: Stage;
-  inputRef: React.RefObject<HTMLInputElement>;
   filters: Map<
     // Filter Key e.g. templateId
     Key,
@@ -117,7 +116,6 @@ export function useDeliveriesFilterState(): [
     anchorEl: null,
     inputValue: "",
     stage: { type: StageType.SelectKey },
-    inputRef: useRef<HTMLInputElement>(null),
     filters: new Map(),
   });
 }
@@ -168,6 +166,7 @@ export function NewDeliveriesFilterButton({
   const theme = useTheme();
   const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
+  const inputRef = useRef<HTMLInputElement>(null);
   const commands: DeliveriesFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
@@ -175,22 +174,22 @@ export function NewDeliveriesFilterButton({
           {
             label: "Template",
             type: DeliveriesFilterCommandType.SelectKey,
-            key: "template",
+            filterKey: "template",
           },
           {
             label: "To",
             type: DeliveriesFilterCommandType.SelectKey,
-            key: "to",
+            filterKey: "to",
           },
           {
             label: "From",
             type: DeliveriesFilterCommandType.SelectKey,
-            key: "from",
+            filterKey: "from",
           },
           {
             label: "Status",
             type: DeliveriesFilterCommandType.SelectKey,
-            key: "status",
+            filterKey: "status",
           },
         ];
       }
@@ -217,7 +216,7 @@ export function NewDeliveriesFilterButton({
               }
               draft.inputValue = "";
               draft.open = false;
-              const maybeExisting = draft.filters.get(currentStage.key);
+              const maybeExisting = draft.filters.get(currentStage.filterKey);
               if (maybeExisting?.type === FilterType.Value) {
                 console.error("Expected key filter value");
                 return draft;
@@ -228,13 +227,13 @@ export function NewDeliveriesFilterButton({
               };
 
               existing.value.set(value.id, value.label);
-              draft.filters.set(currentStage.key, existing);
+              draft.filters.set(currentStage.filterKey, existing);
               return draft;
             });
             break;
           case DeliveriesFilterCommandType.SelectKey:
             setState((draft) => {
-              switch (value.key) {
+              switch (value.filterKey) {
                 case "template": {
                   const templates =
                     messages.type === CompletionStatus.Successful
@@ -250,7 +249,7 @@ export function NewDeliveriesFilterButton({
                   );
                   draft.stage = {
                     type: StageType.SelectItem,
-                    key: value.key,
+                    filterKey: value.filterKey,
                     children,
                   };
                   break;
@@ -258,7 +257,7 @@ export function NewDeliveriesFilterButton({
                 case "to":
                   draft.stage = {
                     type: StageType.SelectValue,
-                    key: value.key,
+                    filterKey: value.filterKey,
                     label: value.label,
                     value: {
                       type: FilterType.Value,
@@ -269,7 +268,7 @@ export function NewDeliveriesFilterButton({
                 case "from":
                   draft.stage = {
                     type: StageType.SelectValue,
-                    key: value.key,
+                    filterKey: value.filterKey,
                     label: value.label,
                     value: {
                       type: FilterType.Value,
@@ -332,7 +331,7 @@ export function NewDeliveriesFilterButton({
                   ];
                   draft.stage = {
                     type: StageType.SelectItem,
-                    key: value.key,
+                    filterKey: value.filterKey,
                     children,
                   };
                   break;
@@ -358,7 +357,7 @@ export function NewDeliveriesFilterButton({
 
                   draft.stage = {
                     type: StageType.SelectItem,
-                    key: value.key,
+                    filterKey: value.filterKey,
                     children,
                   };
                   break;
@@ -393,8 +392,10 @@ export function NewDeliveriesFilterButton({
   if (state.stage.type === StageType.SelectValue) {
     popoverBody = (
       <TextField
+        autoFocus
         label={state.stage.label}
         value={state.stage.value.value}
+        ref={inputRef}
         onChange={(event) =>
           setState((draft) => {
             if (draft.stage.type !== StageType.SelectValue) {
@@ -404,6 +405,29 @@ export function NewDeliveriesFilterButton({
             return draft;
           })
         }
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+          event.preventDefault();
+
+          const value = state.inputValue;
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            // Set the filter
+            draft.filters.set(draft.stage.filterKey, {
+              type: FilterType.Value,
+              value,
+            });
+            // Reset and close
+            draft.open = false;
+            draft.stage = { type: StageType.SelectKey };
+            draft.inputValue = "";
+            return draft;
+          });
+        }}
       />
     );
   } else {
@@ -429,12 +453,7 @@ export function NewDeliveriesFilterButton({
         getOptionLabel={(option) => option.label}
         onChange={handleCommandSelect}
         renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Settings"
-            variant="filled"
-            inputRef={state.inputRef}
-          />
+          <TextField {...params} autoFocus label="Settings" variant="filled" />
         )}
         renderOption={(props, option) => (
           <Paper
@@ -482,7 +501,8 @@ export function NewDeliveriesFilterButton({
         onClose={handleClose}
         TransitionProps={{
           onEntered: () => {
-            state.inputRef.current?.focus();
+            console.log("onEntered loc1");
+            inputRef.current?.focus();
           },
         }}
         anchorOrigin={{
