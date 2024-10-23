@@ -397,10 +397,98 @@ describe("deliveries", () => {
       it("returns the correct number of items", async () => {
         const deliveries = await searchDeliveries({
           workspaceId,
-          channel,
+          channels: [channel],
           limit: 10,
         });
         expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]).toEqual(
+          expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            variant: expect.objectContaining({
+              type: channel,
+            }),
+          }),
+        );
+      });
+    });
+
+    describe.skip("when filtering by to", () => {
+      let to1: string;
+      let to2: string;
+
+      beforeEach(async () => {
+        to1 = `test-to-${randomUUID()}@email.com`;
+        to2 = "+1234567890";
+
+        const messageSentEvents: Omit<MessageSendSuccess, "type">[] = [
+          {
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: to1,
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.Sendgrid,
+              },
+            },
+          },
+          {
+            variant: {
+              type: ChannelType.Sms,
+              to: to2,
+              body: "body",
+              provider: {
+                type: SmsProviderType.Twilio,
+                sid: randomUUID(),
+              },
+            },
+          },
+          {
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: "+5555555555",
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.Sendgrid,
+              },
+            },
+          },
+        ];
+        const events: BatchItem[] = messageSentEvents.map(
+          (messageSentEvent) => ({
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          }),
+        );
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+      it("returns the correct number of items", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          to: [to1, to2],
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(2);
         expect(deliveries.items[0]).toEqual(
           expect.objectContaining({
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

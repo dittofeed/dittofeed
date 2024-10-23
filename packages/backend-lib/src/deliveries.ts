@@ -166,8 +166,9 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
-  channel,
+  channels,
   userId,
+  to,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -185,10 +186,16 @@ export async function searchDeliveries({
         "String",
       )}`
     : "";
-  const channelClause = channel
-    ? `AND JSON_VALUE(properties, '$.variant.type') = ${queryBuilder.addQueryValue(
-        channel,
-        "String",
+  const channelClause = channels
+    ? `AND JSON_VALUE(properties, '$.variant.type') IN ${queryBuilder.addQueryValue(
+        channels,
+        "Array(String)",
+      )}`
+    : "";
+  const toClause = to
+    ? `AND JSON_VALUE(properties, '$.to') IN ${queryBuilder.addQueryValue(
+        to,
+        "Array(String)",
       )}`
     : "";
   const query = `
@@ -215,6 +222,7 @@ export async function searchDeliveries({
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}
         ${channelClause}
+        ${toClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING

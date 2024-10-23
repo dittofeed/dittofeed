@@ -3463,9 +3463,10 @@ export const SearchDeliveriesRequest = Type.Object({
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
   userId: Type.Optional(UserId),
-  channel: Type.Optional(Type.Enum(ChannelType)),
+  channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
+  to: Type.Optional(Type.Array(Type.String())),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
