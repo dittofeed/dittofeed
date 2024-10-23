@@ -3,7 +3,6 @@ import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
-import { getUnsafe } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -96,11 +95,15 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { definition, status, createdAt, updatedAt } = result.value;
+  const { definition, draft, status, createdAt, updatedAt, ...rest } =
+    result.value;
   const baseResource = {
-    ...result.value,
+    ...rest,
+    ...(definition ? { definition } : {}),
+    ...(draft ? { draft } : {}),
     createdAt: createdAt.getTime(),
     updatedAt: updatedAt.getTime(),
+    status,
   };
   if (status === JourneyStatus.NotStarted) {
     return ok({
@@ -119,8 +122,6 @@ export function toJourneyResource(
   return ok({
     ...baseResource,
     definition,
-    createdAt: createdAt.getTime(),
-    updatedAt: updatedAt.getTime(),
   });
 }
 
@@ -225,7 +226,10 @@ function getEdgePercentRaw({
     if (childId === targetId) {
       continue;
     }
-    const siblingCount = getUnsafe(nodeProcessedMap, childId);
+    const siblingCount = nodeProcessedMap.get(childId);
+    if (siblingCount === undefined) {
+      continue;
+    }
     siblingsCount += siblingCount;
   }
 

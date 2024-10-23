@@ -1,3 +1,4 @@
+import { Chip, ChipProps } from "@mui/material";
 import {
   CompletionStatus,
   DeleteJourneyRequest,
@@ -48,6 +49,7 @@ export default function JourneysTable() {
       id: journey.id,
       name: journey.name,
       updatedAt: new Date(journey.updatedAt).toISOString(),
+      status: journey.status,
     };
     journeysRow.push(row);
   });
@@ -62,6 +64,29 @@ export default function JourneysTable() {
     <ResourceTable
       rows={journeysRow}
       getHref={(id) => `/journeys/${id}`}
+      additionalColumns={[
+        {
+          field: "status",
+          headerName: "Status",
+          renderCell: (params) => {
+            let color: ChipProps["color"];
+            switch (params.value) {
+              case "Not Started":
+                color = "default";
+                break;
+              case "Running":
+                color = "success";
+                break;
+              case "Paused":
+                color = "warning";
+                break;
+              default:
+                return null;
+            }
+            return <Chip label={params.value} color={color} />;
+          },
+        },
+      ]}
       onDelete={({ row }) => {
         const currentRow = row;
         const handleDelete = apiRequestHandlerFactory({

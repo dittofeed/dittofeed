@@ -1,7 +1,7 @@
 # Rebuild the source code only when needed
 FROM node:20-slim AS builder
 
-# Add this line to accept the build argument
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /service
@@ -15,21 +15,27 @@ COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
 COPY ./packages/worker/*.json ./packages/worker/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
+COPY ./packages/emailo/*.json ./packages/emailo/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
 RUN yarn workspaces focus worker --production && \
     cp -R node_modules production_node_modules
-RUN yarn workspaces focus worker
+RUN yarn workspaces focus worker emailo
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
+COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/worker/ ./packages/worker
 
-RUN yarn workspace backend-lib prisma generate && \
+RUN yarn workspace emailo build && \
+    yarn workspace backend-lib prisma generate && \
     yarn workspace worker build
 
 # Production image
 FROM node:20-slim AS runner
+
+# Redefine the ARG in the production stage
+ARG APP_VERSION
 
 WORKDIR /service
 
@@ -50,10 +56,13 @@ COPY --from=builder /service/packages/worker/package.json ./packages/worker/pack
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
 COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
 
+COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
+COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
+
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-# Add this line to set the environment variable
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 CMD ["yarn", "workspace", "worker", "node", "./dist/scripts/startWorker.js"]

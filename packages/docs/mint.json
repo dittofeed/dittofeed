@@ -3,7 +3,8 @@
   "name": "Dittofeed",
   "logo": {
     "dark": "/logo/dark.png",
-    "light": "/logo/light.png"
+    "light": "/logo/light.png",
+    "href": "https://dittofeed.com"
   },
   "api": {
     "baseUrl": "http://localhost:3001",
@@ -76,6 +77,8 @@
             {
               "group": "Upgrade Guide",
               "pages": [
+                "deployment/self-hosted/upgrade-guide/v0-18-0",
+                "deployment/self-hosted/upgrade-guide/v0-17-0",
                 "deployment/self-hosted/upgrade-guide/v0-16-0",
                 "deployment/self-hosted/upgrade-guide/v0-15-0",
                 "deployment/self-hosted/upgrade-guide/v0-14-0",
@@ -178,7 +181,7 @@
             "resources/templates/email-editor",
             "resources/templates/mjml",
             "resources/templates/liquid-presets",
-            "resources/templates/free-email-templates",
+            "resources/templates/free-mjml-email-templates",
             "resources/templates/sms-editor",
             "resources/templates/webhook-editor"
           ]
@@ -235,6 +238,7 @@
         "api-reference/auto/journeys/put-apiadminjourneys",
         "api-reference/auto/journeys/delete-apiadminjourneys",
         "api-reference/endpoints/subscription-management/user-subscriptions",
+        "api-reference/auto/users/get-apiadminuserssubscriptions",
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
         "api-reference/auto/events/get-apiadminevents"

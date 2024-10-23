@@ -1,5 +1,5 @@
 import { AddCircleOutline } from "@mui/icons-material";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -55,15 +55,17 @@ function JourneyListContents() {
         <Typography sx={{ padding: 1 }} variant="h5">
           Journeys
         </Typography>
-        <IconButton
+        <Button
+          variant="contained"
+          startIcon={<AddCircleOutline />}
           LinkComponent={Link}
           href={`/journeys/${newId}`}
           onClick={() => {
             setNewId(uuid());
           }}
         >
-          <AddCircleOutline />
-        </IconButton>
+          Create Journey
+        </Button>
       </Stack>
       <JourneysTable />
     </Stack>

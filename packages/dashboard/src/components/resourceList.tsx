@@ -1,16 +1,22 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import {
-  IconButton,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   List,
   ListItemButton,
   Stack,
   SxProps,
+  TextField,
   Theme,
   Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 export function ResourceListItemButton({
@@ -58,14 +64,28 @@ export function ResourceListContainer({
   title,
   newItemHref,
   controls,
+  titleSingular,
 }: {
   children: React.ReactNode;
   controls?: React.ReactNode;
   newItemHref: (id: string) => string;
   title: string;
+  titleSingular: string;
 }) {
   const [newItemId, setNewItemId] = useState(() => uuid());
   const href = useMemo(() => newItemHref(newItemId), [newItemHref, newItemId]);
+
+  const router = useRouter();
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [newName, setNewName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreate = useCallback(() => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("name", newName);
+    setOpenCreateDialog(false);
+    router.push(`${href}?${queryParams.toString()}`);
+  }, [href, newName, router]);
 
   return (
     <Stack
@@ -85,19 +105,59 @@ export function ResourceListContainer({
         <Stack direction="row" spacing={1} alignItems="center">
           {controls}
           <Tooltip title="create new" placement="right" arrow>
-            <IconButton
-              LinkComponent={Link}
-              href={href}
+            <Button
+              variant="contained"
+              startIcon={<AddCircleOutline />}
               onClick={() => {
                 setNewItemId(uuid());
+                setOpenCreateDialog(true);
               }}
             >
-              <AddCircleOutline />
-            </IconButton>
+              Create {titleSingular}
+            </Button>
           </Tooltip>
         </Stack>
       </Stack>
       {children}
+
+      <Dialog
+        open={openCreateDialog}
+        onClose={() => setOpenCreateDialog(false)}
+        TransitionProps={{
+          onEntered: () => {
+            inputRef.current?.focus();
+          },
+        }}
+      >
+        <DialogTitle>Create New {titleSingular}</DialogTitle>
+        <DialogContent>
+          <Stack alignItems="flex-start">
+            <TextField
+              sx={{ width: "100%", mt: 2 }}
+              label="Name"
+              inputRef={inputRef}
+              value={newName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleCreate();
+                }
+              }}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!newName}
+            onClick={handleCreate}
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

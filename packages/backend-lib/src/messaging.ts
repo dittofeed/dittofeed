@@ -1,5 +1,6 @@
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
+import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
@@ -38,7 +39,6 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
-  type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   BlobStorageFile,
@@ -104,15 +104,19 @@ export function enrichMessageTemplate({
       new Error("message template has neither a draft nor a definition"),
     );
   }
-  return ok({
+  const enriched: MessageTemplateResource = {
     id,
     name,
     workspaceId,
     type,
-    definition: enrichedDefinition.value,
-    draft: enrichedDraft.value,
     updatedAt: Number(updatedAt),
-  });
+    ...(enrichedDefinition.value
+      ? { definition: enrichedDefinition.value }
+      : {}),
+    ...(enrichedDraft.value ? { draft: enrichedDraft.value } : {}),
+  };
+
+  return ok(enriched);
 }
 
 export async function findMessageTemplate({
@@ -609,6 +613,16 @@ export async function sendEmail({
     });
   }
   const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
+  let emailBody: string;
+  if ("emailContentsType" in messageTemplateDefinition) {
+    const mjml = toMjml({
+      content: messageTemplateDefinition.body,
+      mode: "render",
+    });
+    emailBody = mjml;
+  } else {
+    emailBody = messageTemplateDefinition.body;
+  }
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -623,7 +637,7 @@ export async function sendEmail({
         contents: messageTemplateDefinition.subject,
       },
       body: {
-        contents: messageTemplateDefinition.body,
+        contents: emailBody,
         mjml: true,
       },
       replyTo: {

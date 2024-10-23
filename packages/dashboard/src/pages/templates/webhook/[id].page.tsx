@@ -20,11 +20,16 @@ import { PropsWithInitialState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
     const id = ctx.params?.id;
+    let name: string | null = null;
 
     if (typeof id !== "string" || !validate(id)) {
       return {
         notFound: true,
       };
+    }
+
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
     }
 
     const [template, userProperties] = await Promise.all([
@@ -45,7 +50,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         where: { id },
         create: {
           workspaceId: dfContext.workspace.id,
-          name: `New Webhook Template - ${id}`,
+          name: name ?? `New Webhook Template - ${id}`,
           id,
           definition: DEFAULT_WEBHOOK_DEFINITION,
         },

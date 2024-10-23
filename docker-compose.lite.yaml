@@ -20,7 +20,7 @@ x-backend-app-env: &backend-app-env
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.16.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.18.1}
     restart: always
     ports:
       - "3000:3000"
@@ -39,7 +39,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.16.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.18.1}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
@@ -131,6 +131,7 @@ volumes:
   postgres:
   clickhouse_lib:
   clickhouse_log:
+  blob-storage:
 
 networks:
   dittofeed-network-lite:

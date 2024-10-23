@@ -1,10 +1,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { getUserSubscriptions } from "backend-lib/src/subscriptionGroups";
 import {
   BadRequestResponse,
   DeleteUsersRequest,
   EmptyResponse,
   GetUsersRequest,
   GetUsersResponse,
+  GetUserSubscriptionsRequest,
+  GetUserSubscriptionsResponse,
 } from "backend-lib/src/types";
 import { deleteUsers, getUsers } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
@@ -37,6 +40,32 @@ export default async function usersController(fastify: FastifyInstance) {
         nextCursor,
         previousCursor,
         userCount,
+      });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/subscriptions",
+    {
+      schema: {
+        description: "Get subscriptions for a user",
+        tags: ["Users"],
+        params: GetUserSubscriptionsRequest,
+        response: {
+          200: GetUserSubscriptionsResponse,
+        },
+      },
+    },
+
+    async (request, reply) => {
+      const result = await getUserSubscriptions({
+        workspaceId: request.params.workspaceId,
+        userId: request.params.userId,
+      });
+      return reply.status(200).send({
+        workspaceId: request.params.workspaceId,
+        userId: request.params.userId,
+        subscriptionGroups: result,
       });
     },
   );

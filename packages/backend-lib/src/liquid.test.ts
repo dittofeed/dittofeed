@@ -133,17 +133,14 @@ describe("renderWithUserProperties", () => {
   });
 
   describe("with all of the necessary values to render un unsubscribe link", () => {
-    const unsubscribeTemplate = `
-      {% unsubscribe_link %}
-    `;
-
-    const expectedRenderedUnsubscribeEmail = `
-      <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0" target="_blank">unsubscribe</a>
+    const expectedRenderedUnsubscribeUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0`;
+    const expectedRenderedUnsubscribeLink = `
+      <a class="df-unsubscribe" clicktracking=off href="${expectedRenderedUnsubscribeUrl}" target="_blank">unsubscribe</a>
     `;
 
     it("can render an unsubscribe link", () => {
       const rendered = renderLiquid({
-        template: unsubscribeTemplate,
+        template: `{% unsubscribe_link %}`,
         workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
         identifierKey: "email",
         subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
@@ -155,7 +152,24 @@ describe("renderWithUserProperties", () => {
           id: "123",
         },
       });
-      expect(rendered.trim()).toEqual(expectedRenderedUnsubscribeEmail.trim());
+      expect(rendered.trim()).toEqual(expectedRenderedUnsubscribeLink.trim());
+    });
+
+    it("can render an unsubscribe url", () => {
+      const rendered = renderLiquid({
+        template: `{% unsubscribe_url %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+      expect(rendered.trim()).toEqual(expectedRenderedUnsubscribeUrl.trim());
     });
   });
 

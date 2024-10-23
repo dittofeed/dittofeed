@@ -1,5 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { renderLiquid } from "backend-lib/src/liquid";
+import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
   enrichMessageTemplate,
@@ -13,6 +13,7 @@ import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import prisma from "backend-lib/src/prisma";
 import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
+import { toMjml } from "emailo/src/toMjml";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
@@ -25,6 +26,7 @@ import {
   ChannelType,
   DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
+  EmailContentsType,
   EmailProviderType,
   EmptyResponse,
   GetMessageTemplatesRequest,
@@ -42,6 +44,7 @@ import {
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
+  RenderMessageTemplateType,
   ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
   WebhookSecret,
@@ -115,25 +118,36 @@ export default async function contentController(fastify: FastifyInstance) {
         });
       }
 
-      const identifierKey =
-        channel !== ChannelType.Webhook
-          ? CHANNEL_IDENTIFIERS[channel]
-          : contents.identifierKey?.value;
+      let identifierKey: string | undefined;
+      if (channel !== ChannelType.Webhook) {
+        identifierKey = CHANNEL_IDENTIFIERS[channel];
+      }
 
       const responseContents: RenderMessageTemplateResponse["contents"] =
         R.mapValues(contents, (content) => {
           let value: RenderMessageTemplateResponseContent;
+          let template: string;
+
+          if (content.type !== RenderMessageTemplateType.Emailo) {
+            template = content.value;
+          } else {
+            const mjml = toMjml({ content: content.value, mode: "render" });
+            template = mjml;
+          }
+          const options: RenderLiquidOptions = {
+            workspaceId,
+            subscriptionGroupId,
+            userProperties,
+            identifierKey,
+            secrets: templateSecrets,
+            template,
+            mjml:
+              content.type === RenderMessageTemplateType.Mjml ||
+              content.type === RenderMessageTemplateType.Emailo,
+            tags: tagsWithMessageId,
+          };
           try {
-            const rendered = renderLiquid({
-              workspaceId,
-              template: content.value,
-              mjml: content.mjml,
-              subscriptionGroupId,
-              userProperties,
-              identifierKey,
-              secrets: templateSecrets,
-              tags: tagsWithMessageId,
-            });
+            const rendered = renderLiquid(options);
             value = {
               type: JsonResultType.Ok,
               value: rendered,
@@ -160,7 +174,7 @@ export default async function contentController(fastify: FastifyInstance) {
       schema: {
         description: "Get message templates",
         tags: ["Content"],
-        params: GetMessageTemplatesRequest,
+        querystring: GetMessageTemplatesRequest,
         response: {
           200: GetMessageTemplatesResponse,
         },
@@ -169,7 +183,7 @@ export default async function contentController(fastify: FastifyInstance) {
     async (request, reply) => {
       const templateModels = await prisma().messageTemplate.findMany({
         where: {
-          workspaceId: request.params.workspaceId,
+          workspaceId: request.query.workspaceId,
         },
       });
       const templates = templateModels.map((t) =>
@@ -211,7 +225,7 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let definition: MessageTemplateResourceDefinition;
-      const { workspaceId } = request.body;
+      const { workspaceId, emailContentsType } = request.body;
       switch (request.body.type) {
         case ChannelType.Email: {
           const defaultEmailProvider =
@@ -221,9 +235,10 @@ export default async function contentController(fastify: FastifyInstance) {
               },
             })) as DefaultEmailProviderResource | null;
 
-          definition = defaultEmailDefinition(
-            defaultEmailProvider ?? undefined,
-          );
+          definition = defaultEmailDefinition({
+            emailProvider: defaultEmailProvider ?? undefined,
+            emailContentsType: emailContentsType ?? EmailContentsType.Code,
+          });
           break;
         }
         case ChannelType.Sms: {
@@ -238,12 +253,6 @@ export default async function contentController(fastify: FastifyInstance) {
           throw new Error("Mobile push templates unimplemented");
         }
       }
-      logger().debug(
-        {
-          body: request.body,
-        },
-        "loc1 upserting template for reset",
-      );
       const resource = await upsertMessageTemplate({
         ...request.body,
         definition,

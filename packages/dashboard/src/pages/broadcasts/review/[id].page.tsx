@@ -34,11 +34,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
 
+    let name: string;
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
+    } else {
+      name = `Broadcast - ${id}`;
+    }
+
     const workspaceId = dfContext.workspace.id;
     const [{ broadcast, segment }, subscriptionGroups, messageTemplates] =
       await Promise.all([
         getOrCreateBroadcast({
           workspaceId: dfContext.workspace.id,
+          name,
           broadcastId: id,
         }),
         prisma().subscriptionGroup.findMany({

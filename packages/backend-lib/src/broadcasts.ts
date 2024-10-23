@@ -3,6 +3,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
   ChannelType,
+  EmailContentsType,
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
@@ -137,10 +138,12 @@ export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
   subscriptionGroupId,
+  name,
 }: {
   broadcastId: string;
   workspaceId: string;
   subscriptionGroupId?: string;
+  name: string;
 }): Promise<BroadcastResources> {
   const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
@@ -180,7 +183,8 @@ export async function upsertBroadcast({
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: defaultEmailDefinition({
-          fromAddress: defaultEmailProvider?.fromAddress ?? null,
+          emailContentsType: EmailContentsType.Code,
+          emailProvider: defaultEmailProvider ?? undefined,
         }),
       },
       update: {},
@@ -234,7 +238,7 @@ export async function upsertBroadcast({
     create: {
       id,
       workspaceId,
-      name: `Broadcast - ${id}`,
+      name,
       segmentId: segment.id,
       journeyId: journey.id,
       messageTemplateId: messageTemplate.id,
@@ -258,6 +262,7 @@ export async function upsertBroadcast({
 export async function getOrCreateBroadcast(params: {
   broadcastId: string;
   workspaceId: string;
+  name: string;
 }): Promise<BroadcastResources> {
   const broadcastResources = await getBroadcast(params);
   if (broadcastResources) {

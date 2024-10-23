@@ -1,5 +1,4 @@
 import { Static, Type } from "@sinclair/typebox";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -230,7 +229,21 @@ export async function searchDeliveries({
   const items: SearchDeliveriesResponseItem[] = [];
   await streamClickhouseQuery(result, (rows) => {
     for (const row of rows) {
-      const parsedRow = unwrap(schemaValidateWithErr(row, SearchDeliveryRow));
+      const parseResult = schemaValidateWithErr(row, SearchDeliveryRow);
+      if (parseResult.isErr()) {
+        logger().error(
+          {
+            err: parseResult.error,
+            workspaceId,
+            journeyId,
+            userId,
+            row,
+          },
+          "Failed to parse delivery row",
+        );
+        continue;
+      }
+      const parsedRow = parseResult.value;
       const parsedItem = parseSearchDeliveryRow(parsedRow);
       if (!parsedItem) {
         continue;

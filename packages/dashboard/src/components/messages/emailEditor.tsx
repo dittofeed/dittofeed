@@ -1,6 +1,3 @@
-import { html } from "@codemirror/lang-html";
-import { lintGutter } from "@codemirror/lint";
-import { EditorView } from "@codemirror/view";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -17,14 +14,17 @@ import {
   Theme,
   useTheme,
 } from "@mui/material";
-import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
   CompletionStatus,
+  MessageTemplateResourceDraft,
+  RenderMessageTemplateRequestContent,
   RenderMessageTemplateRequestContents,
+  RenderMessageTemplateType,
   UserPropertyDefinitionType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useMemo } from "react";
 
@@ -34,6 +34,7 @@ import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
 } from "../templateEditor";
+import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -50,6 +51,35 @@ function fieldToReadable(field: string) {
     default:
       return null;
   }
+}
+
+function PreviewIframe({ body }: { body?: string }) {
+  const newBody = useMemo(() => {
+    if (!body) {
+      return null;
+    }
+    const withNewStyle = body.replace(
+      "</head>",
+      "<style type='text/css'>body { padding-left: 30px; padding-right: 30px; padding-top: 20px; padding-bottom: 20px; }</style></head>",
+    );
+    return `<!DOCTYPE html>${withNewStyle}`;
+  }, [body]);
+
+  if (!newBody) {
+    return null;
+  }
+  return (
+    <iframe
+      srcDoc={newBody}
+      title="email-body-preview"
+      style={{
+        border: "none",
+        height: "100%",
+        width: "100%",
+        backgroundColor: "white",
+      }}
+    />
+  );
 }
 
 function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
@@ -228,29 +258,48 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   );
 }
 
-const draftToPreview: DraftToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (
+  definition: MessageTemplateResourceDraft,
+) => {
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
   }
+  let body: RenderMessageTemplateRequestContent;
+  if ("emailContentsType" in definition) {
+    body = {
+      type: RenderMessageTemplateType.Emailo,
+      value: definition.body,
+    };
+  } else {
+    body = {
+      type: RenderMessageTemplateType.Mjml,
+      value: definition.body,
+    };
+  }
   const content: RenderMessageTemplateRequestContents = {
     from: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.from,
     },
     subject: {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.subject,
     },
-    body: {
-      mjml: true,
-      value: definition.body,
-    },
+    body,
   };
   if (definition.replyTo) {
     content.replyTo = {
+      type: RenderMessageTemplateType.PlainText,
       value: definition.replyTo,
     };
   }
   return content;
 };
+
+const LowCodeEmailBodyEditor = dynamic(
+  () => import("./lowCodeEmailBodyEditor"),
+  { ssr: false },
+);
 
 export default function EmailEditor({
   hideTitle,
@@ -373,34 +422,31 @@ export default function EmailEditor({
           </Stack>
         );
       }}
-      renderEditorBody={({ draft, setDraft, disabled: disabledOverride }) => {
+      renderEditorBody={({
+        draft,
+        setDraft,
+        disabled: disabledOverride,
+        inDraftView,
+      }) => {
         if (draft.type !== ChannelType.Email) {
           return null;
         }
+        if ("emailContentsType" in draft) {
+          return (
+            <LowCodeEmailBodyEditor
+              draft={draft}
+              setDraft={setDraft}
+              disabled={disabledOverride}
+              inDraftView={inDraftView}
+            />
+          );
+        }
         return (
-          <ReactCodeMirror
-            value={draft.body}
-            onChange={(value) => {
-              setDraft((defn) => {
-                if (defn.type !== ChannelType.Email) {
-                  return defn;
-                }
-
-                defn.body = value;
-                return defn;
-              });
-            }}
-            readOnly={disabledOverride}
-            extensions={[
-              html(),
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              EditorView.lineWrapping,
-              lintGutter(),
-            ]}
+          <CodeEmailBodyEditor
+            draft={draft}
+            setDraft={setDraft}
+            disabled={disabledOverride}
+            inDraftView={inDraftView}
           />
         );
       }}
@@ -413,16 +459,7 @@ export default function EmailEditor({
         />
       )}
       renderPreviewBody={({ rendered }) => (
-        <iframe
-          srcDoc={`<!DOCTYPE html>${rendered.body ?? ""}`}
-          title="email-body-preview"
-          style={{
-            border: "none",
-            height: "100%",
-            width: "100%",
-            padding: theme.spacing(1),
-          }}
-        />
+        <PreviewIframe body={rendered.body} />
       )}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}

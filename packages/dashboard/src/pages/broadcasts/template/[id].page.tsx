@@ -97,10 +97,18 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
+  let name: string;
+  if (typeof ctx.query.name === "string") {
+    name = ctx.query.name;
+  } else {
+    name = `Broadcast - ${id}`;
+  }
+
   const [{ broadcast, messageTemplate, journey }, subscriptionGroups] =
     await Promise.all([
       getOrCreateBroadcast({
         workspaceId: dfContext.workspace.id,
+        name,
         broadcastId: id,
       }),
       prisma().subscriptionGroup.findMany({

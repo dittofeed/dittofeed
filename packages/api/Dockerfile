@@ -1,7 +1,7 @@
 # Rebuild the source code only when needed
 FROM node:20-slim AS builder
 
-# Add this line to accept the build argument
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /service
@@ -16,20 +16,26 @@ COPY .yarn .yarn
 COPY ./packages/api/*.json ./packages/api/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
+COPY ./packages/emailo/*.json ./packages/emailo/
 
 RUN yarn workspaces focus api --production && \
     cp -R node_modules production_node_modules
-RUN yarn workspaces focus api
+RUN yarn workspaces focus api emailo
 
+COPY ./packages/emailo/ ./packages/emailo
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
 
-RUN yarn workspace backend-lib prisma generate && \
+RUN yarn workspace emailo build && \
+    yarn workspace backend-lib prisma generate && \
     yarn workspace api build
 
 # Production image
 FROM node:20-slim AS runner
+
+# Redefine the ARG in the production stage
+ARG APP_VERSION
 
 WORKDIR /service
 
@@ -54,7 +60,9 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-# Add this line to set the environment variable
+COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
+COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 CMD ["yarn", "workspace", "api", "node", "./dist/scripts/startServer.js"]

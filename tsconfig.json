@@ -20,6 +20,9 @@
     },
     {
       "path": "./packages/lite"
+    },
+    {
+      "path": "./packages/emailo"
     }
   ]
 }

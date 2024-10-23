@@ -13,7 +13,6 @@ import {
   command,
   getChCompatibleUuid,
   query as chQuery,
-  streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
@@ -2625,6 +2624,7 @@ export async function computeState({
             clickhouse_settings: {
               wait_end_of_query: 1,
               function_json_value_return_type_allow_complex: 1,
+              max_execution_time: 15000,
             },
           });
         });
@@ -2656,7 +2656,10 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
           command({
             query: q,
             query_params: qb.getQueries(),
-            clickhouse_settings: { wait_end_of_query: 1 },
+            clickhouse_settings: {
+              wait_end_of_query: 1,
+              max_execution_time: 15000,
+            },
           }),
         ),
       );
@@ -2664,7 +2667,10 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
       await command({
         query,
         query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          max_execution_time: 15000,
+        },
       });
     }
   }
@@ -2917,14 +2923,13 @@ async function processRows({
   rows: unknown[];
   workspaceId: string;
   subscribedJourneys: HasStartedJourneyResource[];
-}): Promise<boolean> {
-  logger().debug(
+}): Promise<string | null> {
+  logger().trace(
     {
       rows,
     },
     "processRows",
   );
-  let hasRows = false;
   const assignments: ComputedAssignment[] = rows
     .map((json) => {
       const result = schemaValidateWithErr(json, ComputedAssignment);
@@ -2939,15 +2944,13 @@ async function processRows({
       return result.value;
     })
     .flat();
-
+  const cursor = assignments[assignments.length - 1]?.user_id ?? null;
   const pgUserPropertyAssignments: ComputedAssignment[] = [];
   const pgSegmentAssignments: ComputedAssignment[] = [];
   const journeySegmentAssignments: ComputedAssignment[] = [];
   const integrationAssignments: ComputedAssignment[] = [];
 
   for (const assignment of assignments) {
-    hasRows = true;
-
     let assignmentCategory: ComputedAssignment[];
     if (assignment.processed_for_type === "pg") {
       switch (assignment.type) {
@@ -3074,7 +3077,7 @@ async function processRows({
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
   });
-  return hasRows;
+  return cursor;
 }
 
 interface BaseProcessAssignmentsQueryArgs {
@@ -3116,13 +3119,12 @@ function buildProcessAssignmentsQuery({
   qb,
   periodByComputedPropertyId,
   computedPropertyVersion,
-  now,
   limit,
-  offset,
+  cursor,
   ...rest
 }: ProcessAssignmentsQueryArgs & {
   limit: number;
-  offset: number;
+  cursor: string | null;
 }): string {
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const computedPropertyIdParam = qb.addQueryValue(
@@ -3156,7 +3158,9 @@ function buildProcessAssignmentsQuery({
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
-  const nowSeconds = now / 1000;
+  const innerCursorClause = cursor
+    ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
+    : "";
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -3173,9 +3177,9 @@ function buildProcessAssignmentsQuery({
   // TODO remove left join
   const query = `
    SELECT
-      cpa.workspace_id,
-      cpa.type,
-      cpa.computed_property_id,
+      ${workspaceIdParam} as workspace_id,
+      ${typeParam} as type,
+      ${computedPropertyIdParam} as computed_property_id,
       cpa.user_id,
       cpa.latest_segment_value,
       cpa.latest_user_property_value,
@@ -3184,26 +3188,22 @@ function buildProcessAssignmentsQuery({
       ${processedForTypeParam} as processed_for_type
     FROM (
       SELECT
-          workspace_id,
-          type,
-          computed_property_id,
-          user_id,
-          max(assigned_at) max_assigned_at,
-          argMax(segment_value, assigned_at) latest_segment_value,
-          argMax(user_property_value, assigned_at) latest_user_property_value
+        user_id,
+        max(assigned_at) max_assigned_at,
+        argMax(segment_value, assigned_at) latest_segment_value,
+        argMax(user_property_value, assigned_at) latest_user_property_value
       FROM computed_property_assignments_v2
       WHERE
         workspace_id = ${workspaceIdParam}
         AND type = ${typeParam}
         AND computed_property_id = ${computedPropertyIdParam}
+        ${innerCursorClause}
         ${lowerBoundClause}
       GROUP BY
-          workspace_id,
-          type,
-          computed_property_id,
-          user_id
+        user_id
+      ORDER BY user_id ASC
     ) cpa
-    LEFT JOIN (
+    LEFT ANY JOIN (
       SELECT
         user_id,
         argMax(segment_value, processed_at) segment_value,
@@ -3215,82 +3215,30 @@ function buildProcessAssignmentsQuery({
         AND computed_property_id = ${computedPropertyIdParam}
         AND processed_for_type = ${processedForTypeParam}
         AND processed_for = ${processedForParam}
+        ${innerCursorClause}
       GROUP BY
-        workspace_id,
-        computed_property_id,
-        user_id,
-        processed_for_type,
-        processed_for
+        user_id
+      ORDER BY user_id ASC
     ) pcp
     ON cpa.user_id = pcp.user_id
-    WHERE (
-      cpa.latest_user_property_value != pcp.user_property_value
-      OR cpa.latest_segment_value != pcp.segment_value
-    )
-    AND (
-        (${typeCondition})
-        OR (
-            pcp.user_id != ''
-        )
-    )
-    LIMIT ${offset}, ${limit}
+    WHERE
+      (
+        cpa.latest_user_property_value != pcp.user_property_value
+        OR cpa.latest_segment_value != pcp.segment_value
+      )
+      AND (
+          (${typeCondition})
+          OR (
+              pcp.user_id != ''
+          )
+      )
+    ORDER BY cpa.user_id ASC
+    LIMIT ${limit}
   `;
   return query;
 }
 
-async function streamProcessAssignmentsPage({
-  query,
-  qb,
-  workspaceId,
-  journeys,
-  queryId,
-}: {
-  query: string;
-  workspaceId: string;
-  queryId: string;
-  qb: ClickHouseQueryBuilder;
-  journeys: HasStartedJourneyResource[];
-}): Promise<number> {
-  return withSpan({ name: "stream-process-assignments-page" }, async (span) => {
-    span.setAttribute("workspaceId", workspaceId);
-    span.setAttribute("queryId", queryId);
-
-    let rowsProcessed = 0;
-    try {
-      const resultSet = await chQuery({
-        query,
-        query_id: queryId,
-        query_params: qb.getQueries(),
-        format: "JSONEachRow",
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
-
-      await streamClickhouseQuery(resultSet, async (rows) => {
-        rowsProcessed += rows.length;
-        await processRows({
-          rows,
-          workspaceId,
-          subscribedJourneys: journeys,
-        });
-      });
-      return rowsProcessed;
-    } catch (e) {
-      logger().error(
-        {
-          err: e,
-          queryId,
-          rowsProcessed,
-        },
-        "failed to process rows",
-      );
-      throw e;
-    } finally {
-      span.setAttribute("rowsProcessed", rowsProcessed);
-    }
-  });
-}
-
-type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "offset">;
+type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "cursor">;
 
 type AssignmentProcessorParams = (
   | WithoutProcessorParams<SegmentProcessAssignmentsQueryArgs>
@@ -3327,16 +3275,13 @@ class AssignmentProcessor {
         this.params.computedPropertyVersion,
       );
       const queryIds: string[] = [];
-
+      let cursor: string | null = null;
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
-        // Applies a concurrency limit to the query
-
-        retrieved = await withSpan(
+        const results = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
-            const offset = this.page * this.pageSize;
             const { journeys, ...processAssignmentsParams } = this.params;
             const pageQueryId = getChCompatibleUuid();
             queryIds.push(pageQueryId);
@@ -3363,30 +3308,46 @@ class AssignmentProcessor {
               const query = buildProcessAssignmentsQuery({
                 ...processAssignmentsParams,
                 limit: this.pageSize,
-                offset,
+                cursor,
                 qb,
               });
-              // Both paginates through the assignments, and streams results
-              // within a given page
-              const pageRetrieved = await streamProcessAssignmentsPage({
+
+              const resultSet = await chQuery({
                 query,
-                workspaceId: this.params.workspaceId,
-                qb,
-                journeys,
-                queryId: pageQueryId,
+                query_id: pageQueryId,
+                query_params: qb.getQueries(),
+                format: "JSONEachRow",
+                clickhouse_settings: {
+                  wait_end_of_query: 1,
+                  max_execution_time: 15000,
+                  join_algorithm: "grace_hash",
+                },
               });
+              const resultRows = await resultSet.json();
+              const nextCursor = await processRows({
+                rows: resultRows,
+                workspaceId: this.params.workspaceId,
+                subscribedJourneys: journeys,
+              });
+
+              const pageRetrieved = resultRows.length;
               pageSpan.setAttribute("retrieved", pageRetrieved);
-              return pageRetrieved;
+              return { retrieved: pageRetrieved, cursor: nextCursor };
             });
           },
         );
+        cursor = results.cursor;
+        retrieved = results.retrieved;
+
         logger().info(
           {
+            retrieved,
+            page: this.page,
+            pageSize: this.pageSize,
             workspaceId: this.params.workspaceId,
             computedPropertyId: this.params.computedPropertyId,
             type: this.params.type,
             processedForType: this.params.processedForType,
-            retrieved,
           },
           "retrieved assignments",
         );

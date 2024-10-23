@@ -2,16 +2,18 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  message?: string;
 }
 
 interface ErrorBoundaryProps {
+  message?: string;
   children: ReactNode;
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, message: props.message };
   }
 
   static getDerivedStateFromError(_error: Error): ErrorBoundaryState {
@@ -19,7 +21,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error("Error occurred:", error, errorInfo);
+    const { message } = this.state;
+    const messages = ["client error occurred"];
+    if (message) {
+      messages.push(message);
+    }
+    messages.push(":");
+    console.error(messages.join(" "), error, errorInfo);
   }
 
   override render(): ReactNode {

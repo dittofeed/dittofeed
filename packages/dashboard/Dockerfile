@@ -1,7 +1,7 @@
 # use buster in the build step, lite in the production step
 FROM node:20-slim AS builder
 
-# Add this line to accept the build argument
+# Accept the build argument in the builder stage
 ARG APP_VERSION
 
 WORKDIR /app
@@ -14,21 +14,23 @@ COPY . .
 
 RUN yarn set version 4.1.1
 
-RUN yarn workspaces focus isomorphic-lib && \
-    yarn workspaces focus backend-lib && \
-    yarn workspaces focus dashboard
+RUN yarn workspaces focus isomorphic-lib emailo backend-lib dashboard
 
 RUN mkdir -p packages/dashboard/public/public && \
     curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
     curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
 
-RUN yarn workspace isomorphic-lib build && \
+RUN yarn workspace emailo build && \
+    yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
 FROM node:20-slim AS runner
+
+# Redefine the ARG in the production stage
+ARG APP_VERSION
 
 WORKDIR /app
 
@@ -39,7 +41,7 @@ RUN apt-get update -y && \
 
 ENV NODE_ENV=production
 
-# Add this line to set the environment variable
+# Set the environment variable
 ENV APP_VERSION=${APP_VERSION}
 
 # https://nextjs.org/docs/advanced-features/output-file-tracing

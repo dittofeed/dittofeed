@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { toBase64 } from "isomorphic-lib/src/encode";
 
-import { createWriteKey, validateWriteKey } from "./auth";
+import { getOrCreateWriteKey, validateWriteKey } from "./auth";
 import prisma from "./prisma";
 
 describe("validateWriteKey", () => {
@@ -17,10 +17,9 @@ describe("validateWriteKey", () => {
           name: randomUUID(),
         },
       });
-      const writeKey = await createWriteKey({
+      const writeKey = await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",
-        writeKeyValue: "test",
       });
       const header = writeKeyToHeader(writeKey);
       valid = await validateWriteKey({ writeKey: header });
@@ -57,10 +56,9 @@ describe("validateWriteKey", () => {
           name: randomUUID(),
         },
       });
-      await createWriteKey({
+      await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",
-        writeKeyValue: "test",
       });
       const secret = await prisma().secret.findUnique({
         where: {

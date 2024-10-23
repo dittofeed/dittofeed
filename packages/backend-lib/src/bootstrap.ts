@@ -5,13 +5,12 @@ import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
-import { createWriteKey } from "./auth";
+import { getOrCreateWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
@@ -157,13 +156,10 @@ export async function bootstrapPostgres({
       },
     ];
 
-  const writeKeyValue = generateSecureKey(8);
-
-  await Promise.all([
-    createWriteKey({
+  const [writeKey] = await Promise.all([
+    getOrCreateWriteKey({
       workspaceId,
       writeKeyName: DEFAULT_WRITE_KEY_NAME,
-      writeKeyValue,
     }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
@@ -208,7 +204,7 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
-  return { workspace, writeKey: writeKeyValue };
+  return { workspace, writeKey: writeKey.writeKeyValue };
 }
 
 async function bootstrapKafka() {

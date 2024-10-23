@@ -3,9 +3,12 @@ import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DefaultEmailProviderResource,
+  EmailContentsType,
+  EmailContentsTypeEnum,
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -24,12 +27,22 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
     const templateId = ctx.params?.id;
+    let name: string | null = null;
 
     if (typeof templateId !== "string" || !validate(templateId)) {
       return {
         notFound: true,
       };
     }
+
+    if (typeof ctx.query.name === "string") {
+      name = ctx.query.name;
+    }
+    const emailContentsType = schemaValidateWithErr(
+      ctx.query.emailContentType,
+      EmailContentsTypeEnum,
+    ).unwrapOr(EmailContentsType.Code);
+
     const workspaceId = dfContext.workspace.id;
 
     const [emailTemplate, userProperties, defaultEmailProvider] =
@@ -57,11 +70,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         where: { id: templateId },
         create: {
           workspaceId,
-          name: `New Email Message - ${templateId}`,
+          name: name ?? `New Email Message - ${templateId}`,
           id: templateId,
-          definition: defaultEmailDefinition(
-            defaultEmailProvider as DefaultEmailProviderResource | undefined,
-          ) satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition({
+            emailContentsType,
+            emailProvider: defaultEmailProvider as
+              | DefaultEmailProviderResource
+              | undefined,
+          }) satisfies EmailTemplateResource,
         },
         update: {},
       });

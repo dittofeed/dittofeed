@@ -8,6 +8,7 @@ import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import fastify from "fastify";
+import { TYPE_REFS } from "isomorphic-lib/src/typeRefs";
 import {
   DFRequestContext,
   PUBLIC_WRITE_KEY_DESCRIPTION,
@@ -78,6 +79,10 @@ async function buildApp(opts?: BuildAppOpts) {
       },
       servers,
     },
+  });
+
+  TYPE_REFS.forEach((schema) => {
+    server.addSchema(schema);
   });
 
   // needs to be registered before routes

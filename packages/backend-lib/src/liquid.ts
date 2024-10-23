@@ -75,60 +75,81 @@ liquidEngine.registerFilter("markdown", (value) => md.render(value as string));
 
 type Secrets = Record<string, string>;
 
+function generateUnsubscribeUrl(scope: any): string {
+  const allScope = scope.getAll() as Record<string, unknown>;
+  const secrets = allScope.secrets as Secrets | undefined;
+  const workspaceId = allScope.workspace_id as string;
+  const subscriptionGroupId = allScope.subscription_group_id as
+    | string
+    | undefined;
+  const userProperties = allScope.user as UserPropertyAssignments;
+  const identifierKey = allScope.identifier_key as string | undefined;
+
+  const identifier = identifierKey
+    ? assignmentAsString(userProperties, identifierKey)
+    : null;
+  const userId = assignmentAsString(userProperties, "id");
+
+  const subscriptionSecret = secrets?.[SecretNames.Subscription];
+  if (subscriptionSecret && identifierKey && identifier && userId) {
+    return generateSubscriptionChangeUrl({
+      workspaceId,
+      identifier,
+      identifierKey,
+      subscriptionSecret,
+      userId,
+      changedSubscription: subscriptionGroupId,
+      subscriptionChange: SubscriptionChange.Unsubscribe,
+    });
+  }
+
+  logger().error(
+    {
+      hasSubscriptionSecret: !!subscriptionSecret,
+      identifierKey,
+      identifier,
+      userId,
+    },
+    "Unsubscribe URL not generating",
+  );
+  return "";
+}
+
 liquidEngine.registerTag("unsubscribe_link", {
   parse(tagToken) {
     this.contents = tagToken.args;
   },
   render(scope) {
     const linkText: string = (this.contents as string) || "unsubscribe";
-
-    const allScope = scope.getAll() as Record<string, unknown>;
-    const secrets = allScope.secrets as Secrets | undefined;
-    const workspaceId = allScope.workspace_id as string;
-    const subscriptionGroupId = allScope.subscription_group_id as
-      | string
-      | undefined;
-    const userProperties = allScope.user as UserPropertyAssignments;
-    const identifierKey = allScope.identifier_key as string | undefined;
-
-    let href = "";
-
-    const identifier = identifierKey
-      ? assignmentAsString(userProperties, identifierKey)
-      : null;
-    const userId = assignmentAsString(userProperties, "id");
-
-    const subscriptionSecret = secrets?.[SecretNames.Subscription];
-    if (subscriptionSecret && identifierKey && identifier && userId) {
-      const url = generateSubscriptionChangeUrl({
-        workspaceId,
-        identifier,
-        identifierKey,
-        subscriptionSecret,
-        userId,
-        changedSubscription: subscriptionGroupId,
-        subscriptionChange: SubscriptionChange.Unsubscribe,
-      });
-      href = `href="${url}"`;
-    } else {
-      logger().error(
-        {
-          hasSubscriptionSecret: !!subscriptionSecret,
-          identifierKey,
-          identifier,
-          userId,
-        },
-        "Unsubscribe link not rendering",
-      );
-    }
+    const url = generateUnsubscribeUrl(scope);
+    const href = url ? `href="${url}"` : "";
 
     // Note that clicktracking=off is added to the unsubscribe link to prevent sendgrid from including link tracking
     return `<a class="df-unsubscribe" clicktracking=off ${href} target="_blank">${linkText}</a>`;
   },
 });
 
+// Add the new unsubscribe_url tag
+liquidEngine.registerTag("unsubscribe_url", {
+  render(scope) {
+    return generateUnsubscribeUrl(scope);
+  },
+});
+
 const MJML_NOT_PRESENT_ERROR =
   "Check that your structure is correct and enclosed in <mjml> tags";
+
+export interface RenderLiquidOptions {
+  template?: string;
+  mjml?: boolean;
+  identifierKey?: string;
+  userProperties: UserPropertyAssignments;
+  secrets?: Secrets;
+  subscriptionGroupId?: string;
+  workspaceId: string;
+  // TODO [DF-471] make this field required and render tags in the user property field
+  tags?: MessageTags;
+}
 
 export function renderLiquid({
   template,
@@ -139,17 +160,7 @@ export function renderLiquid({
   secrets = {},
   mjml = false,
   tags,
-}: {
-  template?: string;
-  mjml?: boolean;
-  identifierKey?: string;
-  userProperties: UserPropertyAssignments;
-  secrets?: Secrets;
-  subscriptionGroupId?: string;
-  workspaceId: string;
-  // TODO [DF-471] make this field required and render tags in the user property field
-  tags?: MessageTags;
-}): string {
+}: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
   }
