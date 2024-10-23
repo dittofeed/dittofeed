@@ -11,9 +11,11 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { Present } from "isomorphic-lib/src/types";
+import { CompletionStatus, Present } from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Updater, useImmer } from "use-immer";
+
+import { useAppStorePick } from "../../lib/appStore";
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -22,20 +24,19 @@ export interface BaseDeliveriesFilterCommand {
 }
 
 export enum DeliveriesFilterCommandType {
-  KeyLeaf = "KeyLeaf",
-  KeyParent = "KeyParent",
-  ValueParent = "ValueParent",
+  SelectItem = "SelectItem",
+  SelectKey = "SelectKey",
 }
 
 export type Key = "template" | "status" | "to" | "from";
 
 export type SelectItemCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.KeyLeaf;
+  type: DeliveriesFilterCommandType.SelectItem;
   id: string;
 };
 
 export type SelectKeyCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.KeyParent;
+  type: DeliveriesFilterCommandType.SelectKey;
   key: Key;
 };
 
@@ -147,6 +148,7 @@ export function NewDeliveriesFilterButton({
   setState: SetDeliveriesState;
 }) {
   const theme = useTheme();
+  const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
   const commands: DeliveriesFilterCommand[] = useMemo(() => {
     switch (stage.type) {
@@ -154,22 +156,22 @@ export function NewDeliveriesFilterButton({
         return [
           {
             label: "Template",
-            type: DeliveriesFilterCommandType.KeyParent,
+            type: DeliveriesFilterCommandType.SelectKey,
             key: "template",
           },
           {
             label: "To",
-            type: DeliveriesFilterCommandType.KeyParent,
+            type: DeliveriesFilterCommandType.SelectKey,
             key: "to",
           },
           {
             label: "From",
-            type: DeliveriesFilterCommandType.KeyParent,
+            type: DeliveriesFilterCommandType.SelectKey,
             key: "from",
           },
           {
             label: "Status",
-            type: DeliveriesFilterCommandType.KeyParent,
+            type: DeliveriesFilterCommandType.SelectKey,
             key: "status",
           },
         ];
@@ -189,7 +191,7 @@ export function NewDeliveriesFilterButton({
     (_event, value) => {
       if (value) {
         switch (value.type) {
-          case DeliveriesFilterCommandType.KeyLeaf:
+          case DeliveriesFilterCommandType.SelectItem:
             setState((draft) => {
               const { stage: currentStage } = draft;
               if (currentStage.type !== StageType.SelectItem) {
@@ -212,16 +214,29 @@ export function NewDeliveriesFilterButton({
               return draft;
             });
             break;
-          case DeliveriesFilterCommandType.KeyParent:
+          case DeliveriesFilterCommandType.SelectKey:
             setState((draft) => {
               switch (value.key) {
-                case "template":
+                case "template": {
+                  const templates =
+                    messages.type === CompletionStatus.Successful
+                      ? messages.value
+                      : [];
+
+                  const children: SelectItemCommand[] = templates.map(
+                    (template) => ({
+                      label: template.name,
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: template.id,
+                    }),
+                  );
                   draft.stage = {
                     type: StageType.SelectItem,
                     key: value.key,
-                    children: [],
+                    children,
                   };
                   break;
+                }
                 case "to":
                   draft.stage = {
                     type: StageType.SelectValue,
