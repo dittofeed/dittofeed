@@ -86,6 +86,7 @@ export interface SelectItemStage {
 }
 export interface SelectValueStage {
   type: StageType.SelectValue;
+  label: string;
   key: Key;
   value: Filter;
 }
@@ -246,6 +247,7 @@ export function NewDeliveriesFilterButton({
                   draft.stage = {
                     type: StageType.SelectValue,
                     key: value.key,
+                    label: value.label,
                     value: {
                       type: FilterType.Value,
                       value: "",
@@ -256,6 +258,7 @@ export function NewDeliveriesFilterButton({
                   draft.stage = {
                     type: StageType.SelectValue,
                     key: value.key,
+                    label: value.label,
                     value: {
                       type: FilterType.Value,
                       value: "",
@@ -356,7 +359,7 @@ export function NewDeliveriesFilterButton({
         }
       }
     },
-    [setState],
+    [setState, messages],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -376,7 +379,21 @@ export function NewDeliveriesFilterButton({
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
-    popoverBody = <>standin</>;
+    popoverBody = (
+      <TextField
+        label={state.stage.label}
+        value={state.stage.value.value}
+        onChange={(event) =>
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            draft.stage.value.value = event.target.value;
+            return draft;
+          })
+        }
+      />
+    );
   } else {
     popoverBody = (
       <Autocomplete
