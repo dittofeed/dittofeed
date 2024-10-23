@@ -9,8 +9,10 @@ import {
   useTheme,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
+import { Draft } from "immer";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import React, { useRef, useState } from "react";
+import { Updater, useImmer } from "use-immer";
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -37,16 +39,35 @@ export type DeliveriesFilterCommand =
   | LeafDeliveriesFilterCommand
   | ParentDeliveriesFilterCommand;
 
+interface DeliveriesState {
+  open: boolean;
+  anchorEl: HTMLElement | null;
+  inputValue: string;
+  visibleCommands: DeliveriesFilterCommand[];
+  inputRef: React.RefObject<HTMLInputElement>;
+}
+
+type SetDeliveriesState = Updater<DeliveriesState>;
+
+function useDeliveriesFilterState(
+  commands: DeliveriesFilterCommand[],
+): [DeliveriesState, SetDeliveriesState] {
+  return useImmer<DeliveriesState>({
+    open: false,
+    anchorEl: null,
+    inputValue: "",
+    visibleCommands: commands,
+    inputRef: useRef<HTMLInputElement>(null),
+  });
+}
+
 export function DeliveriesFilter({
-  commands,
+  state,
+  setState,
 }: {
-  commands: DeliveriesFilterCommand[];
+  state: DeliveriesState;
+  setState: SetDeliveriesState;
 }) {
-  const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [inputValue, setInputValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null); // Updated ref
-  const [visibleCommands, setVisibleCommands] = useState(commands);
   const theme = useTheme();
 
   const handleCommandSelect: AutocompleteProps<
@@ -58,12 +79,16 @@ export function DeliveriesFilter({
     if (value) {
       switch (value.type) {
         case DeliveriesFilterCommandType.Leaf:
-          setInputValue("");
-          setOpen(false); // Close dropdown after selection
+          setState((draft) => {
+            draft.inputValue = "";
+            draft.open = false;
+          });
           value.action();
           break;
         case DeliveriesFilterCommandType.Parent:
-          setVisibleCommands(value.children);
+          setState((draft) => {
+            draft.visibleCommands = value.children;
+          });
           break;
         default:
           assertUnreachable(value);
@@ -72,13 +97,17 @@ export function DeliveriesFilter({
   };
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-    setOpen(true);
+    setState((draft) => {
+      draft.anchorEl = event.currentTarget;
+      draft.open = true;
+    });
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
-    setOpen(false);
+    setState((draft) => {
+      draft.anchorEl = null;
+      draft.open = false;
+    });
   };
 
   return (
@@ -96,12 +125,12 @@ export function DeliveriesFilter({
         Add Filter
       </Button>
       <Popover
-        open={open}
-        anchorEl={anchorEl}
+        open={state.open}
+        anchorEl={state.anchorEl}
         onClose={handleClose}
         TransitionProps={{
           onEntered: () => {
-            inputRef.current?.focus();
+            state.inputRef.current?.focus();
           },
         }}
         anchorOrigin={{
@@ -128,10 +157,14 @@ export function DeliveriesFilter({
               borderTopRightRadius: 0,
             },
           }}
-          inputValue={inputValue}
+          inputValue={state.inputValue}
           disableClearable
-          onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
-          options={visibleCommands}
+          onInputChange={(event, newInputValue) =>
+            setState((draft) => {
+              draft.inputValue = newInputValue;
+            })
+          }
+          options={state.visibleCommands}
           getOptionLabel={(option) => option.label}
           onChange={handleCommandSelect}
           renderInput={(params) => (
@@ -139,7 +172,7 @@ export function DeliveriesFilter({
               {...params}
               label="Settings"
               variant="filled"
-              inputRef={inputRef} // Attached ref to TextField's input
+              inputRef={state.inputRef}
             />
           )}
           renderOption={(props, option) => (
