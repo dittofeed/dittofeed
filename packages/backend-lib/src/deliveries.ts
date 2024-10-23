@@ -193,7 +193,7 @@ export async function searchDeliveries({
       )}`
     : "";
   const toClause = to
-    ? `AND JSON_VALUE(properties, '$.to') IN ${queryBuilder.addQueryValue(
+    ? `AND JSON_VALUE(properties, '$.variant.to') IN ${queryBuilder.addQueryValue(
         to,
         "Array(String)",
       )}`

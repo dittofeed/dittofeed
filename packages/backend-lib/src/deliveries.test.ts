@@ -412,7 +412,7 @@ describe("deliveries", () => {
       });
     });
 
-    describe.skip("when filtering by to", () => {
+    describe("when filtering by to", () => {
       let to1: string;
       let to2: string;
 
@@ -493,7 +493,15 @@ describe("deliveries", () => {
           expect.objectContaining({
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             variant: expect.objectContaining({
-              type: channel,
+              to: to1,
+            }),
+          }),
+        );
+        expect(deliveries.items[1]).toEqual(
+          expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            variant: expect.objectContaining({
+              to: to2,
             }),
           }),
         );
