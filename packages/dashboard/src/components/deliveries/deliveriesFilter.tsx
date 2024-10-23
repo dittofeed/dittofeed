@@ -68,11 +68,33 @@ export interface FreeTextFilterValue {
 
 export type FilterValue = NameIdFilterValue | FreeTextFilterValue;
 
+export enum StageType {
+  SelectKey = "SelectKey",
+  SelectItem = "SelectItem",
+  SelectValue = "SelectValue",
+}
+
+export interface SelectKeyStage {
+  type: StageType.SelectKey;
+}
+
+export interface SelectItemStage {
+  type: StageType.SelectItem;
+  key: Key;
+}
+export interface SelectValueStage {
+  type: StageType.SelectValue;
+  key: Key;
+  value: FilterValue;
+}
+
+export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
+
 export interface DeliveriesState {
   open: boolean;
   anchorEl: HTMLElement | null;
   inputValue: string;
-  parentKey: Key | null;
+  stage: Stage;
   inputRef: React.RefObject<HTMLInputElement>;
   filters: Map<
     // Filter Key e.g. templateId
@@ -91,7 +113,7 @@ export function useDeliveriesFilterState(): [
     open: false,
     anchorEl: null,
     inputValue: "",
-    parentKey: null,
+    stage: { type: StageType.SelectKey },
     inputRef: useRef<HTMLInputElement>(null),
     filters: new Map(),
   });
@@ -130,7 +152,7 @@ export function NewDeliveriesFilterButton({
 }) {
   const theme = useTheme();
   const commands: DeliveriesFilterCommand[] = useMemo(() => {
-    if (!state.parentKey) {
+    if (state.stage.type === StageType.SelectKey) {
       return [
         {
           label: "Template",
