@@ -11,7 +11,8 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import React, { useMemo, useRef } from "react";
+import { Present } from "isomorphic-lib/src/types";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Updater, useImmer } from "use-immer";
 
 export interface BaseDeliveriesFilterCommand {
@@ -39,6 +40,10 @@ export type SelectKeyCommand = BaseDeliveriesFilterCommand & {
 };
 
 export type DeliveriesFilterCommand = SelectItemCommand | SelectKeyCommand;
+
+type CommandHandler = Present<
+  AutocompleteProps<DeliveriesFilterCommand, false, false, false>["onChange"]
+>;
 
 export enum FilterType {
   Key = "Key",
@@ -180,82 +185,80 @@ export function NewDeliveriesFilterButton({
     }
   }, [stage]);
 
-  const handleCommandSelect: AutocompleteProps<
-    DeliveriesFilterCommand,
-    false,
-    false,
-    false
-  >["onChange"] = (_event, value) => {
-    if (value) {
-      switch (value.type) {
-        case DeliveriesFilterCommandType.KeyLeaf:
-          setState((draft) => {
-            const { stage: currentStage } = draft;
-            if (currentStage.type !== StageType.SelectItem) {
-              return draft;
-            }
-            draft.inputValue = "";
-            draft.open = false;
-            const maybeExisting = draft.filters.get(currentStage.key);
-            if (maybeExisting?.type === FilterType.Value) {
-              console.error("Expected key filter value");
-              return draft;
-            }
-            const existing = maybeExisting ?? {
-              type: FilterType.Key,
-              value: new Map(),
-            };
+  const handleCommandSelect = useCallback<CommandHandler>(
+    (_event, value) => {
+      if (value) {
+        switch (value.type) {
+          case DeliveriesFilterCommandType.KeyLeaf:
+            setState((draft) => {
+              const { stage: currentStage } = draft;
+              if (currentStage.type !== StageType.SelectItem) {
+                return draft;
+              }
+              draft.inputValue = "";
+              draft.open = false;
+              const maybeExisting = draft.filters.get(currentStage.key);
+              if (maybeExisting?.type === FilterType.Value) {
+                console.error("Expected key filter value");
+                return draft;
+              }
+              const existing = maybeExisting ?? {
+                type: FilterType.Key,
+                value: new Map(),
+              };
 
-            existing.value.set(value.id, value.label);
-            draft.filters.set(currentStage.key, existing);
-            return draft;
-          });
-          break;
-        case DeliveriesFilterCommandType.KeyParent:
-          setState((draft) => {
-            switch (value.key) {
-              case "template":
-                draft.stage = {
-                  type: StageType.SelectItem,
-                  key: value.key,
-                  children: [],
-                };
-                break;
-              case "to":
-                draft.stage = {
-                  type: StageType.SelectValue,
-                  key: value.key,
-                  value: {
-                    type: FilterType.Value,
-                    value: "",
-                  },
-                };
-                break;
-              case "from":
-                draft.stage = {
-                  type: StageType.SelectValue,
-                  key: value.key,
-                  value: {
-                    type: FilterType.Value,
-                    value: "",
-                  },
-                };
-                break;
-              case "status":
-                draft.stage = {
-                  type: StageType.SelectItem,
-                  key: value.key,
-                  children: [],
-                };
-                break;
-            }
-          });
-          break;
-        default:
-          assertUnreachable(value);
+              existing.value.set(value.id, value.label);
+              draft.filters.set(currentStage.key, existing);
+              return draft;
+            });
+            break;
+          case DeliveriesFilterCommandType.KeyParent:
+            setState((draft) => {
+              switch (value.key) {
+                case "template":
+                  draft.stage = {
+                    type: StageType.SelectItem,
+                    key: value.key,
+                    children: [],
+                  };
+                  break;
+                case "to":
+                  draft.stage = {
+                    type: StageType.SelectValue,
+                    key: value.key,
+                    value: {
+                      type: FilterType.Value,
+                      value: "",
+                    },
+                  };
+                  break;
+                case "from":
+                  draft.stage = {
+                    type: StageType.SelectValue,
+                    key: value.key,
+                    value: {
+                      type: FilterType.Value,
+                      value: "",
+                    },
+                  };
+                  break;
+                case "status":
+                  draft.stage = {
+                    type: StageType.SelectItem,
+                    key: value.key,
+                    children: [],
+                  };
+                  break;
+              }
+            });
+            break;
+          default:
+            assertUnreachable(value);
+        }
       }
-    }
-  };
+    },
+    [setState],
+  );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setState((draft) => {

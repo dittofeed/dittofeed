@@ -3,6 +3,8 @@ import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
+export type Present<T> = T extends undefined | null ? never : T;
+
 export type RenameKey<T, K extends keyof T, N extends string> = {
   [P in keyof T as P extends K ? N : P]: T[P];
 };
