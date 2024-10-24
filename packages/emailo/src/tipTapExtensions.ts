@@ -12,6 +12,7 @@ import { Underline } from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 
 import { BlockquoteFigure } from "./tipTapExtensions/blockquoteFigure";
+import { DirectCodeBlock } from "./tipTapExtensions/directCode/block";
 import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
 import { Selection } from "./tipTapExtensions/selection";
@@ -70,6 +71,7 @@ export function getExtensions({
         properties: userProperties,
       }),
       UnsubscribeLink,
+      DirectCodeBlock,
     ];
   }
   return EXTENSIONS;

@@ -217,7 +217,7 @@ export const defaultEmailoContent = {
     {
       type: "codeBlock",
       attrs: {
-        language: "css",
+        language: "javascript",
       },
       content: [
         {
