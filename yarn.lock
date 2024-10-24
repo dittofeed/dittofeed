@@ -7941,19 +7941,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block-lowlight@npm:^2.9.1":
-  version: 2.9.1
-  resolution: "@tiptap/extension-code-block-lowlight@npm:2.9.1"
-  peerDependencies:
-    "@tiptap/core": ^2.7.0
-    "@tiptap/extension-code-block": ^2.7.0
-    "@tiptap/pm": ^2.7.0
-    highlight.js: ^11
-    lowlight: ^2 || ^3
-  checksum: 10/dff03d72ed923c70de1c8270f734f967a6b34a097602e8fc84925ed1e2fa56fd41b34e88a4443414223aec7ae3fd2ceb89d77b69f702e4de4c69adce26d072fa
-  languageName: node
-  linkType: hard
-
 "@tiptap/extension-code-block@npm:^2.7.1":
   version: 2.7.1
   resolution: "@tiptap/extension-code-block@npm:2.7.1"
@@ -13058,7 +13045,6 @@ __metadata:
     "@tippyjs/react": "npm:^4.2.6"
     "@tiptap/core": "npm:^2.7.1"
     "@tiptap/extension-code-block": "npm:^2.9.1"
-    "@tiptap/extension-code-block-lowlight": "npm:^2.9.1"
     "@tiptap/extension-color": "npm:^2.7.1"
     "@tiptap/extension-font-family": "npm:^2.7.1"
     "@tiptap/extension-highlight": "npm:^2.7.1"
@@ -13089,9 +13075,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
     fast-deep-equal: "npm:^3.1.3"
-    highlight.js: "npm:^11.10.0"
     liquidjs: "npm:^10.7.1"
-    lowlight: "npm:^3.1.0"
     lucide-react: "npm:^0.441.0"
     mjml: "npm:^4.14.1"
     postcss: "npm:^8.4.47"
@@ -15756,20 +15740,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"highlight.js@npm:^11.10.0":
-  version: 11.10.0
-  resolution: "highlight.js@npm:11.10.0"
-  checksum: 10/fc8747bcd4a491fc6a47ff80536881dcc9ea9b36cdc2a22a7be5670b89d76ca6c26df9d749017a23bbb2eb708331097a5ecbcee6330fb9064512d80cc3369d99
-  languageName: node
-  linkType: hard
-
-"highlight.js@npm:~11.9.0":
-  version: 11.9.0
-  resolution: "highlight.js@npm:11.9.0"
-  checksum: 10/44b3e42bc096a2e5207e514826a10ff7671de315a7216ebaeba76593d4f16dfe3f7078390cb5c2b08eae657694fef4fb65d775376db48480c829c83fbc4f157a
-  languageName: node
-  linkType: hard
-
 "hoist-non-react-statics@npm:^3.3.1":
   version: 3.3.2
   resolution: "hoist-non-react-statics@npm:3.3.2"
@@ -18206,17 +18176,6 @@ __metadata:
   dependencies:
     tslib: "npm:^2.0.3"
   checksum: 10/83a0a5f159ad7614bee8bf976b96275f3954335a84fad2696927f609ddae902802c4f3312d86668722e668bef41400254807e1d3a7f2e8c3eede79691aa1f010
-  languageName: node
-  linkType: hard
-
-"lowlight@npm:^3.1.0":
-  version: 3.1.0
-  resolution: "lowlight@npm:3.1.0"
-  dependencies:
-    "@types/hast": "npm:^3.0.0"
-    devlop: "npm:^1.0.0"
-    highlight.js: "npm:~11.9.0"
-  checksum: 10/0d6e5b70ea84828becd5321f2171416fcdc11921bd678e5eb1a05af0fe1c1588500cb24e94c0d6e0f5c67a0093d41d959bfe9f332e0db17b644a452b2983e0b6
   languageName: node
   linkType: hard
 
