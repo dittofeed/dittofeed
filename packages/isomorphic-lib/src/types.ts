@@ -3,6 +3,8 @@ import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
+export type Present<T> = T extends undefined | null ? never : T;
+
 export type RenameKey<T, K extends keyof T, N extends string> = {
   [P in keyof T as P extends K ? N : P]: T[P];
 };
@@ -3461,9 +3463,12 @@ export const SearchDeliveriesRequest = Type.Object({
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
   userId: Type.Optional(UserId),
-  channel: Type.Optional(Type.Enum(ChannelType)),
+  channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
+  to: Type.Optional(Type.Array(Type.String())),
+  statuses: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;

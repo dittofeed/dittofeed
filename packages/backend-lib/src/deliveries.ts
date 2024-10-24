@@ -166,7 +166,11 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
+  channels,
   userId,
+  to,
+  statuses,
+  templateIds,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -184,6 +188,31 @@ export async function searchDeliveries({
         "String",
       )}`
     : "";
+  const channelClause = channels
+    ? `AND JSON_VALUE(properties, '$.variant.type') IN ${queryBuilder.addQueryValue(
+        channels,
+        "Array(String)",
+      )}`
+    : "";
+  const toClause = to
+    ? `AND JSON_VALUE(properties, '$.variant.to') IN ${queryBuilder.addQueryValue(
+        to,
+        "Array(String)",
+      )}`
+    : "";
+  const templateIdClause = templateIds
+    ? `AND JSON_VALUE(properties, '$.templateId') IN ${queryBuilder.addQueryValue(
+        templateIds,
+        "Array(String)",
+      )}`
+    : "";
+  const statusClause = statuses
+    ? `AND last_event IN ${queryBuilder.addQueryValue(
+        statuses,
+        "Array(String)",
+      )}`
+    : "";
+
   const query = `
     SELECT 
       argMax(event, event_time) last_event,
@@ -207,13 +236,17 @@ export async function searchDeliveries({
       WHERE
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}
+        ${channelClause}
+        ${toClause}
+        ${templateIdClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING
       origin_message_id != ''
       ${journeyIdClause}
       ${userIdClause}
-    ORDER BY sent_at DESC
+      ${statusClause}
+    ORDER BY sent_at DESC, origin_message_id ASC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
       "UInt64",
