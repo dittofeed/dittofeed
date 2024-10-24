@@ -160,7 +160,6 @@ export function NewDeliveriesFilterButton({
   state: DeliveriesState;
   setState: SetDeliveriesState;
 }) {
-  const theme = useTheme();
   const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +186,11 @@ export function NewDeliveriesFilterButton({
             label: "Status",
             type: DeliveriesFilterCommandType.SelectKey,
             filterKey: "status",
+          },
+          {
+            label: "Channel",
+            type: DeliveriesFilterCommandType.SelectKey,
+            filterKey: "channel",
           },
         ];
       }

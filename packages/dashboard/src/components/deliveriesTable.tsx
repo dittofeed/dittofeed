@@ -245,12 +245,55 @@ export function DeliveriesTable({
       });
       let response: AxiosResponse;
       try {
+        const templateEntry =
+          deliveriesFilterState.filters.get("template")?.value;
+        let templateIds: string[] | undefined;
+        if (templateEntry) {
+          templateIds =
+            typeof templateEntry === "string"
+              ? [templateEntry]
+              : Array.from(templateEntry.values());
+        }
+        const channelEntry =
+          deliveriesFilterState.filters.get("channel")?.value;
+        let channels: ChannelType[] | undefined;
+        if (channelEntry) {
+          const channelArray: string[] =
+            typeof channelEntry === "string"
+              ? [channelEntry]
+              : Array.from(channelEntry.values());
+
+          channels = channelArray as ChannelType[];
+        }
+
+        let to: string[] | undefined;
+        const toEntry = deliveriesFilterState.filters.get("to")?.value;
+        if (toEntry) {
+          to =
+            typeof toEntry === "string"
+              ? [toEntry]
+              : Array.from(toEntry.values());
+        }
+
+        let statuses: string[] | undefined;
+        const statusEntry = deliveriesFilterState.filters.get("status")?.value;
+        if (statusEntry) {
+          statuses =
+            typeof statusEntry === "string"
+              ? [statusEntry]
+              : Array.from(statusEntry.values());
+        }
+
         const params: SearchDeliveriesRequest = {
           workspaceId,
           cursor: currentCursor,
           limit: pageSize,
           journeyId,
           userId,
+          templateIds,
+          channels,
+          to,
+          statuses,
         };
 
         response = await axios.get(`${apiBase}/api/deliveries`, {
