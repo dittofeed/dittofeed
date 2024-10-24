@@ -585,6 +585,83 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when filtering by template id", () => {
+      let templateId: string;
+      beforeEach(async () => {
+        templateId = randomUUID();
+
+        const messageSentEvents: (Omit<MessageSendSuccess, "type"> & {
+          templateId: string;
+        })[] = [
+          {
+            templateId,
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: "test-to@email.com",
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.Sendgrid,
+              },
+            },
+          },
+          {
+            templateId: "invalid-template-id",
+            variant: {
+              type: ChannelType.Sms,
+              to: "+1234567890",
+              body: "body",
+              provider: {
+                type: SmsProviderType.Twilio,
+                sid: randomUUID(),
+              },
+            },
+          },
+        ];
+        const events: BatchItem[] = messageSentEvents.map(
+          (messageSentEvent) => ({
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          }),
+        );
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+      it("returns the correct number of items", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          templateIds: [templateId],
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]).toEqual(
+          expect.objectContaining({
+            templateId,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            variant: expect.objectContaining({
+              type: ChannelType.Email,
+            }),
+          }),
+        );
+      });
+    });
+
     describe("when filtering by to", () => {
       let to1: string;
       let to2: string;

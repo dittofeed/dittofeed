@@ -200,6 +200,12 @@ export async function searchDeliveries({
         "Array(String)",
       )}`
     : "";
+  const templateIdClause = templateIds
+    ? `AND JSON_VALUE(properties, '$.templateId') IN ${queryBuilder.addQueryValue(
+        templateIds,
+        "Array(String)",
+      )}`
+    : "";
   const statusClause = statuses
     ? `AND last_event IN ${queryBuilder.addQueryValue(
         statuses,
@@ -232,6 +238,7 @@ export async function searchDeliveries({
         AND workspace_id = ${workspaceIdParam}
         ${channelClause}
         ${toClause}
+        ${templateIdClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING
