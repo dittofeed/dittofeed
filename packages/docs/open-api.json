@@ -18472,35 +18472,38 @@
           },
           {
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "Email"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "MobilePush"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Sms"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Webhook"
-                  ]
-                }
-              ]
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Email"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "MobilePush"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Sms"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Webhook"
+                    ]
+                  }
+                ]
+              }
             },
             "in": "query",
-            "name": "channel",
+            "name": "channels",
             "required": false
           },
           {
@@ -18517,6 +18520,39 @@
             },
             "in": "query",
             "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "statuses",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "templateIds",
             "required": false
           }
         ],
