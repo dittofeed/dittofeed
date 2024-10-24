@@ -36,6 +36,7 @@ import { immer } from "zustand/middleware/immer";
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import {
+  getFilterValues,
   NewDeliveriesFilterButton,
   SelectedDeliveriesFilters,
   useDeliveriesFilterState,
@@ -245,44 +246,12 @@ export function DeliveriesTable({
       });
       let response: AxiosResponse;
       try {
-        const templateEntry =
-          deliveriesFilterState.filters.get("template")?.value;
-        let templateIds: string[] | undefined;
-        if (templateEntry) {
-          templateIds =
-            typeof templateEntry === "string"
-              ? [templateEntry]
-              : Array.from(templateEntry.values());
-        }
-        const channelEntry =
-          deliveriesFilterState.filters.get("channel")?.value;
-        let channels: ChannelType[] | undefined;
-        if (channelEntry) {
-          const channelArray: string[] =
-            typeof channelEntry === "string"
-              ? [channelEntry]
-              : Array.from(channelEntry.values());
-
-          channels = channelArray as ChannelType[];
-        }
-
-        let to: string[] | undefined;
-        const toEntry = deliveriesFilterState.filters.get("to")?.value;
-        if (toEntry) {
-          to =
-            typeof toEntry === "string"
-              ? [toEntry]
-              : Array.from(toEntry.values());
-        }
-
-        let statuses: string[] | undefined;
-        const statusEntry = deliveriesFilterState.filters.get("status")?.value;
-        if (statusEntry) {
-          statuses =
-            typeof statusEntry === "string"
-              ? [statusEntry]
-              : Array.from(statusEntry.values());
-        }
+        const templateIds = getFilterValues(deliveriesFilterState, "template");
+        const channels = getFilterValues(deliveriesFilterState, "channel") as
+          | ChannelType[]
+          | undefined;
+        const to = getFilterValues(deliveriesFilterState, "to");
+        const statuses = getFilterValues(deliveriesFilterState, "status");
 
         const params: SearchDeliveriesRequest = {
           workspaceId,
@@ -348,7 +317,7 @@ export function DeliveriesTable({
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, currentCursor]);
+  }, [workspaceId, currentCursor, deliveriesFilterState.filters]);
 
   const rows: TableItem[] = React.useMemo(
     () =>

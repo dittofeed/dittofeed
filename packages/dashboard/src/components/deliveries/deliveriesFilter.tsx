@@ -102,6 +102,19 @@ export interface DeliveriesState {
   filters: Map<Key, Filter>;
 }
 
+export function getFilterValues(
+  state: DeliveriesState,
+  filterKey: Key,
+): string[] | undefined {
+  const filter = state.filters.get(filterKey);
+  if (!filter) {
+    return;
+  }
+  return filter.type === FilterType.Value
+    ? [filter.value]
+    : Array.from(filter.value.keys());
+}
+
 type SetDeliveriesState = Updater<DeliveriesState>;
 
 export function useDeliveriesFilterState(): [
