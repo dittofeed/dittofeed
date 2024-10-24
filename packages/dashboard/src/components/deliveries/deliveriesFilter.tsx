@@ -7,7 +7,6 @@ import {
   Paper,
   TextField,
   Typography,
-  useTheme,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
