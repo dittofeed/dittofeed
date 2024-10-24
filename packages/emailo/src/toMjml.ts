@@ -275,6 +275,9 @@ function toMjmlHelper({
         mode,
       });
     }
+    case "markupBlock": {
+      return content.content?.[0]?.text ?? "";
+    }
     default:
       console.error("Unsupported node type", content.type, content);
       return "";

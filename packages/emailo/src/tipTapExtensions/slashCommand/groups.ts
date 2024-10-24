@@ -96,11 +96,11 @@ export const GROUPS: Group[] = [
           editor.chain().focus().insertUnsubscribeLink().run(),
       },
       {
-        name: "directCodeBlock",
-        label: "Direct Code Block",
+        name: "markupBlock",
+        label: "Markup Block",
         iconName: "SquareCode",
-        description: "Insert a direct code block",
-        action: (editor) => editor.chain().focus().setDirectCodeBlock().run(),
+        description: "Insert a markup block",
+        action: (editor) => editor.chain().focus().setMarkupBlock().run(),
       },
       {
         name: "horizontalRule",
