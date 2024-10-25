@@ -11,6 +11,8 @@ declare module "@tiptap/core" {
 
 export const MarkupBlock = CodeBlock.extend({
   name: "markupBlock",
+  // less than default 100, for code block
+  priority: 90,
 
   addCommands() {
     return {

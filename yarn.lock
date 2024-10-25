@@ -7970,6 +7970,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tiptap/extension-code@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-code@npm:2.9.1"
+  peerDependencies:
+    "@tiptap/core": ^2.7.0
+  checksum: 10/c5d8830feefebfe933abdc01efa92506956431bdaaad9f3e2fbc9986ec8125d42e88754f9e79927553cc6981fbb6870c6e2dcffc37a4fe009ac0659dc1389f07
+  languageName: node
+  linkType: hard
+
 "@tiptap/extension-color@npm:^2.7.1":
   version: 2.7.1
   resolution: "@tiptap/extension-color@npm:2.7.1"
@@ -13044,6 +13053,7 @@ __metadata:
     "@radix-ui/react-popover": "npm:^1.1.1"
     "@tippyjs/react": "npm:^4.2.6"
     "@tiptap/core": "npm:^2.7.1"
+    "@tiptap/extension-code": "npm:^2.9.1"
     "@tiptap/extension-code-block": "npm:^2.9.1"
     "@tiptap/extension-color": "npm:^2.7.1"
     "@tiptap/extension-font-family": "npm:^2.7.1"

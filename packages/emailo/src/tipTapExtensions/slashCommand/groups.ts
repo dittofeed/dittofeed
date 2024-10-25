@@ -103,6 +103,13 @@ export const GROUPS: Group[] = [
         action: (editor) => editor.chain().focus().setMarkupBlock().run(),
       },
       {
+        name: "markupInline",
+        label: "Inline Markup",
+        iconName: "SquareCode",
+        description: "Insert markup inline",
+        action: (editor) => editor.chain().focus().setMarkupInline().run(),
+      },
+      {
         name: "horizontalRule",
         label: "Horizontal Rule",
         iconName: "Minus",
