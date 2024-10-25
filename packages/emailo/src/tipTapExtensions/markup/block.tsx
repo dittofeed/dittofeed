@@ -18,7 +18,7 @@ export const MarkupBlock = CodeBlock.extend({
     return {
       ...this.parent?.(),
       class: {
-        default: "markup-block",
+        default: "markup-block markup-extension",
         renderHTML: (attributes) => ({
           class: attributes.class,
         }),

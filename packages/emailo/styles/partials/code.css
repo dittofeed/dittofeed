@@ -6,6 +6,14 @@
       &::selection {
         @apply bg-white/30;
       }
+
+      &.markup-extension {
+        @apply bg-solarized-base02 text-solarized-base1 caret-solarized-base1 border border-solarized-base01 border-4;
+
+        &::selection {
+          @apply bg-solarized-base01;
+        }
+      }
     }
 
     pre {
@@ -13,6 +21,14 @@
 
       *::selection {
         @apply bg-white/20;
+      }
+
+      &.markup-extension {
+        @apply bg-solarized-base02 text-solarized-base1 caret-solarized-base1 border border-solarized-base01 border-4;
+
+        &::selection {
+          @apply bg-solarized-base01;
+        }
       }
 
       code {
