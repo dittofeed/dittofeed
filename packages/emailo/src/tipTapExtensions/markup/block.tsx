@@ -14,6 +14,18 @@ export const MarkupBlock = CodeBlock.extend({
   // less than default 100, for code block
   priority: 90,
 
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: "markup-block",
+        renderHTML: (attributes) => ({
+          class: attributes.class,
+        }),
+      },
+    };
+  },
+
   addCommands() {
     return {
       setMarkupBlock:
@@ -24,6 +36,7 @@ export const MarkupBlock = CodeBlock.extend({
               type: this.name,
               attrs: {
                 language: "html",
+                className: "markup-block",
               },
               content: [
                 {
