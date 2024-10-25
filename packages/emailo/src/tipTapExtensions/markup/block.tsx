@@ -32,20 +32,12 @@ export const MarkupBlock = CodeBlock.extend({
         () =>
         ({ chain }) =>
           chain()
-            .insertContent({
-              type: this.name,
+            .setNode(this.name, {
               attrs: {
                 language: "html",
                 className: "markup-block",
               },
-              content: [
-                {
-                  type: "text",
-                  text: "liquid and mjml markup",
-                },
-              ],
             })
-            .blur()
             .run(),
     };
   },
