@@ -22,6 +22,11 @@ export const useTextmenuCommands = (editor: Editor) => {
     () => editor.chain().focus().toggleCode().run(),
     [editor],
   );
+
+  const onMarkupInline = useCallback(
+    () => editor.chain().focus().setMarkupInline().run(),
+    [editor],
+  );
   const onCodeBlock = useCallback(
     () => editor.chain().focus().toggleCodeBlock().run(),
     [editor],
@@ -120,5 +125,6 @@ export const useTextmenuCommands = (editor: Editor) => {
     onSetFont,
     onSetFontSize,
     onLink,
+    onMarkupInline,
   };
 };

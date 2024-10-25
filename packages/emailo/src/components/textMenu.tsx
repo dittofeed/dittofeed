@@ -116,7 +116,11 @@ export function TextMenu({ state }: TextMenuProps) {
           >
             <Icon name="Code" />
           </MemoButton>
-          <MemoButton tooltip="Code block" onClick={commands.onCodeBlock}>
+          <MemoButton
+            tooltip="Markup"
+            onClick={commands.onMarkupInline}
+            active={states.isMarkupInline}
+          >
             <Icon name="FileCode" />
           </MemoButton>
           <MemoEditLinkPopover

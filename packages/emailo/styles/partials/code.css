@@ -8,7 +8,7 @@
       }
 
       &.markup-extension {
-        @apply bg-solarized-base02 text-solarized-base1 caret-solarized-base1 border border-solarized-base01 border-4;
+        @apply bg-solarized-base02 text-solarized-base1 caret-solarized-base1;
 
         &::selection {
           @apply bg-solarized-base01;
