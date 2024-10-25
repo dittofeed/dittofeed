@@ -96,6 +96,13 @@ export const GROUPS: Group[] = [
           editor.chain().focus().insertUnsubscribeLink().run(),
       },
       {
+        name: "markupBlock",
+        label: "Markup Block",
+        iconName: "SquareCode",
+        description: "Insert a markup block",
+        action: (editor) => editor.chain().focus().setMarkupBlock().run(),
+      },
+      {
         name: "horizontalRule",
         label: "Horizontal Rule",
         iconName: "Minus",

@@ -14,6 +14,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { BlockquoteFigure } from "./tipTapExtensions/blockquoteFigure";
 import { FontSize } from "./tipTapExtensions/fontSize";
 import { Link } from "./tipTapExtensions/link";
+import { MarkupBlock } from "./tipTapExtensions/markup/block";
+import { MarkupInline } from "./tipTapExtensions/markup/inline";
 import { Selection } from "./tipTapExtensions/selection";
 import { SlashCommand } from "./tipTapExtensions/slashCommand";
 import { UnsubscribeLink } from "./tipTapExtensions/unsubscribeLink";
@@ -70,6 +72,8 @@ export function getExtensions({
         properties: userProperties,
       }),
       UnsubscribeLink,
+      MarkupBlock,
+      MarkupInline,
     ];
   }
   return EXTENSIONS;
