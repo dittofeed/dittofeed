@@ -2,10 +2,12 @@ import {
   Box,
   Button,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -174,18 +176,14 @@ function getBroadcastMessageNode(
 
 interface BroadcastTemplateState {
   updateTemplateRequest: EphemeralRequestStatus<Error>;
+  selectedChannel: ChannelType;
+  selectedLowCode: boolean; // Renamed from isLowCode
 }
 
 const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
   function BroadcastTemplate({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
-    const [{ updateTemplateRequest }, setState] =
-      useImmer<BroadcastTemplateState>({
-        updateTemplateRequest: {
-          type: CompletionStatus.NotStarted,
-        },
-      });
     const channel = getChannel(routeChannel);
     const {
       apiBase,
@@ -195,6 +193,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       upsertJourney,
       broadcasts,
       upsertTemplate,
+      messages,
     } = useAppStorePick([
       "apiBase",
       "journeys",
@@ -202,6 +201,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       "upsertTemplate",
       "journeyUpdateRequest",
       "setJourneyUpdateRequest",
+      "messages",
       "broadcasts",
     ]);
     const messageNode = getBroadcastMessageNode(journeyId, journeys);
@@ -215,6 +215,29 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       [broadcasts, id],
     );
     const started = broadcast?.status !== "NotStarted";
+    const template = useMemo(
+      () =>
+        messages.type === CompletionStatus.Successful
+          ? messages.value.find((m) => m.id === templateId) ?? null
+          : null,
+      [messages, templateId],
+    );
+    const isLowCode = useMemo(
+      () =>
+        template?.definition?.type === ChannelType.Email &&
+        "emailContentsType" in template.definition,
+      [template],
+    );
+    const [
+      { updateTemplateRequest, selectedChannel, selectedLowCode },
+      setState,
+    ] = useImmer<BroadcastTemplateState>({
+      updateTemplateRequest: {
+        type: CompletionStatus.NotStarted,
+      },
+      selectedChannel: channel,
+      selectedLowCode: isLowCode,
+    });
     const disabled =
       started || updateTemplateRequest.type === CompletionStatus.InProgress;
 
@@ -263,6 +286,49 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       })();
     }, [subscriptionGroupId]);
 
+    // Add new useEffect to handle channel changes
+    useUpdateEffect(() => {
+      if (!broadcast || selectedChannel === channel) {
+        return;
+      }
+
+      apiRequestHandlerFactory({
+        request: updateTemplateRequest,
+        setRequest: (req) =>
+          setState((draft) => {
+            draft.updateTemplateRequest = req;
+          }),
+        setResponse: (template) => {
+          upsertTemplate(template);
+          router.push({
+            query: {
+              id,
+              channel: selectedChannel,
+            },
+          });
+        },
+        responseSchema: MessageTemplateResource,
+        onFailureNoticeHandler: () =>
+          `API Error: Failed to update template channel.`,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/content/templates/reset`,
+          data: {
+            workspaceId: broadcast.workspaceId,
+            id: templateId,
+            type: selectedChannel,
+            journeyMetadata: {
+              journeyId,
+              nodeId: "broadcast-message",
+            },
+          } satisfies ResetMessageTemplateResource,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      })();
+    }, [selectedChannel]);
+
     if (typeof id !== "string") {
       return null;
     }
@@ -304,6 +370,59 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         assertUnreachable(channel);
     }
 
+    // Modify the Select component
+    const channelSelect = (
+      <FormControl>
+        <InputLabel id="broadcast-channel-label">Channel</InputLabel>
+        <Select
+          disabled={disabled}
+          label="Channel"
+          labelId="broadcast-channel-label"
+          sx={{
+            minWidth: theme.spacing(10),
+          }}
+          onChange={(e) => {
+            setState((draft) => {
+              draft.selectedChannel = e.target.value as ChannelType;
+            });
+          }}
+          value={selectedChannel}
+        >
+          <MenuItem value={ChannelType.Email}>
+            {CHANNEL_NAMES[ChannelType.Email]}
+          </MenuItem>
+          <MenuItem value={ChannelType.Sms}>
+            {CHANNEL_NAMES[ChannelType.Sms]}
+          </MenuItem>
+          <MenuItem value={ChannelType.Webhook}>
+            {CHANNEL_NAMES[ChannelType.Webhook]}
+          </MenuItem>
+          <MenuItem disabled value={ChannelType.MobilePush}>
+            {CHANNEL_NAMES[ChannelType.MobilePush]}
+          </MenuItem>
+        </Select>
+      </FormControl>
+    );
+    let lowCodeSelect: React.ReactNode | null = null;
+    if (selectedChannel === ChannelType.Email) {
+      lowCodeSelect = (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={selectedLowCode}
+              onChange={(e) => {
+                setState((draft) => {
+                  draft.selectedLowCode = e.target.checked;
+                });
+              }}
+              disabled={disabled}
+            />
+          }
+          label="Low Code Editor"
+        />
+      );
+    }
+
     return (
       <BroadcastLayout activeStep="template" id={id}>
         <Stack
@@ -319,72 +438,6 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <Button LinkComponent={Link} href={`/broadcasts/review/${id}`}>
             Next
           </Button>
-          <FormControl>
-            <InputLabel id="broadcast-channel-label">Channel</InputLabel>
-            <Select
-              disabled={disabled}
-              label="Channel"
-              labelId="broadcast-channel-label"
-              sx={{
-                minWidth: theme.spacing(10),
-              }}
-              onChange={(e) => {
-                if (!broadcast) {
-                  return;
-                }
-                const newChannel = e.target.value as ChannelType;
-                apiRequestHandlerFactory({
-                  request: updateTemplateRequest,
-                  setRequest: (req) =>
-                    setState((draft) => {
-                      draft.updateTemplateRequest = req;
-                    }),
-                  setResponse: (template) => {
-                    upsertTemplate(template);
-                    router.push({
-                      query: {
-                        id,
-                        channel: newChannel,
-                      },
-                    });
-                  },
-                  responseSchema: MessageTemplateResource,
-                  onFailureNoticeHandler: () =>
-                    `API Error: Failed to update template channel.`,
-                  requestConfig: {
-                    method: "PUT",
-                    url: `${apiBase}/api/content/templates/reset`,
-                    data: {
-                      workspaceId: broadcast.workspaceId,
-                      id: templateId,
-                      type: newChannel,
-                      journeyMetadata: {
-                        journeyId,
-                        nodeId: "broadcast-message",
-                      },
-                    } satisfies ResetMessageTemplateResource,
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  },
-                })();
-              }}
-              value={channel}
-            >
-              <MenuItem value={ChannelType.Email}>
-                {CHANNEL_NAMES[ChannelType.Email]}
-              </MenuItem>
-              <MenuItem value={ChannelType.Sms}>
-                {CHANNEL_NAMES[ChannelType.Sms]}
-              </MenuItem>
-              <MenuItem value={ChannelType.Webhook}>
-                {CHANNEL_NAMES[ChannelType.Webhook]}
-              </MenuItem>
-              <MenuItem disabled value={ChannelType.MobilePush}>
-                {CHANNEL_NAMES[ChannelType.MobilePush]}
-              </MenuItem>
-            </Select>
-          </FormControl>
           <Box sx={{ minWidth: "12rem" }}>
             <SubscriptionGroupAutocomplete
               subscriptionGroupId={subscriptionGroupId ?? undefined}
@@ -395,6 +448,8 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               }}
             />
           </Box>
+          {channelSelect}
+          {lowCodeSelect}
         </Stack>
         <Box
           sx={{
