@@ -14,7 +14,6 @@ import {
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
-import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -51,12 +50,6 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
-
-function getChannel(routeChannel: unknown): ChannelType {
-  return typeof routeChannel === "string" && isChannelType(routeChannel)
-    ? routeChannel
-    : ChannelType.Email;
-}
 
 async function getChannelState({
   workspaceId,
@@ -184,7 +177,7 @@ interface BroadcastTemplateState {
 const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
   function BroadcastTemplateInner({ templateId, journeyId }) {
     const router = useRouter();
-    const { id, channel: routeChannel } = router.query;
+    const { id } = router.query;
 
     const {
       apiBase,
