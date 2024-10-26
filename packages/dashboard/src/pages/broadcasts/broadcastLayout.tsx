@@ -96,7 +96,7 @@ export function BroadcastLayout({
       <Stack
         direction="column"
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
-        spacing={3}
+        spacing={1}
       >
         <Stack direction="row" spacing={2}>
           <Stepper nonLinear activeStep={stepIndex}>
