@@ -181,8 +181,8 @@ interface BroadcastTemplateState {
   selectedLowCode: boolean; // Renamed from isLowCode
 }
 
-const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
-  function BroadcastTemplate({ templateId, journeyId }) {
+const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
+  function BroadcastTemplateInner({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
     const channel = getChannel(routeChannel);
@@ -230,7 +230,6 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       [template],
     );
 
-    console.log("loc2", { isLowCode, template });
     const [
       { updateTemplateRequest, selectedChannel, selectedLowCode },
       setState,
@@ -433,7 +432,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
     }
 
     return (
-      <BroadcastLayout activeStep="template" id={id}>
+      <>
         <Stack
           direction="row"
           spacing={2}
@@ -468,7 +467,29 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         >
           {templateEditor}
         </Box>
-      </BroadcastLayout>
+      </>
     );
   };
+
+function BroadcastTemplate({ templateId, journeyId }: BroadcastTemplateProps) {
+  const router = useRouter();
+  const { id } = router.query;
+  const { inTransition } = useAppStorePick(["inTransition"]);
+  if (typeof id !== "string") {
+    return null;
+  }
+  let inner: React.ReactNode;
+  if (inTransition) {
+    inner = null;
+  } else {
+    inner = (
+      <BroadcastTemplateInner templateId={templateId} journeyId={journeyId} />
+    );
+  }
+  return (
+    <BroadcastLayout activeStep="template" id={id}>
+      {inner}
+    </BroadcastLayout>
+  );
+}
 export default BroadcastTemplate;
