@@ -21,6 +21,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
   EphemeralRequestStatus,
   JourneyBodyNode,
   JourneyNodeType,
@@ -228,6 +229,8 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         "emailContentsType" in template.definition,
       [template],
     );
+
+    console.log("loc2", { isLowCode, template });
     const [
       { updateTemplateRequest, selectedChannel, selectedLowCode },
       setState,
@@ -236,7 +239,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         type: CompletionStatus.NotStarted,
       },
       selectedChannel: channel,
-      selectedLowCode: isLowCode,
+      selectedLowCode: isLowCode || !template,
     });
     const disabled =
       started || updateTemplateRequest.type === CompletionStatus.InProgress;
@@ -288,7 +291,10 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
 
     // Add new useEffect to handle channel changes
     useUpdateEffect(() => {
-      if (!broadcast || selectedChannel === channel) {
+      if (
+        !broadcast ||
+        (selectedChannel === channel && selectedLowCode === isLowCode)
+      ) {
         return;
       }
 
@@ -298,8 +304,8 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           setState((draft) => {
             draft.updateTemplateRequest = req;
           }),
-        setResponse: (template) => {
-          upsertTemplate(template);
+        setResponse: (t) => {
+          upsertTemplate(t);
           router.push({
             query: {
               id,
@@ -321,13 +327,16 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               journeyId,
               nodeId: "broadcast-message",
             },
+            emailContentsType: selectedLowCode
+              ? EmailContentsType.LowCode
+              : undefined,
           } satisfies ResetMessageTemplateResource,
           headers: {
             "Content-Type": "application/json",
           },
         },
       })();
-    }, [selectedChannel]);
+    }, [selectedChannel, selectedLowCode]);
 
     if (typeof id !== "string") {
       return null;
