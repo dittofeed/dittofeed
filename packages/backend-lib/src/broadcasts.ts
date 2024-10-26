@@ -183,7 +183,7 @@ export async function upsertBroadcast({
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: defaultEmailDefinition({
-          emailContentsType: EmailContentsType.Code,
+          emailContentsType: EmailContentsType.LowCode,
           emailProvider: defaultEmailProvider ?? undefined,
         }),
       },

@@ -185,7 +185,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
   function BroadcastTemplateInner({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
-    const channel = getChannel(routeChannel);
+
     const {
       apiBase,
       journeys,
@@ -223,6 +223,8 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
           : null,
       [messages, templateId],
     );
+
+    const channel = template?.definition?.type ?? ChannelType.Email;
     const isLowCode = useMemo(
       () =>
         template?.definition?.type === ChannelType.Email &&
