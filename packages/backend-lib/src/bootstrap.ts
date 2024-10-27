@@ -2,6 +2,7 @@ import { Prisma, WorkspaceType } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
+import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
@@ -26,6 +27,8 @@ import {
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  CreateWorkspaceErrorType,
+  CreateWorkspaceResult,
   EventType,
   NodeEnvEnum,
   SubscriptionGroupType,
@@ -39,12 +42,14 @@ export async function bootstrapPostgres({
   workspaceDomain,
   workspaceType,
   workspaceExternalId,
+  upsertWorkspace = true,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
   workspaceExternalId?: string;
-}): Promise<{ workspace: Workspace; writeKey: string }> {
+  upsertWorkspace?: boolean;
+}): Promise<CreateWorkspaceResult> {
   logger().info(
     {
       workspaceName,
@@ -54,22 +59,44 @@ export async function bootstrapPostgres({
     },
     "Upserting workspace.",
   );
-  const workspace = await prisma().workspace.upsert({
-    where: {
-      name: workspaceName,
-    },
-    update: {
-      domain: workspaceDomain,
-      type: workspaceType,
-      externalId: workspaceExternalId,
-    },
-    create: {
-      name: workspaceName,
-      domain: workspaceDomain,
-      type: workspaceType,
-      externalId: workspaceExternalId,
-    },
-  });
+  let workspace: Workspace;
+  if (upsertWorkspace) {
+    try {
+      workspace = await prisma().workspace.upsert({
+        where: {
+          name: workspaceName,
+        },
+        update: {
+          domain: workspaceDomain,
+          type: workspaceType,
+          externalId: workspaceExternalId,
+        },
+        create: {
+          name: workspaceName,
+          domain: workspaceDomain,
+          type: workspaceType,
+          externalId: workspaceExternalId,
+        },
+      });
+    } catch (e) {
+      const error = e as Prisma.PrismaClientKnownRequestError;
+      if (error.code === "P2002") {
+        return err({
+          type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
+        });
+      }
+      throw error;
+    }
+  } else {
+    workspace = await prisma().workspace.create({
+      data: {
+        name: workspaceName,
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+    });
+  }
   const workspaceId = workspace.id;
 
   const userProperties: Prisma.UserPropertyUncheckedCreateWithoutUserPropertyAssignmentInput[] =
@@ -204,7 +231,14 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
-  return { workspace, writeKey: writeKey.writeKeyValue };
+  return ok({
+    externalId: workspace.externalId ?? undefined,
+    domain: workspace.domain ?? undefined,
+    name: workspace.name,
+    id: workspace.id,
+    type: workspace.type,
+    writeKey: writeKey.writeKeyValue,
+  });
 }
 
 async function bootstrapKafka() {
@@ -246,14 +280,15 @@ export async function bootstrapWorker({
   logger().info("Bootstrapping worker.");
   try {
     await startComputePropertiesWorkflow({ workspaceId });
-  } catch (err) {
-    if (err instanceof WorkflowExecutionAlreadyStartedError) {
+  } catch (e) {
+    const error = e as WorkflowExecutionAlreadyStartedError;
+    if (error instanceof WorkflowExecutionAlreadyStartedError) {
       logger().info("Compute properties workflow already started.");
     } else {
-      logger().error({ err }, "Failed to bootstrap worker.");
+      logger().error({ err: e }, "Failed to bootstrap worker.");
 
       if (config().bootstrapSafe) {
-        throw err;
+        throw e;
       }
     }
   }
@@ -309,10 +344,11 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
 }
 
 function handleErrorFactory(message: string) {
-  return function handleError(err: unknown) {
-    logger().error({ err }, message);
+  return function handleError(e: unknown) {
+    const error = e as Error;
+    logger().error({ err: error }, message);
     if (config().bootstrapSafe) {
-      throw err;
+      throw error;
     }
   };
 }
@@ -329,7 +365,11 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
   });
-  const workspaceId = workspace.workspace.id;
+  if (workspace.isErr()) {
+    logger().error({ err: workspace.error }, "Failed to bootstrap workspace.");
+    throw new Error("Failed to bootstrap workspace.");
+  }
+  const workspaceId = workspace.value.id;
 
   const initialBootstrap = [
     bootstrapClickhouse().catch(
