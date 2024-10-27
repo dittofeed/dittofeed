@@ -3808,3 +3808,57 @@ export const GetUserSubscriptionsResponse = Type.Object({
 export type GetUserSubscriptionsResponse = Static<
   typeof GetUserSubscriptionsResponse
 >;
+
+export enum CreateWorkspaceErrorType {
+  WorkspaceAlreadyExists = "WorkspaceAlreadyExists",
+}
+
+export const CreateWorkspaceAlreadyExistsError = Type.Object({
+  type: Type.Literal(CreateWorkspaceErrorType.WorkspaceAlreadyExists),
+});
+
+export type CreateWorkspaceAlreadyExistsError = Static<
+  typeof CreateWorkspaceAlreadyExistsError
+>;
+
+export const CreateWorkspaceError = Type.Union([
+  CreateWorkspaceAlreadyExistsError,
+]);
+
+export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
+
+export const WorkspaceTypeApp = Type.Union([
+  Type.Literal("Root"),
+  Type.Literal("Child"),
+  Type.Literal("Parent"),
+]);
+
+export type WorkspaceTypeApp = Static<typeof WorkspaceTypeApp>;
+
+export const WorkspaceResourceExtended = Type.Composite([
+  WorkspaceResource,
+  Type.Object({
+    externalId: Type.Optional(Type.String()),
+    type: WorkspaceTypeApp,
+    writeKey: Type.String(),
+    domain: Type.Optional(Type.String()),
+  }),
+]);
+
+export type WorkspaceResourceExtended = Static<
+  typeof WorkspaceResourceExtended
+>;
+
+export type CreateWorkspaceResult = Result<
+  WorkspaceResourceExtended,
+  CreateWorkspaceError
+>;
+
+export const CreateWorkspaceResultJson = JsonResult(
+  WorkspaceResourceExtended,
+  CreateWorkspaceError,
+);
+
+export type CreateWorkspaceResultJson = Static<
+  typeof CreateWorkspaceResultJson
+>;

@@ -39,12 +39,14 @@ export async function bootstrapPostgres({
   workspaceDomain,
   workspaceType,
   workspaceExternalId,
+  upsertWorkspace = true,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
   workspaceExternalId?: string;
-}): Promise<{ workspace: Workspace; writeKey: string }> {
+  upsertWorkspace?: boolean;
+}): Promise<CreateWorkspaceResult> {
   logger().info(
     {
       workspaceName,
@@ -54,22 +56,34 @@ export async function bootstrapPostgres({
     },
     "Upserting workspace.",
   );
-  const workspace = await prisma().workspace.upsert({
-    where: {
-      name: workspaceName,
-    },
-    update: {
-      domain: workspaceDomain,
-      type: workspaceType,
-      externalId: workspaceExternalId,
-    },
-    create: {
-      name: workspaceName,
-      domain: workspaceDomain,
-      type: workspaceType,
-      externalId: workspaceExternalId,
-    },
-  });
+  let workspace: Workspace;
+  if (upsertWorkspace) {
+    workspace = await prisma().workspace.upsert({
+      where: {
+        name: workspaceName,
+      },
+      update: {
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+      create: {
+        name: workspaceName,
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+    });
+  } else {
+    workspace = await prisma().workspace.create({
+      data: {
+        name: workspaceName,
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+    });
+  }
   const workspaceId = workspace.id;
 
   const userProperties: Prisma.UserPropertyUncheckedCreateWithoutUserPropertyAssignmentInput[] =
