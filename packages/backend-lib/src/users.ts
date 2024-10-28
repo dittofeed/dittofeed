@@ -334,21 +334,25 @@ export async function deleteUsers({
 }: DeleteUsersRequest): Promise<void> {
   // TODO delete intermediate state in ch
   const qb = new ClickHouseQueryBuilder();
-  const query = `
+  const queries = [
+    `
     ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
       workspaceId,
       "String",
     )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
-  `;
+  `,
+  ];
 
   await Promise.all([
-    clickhouseClient().command({
-      query,
-      query_params: qb.getQueries(),
-      clickhouse_settings: {
-        wait_end_of_query: 1,
-      },
-    }),
+    ...queries.map((query) =>
+      clickhouseClient().command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+        },
+      }),
+    ),
     prisma().userPropertyAssignment.deleteMany({
       where: {
         workspaceId,
