@@ -333,42 +333,35 @@ export async function deleteUsers({
   userIds,
 }: DeleteUsersRequest): Promise<void> {
   const qb = new ClickHouseQueryBuilder();
+
+  // Define shared query values
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdsParam = qb.addQueryValue(userIds, "Array(String)");
+
   const queries = [
     // Delete from user_events_v2
-    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_v2
-    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_assignments_v2
-    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
 
     // Delete from processed_computed_properties_v2
-    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_index
-    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
 
     // Delete from resolved_segment_state
-    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
   ];
 
   await Promise.all([
