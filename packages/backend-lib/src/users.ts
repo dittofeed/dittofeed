@@ -340,19 +340,30 @@ export async function deleteUsers({
       "String",
     )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
   `;
-  await clickhouseClient().command({
-    query,
-    query_params: qb.getQueries(),
-    clickhouse_settings: {
-      wait_end_of_query: 1,
-    },
-  });
-  await prisma().userPropertyAssignment.deleteMany({
-    where: {
-      workspaceId,
-      userId: {
-        in: userIds,
+
+  await Promise.all([
+    clickhouseClient().command({
+      query,
+      query_params: qb.getQueries(),
+      clickhouse_settings: {
+        wait_end_of_query: 1,
       },
-    },
-  });
+    }),
+    prisma().userPropertyAssignment.deleteMany({
+      where: {
+        workspaceId,
+        userId: {
+          in: userIds,
+        },
+      },
+    }),
+    prisma().segmentAssignment.deleteMany({
+      where: {
+        workspaceId,
+        userId: {
+          in: userIds,
+        },
+      },
+    }),
+  ]);
 }
