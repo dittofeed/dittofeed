@@ -332,18 +332,47 @@ export async function deleteUsers({
   workspaceId,
   userIds,
 }: DeleteUsersRequest): Promise<void> {
-  // TODO delete intermediate state in ch
   const qb = new ClickHouseQueryBuilder();
   const queries = [
-    `
-    ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
+    // Delete from user_events_v2
+    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
       workspaceId,
       "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
-  `,
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+
+    // Delete from computed_property_state_v2
+    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+
+    // Delete from computed_property_assignments_v2
+    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+
+    // Delete from processed_computed_properties_v2
+    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+
+    // Delete from computed_property_state_index
+    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
+
+    // Delete from resolved_segment_state
+    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});`,
   ];
 
   await Promise.all([
+    // Execute all Clickhouse deletion queries
     ...queries.map((query) =>
       clickhouseClient().command({
         query,
@@ -353,6 +382,7 @@ export async function deleteUsers({
         },
       }),
     ),
+    // Delete from Prisma tables
     prisma().userPropertyAssignment.deleteMany({
       where: {
         workspaceId,
