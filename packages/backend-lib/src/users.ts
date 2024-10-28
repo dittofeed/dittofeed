@@ -332,27 +332,65 @@ export async function deleteUsers({
   workspaceId,
   userIds,
 }: DeleteUsersRequest): Promise<void> {
-  // TODO delete intermediate state in ch
   const qb = new ClickHouseQueryBuilder();
-  const query = `
-    ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
-  `;
-  await clickhouseClient().command({
-    query,
-    query_params: qb.getQueries(),
-    clickhouse_settings: {
-      wait_end_of_query: 1,
-    },
-  });
-  await prisma().userPropertyAssignment.deleteMany({
-    where: {
-      workspaceId,
-      userId: {
-        in: userIds,
+
+  // Define shared query values
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdsParam = qb.addQueryValue(userIds, "Array(String)");
+
+  const queries = [
+    // Delete from user_events_v2
+    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+
+    // Delete from computed_property_state_v2
+    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+
+    // Delete from computed_property_assignments_v2
+    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+
+    // Delete from processed_computed_properties_v2
+    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+
+    // Delete from computed_property_state_index
+    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+
+    // Delete from resolved_segment_state
+    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam});`,
+  ];
+
+  await Promise.all([
+    // Execute all Clickhouse deletion queries
+    ...queries.map((query) =>
+      clickhouseClient().command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+        },
+      }),
+    ),
+    // Delete from Prisma tables
+    prisma().userPropertyAssignment.deleteMany({
+      where: {
+        workspaceId,
+        userId: {
+          in: userIds,
+        },
       },
-    },
-  });
+    }),
+    prisma().segmentAssignment.deleteMany({
+      where: {
+        workspaceId,
+        userId: {
+          in: userIds,
+        },
+      },
+    }),
+  ]);
 }
