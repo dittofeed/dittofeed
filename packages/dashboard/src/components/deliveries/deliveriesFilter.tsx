@@ -95,7 +95,6 @@ export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
 
 export interface DeliveriesState {
   open: boolean;
-  anchorEl: HTMLElement | null;
   inputValue: string;
   stage: Stage;
   filters: Map<Key, Filter>;
@@ -122,7 +121,6 @@ export function useDeliveriesFilterState(): [
 ] {
   return useImmer<DeliveriesState>({
     open: false,
-    anchorEl: null,
     inputValue: "",
     stage: { type: StageType.SelectKey },
     filters: new Map(),
@@ -175,6 +173,8 @@ export function NewDeliveriesFilterButton({
   const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
   const inputRef = useRef<HTMLInputElement>(null);
+  const anchorEl = useRef<HTMLElement | null>(null);
+
   const commands: DeliveriesFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
@@ -389,15 +389,15 @@ export function NewDeliveriesFilterButton({
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    anchorEl.current = event.currentTarget;
     setState((draft) => {
-      draft.anchorEl = event.currentTarget;
       draft.open = true;
     });
   };
 
   const handleClose = () => {
+    anchorEl.current = null;
     setState((draft) => {
-      draft.anchorEl = null;
       draft.open = false;
       draft.stage = { type: StageType.SelectKey };
     });
@@ -525,7 +525,7 @@ export function NewDeliveriesFilterButton({
       </Button>
       <Popover
         open={state.open}
-        anchorEl={state.anchorEl}
+        anchorEl={anchorEl.current}
         onClose={handleClose}
         TransitionProps={{
           onEntered: () => {
