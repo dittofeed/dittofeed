@@ -105,6 +105,7 @@ const BaseRawConfigProps = {
   hyperDxApiKey: Type.Optional(Type.String()),
   dittofeedTelemetryDisabled: Type.Optional(BoolStr),
   appVersion: Type.Optional(Type.String()),
+  onboardingUrl: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -213,6 +214,7 @@ export type Config = Overwrite<
     readQueryConcurrency: number;
     exportLogsHyperDx: boolean;
     dittofeedTelemetryDisabled: boolean;
+    onboardingUrl: string;
     bootstrapSafe: boolean;
   }
 > & {
@@ -451,6 +453,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled: rawConfig.dittofeedTelemetryDisabled === "true",
+    onboardingUrl: rawConfig.onboardingUrl ?? "/waiting-room",
   };
 
   return parsedConfig;

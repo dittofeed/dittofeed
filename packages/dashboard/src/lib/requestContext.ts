@@ -8,10 +8,8 @@ import {
 } from "backend-lib/src/requestContext";
 import { OpenIdProfile } from "backend-lib/src/types";
 import {
-  EMAIL_NOT_VERIFIED_PAGE,
   SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,
-  WAITING_ROOM_PAGE,
 } from "isomorphic-lib/src/constants";
 import { GetServerSideProps } from "next";
 
@@ -24,13 +22,14 @@ export const requestContext: <T>(
   (gssp) => async (context) => {
     const { profile } = context.req as { profile?: OpenIdProfile };
     const rc = await getRequestContext(context.req.headers, profile);
+    const { onboardingUrl } = backendConfig();
     if (rc.isErr()) {
       switch (rc.error.type) {
         case RequestContextErrorType.EmailNotVerified:
           logger().info("email not verified");
           return {
             redirect: {
-              destination: EMAIL_NOT_VERIFIED_PAGE,
+              destination: onboardingUrl,
               permanent: false,
             },
           };
@@ -42,7 +41,7 @@ export const requestContext: <T>(
             "user not onboarded",
           );
           return {
-            redirect: { destination: WAITING_ROOM_PAGE, permanent: false },
+            redirect: { destination: onboardingUrl, permanent: false },
           };
         case RequestContextErrorType.Unauthorized:
           logger().info(
