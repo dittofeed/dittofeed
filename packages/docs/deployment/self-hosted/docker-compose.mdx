@@ -84,9 +84,9 @@ docker compose -f docker-compose.lite.yaml up -d
 
 ## Fixing Port Conflicts
 
-You may be running other services on your host machine that conflict with Dittofeed's ports. If this is the case, you can override the ports that Dittofeed binds to in the `docker-compose.lite.yaml` file.
+You may be running other services on your host machine that conflict with Dittofeed's ports. If this is the case, you can override the ports that Dittofeed binds to in the `docker-compose.lite.yaml` file
 
-Then, comment out the `ports` section in the service dependencies which don't need to be exposed.
+First, comment out the `ports` section in the service dependencies which don't need to be exposed.
 
 ```yaml docker-compose.lite.yaml
   temporal:
@@ -110,10 +110,16 @@ Then, change the lite service to expose the free port you want to use.
       - "3210:3000"
 ```
 
-Then configure the Dittofeed dashboard to use the new port.
+Configure the Dittofeed dashboard to use the new port.
 
 ```yaml .env
 x-backend-app-env: &backend-app-env
   <<: [*clickhouse-credentials, *database-credentials]
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3210}
+```
+
+Finally, restart Dittofeed.
+
+```bash
+docker compose -f docker-compose.lite.yaml up -d --force-recreate
 ```
