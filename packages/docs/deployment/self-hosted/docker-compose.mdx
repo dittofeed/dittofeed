@@ -22,7 +22,7 @@ git clone git@github.com:dittofeed/dittofeed.git
 cd dittofeed
 ```
 
-## Overridde Default Environment Variables
+## Overriding Default Environment Variables
 
 It's important that you override the default environment variables in the `.env` file, for security reasons.
 
@@ -36,7 +36,7 @@ To start, create a local `.env` file.
 touch .env
 ```
 
-Then uncomment the following lines from [`docker-compose.lite.yaml`](https://github.com/dittofeed/dittofeed/blob/main/docker-compose.lite.yaml):
+Then uncomment the following lines from the `docker-compose.lite.yaml` [file](https://github.com/dittofeed/dittofeed/blob/main/docker-compose.lite.yaml):
 
 ```yaml docker-compose.lite.yaml
 # README: To add local env variables uncomment the following line and add a .env file in the root directory
@@ -81,3 +81,39 @@ docker compose -f docker-compose.lite.yaml up -d
   you should disable the corresponding services in the
   `docker-compose.prod.yaml` file.
 </Warning>
+
+## Fixing Port Conflicts
+
+You may be running other services on your host machine that conflict with Dittofeed's ports. If this is the case, you can override the ports that Dittofeed binds to in the `docker-compose.lite.yaml` file.
+
+Then, comment out the `ports` section in the service dependencies which don't need to be exposed.
+
+```yaml docker-compose.lite.yaml
+  temporal:
+    # ports:
+    #   - "7233:7233"
+  ...
+  postgres:
+    # ports:
+    #   - "5432:5432"
+  ...
+  clickhouse-server:
+    # ports:
+    #   - "8123:8123"
+```
+
+Then, change the lite service to expose the free port you want to use.
+
+```yaml docker-compose.lite.yaml
+  lite:
+    ports:
+      - "3210:3000"
+```
+
+Then configure the Dittofeed dashboard to use the new port.
+
+```yaml .env
+x-backend-app-env: &backend-app-env
+  <<: [*clickhouse-credentials, *database-credentials]
+  DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3210}
+```
