@@ -6,10 +6,9 @@ import {
   SESSION_KEY,
 } from "backend-lib/src/requestContext";
 import { OpenIdProfile } from "backend-lib/src/types";
+import { getWorkspaceId } from "backend-lib/src/workspaces";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-
-import { getWorkspaceId } from "../workspace";
 
 export function requestToSessionValue(request: FastifyRequest):
   | {

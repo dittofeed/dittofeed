@@ -5,10 +5,10 @@ import {
 } from "@opentelemetry/sdk-metrics";
 import backendConfig from "backend-lib/src/config";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
+import { getWorkspaceIdFromReq } from "backend-lib/src/workspaces";
 import { FastifyRequest } from "fastify";
 
 import config from "./config";
-import { getWorkspaceIdFromReq } from "./workspace";
 
 const apiConfig = config();
 const { apiServiceName: serviceName } = apiConfig;

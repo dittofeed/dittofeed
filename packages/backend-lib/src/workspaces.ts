@@ -1,10 +1,11 @@
 import { Type } from "@sinclair/typebox";
-import backendConfig from "backend-lib/src/config";
-import prisma from "backend-lib/src/prisma";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+
+import backendConfig from "./config";
+import prisma from "./prisma";
 
 const withWorkspaceId = Type.Object({
   workspaceId: Type.String(),

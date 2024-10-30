@@ -28,6 +28,7 @@ import {
   TwilioEventSms,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
+import { getWorkspaceIdFromReq } from "backend-lib/src/workspaces";
 import { FastifyInstance } from "fastify";
 import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
@@ -41,8 +42,6 @@ import {
 } from "isomorphic-lib/src/types";
 import { Webhook } from "svix";
 import { validateRequest } from "twilio";
-
-import { getWorkspaceId } from "../workspace";
 
 const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 

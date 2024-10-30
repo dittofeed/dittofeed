@@ -1,11 +1,10 @@
 import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
+import { getWorkspaceId } from "backend-lib/src/workspaces";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { AdminApiKeyDefinition } from "isomorphic-lib/src/types";
-
-import { getWorkspaceId } from "../workspace";
 
 export async function authenticateAdminApiKeyFull({
   workspaceId,
