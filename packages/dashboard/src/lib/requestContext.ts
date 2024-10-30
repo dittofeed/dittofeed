@@ -2,11 +2,8 @@ import { DittofeedSdk } from "@dittofeed/sdk-node";
 import backendConfig from "backend-lib/src/config";
 import { getFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
-import {
-  getRequestContext,
-  RequestContextErrorType,
-} from "backend-lib/src/requestContext";
-import { OpenIdProfile } from "backend-lib/src/types";
+import { getRequestContext } from "backend-lib/src/requestContext";
+import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
 import {
   SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,

@@ -49,7 +49,7 @@
     "file-saver": "^2.0.5",
     "fnv1a": "^1.1.1",
     "humanize-duration": "^3.27.3",
-    "immer": "^9.0.16",
+    "immer": "9.0.21",
     "is-hotkey": "^0.2.0",
     "isomorphic-lib": "0.0.3",
     "lorem-ipsum": "^2.0.8",
@@ -69,7 +69,7 @@
     "slate-react": "^0.88.0",
     "unidiff": "^1.0.2",
     "use-debounce": "^9.0.2",
-    "use-immer": "^0.9.0",
+    "use-immer": "0.9.0",
     "uuid": "^9.0.0",
     "zustand": "^4.1.4"
   },
