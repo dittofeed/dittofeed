@@ -26,7 +26,13 @@ export const requestContext: <T>(
     if (rc.isErr()) {
       switch (rc.error.type) {
         case RequestContextErrorType.EmailNotVerified:
-          logger().info("email not verified");
+          logger().info(
+            {
+              onboardingUrl,
+              email: rc.error.email,
+            },
+            "email not verified",
+          );
           return {
             redirect: {
               destination: onboardingUrl,
