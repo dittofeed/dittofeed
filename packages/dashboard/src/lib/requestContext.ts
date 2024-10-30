@@ -23,6 +23,7 @@ export const requestContext: <T>(
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
     const { profile } = context.req as { profile?: OpenIdProfile };
+    logger().debug({ headers: context.req.headers }, "requestContext");
     const rc = await getRequestContext(context.req.headers, profile);
     if (rc.isErr()) {
       switch (rc.error.type) {

@@ -187,7 +187,10 @@ function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
 export function DeliveriesTable({
   journeyId,
   userId,
-}: Pick<SearchDeliveriesRequest, "journeyId" | "userId">) {
+  apiPath = "/api/deliveries",
+}: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> & {
+  apiPath?: string;
+}) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
   const [previewObject, setPreviewObject] =
     useState<PreviewObjectInterface>(initPreviewObject());
@@ -265,7 +268,7 @@ export function DeliveriesTable({
           statuses,
         };
 
-        response = await axios.get(`${apiBase}/api/deliveries`, {
+        response = await axios.get(`${apiBase}${apiPath}`, {
           params,
         });
       } catch (e) {
