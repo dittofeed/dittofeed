@@ -36,6 +36,7 @@ export const requestContext: <T>(
           return {
             redirect: {
               destination: onboardingUrl,
+              basePath: false,
               permanent: false,
             },
           };
@@ -47,7 +48,11 @@ export const requestContext: <T>(
             "user not onboarded",
           );
           return {
-            redirect: { destination: onboardingUrl, permanent: false },
+            redirect: {
+              destination: onboardingUrl,
+              permanent: false,
+              basePath: false,
+            },
           };
         case RequestContextErrorType.Unauthorized:
           logger().info(
