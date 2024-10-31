@@ -59,8 +59,6 @@ import {
   JourneyUiEdge,
   JourneyUiEdgeType,
   JourneyUiNode,
-  JourneyUiNodeDefinitionProps,
-  JourneyUiNodePresentationalProps,
   JourneyUiNodeType,
   JourneyUiNodeTypeProps,
   MessageUiNodeProps,
@@ -654,7 +652,7 @@ export function dualNodeNonJourneyNodes({
 }: DualNodeParams & {
   leftLabel: string;
   rightLabel: string;
-}): Node<JourneyUiNodePresentationalProps>[] {
+}): JourneyUiNode[] {
   return [
     {
       id: leftId,
@@ -696,8 +694,8 @@ export function dualNodeEdges({
   source: string;
   target: string;
   nodeId: string;
-}): Edge<JourneyUiEdgeProps>[] {
-  const edges: Edge<JourneyUiEdgeProps>[] = [
+}): JourneyUiEdge[] {
+  const edges: JourneyUiEdge[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -784,7 +782,7 @@ export function edgesForJourneyNode({
   leftId?: string;
   rightId?: string;
   emptyId?: string;
-}): Edge<JourneyUiEdgeProps>[] {
+}): JourneyUiEdge[] {
   if (
     type === JourneyNodeType.SegmentSplitNode ||
     type === JourneyNodeType.WaitForNode
@@ -812,7 +810,7 @@ export function edgesForJourneyNode({
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  const edges: Edge<JourneyUiEdgeProps>[] = [];
+  const edges: JourneyUiEdge[] = [];
   if (source) {
     edges.push({
       id: `${source}=>${nodeId}`,
@@ -899,7 +897,7 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
-function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
+function buildLabelNode(id: string, title: string): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -911,7 +909,7 @@ function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
   };
 }
 
-function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
+function buildEmptyNode(id: string): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -936,10 +934,7 @@ function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
   };
 }
 
-function buildPlaceholderEdge(
-  source: string,
-  target: string,
-): Edge<JourneyUiEdgeProps> {
+function buildPlaceholderEdge(source: string, target: string): JourneyUiEdge {
   return {
     id: `${source}=>${target}`,
     source,
@@ -1105,8 +1100,8 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
 export function journeyBranchToState(
   initialNodeId: string,
-  nodesState: Node<JourneyNodeUiProps>[],
-  edgesState: Edge<JourneyUiEdgeProps>[],
+  nodesState: JourneyUiNode[],
+  edgesState: JourneyUiEdge[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
   terminateBefore?: string,
@@ -1531,7 +1526,7 @@ function buildBaseJourneyNode({
 }: {
   id: string;
   nodeTypeProps: JourneyUiNodeTypeProps;
-}): Node<JourneyUiNodeDefinitionProps> {
+}): JourneyUiNode {
   return {
     id,
     data: {
@@ -1544,11 +1539,11 @@ function buildBaseJourneyNode({
 }
 
 export function createConnections(params: CreateConnectionsParams): {
-  newNodes: Node<JourneyNodeUiProps>[];
-  newEdges: Edge<JourneyUiEdgeProps>[];
+  newNodes: JourneyUiNode[];
+  newEdges: JourneyUiEdge[];
 } {
-  let newNodes: Node<JourneyNodeUiProps>[] = [];
-  let newEdges: Edge<JourneyUiEdgeProps>[];
+  let newNodes: JourneyUiNode[] = [];
+  let newEdges: JourneyUiEdge[];
 
   switch (params.type) {
     case JourneyNodeType.SegmentSplitNode: {

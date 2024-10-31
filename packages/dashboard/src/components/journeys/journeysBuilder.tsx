@@ -23,7 +23,7 @@ import React, { DragEvent, DragEventHandler } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { AppState } from "../../lib/types";
+import { AppState, JourneyUiEdge, JourneyUiNode } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
@@ -134,11 +134,15 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     }
   };
 
-  const onNodesChange: OnNodesChange = (changes: NodeChange[]) => {
+  const onNodesChange: OnNodesChange<JourneyUiNode> = (
+    changes: NodeChange<JourneyUiNode>[],
+  ) => {
     setNodes(changes);
   };
 
-  const onEdgesChange: OnEdgesChange = (changes: EdgeChange[]) => {
+  const onEdgesChange: OnEdgesChange<JourneyUiEdge> = (
+    changes: EdgeChange<JourneyUiEdge>[],
+  ) => {
     setEdges(changes);
   };
 
