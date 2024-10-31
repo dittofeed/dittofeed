@@ -57,7 +57,7 @@ export function getExtensions({
       } as any),
       Typography,
       TextAlign.configure({
-        types: ["paragraph"],
+        types: ["paragraph", "heading"],
         alignments: ["left", "center", "right", "justify"],
       }),
       Link,

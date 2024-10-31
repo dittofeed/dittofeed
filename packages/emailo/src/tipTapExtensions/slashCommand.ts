@@ -20,7 +20,7 @@ export const SlashCommand = Extension.create({
   priority: 200,
 
   onCreate() {
-    popup = tippy("body", {
+    popup = tippy(".emailo-tippy", {
       interactive: true,
       trigger: "manual",
       placement: "bottom-start",
