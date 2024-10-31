@@ -1,3 +1,4 @@
+import { Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
@@ -66,7 +67,6 @@ import {
   PreviewData,
 } from "next";
 import { ParsedUrlQuery } from "querystring";
-import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
 import { Optional } from "utility-types";
 
 // re-exporting for convenience
@@ -319,20 +319,19 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export type JourneyNodesIndex = Record<string, number>;
 
+export type JourneyUiNode = Node<JourneyNodeUiProps, "journey">;
+export type JourneyUiEdge = Edge<JourneyUiEdgeProps, "workflow">;
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
-  journeyNodes: Node<JourneyNodeUiProps>[];
+  journeyNodes: JourneyUiNode[];
+  journeyEdges: JourneyUiEdge[];
   journeyNodesIndex: JourneyNodesIndex;
-  journeyEdges: Edge<JourneyUiEdgeProps>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
   journeyStats: Record<string, JourneyStats>;
   journeyStatsRequest: EphemeralRequestStatus<Error>;
 }
-
-export type JourneyUiNode = Node<JourneyNodeUiProps>;
-export type JourneyUiEdge = Edge<JourneyUiEdgeProps>;
 
 export interface AddNodesParams {
   source: string;
@@ -347,8 +346,8 @@ export interface JourneyContent extends JourneyState {
   ) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
-  setEdges: (changes: EdgeChange[]) => void;
-  setNodes: (changes: NodeChange[]) => void;
+  setEdges: (changes: EdgeChange<JourneyUiEdge>[]) => void;
+  setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (
     nodeId: string,
@@ -389,3 +388,13 @@ export interface EventResources {
   link: string;
   key: string;
 }
+
+export type JourneyUiNodeLabel = Node<
+  JourneyUiNodeLabelProps,
+  "JourneyUiNodeLabel"
+>;
+
+export type JourneyUiNodeDefinition = Node<
+  JourneyUiNodeDefinitionProps,
+  "JourneyUiNodeDefinition"
+>;

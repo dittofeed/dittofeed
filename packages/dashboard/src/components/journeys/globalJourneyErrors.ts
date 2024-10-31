@@ -1,5 +1,5 @@
+import { Node } from "@xyflow/react";
 import { JourneyNodeType } from "isomorphic-lib/src/types";
-import { Node } from "reactflow";
 
 import {
   AdditionalJourneyNodeType,

@@ -1,13 +1,7 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 
 import { Box } from "@mui/material";
 import {
-  CompletionStatus,
-  JourneyUiBodyNodeTypeProps,
-  SavedSubscriptionGroupResource,
-} from "isomorphic-lib/src/types";
-import React, { DragEvent, DragEventHandler } from "react";
-import ReactFlow, {
   Background,
   Controls,
   EdgeChange,
@@ -17,8 +11,15 @@ import ReactFlow, {
   OnNodesChange,
   Panel,
   ProOptions,
+  ReactFlow,
   ReactFlowProvider,
-} from "reactflow";
+} from "@xyflow/react";
+import {
+  CompletionStatus,
+  JourneyUiBodyNodeTypeProps,
+  SavedSubscriptionGroupResource,
+} from "isomorphic-lib/src/types";
+import React, { DragEvent, DragEventHandler } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";

@@ -1,3 +1,11 @@
+import {
+  applyEdgeChanges,
+  applyNodeChanges,
+  Edge,
+  EdgeChange,
+  Node,
+  NodeChange,
+} from "@xyflow/react";
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { deepEquals } from "isomorphic-lib/src/equality";
@@ -34,14 +42,6 @@ import {
   WaitForSegmentChild,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
-import {
-  applyEdgeChanges,
-  applyNodeChanges,
-  Edge,
-  EdgeChange,
-  Node,
-  NodeChange,
-} from "reactflow";
 import { omit, sortBy } from "remeda";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
@@ -56,7 +56,9 @@ import {
   JourneyContent,
   JourneyNodeUiProps,
   JourneyState,
+  JourneyUiEdge,
   JourneyUiEdgeType,
+  JourneyUiNode,
   JourneyUiNodeDefinitionProps,
   JourneyUiNodePresentationalProps,
   JourneyUiNodeType,
@@ -123,8 +125,8 @@ function buildJourneyNodeMap(
 }
 
 function buildUiHeritageMap(
-  nodes: Node<JourneyNodeUiProps>[],
-  edges: Edge<JourneyUiEdgeProps>[],
+  nodes: JourneyUiNode[],
+  edges: JourneyUiEdge[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
 
@@ -846,11 +848,11 @@ export function newStateFromNodes({
   edges,
   existingEdges,
 }: AddNodesParams & {
-  existingNodes: Node<JourneyNodeUiProps>[];
-  existingEdges: Edge<JourneyUiEdgeProps>[];
+  existingNodes: JourneyUiNode[];
+  existingEdges: JourneyUiEdge[];
 }): {
-  edges: Edge<JourneyUiEdgeProps>[];
-  nodes: Node<JourneyNodeUiProps>[];
+  edges: JourneyUiEdge[];
+  nodes: JourneyUiNode[];
 } {
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
@@ -920,10 +922,7 @@ function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
   };
 }
 
-function buildWorkflowEdge(
-  source: string,
-  target: string,
-): Edge<JourneyUiEdgeProps> {
+function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
   return {
     id: `${source}=>${target}`,
     source,
@@ -988,9 +987,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyStats[journeyStats.journeyId] = journeyStats;
       }
     }),
-  setEdges: (changes: EdgeChange[]) =>
+  setEdges: (changes: EdgeChange<JourneyUiEdge>[]) =>
     set((state) => {
-      state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
+      state.journeyEdges = applyEdgeChanges<JourneyUiEdge>(
+        changes,
+        state.journeyEdges,
+      );
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
@@ -1029,9 +1031,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
-  setNodes: (changes: NodeChange[]) =>
+  setNodes: (changes: NodeChange<JourneyUiNode>[]) =>
     set((state) => {
-      state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);
+      state.journeyNodes = applyNodeChanges<JourneyUiNode>(
+        changes,
+        state.journeyNodes,
+      );
     }),
   addNodes: ({ source, target, nodes, edges }) =>
     set((state) => {
@@ -1447,8 +1452,8 @@ export type JourneyResourceWithDefinitionForState = Pick<
 export function journeyToState(
   journey: JourneyResourceWithDefinitionForState,
 ): JourneyStateForResource {
-  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
-  let journeyNodes: Node<JourneyNodeUiProps>[] = [];
+  const journeyEdges: JourneyUiEdge[] = [];
+  let journeyNodes: JourneyUiNode[] = [];
   const nodes = [
     journey.definition.entryNode,
     ...journey.definition.nodes,

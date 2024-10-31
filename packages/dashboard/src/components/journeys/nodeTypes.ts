@@ -1,4 +1,4 @@
-import { NodeTypes } from "reactflow";
+import { NodeTypes } from "@xyflow/react";
 
 import { EmptyNode } from "./nodeTypes/emptyNode";
 import { JourneyNode } from "./nodeTypes/journeyNode";

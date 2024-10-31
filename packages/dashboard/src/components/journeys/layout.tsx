@@ -12,6 +12,7 @@ import React, { useEffect, useMemo } from "react";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import { JourneyUiEdge } from "../../lib/types";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -235,6 +236,7 @@ export default function JourneyLayout({
                 definition,
                 name,
               });
+
               resetJourneyState({
                 edges,
                 nodes,
