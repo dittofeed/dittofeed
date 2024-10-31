@@ -1,11 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import {
-  getRequestContext,
-  RequestContextErrorType,
-  SESSION_KEY,
-} from "backend-lib/src/requestContext";
-import { OpenIdProfile } from "backend-lib/src/types";
+import { getRequestContext, SESSION_KEY } from "backend-lib/src/requestContext";
+import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
