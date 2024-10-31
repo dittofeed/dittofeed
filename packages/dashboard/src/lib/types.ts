@@ -319,8 +319,14 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export type JourneyNodesIndex = Record<string, number>;
 
-export type JourneyUiNode = Node<JourneyNodeUiProps, "journey">;
-export type JourneyUiEdge = Edge<JourneyUiEdgeProps, "workflow">;
+export type JourneyUiNode =
+  | Node<JourneyUiNodeDefinitionProps, "journey">
+  | Node<JourneyUiNodeLabelProps, "label">
+  | Node<JourneyUiNodeEmptyProps, "empty">;
+
+export type JourneyUiEdge =
+  | Edge<JourneyUiDefinitionEdgeProps, "workflow">
+  | Edge<JourneyUiPlaceholderEdgeProps, "placeholder">;
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
