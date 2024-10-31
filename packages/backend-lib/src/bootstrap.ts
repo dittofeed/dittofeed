@@ -37,6 +37,17 @@ import {
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
 
+const DOMAIN_REGEX =
+  /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
+function isValidDomain(domain: string): boolean {
+  if (!domain) return false;
+  if (domain.length > 255) return false;
+  if (domain.startsWith(".") || domain.endsWith(".")) return false;
+
+  return DOMAIN_REGEX.test(domain);
+}
+
 export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
@@ -59,19 +70,33 @@ export async function bootstrapPostgres({
     },
     "Upserting workspace.",
   );
+  if (workspaceDomain && !isValidDomain(workspaceDomain)) {
+    return err({
+      type: CreateWorkspaceErrorType.InvalidDomain,
+    });
+  }
   let workspace: Workspace;
   if (upsertWorkspace) {
+    workspace = await prisma().workspace.upsert({
+      where: {
+        name: workspaceName,
+      },
+      update: {
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+      create: {
+        name: workspaceName,
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+      },
+    });
+  } else {
     try {
-      workspace = await prisma().workspace.upsert({
-        where: {
-          name: workspaceName,
-        },
-        update: {
-          domain: workspaceDomain,
-          type: workspaceType,
-          externalId: workspaceExternalId,
-        },
-        create: {
+      workspace = await prisma().workspace.create({
+        data: {
           name: workspaceName,
           domain: workspaceDomain,
           type: workspaceType,
@@ -85,17 +110,9 @@ export async function bootstrapPostgres({
           type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
         });
       }
+      logger().error({ err: error }, "Failed to upsert workspace.");
       throw error;
     }
-  } else {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: workspaceName,
-        domain: workspaceDomain,
-        type: workspaceType,
-        externalId: workspaceExternalId,
-      },
-    });
   }
   const workspaceId = workspace.id;
 

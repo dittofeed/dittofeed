@@ -2,11 +2,8 @@ import { randomUUID } from "crypto";
 
 import { encodeMockJwt } from "../test/factories/jwt";
 import prisma from "./prisma";
-import {
-  getMultiTenantRequestContext,
-  RequestContextErrorType,
-} from "./requestContext";
-import { RoleEnum } from "./types";
+import { getMultiTenantRequestContext } from "./requestContext";
+import { RequestContextErrorType, RoleEnum } from "./types";
 
 describe("getMultiTenantRequestContext", () => {
   describe("when auth role is missing", () => {

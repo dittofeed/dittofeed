@@ -12348,7 +12348,7 @@ __metadata:
     file-saver: "npm:^2.0.5"
     fnv1a: "npm:^1.1.1"
     humanize-duration: "npm:^3.27.3"
-    immer: "npm:^9.0.16"
+    immer: "npm:9.0.21"
     is-hotkey: "npm:^0.2.0"
     isomorphic-lib: "npm:0.0.3"
     jest: "npm:^29.4.0"
@@ -12373,7 +12373,7 @@ __metadata:
     typescript: "npm:5.6.3"
     unidiff: "npm:^1.0.2"
     use-debounce: "npm:^9.0.2"
-    use-immer: "npm:^0.9.0"
+    use-immer: "npm:0.9.0"
     utility-types: "npm:^3.10.0"
     uuid: "npm:^9.0.0"
     zustand: "npm:^4.1.4"
@@ -15973,10 +15973,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"immer@npm:^9.0.16, immer@npm:^9.0.6":
-  version: 9.0.18
-  resolution: "immer@npm:9.0.18"
-  checksum: 10/06aea7177ce05884c68c417f7de2465b30fe9ba4656c37f3ff1f5867dd554c9acc13275372f0e5efed8ca9756f66bcc5ca2e77b8b83ef7d9612680555c24c98c
+"immer@npm:9.0.21":
+  version: 9.0.21
+  resolution: "immer@npm:9.0.21"
+  checksum: 10/8455d6b4dc8abfe40f06eeec9bcc944d147c81279424c0f927a4d4905ae34e5af19ab6da60bcc700c14f51c452867d7089b3b9236f5a9a2248e39b4a09ee89de
   languageName: node
   linkType: hard
 
@@ -25001,7 +25001,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-immer@npm:^0.9.0":
+"use-immer@npm:0.9.0":
   version: 0.9.0
   resolution: "use-immer@npm:0.9.0"
   peerDependencies:

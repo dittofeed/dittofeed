@@ -2,7 +2,7 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { Prisma } from "@prisma/client";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { err, ok, Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
@@ -10,8 +10,10 @@ import config from "./config";
 import { withSpan } from "./openTelemetry";
 import prisma from "./prisma";
 import {
-  DFRequestContext,
+  NotOnboardedError,
   OpenIdProfile,
+  RequestContextErrorType,
+  RequestContextResult,
   Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
@@ -21,55 +23,6 @@ import {
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
-
-export enum RequestContextErrorType {
-  Unauthorized = "Unauthorized",
-  NotOnboarded = "NotOnboarded",
-  EmailNotVerified = "EmailNotVerified",
-  ApplicationError = "ApplicationError",
-  NotAuthenticated = "NotAuthenticated",
-}
-
-export interface UnauthorizedError {
-  type: RequestContextErrorType.Unauthorized;
-  message: string;
-  member: WorkspaceMemberResource;
-  memberRoles: WorkspaceMemberRoleResource[];
-  workspace: WorkspaceResource;
-}
-
-export interface NotOnboardedError {
-  type: RequestContextErrorType.NotOnboarded;
-  message: string;
-  member: WorkspaceMemberResource;
-  memberRoles: WorkspaceMemberRoleResource[];
-}
-
-export interface ApplicationError {
-  type: RequestContextErrorType.ApplicationError;
-  message: string;
-}
-
-export interface EmailNotVerifiedError {
-  type: RequestContextErrorType.EmailNotVerified;
-  email: string;
-}
-
-export interface NotAuthenticatedError {
-  type: RequestContextErrorType.NotAuthenticated;
-}
-
-export type RequestContextError =
-  | UnauthorizedError
-  | NotOnboardedError
-  | ApplicationError
-  | EmailNotVerifiedError
-  | NotAuthenticatedError;
-
-export type RequestContextResult = Result<
-  DFRequestContext,
-  RequestContextError
->;
 
 type RoleWithWorkspace = WorkspaceMemberRole & { workspace: Workspace };
 
