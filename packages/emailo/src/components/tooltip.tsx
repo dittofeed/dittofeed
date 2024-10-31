@@ -62,18 +62,20 @@ export function Tooltip({
 
   if (enabled) {
     return (
-      <Tippy
-        delay={500}
-        offset={[0, 8]}
-        touch={false}
-        zIndex={99999}
-        appendTo={document.body}
-        // eslint-disable-next-line react/jsx-props-no-spreading
-        {...tippyOptions}
-        render={renderTooltip}
-      >
-        <span className="emailo">{children}</span>
-      </Tippy>
+      <span>
+        <Tippy
+          delay={500}
+          offset={[0, 8]}
+          touch={false}
+          zIndex={99999}
+          appendTo={document.body}
+          // eslint-disable-next-line react/jsx-props-no-spreading
+          {...tippyOptions}
+          render={renderTooltip}
+        >
+          <span className="emailo">{children}</span>
+        </Tippy>
+      </span>
     );
   }
 

@@ -49,6 +49,7 @@ export function Emailo({
     <div className={cn("emailo", className)}>
       <EditorContent editor={state.editor} readOnly={disabled} />
       {!disabled && <TextMenu state={state} />}
+      <span className="emailo-tippy" />
     </div>
   );
 }

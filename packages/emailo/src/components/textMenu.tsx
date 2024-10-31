@@ -36,7 +36,7 @@ export function TextMenu({ state }: TextMenuProps) {
   const { isUnsubscribeLinkSelected } = useEditLinkPopover({ editor });
 
   return (
-    <div>
+    <span>
       <BubbleMenu
         tippyOptions={{
           popperOptions: {
@@ -224,6 +224,6 @@ export function TextMenu({ state }: TextMenuProps) {
           </Popover.Root>
         </Toolbar.Wrapper>
       </BubbleMenu>
-    </div>
+    </span>
   );
 }
