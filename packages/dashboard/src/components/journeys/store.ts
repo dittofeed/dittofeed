@@ -955,7 +955,7 @@ function buildPlaceholderEdge(
 function buildJourneyNode(
   id: string,
   nodeTypeProps: JourneyUiNodeTypeProps,
-): Node<JourneyUiNodeDefinitionProps> {
+): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -1672,8 +1672,8 @@ export function journeyDraftToState({
   draft,
   name,
 }: JourneyResourceWithDraftForState): JourneyStateForResource {
-  let journeyNodes: Node<JourneyNodeUiProps>[] = draft.nodes.map((n) => {
-    let node: Node<JourneyNodeUiProps>;
+  let journeyNodes: JourneyUiNode[] = draft.nodes.map((n) => {
+    let node: JourneyUiNode;
     switch (n.data.type) {
       case JourneyUiNodeType.JourneyUiNodeDefinitionProps:
         node = buildJourneyNode(n.id, n.data.nodeTypeProps);
@@ -1689,7 +1689,7 @@ export function journeyDraftToState({
     }
     return node;
   });
-  const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
+  const journeyEdges: JourneyUiEdge[] = draft.edges.map((e) => {
     const { source, target, data } = e;
     const baseEdge = {
       id: `${source}=>${target}`,
@@ -1697,7 +1697,7 @@ export function journeyDraftToState({
       target,
       sourceHandle: "bottom",
     };
-    let edge: Edge<JourneyUiEdgeProps>;
+    let edge: JourneyUiEdge;
     switch (data.type) {
       case JourneyUiEdgeType.JourneyUiDefinitionEdgeProps: {
         edge = {
@@ -1745,8 +1745,8 @@ export function shouldDraftBeUpdated({
 }: {
   draft?: JourneyDraft;
   definition?: JourneyDefinition;
-  journeyNodes: Node<JourneyNodeUiProps>[];
-  journeyEdges: Edge<JourneyUiEdgeProps>[];
+  journeyNodes: JourneyUiNode[];
+  journeyEdges: JourneyUiEdge[];
   journeyNodesIndex: JourneyState["journeyNodesIndex"];
 }): boolean {
   if (draft) {
