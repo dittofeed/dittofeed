@@ -183,7 +183,9 @@ function TemplateListContents() {
                 exclusive
                 color="primary"
                 onChange={(_, newType) => {
-                  setSelectedTemplateType(newType);
+                  if (newType !== null) {
+                    setSelectedTemplateType(newType);
+                  }
                 }}
                 aria-label="template type"
                 sx={{ display: "flex", justifyContent: "center", mt: 2 }}
@@ -211,7 +213,9 @@ function TemplateListContents() {
                   exclusive
                   color="primary"
                   onChange={(_, newType) => {
-                    setEmailContentType(newType);
+                    if (newType !== null) {
+                      setEmailContentType(newType);
+                    }
                   }}
                   aria-label="email content type"
                   sx={{ display: "flex", justifyContent: "center", mt: 2 }}
