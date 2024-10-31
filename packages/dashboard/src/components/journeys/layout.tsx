@@ -235,6 +235,7 @@ export default function JourneyLayout({
                 definition,
                 name,
               });
+
               resetJourneyState({
                 edges,
                 nodes,

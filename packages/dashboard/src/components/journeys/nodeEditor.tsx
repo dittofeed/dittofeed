@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
+import { Node } from "@xyflow/react";
 import { DAY_INDICES } from "isomorphic-lib/src/constants";
 import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -36,7 +37,6 @@ import {
   SmsProviderType,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
-import { Node } from "reactflow";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../../lib/appStore";

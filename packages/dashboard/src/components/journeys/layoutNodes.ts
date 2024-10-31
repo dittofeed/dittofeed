@@ -1,8 +1,12 @@
+import { ReactFlowState, useReactFlow, useStore } from "@xyflow/react";
 import dagre from "dagre";
 import { useEffect } from "react";
-import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 
-import { JourneyNodeUiProps, JourneyUiNodeType } from "../../lib/types";
+import {
+  JourneyUiEdge,
+  JourneyUiNode,
+  JourneyUiNodeType,
+} from "../../lib/types";
 import { JOURNEY_NODE_WIDTH } from "./nodeTypes/styles";
 
 export const nodeHeight = 200;
@@ -10,9 +14,9 @@ export const nodeHeight = 200;
 // the layouting function
 // accepts current nodes and edges and returns the layouted nodes with their updated positions
 export function layoutNodes(
-  nodes: Node<JourneyNodeUiProps>[],
-  edges: Edge[],
-): Node<JourneyNodeUiProps>[] {
+  nodes: JourneyUiNode[],
+  edges: JourneyUiEdge[],
+): JourneyUiNode[] {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -58,10 +62,13 @@ export function layoutNodes(
 }
 
 // this is the store selector that is used for triggering the layout, this returns the number of nodes once they change
-const nodeCountSelector = (state: ReactFlowState) => state.nodeInternals.size;
+const nodeCountSelector = (state: ReactFlowState) => state.nodeLookup.size;
 
 function useLayout() {
-  const { getNodes, setNodes, getEdges } = useReactFlow();
+  const { getNodes, setNodes, getEdges } = useReactFlow<
+    JourneyUiNode,
+    JourneyUiEdge
+  >();
 
   const nodeCount = useStore(nodeCountSelector);
 
