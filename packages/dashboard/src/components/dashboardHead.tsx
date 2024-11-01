@@ -1,7 +1,7 @@
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { WhiteLabelFeatureConfig } from "isomorphic-lib/src/types";
 import Head from "next/head";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 

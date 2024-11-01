@@ -8,6 +8,7 @@ import { enableMapSet } from "immer";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { SnackbarProvider } from "notistack";
+import React from "react";
 
 import { Provider as StoreProvider, useCreateStore } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";

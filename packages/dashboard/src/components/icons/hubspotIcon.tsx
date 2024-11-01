@@ -1,4 +1,5 @@
 import { createSvgIcon } from "@mui/material/utils";
+import React from "react";
 
 export const HubspotIcon = createSvgIcon(
   <svg data-name="Layer 1" viewBox="0 0 128 128" id="hubspot">

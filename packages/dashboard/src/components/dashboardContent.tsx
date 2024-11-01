@@ -1,3 +1,5 @@
+import React from "react";
+
 import DashboardHead from "./dashboardHead";
 import MainLayout from "./mainLayout";
 

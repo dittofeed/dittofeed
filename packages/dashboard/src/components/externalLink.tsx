@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function ExternalLink({
   children,
   disableNewTab = false,

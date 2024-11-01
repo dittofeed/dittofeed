@@ -2,7 +2,7 @@ import { Alert, Button, Stack, Typography } from "@mui/material";
 import axios, { AxiosError } from "axios";
 import { CsvUploadValidationError } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
-import { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useState } from "react";
 
 import { noticeAnchorOrigin } from "../lib/notices";
 

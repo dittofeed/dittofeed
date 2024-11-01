@@ -1,7 +1,7 @@
 import { Stack, Typography } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { WhiteLabelFeatureConfig } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../../../lib/appStore";
 import MainCard from "../../../mainCard";

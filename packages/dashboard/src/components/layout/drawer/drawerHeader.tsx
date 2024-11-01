@@ -1,5 +1,6 @@
 // material-ui
 import { Stack } from "@mui/material";
+import React from "react";
 
 import Profile from "../header/headerContent/profile";
 // project import

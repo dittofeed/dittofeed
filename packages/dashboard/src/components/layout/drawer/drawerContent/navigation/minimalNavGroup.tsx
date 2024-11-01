@@ -2,7 +2,7 @@
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { Collapse, List, ListItemButton, ListItemText } from "@mui/material";
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { useAppStore } from "../../../../../lib/appStore";
 import { MenuItemGroup } from "../../../../menuItems/types";

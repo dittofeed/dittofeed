@@ -1,7 +1,7 @@
 // material-ui
 import AppBar from "@mui/material/AppBar";
 import { useTheme } from "@mui/material/styles";
-import { ComponentProps } from "react";
+import React, { ComponentProps } from "react";
 
 // project import
 import { drawerWidth } from "../../config";
