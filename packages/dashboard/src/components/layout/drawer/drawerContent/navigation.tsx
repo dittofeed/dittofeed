@@ -2,7 +2,7 @@
 import { ArrowBackIos } from "@mui/icons-material";
 import { Box, IconButton, Stack, Typography } from "@mui/material";
 import Link from "next/link";
-import { useContext } from "react";
+import React, { useContext } from "react";
 
 import { useAppStorePick } from "../../../../lib/appStore";
 import { LayoutContext } from "../../context";

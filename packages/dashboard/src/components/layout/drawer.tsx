@@ -1,7 +1,7 @@
 import { Box, Drawer, useMediaQuery } from "@mui/material";
 // material-ui
 import { useTheme } from "@mui/material/styles";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 import { drawerWidth } from "../config";
 // project import

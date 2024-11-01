@@ -6,7 +6,7 @@ import {
   CompletionStatus,
   LowCodeEmailTemplateResource,
 } from "isomorphic-lib/src/types";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Overwrite } from "utility-types";
 
 import { useAppStorePick } from "../../lib/appStore";

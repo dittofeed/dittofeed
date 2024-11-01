@@ -11,7 +11,7 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function LoadingModal({
   dialogTitle,

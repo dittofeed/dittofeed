@@ -7,6 +7,7 @@ import { findManyPartialSegments } from "backend-lib/src/segments";
 import { ComputedPropertyStep } from "backend-lib/src/types";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import React from "react";
 import { pick } from "remeda";
 
 import DashboardContent from "../../components/dashboardContent";

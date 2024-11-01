@@ -33,7 +33,7 @@ import {
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 import { validate } from "uuid";
 

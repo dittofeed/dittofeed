@@ -1,6 +1,6 @@
 // material-ui
 import { Box, useTheme } from "@mui/material";
-import { ComponentProps } from "react";
+import React, { ComponentProps } from "react";
 
 // ==============================|| DRAWER HEADER - STYLED ||============================== //
 

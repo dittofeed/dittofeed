@@ -4,6 +4,7 @@ import {
   EmailProviderType,
   SmsProviderType,
 } from "isomorphic-lib/src/types";
+import React from "react";
 
 function getProviderLabel(provider: EmailProviderType | SmsProviderType) {
   return provider;

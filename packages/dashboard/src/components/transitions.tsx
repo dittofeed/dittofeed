@@ -1,6 +1,6 @@
 // material-ui
 import { Box, Fade, Grow } from "@mui/material";
-import { ComponentProps, forwardRef } from "react";
+import React, { ComponentProps, forwardRef } from "react";
 
 // ==============================|| TRANSITIONS ||============================== //
 

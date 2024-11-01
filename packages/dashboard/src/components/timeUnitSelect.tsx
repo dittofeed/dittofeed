@@ -1,5 +1,5 @@
 import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
-import { ComponentProps } from "react";
+import React, { ComponentProps } from "react";
 
 import { TimeUnit } from "../lib/types";
 

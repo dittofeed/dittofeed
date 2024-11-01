@@ -3,6 +3,7 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import React from "react";
 
 export function WebhookPreviewBody({ body }: { body: string }) {
   const theme = useTheme();

@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
+import React from "react";
 
 import styles from "./nodeTypes.module.css";
 

@@ -8,6 +8,7 @@ import Document, {
   Main,
   NextScript,
 } from "next/document";
+import React from "react";
 
 import { DittofeedAppProps } from "../components/app";
 import createEmotionCache from "../lib/createEmotionCache";
