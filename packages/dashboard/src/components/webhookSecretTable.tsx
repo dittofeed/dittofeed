@@ -138,7 +138,7 @@ export default function WebhookSecretTable() {
               sortable: false,
               field: "saved",
               flex: 1,
-              valueGetter: (params) => (params.row.saved ? 0 : 1),
+              valueGetter: (_params, row) => (row.saved ? 0 : 1),
               headerName: "Update",
               renderCell: (params) => (
                 <Stack

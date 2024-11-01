@@ -303,8 +303,8 @@ export default function AdminApiKeyTable() {
             {
               field: "createdAt",
               width: 200,
-              valueGetter: (params) =>
-                new Date(params.row.createdAt).toISOString(),
+              valueGetter: (_params, row) =>
+                new Date(row.createdAt).toISOString(),
               headerName: "Created At",
             },
             {

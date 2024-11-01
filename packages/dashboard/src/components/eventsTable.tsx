@@ -10,10 +10,9 @@ import {
 } from "@mui/material";
 import {
   DataGrid,
-  DataGridProps,
   GridColDef,
   GridRenderCellParams,
-  GridValueGetterParams,
+  GridValueGetter,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
@@ -31,7 +30,12 @@ import {
   GetEventsResponseItem,
   RelatedResourceProperties,
 } from "isomorphic-lib/src/types";
-import React, { ComponentProps, useMemo, useState } from "react";
+import React, {
+  ChangeEventHandler,
+  ComponentProps,
+  useMemo,
+  useState,
+} from "react";
 import { useDebounce } from "use-debounce";
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
@@ -91,7 +95,10 @@ export const useEventsStore = create(
   })),
 );
 
-const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
+const baseColumn: Pick<
+  GridColDef<GetEventsResponseItem>,
+  "flex" | "sortable" | "filterable" | "renderCell"
+> = {
   flex: 1,
   sortable: false,
   filterable: false,
@@ -114,6 +121,14 @@ function generatePreviewColumn(
     },
   };
 }
+
+declare module "@mui/x-data-grid" {
+  interface ToolbarPropsOverrides {
+    value: string;
+    onChange: ChangeEventHandler<HTMLInputElement>;
+  }
+}
+
 function EventsToolbar({
   onChange,
   value,
@@ -126,12 +141,14 @@ function EventsToolbar({
       sx={{ width: "98%", m: 2 }}
       value={value}
       onChange={onChange}
-      InputProps={{
-        endAdornment: (
-          <InputAdornment position="end">
-            <SearchIcon />
-          </InputAdornment>
-        ),
+      slotProps={{
+        input: {
+          endAdornment: (
+            <InputAdornment position="end">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        },
       }}
     />
   );
@@ -263,7 +280,7 @@ export function EventsTable({
     return journeyResources;
   };
 
-  const cols: DataGridProps<GetEventsResponseItem>["columns"] = [
+  const cols: GridColDef<GetEventsResponseItem>[] = [
     {
       field: "userId",
       headerName: "User Id",
@@ -311,12 +328,14 @@ export function EventsTable({
       field: "relatedResources",
       headerName: "Related Resources",
       flex: 2,
-      valueGetter: (params: GridValueGetterParams<GetEventsResponseItem>) =>
-        jsonParseSafe(params.row.traits)
+      valueGetter: ((_params, row) =>
+        jsonParseSafe(row.traits)
           .andThen((traits) =>
             schemaValidateWithErr(traits, RelatedResourceProperties),
           )
-          .unwrapOr({} satisfies RelatedResourceProperties),
+          .unwrapOr(
+            {} satisfies RelatedResourceProperties,
+          )) satisfies GridValueGetter<GetEventsResponseItem>,
       renderCell: ({ value }: GridRenderCellParams) => {
         const relatedResources = getResources(value);
 

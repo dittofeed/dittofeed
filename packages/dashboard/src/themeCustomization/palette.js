@@ -1,5 +1,5 @@
 // material-ui
-import createTheme from "@mui/material/styles/createTheme";
+import { createTheme } from "@mui/material/styles";
 
 // third-party
 import { presetPalettes } from "@ant-design/colors";
