@@ -13,7 +13,7 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { ChannelType } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";

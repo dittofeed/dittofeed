@@ -14,7 +14,7 @@ import {
   EphemeralRequestStatus,
   UpsertSecretRequest,
 } from "isomorphic-lib/src/types";
-import { ComponentProps, useCallback } from "react";
+import React, { ComponentProps, useCallback } from "react";
 import { useImmer } from "use-immer";
 import { Overwrite } from "utility-types";
 

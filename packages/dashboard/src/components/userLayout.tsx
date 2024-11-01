@@ -1,5 +1,5 @@
 import { Stack } from "@mui/material";
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 
 import DashboardContent from "./dashboardContent";
 import { UserTabs } from "./userTabs";

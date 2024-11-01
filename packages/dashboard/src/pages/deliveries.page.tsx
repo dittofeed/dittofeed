@@ -1,4 +1,5 @@
 import { GetServerSideProps } from "next";
+import React from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import { DeliveriesTable } from "../components/deliveriesTable";
