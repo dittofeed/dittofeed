@@ -23,8 +23,7 @@ import {
   CompletionStatus,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { getWarningStyles } from "../lib/warningTheme";
 

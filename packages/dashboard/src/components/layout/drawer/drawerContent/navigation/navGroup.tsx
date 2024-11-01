@@ -1,5 +1,6 @@
 // material-ui
 import { Box, List, Typography } from "@mui/material";
+import React from "react";
 
 import { useAppStore } from "../../../../../lib/appStore";
 import { MenuItemGroup } from "../../../../menuItems/types";

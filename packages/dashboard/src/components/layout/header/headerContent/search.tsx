@@ -2,6 +2,7 @@
 // assets
 import { SearchOutlined } from "@mui/icons-material";
 import { Box, FormControl, InputAdornment, OutlinedInput } from "@mui/material";
+import React from "react";
 
 // ==============================|| HEADER CONTENT - SEARCH ||============================== //
 
