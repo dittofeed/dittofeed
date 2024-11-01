@@ -9,6 +9,7 @@ import {
   SavedSegmentResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
+import React from "react";
 
 import { EventsTable } from "../../../components/eventsTable";
 import { SubtleHeader } from "../../../components/headers";

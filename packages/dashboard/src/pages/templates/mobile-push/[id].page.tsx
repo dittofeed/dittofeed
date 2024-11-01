@@ -1,4 +1,5 @@
 import { GetServerSideProps } from "next";
+import React from "react";
 
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
