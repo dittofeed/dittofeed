@@ -223,13 +223,15 @@ export default function AdminApiKeyTable() {
         <TextField
           value={modalState.keyValue}
           fullWidth
-          InputProps={{
-            ...copyInputProps({
-              value: modalState.keyValue,
-              successNotice: "Copied Admin API Key.",
-              failureNotice: "Failed to copy Admin API Key.",
-            }),
-            readOnly: true,
+          slotProps={{
+            input: {
+              ...copyInputProps({
+                value: modalState.keyValue,
+                successNotice: "Copied Admin API Key.",
+                failureNotice: "Failed to copy Admin API Key.",
+              }),
+              readOnly: true,
+            },
           }}
         />
       </>

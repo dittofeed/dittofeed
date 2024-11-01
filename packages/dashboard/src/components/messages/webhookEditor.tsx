@@ -101,11 +101,13 @@ export default function WebhookEditor({
                 {...params}
                 variant="filled"
                 label="Identifier Key"
-                InputProps={{
-                  ...params.InputProps,
-                  sx: {
-                    fontSize: ".75rem",
-                    borderTopRightRadius: 0,
+                slotProps={{
+                  input: {
+                    ...params.InputProps,
+                    sx: {
+                      fontSize: ".75rem",
+                      borderTopRightRadius: 0,
+                    },
                   },
                 }}
               />
@@ -167,14 +169,16 @@ export default function WebhookEditor({
             label="Identifier Key"
             variant="filled"
             disabled
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopLeftRadius: 0,
-              },
-            }}
             sx={disabledStyles}
             value={draft.identifierKey}
+            slotProps={{
+              input: {
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopLeftRadius: 0,
+                },
+              },
+            }}
           />
         );
       }}

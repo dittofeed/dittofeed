@@ -347,10 +347,12 @@ export default function EmailEditor({
               variant="filled"
               value={USER_TO}
               sx={disabledStyles}
-              InputProps={{
-                sx: {
-                  fontSize: ".75rem",
-                  borderTopRightRadius: 0,
+              slotProps={{
+                input: {
+                  sx: {
+                    fontSize: ".75rem",
+                    borderTopRightRadius: 0,
+                  },
                 },
               }}
             />
@@ -368,13 +370,15 @@ export default function EmailEditor({
                 });
               }}
               required
-              InputProps={{
-                sx: {
-                  fontSize: ".75rem",
-                  borderTopRightRadius: 0,
+              value={draft.from}
+              slotProps={{
+                input: {
+                  sx: {
+                    fontSize: ".75rem",
+                    borderTopRightRadius: 0,
+                  },
                 },
               }}
-              value={draft.from}
             />
             <TextField
               label="Subject"
@@ -390,13 +394,15 @@ export default function EmailEditor({
                   return defn;
                 });
               }}
-              InputProps={{
-                sx: {
-                  fontSize: ".75rem",
-                  borderTopRightRadius: 0,
+              value={draft.subject}
+              slotProps={{
+                input: {
+                  sx: {
+                    fontSize: ".75rem",
+                    borderTopRightRadius: 0,
+                  },
                 },
               }}
-              value={draft.subject}
             />
             <TextField
               label="Reply-To"
@@ -411,13 +417,15 @@ export default function EmailEditor({
                   return defn;
                 });
               }}
-              InputProps={{
-                sx: {
-                  fontSize: ".75rem",
-                  borderTopRightRadius: 0,
+              value={draft.replyTo ?? ""}
+              slotProps={{
+                input: {
+                  sx: {
+                    fontSize: ".75rem",
+                    borderTopRightRadius: 0,
+                  },
                 },
               }}
-              value={draft.replyTo ?? ""}
             />
           </Stack>
         );
