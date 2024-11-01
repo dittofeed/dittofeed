@@ -55,7 +55,7 @@
     "isomorphic-lib": "0.0.3",
     "lorem-ipsum": "^2.0.8",
     "neverthrow": "^6.0.0",
-    "next": "13.5.6",
+    "next": "14.1.1",
     "notistack": "^3.0.1",
     "prisma": "5.21.1",
     "react": "18.3.1",
@@ -104,7 +104,14 @@
     "utility-types": "^3.10.0"
   },
   "optionalDependencies": {
-    "@next/swc-linux-arm64-gnu": "13.5.6",
-    "@next/swc-linux-arm64-musl": "13.5.6"
+    "@next/swc-darwin-arm64": "14.2.16",
+    "@next/swc-darwin-x64": "14.2.16",
+    "@next/swc-linux-arm64-gnu": "14.2.16",
+    "@next/swc-linux-arm64-musl": "14.2.16",
+    "@next/swc-linux-x64-gnu": "14.2.16",
+    "@next/swc-linux-x64-musl": "14.2.16",
+    "@next/swc-win32-arm64-msvc": "14.2.16",
+    "@next/swc-win32-ia32-msvc": "14.2.16",
+    "@next/swc-win32-x64-msvc": "14.2.16"
   }
 }
