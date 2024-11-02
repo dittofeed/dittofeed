@@ -347,9 +347,11 @@ function TraitUserPropertyDefinitionEditor({
             const newValue = event.target.value;
             handleTraitChange(newValue);
           }}
-          InputProps={{
-            ...params.InputProps,
-            type: "search",
+          slotProps={{
+            input: {
+              ...params.InputProps,
+              type: "search",
+            },
           }}
         />
       )}

@@ -223,13 +223,15 @@ export default function AdminApiKeyTable() {
         <TextField
           value={modalState.keyValue}
           fullWidth
-          InputProps={{
-            ...copyInputProps({
-              value: modalState.keyValue,
-              successNotice: "Copied Admin API Key.",
-              failureNotice: "Failed to copy Admin API Key.",
-            }),
-            readOnly: true,
+          slotProps={{
+            input: {
+              ...copyInputProps({
+                value: modalState.keyValue,
+                successNotice: "Copied Admin API Key.",
+                failureNotice: "Failed to copy Admin API Key.",
+              }),
+              readOnly: true,
+            },
           }}
         />
       </>
@@ -303,8 +305,8 @@ export default function AdminApiKeyTable() {
             {
               field: "createdAt",
               width: 200,
-              valueGetter: (params) =>
-                new Date(params.row.createdAt).toISOString(),
+              valueGetter: (_params, row) =>
+                new Date(row.createdAt).toISOString(),
               headerName: "Created At",
             },
             {

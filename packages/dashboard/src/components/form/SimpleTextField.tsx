@@ -9,7 +9,6 @@ export default function SimpleTextField(props: TextFieldProps) {
   return (
     <TextField
       {...props}
-      InputLabelProps={{ shrink: true }}
       sx={{
         ...sx,
         fieldset: {
@@ -31,6 +30,9 @@ export default function SimpleTextField(props: TextFieldProps) {
         "& .MuiFormHelperText-root": {
           marginLeft: 0,
         },
+      }}
+      slotProps={{
+        inputLabel: { shrink: true },
       }}
     />
   );

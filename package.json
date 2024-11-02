@@ -37,11 +37,8 @@
   },
   "resolutions": {
     "@fastify/type-provider-typebox": "4.0.0",
-    "fastify": "4.23.2",
-    "fastify-raw-body": "4.2.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-is": "18.3.1",
+    "@mui/material": "6.1.6",
+    "@mui/system": "6.1.6",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/auto-instrumentations-node": "0.39.2",
     "@opentelemetry/exporter-metrics-otlp-grpc": "0.41.2",
@@ -49,8 +46,13 @@
     "@opentelemetry/resources": "1.12.0",
     "@opentelemetry/sdk-metrics": "1.12.0",
     "@opentelemetry/sdk-node": "0.38.0",
+    "@opentelemetry/semantic-conventions": "1.12.0",
+    "fastify": "4.23.2",
+    "fastify-raw-body": "4.2.0",
     "immer": "9.0.21",
-    "@opentelemetry/semantic-conventions": "1.12.0"
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-is": "18.3.1"
   },
   "packageManager": "yarn@4.1.1"
 }

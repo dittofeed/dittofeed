@@ -321,10 +321,12 @@ function NumericValueSelect({
         disabled={disabled}
         label="Value"
         value={value}
-        InputProps={{
-          type: "number",
-        }}
         onChange={handleChange}
+        slotProps={{
+          input: {
+            type: "number",
+          },
+        }}
       />
     </Box>
   );
@@ -525,11 +527,13 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         operatorEl = (
           <TextField
             label="Property Value"
-            InputProps={{
-              type: "number",
-            }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            slotProps={{
+              input: {
+                type: "number",
+              },
+            }}
           />
         );
         break;
@@ -557,11 +561,13 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         operatorEl = (
           <TextField
             label="Property Value"
-            InputProps={{
-              type: "number",
-            }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            slotProps={{
+              input: {
+                type: "number",
+              },
+            }}
           />
         );
         break;
@@ -695,11 +701,13 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         <TextField
           disabled={disabled}
           label="Times Performed"
-          InputProps={{
-            type: "number",
-          }}
           value={String(node.times ?? 1)}
           onChange={handleEventTimesChange}
+          slotProps={{
+            input: {
+              type: "number",
+            },
+          }}
         />
         <Button variant="contained" onClick={() => handleAddProperty()}>
           Property
@@ -1002,9 +1010,11 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                 const newValue = event.target.value;
                 traitOnChange(newValue);
               }}
-              InputProps={{
-                ...params.InputProps,
-                type: "search",
+              slotProps={{
+                input: {
+                  ...params.InputProps,
+                  type: "search",
+                },
               }}
             />
           )}
@@ -1129,12 +1139,14 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
     <TextField
       disabled={disabled}
       label="To be included in bucket."
-      InputProps={{
-        type: "number",
-        endAdornment: "%",
-      }}
       value={percentString}
       onChange={handlePercentChange}
+      slotProps={{
+        input: {
+          type: "number",
+          endAdornment: "%",
+        },
+      }}
     />
   );
 }

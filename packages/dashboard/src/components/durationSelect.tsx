@@ -54,8 +54,10 @@ export default function DurationSelect({
       <TextField
         label={inputLabel}
         disabled={disabled}
-        InputProps={{
-          type: "number",
+        slotProps={{
+          input: {
+            type: "number",
+          },
         }}
         sx={timeFieldSx}
         value={String(timeNonSeconds)}
