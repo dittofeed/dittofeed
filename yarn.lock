@@ -12100,6 +12100,7 @@ __metadata:
     "@mui/icons-material": "npm:^6.1.6"
     "@mui/lab": "npm:6.0.0-beta.14"
     "@mui/material": "npm:^6.1.6"
+    "@mui/system": "npm:^6.1.6"
     "@mui/x-data-grid": "npm:^7.22.1"
     "@mui/x-date-pickers": "npm:^7.22.1"
     "@next/swc-darwin-arm64": "npm:14.2.16"

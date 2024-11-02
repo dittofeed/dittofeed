@@ -34,6 +34,7 @@
     "@mui/icons-material": "^6.1.6",
     "@mui/lab": "6.0.0-beta.14",
     "@mui/material": "^6.1.6",
+    "@mui/system": "^6.1.6",
     "@mui/x-data-grid": "^7.22.1",
     "@mui/x-date-pickers": "^7.22.1",
     "@prisma/client": "5.21.1",
