@@ -24,6 +24,10 @@ RUN yarn workspaces focus lite --production && \
     cp -R node_modules production_node_modules
 RUN yarn workspaces focus lite emailo
 
+RUN mkdir -p packages/dashboard/public/public && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
+
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
