@@ -3,7 +3,6 @@ import {
   ChannelType,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 

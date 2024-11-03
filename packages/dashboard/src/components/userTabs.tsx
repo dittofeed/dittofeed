@@ -6,7 +6,6 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";

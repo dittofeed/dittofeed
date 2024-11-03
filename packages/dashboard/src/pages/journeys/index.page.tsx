@@ -4,7 +4,7 @@ import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";

@@ -3,7 +3,6 @@
 import { MenuOpenOutlined, MenuOutlined } from "@mui/icons-material";
 import { AppBar, IconButton, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import React from "react";
 
 // project import
 import AppBarStyled from "./header/appBarStyled";

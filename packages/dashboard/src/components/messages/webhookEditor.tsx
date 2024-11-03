@@ -10,7 +10,7 @@ import {
   RenderMessageTemplateType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import TemplateEditor, {

@@ -1,5 +1,4 @@
 import humanizeDuration from "humanize-duration";
-import React from "react";
 
 import { TimeUnit } from "../lib/types";
 

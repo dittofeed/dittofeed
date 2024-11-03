@@ -63,7 +63,7 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";

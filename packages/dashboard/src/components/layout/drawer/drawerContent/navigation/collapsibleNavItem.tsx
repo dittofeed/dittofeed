@@ -1,6 +1,6 @@
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 import { GridExpandMoreIcon } from "@mui/x-data-grid";
-import React, { PropsWithChildren } from "react";
+import { PropsWithChildren } from "react";
 
 function CollapsibleNavItem({ children }: PropsWithChildren<object>) {
   return (

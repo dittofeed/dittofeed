@@ -6,7 +6,6 @@ import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import React from "react";
 
 import DiscordLink from "../components/discordLink";
 import SupportEmailLink from "../components/supportEmailLink";

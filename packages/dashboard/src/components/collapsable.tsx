@@ -7,7 +7,7 @@ import {
   Stack,
   styled,
 } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;

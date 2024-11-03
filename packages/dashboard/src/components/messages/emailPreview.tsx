@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function EmailPreview({ body }: { body: string }) {
   return (
     <iframe

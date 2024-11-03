@@ -3,7 +3,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import UsersTable, {
   usersTablePaginationHandler,

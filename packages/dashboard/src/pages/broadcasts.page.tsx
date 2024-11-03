@@ -1,6 +1,5 @@
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { GetServerSideProps } from "next";
-import React from "react";
 
 import BroadcastsTable from "../components/broadcastsTable";
 import DashboardContent from "../components/dashboardContent";

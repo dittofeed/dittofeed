@@ -1,6 +1,5 @@
 import { StyledComponent } from "@emotion/styled";
 import { styled, Switch, SwitchProps } from "@mui/material";
-import React from "react";
 
 const SimpleToggle: StyledComponent<SwitchProps, object, object> = styled(
   (props: SwitchProps) => (

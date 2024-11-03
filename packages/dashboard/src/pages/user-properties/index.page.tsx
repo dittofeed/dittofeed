@@ -7,7 +7,6 @@ import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React from "react";
 import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";

@@ -9,7 +9,6 @@ import {
 // material-ui
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React from "react";
 
 import { useAppStore } from "../../../../../lib/appStore";
 // project import

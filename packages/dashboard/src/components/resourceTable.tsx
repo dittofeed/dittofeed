@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import DeleteDialog from "./confirmDeleteDialog";
 

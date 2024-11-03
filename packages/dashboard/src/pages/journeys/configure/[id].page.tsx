@@ -16,7 +16,7 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";

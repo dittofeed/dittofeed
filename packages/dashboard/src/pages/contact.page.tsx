@@ -1,5 +1,4 @@
 import { Box, Stack, useTheme } from "@mui/material";
-import React from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import DiscordLink from "../components/discordLink";
