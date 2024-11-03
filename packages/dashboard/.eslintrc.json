@@ -4,7 +4,6 @@
   "rules": {
     "no-param-reassign": "off",
     "react/require-default-props": "off",
-    "react/react-in-jsx-scope": "error",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-no-useless-fragment": ["error", { "allowExpressions": true }]
   }

@@ -4,7 +4,6 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import React from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import { ResourceListContainer } from "../components/resourceList";

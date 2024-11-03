@@ -26,7 +26,7 @@ import {
   NodeStatsType,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {

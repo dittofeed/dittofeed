@@ -6,7 +6,6 @@ import logger from "backend-lib/src/logger";
 import { getUsers } from "backend-lib/src/users";
 import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
-import React from "react";
 
 import { SubtleHeader } from "../../components/headers";
 import { UserLayout } from "../../components/userLayout";

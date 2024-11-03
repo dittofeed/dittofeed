@@ -21,7 +21,7 @@ import {
   EmptyResponse,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";

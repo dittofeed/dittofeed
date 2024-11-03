@@ -7,7 +7,6 @@ import {
   SelectProps,
   useTheme,
 } from "@mui/material";
-import React from "react";
 
 export interface SelectFieldProps {
   label: string;

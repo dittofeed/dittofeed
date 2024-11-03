@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 export function ResourceListItemButton({

@@ -1,5 +1,3 @@
-import React from "react";
-
 import ExternalLink from "./externalLink";
 
 export default function DiscordLink({

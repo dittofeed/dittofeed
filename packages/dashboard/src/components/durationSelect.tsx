@@ -1,5 +1,5 @@
 import { Box, Stack, SxProps, TextField, Theme } from "@mui/material";
-import React, { ComponentProps, useState } from "react";
+import { ComponentProps, useState } from "react";
 
 import { TimeUnit } from "../lib/types";
 import DurationDescription, {

@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 // material-ui
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import isNode from "../../../../lib/isNode";
 import Transitions from "../../../transitions";

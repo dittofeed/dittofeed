@@ -1,5 +1,4 @@
 import { TextField, TextFieldProps, useTheme } from "@mui/material";
-import React from "react";
 
 export const TEXT_FIELD_HEIGHT = 0.8;
 

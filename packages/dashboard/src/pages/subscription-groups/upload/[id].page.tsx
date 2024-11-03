@@ -7,7 +7,7 @@ import {
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 
 import { CsvUploader } from "../../../components/csvUploader";
 import { useAppStorePick } from "../../../lib/appStore";

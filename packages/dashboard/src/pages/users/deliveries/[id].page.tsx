@@ -7,7 +7,6 @@ import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
 import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
-import React from "react";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import { SubtleHeader } from "../../../components/headers";

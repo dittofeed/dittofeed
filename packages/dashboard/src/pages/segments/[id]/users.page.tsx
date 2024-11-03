@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import UsersTable, {
   usersTablePaginationHandler,

@@ -3,7 +3,6 @@ import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
 import { useRouter } from "next/router";
-import React from "react";
 
 export default function JourneyStepper({ journeyId }: { journeyId: string }) {
   const path = useRouter();

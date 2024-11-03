@@ -36,7 +36,7 @@ import {
   PartialSegmentResource,
   SmsProviderType,
 } from "isomorphic-lib/src/types";
-import React, { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../../lib/appStore";

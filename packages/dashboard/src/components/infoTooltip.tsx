@@ -1,6 +1,5 @@
 import { InfoOutlined } from "@mui/icons-material";
 import { Stack, Tooltip, useTheme } from "@mui/material";
-import React from "react";
 
 export default function InfoTooltip({
   children,

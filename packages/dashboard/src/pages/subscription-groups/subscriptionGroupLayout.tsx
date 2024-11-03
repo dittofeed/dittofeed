@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
-import React from "react";
 
 import DashboardContent from "../../components/dashboardContent";
 import TabLink from "../../components/tabLink";

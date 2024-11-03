@@ -1,6 +1,5 @@
 import { Box, useTheme } from "@mui/material";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import React from "react";
 
 import { JourneyUiNodeLabel } from "../../../lib/types";
 import styles from "./nodeTypes.module.css";

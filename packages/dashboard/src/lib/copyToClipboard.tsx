@@ -1,7 +1,6 @@
 import { ContentCopyOutlined } from "@mui/icons-material";
 import { IconButton, InputAdornment } from "@mui/material";
 import { enqueueSnackbar } from "notistack";
-import React from "react";
 
 import { noticeAnchorOrigin } from "./notices";
 
