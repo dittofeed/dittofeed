@@ -34,7 +34,7 @@ services:
     runtime: image
     autoDeploy: false
     image:
-      url: "docker.io/dittofeed/dittofeed-lite:v0.18.1"
+      url: "docker.io/dittofeed/dittofeed-lite:v0.19.0"
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
