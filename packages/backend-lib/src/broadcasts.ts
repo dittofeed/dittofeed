@@ -20,6 +20,10 @@ import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
+import { broadcastWorkflow } from "./segments/broadcastWorkflow";
+import connectWorkflowClient from "./temporal/connectWorkflowClient";
+import { isAlreadyStartedError } from "./temporal/workflow";
+import { generateBroadcastWorkflowId } from "./temporal/workflows";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -284,4 +288,44 @@ export async function getOrCreateBroadcast(params: {
     return broadcastResources;
   }
   return upsertBroadcast(params);
+}
+
+export async function triggerBroadcast({
+  broadcastId,
+  workspaceId,
+}: {
+  broadcastId: string;
+  workspaceId: string;
+}): Promise<BroadcastResource> {
+  const temporalClient = await connectWorkflowClient();
+
+  try {
+    await temporalClient.start(broadcastWorkflow, {
+      taskQueue: "default",
+      workflowId: generateBroadcastWorkflowId({
+        workspaceId,
+        broadcastId,
+      }),
+      args: [
+        {
+          workspaceId,
+          broadcastId,
+        },
+      ],
+    });
+  } catch (e) {
+    if (!isAlreadyStartedError(e)) {
+      throw e;
+    }
+  }
+
+  const broadcast = await prisma().broadcast.update({
+    where: {
+      id: broadcastId,
+    },
+    data: {
+      status: "InProgress",
+    },
+  });
+  return toBroadcastResource(broadcast);
 }
