@@ -1,0 +1,30 @@
+---
+title: "Upgrading from v0.18.1 to v0.19.0"
+---
+
+Upgrading from v0.18.1 to v0.19.0 is straightforward, and only requires updating your dittofeed image tag.
+
+## Update Your `docker-compose.lite.yaml` File
+
+Update the `image` tag in your `docker-compose.lite.yaml` file to `v0.19.0`:
+
+```yaml
+services:
+  lite:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.19.0}
+```
+
+## Update Your Helm Chart
+
+Update the `tag` in your `values.yaml` file to `v0.19.0`:
+
+```yaml values.yaml
+image:
+  tag: ${IMAGE_TAG:-v0.19.0}
+```
+
+Upgrade the dittofeed chart:
+
+```bash
+helm upgrade --install dittofeed ./dittofeed/helm-charts/dittofeed
+```
