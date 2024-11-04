@@ -7,6 +7,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
@@ -139,21 +140,38 @@ export async function upsertBroadcast({
   broadcastId: id,
   subscriptionGroupId,
   name,
+  segmentDefinition: sDefinition,
+  messageTemplateDefinition: mDefinition,
 }: {
   broadcastId: string;
   workspaceId: string;
   subscriptionGroupId?: string;
   name: string;
+  segmentDefinition?: SegmentDefinition;
+  messageTemplateDefinition?: MessageTemplateResourceDefinition;
 }): Promise<BroadcastResources> {
-  const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
+  const segmentDefinition: SegmentDefinition =
+    sDefinition ?? DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
-  const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-  });
+
+  let messageTemplateDefinition: MessageTemplateResourceDefinition;
+  if (mDefinition) {
+    messageTemplateDefinition = mDefinition;
+  } else {
+    const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique(
+      {
+        where: {
+          workspaceId,
+        },
+      },
+    );
+    messageTemplateDefinition = defaultEmailDefinition({
+      emailContentsType: EmailContentsType.LowCode,
+      emailProvider: defaultEmailProvider ?? undefined,
+    });
+  }
   const [segment, messageTemplate] = await Promise.all([
     prisma().segment.upsert({
       where: {
@@ -182,10 +200,7 @@ export async function upsertBroadcast({
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
-        definition: defaultEmailDefinition({
-          emailContentsType: EmailContentsType.LowCode,
-          emailProvider: defaultEmailProvider ?? undefined,
-        }),
+        definition: messageTemplateDefinition,
       },
       update: {},
     }),
