@@ -242,7 +242,8 @@
         "api-reference/auto/users/get-apiadminuserssubscriptions",
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
-        "api-reference/auto/events/get-apiadminevents"
+        "api-reference/auto/events/get-apiadminevents",
+        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute"
       ]
     },
     {
