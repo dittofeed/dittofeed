@@ -12,6 +12,7 @@ import React, { useEffect, useMemo } from "react";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -34,7 +35,6 @@ import {
   journeyToState,
   shouldDraftBeUpdated,
 } from "./store";
-import formatCurl from "../../lib/formatCurl";
 
 function formatJourneyCurl(journey: SavedJourneyResource) {
   return formatCurl({
@@ -337,7 +337,7 @@ export default function JourneyLayout({
           copyToClipboard({
             value: curl,
             successNotice: "Journey definition copied to clipboard as CURL.",
-            failureNotice: "Failed to copy journey definition.",
+            failureNotice: "Failed to copy journey CURL.",
           });
         },
       },
