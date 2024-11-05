@@ -2,6 +2,7 @@ import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import {
+  ContentCopyOutlined,
   Fullscreen,
   FullscreenExit,
   KeyboardDoubleArrowLeftOutlined,
@@ -71,6 +72,7 @@ import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { copyToClipboard } from "../lib/copyToClipboard";
 import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
@@ -91,6 +93,7 @@ import {
   PublisherStatusType,
   PublisherUpToDateStatus,
 } from "./publisher";
+import { SettingsCommand, SettingsMenu } from "./settingsMenu";
 import TemplatePreview from "./templatePreview";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
@@ -810,6 +813,23 @@ export default function TemplateEditor({
     viewDraft,
   ]);
 
+  const commands: SettingsCommand[] = useMemo(() => {
+    return [
+      {
+        label: "Copy template definition as JSON",
+        icon: <ContentCopyOutlined />,
+        disabled: !template?.definition,
+        action: () => {
+          copyToClipboard({
+            value: JSON.stringify(template?.definition),
+            successNotice: "Template definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy template definition.",
+          });
+        },
+      },
+    ];
+  }, []);
+
   if (!workspace || !template || !renderEditorParams) {
     return null;
   }
@@ -1083,25 +1103,28 @@ export default function TemplateEditor({
         }}
       >
         <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
-        {fullscreen === null ? (
-          <Stack direction="row" alignItems="center" spacing={2}>
-            {renderEditorOptions && renderEditorOptions(renderEditorParams)}
-            <IconButton
-              size="small"
-              onClick={() =>
-                setState((stateDraft) => {
-                  stateDraft.fullscreen = "editor";
-                })
-              }
-            >
-              <Fullscreen />
+        <Stack direction="row" spacing={1}>
+          {renderEditorOptions && renderEditorOptions(renderEditorParams)}
+          <SettingsMenu commands={commands} />
+          {fullscreen === null ? (
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  setState((stateDraft) => {
+                    stateDraft.fullscreen = "editor";
+                  })
+                }
+              >
+                <Fullscreen />
+              </IconButton>
+            </Stack>
+          ) : (
+            <IconButton size="small" onClick={handleFullscreenClose}>
+              <FullscreenExit />
             </IconButton>
-          </Stack>
-        ) : (
-          <IconButton size="small" onClick={handleFullscreenClose}>
-            <FullscreenExit />
-          </IconButton>
-        )}
+          )}
+        </Stack>
       </Stack>
       <BodyBox
         direction="left"
