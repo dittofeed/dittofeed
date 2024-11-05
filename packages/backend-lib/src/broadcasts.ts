@@ -176,6 +176,10 @@ export async function upsertBroadcast({
       emailProvider: defaultEmailProvider ?? undefined,
     });
   }
+  logger().info(
+    { messageTemplateDefinition, segmentDefinition },
+    "Broadcast definitions",
+  );
   const [segment, messageTemplate] = await Promise.all([
     prisma().segment.upsert({
       where: {
