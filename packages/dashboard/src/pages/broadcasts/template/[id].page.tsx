@@ -101,7 +101,7 @@ export const getServerSideProps: GetServerSideProps<
     name = `Broadcast - ${id}`;
   }
 
-  const [{ broadcast, messageTemplate, journey }, subscriptionGroups] =
+  const [{ broadcast, messageTemplate, journey, segment }, subscriptionGroups] =
     await Promise.all([
       getOrCreateBroadcast({
         workspaceId: dfContext.workspace.id,
@@ -129,6 +129,10 @@ export const getServerSideProps: GetServerSideProps<
   const appState: Partial<AppState> = {
     ...baseAppState,
     ...channelState,
+    segments: {
+      type: CompletionStatus.Successful,
+      value: [segment],
+    },
     subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
     journeys: {
       type: CompletionStatus.Successful,

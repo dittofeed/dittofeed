@@ -3,7 +3,10 @@ import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { SavedSegmentResource } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  SavedSegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -39,22 +42,25 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [{ broadcast, segment }, subscriptionGroups, messageTemplates] =
-      await Promise.all([
-        getOrCreateBroadcast({
-          workspaceId: dfContext.workspace.id,
-          broadcastId: id,
-          name,
-        }),
-        prisma().subscriptionGroup.findMany({
-          where: {
-            workspaceId,
-          },
-        }),
-        findMessageTemplates({
+    const [
+      { broadcast, segment, messageTemplate, journey },
+      subscriptionGroups,
+      messageTemplates,
+    ] = await Promise.all([
+      getOrCreateBroadcast({
+        workspaceId: dfContext.workspace.id,
+        broadcastId: id,
+        name,
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
           workspaceId,
-        }),
-      ]);
+        },
+      }),
+      findMessageTemplates({
+        workspaceId,
+      }),
+    ]);
     if (broadcast.workspaceId !== workspaceId) {
       return {
         notFound: true,
@@ -75,6 +81,18 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const appState: Partial<AppState> = {
       ...baseAppState,
       ...segmentAppState,
+      messages: {
+        type: CompletionStatus.Successful,
+        value: [messageTemplate],
+      },
+      segments: {
+        type: CompletionStatus.Successful,
+        value: [segment],
+      },
+      journeys: {
+        type: CompletionStatus.Successful,
+        value: [journey],
+      },
     };
 
     return {

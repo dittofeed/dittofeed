@@ -173,6 +173,15 @@ export function BroadcastLayout({
             !segment.definition ||
             !messageTemplate.definition
           ) {
+            console.error("Failed to copy execute broadcast CURL", {
+              broadcast,
+              segment,
+              messageNode,
+              messageTemplate,
+              segmentDefinition: segment?.definition,
+              messageTemplateDefinition: messageTemplate?.definition,
+              journeys,
+            });
             return;
           }
           const curl = formatExecuteBroadcastCurl({
@@ -190,7 +199,7 @@ export function BroadcastLayout({
         },
       },
     ];
-  }, []);
+  }, [broadcast, messageNode, messageTemplate, segment]);
 
   return (
     <DashboardContent>
