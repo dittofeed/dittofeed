@@ -14,6 +14,7 @@ import { useDebounce } from "use-debounce";
 
 import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
+import formatCurl from "../../lib/formatCurl";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
@@ -34,6 +35,23 @@ function formatExecuteBroadcastCurl({
   segmentDefinition: SegmentDefinition;
   messageTemplateDefinition: MessageTemplateResourceDefinition;
 }) {
+  const data = {
+    workspaceId,
+    broadcastName,
+    ...(subscriptionGroupId ? { subscriptionGroupId } : {}),
+    segmentDefinition,
+    messageTemplateDefinition,
+  };
+
+  return formatCurl({
+    method: "POST",
+    url: "https://app.dittofeed.com/api/admin/broadcasts/execute",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data,
+  });
   return `curl --request POST \\
   --url https://app.dittofeed.com/api/admin/broadcasts/execute \\
   --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
