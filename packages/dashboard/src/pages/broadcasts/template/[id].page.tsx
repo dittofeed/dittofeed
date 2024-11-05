@@ -44,6 +44,7 @@ import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroup
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
+import { getBroadcastMessageNode } from "../../../lib/broadcasts";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
@@ -146,27 +147,6 @@ export const getServerSideProps: GetServerSideProps<
     }),
   };
 });
-
-function getBroadcastMessageNode(
-  journeyId: string,
-  journeys: AppState["journeys"],
-): MessageNode | null {
-  if (journeys.type !== CompletionStatus.Successful) {
-    return null;
-  }
-  const journey = journeys.value.find((j) => j.id === journeyId);
-  if (!journey || !journey.definition) {
-    return null;
-  }
-  let messageNode: MessageNode | null = null;
-  for (const node of journey.definition.nodes) {
-    if (node.type === JourneyNodeType.MessageNode) {
-      messageNode = node;
-      break;
-    }
-  }
-  return messageNode;
-}
 
 interface BroadcastTemplateState {
   updateTemplateRequest: EphemeralRequestStatus<Error>;
