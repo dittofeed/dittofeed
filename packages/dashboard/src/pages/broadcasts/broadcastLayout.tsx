@@ -14,12 +14,12 @@ import { useDebounce } from "use-debounce";
 
 import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
-import formatCurl from "../../lib/formatCurl";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { getBroadcastMessageNode } from "../../lib/broadcasts";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import { useUpdateEffect } from "../../lib/useUpdateEffect";
 
 function formatExecuteBroadcastCurl({
@@ -37,7 +37,7 @@ function formatExecuteBroadcastCurl({
 }) {
   const data = {
     workspaceId,
-    broadcastName,
+    broadcastName: `${broadcastName} - ${Date.now()}`,
     ...(subscriptionGroupId ? { subscriptionGroupId } : {}),
     segmentDefinition,
     messageTemplateDefinition,
