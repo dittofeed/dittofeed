@@ -298,6 +298,14 @@ export async function triggerBroadcast({
   workspaceId: string;
 }): Promise<BroadcastResource> {
   const temporalClient = await connectWorkflowClient();
+  const broadcast = await prisma().broadcast.findUniqueOrThrow({
+    where: {
+      id: broadcastId,
+    },
+  });
+  if (broadcast.status !== "NotStarted") {
+    return toBroadcastResource(broadcast);
+  }
 
   try {
     await temporalClient.start(broadcastWorkflow, {
@@ -319,7 +327,7 @@ export async function triggerBroadcast({
     }
   }
 
-  const broadcast = await prisma().broadcast.update({
+  const updatedBroadcast = await prisma().broadcast.update({
     where: {
       id: broadcastId,
     },
@@ -327,5 +335,5 @@ export async function triggerBroadcast({
       status: "InProgress",
     },
   });
-  return toBroadcastResource(broadcast);
+  return toBroadcastResource(updatedBroadcast);
 }
