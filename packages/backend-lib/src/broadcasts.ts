@@ -7,6 +7,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
@@ -19,6 +20,10 @@ import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
+import { broadcastWorkflow } from "./segments/broadcastWorkflow";
+import connectWorkflowClient from "./temporal/connectWorkflowClient";
+import { isAlreadyStartedError } from "./temporal/workflow";
+import { generateBroadcastWorkflowId } from "./temporal/workflows";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -139,21 +144,42 @@ export async function upsertBroadcast({
   broadcastId: id,
   subscriptionGroupId,
   name,
+  segmentDefinition: sDefinition,
+  messageTemplateDefinition: mDefinition,
 }: {
   broadcastId: string;
   workspaceId: string;
   subscriptionGroupId?: string;
   name: string;
+  segmentDefinition?: SegmentDefinition;
+  messageTemplateDefinition?: MessageTemplateResourceDefinition;
 }): Promise<BroadcastResources> {
-  const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
+  const segmentDefinition: SegmentDefinition =
+    sDefinition ?? DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
-  const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-  });
+
+  let messageTemplateDefinition: MessageTemplateResourceDefinition;
+  if (mDefinition) {
+    messageTemplateDefinition = mDefinition;
+  } else {
+    const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique(
+      {
+        where: {
+          workspaceId,
+        },
+      },
+    );
+    messageTemplateDefinition = defaultEmailDefinition({
+      emailContentsType: EmailContentsType.LowCode,
+      emailProvider: defaultEmailProvider ?? undefined,
+    });
+  }
+  logger().info(
+    { messageTemplateDefinition, segmentDefinition },
+    "Broadcast definitions",
+  );
   const [segment, messageTemplate] = await Promise.all([
     prisma().segment.upsert({
       where: {
@@ -182,10 +208,7 @@ export async function upsertBroadcast({
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
-        definition: defaultEmailDefinition({
-          emailContentsType: EmailContentsType.LowCode,
-          emailProvider: defaultEmailProvider ?? undefined,
-        }),
+        definition: messageTemplateDefinition,
       },
       update: {},
     }),
@@ -269,4 +292,59 @@ export async function getOrCreateBroadcast(params: {
     return broadcastResources;
   }
   return upsertBroadcast(params);
+}
+
+export async function triggerBroadcast({
+  broadcastId,
+  workspaceId,
+}: {
+  broadcastId: string;
+  workspaceId: string;
+}): Promise<BroadcastResource> {
+  const temporalClient = await connectWorkflowClient();
+  const broadcast = await prisma().broadcast.findUniqueOrThrow({
+    where: {
+      id: broadcastId,
+    },
+  });
+  if (broadcast.status !== "NotStarted") {
+    logger().error(
+      {
+        broadcast,
+        workspaceId,
+      },
+      "Broadcast is not in the NotStarted status.",
+    );
+    return toBroadcastResource(broadcast);
+  }
+
+  try {
+    await temporalClient.start(broadcastWorkflow, {
+      taskQueue: "default",
+      workflowId: generateBroadcastWorkflowId({
+        workspaceId,
+        broadcastId,
+      }),
+      args: [
+        {
+          workspaceId,
+          broadcastId,
+        },
+      ],
+    });
+  } catch (e) {
+    if (!isAlreadyStartedError(e)) {
+      throw e;
+    }
+  }
+
+  const updatedBroadcast = await prisma().broadcast.update({
+    where: {
+      id: broadcastId,
+    },
+    data: {
+      status: "InProgress",
+    },
+  });
+  return toBroadcastResource(updatedBroadcast);
 }

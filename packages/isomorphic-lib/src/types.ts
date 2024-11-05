@@ -3872,3 +3872,20 @@ export const CreateWorkspaceResultJson = JsonResult(
 export type CreateWorkspaceResultJson = Static<
   typeof CreateWorkspaceResultJson
 >;
+
+export const ExecuteBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastName: Type.String(),
+  segmentDefinition: SegmentDefinition,
+  messageTemplateDefinition: MessageTemplateResourceDefinition,
+  subscriptionGroupId: Type.Optional(Type.String()),
+});
+
+export type ExecuteBroadcastRequest = Static<typeof ExecuteBroadcastRequest>;
+
+export const ExecuteBroadcastResponse = Type.Object({
+  broadcastName: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type ExecuteBroadcastResponse = Static<typeof ExecuteBroadcastResponse>;

@@ -212,8 +212,8 @@
         "guide/faq",
         "guide/creating-journeys",
         "guide/accessing-admin-api",
+        "guide/submitting-broadcasts-api",
         "guide/git-workflows",
-        "guide/testing",
         "guide/license"
       ]
     },
@@ -242,7 +242,8 @@
         "api-reference/auto/users/get-apiadminuserssubscriptions",
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
-        "api-reference/auto/events/get-apiadminevents"
+        "api-reference/auto/events/get-apiadminevents",
+        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute"
       ]
     },
     {

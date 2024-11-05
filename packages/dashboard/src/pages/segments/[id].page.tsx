@@ -13,22 +13,27 @@ import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
 import SegmentLayout from "./[id]/segmentLayout";
 
 export const getServerSideProps = getSegmentServerSideProps;
 
-function formatCurl(segment: SegmentResource) {
-  return `curl --request PUT \\
-  --url https://app.dittofeed.com/api/admin/segments \\
-  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
-  --header 'Content-Type: application/json' \\
-  --data '{
-  "id": "${segment.id}",
-  "workspaceId": "${segment.workspaceId}",
-  "name": "${segment.name}",
-  "definition": ${JSON.stringify(segment.definition, null, 2)}
-}'`;
+function formatSegmentCurl(segment: SegmentResource) {
+  return formatCurl({
+    method: "PUT",
+    url: "https://app.dittofeed.com/api/admin/segments",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data: {
+      id: segment.id,
+      workspaceId: segment.workspaceId,
+      name: segment.name,
+      definition: segment.definition,
+    },
+  });
 }
 
 export default function NewSegment() {
@@ -74,11 +79,11 @@ export default function NewSegment() {
           if (!editedSegment) {
             return;
           }
-          const curl = formatCurl(editedSegment);
+          const curl = formatSegmentCurl(editedSegment);
           copyToClipboard({
             value: curl,
-            successNotice: "Journey definition copied to clipboard as JSON.",
-            failureNotice: "Failed to copy journey definition.",
+            successNotice: "Segment definition copied to clipboard as CURL.",
+            failureNotice: "Failed to copy segment CURL.",
           });
         },
       },

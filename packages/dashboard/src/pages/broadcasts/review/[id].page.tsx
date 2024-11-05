@@ -42,22 +42,25 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [{ broadcast, segment }, subscriptionGroups, messageTemplates] =
-      await Promise.all([
-        getOrCreateBroadcast({
-          workspaceId: dfContext.workspace.id,
-          name,
-          broadcastId: id,
-        }),
-        prisma().subscriptionGroup.findMany({
-          where: {
-            workspaceId,
-          },
-        }),
-        findMessageTemplates({
+    const [
+      { broadcast, segment, journey, messageTemplate },
+      subscriptionGroups,
+      messageTemplates,
+    ] = await Promise.all([
+      getOrCreateBroadcast({
+        workspaceId: dfContext.workspace.id,
+        name,
+        broadcastId: id,
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
           workspaceId,
-        }),
-      ]);
+        },
+      }),
+      findMessageTemplates({
+        workspaceId,
+      }),
+    ]);
 
     if (broadcast.workspaceId !== workspaceId) {
       return {
@@ -79,6 +82,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const appState: Partial<AppState> = {
       ...baseAppState,
       ...segmentAppState,
+      journeys: {
+        type: CompletionStatus.Successful,
+        value: [journey],
+      },
+      messages: {
+        type: CompletionStatus.Successful,
+        value: [messageTemplate],
+      },
     };
 
     return {

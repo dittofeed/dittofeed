@@ -44,6 +44,7 @@ import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroup
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
+import { getBroadcastMessageNode } from "../../../lib/broadcasts";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
@@ -100,7 +101,7 @@ export const getServerSideProps: GetServerSideProps<
     name = `Broadcast - ${id}`;
   }
 
-  const [{ broadcast, messageTemplate, journey }, subscriptionGroups] =
+  const [{ broadcast, messageTemplate, journey, segment }, subscriptionGroups] =
     await Promise.all([
       getOrCreateBroadcast({
         workspaceId: dfContext.workspace.id,
@@ -128,6 +129,10 @@ export const getServerSideProps: GetServerSideProps<
   const appState: Partial<AppState> = {
     ...baseAppState,
     ...channelState,
+    segments: {
+      type: CompletionStatus.Successful,
+      value: [segment],
+    },
     subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
     journeys: {
       type: CompletionStatus.Successful,
@@ -146,27 +151,6 @@ export const getServerSideProps: GetServerSideProps<
     }),
   };
 });
-
-function getBroadcastMessageNode(
-  journeyId: string,
-  journeys: AppState["journeys"],
-): MessageNode | null {
-  if (journeys.type !== CompletionStatus.Successful) {
-    return null;
-  }
-  const journey = journeys.value.find((j) => j.id === journeyId);
-  if (!journey || !journey.definition) {
-    return null;
-  }
-  let messageNode: MessageNode | null = null;
-  for (const node of journey.definition.nodes) {
-    if (node.type === JourneyNodeType.MessageNode) {
-      messageNode = node;
-      break;
-    }
-  }
-  return messageNode;
-}
 
 interface BroadcastTemplateState {
   updateTemplateRequest: EphemeralRequestStatus<Error>;
@@ -455,6 +439,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
           {lowCodeSelect}
         </Stack>
         <Box
+          className="broadcast-template-editor"
           sx={{
             flex: 1,
             width: "100%",

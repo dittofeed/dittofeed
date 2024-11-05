@@ -1,6 +1,10 @@
-import { Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { ContentCopyTwoTone } from "@mui/icons-material";
+import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
 import {
   BroadcastResource,
+  CompletionStatus,
+  MessageTemplateResourceDefinition,
+  SegmentDefinition,
   UpdateBroadcastRequest,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
@@ -10,9 +14,45 @@ import { useDebounce } from "use-debounce";
 
 import DashboardContent from "../../components/dashboardContent";
 import EditableName from "../../components/editableName";
+import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
+import { getBroadcastMessageNode } from "../../lib/broadcasts";
+import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import { useUpdateEffect } from "../../lib/useUpdateEffect";
+
+function formatExecuteBroadcastCurl({
+  broadcastName,
+  workspaceId,
+  subscriptionGroupId,
+  segmentDefinition,
+  messageTemplateDefinition,
+}: {
+  broadcastName: string;
+  workspaceId: string;
+  subscriptionGroupId?: string;
+  segmentDefinition: SegmentDefinition;
+  messageTemplateDefinition: MessageTemplateResourceDefinition;
+}) {
+  const data = {
+    workspaceId,
+    broadcastName: `${broadcastName} - ${Date.now()}`,
+    ...(subscriptionGroupId ? { subscriptionGroupId } : {}),
+    segmentDefinition,
+    messageTemplateDefinition,
+  };
+
+  return formatCurl({
+    method: "POST",
+    url: "https://app.dittofeed.com/api/admin/broadcasts/execute",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data,
+  });
+}
 
 export const steps = {
   segment: "Select a Segment",
@@ -44,6 +84,9 @@ export function BroadcastLayout({
     setBroadcastUpdateRequest,
     broadcasts,
     upsertBroadcast,
+    journeys,
+    segments,
+    messages,
   } = useAppStorePick([
     "apiBase",
     "broadcasts",
@@ -51,11 +94,36 @@ export function BroadcastLayout({
     "updateEditedBroadcast",
     "broadcastUpdateRequest",
     "setBroadcastUpdateRequest",
+    "journeys",
     "upsertBroadcast",
+    "segments",
+    "messages",
   ]);
   const broadcast = useMemo(
     () => broadcasts.find((b) => b.id === id),
     [broadcasts, id],
+  );
+  const messageNode = useMemo(
+    () =>
+      broadcast?.journeyId
+        ? getBroadcastMessageNode(broadcast.journeyId, journeys)
+        : undefined,
+    [broadcast?.journeyId, journeys],
+  );
+  const segment = useMemo(
+    () =>
+      broadcast?.segmentId && segments.type === CompletionStatus.Successful
+        ? segments.value.find((s) => s.id === broadcast.segmentId)
+        : undefined,
+    [broadcast?.segmentId, segments],
+  );
+  const messageTemplate = useMemo(
+    () =>
+      broadcast?.messageTemplateId &&
+      messages.type === CompletionStatus.Successful
+        ? messages.value.find((mt) => mt.id === broadcast.messageTemplateId)
+        : undefined,
+    [broadcast?.messageTemplateId, messages],
   );
   const editable = broadcast?.status === "NotStarted";
   const stepIndex = order[activeStep];
@@ -90,15 +158,65 @@ export function BroadcastLayout({
       },
     })();
   }, [debouncedName]);
+  const commands: SettingsCommand[] = useMemo(() => {
+    return [
+      {
+        label: "Copy execute broadcast CURL",
+        icon: <ContentCopyTwoTone />,
+
+        action: () => {
+          if (
+            !broadcast ||
+            !segment ||
+            !messageNode ||
+            !messageTemplate ||
+            !segment.definition ||
+            !messageTemplate.definition
+          ) {
+            console.error("Failed to copy execute broadcast CURL", {
+              broadcast,
+              segment,
+              messageNode,
+              messageTemplate,
+              segmentDefinition: segment?.definition,
+              messageTemplateDefinition: messageTemplate?.definition,
+              journeys,
+            });
+            return;
+          }
+          const curl = formatExecuteBroadcastCurl({
+            broadcastName: broadcast.name,
+            workspaceId: broadcast.workspaceId,
+            subscriptionGroupId: messageNode.subscriptionGroupId,
+            segmentDefinition: segment.definition,
+            messageTemplateDefinition: messageTemplate.definition,
+          });
+          copyToClipboard({
+            value: curl,
+            successNotice: "Execute broadcast CURL copied to clipboard.",
+            failureNotice: "Failed to copy execute broadcast CURL.",
+          });
+        },
+      },
+    ];
+  }, [broadcast, messageNode, messageTemplate, segment]);
 
   return (
     <DashboardContent>
       <Stack
         direction="column"
-        sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+        sx={{
+          width: "100%",
+          height: "100%",
+          paddingTop: 2,
+          paddingLeft: 2,
+          paddingRight: 1,
+          paddingBottom: 1,
+          alignItems: "start",
+        }}
         spacing={1}
       >
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
           <Stepper nonLinear activeStep={stepIndex}>
             {sortedSteps.map(([path, name]) => (
               <Step key={path} completed={false}>
@@ -112,6 +230,7 @@ export function BroadcastLayout({
               </Step>
             ))}
           </Stepper>
+          <Box sx={{ flexGrow: 1 }} />
           {editedBroadcast ? (
             <EditableName
               variant="h6"
@@ -123,6 +242,7 @@ export function BroadcastLayout({
               onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
             />
           ) : null}
+          <SettingsMenu commands={commands} />
         </Stack>
         {children}
       </Stack>

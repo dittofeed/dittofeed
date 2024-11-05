@@ -452,7 +452,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
-    dittofeedTelemetryDisabled: rawConfig.dittofeedTelemetryDisabled === "true",
+    dittofeedTelemetryDisabled:
+      rawConfig.dittofeedTelemetryDisabled === "true" ||
+      nodeEnv === NodeEnvEnum.Development,
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
   };
 

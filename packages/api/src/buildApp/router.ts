@@ -3,6 +3,7 @@ import logger from "backend-lib/src/logger";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 
+import adminBroadcastsController from "../controllers/adminBroadcastsController";
 import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
 import contentController from "../controllers/contentController";
@@ -102,6 +103,9 @@ export default async function router(
         f.register(contentController, { prefix: "/content" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
+        }),
+        f.register(adminBroadcastsController, {
+          prefix: "/broadcasts",
         }),
       ]);
     },

@@ -12,6 +12,7 @@ import React, { useEffect, useMemo } from "react";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -35,18 +36,22 @@ import {
   shouldDraftBeUpdated,
 } from "./store";
 
-function formatCurl(journey: SavedJourneyResource) {
-  return `curl --request PUT \\
-  --url https://app.dittofeed.com/api/admin/journeys \\
-  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
-  --header 'Content-Type: application/json' \\
-  --data '{
-  "id": "${journey.id}",
-  "workspaceId": "${journey.workspaceId}",
-  "name": "${journey.name}",
-  "canRunMultiple": ${journey.canRunMultiple},
-  "definition": ${JSON.stringify(journey.definition, null, 2)}
-}'`;
+function formatJourneyCurl(journey: SavedJourneyResource) {
+  return formatCurl({
+    method: "PUT",
+    url: "https://app.dittofeed.com/api/admin/journeys",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data: {
+      id: journey.id,
+      workspaceId: journey.workspaceId,
+      name: journey.name,
+      canRunMultiple: journey.canRunMultiple,
+      definition: journey.definition,
+    },
+  });
 }
 
 export default function JourneyLayout({
@@ -328,11 +333,11 @@ export default function JourneyLayout({
           if (!journey) {
             return;
           }
-          const curl = formatCurl(journey);
+          const curl = formatJourneyCurl(journey);
           copyToClipboard({
             value: curl,
-            successNotice: "Journey definition copied to clipboard as JSON.",
-            failureNotice: "Failed to copy journey definition.",
+            successNotice: "Journey definition copied to clipboard as CURL.",
+            failureNotice: "Failed to copy journey CURL.",
           });
         },
       },
