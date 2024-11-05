@@ -1157,8 +1157,6 @@ export default function TemplateEditor({
         sx={{
           height: "100%",
           width: "100%",
-          paddingRight: 2,
-          paddingTop: 2,
         }}
         spacing={1}
       >

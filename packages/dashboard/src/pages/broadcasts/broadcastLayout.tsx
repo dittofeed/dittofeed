@@ -95,7 +95,15 @@ export function BroadcastLayout({
     <DashboardContent>
       <Stack
         direction="column"
-        sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+        sx={{
+          width: "100%",
+          height: "100%",
+          paddingTop: 2,
+          paddingLeft: 2,
+          paddingRight: 1,
+          paddingBottom: 1,
+          alignItems: "start",
+        }}
         spacing={1}
       >
         <Stack direction="row" spacing={2}>

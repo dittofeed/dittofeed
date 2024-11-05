@@ -455,6 +455,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
           {lowCodeSelect}
         </Stack>
         <Box
+          className="broadcast-template-editor"
           sx={{
             flex: 1,
             width: "100%",
