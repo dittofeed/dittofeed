@@ -52,17 +52,6 @@ function formatExecuteBroadcastCurl({
     },
     data,
   });
-  return `curl --request POST \\
-  --url https://app.dittofeed.com/api/admin/broadcasts/execute \\
-  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
-  --header 'Content-Type: application/json' \\
-  --data '{
-  "workspaceId": "${workspaceId}",
-  "broadcastName": "${broadcastName}",
-  ${subscriptionGroupId ? `"subscriptionGroupId": "${subscriptionGroupId}",` : ""}
-  "segmentDefinition": ${JSON.stringify(segmentDefinition, null, 2)},
-  "messageTemplateDefinition": ${JSON.stringify(messageTemplateDefinition, null, 2)}
-}'`;
 }
 
 export const steps = {
