@@ -304,6 +304,13 @@ export async function triggerBroadcast({
     },
   });
   if (broadcast.status !== "NotStarted") {
+    logger().error(
+      {
+        broadcast,
+        workspaceId,
+      },
+      "Broadcast is not in the NotStarted status.",
+    );
     return toBroadcastResource(broadcast);
   }
 
