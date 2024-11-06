@@ -22,6 +22,7 @@ import {
   AmazonSesEventPayload,
   AmazonSNSEvent,
   AmazonSNSEventTypes,
+  MailChimpEvent,
   PostMarkEvent,
   ResendEvent,
   SendgridEvent,
@@ -33,6 +34,7 @@ import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  MailChimpSecret,
   PostMarkSecret,
   ResendSecret,
   SendgridSecret,
@@ -43,6 +45,8 @@ import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
 import { getWorkspaceId } from "../workspace";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
+import { createHmac } from "crypto";
 
 const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 
@@ -398,6 +402,100 @@ export default async function webhookController(fastify: FastifyInstance) {
         workspaceId,
         events: [request.body],
       });
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/mailchimp",
+    {
+      schema: {
+        description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
+        tags: ["Webhooks"],
+        body: MailChimpEvent,
+        headers: Type.Object({
+          "x-mandrill-signature": Type.String(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const events = request.body;
+
+      // Get workspaceId from first event metadata
+      const workspaceId = events.msg?.metadata?.workspaceId;
+      if (!workspaceId) {
+        logger().error("Missing workspaceId in Mailchimp webhook metadata");
+        return reply.status(400).send({
+          error: "Missing workspaceId in metadata.",
+        });
+      }
+
+      const secret = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            name: SecretNames.MailChimp,
+            workspaceId,
+          },
+        },
+      });
+
+      const webhookKey = schemaValidateWithErr(
+        secret?.configValue,
+        MailChimpSecret,
+      )
+        .map((val) => val.webhookKey)
+        .unwrapOr(null);
+
+      if (!webhookKey) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Missing sendgrid webhook secret.",
+        );
+        return reply.status(400).send({
+          error: "Missing secret.",
+        });
+      }
+
+      // Verify webhook signature
+      const signature = request.headers["x-mandrill-signature"];
+
+      if (!request.rawBody || typeof request.rawBody !== "string") {
+        logger().error({ workspaceId }, "Missing rawBody on Mailchimp webhook");
+        return reply.status(500).send();
+      }
+
+      const params = { mandrill_events: request.rawBody } as Record<
+        string,
+        string
+      >;
+      let signedData = request.url;
+      const paramKeys = Object.keys(params).sort();
+
+      for (const key of paramKeys) {
+        signedData += key + params[key];
+      }
+
+      const hmac = createHmac("sha1", webhookKey);
+      hmac.update(signedData);
+      const expectedSignature = hmac.digest("base64");
+
+      if (signature !== expectedSignature) {
+        logger().error(
+          { workspaceId },
+          "Invalid signature for Mailchimp webhook.",
+        );
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
+      }
+
+      await submitMailChimpEvents({
+        workspaceId,
+        events: [request.body],
+      });
+
       return reply.status(200).send();
     },
   );

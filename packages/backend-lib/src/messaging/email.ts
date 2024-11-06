@@ -161,6 +161,9 @@ export async function getOrCreateEmailProviders({
       case EmailProviderType.Smtp:
         type = EmailProviderType.Smtp;
         break;
+      case EmailProviderType.MailChimp:
+        type = EmailProviderType.MailChimp;
+        break;
       default:
         logger().error(`Unknown email provider type: ${ep.type}`);
         return [];

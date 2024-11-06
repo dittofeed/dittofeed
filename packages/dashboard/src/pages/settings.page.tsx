@@ -741,6 +741,60 @@ function AmazonSesConfig() {
   );
 }
 
+function MailChimpConfig() {
+  const secretAvailability = useSecretAvailability();
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "mailchimp-section",
+          fieldGroups: [
+            {
+              id: "mailchimp-fields", 
+              name: "MailChimp",
+              fields: [
+                {
+                  id: "mailchimp-api-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.MailChimp,
+                    secretKey: "apiKey",
+                    label: "MailChimp API Key",
+                    helperText: "API key used to send emails via MailChimp.",
+                    type: EmailProviderType.MailChimp,
+                    saved: isSecretSaved(
+                      SecretNames.MailChimp,
+                      "apiKey",
+                      secretAvailability,
+                    ),
+                  },
+                },
+                {
+                  id: "mailchimp-webhook-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.MailChimp,
+                    secretKey: "webhookKey", 
+                    label: "Webhook Key",
+                    helperText: "MailChimp webhook verification key, used to authenticate webhook requests.",
+                    type: EmailProviderType.MailChimp,
+                    saved: isSecretSaved(
+                      SecretNames.MailChimp,
+                      "webhookKey",
+                      secretAvailability,
+                    ),
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 function ResendConfig() {
   const secretAvailability = useSecretAvailability();
 
@@ -1066,6 +1120,7 @@ function EmailChannelConfig() {
       <AmazonSesConfig />
       <ResendConfig />
       <PostMarkConfig />
+      <MailChimpConfig />
       <SmtpConfig />
     </>
   );
