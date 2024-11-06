@@ -15,6 +15,7 @@ import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
 import prisma from "backend-lib/src/prisma";
@@ -45,7 +46,6 @@ import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
 import { getWorkspaceId } from "../workspace";
-import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { createHmac } from "crypto";
 
 const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
@@ -413,7 +413,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
         tags: ["Webhooks"],
         body: Type.Object({
-          mandrill_events: Type.Array(MailChimpEvent),
+          mandrill_events: Type.String(),
         }),
         headers: Type.Object({
           "x-mandrill-signature": Type.String(),
@@ -421,8 +421,19 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { mandrill_events: events } = request.body;
-      const workspaceId = events[0]?.msg?.metadata?.workspaceId;
+      let events: MailChimpEvent[];
+      try {
+        events = JSON.parse(request.body.mandrill_events);
+      } catch (err) {
+        logger().error("Failed to parse Mailchimp webhook payload");
+        return reply.status(400).send({
+          error: "Invalid JSON in mandrill_events",
+        });
+      }
+      if (events.length === 0) {
+        return reply.status(200).send();
+      }
+      const workspaceId = events?.[0]?.msg?.metadata?.workspaceId;
       if (!workspaceId) {
         logger().error("Missing workspaceId in Mailchimp webhook metadata");
         return reply.status(400).send({
