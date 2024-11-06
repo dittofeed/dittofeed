@@ -1,3 +1,4 @@
+import { MessagesMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { toMjml } from "emailo/src/toMjml";
@@ -16,6 +17,7 @@ import { Overwrite } from "utility-types";
 
 import { getObject, storage } from "./blobStorage";
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
+import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
   ResendRequiredData,
@@ -26,7 +28,6 @@ import {
   sendMail as sendMailSmtp,
   SendSmtpMailParams,
 } from "./destinations/smtp";
-import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -72,7 +73,6 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { MessagesMessage } from "@mailchimp/mailchimp_transactional";
 
 export function enrichMessageTemplate({
   id,
@@ -1229,7 +1229,7 @@ export async function sendEmail({
 
     case EmailProviderType.MailChimp: {
       // Mandatory for Mailchimp
-      const website = new URL(`https://${from.split('@')[1]}`).origin
+      const website = new URL(`https://${from.split("@")[1]}`).origin;
       const mailData: MessagesMessage = {
         html: body,
         text: body,

@@ -1,10 +1,10 @@
-import { SourceType } from "isomorphic-lib/src/constants";
-import { err, ok, Result, ResultAsync } from "neverthrow";
 import mailchimp, {
   MessagesMessage,
   MessagesSendResponse,
 } from "@mailchimp/mailchimp_transactional";
-
+import { AxiosError } from "axios";
+import { SourceType } from "isomorphic-lib/src/constants";
+import { err, ok, Result, ResultAsync } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
@@ -18,7 +18,6 @@ import {
   InternalEventType,
   MailChimpEvent,
 } from "../types";
-import { AxiosError } from "axios";
 
 type MailChimpResponse = Extract<
   Awaited<ReturnType<mailchimp.ApiClient["messages"]["send"]>>,
@@ -59,7 +58,7 @@ export function mailChimpEventToDF({
 }): Result<BatchItem, Error> {
   const { event, msg, ts } = mailChimpEvent;
 
-  const userId = msg.metadata?.user_id?.toString();
+  const userId = msg.metadata.user_id?.toString();
   const userEmail = msg.email;
 
   if (!userId) {

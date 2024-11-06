@@ -751,7 +751,7 @@ function MailChimpConfig() {
           id: "mailchimp-section",
           fieldGroups: [
             {
-              id: "mailchimp-fields", 
+              id: "mailchimp-fields",
               name: "MailChimp",
               fields: [
                 {
@@ -775,9 +775,10 @@ function MailChimpConfig() {
                   type: "secret",
                   fieldProps: {
                     name: SecretNames.MailChimp,
-                    secretKey: "webhookKey", 
+                    secretKey: "webhookKey",
                     label: "Webhook Key",
-                    helperText: "MailChimp webhook verification key, used to authenticate webhook requests.",
+                    helperText:
+                      "MailChimp webhook verification key, used to authenticate webhook requests.",
                     type: EmailProviderType.MailChimp,
                     saved: isSecretSaved(
                       SecretNames.MailChimp,
