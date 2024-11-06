@@ -33,7 +33,10 @@ import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   MailChimpSecret,
   PostMarkSecret,
@@ -421,18 +424,24 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let events: MailChimpEvent[];
-      try {
-        events = JSON.parse(request.body.mandrill_events);
-      } catch (err) {
+      const eventsResult = jsonParseSafe(request.body.mandrill_events);
+      if (eventsResult.isErr()) {
         logger().error("Failed to parse Mailchimp webhook payload");
         return reply.status(400).send({
           error: "Invalid JSON in mandrill_events",
         });
       }
+
+      const events = schemaValidateWithErr(
+        eventsResult.value,
+        Type.Array(MailChimpEvent),
+      ).unwrapOr([]);
+
       if (events.length === 0) {
         return reply.status(200).send();
       }
+      console.dir(events, { depth: null });
+
       const workspaceId = events?.[0]?.msg?.metadata?.workspaceId;
       if (!workspaceId) {
         logger().error("Missing workspaceId in Mailchimp webhook metadata");

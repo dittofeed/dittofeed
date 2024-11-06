@@ -1228,6 +1228,8 @@ export async function sendEmail({
     }
 
     case EmailProviderType.MailChimp: {
+      // Mandatory for Mailchimp
+      const website = new URL(`https://${from.split('@')[1]}`).origin
       const mailData: MessagesMessage = {
         html: body,
         text: body,
@@ -1235,8 +1237,7 @@ export async function sendEmail({
         from_email: from,
         to: [{ email: to }],
         metadata: {
-          user_id: userId,
-          website: "https://courier.com", // TODO: Add a default website or pass it from configuration
+          website,
           ...messageTags,
         },
       };
