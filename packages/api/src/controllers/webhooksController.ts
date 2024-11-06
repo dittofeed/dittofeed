@@ -436,11 +436,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         eventsResult.value,
         Type.Array(MailChimpEvent),
       ).unwrapOr([]);
+      logger().debug({ events }, "Parsed Mailchimp webhook events");
+      logger().debug(
+        { rawEvents: eventsResult.value },
+        "Raw Mailchimp webhook events",
+      );
 
       if (events.length === 0) {
         return reply.status(200).send();
       }
-      console.dir(events, { depth: null });
 
       const workspaceId = events[0]?.msg.metadata.workspaceId as string;
       if (!workspaceId) {

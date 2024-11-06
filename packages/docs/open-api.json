@@ -2456,6 +2456,12 @@
                             "enum": [
                               "Test"
                             ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MailChimp"
+                            ]
                           }
                         ]
                       }
@@ -2643,6 +2649,20 @@
                                         },
                                         "provider": {
                                           "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "MailChimp"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
                                             {
                                               "type": "object",
                                               "properties": {
@@ -3448,6 +3468,12 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    },
+                                                                    {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MailChimp"
+                                                                      ]
                                                                     }
                                                                   ]
                                                                 }
@@ -4217,6 +4243,12 @@
                                                           "enum": [
                                                             "Test"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "MailChimp"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -4607,6 +4639,12 @@
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Test"
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MailChimp"
                                                                       ]
                                                                     }
                                                                   ]
@@ -5393,6 +5431,12 @@
                                                           "enum": [
                                                             "Test"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "MailChimp"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -5979,6 +6023,12 @@
                                               "enum": [
                                                 "Test"
                                               ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "MailChimp"
+                                              ]
                                             }
                                           ]
                                         }
@@ -6361,6 +6411,12 @@
                                                               "type": "string",
                                                               "enum": [
                                                                 "Test"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "MailChimp"
                                                               ]
                                                             }
                                                           ]
@@ -7005,6 +7061,12 @@
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Test"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "MailChimp"
                                                                 ]
                                                               }
                                                             ]
@@ -7775,6 +7837,12 @@
                                                     "enum": [
                                                       "Test"
                                                     ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "MailChimp"
+                                                    ]
                                                   }
                                                 ]
                                               }
@@ -8165,6 +8233,12 @@
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Test"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "MailChimp"
                                                                 ]
                                                               }
                                                             ]
@@ -8950,6 +9024,12 @@
                                                     "type": "string",
                                                     "enum": [
                                                       "Test"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "MailChimp"
                                                     ]
                                                   }
                                                 ]
@@ -18738,6 +18818,20 @@
                                           "type": {
                                             "type": "string",
                                             "enum": [
+                                              "MailChimp"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
                                               "SendGrid"
                                             ]
                                           }
@@ -20246,6 +20340,47 @@
             },
             "in": "header",
             "name": "x-postmark-secret",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/webhooks/mailchimp": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Used to consume Mailchimp (Mandrill) webhook payloads.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mandrill_events": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mandrill_events"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-mandrill-signature",
             "required": true
           }
         ],
@@ -22774,6 +22909,47 @@
             },
             "in": "header",
             "name": "x-postmark-secret",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/webhooks/mailchimp": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Used to consume Mailchimp (Mandrill) webhook payloads.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mandrill_events": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mandrill_events"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-mandrill-signature",
             "required": true
           }
         ],
@@ -31518,6 +31694,12 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    },
+                                                                    {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MailChimp"
+                                                                      ]
                                                                     }
                                                                   ]
                                                                 }
@@ -32287,6 +32469,12 @@
                                                           "enum": [
                                                             "Test"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "MailChimp"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -32677,6 +32865,12 @@
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Test"
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MailChimp"
                                                                       ]
                                                                     }
                                                                   ]
@@ -33463,6 +33657,12 @@
                                                           "enum": [
                                                             "Test"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "MailChimp"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -34049,6 +34249,12 @@
                                               "enum": [
                                                 "Test"
                                               ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "MailChimp"
+                                              ]
                                             }
                                           ]
                                         }
@@ -34431,6 +34637,12 @@
                                                               "type": "string",
                                                               "enum": [
                                                                 "Test"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "MailChimp"
                                                               ]
                                                             }
                                                           ]
@@ -35075,6 +35287,12 @@
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Test"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "MailChimp"
                                                                 ]
                                                               }
                                                             ]
@@ -35845,6 +36063,12 @@
                                                     "enum": [
                                                       "Test"
                                                     ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "MailChimp"
+                                                    ]
                                                   }
                                                 ]
                                               }
@@ -36235,6 +36459,12 @@
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Test"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "MailChimp"
                                                                 ]
                                                               }
                                                             ]
@@ -37020,6 +37250,12 @@
                                                     "type": "string",
                                                     "enum": [
                                                       "Test"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "MailChimp"
                                                     ]
                                                   }
                                                 ]
@@ -39982,6 +40218,12 @@
                             "enum": [
                               "Test"
                             ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MailChimp"
+                            ]
                           }
                         ]
                       }
@@ -40169,6 +40411,20 @@
                                         },
                                         "provider": {
                                           "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "MailChimp"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
                                             {
                                               "type": "object",
                                               "properties": {
