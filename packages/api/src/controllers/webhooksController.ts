@@ -412,17 +412,17 @@ export default async function webhookController(fastify: FastifyInstance) {
       schema: {
         description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
         tags: ["Webhooks"],
-        body: MailChimpEvent,
+        body: Type.Object({
+          mandrill_events: Type.Array(MailChimpEvent),
+        }),
         headers: Type.Object({
           "x-mandrill-signature": Type.String(),
         }),
       },
     },
     async (request, reply) => {
-      const events = request.body;
-
-      // Get workspaceId from first event metadata
-      const workspaceId = events.msg?.metadata?.workspaceId;
+      const { mandrill_events: events } = request.body;
+      const workspaceId = events[0]?.msg?.metadata?.workspaceId;
       if (!workspaceId) {
         logger().error("Missing workspaceId in Mailchimp webhook metadata");
         return reply.status(400).send({
@@ -493,7 +493,7 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       await submitMailChimpEvents({
         workspaceId,
-        events: [request.body],
+        events,
       });
 
       return reply.status(200).send();
