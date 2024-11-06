@@ -11,11 +11,11 @@ import {
   submitAmazonSesEvents,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
-import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
 import prisma from "backend-lib/src/prisma";
@@ -30,6 +30,7 @@ import {
   TwilioEventSms,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
+import { createHmac } from "crypto";
 import { FastifyInstance } from "fastify";
 import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
@@ -49,7 +50,6 @@ import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
 import { getWorkspaceId } from "../workspace";
-import { createHmac } from "crypto";
 
 const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 
@@ -442,7 +442,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
       console.dir(events, { depth: null });
 
-      const workspaceId = events?.[0]?.msg?.metadata?.workspaceId;
+      const workspaceId = events[0]?.msg.metadata.workspaceId as string;
       if (!workspaceId) {
         logger().error("Missing workspaceId in Mailchimp webhook metadata");
         return reply.status(400).send({
@@ -494,7 +494,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const paramKeys = Object.keys(params).sort();
 
       for (const key of paramKeys) {
-        signedData += key + params[key];
+        signedData += key + (params[key] ?? "");
       }
 
       const hmac = createHmac("sha1", webhookKey);

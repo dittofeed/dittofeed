@@ -1229,7 +1229,8 @@ export async function sendEmail({
 
     case EmailProviderType.MailChimp: {
       // Mandatory for Mailchimp
-      const website = new URL(`https://${from.split("@")[1]}`).origin;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const website = new URL(`https://${from.split("@")[1]!}`).origin;
       const mailData: MessagesMessage = {
         html: body,
         text: body,
