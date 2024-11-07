@@ -10,7 +10,6 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   KeyedPerformedSegmentNode,
-  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -27,6 +26,9 @@ describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  const testActivities = {
+    sendMessageV2: jest.fn().mockReturnValue(true),
+  };
 
   beforeEach(async () => {
     workspace = await prisma().workspace.create({
@@ -35,19 +37,21 @@ describe("keyedEventEntry journeys", () => {
       },
     });
 
-    const testActivities = {
-      sendMessageV2: jest.fn().mockReturnValue(true),
-    };
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });
     testEnv = envAndWorker.testEnv;
     worker = envAndWorker.worker;
   });
+
+  afterEach(async () => {
+    await testEnv.teardown();
+  });
+
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
-    let segment: Segment;
     let journeyDefinition: JourneyDefinition;
+    const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
       const appointmentCancelledSegmentId = randomUUID();
@@ -67,7 +71,7 @@ describe("keyedEventEntry journeys", () => {
           {
             type: JourneyNodeType.WaitForNode,
             id: "wait-for-cancellation",
-            timeoutSeconds: 60 * 60 * 24, // 1 day
+            timeoutSeconds: oneDaySeconds,
             timeoutChild: JourneyNodeType.ExitNode,
             segmentChildren: [
               {
@@ -105,18 +109,18 @@ describe("keyedEventEntry journeys", () => {
         } satisfies KeyedPerformedSegmentNode,
         nodes: [],
       };
-      [segment, journey] = await Promise.all([
-        prisma().segment.create({
-          data: {
-            name: "appointment-cancelled",
-            definition: segmentDefinition,
-            workspaceId: workspace.id,
-          },
-        }),
+      [journey] = await Promise.all([
         prisma().journey.create({
           data: {
             name: "appointment-cancelled-journey",
             definition: journeyDefinition,
+            workspaceId: workspace.id,
+          },
+        }),
+        prisma().segment.create({
+          data: {
+            name: "appointment-cancelled",
+            definition: segmentDefinition,
             workspaceId: workspace.id,
           },
         }),
@@ -205,6 +209,15 @@ describe("keyedEventEntry journeys", () => {
             messageId: randomUUID(),
             timestamp: new Date().toISOString(),
           });
+
+          await testEnv.sleep(5000);
+          await handle1.result();
+
+          expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+
+          await testEnv.sleep(oneDaySeconds * 1000);
+          await handle2.result();
+          expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         });
       });
     });
