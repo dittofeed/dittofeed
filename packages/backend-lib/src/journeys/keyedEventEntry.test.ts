@@ -166,6 +166,36 @@ describe("keyedEventEntry journeys", () => {
               ],
             },
           );
+          const handle2 = await testEnv.client.workflow.start(
+            userJourneyWorkflow,
+            {
+              workflowId: getUserJourneyWorkflowId({
+                userId,
+                journeyId: journey.id,
+                eventKeyName: "appointmentId",
+                eventKey: appointmentId2,
+              }),
+              taskQueue: "default",
+              args: [
+                {
+                  journeyId: journey.id,
+                  workspaceId: workspace.id,
+                  userId,
+                  definition: journeyDefinition,
+                  version: UserJourneyWorkflowVersion.V2,
+                  event: {
+                    event: "APPOINTMENT_UPDATE",
+                    properties: {
+                      operation: "started",
+                      appointmentId: appointmentId2,
+                    },
+                    messageId: randomUUID(),
+                    timestamp: new Date().toISOString(),
+                  },
+                },
+              ],
+            },
+          );
           await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
             properties: {
