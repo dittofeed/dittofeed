@@ -59,10 +59,10 @@ model Workspace {
 }
 
 model WorkspaceRelation {
-  parentWorkspace        Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
-  parentWorkspaceId      String    @db.Uuid
-  childWorkspace   Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
-  childWorkspaceId String    @db.Uuid
+  parentWorkspace   Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
+  parentWorkspaceId String    @db.Uuid
+  childWorkspace    Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
+  childWorkspaceId  String    @db.Uuid
 
   @@unique([parentWorkspaceId, childWorkspaceId])
 }
@@ -176,6 +176,7 @@ model SegmentAssignment {
   userId      String
   segment     Segment   @relation(fields: [segmentId], references: [id], onDelete: Cascade)
   segmentId   String    @db.Uuid
+  key         String?
   inSegment   Boolean
 
   @@unique([workspaceId, userId, segmentId])
@@ -188,6 +189,7 @@ model UserPropertyAssignment {
   userProperty   UserProperty @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
   userPropertyId String       @db.Uuid
   value          String
+  key            String?
 
   @@unique([workspaceId, userPropertyId, userId])
   @@index([userId])

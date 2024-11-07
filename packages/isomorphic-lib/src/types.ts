@@ -383,6 +383,17 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
+export const KeyedPerformedSegmentNode = Type.Composite([
+  PerformedSegmentNode,
+  Type.Object({
+    key: Type.String(),
+  }),
+]);
+
+export type KeyedPerformedSegmentNode = Static<
+  typeof KeyedPerformedSegmentNode
+>;
+
 export const BodySegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
@@ -397,7 +408,11 @@ export const BodySegmentNode = Type.Union([
 
 export type BodySegmentNode = Static<typeof BodySegmentNode>;
 
-export const SegmentNode = Type.Union([BodySegmentNode, ManualSegmentNode]);
+export const SegmentNode = Type.Union([
+  BodySegmentNode,
+  ManualSegmentNode,
+  KeyedPerformedSegmentNode,
+]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
 
@@ -570,12 +585,24 @@ export type GroupUserPropertyDefinition = Static<
   typeof GroupUserPropertyDefinition
 >;
 
+export const KeyedPerformedUserPropertyDefinition = Type.Composite([
+  PerformedUserPropertyDefinition,
+  Type.Object({
+    key: Type.String(),
+  }),
+]);
+
+export type KeyedPerformedUserPropertyDefinition = Static<
+  typeof KeyedPerformedUserPropertyDefinition
+>;
+
 export const UserPropertyDefinition = Type.Union([
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
   PerformedManyUserPropertyDefinition,
+  KeyedPerformedUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;
@@ -616,6 +643,7 @@ export const EventEntryNode = Type.Object(
   {
     type: Type.Literal(JourneyNodeType.EventEntryNode),
     event: Type.String(),
+    key: Type.Optional(Type.String()),
     child: Type.String(),
   },
   {
