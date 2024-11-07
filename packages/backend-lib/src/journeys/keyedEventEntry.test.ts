@@ -1,6 +1,14 @@
 import { randomUUID } from "crypto";
 
-import { ChannelType, JourneyDefinition, JourneyNodeType } from "../types";
+import {
+  ChannelType,
+  JourneyDefinition,
+  JourneyNodeType,
+  KeyedPerformedSegmentNode,
+  SegmentDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
+} from "../types";
 
 describe("keyedEventEntry journeys", () => {
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
@@ -42,7 +50,23 @@ describe("keyedEventEntry journeys", () => {
           },
         ],
       };
-      // create a journey with a wait-for node conditioned on a cancellation event
+      const segmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.Performed,
+          id: "segment-entry",
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          properties: [
+            {
+              path: "operation",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "CANCELLED",
+              },
+            },
+          ],
+        } satisfies KeyedPerformedSegmentNode,
+      };
       // create a journey with a wait-for node conditioned on a cancellation event
     });
     describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled ", () => {
