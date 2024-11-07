@@ -19,9 +19,11 @@ import {
   JourneyNode,
   JourneyNodeType,
   JSONValue,
+  KnownTrackData,
   MessageVariant,
   RenameKey,
   SegmentUpdate,
+  UserTrackSignal,
   WaitForNode,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
@@ -30,6 +32,8 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
+
+export const trackSignal = wf.defineSignal<[UserTrackSignal]>("track");
 
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
@@ -56,21 +60,50 @@ export function getUserJourneyWorkflowId({
 }: {
   userId: string;
   journeyId: string;
-  eventKey?: string;
-}): string {
+} & (
+  | {
+      eventKey?: string;
+    }
+  | {
+      eventKeyName: string;
+      eventKey: string;
+    }
+)): string {
   return [`user-journey-${userId}-${journeyId}`, eventKey]
     .filter(Boolean)
     .join("-");
 }
 
-export interface UserJourneyWorkflowProps {
+export enum UserJourneyWorkflowVersion {
+  V1 = 1,
+  V2 = 2,
+}
+
+export interface UserJourneyWorkflowPropsV2 {
+  version: UserJourneyWorkflowVersion.V2;
+  workspaceId: string;
+  userId: string;
+  definition: JourneyDefinition;
+  journeyId: string;
+  event?: Pick<
+    KnownTrackData,
+    "event" | "properties" | "timestamp" | "context" | "messageId"
+  >;
+}
+
+export interface UserJourneyWorkflowPropsV1 {
   workspaceId: string;
   userId: string;
   definition: JourneyDefinition;
   journeyId: string;
   eventKey?: string;
   context?: Record<string, JSONValue>;
+  version?: UserJourneyWorkflowVersion.V1;
 }
+
+export type UserJourneyWorkflowProps =
+  | UserJourneyWorkflowPropsV1
+  | UserJourneyWorkflowPropsV2;
 
 export async function userJourneyWorkflow({
   workspaceId,
@@ -116,6 +149,12 @@ export async function userJourneyWorkflow({
     nodes.set(node.id, node);
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
+
+  wf.setHandler(keyedEventSignal, (signal) => {
+    logger.info("keyed event signal", {
+      signal,
+    });
+  });
 
   wf.setHandler(segmentUpdateSignal, (update) => {
     const prev = segmentAssignments.get(update.segmentId);

@@ -70,6 +70,7 @@ export enum InternalEventType {
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
   ManualSegmentUpdate = "DFManualSegmentUpdate",
   AttachedFiles = "DFAttachedFiles",
+  UserTrackSignal = "DFUserTrackSignal",
 }
 
 export enum SubscriptionGroupType {
@@ -3917,3 +3918,10 @@ export const ExecuteBroadcastResponse = Type.Object({
 });
 
 export type ExecuteBroadcastResponse = Static<typeof ExecuteBroadcastResponse>;
+
+export const UserTrackSignal = Type.Object({
+  type: Type.Literal(InternalEventType.UserTrackSignal),
+  event: KnownTrackData,
+});
+
+export type UserTrackSignal = Static<typeof UserTrackSignal>;

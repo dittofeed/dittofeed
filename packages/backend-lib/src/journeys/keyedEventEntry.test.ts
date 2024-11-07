@@ -16,7 +16,11 @@ import {
   SegmentOperatorType,
   Workspace,
 } from "../types";
-import { getUserJourneyWorkflowId, userJourneyWorkflow } from "./userWorkflow";
+import {
+  getUserJourneyWorkflowId,
+  userJourneyWorkflow,
+  UserJourneyWorkflowVersion,
+} from "./userWorkflow";
 
 describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
@@ -42,12 +46,13 @@ describe("keyedEventEntry journeys", () => {
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
     let segment: Segment;
+    let journeyDefinition: JourneyDefinition;
 
     beforeEach(async () => {
       const appointmentCancelledSegmentId = randomUUID();
       const templateId = randomUUID();
 
-      const journeyDefinition: JourneyDefinition = {
+      journeyDefinition = {
         entryNode: {
           type: JourneyNodeType.EventEntryNode,
           event: "APPOINTMENT_UPDATE",
@@ -133,9 +138,21 @@ describe("keyedEventEntry journeys", () => {
             }),
             taskQueue: "default",
             args: [
-              // {
-              //   journeyId: journey.id,
-              // },
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "started",
+                  },
+                  messageId: randomUUID(),
+                  timestamp: new Date().toISOString(),
+                },
+              },
             ],
           });
         });
