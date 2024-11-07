@@ -3,17 +3,13 @@ import mailchimp, {
   MessagesSendResponse,
 } from "@mailchimp/mailchimp_transactional";
 import { AxiosError } from "axios";
-import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
-import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
-import logger from "../logger";
+import { getMessageFromInternalMessageSent } from "../deliveries";
 import {
-  BatchAppData,
   BatchItem,
   BatchTrackData,
-  EmailProviderType,
   EventType,
   InternalEventType,
   MailChimpEvent,
@@ -49,24 +45,33 @@ export async function sendMail({
   );
 }
 
-export function mailChimpEventToDF({
+export async function submitMailChimpEvent({
   workspaceId,
   mailChimpEvent,
 }: {
   workspaceId: string;
   mailChimpEvent: MailChimpEvent;
-}): Result<BatchItem, Error> {
+}): Promise<Result<BatchItem, Error>> {
   const { event, msg, ts } = mailChimpEvent;
 
-  const { userId } = msg.metadata as {
-    userId: string;
+  const { messageId } = msg.metadata as {
+    messageId: string;
   };
 
-  if (!userId) {
-    return err(new Error("Missing userId"));
+  if (!messageId) {
+    return err(new Error("Missing message_id"));
   }
 
-  const userEmail = msg.email;
+  const message = await getMessageFromInternalMessageSent({
+    workspaceId,
+    messageId,
+  });
+
+  if (!message) {
+    return err(new Error("Message not found"));
+  }
+
+  const { userId, properties } = message;
 
   let eventName: InternalEventType;
 
@@ -90,54 +95,23 @@ export function mailChimpEventToDF({
       return err(new Error(`Unhandled event type: ${event}`));
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  const messageId = uuidv5(msg._id, workspaceId);
   const timestamp = new Date(ts * 1000).toISOString();
-
-  const properties = {
-    email: userEmail,
-    url: mailChimpEvent.url, // Only present for click events
-    ...msg.metadata,
-  };
 
   const item: BatchTrackData = {
     type: EventType.Track,
     event: eventName,
-    userId,
     messageId,
     timestamp,
     properties,
+    anonymousId: userId,
   };
 
-  return ok(item);
-}
-
-export async function submitMailChimpEvents({
-  workspaceId,
-  events,
-}: {
-  workspaceId: string;
-  events: MailChimpEvent[];
-}) {
-  const data: BatchAppData = {
-    context: {
-      source: SourceType.Webhook,
-      provider: EmailProviderType.MailChimp,
-    },
-    batch: events.flatMap((e) =>
-      mailChimpEventToDF({ workspaceId, mailChimpEvent: e })
-        .mapErr((error) => {
-          logger().error(
-            { err: error },
-            "Failed to convert MailChimp event to DF.",
-          );
-          return error;
-        })
-        .unwrapOr([]),
-    ),
-  };
   await submitBatch({
     workspaceId,
-    data,
+    data: {
+      batch: [item],
+    },
   });
+
+  return ok(item);
 }

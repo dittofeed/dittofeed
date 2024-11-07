@@ -11,7 +11,7 @@ import {
   submitAmazonSesEvents,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
-import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
+import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
@@ -510,10 +510,11 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      await submitMailChimpEvents({
-        workspaceId,
-        events,
-      });
+      await Promise.all(
+        events.map((e) =>
+          submitMailChimpEvent({ workspaceId, mailChimpEvent: e }),
+        ),
+      );
 
       return reply.status(200).send();
     },

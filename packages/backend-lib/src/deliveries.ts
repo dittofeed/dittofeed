@@ -35,6 +35,10 @@ export const SearchDeliveryRow = Type.Object({
 
 export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
 
+const MessageProperties = Type.Record(Type.String(), Type.Any());
+
+type MessageProperties = Static<typeof MessageProperties>;
+
 const OffsetKey = "o" as const;
 
 const Cursor = Type.Object({
@@ -159,6 +163,60 @@ export async function getDeliveryBody({
   ).unwrapOr(null);
 
   return parsedResult?.variant ?? null;
+}
+
+export async function getMessageFromInternalMessageSent({
+  workspaceId,
+  messageId,
+}: {
+  workspaceId: string;
+  messageId: string;
+}): Promise<{ properties: MessageProperties; userId: string } | null> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const messageIdParam = qb.addQueryValue(messageId, "String");
+  const query = `
+    SELECT
+      properties,
+      user_or_anonymous_id
+    FROM user_events_v2
+    WHERE
+      event = '${InternalEventType.MessageSent}'
+      AND workspace_id = ${workspaceIdParam}
+      AND event_type = 'track'
+      AND message_id = ${messageIdParam}
+    ORDER BY processing_time DESC
+    LIMIT 1
+  `;
+  const result = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
+  const results = await result.json();
+  const delivery = results[0] as
+    | { properties: string; user_or_anonymous_id: string }
+    | undefined;
+  if (!delivery) {
+    return null;
+  }
+  const propertiesResult = jsonParseSafe(delivery.properties);
+  if (propertiesResult.isErr()) {
+    return null;
+  }
+  const parsedResult = schemaValidateWithErr(
+    propertiesResult.value,
+    MessageProperties,
+  ).unwrapOr(null);
+
+  if (!parsedResult) {
+    return null;
+  }
+
+  return {
+    properties: parsedResult,
+    userId: delivery.user_or_anonymous_id,
+  };
 }
 
 export async function searchDeliveries({

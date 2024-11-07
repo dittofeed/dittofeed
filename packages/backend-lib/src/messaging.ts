@@ -1239,8 +1239,8 @@ export async function sendEmail({
         to: [{ email: to }],
         metadata: {
           website,
+          messageId: messageTags?.messageId,
           workspaceId,
-          userId,
         },
       };
 
