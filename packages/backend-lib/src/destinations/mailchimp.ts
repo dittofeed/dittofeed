@@ -58,12 +58,15 @@ export function mailChimpEventToDF({
 }): Result<BatchItem, Error> {
   const { event, msg, ts } = mailChimpEvent;
 
-  const userId = msg.metadata.user_id?.toString();
-  const userEmail = msg.email;
+  const { userId } = msg.metadata as {
+    userId: string;
+  };
 
   if (!userId) {
     return err(new Error("Missing userId"));
   }
+
+  const userEmail = msg.email;
 
   let eventName: InternalEventType;
 
@@ -87,12 +90,14 @@ export function mailChimpEventToDF({
       return err(new Error(`Unhandled event type: ${event}`));
   }
 
+  // eslint-disable-next-line no-underscore-dangle
   const messageId = uuidv5(msg._id, workspaceId);
   const timestamp = new Date(ts * 1000).toISOString();
 
   const properties = {
     email: userEmail,
     url: mailChimpEvent.url, // Only present for click events
+    ...msg.metadata,
   };
 
   const item: BatchTrackData = {

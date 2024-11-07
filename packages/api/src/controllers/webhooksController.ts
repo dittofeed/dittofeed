@@ -482,28 +482,23 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      // Verify webhook signature
       const signature = request.headers["x-mandrill-signature"];
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      const url = `https://${request.headers.host}${request.originalUrl}`;
+      const params = request.body;
 
-      if (!request.rawBody || typeof request.rawBody !== "string") {
-        logger().error({ workspaceId }, "Missing rawBody on Mailchimp webhook");
-        return reply.status(500).send();
-      }
+      const signedData = Object.keys(params)
+        .sort()
+        .reduce((acc, key) => {
+          if (key === "mandrill_events") {
+            return acc + key + params.mandrill_events;
+          }
+          return acc;
+        }, url);
 
-      const params = { mandrill_events: request.rawBody } as Record<
-        string,
-        string
-      >;
-      let signedData = request.url;
-      const paramKeys = Object.keys(params).sort();
-
-      for (const key of paramKeys) {
-        signedData += key + (params[key] ?? "");
-      }
-
-      const hmac = createHmac("sha1", webhookKey);
-      hmac.update(signedData);
-      const expectedSignature = hmac.digest("base64");
+      const expectedSignature = createHmac("sha1", webhookKey)
+        .update(signedData)
+        .digest("base64");
 
       if (signature !== expectedSignature) {
         logger().error(
