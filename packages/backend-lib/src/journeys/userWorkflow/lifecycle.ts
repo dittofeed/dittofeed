@@ -6,7 +6,7 @@ import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
   getUserJourneyWorkflowId,
   userJourneyWorkflow,
-  UserJourneyWorkflowProps,
+  UserJourneyWorkflowPropsV1,
 } from "../userWorkflow";
 
 export async function startKeyedUserJourney({
@@ -16,7 +16,7 @@ export async function startKeyedUserJourney({
   definition,
   eventKey,
   context,
-}: Overwrite<UserJourneyWorkflowProps, { eventKey: string }>) {
+}: Overwrite<UserJourneyWorkflowPropsV1, { eventKey: string }>) {
   const workflowClient = await connectWorkflowClient();
   const workflowId = getUserJourneyWorkflowId({
     userId,

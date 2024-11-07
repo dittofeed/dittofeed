@@ -19,7 +19,6 @@ import {
   JourneyNode,
   JourneyNodeType,
   JSONValue,
-  KnownTrackData,
   MessageVariant,
   RenameKey,
   SegmentUpdate,
@@ -102,14 +101,15 @@ export type UserJourneyWorkflowProps =
   | UserJourneyWorkflowPropsV1
   | UserJourneyWorkflowPropsV2;
 
-export async function userJourneyWorkflow({
-  workspaceId,
-  userId,
-  definition,
-  journeyId,
-  eventKey,
-  context,
-}: UserJourneyWorkflowProps): Promise<void> {
+export async function userJourneyWorkflow(
+  props: UserJourneyWorkflowProps,
+): Promise<void> {
+  // FIXME
+  if (props.version === UserJourneyWorkflowVersion.V2) {
+    return;
+  }
+  const { workspaceId, userId, definition, journeyId, eventKey, context } =
+    props;
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
@@ -147,7 +147,8 @@ export async function userJourneyWorkflow({
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
 
-  wf.setHandler(keyedEventSignal, (signal) => {
+  // FIXME
+  wf.setHandler(trackSignal, (signal) => {
     logger.info("keyed event signal", {
       signal,
     });
