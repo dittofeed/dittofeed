@@ -3919,9 +3919,12 @@ export const ExecuteBroadcastResponse = Type.Object({
 
 export type ExecuteBroadcastResponse = Static<typeof ExecuteBroadcastResponse>;
 
-export const UserTrackSignal = Type.Object({
-  type: Type.Literal(InternalEventType.UserTrackSignal),
-  event: KnownTrackData,
-});
+export const UserWorkflowTrackEvent = Type.Pick(KnownTrackData, [
+  "event",
+  "properties",
+  "timestamp",
+  "context",
+  "messageId",
+]);
 
-export type UserTrackSignal = Static<typeof UserTrackSignal>;
+export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;

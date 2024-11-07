@@ -18,6 +18,7 @@ import {
 } from "../types";
 import {
   getUserJourneyWorkflowId,
+  trackSignal,
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
@@ -131,29 +132,40 @@ describe("keyedEventEntry journeys", () => {
 
       it("only the cancelled journey should send a message", async () => {
         await worker.runUntil(async () => {
-          await testEnv.client.workflow.start(userJourneyWorkflow, {
-            workflowId: getUserJourneyWorkflowId({
-              userId,
-              journeyId: journey.id,
-            }),
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
+          const handle = await testEnv.client.workflow.start(
+            userJourneyWorkflow,
+            {
+              workflowId: getUserJourneyWorkflowId({
                 userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "APPOINTMENT_UPDATE",
-                  properties: {
-                    operation: "started",
+                journeyId: journey.id,
+              }),
+              taskQueue: "default",
+              args: [
+                {
+                  journeyId: journey.id,
+                  workspaceId: workspace.id,
+                  userId,
+                  definition: journeyDefinition,
+                  version: UserJourneyWorkflowVersion.V2,
+                  event: {
+                    event: "APPOINTMENT_UPDATE",
+                    properties: {
+                      operation: "started",
+                    },
+                    messageId: randomUUID(),
+                    timestamp: new Date().toISOString(),
                   },
-                  messageId: randomUUID(),
-                  timestamp: new Date().toISOString(),
                 },
-              },
-            ],
+              ],
+            },
+          );
+          await handle.signal(trackSignal, {
+            event: "APPOINTMENT_UPDATE",
+            properties: {
+              operation: "cancelled",
+            },
+            messageId: randomUUID(),
+            timestamp: new Date().toISOString(),
           });
         });
       });

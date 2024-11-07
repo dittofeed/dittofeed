@@ -23,7 +23,7 @@ import {
   MessageVariant,
   RenameKey,
   SegmentUpdate,
-  UserTrackSignal,
+  UserWorkflowTrackEvent,
   WaitForNode,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
@@ -33,7 +33,7 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
-export const trackSignal = wf.defineSignal<[UserTrackSignal]>("track");
+export const trackSignal = wf.defineSignal<[UserWorkflowTrackEvent]>("track");
 
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
@@ -85,10 +85,7 @@ export interface UserJourneyWorkflowPropsV2 {
   userId: string;
   definition: JourneyDefinition;
   journeyId: string;
-  event?: Pick<
-    KnownTrackData,
-    "event" | "properties" | "timestamp" | "context" | "messageId"
-  >;
+  event?: UserWorkflowTrackEvent;
 }
 
 export interface UserJourneyWorkflowPropsV1 {
