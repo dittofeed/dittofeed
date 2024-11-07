@@ -125,19 +125,25 @@ describe("keyedEventEntry journeys", () => {
     });
     describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled ", () => {
       let userId: string;
+      let appointmentId1: string;
+      let appointmentId2: string;
 
       beforeEach(() => {
         userId = randomUUID();
+        appointmentId1 = randomUUID();
+        appointmentId2 = randomUUID();
       });
 
       it("only the cancelled journey should send a message", async () => {
         await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
+          const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
               workflowId: getUserJourneyWorkflowId({
                 userId,
                 journeyId: journey.id,
+                eventKeyName: "appointmentId",
+                eventKey: appointmentId1,
               }),
               taskQueue: "default",
               args: [
@@ -151,6 +157,7 @@ describe("keyedEventEntry journeys", () => {
                     event: "APPOINTMENT_UPDATE",
                     properties: {
                       operation: "started",
+                      appointmentId: appointmentId1,
                     },
                     messageId: randomUUID(),
                     timestamp: new Date().toISOString(),
@@ -159,10 +166,11 @@ describe("keyedEventEntry journeys", () => {
               ],
             },
           );
-          await handle.signal(trackSignal, {
+          await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
             properties: {
               operation: "cancelled",
+              appointmentId: appointmentId1,
             },
             messageId: randomUUID(),
             timestamp: new Date().toISOString(),
