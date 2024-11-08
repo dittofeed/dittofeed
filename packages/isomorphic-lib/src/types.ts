@@ -3928,3 +3928,10 @@ export const UserWorkflowTrackEvent = Type.Pick(KnownTrackData, [
 ]);
 
 export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;
+
+export const SegmentEventContext = Type.Object({
+  events: Type.Array(UserWorkflowTrackEvent),
+  definition: SegmentDefinition,
+});
+
+export type SegmentEventContext = Static<typeof SegmentEventContext>;

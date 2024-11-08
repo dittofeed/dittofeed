@@ -19,6 +19,7 @@ import {
   Segment,
   SegmentAssignment,
   SegmentDefinition,
+  SegmentEventContext,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
@@ -537,4 +538,11 @@ export async function findManyPartialSegments({
       createdAt: createdAt.getTime(),
     } satisfies PartialSegmentResource;
   });
+}
+
+export function calculateSegmentsFromEvents({
+  events,
+  definition,
+}: SegmentEventContext) {
+  // FIXME
 }

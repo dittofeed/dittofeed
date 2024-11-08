@@ -58,6 +58,7 @@ async function sendMessageInner({
 }: SendParamsV2): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
+      // FIXME add context awareness
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
       prisma().journey.findUnique({ where: { id: journeyId } }),
       subscriptionGroupId
@@ -113,6 +114,7 @@ async function sendMessageInner({
 export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
   const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
   const now = new Date();
+  // FIXME add context awareness
   const sendResult = await sendMessageInner(params);
   let shouldContinue: boolean;
   let event: InternalEventType;
@@ -198,6 +200,7 @@ export function getSegmentAssignment({
   segmentId: string;
   userId: string;
 }): Promise<SegmentAssignment | null> {
+  // FIXME add context awareness
   return prisma().segmentAssignment.findUnique({
     where: {
       workspaceId_userId_segmentId: {
