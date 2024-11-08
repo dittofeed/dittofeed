@@ -7,8 +7,10 @@ import {
   schemaValidate,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 
+import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -18,7 +20,9 @@ import {
   JsonResultType,
   KeyedSegmentEventContext,
   PartialSegmentResource,
+  PerformedSegmentNode,
   Prisma,
+  RelationalOperators,
   SavedSegmentResource,
   Segment,
   SegmentAssignment,
@@ -29,7 +33,6 @@ import {
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
 } from "./types";
-import { jsonValue } from "./jsonPath";
 
 export function enrichSegment(
   segment: Segment,
@@ -566,10 +569,61 @@ export type CalculateKeyedSegmentsResult = Static<
   typeof CalculateKeyedSegmentsResult
 >;
 
+function filterEvent(
+  {
+    nowMs,
+    event,
+    withinSeconds,
+    ...rest
+  }: {
+    nowMs: number;
+  } & Pick<PerformedSegmentNode, "withinSeconds" | "event"> &
+    (
+      | {
+          messageId: string;
+        }
+      | {
+          propertyPath: string;
+          propertyValue: string;
+        }
+    ),
+  e: UserWorkflowTrackEvent,
+): boolean {
+  if (e.event !== event) {
+    return false;
+  }
+  if ("messageId" in rest) {
+    return e.messageId === rest.messageId;
+  }
+  if ("propertyPath" in rest) {
+    return jsonValue({ data: e.properties, path: rest.propertyPath })
+      .map((v) => v === rest.propertyValue)
+      .unwrapOr(false);
+  }
+  if (!e.timestamp) {
+    // FIXME set default timestamp in api
+    logger().error(
+      {
+        messageId: e.messageId,
+      },
+      "event has no timestamp",
+    );
+    return false;
+  }
+  if (
+    withinSeconds &&
+    withinSeconds * 1000 < nowMs - new Date(e.timestamp).getTime()
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function calculateKeyedSegments({
   events: unfilteredEvents,
   keyValue,
   definition,
+  nowMs,
 }: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
   const { entryNode } = definition;
   if (entryNode.type !== SegmentNodeType.Performed) {
@@ -581,25 +635,61 @@ export function calculateKeyedSegments({
     };
   }
   let events: UserWorkflowTrackEvent[];
+  const {
+    times: maybeTimes,
+    timesOperator: maybeTimesOperator,
+    withinSeconds,
+  } = entryNode;
   // If key is undefined, assume keyValue is the messageId
   if (!("key" in entryNode)) {
-    events = unfilteredEvents.filter(
-      (e) => e.event === entryNode.event && e.messageId === keyValue,
+    events = unfilteredEvents.filter((e) =>
+      filterEvent(
+        {
+          nowMs,
+          withinSeconds,
+          event: entryNode.event,
+          messageId: keyValue,
+        },
+        e,
+      ),
     );
     // If key is defined, assume keyValue corresponds to property value
   } else {
     const { key, event } = entryNode;
-    // FIXME get key from properties
-    events = unfilteredEvents.filter(
-      (e) =>
-        e.event === event &&
-        jsonValue({ data: e.properties, path: key })
-          .map((v) => v === keyValue)
-          .unwrapOr(false),
+    events = unfilteredEvents.filter((e) =>
+      filterEvent(
+        {
+          nowMs,
+          withinSeconds,
+          event,
+          propertyPath: key,
+          propertyValue: keyValue,
+        },
+        e,
+      ),
     );
+  }
+  const times = maybeTimes ?? 1;
+  const timesOperator =
+    maybeTimesOperator ?? RelationalOperators.GreaterThanOrEqual;
+  const count = events.length;
+
+  let result: boolean;
+  switch (timesOperator) {
+    case RelationalOperators.GreaterThanOrEqual:
+      result = count >= times;
+      break;
+    case RelationalOperators.LessThan:
+      result = count < times;
+      break;
+    case RelationalOperators.Equals:
+      result = count === times;
+      break;
+    default:
+      assertUnreachable(timesOperator);
   }
   return {
     type: JsonResultType.Ok,
-    value: false,
+    value: result,
   };
 }
