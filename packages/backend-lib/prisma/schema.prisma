@@ -297,10 +297,12 @@ model UserJourneyEvent {
   journeyId        String?  @db.Uuid()
   type             String
   eventKey         String?
+  eventKeyName     String?
+
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
 
-  @@unique([journeyId, userId, eventKey, type, journeyStartedAt, nodeId])
+  @@unique([journeyId, userId, eventKey, eventKeyName, type, journeyStartedAt, nodeId])
 }
 
 enum DBSubscriptionGroupType {
