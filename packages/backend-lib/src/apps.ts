@@ -100,6 +100,7 @@ export async function submitBatchWithTriggers({
       });
       return {
         ...message,
+        timestamp: message.timestamp ?? new Date().toISOString(),
         properties,
       };
     }),

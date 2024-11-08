@@ -601,7 +601,6 @@ function filterEvent(
       .unwrapOr(false);
   }
   if (!e.timestamp) {
-    // FIXME set default timestamp in api
     logger().error(
       {
         messageId: e.messageId,
