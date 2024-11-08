@@ -104,20 +104,28 @@ export type UserJourneyWorkflowProps =
 export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
 ): Promise<void> {
-  // FIXME
-  if (props.version === UserJourneyWorkflowVersion.V2) {
-    return;
-  }
-  const { workspaceId, userId, definition, journeyId, eventKey, context } =
-    props;
+  const { workspaceId, userId, definition, journeyId } = props;
   // TODO write end to end test
+  const entryEventProperties =
+    props.version === UserJourneyWorkflowVersion.V2
+      ? props.event?.properties
+      : props.context;
+  const eventKey =
+    props.version === UserJourneyWorkflowVersion.V2
+      ? props.event?.event
+      : props.eventKey;
+  const eventKeyName =
+    props.definition.entryNode.type === JourneyNodeType.EventEntryNode
+      ? props.definition.entryNode.event
+      : undefined;
+
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
       workflow: WORKFLOW_NAME,
       journeyId,
       userId,
       workspaceId,
-      eventKey,
+      entryEventProperties,
     });
     return;
   }
@@ -370,7 +378,7 @@ export async function userJourneyWorkflow(
         }
 
         const shouldContinue = await sendMessageV2({
-          context,
+          context: entryEventProperties,
           ...messagePayload,
           ...variant,
         });
@@ -464,6 +472,7 @@ export async function userJourneyWorkflow(
       journeyStartedAt,
       journeyId,
       eventKey,
+      eventKeyName,
     });
     currentNode = nextNode;
   }
@@ -475,5 +484,6 @@ export async function userJourneyWorkflow(
     journeyStartedAt,
     journeyId,
     eventKey,
+    eventKeyName,
   });
 }
