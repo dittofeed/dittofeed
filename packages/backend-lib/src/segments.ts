@@ -1,4 +1,5 @@
 import { writeToString } from "@fast-csv/format";
+import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -13,18 +14,22 @@ import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
+  JsonResult,
+  JsonResultType,
+  KeyedSegmentEventContext,
   PartialSegmentResource,
   Prisma,
   SavedSegmentResource,
   Segment,
   SegmentAssignment,
   SegmentDefinition,
-  SegmentEventContext,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
   UpsertSegmentResource,
+  UserWorkflowTrackEvent,
 } from "./types";
+import { jsonValue } from "./jsonPath";
 
 export function enrichSegment(
   segment: Segment,
@@ -540,9 +545,61 @@ export async function findManyPartialSegments({
   });
 }
 
-export function calculateSegmentsFromEvents({
-  events,
+export enum CalculateKeyedSegmentsErrorType {
+  InvalidDefinition = "InvalidDefinition",
+}
+
+export const CalculateKeyedSegmentsError = Type.Object({
+  type: Type.Enum(CalculateKeyedSegmentsErrorType),
+});
+
+export type CalculateKeyedSegmentsError = Static<
+  typeof CalculateKeyedSegmentsError
+>;
+
+export const CalculateKeyedSegmentsResult = JsonResult(
+  Type.Boolean(),
+  CalculateKeyedSegmentsError,
+);
+
+export type CalculateKeyedSegmentsResult = Static<
+  typeof CalculateKeyedSegmentsResult
+>;
+
+export function calculateKeyedSegments({
+  events: unfilteredEvents,
+  keyValue,
   definition,
-}: SegmentEventContext) {
-  // FIXME
+}: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
+  const { entryNode } = definition;
+  if (entryNode.type !== SegmentNodeType.Performed) {
+    return {
+      type: JsonResultType.Err,
+      err: {
+        type: CalculateKeyedSegmentsErrorType.InvalidDefinition,
+      },
+    };
+  }
+  let events: UserWorkflowTrackEvent[];
+  // If key is undefined, assume keyValue is the messageId
+  if (!("key" in entryNode)) {
+    events = unfilteredEvents.filter(
+      (e) => e.event === entryNode.event && e.messageId === keyValue,
+    );
+    // If key is defined, assume keyValue corresponds to property value
+  } else {
+    const { key, event } = entryNode;
+    // FIXME get key from properties
+    events = unfilteredEvents.filter(
+      (e) =>
+        e.event === event &&
+        jsonValue({ data: e.properties, path: key })
+          .map((v) => v === keyValue)
+          .unwrapOr(false),
+    );
+  }
+  return {
+    type: JsonResultType.Ok,
+    value: false,
+  };
 }
