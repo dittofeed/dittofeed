@@ -120,7 +120,7 @@ export async function userJourneyWorkflow(
     if (props.event) {
       if (eventKeyName) {
         const keyValueFromProps = jsonValue({
-          data: props.event?.properties,
+          data: props.event.properties,
           path: eventKeyName,
         });
         if (
@@ -148,6 +148,11 @@ export async function userJourneyWorkflow(
     return;
   }
 
+  const keyedEvents = [];
+  if (props.version === UserJourneyWorkflowVersion.V2 && props.event) {
+    keyedEvents.push(props.event);
+  }
+
   // event entry journeys can't be started from segment signals
   if (
     definition.entryNode.type === JourneyNodeType.EventEntryNode &&
@@ -173,11 +178,14 @@ export async function userJourneyWorkflow(
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
 
-  // FIXME
-  wf.setHandler(trackSignal, (signal) => {
+  wf.setHandler(trackSignal, (event) => {
     logger.info("keyed event signal", {
-      signal,
+      workspaceId,
+      journeyId,
+      userId,
+      messageId: event.messageId,
     });
+    keyedEvents.push(event);
   });
 
   wf.setHandler(segmentUpdateSignal, (update) => {
@@ -330,6 +338,7 @@ export async function userJourneyWorkflow(
           workspaceId,
           userId,
           segmentId: cn.variant.segment,
+          events: keyedEvents,
           keyValue: eventKey,
           nowMs: Date.now(),
         });
