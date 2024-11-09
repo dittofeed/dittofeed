@@ -10,6 +10,7 @@ import {
 import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
 
+import { jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
@@ -105,19 +106,36 @@ export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
 ): Promise<void> {
   const { workspaceId, userId, definition, journeyId } = props;
-  // TODO write end to end test
   const entryEventProperties =
     props.version === UserJourneyWorkflowVersion.V2
       ? props.event?.properties
       : props.context;
-  const eventKey =
-    props.version === UserJourneyWorkflowVersion.V2
-      ? props.event?.event
-      : props.eventKey;
   const eventKeyName =
     props.definition.entryNode.type === JourneyNodeType.EventEntryNode
-      ? props.definition.entryNode.event
+      ? props.definition.entryNode.key
       : undefined;
+
+  let eventKey: string | undefined;
+  if (props.version === UserJourneyWorkflowVersion.V2) {
+    if (props.event) {
+      if (eventKeyName) {
+        const keyValueFromProps = jsonValue({
+          data: props.event?.properties,
+          path: eventKeyName,
+        });
+        if (
+          keyValueFromProps.isOk() &&
+          typeof keyValueFromProps.value === "string"
+        ) {
+          eventKey = keyValueFromProps.value;
+        }
+      } else {
+        eventKey = props.event.messageId;
+      }
+    }
+  } else {
+    eventKey = props.eventKey;
+  }
 
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
@@ -312,6 +330,8 @@ export async function userJourneyWorkflow(
           workspaceId,
           userId,
           segmentId: cn.variant.segment,
+          keyValue: eventKey,
+          nowMs: Date.now(),
         });
         const nextNodeId: string = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild

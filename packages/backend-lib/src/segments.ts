@@ -618,7 +618,7 @@ function filterEvent(
   return true;
 }
 
-export function calculateKeyedSegments({
+export function calculateKeyedSegment({
   events: unfilteredEvents,
   keyValue,
   definition,

@@ -3937,3 +3937,7 @@ export const KeyedSegmentEventContext = Type.Object({
 });
 
 export type KeyedSegmentEventContext = Static<typeof KeyedSegmentEventContext>;
+
+export type EmptyObject = Record<never, never>;
+
+export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);

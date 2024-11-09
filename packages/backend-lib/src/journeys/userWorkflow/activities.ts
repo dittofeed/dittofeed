@@ -1,11 +1,14 @@
 import { SegmentAssignment } from "@prisma/client";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
+import logger from "../../logger";
 import { sendMessage } from "../../messaging";
 import prisma from "../../prisma";
+import { calculateKeyedSegment } from "../../segments";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
@@ -14,10 +17,14 @@ import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   InternalEventType,
+  JsonResultType,
   JSONValue,
   MessageVariant,
+  OptionalAllOrNothing,
   RenameKey,
+  SegmentDefinition,
   TrackData,
+  UserWorkflowTrackEvent,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 import {
@@ -191,16 +198,66 @@ export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
   await recordNodeProcessed(params);
 }
 
-export function getSegmentAssignment({
-  workspaceId,
-  segmentId,
-  userId,
-}: {
-  workspaceId: string;
-  segmentId: string;
-  userId: string;
-}): Promise<SegmentAssignment | null> {
-  // FIXME add context awareness
+export enum GetSegmentAssignmentType {
+  Keyed = "Keyed",
+}
+
+export async function getSegmentAssignment(
+  params: OptionalAllOrNothing<
+    {
+      workspaceId: string;
+      segmentId: string;
+      userId: string;
+    },
+    {
+      keyValue: string;
+      nowMs: number;
+      events: UserWorkflowTrackEvent[];
+      type: GetSegmentAssignmentType.Keyed;
+    }
+  >,
+): Promise<SegmentAssignment | null> {
+  const { workspaceId, segmentId, userId } = params;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if ("type" in params && params.type === GetSegmentAssignmentType.Keyed) {
+    const segment = await prisma().segment.findUnique({
+      where: {
+        id: segmentId,
+      },
+    });
+    if (!segment?.definition) {
+      return null;
+    }
+    const definitionResult = schemaValidateWithErr(
+      segment.definition,
+      SegmentDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        {
+          err: definitionResult.error,
+        },
+        "Invalid segment definition",
+      );
+      return null;
+    }
+    const result = calculateKeyedSegment({
+      events: params.events,
+      keyValue: params.keyValue,
+      definition: definitionResult.value,
+      nowMs: params.nowMs,
+    });
+    if (result.type === JsonResultType.Err) {
+      return null;
+    }
+    return {
+      userId,
+      workspaceId,
+      key: params.keyValue,
+      segmentId,
+      inSegment: result.value,
+    };
+  }
   return prisma().segmentAssignment.findUnique({
     where: {
       workspaceId_userId_segmentId: {
