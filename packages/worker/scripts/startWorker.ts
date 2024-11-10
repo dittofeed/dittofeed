@@ -21,9 +21,9 @@ import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
+import workerLogger from "backend-lib/src/workerLogger";
 
 import config from "../src/config";
-import workerLogger from "../src/workerLogger";
 
 async function run() {
   const workerConfig = config();

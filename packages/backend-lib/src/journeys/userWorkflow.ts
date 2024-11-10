@@ -107,6 +107,7 @@ export type UserJourneyWorkflowProps =
 export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
 ): Promise<void> {
+  logger.debug("userJourneyWorkflow", { props });
   const { workspaceId, userId, definition, journeyId } = props;
   const entryEventProperties =
     props.version === UserJourneyWorkflowVersion.V2

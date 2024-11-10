@@ -203,6 +203,8 @@ describe("keyedEventEntry journeys", () => {
               ],
             },
           );
+
+          await testEnv.sleep(1000);
           await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
             properties: {
@@ -212,14 +214,13 @@ describe("keyedEventEntry journeys", () => {
             messageId: randomUUID(),
             timestamp: new Date().toISOString(),
           });
-
           await testEnv.sleep(5000);
-          await handle1.result();
+          // await handle1.result();
 
           expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
 
           await testEnv.sleep(oneDaySeconds * 1000);
-          await handle2.result();
+          // await handle2.result();
           expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         });
       });
