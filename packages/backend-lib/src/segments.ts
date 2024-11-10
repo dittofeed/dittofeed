@@ -590,30 +590,63 @@ function filterEvent(
   e: UserWorkflowTrackEvent,
 ): boolean {
   if (e.event !== event) {
-    return false;
-  }
-  if ("messageId" in rest) {
-    return e.messageId === rest.messageId;
-  }
-  if ("propertyPath" in rest) {
-    return jsonValue({ data: e.properties, path: rest.propertyPath })
-      .map((v) => v === rest.propertyValue)
-      .unwrapOr(false);
-  }
-  if (!e.timestamp) {
-    logger().error(
+    logger().debug(
       {
+        event,
+        actualEvent: e.event,
         messageId: e.messageId,
       },
-      "event has no timestamp",
+      "event name does not match",
     );
     return false;
   }
-  if (
-    withinSeconds &&
-    withinSeconds * 1000 < nowMs - new Date(e.timestamp).getTime()
-  ) {
-    return false;
+  if ("messageId" in rest) {
+    logger().debug(
+      {
+        messageId: e.messageId,
+        expectedMessageId: rest.messageId,
+      },
+      "message id does not match",
+    );
+    if (e.messageId !== rest.messageId) {
+      return false;
+    }
+  }
+  if ("propertyPath" in rest) {
+    const propertyMatchResult = jsonValue({
+      data: e.properties,
+      path: rest.propertyPath,
+    });
+    const propertyMatches = propertyMatchResult
+      // FIXME rest.propertyvalue not right
+      .map((v) => v === rest.propertyValue)
+      .unwrapOr(false);
+    if (!propertyMatches) {
+      logger().debug(
+        {
+          propertyPath: rest.propertyPath,
+          propertyValue: rest.propertyValue,
+          actualPropertyValue: propertyMatchResult.unwrapOr(null),
+        },
+        "property path does not match",
+      );
+      return false;
+    }
+  }
+  if (withinSeconds) {
+    if (!e.timestamp) {
+      logger().error(
+        {
+          messageId: e.messageId,
+        },
+        "event has no timestamp",
+      );
+      return false;
+    }
+
+    if (withinSeconds * 1000 < nowMs - new Date(e.timestamp).getTime()) {
+      return false;
+    }
   }
   return true;
 }
@@ -660,6 +693,13 @@ export function calculateKeyedSegment({
       ),
     );
   }
+  logger().debug(
+    {
+      events,
+      unfilteredEvents,
+    },
+    "events for calculate keyed segment",
+  );
   const times = maybeTimes ?? 1;
   const timesOperator =
     maybeTimesOperator ?? RelationalOperators.GreaterThanOrEqual;

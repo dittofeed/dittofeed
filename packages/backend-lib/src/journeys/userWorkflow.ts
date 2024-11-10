@@ -206,14 +206,14 @@ export async function userJourneyWorkflow(
     await Promise.all(
       waitForSegmentIds.map(async ({ segmentId }) => {
         const nowMs = Date.now();
-        // FIXME null
         const assignment = await getSegmentAssignment({
           workspaceId,
           userId,
           segmentId,
           events: keyedEvents,
-          keyValue: event.messageId,
+          keyValue: eventKey,
           nowMs,
+          version: GetSegmentAssignmentVersion.V1,
         });
         logger.debug("segment assignment from keyed event", {
           workspaceId,
