@@ -197,14 +197,15 @@ export async function isRunnable({
     }),
   ]);
   if (!previousExitEvent) {
-    logger().debug(
-      {
-        previousExitEvent,
-      },
-      "previous exit event found, journey is not runnable",
-    );
     return true;
   }
+
+  logger().debug(
+    {
+      previousExitEvent,
+    },
+    "previous exit event found, checking if journey is runnable",
+  );
   const canRunMultiple = !!journey?.canRunMultiple;
   if (!canRunMultiple) {
     logger().debug(
@@ -264,6 +265,13 @@ export async function getSegmentAssignment(
     },
   });
   if (!segment) {
+    logger().error(
+      {
+        segmentId,
+        workspaceId,
+      },
+      "segment not found",
+    );
     return null;
   }
   if (
@@ -300,6 +308,12 @@ export async function getSegmentAssignment(
     nowMs: params.nowMs,
   });
   if (result.type === JsonResultType.Err) {
+    logger().error(
+      {
+        err: result.err,
+      },
+      "error calculating keyed segment",
+    );
     return null;
   }
   return {

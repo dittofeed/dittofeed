@@ -195,11 +195,18 @@ export async function userJourneyWorkflow(
     });
     keyedEvents.push(event);
     if (!waitForSegmentIds) {
+      logger.debug("no wait for segments, skipping", {
+        workflow: WORKFLOW_NAME,
+        journeyId,
+        userId,
+        workspaceId,
+      });
       return;
     }
     await Promise.all(
       waitForSegmentIds.map(async ({ segmentId }) => {
         const nowMs = Date.now();
+        // FIXME null
         const assignment = await getSegmentAssignment({
           workspaceId,
           userId,
@@ -207,6 +214,13 @@ export async function userJourneyWorkflow(
           events: keyedEvents,
           keyValue: event.messageId,
           nowMs,
+        });
+        logger.debug("segment assignment from keyed event", {
+          workspaceId,
+          userId,
+          segmentId,
+          assignment,
+          event,
         });
         if (assignment === null) {
           return;

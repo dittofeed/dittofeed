@@ -123,6 +123,7 @@ describe("keyedEventEntry journeys", () => {
         }),
         prisma().segment.create({
           data: {
+            id: appointmentCancelledSegmentId,
             name: "appointment-cancelled",
             definition: segmentDefinition,
             workspaceId: workspace.id,
