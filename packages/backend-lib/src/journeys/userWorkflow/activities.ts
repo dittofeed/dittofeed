@@ -32,6 +32,7 @@ import {
   recordNodeProcessed,
   RecordNodeProcessedParams,
 } from "../recordNodeProcessed";
+import { GetSegmentAssignmentVersion } from "./types";
 
 export { findNextLocalizedTime } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
@@ -197,10 +198,6 @@ export async function isRunnable({
 
 export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
   await recordNodeProcessed(params);
-}
-
-export enum GetSegmentAssignmentVersion {
-  V1 = "V1",
 }
 
 async function getSegmentAssignmentDb({

@@ -28,7 +28,7 @@ import {
   WaitForSegmentChild,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
-import { GetSegmentAssignmentVersion } from "./userWorkflow/activities";
+import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 

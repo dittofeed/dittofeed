@@ -34,14 +34,12 @@ describe("keyedEventEntry journeys", () => {
   };
 
   beforeEach(async () => {
-    logger().info("loc0 creating workspace");
     workspace = await prisma().workspace.create({
       data: {
         name: `event-entry-${randomUUID()}`,
       },
     });
 
-    logger().info("loc0.1 creating env and worker");
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });

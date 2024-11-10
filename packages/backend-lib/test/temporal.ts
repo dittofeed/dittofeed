@@ -24,9 +24,7 @@ export async function createEnvAndWorker({
 }: {
   activityOverrides?: Parameters<typeof Worker.create>[0]["activities"];
 } = {}) {
-  logger().info("loc1 creating test env");
   const testEnv = await TestWorkflowEnvironment.createTimeSkipping();
-  logger().info("loc2 creating worker");
   const worker = await Worker.create({
     connection: testEnv.nativeConnection,
     workflowsPath: require.resolve("../src/temporal/workflows"),
@@ -45,6 +43,5 @@ export async function createEnvAndWorker({
     taskQueue: "default",
     sinks: defaultSinks(EMPTY_LOGGER),
   });
-  throw new Error("loc2");
   return { testEnv, worker };
 }
