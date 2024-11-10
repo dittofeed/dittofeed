@@ -1,4 +1,4 @@
-import { SegmentAssignment } from "@prisma/client";
+import { Segment, SegmentAssignment } from "@prisma/client";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
@@ -23,6 +23,7 @@ import {
   OptionalAllOrNothing,
   RenameKey,
   SegmentDefinition,
+  SegmentNodeType,
   TrackData,
   UserWorkflowTrackEvent,
 } from "../../types";
@@ -198,10 +199,30 @@ export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
   await recordNodeProcessed(params);
 }
 
-export enum GetSegmentAssignmentType {
-  Keyed = "Keyed",
+export enum GetSegmentAssignmentVersion {
+  V1 = "V1",
 }
 
+async function getSegmentAssignmentDb({
+  workspaceId,
+  segmentId,
+  userId,
+}: {
+  workspaceId: string;
+  segmentId: string;
+  userId: string;
+}): Promise<SegmentAssignment | null> {
+  const assignment = await prisma().segmentAssignment.findUnique({
+    where: {
+      workspaceId_userId_segmentId: {
+        workspaceId,
+        segmentId,
+        userId,
+      },
+    },
+  });
+  return assignment;
+}
 export async function getSegmentAssignment(
   params: OptionalAllOrNothing<
     {
@@ -213,60 +234,62 @@ export async function getSegmentAssignment(
       keyValue: string;
       nowMs: number;
       events: UserWorkflowTrackEvent[];
-      type: GetSegmentAssignmentType.Keyed;
+      version: GetSegmentAssignmentVersion.V1;
     }
   >,
 ): Promise<SegmentAssignment | null> {
   const { workspaceId, segmentId, userId } = params;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if ("type" in params && params.type === GetSegmentAssignmentType.Keyed) {
-    const segment = await prisma().segment.findUnique({
-      where: {
-        id: segmentId,
-      },
-    });
-    if (!segment?.definition) {
-      return null;
-    }
-    const definitionResult = schemaValidateWithErr(
-      segment.definition,
-      SegmentDefinition,
-    );
-    if (definitionResult.isErr()) {
-      logger().error(
-        {
-          err: definitionResult.error,
-        },
-        "Invalid segment definition",
-      );
-      return null;
-    }
-    const result = calculateKeyedSegment({
-      events: params.events,
-      keyValue: params.keyValue,
-      definition: definitionResult.value,
-      nowMs: params.nowMs,
-    });
-    if (result.type === JsonResultType.Err) {
-      return null;
-    }
-    return {
-      userId,
-      workspaceId,
-      key: params.keyValue,
-      segmentId,
-      inSegment: result.value,
-    };
-  }
-  return prisma().segmentAssignment.findUnique({
+  const segment = await prisma().segment.findUnique({
     where: {
-      workspaceId_userId_segmentId: {
-        workspaceId,
-        segmentId,
-        userId,
-      },
+      id: segmentId,
     },
   });
+  if (!segment) {
+    return null;
+  }
+  if (
+    !(
+      "version" in params &&
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      params.version === GetSegmentAssignmentVersion.V1
+    )
+  ) {
+    return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
+  }
+
+  const definitionResult = schemaValidateWithErr(
+    segment.definition,
+    SegmentDefinition,
+  );
+  if (definitionResult.isErr()) {
+    logger().error(
+      {
+        err: definitionResult.error,
+      },
+      "Invalid segment definition",
+    );
+    return null;
+  }
+  const { entryNode } = definitionResult.value;
+  if (entryNode.type !== SegmentNodeType.Performed) {
+    return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
+  }
+  const result = calculateKeyedSegment({
+    events: params.events,
+    keyValue: params.keyValue,
+    definition: entryNode,
+    nowMs: params.nowMs,
+  });
+  if (result.type === JsonResultType.Err) {
+    return null;
+  }
+  return {
+    userId,
+    workspaceId,
+    key: params.keyValue,
+    segmentId,
+    inSegment: result.value,
+  };
 }
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";

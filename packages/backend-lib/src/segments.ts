@@ -624,15 +624,7 @@ export function calculateKeyedSegment({
   definition,
   nowMs,
 }: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
-  const { entryNode } = definition;
-  if (entryNode.type !== SegmentNodeType.Performed) {
-    return {
-      type: JsonResultType.Err,
-      err: {
-        type: CalculateKeyedSegmentsErrorType.InvalidDefinition,
-      },
-    };
-  }
+  const entryNode = definition;
   let events: UserWorkflowTrackEvent[];
   const {
     times: maybeTimes,

@@ -25,8 +25,10 @@ import {
   SegmentUpdate,
   UserWorkflowTrackEvent,
   WaitForNode,
+  WaitForSegmentChild,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
+import { GetSegmentAssignmentVersion } from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -148,7 +150,7 @@ export async function userJourneyWorkflow(
     return;
   }
 
-  const keyedEvents = [];
+  const keyedEvents: UserWorkflowTrackEvent[] = [];
   if (props.version === UserJourneyWorkflowVersion.V2 && props.event) {
     keyedEvents.push(props.event);
   }
@@ -177,8 +179,9 @@ export async function userJourneyWorkflow(
     nodes.set(node.id, node);
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
+  let waitForSegmentIds: WaitForSegmentChild[] | null = null;
 
-  wf.setHandler(trackSignal, (event) => {
+  wf.setHandler(trackSignal, async (event) => {
     logger.info("keyed event signal", {
       workspaceId,
       journeyId,
@@ -186,6 +189,29 @@ export async function userJourneyWorkflow(
       messageId: event.messageId,
     });
     keyedEvents.push(event);
+    if (!waitForSegmentIds) {
+      return;
+    }
+    await Promise.all(
+      waitForSegmentIds.map(async ({ segmentId }) => {
+        const nowMs = Date.now();
+        const assignment = await getSegmentAssignment({
+          workspaceId,
+          userId,
+          segmentId,
+          events: keyedEvents,
+          keyValue: event.messageId,
+          nowMs,
+        });
+        if (assignment === null) {
+          return;
+        }
+        segmentAssignments.set(segmentId, {
+          currentlyInSegment: assignment.inSegment,
+          segmentVersion: nowMs,
+        });
+      }),
+    );
   });
 
   wf.setHandler(segmentUpdateSignal, (update) => {
@@ -213,6 +239,7 @@ export async function userJourneyWorkflow(
   let currentNode: JourneyNode = definition.entryNode;
   let nextNode: JourneyNode | null = null;
 
+  // FIXME check if segment was assigned true prior to start of journey
   function segmentAssignedTrue(segmentId: string): boolean {
     return segmentAssignments.get(segmentId)?.currentlyInSegment === true;
   }
@@ -293,10 +320,12 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.WaitForNode: {
         const cn: WaitForNode = currentNode;
         const { timeoutSeconds, segmentChildren } = cn;
+        waitForSegmentIds = segmentChildren;
         const satisfiedSegmentWithinTimeout = await wf.condition(
           () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
           timeoutSeconds * 1000,
         );
+        waitForSegmentIds = null;
         if (satisfiedSegmentWithinTimeout) {
           const child = segmentChildren.find((s) =>
             segmentAssignedTrue(s.segmentId),
@@ -341,6 +370,7 @@ export async function userJourneyWorkflow(
           events: keyedEvents,
           keyValue: eventKey,
           nowMs: Date.now(),
+          version: GetSegmentAssignmentVersion.V1,
         });
         const nextNodeId: string = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild

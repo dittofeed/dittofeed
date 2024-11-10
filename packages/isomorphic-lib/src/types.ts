@@ -3932,7 +3932,7 @@ export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;
 export const KeyedSegmentEventContext = Type.Object({
   events: Type.Array(UserWorkflowTrackEvent),
   keyValue: Type.String(),
-  definition: SegmentDefinition,
+  definition: Type.Union([KeyedPerformedSegmentNode, PerformedSegmentNode]),
   nowMs: Type.Number(),
 });
 

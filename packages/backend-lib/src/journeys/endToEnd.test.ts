@@ -31,6 +31,7 @@ import {
   SubscriptionGroupType,
 } from "../types";
 import { getUserJourneyWorkflowId } from "./userWorkflow";
+import logger from "../logger";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -56,11 +57,23 @@ describe("end to end journeys", () => {
   };
 
   beforeEach(async () => {
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    try {
+      logger().info("creating test env and worker");
+      const envAndWorker = await createEnvAndWorker({
+        activityOverrides: testActivities,
+      });
+      logger().info("created test env and worker");
+      testEnv = envAndWorker.testEnv;
+      worker = envAndWorker.worker;
+    } catch (e) {
+      logger().error(
+        {
+          err: e,
+        },
+        "error creating test env and worker",
+      );
+      throw e;
+    }
   });
 
   afterEach(async () => {

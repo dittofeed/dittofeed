@@ -3,6 +3,7 @@ import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import logger from "../logger";
 import prisma from "../prisma";
 import {
   ChannelType,
@@ -22,6 +23,8 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 
+jest.setTimeout(15000);
+
 describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
@@ -31,12 +34,14 @@ describe("keyedEventEntry journeys", () => {
   };
 
   beforeEach(async () => {
+    logger().info("loc0 creating workspace");
     workspace = await prisma().workspace.create({
       data: {
         name: `event-entry-${randomUUID()}`,
       },
     });
 
+    logger().info("loc0.1 creating env and worker");
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });
