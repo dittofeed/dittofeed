@@ -171,10 +171,12 @@ export async function isRunnable({
   userId,
   journeyId,
   eventKey,
+  eventKeyName,
 }: {
   journeyId: string;
   userId: string;
   eventKey?: string;
+  eventKeyName?: string;
 }): Promise<boolean> {
   const [previousExitEvent, journey] = await Promise.all([
     prisma().userJourneyEvent.findFirst({
@@ -182,6 +184,7 @@ export async function isRunnable({
         journeyId,
         userId,
         eventKey,
+        eventKeyName,
         type: {
           in: Array.from(ENTRY_TYPES),
         },
@@ -193,7 +196,26 @@ export async function isRunnable({
       },
     }),
   ]);
-  return previousExitEvent === null || !!journey?.canRunMultiple;
+  if (!previousExitEvent) {
+    logger().debug(
+      {
+        previousExitEvent,
+      },
+      "previous exit event found, journey is not runnable",
+    );
+    return true;
+  }
+  const canRunMultiple = !!journey?.canRunMultiple;
+  if (!canRunMultiple) {
+    logger().debug(
+      {
+        canRunMultiple,
+        previousExitEvent,
+      },
+      "can run multiple is false, journey is not runnable",
+    );
+  }
+  return canRunMultiple;
 }
 
 export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {

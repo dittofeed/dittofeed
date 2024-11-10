@@ -118,6 +118,7 @@ describe("keyedEventEntry journeys", () => {
             name: "appointment-cancelled-journey",
             definition: journeyDefinition,
             workspaceId: workspace.id,
+            status: "Running",
           },
         }),
         prisma().segment.create({
