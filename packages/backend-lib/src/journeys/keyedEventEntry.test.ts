@@ -210,7 +210,7 @@ describe("keyedEventEntry journeys", () => {
           await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
             properties: {
-              operation: "cancelled",
+              operation: "CANCELLED",
               appointmentId: appointmentId1,
             },
             messageId: randomUUID(),

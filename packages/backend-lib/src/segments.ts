@@ -29,6 +29,8 @@ import {
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperator,
+  SegmentOperatorType,
   SegmentResource,
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
@@ -574,10 +576,11 @@ function filterEvent(
     nowMs,
     event,
     withinSeconds,
+    properties,
     ...rest
   }: {
     nowMs: number;
-  } & Pick<PerformedSegmentNode, "withinSeconds" | "event"> &
+  } & Pick<PerformedSegmentNode, "withinSeconds" | "event" | "properties"> &
     (
       | {
           messageId: string;
@@ -618,7 +621,6 @@ function filterEvent(
       path: rest.propertyPath,
     });
     const propertyMatches = propertyMatchResult
-      // FIXME rest.propertyvalue not right
       .map((v) => v === rest.propertyValue)
       .unwrapOr(false);
     if (!propertyMatches) {
@@ -629,6 +631,55 @@ function filterEvent(
           actualPropertyValue: propertyMatchResult.unwrapOr(null),
         },
         "property path does not match",
+      );
+      return false;
+    }
+  }
+  for (const property of properties ?? []) {
+    const { path, operator } = property;
+    const value = jsonValue({
+      data: e.properties,
+      path,
+    }).unwrapOr(null);
+
+    let mismatched = false;
+    switch (operator.type) {
+      case SegmentOperatorType.Equals: {
+        mismatched = value !== operator.value;
+        break;
+      }
+      case SegmentOperatorType.Exists: {
+        mismatched = value === null || value === "" || value === undefined;
+        break;
+      }
+      case SegmentOperatorType.LessThan: {
+        const numValue = Number(value);
+        mismatched = Number.isNaN(numValue) || numValue >= operator.value;
+        break;
+      }
+      case SegmentOperatorType.GreaterThanOrEqual: {
+        const numValue = Number(value);
+        mismatched = Number.isNaN(numValue) || numValue < operator.value;
+        break;
+      }
+      default:
+        logger().error(
+          {
+            operator,
+          },
+          "unsupported operator",
+        );
+        return false;
+    }
+
+    if (mismatched) {
+      logger().debug(
+        {
+          path,
+          value,
+          operator,
+        },
+        "property value does not match",
       );
       return false;
     }
@@ -673,6 +724,7 @@ export function calculateKeyedSegment({
           withinSeconds,
           event: entryNode.event,
           messageId: keyValue,
+          properties: definition.properties,
         },
         e,
       ),
@@ -688,6 +740,7 @@ export function calculateKeyedSegment({
           event,
           propertyPath: key,
           propertyValue: keyValue,
+          properties: definition.properties,
         },
         e,
       ),
