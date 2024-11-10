@@ -16,6 +16,7 @@ export function jsonValue({
     return err(normalizedPathResult.error);
   }
   const path = normalizedPathResult.value;
-  const value = jp.query(data, path);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const value: JSONValue = jp.value(data, path);
   return ok(value);
 }

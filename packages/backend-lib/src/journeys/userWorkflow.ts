@@ -122,6 +122,10 @@ export async function userJourneyWorkflow(
   if (props.version === UserJourneyWorkflowVersion.V2) {
     if (props.event) {
       if (eventKeyName) {
+        logger.debug("event key from name", {
+          eventKeyName,
+          event: props.event,
+        });
         const keyValueFromProps = jsonValue({
           data: props.event.properties,
           path: eventKeyName,
