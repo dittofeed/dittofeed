@@ -454,6 +454,7 @@ export enum UserPropertyDefinitionType {
   Group = "Group",
   AnyOf = "AnyOf",
   PerformedMany = "PerformedMany",
+  KeyedPerformed = "KeyedPerformed",
   File = "File",
 }
 
@@ -608,12 +609,20 @@ export type GroupUserPropertyDefinition = Static<
   typeof GroupUserPropertyDefinition
 >;
 
-export const KeyedPerformedUserPropertyDefinition = Type.Composite([
-  PerformedUserPropertyDefinition,
-  Type.Object({
-    key: Type.String(),
-  }),
-]);
+export const KeyedPerformedUserPropertyDefinition = Type.Object({
+  id: Type.String(),
+  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
+  event: Type.String(),
+  key: Type.String(),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: UserPropertyOperator,
+      }),
+    ),
+  ),
+});
 
 export type KeyedPerformedUserPropertyDefinition = Static<
   typeof KeyedPerformedUserPropertyDefinition
