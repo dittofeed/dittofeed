@@ -9,19 +9,22 @@ import {
 } from "../types";
 
 interface TrackEventForFiles {
+  workspaceId: string;
   files: AppDataFiles;
   messageId: string;
   properties: TrackEventProperties;
 }
 
 export function eventFileKey({
+  workspaceId,
   messageId,
   name,
 }: {
+  workspaceId: string;
   messageId: string;
   name: string;
 }): string {
-  return `event-files/${messageId}/${name}`;
+  return `event-files/${workspaceId}/${messageId}/${name}`;
 }
 
 /**
@@ -39,6 +42,7 @@ export async function persistFiles(
   if (config().enableBlobStorage) {
     for (const file of event.files) {
       const key = eventFileKey({
+        workspaceId: event.workspaceId,
         messageId: event.messageId,
         name: file.name,
       });

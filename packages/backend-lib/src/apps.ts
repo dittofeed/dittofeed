@@ -55,6 +55,7 @@ export async function submitTrackWithTriggers({
       files: data.files,
       messageId: data.messageId,
       properties,
+      workspaceId,
     });
   }
 
@@ -97,6 +98,7 @@ export async function submitBatchWithTriggers({
         files: message.files,
         messageId: message.messageId,
         properties: message.properties ?? {},
+        workspaceId,
       });
       return {
         ...message,

@@ -708,9 +708,9 @@ describe("deliveries", () => {
           },
         ];
         const events: BatchItem[] = messageSentEvents.map(
-          (messageSentEvent) => ({
+          (messageSentEvent, i) => ({
             userId: randomUUID(),
-            timestamp: new Date().toISOString(),
+            timestamp: new Date(Date.now() - i * 1000).toISOString(),
             type: EventType.Track,
             messageId: randomUUID(),
             event: InternalEventType.MessageSent,
