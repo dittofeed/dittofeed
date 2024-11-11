@@ -1,11 +1,14 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
 import prisma from "../prisma";
 import {
   ChannelType,
+  EmailProviderType,
+  InternalEventType,
   Journey,
   JourneyDefinition,
   JourneyNodeType,
@@ -13,6 +16,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  UserPropertyAssignments,
   Workspace,
 } from "../types";
 import {
@@ -21,6 +25,7 @@ import {
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
+import { sendMessageFactory } from "./userWorkflow/activities";
 
 jest.setTimeout(15000);
 
@@ -28,8 +33,27 @@ describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  const senderMock = jest.fn().mockReturnValue(
+    ok({
+      type: InternalEventType.MessageSent,
+      variant: {
+        type: ChannelType.Email,
+        from: "test@test.com",
+        body: "test",
+        to: "test@test.com",
+        subject: "test",
+        headers: {},
+        replyTo: "test@test.com",
+        provider: {
+          type: EmailProviderType.Smtp,
+          messageId: "test",
+        },
+      },
+    }),
+  );
+
   const testActivities = {
-    sendMessageV2: jest.fn().mockReturnValue(true),
+    sendMessageV2: sendMessageFactory(senderMock),
   };
 
   beforeEach(async () => {
@@ -218,11 +242,20 @@ describe("keyedEventEntry journeys", () => {
           await testEnv.sleep(5000);
           await handle1.result();
 
-          expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+          expect(senderMock).toHaveBeenCalledTimes(1);
+          expect(senderMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              userPropertyAssignments: expect.objectContaining({
+                id: userId,
+                appointmentId: appointmentId1,
+              }),
+            }),
+          );
 
-          // await testEnv.sleep(oneDaySeconds * 1000);
-          // await handle2.result();
-          // expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+          await testEnv.sleep(oneDaySeconds * 1000);
+          await handle2.result();
+          expect(senderMock).toHaveBeenCalledTimes(1);
         });
       });
     });

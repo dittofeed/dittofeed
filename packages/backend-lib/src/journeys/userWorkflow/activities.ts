@@ -6,7 +6,7 @@ import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
 import logger from "../../logger";
-import { sendMessage } from "../../messaging";
+import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
 import prisma from "../../prisma";
 import { calculateKeyedSegment } from "../../segments";
 import {
@@ -53,6 +53,10 @@ export type SendParamsV2 = BaseSendParams & {
   context?: Record<string, JSONValue>;
 };
 
+export type SendParamsInner = SendParamsV2 & {
+  sender: (params: SendMessageParameters) => Promise<BackendMessageSendResult>;
+};
+
 async function sendMessageInner({
   userId,
   workspaceId,
@@ -63,8 +67,9 @@ async function sendMessageInner({
   messageId,
   subscriptionGroupId,
   context,
+  sender,
   ...rest
-}: SendParamsV2): Promise<BackendMessageSendResult> {
+}: SendParamsInner): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
       // FIXME add context awareness
@@ -98,7 +103,7 @@ async function sendMessageInner({
     });
   }
 
-  const result = await sendMessage({
+  const result = await sender({
     workspaceId,
     useDraft: false,
     templateId,
@@ -120,57 +125,61 @@ async function sendMessageInner({
   return result;
 }
 
-// FIXME create interface to be able to effectively test message sending post user property assignment rendering
-export interface UserJourneyMessageSender {
-  sendMessageInner: typeof sendMessageInner;
+export function sendMessageFactory(sender: Sender) {
+  return async function sendMessageWithSender(
+    params: SendParamsV2,
+  ): Promise<boolean> {
+    const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
+    const now = new Date();
+    // FIXME add context awareness
+    const sendResult = await sendMessageInner({
+      ...params,
+      sender,
+    });
+    let shouldContinue: boolean;
+    let event: InternalEventType;
+    let trackingProperties: TrackData["properties"] = {
+      journeyId,
+      nodeId,
+      templateId,
+      runId,
+    };
+
+    if (sendResult.isErr()) {
+      shouldContinue = false;
+      event = sendResult.error.type;
+
+      trackingProperties = {
+        ...trackingProperties,
+        ...omit(sendResult.error, ["type"]),
+      };
+    } else {
+      shouldContinue = true;
+      event = sendResult.value.type;
+
+      trackingProperties = {
+        ...trackingProperties,
+        ...omit(sendResult.value, ["type"]),
+      };
+    }
+
+    const trackData: TrackData = {
+      userId,
+      messageId,
+      event,
+      timestamp: now.toISOString(),
+      properties: trackingProperties,
+    };
+
+    await submitTrack({
+      workspaceId: params.workspaceId,
+      data: trackData,
+    });
+    return shouldContinue;
+  };
 }
 
-export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
-  const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
-  const now = new Date();
-  // FIXME add context awareness
-  const sendResult = await sendMessageInner(params);
-  let shouldContinue: boolean;
-  let event: InternalEventType;
-  let trackingProperties: TrackData["properties"] = {
-    journeyId,
-    nodeId,
-    templateId,
-    runId,
-  };
-
-  if (sendResult.isErr()) {
-    shouldContinue = false;
-    event = sendResult.error.type;
-
-    trackingProperties = {
-      ...trackingProperties,
-      ...omit(sendResult.error, ["type"]),
-    };
-  } else {
-    shouldContinue = true;
-    event = sendResult.value.type;
-
-    trackingProperties = {
-      ...trackingProperties,
-      ...omit(sendResult.value, ["type"]),
-    };
-  }
-
-  const trackData: TrackData = {
-    userId,
-    messageId,
-    event,
-    timestamp: now.toISOString(),
-    properties: trackingProperties,
-  };
-
-  await submitTrack({
-    workspaceId: params.workspaceId,
-    data: trackData,
-  });
-  return shouldContinue;
-}
+export const sendMessageV2 = sendMessageFactory(sendMessage);
 
 export async function isRunnable({
   userId,
