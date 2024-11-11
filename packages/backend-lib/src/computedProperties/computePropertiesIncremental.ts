@@ -1287,6 +1287,9 @@ function segmentToResolvedState({
       `;
       return [query];
     }
+    case SegmentNodeType.KeyedPerformed: {
+      return [];
+    }
     default:
       assertUnreachable(node);
   }
@@ -1431,6 +1434,12 @@ function resolvedSegmentToAssignment({
         segment,
         qb,
       });
+    }
+    case SegmentNodeType.KeyedPerformed: {
+      return {
+        stateIds: [],
+        expression: "False",
+      };
     }
     default:
       assertUnreachable(node);
@@ -1738,6 +1747,9 @@ export function segmentNodeToStateSubQuery({
       });
     }
     case SegmentNodeType.RandomBucket: {
+      return [];
+    }
+    case SegmentNodeType.KeyedPerformed: {
       return [];
     }
   }

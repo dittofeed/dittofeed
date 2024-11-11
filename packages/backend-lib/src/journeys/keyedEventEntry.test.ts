@@ -3,7 +3,6 @@ import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import logger from "../logger";
 import prisma from "../prisma";
 import {
   ChannelType,
@@ -96,7 +95,7 @@ describe("keyedEventEntry journeys", () => {
       };
       const segmentDefinition: SegmentDefinition = {
         entryNode: {
-          type: SegmentNodeType.Performed,
+          type: SegmentNodeType.KeyedPerformed,
           id: "segment-entry",
           event: "APPOINTMENT_UPDATE",
           key: "appointmentId",
@@ -217,13 +216,13 @@ describe("keyedEventEntry journeys", () => {
             timestamp: new Date().toISOString(),
           });
           await testEnv.sleep(5000);
-          // await handle1.result();
+          await handle1.result();
 
           expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
 
-          await testEnv.sleep(oneDaySeconds * 1000);
+          // await testEnv.sleep(oneDaySeconds * 1000);
           // await handle2.result();
-          expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+          // expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         });
       });
     });

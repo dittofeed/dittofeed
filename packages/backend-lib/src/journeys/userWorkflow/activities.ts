@@ -1,4 +1,4 @@
-import { Segment, SegmentAssignment } from "@prisma/client";
+import { SegmentAssignment } from "@prisma/client";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
@@ -118,6 +118,11 @@ async function sendMessageInner({
     },
   });
   return result;
+}
+
+// FIXME create interface to be able to effectively test message sending post user property assignment rendering
+export interface UserJourneyMessageSender {
+  sendMessageInner: typeof sendMessageInner;
 }
 
 export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
@@ -298,7 +303,10 @@ export async function getSegmentAssignment(
     return null;
   }
   const { entryNode } = definitionResult.value;
-  if (entryNode.type !== SegmentNodeType.Performed) {
+  if (
+    entryNode.type !== SegmentNodeType.Performed &&
+    entryNode.type !== SegmentNodeType.KeyedPerformed
+  ) {
     return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
   }
   const result = calculateKeyedSegment({

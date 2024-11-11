@@ -240,6 +240,7 @@ export enum SegmentNodeType {
   Email = "Email",
   Manual = "Manual",
   RandomBucket = "RandomBucket",
+  KeyedPerformed = "KeyedPerformed",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -384,12 +385,33 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
-export const KeyedPerformedSegmentNode = Type.Composite([
-  PerformedSegmentNode,
-  Type.Object({
-    key: Type.String(),
-  }),
+export const KeyedPerformedPropertiesOperator = Type.Union([
+  SegmentEqualsOperator,
+  ExistsOperator,
+  SegmentGreaterThanOrEqualOperator,
+  SegmentLessThanOperator,
 ]);
+
+export type KeyedPerformedPropertiesOperator = Static<
+  typeof KeyedPerformedPropertiesOperator
+>;
+
+export const KeyedPerformedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.KeyedPerformed),
+  id: Type.String(),
+  event: Type.String(),
+  key: Type.String(),
+  times: Type.Optional(Type.Number()),
+  timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: KeyedPerformedPropertiesOperator,
+      }),
+    ),
+  ),
+});
 
 export type KeyedPerformedSegmentNode = Static<
   typeof KeyedPerformedSegmentNode

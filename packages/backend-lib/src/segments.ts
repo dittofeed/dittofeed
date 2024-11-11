@@ -29,7 +29,6 @@ import {
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
-  SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
   UpsertSegmentResource,
@@ -710,11 +709,12 @@ export function calculateKeyedSegment({
 }: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
   const entryNode = definition;
   let events: UserWorkflowTrackEvent[];
-  const {
-    times: maybeTimes,
-    timesOperator: maybeTimesOperator,
-    withinSeconds,
-  } = entryNode;
+  const { times: maybeTimes, timesOperator: maybeTimesOperator } = entryNode;
+  const withinSeconds =
+    definition.type === SegmentNodeType.Performed
+      ? definition.withinSeconds
+      : undefined;
+
   // If key is undefined, assume keyValue is the messageId
   if (!("key" in entryNode)) {
     events = unfilteredEvents.filter((e) =>
