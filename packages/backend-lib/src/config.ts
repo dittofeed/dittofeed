@@ -41,6 +41,7 @@ const BaseRawConfigProps = {
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: Type.Optional(BoolStr),
+  bootstrap: Type.Optional(BoolStr),
   bootstrapEvents: Type.Optional(BoolStr),
   bootstrapWorker: Type.Optional(BoolStr),
   bootstrapSafe: Type.Optional(BoolStr),
@@ -171,51 +172,52 @@ type RawConfig = Static<typeof RawConfig>;
 export type Config = Overwrite<
   RawConfig,
   {
-    kafkaBrokers: string[];
-    computedPropertiesTopicName: string;
-    userEventsTopicName: string;
-    temporalNamespace: string;
-    databaseUrl: string;
-    clickhouseHost: string;
-    clickhouseDatabase: string;
-    kafkaSsl: boolean;
-    nodeEnv: NodeEnvEnum;
-    temporalAddress: string;
-    logConfig: boolean;
-    bootstrapEvents: boolean;
-    kafkaUserEventsPartitions: number;
-    kafkaUserEventsReplicationFactor: number;
-    kafkaSaslMechanism: KafkaSaslMechanism;
-    bootstrapWorker: boolean;
-    writeMode: WriteMode;
-    otelCollector: string;
-    startOtel: boolean;
-    logLevel: LogLevel;
-    prettyLogs: boolean;
-    googleOps: boolean;
-    enableSourceControl: boolean;
+    allowedOrigins: string[];
     authMode: AuthMode;
-    trackDashboard: boolean;
-    dashboardUrl: string;
-    enableMobilePush: boolean;
-    readQueryPageSize: number;
+    blobStorageAccessKeyId: string;
+    blobStorageBucket: string;
+    blobStorageEndpoint: string;
+    blobStorageRegion: string;
+    blobStorageSecretAccessKey: string;
+    bootstrap: boolean;
+    bootstrapEvents: boolean;
+    bootstrapSafe: boolean;
+    bootstrapWorker: boolean;
+    clickhouseDatabase: string;
+    clickhouseHost: string;
+    computePropertiesAttempts: number;
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
-    computePropertiesAttempts: number;
+    computedPropertiesTopicName: string;
+    dashboardUrl: string;
+    databaseUrl: string;
+    dittofeedTelemetryDisabled: boolean;
+    enableBlobStorage: boolean;
+    enableMobilePush: boolean;
+    enableSourceControl: boolean;
+    exportLogsHyperDx: boolean;
+    googleOps: boolean;
+    kafkaBrokers: string[];
+    kafkaSaslMechanism: KafkaSaslMechanism;
+    kafkaSsl: boolean;
+    kafkaUserEventsPartitions: number;
+    kafkaUserEventsReplicationFactor: number;
+    logConfig: boolean;
+    logLevel: LogLevel;
+    nodeEnv: NodeEnvEnum;
+    onboardingUrl: string;
+    otelCollector: string;
+    prettyLogs: boolean;
+    readQueryConcurrency: number;
+    readQueryPageSize: number;
     sessionCookieSecure: boolean;
     signoutRedirectUrl: string;
-    allowedOrigins: string[];
-    enableBlobStorage: boolean;
-    blobStorageEndpoint: string;
-    blobStorageAccessKeyId: string;
-    blobStorageSecretAccessKey: string;
-    blobStorageBucket: string;
-    blobStorageRegion: string;
-    readQueryConcurrency: number;
-    exportLogsHyperDx: boolean;
-    dittofeedTelemetryDisabled: boolean;
-    onboardingUrl: string;
-    bootstrapSafe: boolean;
+    startOtel: boolean;
+    temporalAddress: string;
+    temporalNamespace: string;
+    trackDashboard: boolean;
+    userEventsTopicName: string;
+    writeMode: WriteMode;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -360,6 +362,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   const parsedConfig: Config = {
     ...rawConfig,
+    bootstrap: rawConfig.bootstrap === "true",
     nodeEnv,
     writeMode,
     temporalAddress: defaultTemporalAddress(rawConfig.temporalAddress),
