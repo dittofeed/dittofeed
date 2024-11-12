@@ -9,10 +9,9 @@ const RawConfigProps = {
   port: Type.Optional(
     Type.String({
       format: "naturalNumber",
-    })
+    }),
   ),
   host: Type.Optional(Type.String()),
-  bootstrap: Type.Optional(Type.String()),
 };
 
 // Structure of application config.
@@ -27,7 +26,6 @@ export type Config = Overwrite<
     serviceName: string;
     host: string;
     port: number;
-    bootstrap: boolean;
   }
 >;
 function parseRawConfig(raw: RawConfig): Config {
@@ -40,7 +38,6 @@ function parseRawConfig(raw: RawConfig): Config {
     nodeEnv,
     host: raw.host ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
     port: Number.isNaN(port) ? 3000 : port,
-    bootstrap: !raw.bootstrap || raw.bootstrap === "true",
   };
 }
 

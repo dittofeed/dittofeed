@@ -30,7 +30,7 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
-      # uncomment while upgrading dittofeed
+      # uncomment after initial setup
       # BOOTSTRAP: "false"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     # env_file:

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { times, type } from "remeda";
+import { times } from "remeda";
 
 import { submitBatch } from "./apps/batch";
 import {
