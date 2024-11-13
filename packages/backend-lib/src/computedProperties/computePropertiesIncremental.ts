@@ -2048,6 +2048,9 @@ function userPropertyToSubQuery({
       }
       return [subQuery];
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return [];
+    }
   }
 }
 
@@ -2494,6 +2497,9 @@ function userPropertyToAssignment({
         child: userProperty.definition,
         qb,
       });
+    }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
     }
   }
 }

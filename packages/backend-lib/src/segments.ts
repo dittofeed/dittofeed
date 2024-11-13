@@ -18,6 +18,7 @@ import {
   InternalEventType,
   JsonResult,
   JsonResultType,
+  KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
   PerformedSegmentNode,
@@ -572,14 +573,10 @@ export type CalculateKeyedSegmentsResult = Static<
 
 function filterEvent(
   {
-    nowMs,
     event,
-    withinSeconds,
     properties,
     ...rest
-  }: {
-    nowMs: number;
-  } & Pick<PerformedSegmentNode, "withinSeconds" | "event" | "properties"> &
+  }: Pick<KeyedPerformedSegmentNode, "event" | "properties"> &
     (
       | {
           messageId: string;
@@ -683,21 +680,6 @@ function filterEvent(
       return false;
     }
   }
-  if (withinSeconds) {
-    if (!e.timestamp) {
-      logger().error(
-        {
-          messageId: e.messageId,
-        },
-        "event has no timestamp",
-      );
-      return false;
-    }
-
-    if (withinSeconds * 1000 < nowMs - new Date(e.timestamp).getTime()) {
-      return false;
-    }
-  }
   return true;
 }
 
@@ -705,69 +687,45 @@ export function calculateKeyedSegment({
   events: unfilteredEvents,
   keyValue,
   definition,
-  nowMs,
 }: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
   const entryNode = definition;
-  let events: UserWorkflowTrackEvent[];
   const { times: maybeTimes, timesOperator: maybeTimesOperator } = entryNode;
-  const withinSeconds =
-    definition.type === SegmentNodeType.Performed
-      ? definition.withinSeconds
-      : undefined;
-
-  // If key is undefined, assume keyValue is the messageId
-  if (!("key" in entryNode)) {
-    events = unfilteredEvents.filter((e) =>
+  let eventsCount = 0;
+  for (const e of unfilteredEvents) {
+    if (
       filterEvent(
         {
-          nowMs,
-          withinSeconds,
           event: entryNode.event,
           messageId: keyValue,
           properties: definition.properties,
         },
         e,
-      ),
-    );
-    // If key is defined, assume keyValue corresponds to property value
-  } else {
-    const { key, event } = entryNode;
-    events = unfilteredEvents.filter((e) =>
-      filterEvent(
-        {
-          nowMs,
-          withinSeconds,
-          event,
-          propertyPath: key,
-          propertyValue: keyValue,
-          properties: definition.properties,
-        },
-        e,
-      ),
-    );
+      )
+    ) {
+      eventsCount += 1;
+    }
   }
   logger().debug(
     {
-      events,
       unfilteredEvents,
+      eventsCount,
     },
     "events for calculate keyed segment",
   );
   const times = maybeTimes ?? 1;
   const timesOperator =
     maybeTimesOperator ?? RelationalOperators.GreaterThanOrEqual;
-  const count = events.length;
 
   let result: boolean;
   switch (timesOperator) {
     case RelationalOperators.GreaterThanOrEqual:
-      result = count >= times;
+      result = eventsCount >= times;
       break;
     case RelationalOperators.LessThan:
-      result = count < times;
+      result = eventsCount < times;
       break;
     case RelationalOperators.Equals:
-      result = count === times;
+      result = eventsCount === times;
       break;
     default:
       assertUnreachable(timesOperator);

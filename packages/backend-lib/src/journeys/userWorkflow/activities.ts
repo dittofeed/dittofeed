@@ -312,17 +312,13 @@ export async function getSegmentAssignment(
     return null;
   }
   const { entryNode } = definitionResult.value;
-  if (
-    entryNode.type !== SegmentNodeType.Performed &&
-    entryNode.type !== SegmentNodeType.KeyedPerformed
-  ) {
+  if (entryNode.type !== SegmentNodeType.KeyedPerformed) {
     return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
   }
   const result = calculateKeyedSegment({
     events: params.events,
     keyValue: params.keyValue,
     definition: entryNode,
-    nowMs: params.nowMs,
   });
   if (result.type === JsonResultType.Err) {
     logger().error(

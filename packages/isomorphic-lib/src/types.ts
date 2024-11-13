@@ -402,6 +402,7 @@ export const KeyedPerformedSegmentNode = Type.Object({
   event: Type.String(),
   key: Type.String(),
   times: Type.Optional(Type.Number()),
+  // Note that this will not be backwards looking
   timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
   properties: Type.Optional(
     Type.Array(
@@ -3963,8 +3964,7 @@ export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;
 export const KeyedSegmentEventContext = Type.Object({
   events: Type.Array(UserWorkflowTrackEvent),
   keyValue: Type.String(),
-  definition: Type.Union([KeyedPerformedSegmentNode, PerformedSegmentNode]),
-  nowMs: Type.Number(),
+  definition: KeyedPerformedSegmentNode,
 });
 
 export type KeyedSegmentEventContext = Static<typeof KeyedSegmentEventContext>;
