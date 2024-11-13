@@ -576,16 +576,10 @@ function filterEvent(
     event,
     properties,
     ...rest
-  }: Pick<KeyedPerformedSegmentNode, "event" | "properties"> &
-    (
-      | {
-          messageId: string;
-        }
-      | {
-          propertyPath: string;
-          propertyValue: string;
-        }
-    ),
+  }: Pick<KeyedPerformedSegmentNode, "event" | "properties"> & {
+    propertyPath: string;
+    propertyValue: string;
+  },
   e: UserWorkflowTrackEvent,
 ): boolean {
   if (e.event !== event) {
@@ -696,8 +690,9 @@ export function calculateKeyedSegment({
       filterEvent(
         {
           event: entryNode.event,
-          messageId: keyValue,
           properties: definition.properties,
+          propertyPath: definition.key,
+          propertyValue: keyValue,
         },
         e,
       )

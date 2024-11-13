@@ -16,7 +16,6 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
-  UserPropertyAssignments,
   Workspace,
 } from "../types";
 import {
