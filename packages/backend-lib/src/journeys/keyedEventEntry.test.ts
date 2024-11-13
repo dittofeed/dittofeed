@@ -16,6 +16,8 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  UserPropertyDefinition,
+  UserPropertyDefinitionType,
   Workspace,
 } from "../types";
 import {
@@ -134,6 +136,12 @@ describe("keyedEventEntry journeys", () => {
         } satisfies KeyedPerformedSegmentNode,
         nodes: [],
       };
+      const userPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "APPOINTMENT_UPDATE",
+        key: "appointmentId",
+        id: randomUUID(),
+      };
       [journey] = await Promise.all([
         prisma().journey.create({
           data: {
@@ -149,6 +157,13 @@ describe("keyedEventEntry journeys", () => {
             name: "appointment-cancelled",
             definition: segmentDefinition,
             workspaceId: workspace.id,
+          },
+        }),
+        prisma().userProperty.create({
+          data: {
+            workspaceId: workspace.id,
+            definition: userPropertyDefinition,
+            name: "appointmentId",
           },
         }),
       ]);
@@ -167,6 +182,11 @@ describe("keyedEventEntry journeys", () => {
 
       it("only the cancelled journey should send a message", async () => {
         await worker.runUntil(async () => {
+          const timestamp1 = new Date().toISOString();
+          const timestamp2 = new Date(
+            new Date().getTime() + 1000,
+          ).toISOString();
+
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -191,7 +211,7 @@ describe("keyedEventEntry journeys", () => {
                       appointmentId: appointmentId1,
                     },
                     messageId: randomUUID(),
-                    timestamp: new Date().toISOString(),
+                    timestamp: timestamp1,
                   },
                 },
               ],
@@ -221,7 +241,7 @@ describe("keyedEventEntry journeys", () => {
                       appointmentId: appointmentId2,
                     },
                     messageId: randomUUID(),
-                    timestamp: new Date().toISOString(),
+                    timestamp: timestamp2,
                   },
                 },
               ],
