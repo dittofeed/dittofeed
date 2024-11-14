@@ -80,7 +80,6 @@ async function sendMessageInner({
   }
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
-      // FIXME add context awareness
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
       prisma().journey.findUnique({ where: { id: journeyId } }),
       subscriptionGroupId

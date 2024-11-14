@@ -79,11 +79,13 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          nested1: {
-            nested2: "value3",
+        context: [
+          {
+            nested1: {
+              nested2: "value3",
+            },
           },
-        },
+        ],
       });
 
       expect(actualAssignments).toEqual({
@@ -127,13 +129,15 @@ describe("findAllUserPropertyAssignments", () => {
         const actualAssignments = await findAllUserPropertyAssignments({
           userId: "userId",
           workspaceId: workspace.id,
-          context: {
-            [InternalEventType.AttachedFiles]: {
-              [definition.name]: {
-                ...value,
+          context: [
+            {
+              [InternalEventType.AttachedFiles]: {
+                [definition.name]: {
+                  ...value,
+                },
               },
             },
-          },
+          ],
         });
 
         expect(actualAssignments).toEqual({
@@ -220,9 +224,11 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments1 = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          path1: 1,
-        },
+        context: [
+          {
+            path1: 1,
+          },
+        ],
       });
 
       expect(actualAssignments1).toEqual({
@@ -233,9 +239,11 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments2 = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          path2: 2,
-        },
+        context: [
+          {
+            path2: 2,
+          },
+        ],
       });
 
       expect(actualAssignments2).toEqual({
