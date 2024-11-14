@@ -4,7 +4,6 @@ import { randomUUID } from "crypto";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import logger from "../logger";
 import prisma from "../prisma";
 import {
   ChannelType,
@@ -28,7 +27,6 @@ import {
   Workspace,
 } from "../types";
 import {
-  getUserJourneyWorkflowId,
   trackSignal,
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
@@ -257,12 +255,7 @@ describe("keyedEventEntry journeys", () => {
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
-              workflowId: getUserJourneyWorkflowId({
-                userId,
-                journeyId: journey.id,
-                eventKeyName: "appointmentId",
-                eventKey: appointmentId1,
-              }),
+              workflowId: "workflow1",
               taskQueue: "default",
               args: [
                 {
@@ -288,12 +281,7 @@ describe("keyedEventEntry journeys", () => {
           const handle2 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
-              workflowId: getUserJourneyWorkflowId({
-                userId,
-                journeyId: journey.id,
-                eventKeyName: "appointmentId",
-                eventKey: appointmentId2,
-              }),
+              workflowId: "workflow2",
               taskQueue: "default",
               args: [
                 {
