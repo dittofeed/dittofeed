@@ -423,6 +423,19 @@ function journeyDefinitionFromStateBranch(
             };
             break;
           }
+          case DelayVariantType.UserProperty: {
+            if (!uiNode.variant.userProperty) {
+              return err({
+                message: "User property delay node must have a user property",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.UserProperty,
+              userProperty: uiNode.variant.userProperty,
+            };
+            break;
+          }
           default:
             assertUnreachable(uiNode.variant);
         }
@@ -1180,6 +1193,13 @@ export function journeyBranchToState(
               hour: node.variant.hour,
               minute: node.variant.minute,
               allowedDaysOfWeek: node.variant.allowedDaysOfWeek,
+            };
+            break;
+          }
+          case DelayVariantType.UserProperty: {
+            variant = {
+              type: DelayVariantType.UserProperty,
+              userProperty: node.variant.userProperty,
             };
             break;
           }

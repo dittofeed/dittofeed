@@ -101,6 +101,9 @@ export function isNodeComplete(
             props.variant.hour !== undefined
           );
         }
+        case DelayVariantType.UserProperty: {
+          return Boolean(props.variant.userProperty);
+        }
         default:
           assertUnreachable(props.variant);
       }
@@ -219,6 +222,10 @@ function journNodeTypeToConfig(
           // year, month, and day are arbitrary
           const time = format(new Date(2000, 0, 1, hour, minute), "h:mm a");
           body = <>Delay until {time} in user local time.</>;
+          break;
+        }
+        case DelayVariantType.UserProperty: {
+          body = <>Delay until date resolved by user property.</>;
           break;
         }
         default:

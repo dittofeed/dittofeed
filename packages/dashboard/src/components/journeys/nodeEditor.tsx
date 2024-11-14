@@ -11,6 +11,7 @@ import {
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   Tooltip,
@@ -27,6 +28,7 @@ import {
   AllowedDayIndices,
   ChannelType,
   CompletionStatus,
+  CursorDirectionEnum,
   DelayVariantType,
   EmailProviderType,
   EntryNode,
@@ -35,6 +37,7 @@ import {
   MobilePushProviderType,
   PartialSegmentResource,
   SmsProviderType,
+  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { shallow } from "zustand/shallow";
@@ -62,7 +65,7 @@ import { waitForTimeoutLabel } from "./store";
 const width = 420;
 const transitionDuration = ".15s";
 
-function getSegmentLabel(tr: { name: string }) {
+function getLabel(tr: { name: string }) {
   return tr.name;
 }
 
@@ -104,7 +107,7 @@ function SegmentSplitNodeFields({
     <Autocomplete
       value={segment}
       options={segments.value}
-      getOptionLabel={getSegmentLabel}
+      getOptionLabel={getLabel}
       onChange={onSegmentChangeHandler}
       disabled={disabled}
       renderInput={(params) => (
@@ -159,7 +162,7 @@ function EntryNodeFields({
         <Autocomplete
           value={segment}
           options={segments.value}
-          getOptionLabel={getSegmentLabel}
+          getOptionLabel={getLabel}
           onChange={onSegmentChangeHandler}
           disabled={disabled}
           renderInput={(params) => (
@@ -477,26 +480,26 @@ function DelayNodeFields({
   nodeProps: DelayUiNodeProps;
   disabled?: boolean;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData,
-  );
+  const { updateJourneyNodeData, userProperties: userPropertiesResult } =
+    useAppStorePick(["updateJourneyNodeData", "userProperties"]);
   let variant: React.ReactElement;
-  switch (nodeProps.variant.type) {
+  const nodeVariant = nodeProps.variant;
+  switch (nodeVariant.type) {
     case DelayVariantType.Second: {
       const handleDurationChange = (seconds: number) => {
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
           if (
             props.type === JourneyNodeType.DelayNode &&
-            props.variant.type === DelayVariantType.Second
+            nodeVariant.type === DelayVariantType.Second
           ) {
-            props.variant.seconds = seconds;
+            nodeVariant.seconds = seconds;
           }
         });
       };
       variant = (
         <DurationSelect
-          value={nodeProps.variant.seconds}
+          value={nodeVariant.seconds}
           onChange={handleDurationChange}
           description="Will wait"
           inputLabel="Duration"
@@ -507,7 +510,7 @@ function DelayNodeFields({
     }
     case DelayVariantType.LocalTime: {
       const allowedDaysOfWeek = new Set(
-        nodeProps.variant.allowedDaysOfWeek ?? DAY_INDICES,
+        nodeVariant.allowedDaysOfWeek ?? DAY_INDICES,
       );
       const dayEls = DAYS.map((day, i) => {
         const index = i as AllowedDayIndices;
@@ -554,15 +557,7 @@ function DelayNodeFields({
         <>
           <SubtleHeader>User Local Time</SubtleHeader>
           <MultiSectionDigitalClock
-            value={
-              new Date(
-                0,
-                0,
-                0,
-                nodeProps.variant.hour,
-                nodeProps.variant.minute,
-              )
-            }
+            value={new Date(0, 0, 0, nodeVariant.hour, nodeVariant.minute)}
             onChange={(newValue) =>
               updateJourneyNodeData(nodeId, (node) => {
                 const props = node.data.nodeTypeProps;
@@ -581,6 +576,88 @@ function DelayNodeFields({
           <Stack direction="row" spacing={1}>
             {dayEls}
           </Stack>
+        </>
+      );
+      break;
+    }
+    case DelayVariantType.UserProperty: {
+      const userProperties =
+        userPropertiesResult.type === CompletionStatus.Successful
+          ? userPropertiesResult.value
+          : [];
+      const userProperty =
+        userProperties.find((p) => p.id === nodeVariant.userProperty) ?? null;
+      const onUserPropertyChangeHandler = (
+        _event: unknown,
+        up: UserPropertyResource | null,
+      ) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          if (
+            node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
+            node.data.nodeTypeProps.variant.type !==
+              DelayVariantType.UserProperty
+          ) {
+            return;
+          }
+          node.data.nodeTypeProps.variant.userProperty = up?.id ?? undefined;
+        });
+      };
+
+      variant = (
+        <>
+          foobar
+          <Autocomplete
+            value={userProperty}
+            options={userProperties}
+            getOptionLabel={getLabel}
+            onChange={onUserPropertyChangeHandler}
+            renderInput={(params) => (
+              <TextField {...params} label="User Property" variant="outlined" />
+            )}
+            disabled={disabled}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={
+                  nodeVariant.offsetDirection === CursorDirectionEnum.After
+                }
+                onChange={(e) => {
+                  updateJourneyNodeData(nodeId, (node) => {
+                    const props = node.data.nodeTypeProps;
+                    if (
+                      props.type !== JourneyNodeType.DelayNode ||
+                      props.variant.type !== DelayVariantType.UserProperty
+                    ) {
+                      return;
+                    }
+                    props.variant.offsetDirection = e.target.checked
+                      ? CursorDirectionEnum.After
+                      : CursorDirectionEnum.Before;
+                  });
+                }}
+              />
+            }
+            label="Should offset forward in time."
+          />
+          <DurationSelect
+            value={nodeVariant.offsetSeconds}
+            onChange={(seconds) => {
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type !== JourneyNodeType.DelayNode ||
+                  props.variant.type !== DelayVariantType.UserProperty
+                ) {
+                  return;
+                }
+                props.variant.offsetSeconds = seconds;
+              });
+            }}
+            description="Adjustment either forward or backward in time relative to the date expressed in the user property value."
+            inputLabel="Offset"
+            disabled={disabled}
+          />
         </>
       );
       break;
@@ -690,7 +767,7 @@ function WaitForNodeFields({
       <Autocomplete
         value={segment}
         options={segments.value}
-        getOptionLabel={getSegmentLabel}
+        getOptionLabel={getLabel}
         onChange={onSegmentChangeHandler}
         renderInput={(params) => (
           <TextField {...params} label="segment" variant="outlined" />

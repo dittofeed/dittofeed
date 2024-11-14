@@ -828,7 +828,8 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
       return null;
     }
     let operatorEl: React.ReactNode;
-    switch (property.operator.type) {
+    const propertyOperator = property.operator;
+    switch (propertyOperator.type) {
       case SegmentOperatorType.Equals: {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
@@ -851,7 +852,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           <TextField
             label="Property Value"
             onChange={handlePropertyValueChange}
-            value={property.operator.value}
+            value={propertyOperator.value}
           />
         );
         break;
@@ -883,7 +884,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
               type: "number",
             }}
             onChange={handlePropertyValueChange}
-            value={property.operator.value}
+            value={propertyOperator.value}
           />
         );
         break;
@@ -915,7 +916,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
               type: "number",
             }}
             onChange={handlePropertyValueChange}
-            value={property.operator.value}
+            value={propertyOperator.value}
           />
         );
         break;
@@ -925,7 +926,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         break;
       }
       default: {
-        throw new Error(`Unsupported operator type: ${property.operator.type}`);
+        assertUnreachable(propertyOperator);
       }
     }
 
