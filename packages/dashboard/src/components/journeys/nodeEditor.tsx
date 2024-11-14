@@ -174,33 +174,59 @@ function EntryNodeFields({
     }
     case JourneyNodeType.EventEntryNode:
       variant = (
-        <Autocomplete
-          value={nodeVariant.event ?? ""}
-          options={Object.keys(properties)}
-          freeSolo
-          disabled={disabled}
-          onInputChange={(_event, newEventName) => {
-            if (newEventName === null) {
-              return;
-            }
-            updateJourneyNodeData(nodeId, (node) => {
-              const props = node.data.nodeTypeProps;
-              if (
-                props.type === AdditionalJourneyNodeType.EntryUiNode &&
-                props.variant.type === JourneyNodeType.EventEntryNode
-              ) {
-                props.variant.event = newEventName;
+        <>
+          <Autocomplete
+            value={nodeVariant.event ?? ""}
+            options={Object.keys(properties)}
+            freeSolo
+            disabled={disabled}
+            onInputChange={(_event, newEventName) => {
+              if (newEventName === null) {
+                return;
               }
-            });
-          }}
-          renderInput={(params) => (
-            <TextField
-              label="Event Trigger Name"
-              {...params}
-              variant="outlined"
-            />
-          )}
-        />
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type === AdditionalJourneyNodeType.EntryUiNode &&
+                  props.variant.type === JourneyNodeType.EventEntryNode
+                ) {
+                  props.variant.event = newEventName;
+                }
+              });
+            }}
+            renderInput={(params) => (
+              <TextField
+                label="Event Trigger Name"
+                {...params}
+                variant="outlined"
+              />
+            )}
+          />
+
+          <Autocomplete
+            value={nodeVariant.key ?? ""}
+            options={properties[nodeVariant.event ?? ""] ?? []}
+            freeSolo
+            disabled={disabled}
+            onInputChange={(_event, newPropertyPath) => {
+              if (newPropertyPath === null) {
+                return;
+              }
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type === AdditionalJourneyNodeType.EntryUiNode &&
+                  props.variant.type === JourneyNodeType.EventEntryNode
+                ) {
+                  props.variant.key = newPropertyPath;
+                }
+              });
+            }}
+            renderInput={(params) => (
+              <TextField label="Key" {...params} variant="outlined" />
+            )}
+          />
+        </>
       );
       break;
     default:
@@ -605,7 +631,6 @@ function DelayNodeFields({
 
       variant = (
         <>
-          foobar
           <Autocomplete
             value={userProperty}
             options={userProperties}

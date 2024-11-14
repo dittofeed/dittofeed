@@ -64,6 +64,7 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import TraitAutocomplete from "./traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -1302,29 +1303,11 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   return (
     <>
       <Box sx={{ width: selectorWidth }}>
-        <Autocomplete
-          value={traitPath}
-          freeSolo
-          onInputChange={(_event, newValue) => {
-            traitOnChange(newValue);
-          }}
-          disableClearable
-          options={traits}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              disabled={disabled}
-              label="Trait"
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                const newValue = event.target.value;
-                traitOnChange(newValue);
-              }}
-              InputProps={{
-                ...params.InputProps,
-                type: "search",
-              }}
-            />
-          )}
+        <TraitAutocomplete
+          traitPath={traitPath}
+          traitOnChange={traitOnChange}
+          disabled={disabled}
+          traits={traits}
         />
       </Box>
       <Box sx={{ width: secondarySelectorWidth }}>
