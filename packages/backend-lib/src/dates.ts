@@ -108,5 +108,9 @@ export async function getUserPropertyDelay({
     userId,
     userPropertyIds: [userProperty],
   });
+  const assignment = Object.values(assignments)[0];
+  if (!assignment) {
+    return null;
+  }
   return null;
 }
