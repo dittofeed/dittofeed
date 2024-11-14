@@ -110,9 +110,11 @@ function JourneyConfigure() {
     journeyNodes,
     journeyEdges,
     journeyNodesIndex,
+    segments: segmentsResult,
   } = useAppStorePick([
     "journeyUpdateRequest",
     "apiBase",
+    "segments",
     "setJourneyUpdateRequest",
     "upsertJourney",
     "journeyName",
@@ -124,6 +126,14 @@ function JourneyConfigure() {
     "journeyEdges",
     "journeyNodesIndex",
   ]);
+
+  const segments = useMemo(
+    () =>
+      segmentsResult.type === CompletionStatus.Successful
+        ? segmentsResult.value
+        : [],
+    [segmentsResult],
+  );
 
   const journey =
     journeys.type === CompletionStatus.Successful
@@ -139,7 +149,10 @@ function JourneyConfigure() {
   }
 
   const definitionFromState: JourneyDefinition | null = useMemo(() => {
-    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    const globalJourneyErrors = getGlobalJourneyErrors({
+      nodes: journeyNodes,
+      segments,
+    });
     if (globalJourneyErrors.size > 0) {
       return null;
     }
@@ -150,7 +163,7 @@ function JourneyConfigure() {
         journeyNodesIndex,
       },
     }).unwrapOr(null);
-  }, [journeyNodes, journeyEdges, journeyNodesIndex]);
+  }, [journeyNodes, journeyEdges, journeyNodesIndex, segments]);
 
   const statusValue: StatusCopy = useMemo(() => {
     if (journey.status === "NotStarted" && !definitionFromState) {

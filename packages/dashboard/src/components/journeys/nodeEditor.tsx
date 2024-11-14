@@ -777,7 +777,7 @@ function WaitForNodeFields({
       return segmentsResult.value;
     }
     return segmentsResult.value.filter(
-      (s) => s.definition?.entryNode?.type === SegmentNodeType.KeyedPerformed,
+      (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
     );
   }, [segmentsResult, isEventEntry]);
 

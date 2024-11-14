@@ -173,7 +173,7 @@ export async function findSegmentResources({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<SegmentResource[]> {
+}): Promise<SavedSegmentResource[]> {
   const segments = await prisma().segment.findMany({
     where: {
       workspaceId,
