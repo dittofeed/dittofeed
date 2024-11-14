@@ -8,7 +8,6 @@ import {
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { AdditionalJourneyNodeType, JourneyUiNodeType } from "../../lib/types";
 import { getWarningStyles } from "../../lib/warningTheme";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";

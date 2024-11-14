@@ -42,7 +42,6 @@ import {
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
-import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import {
