@@ -323,6 +323,15 @@ export async function userJourneyWorkflow(
             delay = nexTime - now;
             break;
           }
+          default: {
+            logger.error("un-implemented delay variant", {
+              ...defaultLoggingFields,
+              variant: currentNode.variant,
+            });
+            nextNode = definition.exitNode;
+            delay = 0;
+            break;
+          }
         }
         await sleep(delay);
         nextNode = nodes.get(currentNode.child) ?? null;

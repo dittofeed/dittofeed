@@ -720,6 +720,11 @@ export const WaitForNode = Type.Object(
 
 export type WaitForNode = Static<typeof WaitForNode>;
 
+export enum CursorDirectionEnum {
+  After = "after",
+  Before = "before",
+}
+
 export enum DelayVariantType {
   Second = "Second",
   LocalTime = "LocalTime",
@@ -729,6 +734,8 @@ export enum DelayVariantType {
 export const UserPropertyDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.UserProperty),
   userProperty: Type.String(),
+  offsetSeconds: Type.Optional(Type.Number()),
+  offsetDirection: Type.Optional(Type.Enum(CursorDirectionEnum)),
 });
 
 export type UserPropertyDelayVariant = Static<typeof UserPropertyDelayVariant>;
@@ -767,6 +774,7 @@ export type LocalTimeDelayVariantFields = Omit<LocalTimeDelayVariant, "type">;
 export const DelayVariant = Type.Union([
   SecondsDelayVariant,
   LocalTimeDelayVariant,
+  UserPropertyDelayVariant,
 ]);
 
 export type DelayVariant = Static<typeof DelayVariant>;
@@ -1722,6 +1730,7 @@ export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
 export const DelayUiNodeVariant = Type.Union([
   PartialExceptType(LocalTimeDelayVariant),
   PartialExceptType(SecondsDelayVariant),
+  PartialExceptType(UserPropertyDelayVariant),
 ]);
 
 export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
@@ -2070,11 +2079,6 @@ export const ReadAllUserPropertiesResponse = Type.Object({
 export type ReadAllUserPropertiesResponse = Static<
   typeof ReadAllUserPropertiesResponse
 >;
-
-export enum CursorDirectionEnum {
-  After = "after",
-  Before = "before",
-}
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 

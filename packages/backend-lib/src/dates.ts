@@ -2,7 +2,7 @@ import { add } from "date-fns";
 import { getTimezoneOffset } from "date-fns-tz";
 import { find as findTz } from "geo-tz";
 
-import { LocalTimeDelayVariantFields } from "./types";
+import { LocalTimeDelayVariantFields, UserPropertyDelayVariant } from "./types";
 import { findAllUserPropertyAssignments } from "./userProperties";
 
 const DEFAULT_TIMEZONE = "UTC";
@@ -77,4 +77,27 @@ export async function findNextLocalizedTime({
     now,
     hour: 5,
   });
+}
+
+/**
+ * Returns the delay in milliseconds to wait for a user property delay.
+ * Returns null if the user property is not a date.
+ */
+export async function getUserPropertyDelay({
+  workspaceId,
+  userId,
+  userProperty,
+}: {
+  workspaceId: string;
+  userId: string;
+} & Pick<
+  UserPropertyDelayVariant,
+  "userProperty" | "offsetSeconds" | "offsetDirection"
+>): Promise<number | null> {
+  const assignments = await findAllUserPropertyAssignments({
+    workspaceId,
+    userId,
+    userPropertyIds: [userProperty],
+  });
+  return null;
 }

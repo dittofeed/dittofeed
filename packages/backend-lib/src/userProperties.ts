@@ -363,10 +363,12 @@ export async function findAllUserPropertyAssignments({
   workspaceId,
   userProperties: userPropertiesFilter,
   context,
+  userPropertyIds,
 }: {
   userId: string;
   workspaceId: string;
   userProperties?: string[];
+  userPropertyIds?: string[];
   context?: Record<string, JSONValue>[];
 }): Promise<UserPropertyAssignments> {
   const where: Prisma.UserPropertyWhereInput = {
@@ -375,6 +377,10 @@ export async function findAllUserPropertyAssignments({
   if (userPropertiesFilter?.length) {
     where.name = {
       in: userPropertiesFilter,
+    };
+  } else if (userPropertyIds?.length) {
+    where.id = {
+      in: userPropertyIds,
     };
   }
 
