@@ -445,3 +445,97 @@ export async function findAllUserPropertyAssignments({
   combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;
 }
+
+export async function findAllUserPropertyAssignmentsById({
+  userId,
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  context,
+  userPropertyIds,
+}: {
+  userId: string;
+  workspaceId: string;
+  userProperties?: string[];
+  userPropertyIds?: string[];
+  context?: Record<string, JSONValue>[];
+}): Promise<UserPropertyAssignments> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  } else if (userPropertyIds?.length) {
+    where.id = {
+      in: userPropertyIds,
+    };
+  }
+
+  const userProperties = await prisma().userProperty.findMany({
+    where,
+    include: {
+      UserPropertyAssignment: {
+        where: { userId },
+      },
+    },
+  });
+  logger().debug(
+    {
+      userProperties,
+    },
+    "user properties",
+  );
+
+  const combinedAssignments: UserPropertyAssignments = {};
+
+  for (const userProperty of userProperties) {
+    const definitionResult = schemaValidate(
+      userProperty.definition,
+      UserPropertyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        { err: definitionResult.error, workspaceId, userProperty },
+        "failed to parse user property definition",
+      );
+      continue;
+    }
+    const definition = definitionResult.value;
+    const contextAssignment = context
+      ? getAssignmentOverride({
+          definition,
+          context,
+          userPropertyId: userProperty.id,
+        })
+      : null;
+    if (contextAssignment !== null) {
+      combinedAssignments[userProperty.id] = contextAssignment;
+    } else {
+      const assignments = userProperty.UserPropertyAssignment;
+      const assignment = assignments[0];
+      if (assignment) {
+        const parsed = parseUserPropertyAssignment(
+          definition,
+          assignment.value,
+        );
+        if (parsed.isErr()) {
+          logger().error(
+            {
+              err: parsed.error,
+              workspaceId,
+              userProperty,
+              assignment,
+            },
+            "failed to parse user property assignment",
+          );
+          continue;
+        }
+        combinedAssignments[userProperty.id] = parsed.value;
+      }
+    }
+  }
+
+  combinedAssignments.id = combinedAssignments.id ?? userId;
+  return combinedAssignments;
+}

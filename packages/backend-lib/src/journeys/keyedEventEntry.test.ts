@@ -4,9 +4,12 @@ import { randomUUID } from "crypto";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import logger from "../logger";
 import prisma from "../prisma";
 import {
   ChannelType,
+  CursorDirectionEnum,
+  DelayVariantType,
   EmailProviderType,
   InternalEventType,
   Journey,
@@ -16,8 +19,11 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentSplitNode,
+  SegmentSplitVariantType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyDelayVariant,
   UserPropertyOperatorType,
   Workspace,
 } from "../types";
@@ -91,12 +97,42 @@ describe("keyedEventEntry journeys", () => {
           type: JourneyNodeType.EventEntryNode,
           event: "APPOINTMENT_UPDATE",
           key: "appointmentId",
-          child: "wait-for-cancellation",
+          child: "delay-for-appointment-date",
         },
         exitNode: {
           type: JourneyNodeType.ExitNode,
         },
         nodes: [
+          {
+            type: JourneyNodeType.DelayNode,
+            id: "delay-for-appointment-date",
+            variant: {
+              type: DelayVariantType.UserProperty,
+              userProperty: dateUserPropertyId,
+              offsetDirection: CursorDirectionEnum.Before,
+              offsetSeconds: oneDaySeconds,
+            } satisfies UserPropertyDelayVariant,
+            child: "send-reminder",
+          },
+          {
+            type: JourneyNodeType.SegmentSplitNode,
+            id: "check-cancellation",
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: appointmentCancelledSegmentId,
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: "send-reminder",
+            },
+          } satisfies SegmentSplitNode,
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-reminder",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: "wait-for-cancellation",
+          },
           {
             type: JourneyNodeType.WaitForNode,
             id: "wait-for-cancellation",
@@ -212,6 +248,12 @@ describe("keyedEventEntry journeys", () => {
             new Date().getTime() + 1000,
           ).toISOString();
 
+          const now = await testEnv.currentTimeMs();
+          const appointmentDate = new Date(
+            now + 1000 * oneDaySeconds * 2,
+          ).toISOString();
+          // delay: 172799588
+          // 47 hours
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -234,6 +276,7 @@ describe("keyedEventEntry journeys", () => {
                     properties: {
                       operation: "STARTED",
                       appointmentId: appointmentId1,
+                      appointmentDate,
                     },
                     messageId: randomUUID(),
                     timestamp: timestamp1,
@@ -264,6 +307,7 @@ describe("keyedEventEntry journeys", () => {
                     properties: {
                       operation: "STARTED",
                       appointmentId: appointmentId2,
+                      appointmentDate,
                     },
                     messageId: randomUUID(),
                     timestamp: timestamp2,
@@ -273,7 +317,35 @@ describe("keyedEventEntry journeys", () => {
             },
           );
 
-          await testEnv.sleep(1000);
+          console.log("loc1");
+          await testEnv.sleep(5000);
+          console.log("loc2");
+          await testEnv.sleep(1000 * oneDaySeconds);
+
+          expect(senderMock).toHaveBeenCalledTimes(2);
+          // console.log(
+          //   "loc1",
+          //   senderMock.mock.calls.map((c) => c[0].userPropertyAssignments),
+          // );
+          expect(
+            senderMock.mock.calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (call) =>
+                call[0].userPropertyAssignments?.appointmentId ===
+                appointmentId1,
+            ),
+            "should have sent a reminder message for appointment 1",
+          ).toHaveLength(1);
+          expect(
+            senderMock.mock.calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (call) =>
+                call[0].userPropertyAssignments?.appointmentId ===
+                appointmentId2,
+            ),
+            "should have sent a reminder message for appointment 2",
+          ).toHaveLength(1);
+
           await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
             properties: {
@@ -286,20 +358,29 @@ describe("keyedEventEntry journeys", () => {
           await testEnv.sleep(5000);
           await handle1.result();
 
-          expect(senderMock).toHaveBeenCalledTimes(1);
-          expect(senderMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              userPropertyAssignments: expect.objectContaining({
-                id: userId,
-                appointmentId: appointmentId1,
-              }),
-            }),
-          );
-
           await testEnv.sleep(oneDaySeconds * 1000);
           await handle2.result();
-          expect(senderMock).toHaveBeenCalledTimes(1);
+
+          expect(
+            senderMock.mock.calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (call) =>
+                call[0].userPropertyAssignments?.appointmentId ===
+                appointmentId1,
+            ),
+            "should have sent a reminder and cancellation message for appointment 1",
+          ).toHaveLength(2);
+
+          expect(
+            senderMock.mock.calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (call) =>
+                call[0].userPropertyAssignments?.appointmentId ===
+                appointmentId2,
+            ),
+            "should have sent a reminder message for appointment 2 but not a cancellation message",
+          ).toHaveLength(1);
+          expect(senderMock).toHaveBeenCalledTimes(3);
         });
       });
     });

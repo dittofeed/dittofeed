@@ -2,8 +2,12 @@ import { add } from "date-fns";
 import { getTimezoneOffset } from "date-fns-tz";
 import { find as findTz } from "geo-tz";
 
-import { LocalTimeDelayVariantFields, UserPropertyDelayVariant } from "./types";
-import { findAllUserPropertyAssignments } from "./userProperties";
+import logger from "./logger";
+import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
+import {
+  findAllUserPropertyAssignments,
+  findAllUserPropertyAssignmentsById,
+} from "./userProperties";
 
 const DEFAULT_TIMEZONE = "UTC";
 const EVERY_DAY_IN_WEEK = new Set([0, 1, 2, 3, 4, 5, 6]);
@@ -97,22 +101,34 @@ export async function getUserPropertyDelay({
   now,
   offsetSeconds = 0,
   offsetDirection = "after",
+  events,
 }: {
   workspaceId: string;
   userId: string;
   userProperty: string;
   now: number;
+  events?: UserWorkflowTrackEvent[];
   offsetSeconds?: number;
   offsetDirection?: "before" | "after";
 }): Promise<number | null> {
-  const assignments = await findAllUserPropertyAssignments({
+  const assignments = await findAllUserPropertyAssignmentsById({
     workspaceId,
     userId,
-    userProperties: [userProperty],
+    userPropertyIds: [userProperty],
+    context: events?.flatMap((e) => e.properties ?? []),
   });
 
   const assignment = assignments[userProperty];
   if (!assignment) {
+    logger().debug(
+      {
+        workspaceId,
+        userId,
+        userProperty,
+        assignments,
+      },
+      "no assignment in user property delay",
+    );
     return null;
   }
 
@@ -135,10 +151,18 @@ export async function getUserPropertyDelay({
   }
 
   if (!date) {
+    logger().debug(
+      {
+        workspaceId,
+        userId,
+        userProperty,
+        assignment,
+      },
+      "no date in user property delay",
+    );
     return null;
   }
 
-  // Calculate delay with offset
   const offsetMs = offsetSeconds * 1000;
   const targetTime =
     offsetDirection === "before"

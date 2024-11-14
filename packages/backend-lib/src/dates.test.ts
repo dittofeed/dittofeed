@@ -106,7 +106,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -126,7 +126,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -148,7 +148,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -168,7 +168,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -190,7 +190,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -210,7 +210,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
       });
 
@@ -232,7 +232,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
         offsetSeconds: 1800, // 30 minutes
         offsetDirection: "after",
@@ -254,7 +254,7 @@ describe("getUserPropertyDelay", () => {
       const delay = await getUserPropertyDelay({
         workspaceId,
         userId,
-        userProperty: "testDate",
+        userProperty: userPropertyId,
         now,
         offsetSeconds: 1800, // 30 minutes
         offsetDirection: "before",
@@ -268,7 +268,7 @@ describe("getUserPropertyDelay", () => {
     const delay = await getUserPropertyDelay({
       workspaceId,
       userId,
-      userProperty: "testDate",
+      userProperty: userPropertyId,
       now,
     });
 

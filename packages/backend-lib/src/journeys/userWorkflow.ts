@@ -329,7 +329,10 @@ export async function userJourneyWorkflow(
               workspaceId,
               userId,
               userProperty: currentNode.variant.userProperty,
+              events: keyedEvents,
               now: Date.now(),
+              offsetSeconds: currentNode.variant.offsetSeconds,
+              offsetDirection: currentNode.variant.offsetDirection,
             });
             delay = userPropertyDelay ?? 0;
             break;
@@ -345,7 +348,15 @@ export async function userJourneyWorkflow(
           }
         }
         if (delay > 0) {
+          logger.info("sleeping", {
+            delay,
+            ...defaultLoggingFields,
+          });
           await sleep(delay);
+        } else {
+          logger.info("no delay", {
+            ...defaultLoggingFields,
+          });
         }
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
