@@ -3988,3 +3988,6 @@ export type KeyedSegmentEventContext = Static<typeof KeyedSegmentEventContext>;
 export type EmptyObject = Record<never, never>;
 
 export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);
+
+export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
+  Required<Pick<T, K>>;

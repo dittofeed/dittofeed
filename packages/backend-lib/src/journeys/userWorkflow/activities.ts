@@ -138,7 +138,6 @@ export function sendMessageFactory(sender: Sender) {
   ): Promise<boolean> {
     const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
     const now = new Date();
-    // FIXME add context awareness
     const sendResult = await sendMessageInner({
       ...params,
       sender,

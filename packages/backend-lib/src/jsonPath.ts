@@ -20,3 +20,15 @@ export function jsonValue({
   const value: JSONValue = jp.value(data, path);
   return ok(value);
 }
+
+export function jsonString({
+  data,
+  path: rawPath,
+}: {
+  data: unknown;
+  path: string;
+}): Result<string, Error> {
+  return jsonValue({ data, path: rawPath }).andThen((v) =>
+    typeof v === "string" ? ok(v) : err(new Error("expected string")),
+  );
+}

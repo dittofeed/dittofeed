@@ -720,14 +720,16 @@ export async function triggerEventEntryJourneys({
       if (journeyEvent !== event) {
         return [];
       }
-      return startKeyedUserJourney({
-        workspaceId,
-        userId,
-        journeyId,
-        eventKey: messageId,
-        definition,
-        context: properties,
-      });
+      return [
+        startKeyedUserJourney({
+          workspaceId,
+          userId,
+          journeyId,
+          eventKey: messageId,
+          definition,
+          context: properties,
+        }),
+      ];
     },
   );
   await Promise.all(starts);

@@ -10,12 +10,13 @@ import {
 import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
 
-import { jsonValue } from "../jsonPath";
+import { jsonString, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
   ChannelType,
   DelayVariantType,
+  EventEntryNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -56,6 +57,37 @@ type SegmentAssignment = Pick<
   "currentlyInSegment" | "segmentVersion"
 >;
 
+export function getKeyedUserJourneyWorkflowId({
+  userId,
+  journeyId,
+  entryNode,
+  event,
+}: {
+  userId: string;
+  journeyId: string;
+  entryNode: EventEntryNode;
+  event: UserWorkflowTrackEvent;
+}): string | null {
+  let key: string;
+  let keyValue: string;
+  if (entryNode.key) {
+    key = entryNode.key;
+    const keyValueResult = jsonString({
+      data: event.properties,
+      path: key,
+    }).unwrapOr(null);
+    if (!keyValueResult) {
+      return null;
+    }
+    keyValue = keyValueResult;
+  } else {
+    key = "messageId";
+    keyValue = event.messageId;
+  }
+
+  return `user-journey-${userId}-${journeyId}-${key}-${keyValue}`;
+}
+
 export function getUserJourneyWorkflowId({
   userId,
   journeyId,
@@ -63,15 +95,8 @@ export function getUserJourneyWorkflowId({
 }: {
   userId: string;
   journeyId: string;
-} & (
-  | {
-      eventKey?: string;
-    }
-  | {
-      eventKeyName: string;
-      eventKey: string;
-    }
-)): string {
+  eventKey?: string;
+}): string {
   return [`user-journey-${userId}-${journeyId}`, eventKey]
     .filter(Boolean)
     .join("-");
@@ -157,8 +182,10 @@ export async function userJourneyWorkflow(
   }
 
   const keyedEvents: UserWorkflowTrackEvent[] = [];
+  const keyedEventIds = new Set<string>();
   if (props.version === UserJourneyWorkflowVersion.V2 && props.event) {
     keyedEvents.push(props.event);
+    keyedEventIds.add(props.event.messageId);
   }
 
   // event entry journeys can't be started from segment signals
@@ -194,7 +221,18 @@ export async function userJourneyWorkflow(
       userId,
       messageId: event.messageId,
     });
+    if (keyedEventIds.has(event.messageId)) {
+      logger.info("ignoring duplicate keyed event", {
+        journeyId,
+        userId,
+        workspaceId,
+        messageId: event.messageId,
+      });
+      return;
+    }
     keyedEvents.push(event);
+    keyedEventIds.add(event.messageId);
+
     if (!waitForSegmentIds) {
       logger.debug("no wait for segments, skipping", {
         workflow: WORKFLOW_NAME,
@@ -259,7 +297,7 @@ export async function userJourneyWorkflow(
   let currentNode: JourneyNode = definition.entryNode;
   let nextNode: JourneyNode | null = null;
 
-  // FIXME check if segment was assigned true prior to start of journey
+  // TODO check if segment was assigned true prior to start of journey
   function segmentAssignedTrue(segmentId: string): boolean {
     return segmentAssignments.get(segmentId)?.currentlyInSegment === true;
   }

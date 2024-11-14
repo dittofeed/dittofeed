@@ -21,7 +21,6 @@ import {
   KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
-  PerformedSegmentNode,
   Prisma,
   RelationalOperators,
   SavedSegmentResource,
