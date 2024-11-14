@@ -51,6 +51,7 @@ export type SendParams = Omit<BaseSendParams, "channel">;
 
 export type SendParamsV2 = BaseSendParams & {
   context?: Record<string, JSONValue>;
+  events?: UserWorkflowTrackEvent[];
 };
 
 export type SendParamsInner = SendParamsV2 & {
@@ -66,10 +67,17 @@ async function sendMessageInner({
   journeyId,
   messageId,
   subscriptionGroupId,
-  context,
+  context: deprecatedContext,
+  events,
   sender,
   ...rest
 }: SendParamsInner): Promise<BackendMessageSendResult> {
+  let context: Record<string, JSONValue>[] | undefined;
+  if (events) {
+    context = events.flatMap((e) => e.properties ?? []);
+  } else if (deprecatedContext) {
+    context = [deprecatedContext];
+  }
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
       // FIXME add context awareness

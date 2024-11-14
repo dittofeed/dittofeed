@@ -15,6 +15,7 @@ import {
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
+  KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
   UserPropertyDefinition,
@@ -222,7 +223,7 @@ export async function upsertBulkUserPropertyAssignments({
 interface UserPropertyAssignmentOverrideProps {
   userPropertyId: string;
   definition: UserPropertyDefinition;
-  context: Record<string, JSONValue>;
+  context: Record<string, JSONValue>[];
 }
 
 function getPerformedAssignmentOverride({
@@ -230,23 +231,35 @@ function getPerformedAssignmentOverride({
   node,
   context,
 }: UserPropertyAssignmentOverrideProps & {
-  node: PerformedUserPropertyDefinition;
+  node: PerformedUserPropertyDefinition | KeyedPerformedUserPropertyDefinition;
 }): JSONValue | null {
-  const path = toJsonPathParam({ path: node.path }).unwrapOr(null);
+  const nodePath =
+    node.type === UserPropertyDefinitionType.Performed ? node.path : node.key;
+  const path = toJsonPathParam({ path: nodePath }).unwrapOr(null);
   let value: JSONValue | null = null;
-  if (path) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      value = jp.query(context, path)[0] ?? null;
-    } catch (e) {
-      logger().info(
-        {
-          userPropertyId,
-          err: e,
-        },
-        "failed to query context for user property assignment override",
-      );
-      value = null;
+  // assuming events are ordered by timestamps ascending want to check the most
+  // recent event contexts first
+  for (let i = context.length - 1; i >= 0; i--) {
+    const ctxItem = context[i];
+    if (path) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const queried = jp.query(ctxItem, path)[0];
+        if (queried !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value = queried;
+          break;
+        }
+      } catch (e) {
+        logger().info(
+          {
+            userPropertyId,
+            err: e,
+          },
+          "failed to query context for user property assignment override",
+        );
+        value = null;
+      }
     }
   }
   return value;
@@ -263,7 +276,10 @@ function getAssignmentOverride({
     if (!node) {
       break;
     }
-    if (node.type === UserPropertyDefinitionType.Performed) {
+    if (
+      node.type === UserPropertyDefinitionType.Performed ||
+      node.type === UserPropertyDefinitionType.KeyedPerformed
+    ) {
       const value = getPerformedAssignmentOverride({
         userPropertyId,
         node,
@@ -326,7 +342,7 @@ export async function findAllUserPropertyAssignments({
   userId: string;
   workspaceId: string;
   userProperties?: string[];
-  context?: Record<string, JSONValue>;
+  context?: Record<string, JSONValue>[];
 }): Promise<UserPropertyAssignments> {
   const where: Prisma.UserPropertyWhereInput = {
     workspaceId,
