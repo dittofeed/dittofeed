@@ -20,8 +20,10 @@ import {
   SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   UserPropertyResource,
 } from "./types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -245,11 +247,34 @@ function getPerformedAssignmentOverride({
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const queried = jp.query(ctxItem, path)[0];
-        if (queried !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          value = queried;
-          break;
+        if (queried === undefined) {
+          continue;
         }
+        let matches = true;
+        for (const property of node.properties ?? []) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const queriedForProperty = jp.query(ctxItem, property.path)[0];
+          const { operator } = property;
+          switch (operator.type) {
+            case UserPropertyOperatorType.Equals:
+              matches = queriedForProperty === operator.value;
+              break;
+            default:
+              assertUnreachable(operator.type);
+          }
+
+          if (!matches) {
+            break;
+          }
+        }
+
+        if (!matches) {
+          continue;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        value = queried;
+        break;
       } catch (e) {
         logger().info(
           {
