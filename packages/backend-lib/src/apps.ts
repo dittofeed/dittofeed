@@ -76,10 +76,8 @@ export async function submitTrackWithTriggers({
   if (userOrAnonymousId) {
     await triggerEventEntryJourneys({
       workspaceId,
-      event: data.event,
+      event: data,
       userId: userOrAnonymousId,
-      messageId: data.messageId,
-      properties,
     });
   }
 }
@@ -127,11 +125,9 @@ export async function submitBatchWithTriggers({
       }
       return {
         workspaceId,
-        event: message.event,
+        event: message,
         userId: userOrAnonymousId,
-        messageId: message.messageId,
-        properties: message.properties,
-      };
+      } satisfies TriggerEventEntryJourneysOptions;
     },
   );
 

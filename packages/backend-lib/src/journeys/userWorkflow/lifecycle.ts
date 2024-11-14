@@ -15,13 +15,18 @@ import {
   UserJourneyWorkflowVersion,
 } from "../userWorkflow";
 
+export type StartKeyedUserJourneyProps = Omit<
+  MakeRequired<UserJourneyWorkflowPropsV2, "event">,
+  "version"
+>;
+
 export async function startKeyedUserJourney({
   journeyId,
   workspaceId,
   userId,
   definition,
   event,
-}: Omit<MakeRequired<UserJourneyWorkflowPropsV2, "event">, "version">) {
+}: StartKeyedUserJourneyProps) {
   const workflowClient = await connectWorkflowClient();
   if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
     throw new Error("Invalid entry node type");
