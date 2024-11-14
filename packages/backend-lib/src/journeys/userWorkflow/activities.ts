@@ -34,7 +34,7 @@ import {
 } from "../recordNodeProcessed";
 import { GetSegmentAssignmentVersion } from "./types";
 
-export { findNextLocalizedTime } from "../../dates";
+export { findNextLocalizedTime, getUserPropertyDelay } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
 type BaseSendParams = {

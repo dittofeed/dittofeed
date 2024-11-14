@@ -95,22 +95,56 @@ export async function getUserPropertyDelay({
   userId,
   userProperty,
   now,
+  offsetSeconds = 0,
+  offsetDirection = "after",
 }: {
   workspaceId: string;
   userId: string;
+  userProperty: string;
   now: number;
-} & Pick<
-  UserPropertyDelayVariant,
-  "userProperty" | "offsetSeconds" | "offsetDirection"
->): Promise<number | null> {
+  offsetSeconds?: number;
+  offsetDirection?: "before" | "after";
+}): Promise<number | null> {
   const assignments = await findAllUserPropertyAssignments({
     workspaceId,
     userId,
-    userPropertyIds: [userProperty],
+    userProperties: [userProperty],
   });
-  const assignment = Object.values(assignments)[0];
+
+  const assignment = assignments[userProperty];
   if (!assignment) {
     return null;
   }
-  return null;
+
+  // Try parsing different date formats
+  let date: Date | null = null;
+
+  if (typeof assignment === "string") {
+    // Try ISO string
+    const parsedDate = new Date(assignment);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+    }
+  } else if (typeof assignment === "number") {
+    // Try unix timestamp (seconds or milliseconds)
+    const timestamp = assignment < 1e12 ? assignment * 1000 : assignment;
+    const parsedDate = new Date(timestamp);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+    }
+  }
+
+  if (!date) {
+    return null;
+  }
+
+  // Calculate delay with offset
+  const offsetMs = offsetSeconds * 1000;
+  const targetTime =
+    offsetDirection === "before"
+      ? date.getTime() - offsetMs
+      : date.getTime() + offsetMs;
+
+  const delay = targetTime - now;
+  return delay > 0 ? delay : null;
 }
