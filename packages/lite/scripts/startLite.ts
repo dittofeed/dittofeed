@@ -17,10 +17,10 @@ import logger from "backend-lib/src/logger";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
+import workerLogger from "backend-lib/src/workerLogger";
 import next from "next";
 import path from "path";
 import workerConfig from "worker/src/config";
-import workerLogger from "worker/src/workerLogger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
