@@ -18,6 +18,7 @@ import {
   SegmentOperatorType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   Workspace,
 } from "../types";
 import {
@@ -83,6 +84,7 @@ describe("keyedEventEntry journeys", () => {
     beforeEach(async () => {
       const appointmentCancelledSegmentId = randomUUID();
       const templateId = randomUUID();
+      const dateUserPropertyId = randomUUID();
 
       journeyDefinition = {
         entryNode: {
@@ -136,11 +138,26 @@ describe("keyedEventEntry journeys", () => {
         } satisfies KeyedPerformedSegmentNode,
         nodes: [],
       };
-      const userPropertyDefinition: UserPropertyDefinition = {
+      const keyedUserPropertyDefinition: UserPropertyDefinition = {
         type: UserPropertyDefinitionType.KeyedPerformed,
         event: "APPOINTMENT_UPDATE",
         key: "appointmentId",
         id: randomUUID(),
+      };
+      const dateUserPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.Performed,
+        event: "APPOINTMENT_UPDATE",
+        id: randomUUID(),
+        path: "appointmentDate",
+        properties: [
+          {
+            path: "operation",
+            operator: {
+              type: UserPropertyOperatorType.Equals,
+              value: "STARTED",
+            },
+          },
+        ],
       };
       [journey] = await Promise.all([
         prisma().journey.create({
@@ -162,8 +179,16 @@ describe("keyedEventEntry journeys", () => {
         prisma().userProperty.create({
           data: {
             workspaceId: workspace.id,
-            definition: userPropertyDefinition,
+            definition: keyedUserPropertyDefinition,
             name: "appointmentId",
+          },
+        }),
+        prisma().userProperty.create({
+          data: {
+            id: dateUserPropertyId,
+            workspaceId: workspace.id,
+            definition: dateUserPropertyDefinition,
+            name: "appointmentDate",
           },
         }),
       ]);
@@ -207,7 +232,7 @@ describe("keyedEventEntry journeys", () => {
                   event: {
                     event: "APPOINTMENT_UPDATE",
                     properties: {
-                      operation: "started",
+                      operation: "STARTED",
                       appointmentId: appointmentId1,
                     },
                     messageId: randomUUID(),
@@ -237,7 +262,7 @@ describe("keyedEventEntry journeys", () => {
                   event: {
                     event: "APPOINTMENT_UPDATE",
                     properties: {
-                      operation: "started",
+                      operation: "STARTED",
                       appointmentId: appointmentId2,
                     },
                     messageId: randomUUID(),
