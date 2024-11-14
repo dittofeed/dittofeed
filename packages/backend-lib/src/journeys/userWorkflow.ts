@@ -46,6 +46,7 @@ const {
   sendMessageV2,
   findNextLocalizedTime,
   getEarliestComputePropertyPeriod,
+  getUserPropertyDelay,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -323,6 +324,16 @@ export async function userJourneyWorkflow(
             delay = nexTime - now;
             break;
           }
+          case DelayVariantType.UserProperty: {
+            const userPropertyDelay = await getUserPropertyDelay({
+              workspaceId,
+              userId,
+              userProperty: currentNode.variant.userProperty,
+              now: Date.now(),
+            });
+            delay = userPropertyDelay ?? 0;
+            break;
+          }
           default: {
             logger.error("un-implemented delay variant", {
               ...defaultLoggingFields,
@@ -333,7 +344,9 @@ export async function userJourneyWorkflow(
             break;
           }
         }
-        await sleep(delay);
+        if (delay > 0) {
+          await sleep(delay);
+        }
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
           logger.error("missing delay node child", {
