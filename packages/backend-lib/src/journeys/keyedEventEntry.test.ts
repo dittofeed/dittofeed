@@ -305,9 +305,7 @@ describe("keyedEventEntry journeys", () => {
             },
           );
 
-          console.log("loc1");
           await testEnv.sleep(5000);
-          console.log("loc2");
           await testEnv.sleep(1000 * oneDaySeconds);
 
           expect(senderMock).toHaveBeenCalledTimes(2);
