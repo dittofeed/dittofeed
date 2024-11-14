@@ -82,14 +82,23 @@ export async function findNextLocalizedTime({
 /**
  * Returns the delay in milliseconds to wait for a user property delay.
  * Returns null if the user property is not a date.
+ *
+ * @param now - The current time in milliseconds since epoch.
+ * @param userProperty - The user property to get the delay for. Will try to
+ * parse as a date accepting ISO 8601 strings, unix timestamps in seconds, and
+ * unix timestamps in milliseconds.
+ * @param offsetSeconds - The number of seconds to offset the delay by.
+ * @param offsetDirection - The direction to offset the delay.
  */
 export async function getUserPropertyDelay({
   workspaceId,
   userId,
   userProperty,
+  now,
 }: {
   workspaceId: string;
   userId: string;
+  now: number;
 } & Pick<
   UserPropertyDelayVariant,
   "userProperty" | "offsetSeconds" | "offsetDirection"
