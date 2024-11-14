@@ -176,7 +176,6 @@ model SegmentAssignment {
   userId      String
   segment     Segment   @relation(fields: [segmentId], references: [id], onDelete: Cascade)
   segmentId   String    @db.Uuid
-  key         String?
   inSegment   Boolean
 
   @@unique([workspaceId, userId, segmentId])
@@ -189,7 +188,6 @@ model UserPropertyAssignment {
   userProperty   UserProperty @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
   userPropertyId String       @db.Uuid
   value          String
-  key            String?
 
   @@unique([workspaceId, userPropertyId, userId])
   @@index([userId])
