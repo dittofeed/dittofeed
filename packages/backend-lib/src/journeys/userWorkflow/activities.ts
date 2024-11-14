@@ -338,7 +338,6 @@ export async function getSegmentAssignment(
   return {
     userId,
     workspaceId,
-    key: params.keyValue,
     segmentId,
     inSegment: result.value,
   };
