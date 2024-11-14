@@ -2,6 +2,7 @@ import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   fileUserPropertyToPerformed,
   parseUserProperty as parseUserPropertyAssignment,
@@ -23,7 +24,6 @@ import {
   UserPropertyOperatorType,
   UserPropertyResource,
 } from "./types";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export function enrichUserProperty(
   userProperty: UserProperty,

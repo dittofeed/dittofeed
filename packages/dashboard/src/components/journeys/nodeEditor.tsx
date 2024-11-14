@@ -615,6 +615,9 @@ function DelayNodeFields({
                   hour: 8,
                 };
                 break;
+              case DelayVariantType.UserProperty:
+                // FIXME
+                throw new Error("Not implemented");
               default:
                 assertUnreachable(type);
             }

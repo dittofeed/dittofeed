@@ -213,6 +213,10 @@ function mapSegmentNodeToNewType(
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
     }
+    // FIXME
+    case SegmentNodeType.KeyedPerformed: {
+      throw new Error(`Unimplemented segment node type ${type}.`);
+    }
   }
 }
 

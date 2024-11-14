@@ -19,6 +19,7 @@ import { Draft } from "immer";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AnyOfUserPropertyDefinition,
   CompletionStatus,
@@ -134,6 +135,10 @@ function getUserPropertyOption(
       return fileOption;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
+    case UserPropertyDefinitionType.KeyedPerformed:
+      throw new Error("Not implemented");
+    default:
+      assertUnreachable(type);
   }
 }
 
@@ -193,6 +198,10 @@ function defaultUserProperty(
     }
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
+    case UserPropertyDefinitionType.KeyedPerformed:
+      throw new Error("Not implemented");
+    default:
+      assertUnreachable(type);
   }
 }
 
@@ -748,6 +757,11 @@ function DefinitionComponent({
       break;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
+    // FIXME
+    case UserPropertyDefinitionType.KeyedPerformed:
+      throw new Error("Not implemented");
+    default:
+      assertUnreachable(definition);
   }
   return up;
 }

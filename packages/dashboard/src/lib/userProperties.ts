@@ -45,6 +45,9 @@ export function getDefaultUserPropertyExampleValue(
     }
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
+    // FIXME
+    case UserPropertyDefinitionType.KeyedPerformed:
+      throw new Error("Not implemented");
     default:
       assertUnreachable(definition);
   }

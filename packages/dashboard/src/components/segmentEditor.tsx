@@ -133,7 +133,10 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
 const keyedSegmentOptions: Record<
   Exclude<
     SegmentNodeType,
-    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
+    // FIXME
+    | SegmentNodeType.LastPerformed
+    | SegmentNodeType.Broadcast
+    | SegmentNodeType.KeyedPerformed
   >,
   SegmentGroupedOption
 > = {
@@ -1234,7 +1237,9 @@ function SegmentNodeComponent({
 
   if (
     node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast
+    node.type === SegmentNodeType.Broadcast ||
+    // FIXME
+    node.type === SegmentNodeType.KeyedPerformed
   ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }

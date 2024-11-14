@@ -699,10 +699,14 @@ export const WaitForSegmentChild = Type.Object({
 
 export type WaitForSegmentChild = Static<typeof WaitForSegmentChild>;
 
+const WaitForNodeBase = {
+  ...BaseNode,
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+};
+
 export const WaitForNode = Type.Object(
   {
-    ...BaseNode,
-    type: Type.Literal(JourneyNodeType.WaitForNode),
+    ...WaitForNodeBase,
     timeoutSeconds: Type.Number(),
     timeoutChild: Type.String(),
     segmentChildren: Type.Array(WaitForSegmentChild),
@@ -719,7 +723,15 @@ export type WaitForNode = Static<typeof WaitForNode>;
 export enum DelayVariantType {
   Second = "Second",
   LocalTime = "LocalTime",
+  UserProperty = "UserProperty",
 }
+
+export const UserPropertyDelayVariant = Type.Object({
+  type: Type.Literal(DelayVariantType.UserProperty),
+  userProperty: Type.String(),
+});
+
+export type UserPropertyDelayVariant = Static<typeof UserPropertyDelayVariant>;
 
 export const SecondsDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.Second),
