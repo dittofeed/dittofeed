@@ -3344,6 +3344,9 @@
                                                                 "event": {
                                                                   "type": "string"
                                                                 },
+                                                                "key": {
+                                                                  "type": "string"
+                                                                },
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
@@ -3688,6 +3691,42 @@
                                                                   "required": [
                                                                     "type"
                                                                   ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "userProperty": {
+                                                                      "type": "string"
+                                                                    },
+                                                                    "offsetSeconds": {
+                                                                      "type": "number"
+                                                                    },
+                                                                    "offsetDirection": {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "after"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "before"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "UserProperty"
+                                                                      ]
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type"
+                                                                  ]
                                                                 }
                                                               ]
                                                             }
@@ -3929,6 +3968,9 @@
                                           "event": {
                                             "type": "string"
                                           },
+                                          "key": {
+                                            "type": "string"
+                                          },
                                           "child": {
                                             "type": "string"
                                           }
@@ -4061,6 +4103,43 @@
                                                   "required": [
                                                     "type",
                                                     "hour"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "UserProperty"
+                                                      ]
+                                                    },
+                                                    "userProperty": {
+                                                      "type": "string"
+                                                    },
+                                                    "offsetSeconds": {
+                                                      "type": "number"
+                                                    },
+                                                    "offsetDirection": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "after"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "before"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "userProperty"
                                                   ]
                                                 }
                                               ]
@@ -4504,6 +4583,9 @@
                                                                 "event": {
                                                                   "type": "string"
                                                                 },
+                                                                "key": {
+                                                                  "type": "string"
+                                                                },
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
@@ -4848,6 +4930,42 @@
                                                                   "required": [
                                                                     "type"
                                                                   ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "userProperty": {
+                                                                      "type": "string"
+                                                                    },
+                                                                    "offsetSeconds": {
+                                                                      "type": "number"
+                                                                    },
+                                                                    "offsetDirection": {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "after"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "before"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "UserProperty"
+                                                                      ]
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type"
+                                                                  ]
                                                                 }
                                                               ]
                                                             }
@@ -5105,6 +5223,9 @@
                                           "event": {
                                             "type": "string"
                                           },
+                                          "key": {
+                                            "type": "string"
+                                          },
                                           "child": {
                                             "type": "string"
                                           }
@@ -5237,6 +5358,43 @@
                                                   "required": [
                                                     "type",
                                                     "hour"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "UserProperty"
+                                                      ]
+                                                    },
+                                                    "userProperty": {
+                                                      "type": "string"
+                                                    },
+                                                    "offsetSeconds": {
+                                                      "type": "number"
+                                                    },
+                                                    "offsetDirection": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "after"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "before"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "userProperty"
                                                   ]
                                                 }
                                               ]
@@ -5691,6 +5849,9 @@
                               "event": {
                                 "type": "string"
                               },
+                              "key": {
+                                "type": "string"
+                              },
                               "child": {
                                 "type": "string"
                               }
@@ -5823,6 +5984,43 @@
                                       "required": [
                                         "type",
                                         "hour"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "UserProperty"
+                                          ]
+                                        },
+                                        "userProperty": {
+                                          "type": "string"
+                                        },
+                                        "offsetSeconds": {
+                                          "type": "number"
+                                        },
+                                        "offsetDirection": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "after"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "before"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "userProperty"
                                       ]
                                     }
                                   ]
@@ -6258,6 +6456,9 @@
                                                         "event": {
                                                           "type": "string"
                                                         },
+                                                        "key": {
+                                                          "type": "string"
+                                                        },
                                                         "child": {
                                                           "type": "string"
                                                         },
@@ -6602,6 +6803,42 @@
                                                           "required": [
                                                             "type"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "userProperty": {
+                                                              "type": "string"
+                                                            },
+                                                            "offsetSeconds": {
+                                                              "type": "number"
+                                                            },
+                                                            "offsetDirection": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string",
+                                                                  "enum": [
+                                                                    "after"
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "type": "string",
+                                                                  "enum": [
+                                                                    "before"
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            "type": {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "UserProperty"
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "type"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -6900,6 +7137,9 @@
                                                         "type": "object",
                                                         "properties": {
                                                           "event": {
+                                                            "type": "string"
+                                                          },
+                                                          "key": {
                                                             "type": "string"
                                                           },
                                                           "child": {
@@ -7246,6 +7486,42 @@
                                                             "required": [
                                                               "type"
                                                             ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "userProperty": {
+                                                                "type": "string"
+                                                              },
+                                                              "offsetSeconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "offsetDirection": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "after"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "before"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "UserProperty"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
                                                           }
                                                         ]
                                                       }
@@ -7487,6 +7763,9 @@
                                     "event": {
                                       "type": "string"
                                     },
+                                    "key": {
+                                      "type": "string"
+                                    },
                                     "child": {
                                       "type": "string"
                                     }
@@ -7619,6 +7898,43 @@
                                             "required": [
                                               "type",
                                               "hour"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "UserProperty"
+                                                ]
+                                              },
+                                              "userProperty": {
+                                                "type": "string"
+                                              },
+                                              "offsetSeconds": {
+                                                "type": "number"
+                                              },
+                                              "offsetDirection": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "after"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "before"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "userProperty"
                                             ]
                                           }
                                         ]
@@ -8062,6 +8378,9 @@
                                                           "event": {
                                                             "type": "string"
                                                           },
+                                                          "key": {
+                                                            "type": "string"
+                                                          },
                                                           "child": {
                                                             "type": "string"
                                                           },
@@ -8406,6 +8725,42 @@
                                                             "required": [
                                                               "type"
                                                             ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "userProperty": {
+                                                                "type": "string"
+                                                              },
+                                                              "offsetSeconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "offsetDirection": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "after"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "before"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "UserProperty"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
                                                           }
                                                         ]
                                                       }
@@ -8663,6 +9018,9 @@
                                     "event": {
                                       "type": "string"
                                     },
+                                    "key": {
+                                      "type": "string"
+                                    },
                                     "child": {
                                       "type": "string"
                                     }
@@ -8795,6 +9153,43 @@
                                             "required": [
                                               "type",
                                               "hour"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "UserProperty"
+                                                ]
+                                              },
+                                              "userProperty": {
+                                                "type": "string"
+                                              },
+                                              "offsetSeconds": {
+                                                "type": "number"
+                                              },
+                                              "offsetDirection": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "after"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "before"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "userProperty"
                                             ]
                                           }
                                         ]
@@ -10754,6 +11149,151 @@
                                       "type",
                                       "version",
                                       "id"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "KeyedPerformed"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "event": {
+                                        "type": "string"
+                                      },
+                                      "key": {
+                                        "type": "string"
+                                      },
+                                      "times": {
+                                        "type": "number"
+                                      },
+                                      "timesOperator": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "="
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              ">="
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "<"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "properties": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "path": {
+                                              "type": "string"
+                                            },
+                                            "operator": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Equals"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Exists"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "GreaterThanOrEqual"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "LessThan"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "path",
+                                            "operator"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id",
+                                      "event",
+                                      "key"
                                     ]
                                   }
                                 ]
@@ -12884,6 +13424,151 @@
                                   "version",
                                   "id"
                                 ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "KeyedPerformed"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "times": {
+                                    "type": "number"
+                                  },
+                                  "timesOperator": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "="
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          ">="
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "<"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Equals"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Exists"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "GreaterThanOrEqual"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "LessThan"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "operator"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "event",
+                                  "key"
+                                ]
                               }
                             ]
                           },
@@ -15007,6 +15692,151 @@
                                 "type",
                                 "version",
                                 "id"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "KeyedPerformed"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "key": {
+                                  "type": "string"
+                                },
+                                "times": {
+                                  "type": "number"
+                                },
+                                "timesOperator": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "="
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        ">="
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "<"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "path": {
+                                        "type": "string"
+                                      },
+                                      "operator": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Equals"
+                                                ]
+                                              },
+                                              "value": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "number"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Exists"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "GreaterThanOrEqual"
+                                                ]
+                                              },
+                                              "value": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "LessThan"
+                                                ]
+                                              },
+                                              "value": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "path",
+                                      "operator"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "event",
+                                "key"
                               ]
                             }
                           ]
@@ -17352,6 +18182,64 @@
                               "type",
                               "or"
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "KeyedPerformed"
+                                ]
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "properties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "path": {
+                                      "type": "string"
+                                    },
+                                    "operator": {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Equals"
+                                          ]
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "path",
+                                    "operator"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "event",
+                              "key"
+                            ]
                           }
                         ]
                       },
@@ -17722,6 +18610,64 @@
                           "required": [
                             "type",
                             "or"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "KeyedPerformed"
+                              ]
+                            },
+                            "event": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            },
+                            "properties": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "operator": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Equals"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "path",
+                                  "operator"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "event",
+                            "key"
                           ]
                         }
                       ]
@@ -18105,6 +19051,64 @@
                                 "required": [
                                   "type",
                                   "or"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "KeyedPerformed"
+                                    ]
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Equals"
+                                              ]
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "operator"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "event",
+                                  "key"
                                 ]
                               }
                             ]
@@ -23908,6 +24912,64 @@
                               "type",
                               "or"
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "KeyedPerformed"
+                                ]
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "properties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "path": {
+                                      "type": "string"
+                                    },
+                                    "operator": {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Equals"
+                                          ]
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "value"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "path",
+                                    "operator"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "event",
+                              "key"
+                            ]
                           }
                         ]
                       },
@@ -24278,6 +25340,64 @@
                           "required": [
                             "type",
                             "or"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "KeyedPerformed"
+                              ]
+                            },
+                            "event": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            },
+                            "properties": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "operator": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Equals"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "path",
+                                  "operator"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "event",
+                            "key"
                           ]
                         }
                       ]
@@ -24661,6 +25781,64 @@
                                 "required": [
                                   "type",
                                   "or"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "KeyedPerformed"
+                                    ]
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Equals"
+                                              ]
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "operator"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "event",
+                                  "key"
                                 ]
                               }
                             ]
@@ -25846,6 +27024,151 @@
                                       "type",
                                       "version",
                                       "id"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "KeyedPerformed"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "event": {
+                                        "type": "string"
+                                      },
+                                      "key": {
+                                        "type": "string"
+                                      },
+                                      "times": {
+                                        "type": "number"
+                                      },
+                                      "timesOperator": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "="
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              ">="
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "<"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "properties": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "path": {
+                                              "type": "string"
+                                            },
+                                            "operator": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Equals"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Exists"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "GreaterThanOrEqual"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "LessThan"
+                                                      ]
+                                                    },
+                                                    "value": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "path",
+                                            "operator"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id",
+                                      "event",
+                                      "key"
                                     ]
                                   }
                                 ]
@@ -27976,6 +29299,151 @@
                                   "version",
                                   "id"
                                 ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "KeyedPerformed"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "times": {
+                                    "type": "number"
+                                  },
+                                  "timesOperator": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "="
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          ">="
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "<"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Equals"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Exists"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "GreaterThanOrEqual"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "LessThan"
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "operator"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "event",
+                                  "key"
+                                ]
                               }
                             ]
                           },
@@ -30100,6 +31568,151 @@
                                 "version",
                                 "id"
                               ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "KeyedPerformed"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "key": {
+                                  "type": "string"
+                                },
+                                "times": {
+                                  "type": "number"
+                                },
+                                "timesOperator": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "="
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        ">="
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "<"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "path": {
+                                        "type": "string"
+                                      },
+                                      "operator": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Equals"
+                                                ]
+                                              },
+                                              "value": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "number"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Exists"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "GreaterThanOrEqual"
+                                                ]
+                                              },
+                                              "value": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "LessThan"
+                                                ]
+                                              },
+                                              "value": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "path",
+                                      "operator"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "event",
+                                "key"
+                              ]
                             }
                           ]
                         },
@@ -31414,6 +33027,9 @@
                                                                 "event": {
                                                                   "type": "string"
                                                                 },
+                                                                "key": {
+                                                                  "type": "string"
+                                                                },
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
@@ -31758,6 +33374,42 @@
                                                                   "required": [
                                                                     "type"
                                                                   ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "userProperty": {
+                                                                      "type": "string"
+                                                                    },
+                                                                    "offsetSeconds": {
+                                                                      "type": "number"
+                                                                    },
+                                                                    "offsetDirection": {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "after"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "before"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "UserProperty"
+                                                                      ]
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type"
+                                                                  ]
                                                                 }
                                                               ]
                                                             }
@@ -31999,6 +33651,9 @@
                                           "event": {
                                             "type": "string"
                                           },
+                                          "key": {
+                                            "type": "string"
+                                          },
                                           "child": {
                                             "type": "string"
                                           }
@@ -32131,6 +33786,43 @@
                                                   "required": [
                                                     "type",
                                                     "hour"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "UserProperty"
+                                                      ]
+                                                    },
+                                                    "userProperty": {
+                                                      "type": "string"
+                                                    },
+                                                    "offsetSeconds": {
+                                                      "type": "number"
+                                                    },
+                                                    "offsetDirection": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "after"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "before"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "userProperty"
                                                   ]
                                                 }
                                               ]
@@ -32574,6 +34266,9 @@
                                                                 "event": {
                                                                   "type": "string"
                                                                 },
+                                                                "key": {
+                                                                  "type": "string"
+                                                                },
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
@@ -32918,6 +34613,42 @@
                                                                   "required": [
                                                                     "type"
                                                                   ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "userProperty": {
+                                                                      "type": "string"
+                                                                    },
+                                                                    "offsetSeconds": {
+                                                                      "type": "number"
+                                                                    },
+                                                                    "offsetDirection": {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "after"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "string",
+                                                                          "enum": [
+                                                                            "before"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "UserProperty"
+                                                                      ]
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type"
+                                                                  ]
                                                                 }
                                                               ]
                                                             }
@@ -33175,6 +34906,9 @@
                                           "event": {
                                             "type": "string"
                                           },
+                                          "key": {
+                                            "type": "string"
+                                          },
                                           "child": {
                                             "type": "string"
                                           }
@@ -33307,6 +35041,43 @@
                                                   "required": [
                                                     "type",
                                                     "hour"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "UserProperty"
+                                                      ]
+                                                    },
+                                                    "userProperty": {
+                                                      "type": "string"
+                                                    },
+                                                    "offsetSeconds": {
+                                                      "type": "number"
+                                                    },
+                                                    "offsetDirection": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "after"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "before"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "userProperty"
                                                   ]
                                                 }
                                               ]
@@ -33761,6 +35532,9 @@
                               "event": {
                                 "type": "string"
                               },
+                              "key": {
+                                "type": "string"
+                              },
                               "child": {
                                 "type": "string"
                               }
@@ -33893,6 +35667,43 @@
                                       "required": [
                                         "type",
                                         "hour"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "UserProperty"
+                                          ]
+                                        },
+                                        "userProperty": {
+                                          "type": "string"
+                                        },
+                                        "offsetSeconds": {
+                                          "type": "number"
+                                        },
+                                        "offsetDirection": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "after"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "before"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "userProperty"
                                       ]
                                     }
                                   ]
@@ -34328,6 +36139,9 @@
                                                         "event": {
                                                           "type": "string"
                                                         },
+                                                        "key": {
+                                                          "type": "string"
+                                                        },
                                                         "child": {
                                                           "type": "string"
                                                         },
@@ -34672,6 +36486,42 @@
                                                           "required": [
                                                             "type"
                                                           ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "userProperty": {
+                                                              "type": "string"
+                                                            },
+                                                            "offsetSeconds": {
+                                                              "type": "number"
+                                                            },
+                                                            "offsetDirection": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string",
+                                                                  "enum": [
+                                                                    "after"
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "type": "string",
+                                                                  "enum": [
+                                                                    "before"
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            "type": {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "UserProperty"
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "type"
+                                                          ]
                                                         }
                                                       ]
                                                     }
@@ -34970,6 +36820,9 @@
                                                         "type": "object",
                                                         "properties": {
                                                           "event": {
+                                                            "type": "string"
+                                                          },
+                                                          "key": {
                                                             "type": "string"
                                                           },
                                                           "child": {
@@ -35316,6 +37169,42 @@
                                                             "required": [
                                                               "type"
                                                             ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "userProperty": {
+                                                                "type": "string"
+                                                              },
+                                                              "offsetSeconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "offsetDirection": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "after"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "before"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "UserProperty"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
                                                           }
                                                         ]
                                                       }
@@ -35557,6 +37446,9 @@
                                     "event": {
                                       "type": "string"
                                     },
+                                    "key": {
+                                      "type": "string"
+                                    },
                                     "child": {
                                       "type": "string"
                                     }
@@ -35689,6 +37581,43 @@
                                             "required": [
                                               "type",
                                               "hour"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "UserProperty"
+                                                ]
+                                              },
+                                              "userProperty": {
+                                                "type": "string"
+                                              },
+                                              "offsetSeconds": {
+                                                "type": "number"
+                                              },
+                                              "offsetDirection": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "after"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "before"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "userProperty"
                                             ]
                                           }
                                         ]
@@ -36132,6 +38061,9 @@
                                                           "event": {
                                                             "type": "string"
                                                           },
+                                                          "key": {
+                                                            "type": "string"
+                                                          },
                                                           "child": {
                                                             "type": "string"
                                                           },
@@ -36476,6 +38408,42 @@
                                                             "required": [
                                                               "type"
                                                             ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "userProperty": {
+                                                                "type": "string"
+                                                              },
+                                                              "offsetSeconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "offsetDirection": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "after"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                      "before"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "UserProperty"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
                                                           }
                                                         ]
                                                       }
@@ -36733,6 +38701,9 @@
                                     "event": {
                                       "type": "string"
                                     },
+                                    "key": {
+                                      "type": "string"
+                                    },
                                     "child": {
                                       "type": "string"
                                     }
@@ -36865,6 +38836,43 @@
                                             "required": [
                                               "type",
                                               "hour"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "UserProperty"
+                                                ]
+                                              },
+                                              "userProperty": {
+                                                "type": "string"
+                                              },
+                                              "offsetSeconds": {
+                                                "type": "number"
+                                              },
+                                              "offsetDirection": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "after"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "before"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "userProperty"
                                             ]
                                           }
                                         ]
@@ -41853,6 +43861,151 @@
                               "type",
                               "version",
                               "id"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "KeyedPerformed"
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "times": {
+                                "type": "number"
+                              },
+                              "timesOperator": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "="
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      ">="
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "<"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "properties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "path": {
+                                      "type": "string"
+                                    },
+                                    "operator": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Equals"
+                                              ]
+                                            },
+                                            "value": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Exists"
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "type"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "GreaterThanOrEqual"
+                                              ]
+                                            },
+                                            "value": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "LessThan"
+                                              ]
+                                            },
+                                            "value": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "path",
+                                    "operator"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "id",
+                              "event",
+                              "key"
                             ]
                           }
                         ]

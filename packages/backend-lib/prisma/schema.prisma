@@ -59,10 +59,10 @@ model Workspace {
 }
 
 model WorkspaceRelation {
-  parentWorkspace        Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
-  parentWorkspaceId      String    @db.Uuid
-  childWorkspace   Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
-  childWorkspaceId String    @db.Uuid
+  parentWorkspace   Workspace @relation("ParentRelation", fields: [parentWorkspaceId], references: [id], onDelete: Cascade)
+  parentWorkspaceId String    @db.Uuid
+  childWorkspace    Workspace @relation("ChildRelation", fields: [childWorkspaceId], references: [id], onDelete: Cascade)
+  childWorkspaceId  String    @db.Uuid
 
   @@unique([parentWorkspaceId, childWorkspaceId])
 }
@@ -295,10 +295,12 @@ model UserJourneyEvent {
   journeyId        String?  @db.Uuid()
   type             String
   eventKey         String?
+  eventKeyName     String?
+
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
 
-  @@unique([journeyId, userId, eventKey, type, journeyStartedAt, nodeId])
+  @@unique([journeyId, userId, eventKey, eventKeyName, type, journeyStartedAt, nodeId])
 }
 
 enum DBSubscriptionGroupType {

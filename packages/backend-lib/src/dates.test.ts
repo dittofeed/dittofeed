@@ -1,6 +1,9 @@
+import { randomUUID } from "crypto";
 import { differenceInHours } from "date-fns";
 
-import { findNextLocalizedTimeInner } from "./dates";
+import { findNextLocalizedTimeInner, getUserPropertyDelay } from "./dates";
+import prisma from "./prisma";
+import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 
 describe("findNextLocalizedTimeInner", () => {
   describe("when localizing to disneyland time at 8 pm it", () => {
@@ -58,5 +61,217 @@ describe("findNextLocalizedTimeInner", () => {
     });
     expect(result).toBeGreaterThan(now);
     expect(differenceInHours(result, now)).toBe(20);
+  });
+});
+
+describe("getUserPropertyDelay", () => {
+  const now = new Date("2024-01-01T12:00:00.000Z").getTime();
+  let userId: string;
+  let workspaceId: string;
+  let userPropertyId: string;
+
+  beforeEach(async () => {
+    userId = randomUUID();
+    const workspace = await prisma().workspace.create({
+      data: {
+        name: `test-workspace-${randomUUID()}`,
+      },
+    });
+    const userProperty = await prisma().userProperty.create({
+      data: {
+        name: "testDate",
+        definition: {
+          type: UserPropertyDefinitionType.Performed,
+          path: "testPath",
+          event: "*",
+        } satisfies UserPropertyDefinition,
+        workspaceId: workspace.id,
+      },
+    });
+    userPropertyId = userProperty.id;
+    workspaceId = workspace.id;
+  });
+
+  describe("with ISO string dates", () => {
+    it("returns correct delay for future date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: "2024-01-01T14:00:00.000Z", // 2 hours in future
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBe(2 * 60 * 60 * 1000); // 2 hours in ms
+    });
+
+    it("returns null for past date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: "2024-01-01T10:00:00.000Z", // 2 hours in past
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBeNull();
+    });
+  });
+
+  describe("with unix timestamp (seconds)", () => {
+    it("returns correct delay for future date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(Math.floor(now / 1000) + 3600), // 1 hour in future
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBe(60 * 60 * 1000); // 1 hour in ms
+    });
+
+    it("returns null for past date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(Math.floor(now / 1000) - 3600), // 1 hour in past
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBeNull();
+    });
+  });
+
+  describe("with unix timestamp (milliseconds)", () => {
+    it("returns correct delay for future date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(now + 30 * 60 * 1000), // 30 minutes in future
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBe(30 * 60 * 1000); // 30 minutes in ms
+    });
+
+    it("returns null for past date", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(now - 30 * 60 * 1000), // 30 minutes in past
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+      });
+
+      expect(delay).toBeNull();
+    });
+  });
+
+  describe("with offset", () => {
+    it("handles 'after' offset correctly", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(now + 60 * 60 * 1000), // 1 hour in future
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+        offsetSeconds: 1800, // 30 minutes
+        offsetDirection: "after",
+      });
+
+      expect(delay).toBe(90 * 60 * 1000); // 1.5 hours in ms
+    });
+
+    it("handles 'before' offset correctly", async () => {
+      await prisma().userPropertyAssignment.create({
+        data: {
+          workspaceId,
+          userId,
+          userPropertyId,
+          value: String(now + 60 * 60 * 1000), // 1 hour in future
+        },
+      });
+
+      const delay = await getUserPropertyDelay({
+        workspaceId,
+        userId,
+        userProperty: userPropertyId,
+        now,
+        offsetSeconds: 1800, // 30 minutes
+        offsetDirection: "before",
+      });
+
+      expect(delay).toBe(30 * 60 * 1000); // 30 minutes in ms
+    });
+  });
+
+  it("returns null when property not found", async () => {
+    const delay = await getUserPropertyDelay({
+      workspaceId,
+      userId,
+      userProperty: userPropertyId,
+      now,
+    });
+
+    expect(delay).toBeNull();
   });
 });

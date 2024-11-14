@@ -1,41 +1,63 @@
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
-import { Overwrite } from "utility-types";
+import {
+  JourneyNodeType,
+  MakeRequired,
+  UserWorkflowTrackEvent,
+} from "isomorphic-lib/src/types";
 
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
-  getUserJourneyWorkflowId,
+  getKeyedUserJourneyWorkflowId,
+  trackSignal,
   userJourneyWorkflow,
-  UserJourneyWorkflowProps,
+  UserJourneyWorkflowPropsV2,
+  UserJourneyWorkflowVersion,
 } from "../userWorkflow";
+
+export type StartKeyedUserJourneyProps = Omit<
+  MakeRequired<UserJourneyWorkflowPropsV2, "event">,
+  "version"
+>;
 
 export async function startKeyedUserJourney({
   journeyId,
   workspaceId,
   userId,
   definition,
-  eventKey,
-  context,
-}: Overwrite<UserJourneyWorkflowProps, { eventKey: string }>) {
+  event,
+}: StartKeyedUserJourneyProps) {
   const workflowClient = await connectWorkflowClient();
-  const workflowId = getUserJourneyWorkflowId({
+  if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+    throw new Error("Invalid entry node type");
+  }
+  const workflowId = getKeyedUserJourneyWorkflowId({
     userId,
     journeyId,
-    eventKey,
+    event,
+    entryNode: definition.entryNode,
   });
+  if (!workflowId) {
+    return;
+  }
 
   try {
-    await workflowClient.start(userJourneyWorkflow, {
+    await workflowClient.signalWithStart<
+      typeof userJourneyWorkflow,
+      [UserWorkflowTrackEvent]
+    >(userJourneyWorkflow, {
       taskQueue: "default",
       workflowId,
+      signal: trackSignal,
+      signalArgs: [event],
       args: [
         {
           journeyId,
           definition,
           workspaceId,
           userId,
-          eventKey,
-          context,
+          event,
+          version: UserJourneyWorkflowVersion.V2,
         },
       ],
     });
@@ -46,7 +68,7 @@ export async function startKeyedUserJourney({
         journeyId,
         userId,
         workspaceId,
-        eventKey,
+        eventKey: definition.entryNode.key,
       });
       return;
     }

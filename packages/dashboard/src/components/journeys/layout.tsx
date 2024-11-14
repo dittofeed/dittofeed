@@ -75,6 +75,7 @@ export default function JourneyLayout({
     resetJourneyState,
     viewDraft,
     setViewDraft,
+    segments: segmentsResult,
   } = useAppStorePick([
     "apiBase",
     "workspace",
@@ -88,6 +89,7 @@ export default function JourneyLayout({
     "resetJourneyState",
     "viewDraft",
     "setViewDraft",
+    "segments",
   ]);
   const journey: SavedJourneyResource | null = useMemo(() => {
     if (journeys.type !== CompletionStatus.Successful) {
@@ -95,6 +97,14 @@ export default function JourneyLayout({
     }
     return journeys.value.find((j) => j.id === journeyId) ?? null;
   }, [journeyId, journeys]);
+
+  const segments = useMemo(
+    () =>
+      segmentsResult.type === CompletionStatus.Successful
+        ? segmentsResult.value
+        : [],
+    [segmentsResult],
+  );
 
   useEffect(() => {
     if (
@@ -178,7 +188,10 @@ export default function JourneyLayout({
       };
       return { publisher, draftToggle: publisher };
     }
-    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    const globalJourneyErrors = getGlobalJourneyErrors({
+      nodes: journeyNodes,
+      segments,
+    });
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,

@@ -2,8 +2,12 @@ import { add } from "date-fns";
 import { getTimezoneOffset } from "date-fns-tz";
 import { find as findTz } from "geo-tz";
 
-import { LocalTimeDelayVariantFields } from "./types";
-import { findAllUserPropertyAssignments } from "./userProperties";
+import logger from "./logger";
+import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
+import {
+  findAllUserPropertyAssignments,
+  findAllUserPropertyAssignmentsById,
+} from "./userProperties";
 
 const DEFAULT_TIMEZONE = "UTC";
 const EVERY_DAY_IN_WEEK = new Set([0, 1, 2, 3, 4, 5, 6]);
@@ -77,4 +81,94 @@ export async function findNextLocalizedTime({
     now,
     hour: 5,
   });
+}
+
+/**
+ * Returns the delay in milliseconds to wait for a user property delay.
+ * Returns null if the user property is not a date.
+ *
+ * @param now - The current time in milliseconds since epoch.
+ * @param userProperty - The user property to get the delay for. Will try to
+ * parse as a date accepting ISO 8601 strings, unix timestamps in seconds, and
+ * unix timestamps in milliseconds.
+ * @param offsetSeconds - The number of seconds to offset the delay by.
+ * @param offsetDirection - The direction to offset the delay.
+ */
+export async function getUserPropertyDelay({
+  workspaceId,
+  userId,
+  userProperty,
+  now,
+  offsetSeconds = 0,
+  offsetDirection = "after",
+  events,
+}: {
+  workspaceId: string;
+  userId: string;
+  userProperty: string;
+  now: number;
+  events?: UserWorkflowTrackEvent[];
+  offsetSeconds?: number;
+  offsetDirection?: "before" | "after";
+}): Promise<number | null> {
+  const assignments = await findAllUserPropertyAssignmentsById({
+    workspaceId,
+    userId,
+    userPropertyIds: [userProperty],
+    context: events?.flatMap((e) => e.properties ?? []),
+  });
+
+  const assignment = assignments[userProperty];
+  if (!assignment) {
+    logger().debug(
+      {
+        workspaceId,
+        userId,
+        userProperty,
+        assignments,
+      },
+      "no assignment in user property delay",
+    );
+    return null;
+  }
+
+  // Try parsing different date formats
+  let date: Date | null = null;
+
+  if (typeof assignment === "string") {
+    // Try ISO string
+    const parsedDate = new Date(assignment);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+    }
+  } else if (typeof assignment === "number") {
+    // Try unix timestamp (seconds or milliseconds)
+    const timestamp = assignment < 1e12 ? assignment * 1000 : assignment;
+    const parsedDate = new Date(timestamp);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+    }
+  }
+
+  if (!date) {
+    logger().debug(
+      {
+        workspaceId,
+        userId,
+        userProperty,
+        assignment,
+      },
+      "no date in user property delay",
+    );
+    return null;
+  }
+
+  const offsetMs = offsetSeconds * 1000;
+  const targetTime =
+    offsetDirection === "before"
+      ? date.getTime() - offsetMs
+      : date.getTime() + offsetMs;
+
+  const delay = targetTime - now;
+  return delay > 0 ? delay : null;
 }

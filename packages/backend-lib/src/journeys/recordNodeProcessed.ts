@@ -61,4 +61,5 @@ export interface RecordNodeProcessedParams {
   node: JourneyNode;
   workspaceId: string;
   eventKey?: string;
+  eventKeyName?: string;
 }

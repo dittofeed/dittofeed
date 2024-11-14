@@ -1649,6 +1649,10 @@ export async function sendWebhook({
   }
 }
 
+export type Sender = (
+  params: SendMessageParameters,
+) => Promise<BackendMessageSendResult>;
+
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {

@@ -70,6 +70,7 @@ export enum InternalEventType {
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
   ManualSegmentUpdate = "DFManualSegmentUpdate",
   AttachedFiles = "DFAttachedFiles",
+  UserTrackSignal = "DFUserTrackSignal",
 }
 
 export enum SubscriptionGroupType {
@@ -239,6 +240,7 @@ export enum SegmentNodeType {
   Email = "Email",
   Manual = "Manual",
   RandomBucket = "RandomBucket",
+  KeyedPerformed = "KeyedPerformed",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -383,6 +385,39 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
+export const KeyedPerformedPropertiesOperator = Type.Union([
+  SegmentEqualsOperator,
+  ExistsOperator,
+  SegmentGreaterThanOrEqualOperator,
+  SegmentLessThanOperator,
+]);
+
+export type KeyedPerformedPropertiesOperator = Static<
+  typeof KeyedPerformedPropertiesOperator
+>;
+
+export const KeyedPerformedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.KeyedPerformed),
+  id: Type.String(),
+  event: Type.String(),
+  key: Type.String(),
+  times: Type.Optional(Type.Number()),
+  // Note that this will not be backwards looking
+  timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: KeyedPerformedPropertiesOperator,
+      }),
+    ),
+  ),
+});
+
+export type KeyedPerformedSegmentNode = Static<
+  typeof KeyedPerformedSegmentNode
+>;
+
 export const BodySegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
@@ -397,7 +432,11 @@ export const BodySegmentNode = Type.Union([
 
 export type BodySegmentNode = Static<typeof BodySegmentNode>;
 
-export const SegmentNode = Type.Union([BodySegmentNode, ManualSegmentNode]);
+export const SegmentNode = Type.Union([
+  BodySegmentNode,
+  ManualSegmentNode,
+  KeyedPerformedSegmentNode,
+]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
 
@@ -416,6 +455,7 @@ export enum UserPropertyDefinitionType {
   Group = "Group",
   AnyOf = "AnyOf",
   PerformedMany = "PerformedMany",
+  KeyedPerformed = "KeyedPerformed",
   File = "File",
 }
 
@@ -570,12 +610,32 @@ export type GroupUserPropertyDefinition = Static<
   typeof GroupUserPropertyDefinition
 >;
 
+export const KeyedPerformedUserPropertyDefinition = Type.Object({
+  id: Type.Optional(Type.String()),
+  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
+  event: Type.String(),
+  key: Type.String(),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: UserPropertyOperator,
+      }),
+    ),
+  ),
+});
+
+export type KeyedPerformedUserPropertyDefinition = Static<
+  typeof KeyedPerformedUserPropertyDefinition
+>;
+
 export const UserPropertyDefinition = Type.Union([
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
   PerformedManyUserPropertyDefinition,
+  KeyedPerformedUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;
@@ -616,6 +676,7 @@ export const EventEntryNode = Type.Object(
   {
     type: Type.Literal(JourneyNodeType.EventEntryNode),
     event: Type.String(),
+    key: Type.Optional(Type.String()),
     child: Type.String(),
   },
   {
@@ -638,10 +699,14 @@ export const WaitForSegmentChild = Type.Object({
 
 export type WaitForSegmentChild = Static<typeof WaitForSegmentChild>;
 
+const WaitForNodeBase = {
+  ...BaseNode,
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+};
+
 export const WaitForNode = Type.Object(
   {
-    ...BaseNode,
-    type: Type.Literal(JourneyNodeType.WaitForNode),
+    ...WaitForNodeBase,
     timeoutSeconds: Type.Number(),
     timeoutChild: Type.String(),
     segmentChildren: Type.Array(WaitForSegmentChild),
@@ -655,10 +720,25 @@ export const WaitForNode = Type.Object(
 
 export type WaitForNode = Static<typeof WaitForNode>;
 
+export enum CursorDirectionEnum {
+  After = "after",
+  Before = "before",
+}
+
 export enum DelayVariantType {
   Second = "Second",
   LocalTime = "LocalTime",
+  UserProperty = "UserProperty",
 }
+
+export const UserPropertyDelayVariant = Type.Object({
+  type: Type.Literal(DelayVariantType.UserProperty),
+  userProperty: Type.String(),
+  offsetSeconds: Type.Optional(Type.Number()),
+  offsetDirection: Type.Optional(Type.Enum(CursorDirectionEnum)),
+});
+
+export type UserPropertyDelayVariant = Static<typeof UserPropertyDelayVariant>;
 
 export const SecondsDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.Second),
@@ -694,6 +774,7 @@ export type LocalTimeDelayVariantFields = Omit<LocalTimeDelayVariant, "type">;
 export const DelayVariant = Type.Union([
   SecondsDelayVariant,
   LocalTimeDelayVariant,
+  UserPropertyDelayVariant,
 ]);
 
 export type DelayVariant = Static<typeof DelayVariant>;
@@ -1649,6 +1730,7 @@ export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
 export const DelayUiNodeVariant = Type.Union([
   PartialExceptType(LocalTimeDelayVariant),
   PartialExceptType(SecondsDelayVariant),
+  PartialExceptType(UserPropertyDelayVariant),
 ]);
 
 export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
@@ -1997,11 +2079,6 @@ export const ReadAllUserPropertiesResponse = Type.Object({
 export type ReadAllUserPropertiesResponse = Static<
   typeof ReadAllUserPropertiesResponse
 >;
-
-export enum CursorDirectionEnum {
-  After = "after",
-  Before = "before",
-}
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
@@ -3889,3 +3966,28 @@ export const ExecuteBroadcastResponse = Type.Object({
 });
 
 export type ExecuteBroadcastResponse = Static<typeof ExecuteBroadcastResponse>;
+
+export const UserWorkflowTrackEvent = Type.Pick(KnownTrackData, [
+  "event",
+  "properties",
+  "timestamp",
+  "context",
+  "messageId",
+]);
+
+export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;
+
+export const KeyedSegmentEventContext = Type.Object({
+  events: Type.Array(UserWorkflowTrackEvent),
+  keyValue: Type.String(),
+  definition: KeyedPerformedSegmentNode,
+});
+
+export type KeyedSegmentEventContext = Static<typeof KeyedSegmentEventContext>;
+
+export type EmptyObject = Record<never, never>;
+
+export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);
+
+export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
+  Required<Pick<T, K>>;

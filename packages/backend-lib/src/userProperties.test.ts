@@ -8,6 +8,7 @@ import {
   InternalEventType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   Workspace,
 } from "./types";
 import {
@@ -30,6 +31,7 @@ describe("findAllUserPropertyAssignments", () => {
     it("should return the user property assignment and override existing values", async () => {
       const upId1 = randomUUID();
       const upId2 = randomUUID();
+      const upId3 = randomUUID();
 
       // Create a user property
       await prisma().userProperty.createMany({
@@ -52,6 +54,25 @@ describe("findAllUserPropertyAssignments", () => {
               type: UserPropertyDefinitionType.Performed,
               event: "test",
               path: "example",
+            } satisfies UserPropertyDefinition,
+          },
+          {
+            id: upId3,
+            workspaceId: workspace.id,
+            name: `test-${upId3}`,
+            definition: {
+              type: UserPropertyDefinitionType.Performed,
+              event: "test",
+              path: "propertyRestrictedPath",
+              properties: [
+                {
+                  path: "key1",
+                  operator: {
+                    type: UserPropertyOperatorType.Equals,
+                    value: "matchesProperty",
+                  },
+                },
+              ],
             } satisfies UserPropertyDefinition,
           },
         ],
@@ -79,16 +100,31 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          nested1: {
-            nested2: "value3",
+        context: [
+          {
+            nested1: {
+              nested2: "value3",
+            },
           },
-        },
+          {
+            propertyRestrictedPath: "valueForMatching",
+            key1: "matchesProperty",
+          },
+          {
+            propertyRestrictedPath: "invalid",
+            key1: "doesNotMatchProperty",
+          },
+        ],
       });
 
       expect(actualAssignments).toEqual({
+        // pulls from context when able
         [`test-${upId1}`]: "value3",
+        // falls back to existing assignment
         [`test-${upId2}`]: "value2",
+        // checks properties before using context
+        [`test-${upId3}`]: "valueForMatching",
+        // always returns user id
         id: "userId",
       });
     });
@@ -127,13 +163,15 @@ describe("findAllUserPropertyAssignments", () => {
         const actualAssignments = await findAllUserPropertyAssignments({
           userId: "userId",
           workspaceId: workspace.id,
-          context: {
-            [InternalEventType.AttachedFiles]: {
-              [definition.name]: {
-                ...value,
+          context: [
+            {
+              [InternalEventType.AttachedFiles]: {
+                [definition.name]: {
+                  ...value,
+                },
               },
             },
-          },
+          ],
         });
 
         expect(actualAssignments).toEqual({
@@ -220,9 +258,11 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments1 = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          path1: 1,
-        },
+        context: [
+          {
+            path1: 1,
+          },
+        ],
       });
 
       expect(actualAssignments1).toEqual({
@@ -233,9 +273,11 @@ describe("findAllUserPropertyAssignments", () => {
       const actualAssignments2 = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
-        context: {
-          path2: 2,
-        },
+        context: [
+          {
+            path2: 2,
+          },
+        ],
       });
 
       expect(actualAssignments2).toEqual({

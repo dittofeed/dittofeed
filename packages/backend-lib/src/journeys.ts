@@ -15,7 +15,10 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
-import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
+import {
+  startKeyedUserJourney,
+  StartKeyedUserJourneyProps,
+} from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -32,7 +35,6 @@ import {
   NodeStatsType,
   SavedJourneyResource,
   SmsStats,
-  TrackData,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
@@ -663,20 +665,15 @@ interface EventTriggerJourneyDetails {
   definition: JourneyDefinition;
 }
 
-export interface TriggerEventEntryJourneysOptions {
-  workspaceId: string;
-  event: string;
-  userId: string;
-  messageId: string;
-  properties: TrackData["properties"];
-}
+export type TriggerEventEntryJourneysOptions = Omit<
+  StartKeyedUserJourneyProps,
+  "definition" | "journeyId"
+>;
 
 export async function triggerEventEntryJourneys({
   workspaceId,
-  event,
+  event: triggerEvent,
   userId,
-  messageId,
-  properties,
 }: TriggerEventEntryJourneysOptions): Promise<void> {
   let journeyDetails: EventTriggerJourneyDetails[] | undefined =
     EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
@@ -717,17 +714,18 @@ export async function triggerEventEntryJourneys({
 
   const starts: Promise<unknown>[] = journeyDetails.flatMap(
     ({ journeyId, event: journeyEvent, definition }) => {
-      if (journeyEvent !== event) {
+      if (journeyEvent !== triggerEvent.event) {
         return [];
       }
-      return startKeyedUserJourney({
-        workspaceId,
-        userId,
-        journeyId,
-        eventKey: messageId,
-        definition,
-        context: properties,
-      });
+      return [
+        startKeyedUserJourney({
+          workspaceId,
+          userId,
+          journeyId,
+          event: triggerEvent,
+          definition,
+        }),
+      ];
     },
   );
   await Promise.all(starts);
