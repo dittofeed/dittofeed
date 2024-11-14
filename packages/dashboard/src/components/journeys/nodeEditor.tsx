@@ -33,9 +33,11 @@ import {
   EmailProviderType,
   EntryNode,
   JourneyNodeType,
+  JourneyUiNodeType,
   MessageTemplateResource,
   MobilePushProviderType,
   PartialSegmentResource,
+  SegmentNodeType,
   SmsProviderType,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
@@ -745,18 +747,40 @@ function WaitForNodeFields({
   nodeProps: WaitForUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, segments, updateLabelNode } = useAppStore(
-    (store) => ({
-      updateJourneyNodeData: store.updateJourneyNodeData,
-      segments: store.segments,
-      updateLabelNode: store.updateLabelNode,
-    }),
-    shallow,
+  const {
+    updateJourneyNodeData,
+    segments: segmentsResult,
+    journeyNodes,
+    updateLabelNode,
+  } = useAppStorePick([
+    "updateJourneyNodeData",
+    "segments",
+    "updateLabelNode",
+    "journeyNodes",
+  ]);
+
+  const isEventEntry = useMemo(
+    () =>
+      journeyNodes.find(
+        (n) =>
+          n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
+          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
+          n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
+      ),
+    [journeyNodes],
   );
 
-  if (segments.type !== CompletionStatus.Successful) {
-    return null;
-  }
+  const segments = useMemo(() => {
+    if (segmentsResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    if (!isEventEntry) {
+      return segmentsResult.value;
+    }
+    return segmentsResult.value.filter(
+      (s) => s.definition?.entryNode?.type === SegmentNodeType.KeyedPerformed,
+    );
+  }, [segmentsResult, isEventEntry]);
 
   const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
@@ -785,15 +809,14 @@ function WaitForNodeFields({
   };
 
   const segment =
-    segments.value.find(
-      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId,
-    ) ?? null;
+    segments.find((t) => t.id === nodeProps.segmentChildren[0]?.segmentId) ??
+    null;
 
   return (
     <>
       <Autocomplete
         value={segment}
-        options={segments.value}
+        options={segments}
         getOptionLabel={getLabel}
         onChange={onSegmentChangeHandler}
         renderInput={(params) => (
