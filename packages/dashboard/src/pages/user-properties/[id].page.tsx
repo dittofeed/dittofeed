@@ -26,6 +26,7 @@ import {
   FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
+  KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
@@ -94,12 +95,19 @@ const anyOfOption = {
   label: "Any Of",
 };
 
+const keyedPerformedOption = {
+  id: UserPropertyDefinitionType.KeyedPerformed,
+  group: "Track Events",
+  label: "Keyed Performed",
+};
+
 type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
 
 const userPropertyOptions: UserPropertyGroupedOption[] = [
   traitOption,
   performedOption,
   fileOption,
+  keyedPerformedOption,
   anyOfOption,
   idOption,
   anonymousIdOption,
@@ -136,7 +144,7 @@ function getUserPropertyOption(
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
     case UserPropertyDefinitionType.KeyedPerformed:
-      throw new Error("Not implemented");
+      return keyedPerformedOption;
     default:
       assertUnreachable(type);
   }
@@ -199,7 +207,13 @@ function defaultUserProperty(
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
     case UserPropertyDefinitionType.KeyedPerformed:
-      throw new Error("Not implemented");
+      return {
+        id,
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "",
+        key: "",
+        properties: [],
+      };
     default:
       assertUnreachable(type);
   }
@@ -363,6 +377,199 @@ function TraitUserPropertyDefinitionEditor({
         />
       )}
     />
+  );
+}
+
+function KeyedPerformedUserPropertyDefinitionEditor({
+  definition,
+}: {
+  definition: KeyedPerformedUserPropertyDefinition;
+}) {
+  const { updateUserPropertyDefinition, properties } = useAppStorePick([
+    "updateUserPropertyDefinition",
+    "properties",
+  ]);
+
+  const handleKeyChange = (newKey: string | null) => {
+    if (newKey === null) {
+      return;
+    }
+    updateUserPropertyDefinition((current) => {
+      let d: KeyedPerformedUserPropertyDefinition;
+      if (current.type === UserPropertyDefinitionType.KeyedPerformed) {
+        d = current;
+      } else {
+        return current;
+      }
+      d.key = newKey;
+      return current;
+    });
+  };
+
+  const updatePerformedNode = useCallback(
+    (
+      updater: (
+        currentValue: Draft<KeyedPerformedUserPropertyDefinition>,
+      ) => Draft<KeyedPerformedUserPropertyDefinition>,
+    ) => {
+      updateUserPropertyDefinition((current) => {
+        let d: KeyedPerformedUserPropertyDefinition | null = null;
+        if (current.type === UserPropertyDefinitionType.KeyedPerformed) {
+          d = current;
+        }
+        if (d) {
+          updater(d);
+        }
+        return current;
+      });
+    },
+    [updateUserPropertyDefinition],
+  );
+
+  const handleEventNameChange = (newEventName: string | null) => {
+    if (newEventName === null) {
+      return;
+    }
+    updatePerformedNode((current) => {
+      current.event = newEventName;
+      return current;
+    });
+  };
+
+  const handleAddProperty = () => {
+    updatePerformedNode((current) => {
+      const nodeProperties = current.properties ?? [];
+      // limit to 100 properties
+      if (nodeProperties.length >= 100) {
+        return current;
+      }
+      nodeProperties.push({
+        path: "myPropertyPath",
+        operator: {
+          type: UserPropertyOperatorType.Equals,
+          value: "myValue",
+        },
+      });
+      current.properties = nodeProperties;
+      return current;
+    });
+  };
+
+  let propertyRows: React.ReactNode = null;
+  if (definition.properties) {
+    propertyRows = definition.properties.map((property, i) => {
+      const handlePropertyPathChange = (newPath: string | null) => {
+        if (newPath === null) {
+          return;
+        }
+        updatePerformedNode((current) => {
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.path = newPath;
+          return current;
+        });
+      };
+
+      const handlePropertyValueChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+      ) => {
+        updatePerformedNode((current) => {
+          const newValue = e.target.value;
+          const existingProperty = current.properties?.[i];
+
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.operator.value = newValue;
+          return current;
+        });
+      };
+      const handleDelete = () => {
+        updatePerformedNode((current) => {
+          const nodeProperties = current.properties ?? [];
+          nodeProperties.splice(i, 1);
+          current.properties = nodeProperties;
+          return current;
+        });
+      };
+      return (
+        <Stack
+          direction="row"
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          spacing={1}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <Autocomplete
+            value={property.path}
+            freeSolo
+            sx={{ width: selectorWidth }}
+            options={properties[definition.event] ?? []}
+            onInputChange={(_event, newPath) => {
+              handlePropertyPathChange(newPath);
+            }}
+            renderInput={(params) => (
+              <TextField label="Property Path" {...params} variant="outlined" />
+            )}
+          />
+          {/* hardcoded until support for multiple operators is added */}
+          <Select value={UserPropertyOperatorType.Equals}>
+            <MenuItem value={UserPropertyOperatorType.Equals}>Equals</MenuItem>
+          </Select>
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+          <IconButton color="error" size="large" onClick={handleDelete}>
+            <Delete />
+          </IconButton>
+        </Stack>
+      );
+    });
+  }
+
+  return (
+    <Stack direction="column" spacing={2}>
+      <Stack spacing={1} direction="row">
+        <Autocomplete
+          value={definition.event}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onInputChange={(e, newPath) => {
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
+        <Autocomplete
+          value={definition.key}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[definition.event] ?? []}
+          onInputChange={(_e, newKey) => {
+            handleKeyChange(newKey);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
+        />
+        <Button variant="contained" onClick={() => handleAddProperty()}>
+          Property
+        </Button>
+      </Stack>
+      {propertyRows && definition.properties?.length ? (
+        <SubtleHeader>Properties</SubtleHeader>
+      ) : null}
+      {propertyRows}
+    </Stack>
   );
 }
 
@@ -755,10 +962,12 @@ function DefinitionComponent({
     case UserPropertyDefinitionType.File:
       up = <FileUserPropertyDefinitionEditor {...definition} />;
       break;
-    case UserPropertyDefinitionType.PerformedMany:
-      throw new Error("Not implemented");
-    // FIXME
     case UserPropertyDefinitionType.KeyedPerformed:
+      up = (
+        <KeyedPerformedUserPropertyDefinitionEditor definition={definition} />
+      );
+      break;
+    case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
     default:
       assertUnreachable(definition);

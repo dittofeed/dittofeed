@@ -718,8 +718,10 @@ function DelayNodeFields({
                 };
                 break;
               case DelayVariantType.UserProperty:
-                // FIXME
-                throw new Error("Not implemented");
+                props.variant = {
+                  type: DelayVariantType.UserProperty,
+                };
+                break;
               default:
                 assertUnreachable(type);
             }

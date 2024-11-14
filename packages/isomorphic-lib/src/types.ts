@@ -611,7 +611,7 @@ export type GroupUserPropertyDefinition = Static<
 >;
 
 export const KeyedPerformedUserPropertyDefinition = Type.Object({
-  id: Type.String(),
+  id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
   event: Type.String(),
   key: Type.String(),

@@ -43,10 +43,9 @@ export function getDefaultUserPropertyExampleValue(
       }
       return getDefaultUserPropertyExampleValue(firstNonParentNode);
     }
-    case UserPropertyDefinitionType.PerformedMany:
-      throw new Error("Not implemented");
-    // FIXME
     case UserPropertyDefinitionType.KeyedPerformed:
+      return DEFAULT_PERFORMED_EXAMPLE;
+    case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
     default:
       assertUnreachable(definition);
