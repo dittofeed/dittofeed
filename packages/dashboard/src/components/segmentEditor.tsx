@@ -1005,7 +1005,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         handleKeyChange(newKey);
       }}
       renderInput={(params) => (
-        <TextField label="Key" {...params} variant="outlined" />
+        <TextField label="Property Key Path" {...params} variant="outlined" />
       )}
     />
   );
