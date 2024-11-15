@@ -984,6 +984,32 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     );
   });
 
+  const handleKeyChange = (newKey: string) => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.KeyedPerformed) {
+        n.key = newKey;
+      }
+    });
+  };
+  const keySelector = (
+    <Autocomplete
+      value={node.key}
+      disabled={disabled}
+      freeSolo
+      sx={{ width: selectorWidth }}
+      options={properties[node.event] ?? []}
+      onInputChange={(_event, newKey) => {
+        if (newKey === undefined || newKey === null) {
+          return;
+        }
+        handleKeyChange(newKey);
+      }}
+      renderInput={(params) => (
+        <TextField label="Key" {...params} variant="outlined" />
+      )}
+    />
+  );
+
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -1003,6 +1029,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             <TextField label="Event Name" {...params} variant="outlined" />
           )}
         />
+        {keySelector}
         <Select
           onChange={handleTimesOperatorChange}
           disabled={disabled}
