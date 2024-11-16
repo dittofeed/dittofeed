@@ -664,7 +664,7 @@ function DelayNodeFields({
                 }}
               />
             }
-            label="Should offset forward in time."
+            label={`Will offset ${nodeVariant.offsetDirection === CursorDirectionEnum.After ? "forward" : "backward"} in time.`}
           />
           <DurationSelect
             value={nodeVariant.offsetSeconds}
@@ -680,7 +680,7 @@ function DelayNodeFields({
                 props.variant.offsetSeconds = seconds;
               });
             }}
-            description="Adjustment either forward or backward in time relative to the date expressed in the user property value."
+            description="Offset either forward or backward in time relative to the date expressed in the user property value."
             inputLabel="Offset"
             disabled={disabled}
           />
@@ -731,6 +731,9 @@ function DelayNodeFields({
       >
         <MenuItem value={DelayVariantType.Second}>Hardcoded Delay</MenuItem>
         <MenuItem value={DelayVariantType.LocalTime}>Localized Delay</MenuItem>
+        <MenuItem value={DelayVariantType.UserProperty}>
+          User Property Delay
+        </MenuItem>
       </Select>
       {variant}
     </>

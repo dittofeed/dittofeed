@@ -309,10 +309,6 @@ describe("keyedEventEntry journeys", () => {
           await testEnv.sleep(1000 * oneDaySeconds);
 
           expect(senderMock).toHaveBeenCalledTimes(2);
-          // console.log(
-          //   "loc1",
-          //   senderMock.mock.calls.map((c) => c[0].userPropertyAssignments),
-          // );
           expect(
             senderMock.mock.calls.filter(
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

@@ -558,7 +558,11 @@ function KeyedPerformedUserPropertyDefinitionEditor({
             handleKeyChange(newKey);
           }}
           renderInput={(params) => (
-            <TextField label="Property Path" {...params} variant="outlined" />
+            <TextField
+              label="Property Key Path"
+              {...params}
+              variant="outlined"
+            />
           )}
         />
         <Button variant="contained" onClick={() => handleAddProperty()}>
