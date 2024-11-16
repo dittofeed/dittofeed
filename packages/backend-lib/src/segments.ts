@@ -30,7 +30,6 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentResource,
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
 } from "./types";
