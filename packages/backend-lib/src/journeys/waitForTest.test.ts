@@ -7,30 +7,20 @@ import { createEnvAndWorker } from "../../test/temporal";
 import prisma from "../prisma";
 import {
   ChannelType,
-  CursorDirectionEnum,
-  DelayVariantType,
   EmailProviderType,
   InternalEventType,
   Journey,
   JourneyDefinition,
   JourneyNodeType,
-  KeyedPerformedSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentSplitNode,
-  SegmentSplitVariantType,
   SegmentUpdate,
   TraitSegmentNode,
-  UserPropertyDefinition,
-  UserPropertyDefinitionType,
-  UserPropertyDelayVariant,
-  UserPropertyOperatorType,
   Workspace,
 } from "../types";
 import {
   segmentUpdateSignal,
-  trackSignal,
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
