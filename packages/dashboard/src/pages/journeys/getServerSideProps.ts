@@ -3,6 +3,7 @@ import logger from "backend-lib/src/logger";
 import { findPartialMessageTemplates } from "backend-lib/src/messaging";
 import { findSegmentResources } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -26,7 +27,6 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
-import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 
 export type JourneyGetServerSideProps =
   GetServerSideProps<PropsWithInitialState>;
