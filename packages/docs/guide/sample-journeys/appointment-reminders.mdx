@@ -66,6 +66,16 @@ FIXME screenshot
 
 We'll now need to create a segment to check if the user has confirmed that they have attended the appointment.
 
+```json
+{
+  "event": "APPOINTMENT_CONFIRMED",
+  "properties": {
+    "appointmentId": "123"
+  },
+  ...
+}
+```
+
 FIXME screenshot
 
 Then we'll incorporate this segment into a wait-for node, to wait for the user to confirm that they have attended the appointment.
