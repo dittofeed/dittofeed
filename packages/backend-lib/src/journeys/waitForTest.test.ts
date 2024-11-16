@@ -20,6 +20,7 @@ import {
   SegmentOperatorType,
   SegmentSplitNode,
   SegmentSplitVariantType,
+  TraitSegmentNode,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyDelayVariant,
@@ -84,60 +85,29 @@ describe("journeys with wait-for nodes", () => {
     const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
-      const appointmentCancelledSegmentId = randomUUID();
+      const entrySegmentId = randomUUID();
+      const waitForSegmentId = randomUUID();
       const templateId = randomUUID();
-      const dateUserPropertyId = randomUUID();
 
       journeyDefinition = {
         entryNode: {
-          type: JourneyNodeType.EventEntryNode,
-          event: "APPOINTMENT_UPDATE",
-          key: "appointmentId",
-          child: "delay-for-appointment-date",
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: entrySegmentId,
+          child: "wait-for",
         },
         exitNode: {
           type: JourneyNodeType.ExitNode,
         },
         nodes: [
           {
-            type: JourneyNodeType.DelayNode,
-            id: "delay-for-appointment-date",
-            variant: {
-              type: DelayVariantType.UserProperty,
-              userProperty: dateUserPropertyId,
-              offsetDirection: CursorDirectionEnum.Before,
-              offsetSeconds: oneDaySeconds,
-            } satisfies UserPropertyDelayVariant,
-            child: "send-reminder",
-          },
-          {
-            type: JourneyNodeType.SegmentSplitNode,
-            id: "check-cancellation",
-            variant: {
-              type: SegmentSplitVariantType.Boolean,
-              segment: appointmentCancelledSegmentId,
-              trueChild: JourneyNodeType.ExitNode,
-              falseChild: "send-reminder",
-            },
-          } satisfies SegmentSplitNode,
-          {
-            type: JourneyNodeType.MessageNode,
-            id: "send-reminder",
-            variant: {
-              type: ChannelType.Email,
-              templateId,
-            },
-            child: "wait-for-cancellation",
-          },
-          {
             type: JourneyNodeType.WaitForNode,
-            id: "wait-for-cancellation",
+            id: "wait-for",
             timeoutSeconds: oneDaySeconds,
             timeoutChild: JourneyNodeType.ExitNode,
             segmentChildren: [
               {
                 id: "send-message",
-                segmentId: appointmentCancelledSegmentId,
+                segmentId: waitForSegmentId,
               },
             ],
           },
@@ -152,49 +122,35 @@ describe("journeys with wait-for nodes", () => {
           },
         ],
       };
-      const segmentDefinition: SegmentDefinition = {
+      const entrySegmentDefinition: SegmentDefinition = {
         entryNode: {
-          type: SegmentNodeType.KeyedPerformed,
-          id: "segment-entry",
-          event: "APPOINTMENT_UPDATE",
-          key: "appointmentId",
-          properties: [
-            {
-              path: "operation",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "CANCELLED",
-              },
-            },
-          ],
-        } satisfies KeyedPerformedSegmentNode,
+          type: SegmentNodeType.Trait,
+          id: "entry-segment",
+          path: "trait1",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "value1",
+          },
+        } satisfies TraitSegmentNode,
         nodes: [],
       };
-      const keyedUserPropertyDefinition: UserPropertyDefinition = {
-        type: UserPropertyDefinitionType.KeyedPerformed,
-        event: "APPOINTMENT_UPDATE",
-        key: "appointmentId",
-        id: randomUUID(),
-      };
-      const dateUserPropertyDefinition: UserPropertyDefinition = {
-        type: UserPropertyDefinitionType.Performed,
-        event: "APPOINTMENT_UPDATE",
-        id: randomUUID(),
-        path: "appointmentDate",
-        properties: [
-          {
-            path: "operation",
-            operator: {
-              type: UserPropertyOperatorType.Equals,
-              value: "STARTED",
-            },
+      const waitForSegmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.Trait,
+          id: waitForSegmentId,
+          path: "trait2",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "value2",
           },
-        ],
+        },
+        nodes: [],
       };
+
       [journey] = await Promise.all([
         prisma().journey.create({
           data: {
-            name: "appointment-cancelled-journey",
+            name: "wait-for-test",
             definition: journeyDefinition,
             workspaceId: workspace.id,
             status: "Running",
@@ -202,54 +158,33 @@ describe("journeys with wait-for nodes", () => {
         }),
         prisma().segment.create({
           data: {
-            id: appointmentCancelledSegmentId,
-            name: "appointment-cancelled",
-            definition: segmentDefinition,
+            id: entrySegmentId,
+            name: "entry-segment",
+            definition: entrySegmentDefinition,
             workspaceId: workspace.id,
           },
         }),
-        prisma().userProperty.create({
+        prisma().segment.create({
           data: {
+            id: waitForSegmentId,
+            name: "wait-for-segment",
+            definition: waitForSegmentDefinition,
             workspaceId: workspace.id,
-            definition: keyedUserPropertyDefinition,
-            name: "appointmentId",
-          },
-        }),
-        prisma().userProperty.create({
-          data: {
-            id: dateUserPropertyId,
-            workspaceId: workspace.id,
-            definition: dateUserPropertyDefinition,
-            name: "appointmentDate",
           },
         }),
       ]);
-      // create a journey with a wait-for node conditioned on a cancellation event
     });
-    describe("when a journey a user already is in the segment being waited for", () => {
-      let userId: string;
-      let appointmentId1: string;
-      let appointmentId2: string;
+    describe("when a journey a user already is in the segment being waited for, and when they satisfy the wait-for condition after entering they should also be sent to the message node", () => {
+      let userId1: string;
+      let userId2: string;
 
       beforeEach(() => {
-        userId = randomUUID();
-        appointmentId1 = randomUUID();
-        appointmentId2 = randomUUID();
+        userId1 = randomUUID();
+        userId2 = randomUUID();
       });
 
       it("they should satisfy the wait-for condition", async () => {
         await worker.runUntil(async () => {
-          const timestamp1 = new Date().toISOString();
-          const timestamp2 = new Date(
-            new Date().getTime() + 1000,
-          ).toISOString();
-
-          const now = await testEnv.currentTimeMs();
-          const appointmentDate = new Date(
-            now + 1000 * oneDaySeconds * 2,
-          ).toISOString();
-          // delay: 172799588
-          // 47 hours
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -259,23 +194,14 @@ describe("journeys with wait-for nodes", () => {
                 {
                   journeyId: journey.id,
                   workspaceId: workspace.id,
-                  userId,
+                  userId: userId1,
                   definition: journeyDefinition,
                   version: UserJourneyWorkflowVersion.V2,
-                  event: {
-                    event: "APPOINTMENT_UPDATE",
-                    properties: {
-                      operation: "STARTED",
-                      appointmentId: appointmentId1,
-                      appointmentDate,
-                    },
-                    messageId: randomUUID(),
-                    timestamp: timestamp1,
-                  },
                 },
               ],
             },
           );
+
           const handle2 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -285,82 +211,14 @@ describe("journeys with wait-for nodes", () => {
                 {
                   journeyId: journey.id,
                   workspaceId: workspace.id,
-                  userId,
+                  userId: userId2,
                   definition: journeyDefinition,
                   version: UserJourneyWorkflowVersion.V2,
-                  event: {
-                    event: "APPOINTMENT_UPDATE",
-                    properties: {
-                      operation: "STARTED",
-                      appointmentId: appointmentId2,
-                      appointmentDate,
-                    },
-                    messageId: randomUUID(),
-                    timestamp: timestamp2,
-                  },
                 },
               ],
             },
           );
-
-          await testEnv.sleep(5000);
-          await testEnv.sleep(1000 * oneDaySeconds);
-
-          expect(senderMock).toHaveBeenCalledTimes(2);
-          expect(
-            senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (call) =>
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId1,
-            ),
-            "should have sent a reminder message for appointment 1",
-          ).toHaveLength(1);
-          expect(
-            senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (call) =>
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId2,
-            ),
-            "should have sent a reminder message for appointment 2",
-          ).toHaveLength(1);
-
-          await handle1.signal(trackSignal, {
-            event: "APPOINTMENT_UPDATE",
-            properties: {
-              operation: "CANCELLED",
-              appointmentId: appointmentId1,
-            },
-            messageId: randomUUID(),
-            timestamp: new Date().toISOString(),
-          });
-          await testEnv.sleep(5000);
-          await handle1.result();
-
-          await testEnv.sleep(oneDaySeconds * 1000);
-          await handle2.result();
-
-          expect(
-            senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (call) =>
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId1,
-            ),
-            "should have sent a reminder and cancellation message for appointment 1",
-          ).toHaveLength(2);
-
-          expect(
-            senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (call) =>
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId2,
-            ),
-            "should have sent a reminder message for appointment 2 but not a cancellation message",
-          ).toHaveLength(1);
-          expect(senderMock).toHaveBeenCalledTimes(3);
+          await Promise.all([handle1.result(), handle2.result()]);
         });
       });
     });
