@@ -3,9 +3,13 @@ title: "Keyed Performed Segment"
 description: "Condition on whether users have performed a specific action - Immediately."
 ---
 
+The Keyed Performed segment is like the [Performed](/resources/segment-nodes/performed) segment, but specialized to [event entry journeys](/resources/journey-nodes/entry#event-entry).
+
 The keyed performed segment allows you to condition on whether users have performed a specific `track` event - immediately. This is in contrast to standard segments whose values are calculated with a delay.
 
-This is an advanced feature that are used within Event Entry Node [journeys](/resources/journey-nodes/entry#event-entry).
+This segment also differs from the standard performed segment, in that it is only calculated on a forward-looking basis, from the time the parent event entry journey was first triggered.
+
+This is an advanced feature that should be used by experienced users.
 
 Use cases include:
 

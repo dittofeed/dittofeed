@@ -3,9 +3,13 @@ title: "Keyed Performed - User Property"
 description: "Renders the value of a specific event property - immediately."
 ---
 
+The Keyed Performed user property is like the [Performed](/resources/user-property-types/performed) user property, but specialized to [event entry journeys](/resources/journey-nodes/entry#event-entry).
+
 The keyed performed user property allows you to render the properties of `track` events - immediately. This is in contrast to standard segments whose values are calculated with a delay.
 
-This is an advanced feature that are used within Event Entry Node [journeys](/resources/journey-nodes/entry#event-entry).
+This user property also differs from the standard performed user property, in that it is only calculated on a forward-looking basis, from the time the parent event entry journey was first triggered.
+
+This is an advanced feature that should be used by experienced users.
 
 Use cases include:
 
