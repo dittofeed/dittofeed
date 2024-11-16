@@ -1,1 +1,10 @@
-{/* FIXME */}
+---
+title: "Keyed Performed Segment"
+description: "Condition on whether users have performed a specific action - Immediately."
+---
+
+The keyed performed segment allows you to condition on whether users have performed a specific action - immediately. This is an advanced feature that is most useful in journeys with [Event Entry Nodes](/resources/journey-nodes/entry#event-entry).
+
+## Implementation Details
+
+This segment node is unique, in that it is *not* calculated asynchronously in ClickHouse. Instead, segment assignments are calculated synchronously in memory. This guarantees that the segment value will incorporate the triggering events' when evaluating segment splits and wait-for nodes.
