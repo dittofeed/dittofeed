@@ -23,6 +23,7 @@ import {
   JSONValue,
   MessageVariant,
   RenameKey,
+  SegmentAssignment as SegmentAssignmentDb,
   SegmentUpdate,
   UserWorkflowTrackEvent,
   WaitForNode,
@@ -411,10 +412,41 @@ export async function userJourneyWorkflow(
         const cn: WaitForNode = currentNode;
         const { timeoutSeconds, segmentChildren } = cn;
         waitForSegmentIds = segmentChildren;
-        const satisfiedSegmentWithinTimeout = await wf.condition(
-          () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
-          timeoutSeconds * 1000,
-        );
+        const initialSegmentAssignments: SegmentAssignmentDb[] = (
+          await Promise.all(
+            segmentChildren.map(async ({ segmentId }) => {
+              const assignment: SegmentAssignmentDb | null =
+                await getSegmentAssignment({
+                  workspaceId,
+                  userId,
+                  segmentId,
+                  events: keyedEvents,
+                  keyValue: eventKey,
+                  nowMs: Date.now(),
+                  version: GetSegmentAssignmentVersion.V1,
+                });
+              if (assignment === null) {
+                return [];
+              }
+              if (assignment.inSegment) {
+                segmentAssignments.set(segmentId, {
+                  currentlyInSegment: assignment.inSegment,
+                  segmentVersion: Date.now(),
+                });
+              }
+              return [];
+            }),
+          )
+        ).flat();
+        let satisfiedSegmentWithinTimeout: boolean =
+          initialSegmentAssignments.some((assignment) => assignment.inSegment);
+
+        if (!satisfiedSegmentWithinTimeout) {
+          satisfiedSegmentWithinTimeout = await wf.condition(
+            () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
+            timeoutSeconds * 1000,
+          );
+        }
         waitForSegmentIds = null;
         if (satisfiedSegmentWithinTimeout) {
           const child = segmentChildren.find((s) =>

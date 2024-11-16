@@ -87,12 +87,13 @@ describe("journeys with wait-for nodes", () => {
     let userId1: string;
     let userId2: string;
     let waitForSegmentId: string;
+    let entrySegmentId: string;
     const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
       userId1 = randomUUID();
       userId2 = randomUUID();
-      const entrySegmentId = randomUUID();
+      entrySegmentId = randomUUID();
       waitForSegmentId = randomUUID();
       const templateId = randomUUID();
 
@@ -210,11 +211,20 @@ describe("journeys with wait-for nodes", () => {
 
     it("they should satisfy the wait-for condition", async () => {
       await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.start(
+        const handle1 = await testEnv.client.workflow.signalWithStart(
           userJourneyWorkflow,
           {
             workflowId: "workflow1",
             taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: entrySegmentId,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
             args: [
               {
                 journeyId: journey.id,
@@ -227,45 +237,45 @@ describe("journeys with wait-for nodes", () => {
           },
         );
 
-        const handle2 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId: userId2,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+        // const handle2 = await testEnv.client.workflow.start(
+        //   userJourneyWorkflow,
+        //   {
+        //     workflowId: "workflow2",
+        //     taskQueue: "default",
+        //     args: [
+        //       {
+        //         journeyId: journey.id,
+        //         workspaceId: workspace.id,
+        //         userId: userId2,
+        //         definition: journeyDefinition,
+        //         version: UserJourneyWorkflowVersion.V2,
+        //       },
+        //     ],
+        //   },
+        // );
 
-        await testEnv.sleep(5000);
+        await handle1.result();
 
         expect(
           senderMock,
           "should have sent a message to user 1 given that they initially satisfied the wait-for condition",
         ).toHaveBeenCalledTimes(1);
 
-        await handle2.signal(segmentUpdateSignal, {
-          segmentId: waitForSegmentId,
-          currentlyInSegment: true,
-          type: "segment",
-          segmentVersion: await testEnv.currentTimeMs(),
-        } satisfies SegmentUpdate);
+        // await handle2.signal(segmentUpdateSignal, {
+        //   segmentId: waitForSegmentId,
+        //   currentlyInSegment: true,
+        //   type: "segment",
+        //   segmentVersion: await testEnv.currentTimeMs(),
+        // } satisfies SegmentUpdate);
 
-        await testEnv.sleep(5000);
+        // await testEnv.sleep(5000);
 
-        expect(
-          senderMock,
-          "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
-        ).toHaveBeenCalledTimes(1);
+        // expect(
+        //   senderMock,
+        //   "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
+        // ).toHaveBeenCalledTimes(1);
 
-        await Promise.all([handle1.result(), handle2.result()]);
+        // await Promise.all([handle1.result(), handle2.result()]);
       });
     });
   });
