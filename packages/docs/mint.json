@@ -213,6 +213,12 @@
         "guide/roadmap",
         "guide/faq",
         "guide/creating-journeys",
+        {
+          "group": "Sample Journeys",
+          "pages": [
+            "guide/sample-journeys/appointment-reminders"
+          ]
+        },
         "guide/accessing-admin-api",
         "guide/submitting-broadcasts-api",
         "guide/git-workflows",
