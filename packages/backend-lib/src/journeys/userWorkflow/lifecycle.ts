@@ -32,6 +32,7 @@ export async function startKeyedUserJourney({
     throw new Error("Invalid entry node type");
   }
   const workflowId = getKeyedUserJourneyWorkflowId({
+    workspaceId,
     userId,
     journeyId,
     event,

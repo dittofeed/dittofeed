@@ -9,6 +9,7 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
+import { v5 as uuidV5 } from "uuid";
 
 import { jsonString, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
@@ -59,11 +60,13 @@ type SegmentAssignment = Pick<
 >;
 
 export function getKeyedUserJourneyWorkflowId({
+  workspaceId,
   userId,
   journeyId,
   entryNode,
   event,
 }: {
+  workspaceId: string;
   userId: string;
   journeyId: string;
   entryNode: EventEntryNode;
@@ -86,21 +89,18 @@ export function getKeyedUserJourneyWorkflowId({
     keyValue = event.messageId;
   }
 
-  return `user-journey-${userId}-${journeyId}-${key}-${keyValue}`;
+  const combined = uuidV5([userId, key, keyValue].join("-"), workspaceId);
+  return `user-journey-keyed-${workspaceId}-${journeyId}-${combined}`;
 }
 
 export function getUserJourneyWorkflowId({
   userId,
   journeyId,
-  eventKey,
 }: {
   userId: string;
   journeyId: string;
-  eventKey?: string;
 }): string {
-  return [`user-journey-${userId}-${journeyId}`, eventKey]
-    .filter(Boolean)
-    .join("-");
+  return `user-journey-${userId}-${journeyId}`;
 }
 
 export enum UserJourneyWorkflowVersion {
