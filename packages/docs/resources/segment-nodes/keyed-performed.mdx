@@ -12,6 +12,24 @@ Use cases include:
 - Waiting for a user to cancel an existing appointment in an event entry journey.
 - Checking if a delivery has been completed in an event entry journey.
 
+## Keys
+
+Keys are used to route the event used to resolve this user property to the correct event entry journey instance. If for example you receive an appointment update event, you can specify the `appointmentId` as the key to route this event to event entry journey instances keyed on that appointment id.
+
+```json
+{
+  "event": "APPOINTMENT_UPDATED",
+  "type": "track",
+  "properties": {
+    "appointmentId": "123",
+    "appointmentTime": "2024-01-01T12:00:00Z"
+    ...
+  },
+  ...
+}
+```
+
+
 ## Implementation Details
 
 This segment node is unique, in that it is *not* calculated asynchronously in ClickHouse. Instead, segment assignments are calculated synchronously in memory. This guarantees that the segment value will incorporate the triggering events' when evaluating segment splits and wait-for nodes.
