@@ -89,22 +89,18 @@ export function getKeyedUserJourneyWorkflowId({
     keyValue = event.messageId;
   }
 
-  const combined = uuidV5([key, keyValue].join("-"), workspaceId);
-  return `user-journey-keyed-${journeyId}-${userId}-${combined}`;
+  const combined = uuidV5([userId, key, keyValue].join("-"), workspaceId);
+  return `user-journey-keyed-${workspaceId}-${journeyId}-${combined}`;
 }
 
 export function getUserJourneyWorkflowId({
   userId,
   journeyId,
-  eventKey,
 }: {
   userId: string;
   journeyId: string;
-  eventKey?: string;
 }): string {
-  return [`user-journey-${userId}-${journeyId}`, eventKey]
-    .filter(Boolean)
-    .join("-");
+  return `user-journey-${userId}-${journeyId}`;
 }
 
 export enum UserJourneyWorkflowVersion {
