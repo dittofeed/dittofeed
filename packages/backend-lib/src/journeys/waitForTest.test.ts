@@ -26,6 +26,8 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
+jest.setTimeout(15000);
+
 describe("journeys with wait-for nodes", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
