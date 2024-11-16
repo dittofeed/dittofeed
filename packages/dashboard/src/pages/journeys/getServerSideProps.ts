@@ -26,6 +26,7 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 
 export type JourneyGetServerSideProps =
   GetServerSideProps<PropsWithInitialState>;
@@ -41,17 +42,23 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, templateResources, subscriptionGroups] =
-      await Promise.all([
-        await prisma().journey.findUnique({
-          where: { id },
-        }),
-        findSegmentResources({ workspaceId }),
-        findPartialMessageTemplates({ workspaceId }),
-        prisma().subscriptionGroup.findMany({
-          where: { workspaceId },
-        }),
-      ]);
+    const [
+      journey,
+      segments,
+      templateResources,
+      subscriptionGroups,
+      userProperties,
+    ] = await Promise.all([
+      await prisma().journey.findUnique({
+        where: { id },
+      }),
+      findSegmentResources({ workspaceId }),
+      findPartialMessageTemplates({ workspaceId }),
+      prisma().subscriptionGroup.findMany({
+        where: { workspaceId },
+      }),
+      findAllUserPropertyResources({ workspaceId }),
+    ]);
 
     const serverInitialState: PreloadedState = {
       messages: {
@@ -141,6 +148,11 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     serverInitialState.segments = {
       type: CompletionStatus.Successful,
       value: segments,
+    };
+
+    serverInitialState.userProperties = {
+      type: CompletionStatus.Successful,
+      value: userProperties,
     };
 
     const props = addInitialStateToProps({
