@@ -237,23 +237,6 @@ describe("journeys with wait-for nodes", () => {
           },
         );
 
-        // const handle2 = await testEnv.client.workflow.start(
-        //   userJourneyWorkflow,
-        //   {
-        //     workflowId: "workflow2",
-        //     taskQueue: "default",
-        //     args: [
-        //       {
-        //         journeyId: journey.id,
-        //         workspaceId: workspace.id,
-        //         userId: userId2,
-        //         definition: journeyDefinition,
-        //         version: UserJourneyWorkflowVersion.V2,
-        //       },
-        //     ],
-        //   },
-        // );
-
         await handle1.result();
 
         expect(
@@ -261,21 +244,44 @@ describe("journeys with wait-for nodes", () => {
           "should have sent a message to user 1 given that they initially satisfied the wait-for condition",
         ).toHaveBeenCalledTimes(1);
 
-        // await handle2.signal(segmentUpdateSignal, {
-        //   segmentId: waitForSegmentId,
-        //   currentlyInSegment: true,
-        //   type: "segment",
-        //   segmentVersion: await testEnv.currentTimeMs(),
-        // } satisfies SegmentUpdate);
+        const handle2 = await testEnv.client.workflow.signalWithStart(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow2",
+            taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: entrySegmentId,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId: userId2,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+              },
+            ],
+          },
+        );
 
-        // await testEnv.sleep(5000);
+        await handle2.signal(segmentUpdateSignal, {
+          segmentId: waitForSegmentId,
+          currentlyInSegment: true,
+          type: "segment",
+          segmentVersion: await testEnv.currentTimeMs(),
+        } satisfies SegmentUpdate);
 
-        // expect(
-        //   senderMock,
-        //   "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
-        // ).toHaveBeenCalledTimes(1);
-
-        // await Promise.all([handle1.result(), handle2.result()]);
+        await handle2.result();
+        expect(
+          senderMock,
+          "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
+        ).toHaveBeenCalledTimes(2);
       });
     });
   });
