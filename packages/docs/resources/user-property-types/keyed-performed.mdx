@@ -3,6 +3,15 @@ title: "Keyed Performed - User Property"
 description: "Renders the value of a specific event property - immediately."
 ---
 
+The keyed performed user property allows you to render the properties of `track` events - immediately. This is in contrast to standard segments whose values are calculated with a delay.
+
+This is an advanced feature that are used within Event Entry Node [journeys](/resources/journey-nodes/entry#event-entry).
+
+Use cases include:
+
+- Rendering the booking name for an appointment reminder journey.
+- Rendering order details for a delivery completion journey.
+
 ## Keys
 
 Keys are used to route the event used to resolve this user property to the correct event entry journey instance. If for example you receive an appointment update event, you can specify the `appointmentId` as the key to route this event to event entry journey instances keyed on that appointment id.
@@ -13,6 +22,7 @@ Keys are used to route the event used to resolve this user property to the corre
   "type": "track",
   "properties": {
     "appointmentId": "123",
+    "bookingName": "John Doe",
     "appointmentTime": "2024-01-01T12:00:00Z"
     ...
   },
