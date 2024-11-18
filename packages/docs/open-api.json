@@ -18198,6 +18198,9 @@
                               "event": {
                                 "type": "string"
                               },
+                              "path": {
+                                "type": "string"
+                              },
                               "key": {
                                 "type": "string"
                               },
@@ -18238,6 +18241,7 @@
                             "required": [
                               "type",
                               "event",
+                              "path",
                               "key"
                             ]
                           }
@@ -18627,6 +18631,9 @@
                             "event": {
                               "type": "string"
                             },
+                            "path": {
+                              "type": "string"
+                            },
                             "key": {
                               "type": "string"
                             },
@@ -18667,6 +18674,7 @@
                           "required": [
                             "type",
                             "event",
+                            "path",
                             "key"
                           ]
                         }
@@ -19068,6 +19076,9 @@
                                   "event": {
                                     "type": "string"
                                   },
+                                  "path": {
+                                    "type": "string"
+                                  },
                                   "key": {
                                     "type": "string"
                                   },
@@ -19108,6 +19119,7 @@
                                 "required": [
                                   "type",
                                   "event",
+                                  "path",
                                   "key"
                                 ]
                               }
@@ -24928,6 +24940,9 @@
                               "event": {
                                 "type": "string"
                               },
+                              "path": {
+                                "type": "string"
+                              },
                               "key": {
                                 "type": "string"
                               },
@@ -24968,6 +24983,7 @@
                             "required": [
                               "type",
                               "event",
+                              "path",
                               "key"
                             ]
                           }
@@ -25357,6 +25373,9 @@
                             "event": {
                               "type": "string"
                             },
+                            "path": {
+                              "type": "string"
+                            },
                             "key": {
                               "type": "string"
                             },
@@ -25397,6 +25416,7 @@
                           "required": [
                             "type",
                             "event",
+                            "path",
                             "key"
                           ]
                         }
@@ -25798,6 +25818,9 @@
                                   "event": {
                                     "type": "string"
                                   },
+                                  "path": {
+                                    "type": "string"
+                                  },
                                   "key": {
                                     "type": "string"
                                   },
@@ -25838,6 +25861,7 @@
                                 "required": [
                                   "type",
                                   "event",
+                                  "path",
                                   "key"
                                 ]
                               }

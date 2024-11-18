@@ -212,6 +212,7 @@ function defaultUserProperty(
         type: UserPropertyDefinitionType.KeyedPerformed,
         event: "",
         key: "",
+        path: "",
         properties: [],
       };
     default:
@@ -390,6 +391,22 @@ function KeyedPerformedUserPropertyDefinitionEditor({
     "properties",
   ]);
 
+  const handlePathChange = (newPath: string | null) => {
+    if (newPath === null) {
+      return;
+    }
+    updateUserPropertyDefinition((current) => {
+      let d: KeyedPerformedUserPropertyDefinition;
+      if (current.type === UserPropertyDefinitionType.KeyedPerformed) {
+        d = current;
+      } else {
+        return current;
+      }
+      d.path = newPath;
+      return current;
+    });
+  };
+
   const handleKeyChange = (newKey: string | null) => {
     if (newKey === null) {
       return;
@@ -560,6 +577,22 @@ function KeyedPerformedUserPropertyDefinitionEditor({
           renderInput={(params) => (
             <TextField
               label="Property Key Path"
+              {...params}
+              variant="outlined"
+            />
+          )}
+        />
+        <Autocomplete
+          value={definition.path}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[definition.event] ?? []}
+          onInputChange={(_e, newPath) => {
+            handlePathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField
+              label="AssignedProperty Path"
               {...params}
               variant="outlined"
             />

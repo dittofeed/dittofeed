@@ -176,12 +176,14 @@ describe("keyedEventEntry journeys", () => {
         type: UserPropertyDefinitionType.KeyedPerformed,
         event: "APPOINTMENT_UPDATE",
         key: "appointmentId",
+        path: "appointmentId",
         id: randomUUID(),
       };
       const dateUserPropertyDefinition: UserPropertyDefinition = {
-        type: UserPropertyDefinitionType.Performed,
+        type: UserPropertyDefinitionType.KeyedPerformed,
         event: "APPOINTMENT_UPDATE",
         id: randomUUID(),
+        key: "appointmentId",
         path: "appointmentDate",
         properties: [
           {
