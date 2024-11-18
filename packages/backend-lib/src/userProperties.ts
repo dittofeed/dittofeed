@@ -235,9 +235,7 @@ function getPerformedAssignmentOverride({
 }: UserPropertyAssignmentOverrideProps & {
   node: PerformedUserPropertyDefinition | KeyedPerformedUserPropertyDefinition;
 }): JSONValue | null {
-  const nodePath =
-    node.type === UserPropertyDefinitionType.Performed ? node.path : node.key;
-  const path = toJsonPathParam({ path: nodePath }).unwrapOr(null);
+  const path = toJsonPathParam({ path: node.path }).unwrapOr(null);
   let value: JSONValue | null = null;
   // assuming events are ordered by timestamps ascending want to check the most
   // recent event contexts first

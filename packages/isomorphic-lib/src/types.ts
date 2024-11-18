@@ -614,6 +614,7 @@ export const KeyedPerformedUserPropertyDefinition = Type.Object({
   id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
   event: Type.String(),
+  path: Type.String(),
   key: Type.String(),
   properties: Type.Optional(
     Type.Array(
