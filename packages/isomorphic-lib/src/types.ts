@@ -1646,6 +1646,17 @@ export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
     Type.Pick(schema, ["type"]),
   ]);
 
+export const NullableValues = <T extends TSchema>(T: T) =>
+  Type.Mapped(Type.KeyOf(T), (K) =>
+    Type.Union([Type.Index(T, K), Type.Null()]),
+  );
+
+export const NullableExceptType = <T extends TSchema>(T: T) =>
+  Type.Composite([
+    NullableValues(Type.Omit(T, ["type"])),
+    Type.Pick(T, ["type"]),
+  ]);
+
 export const EntryUiNodeVariant = Type.Union([
   PartialExceptType(SegmentEntryNode),
   PartialExceptType(EventEntryNode),
