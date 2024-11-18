@@ -5,6 +5,24 @@ description: "Wait for some fixed amount of time to progress."
 
 Delay nodes allow you to cause users to wait an arbitrary amount of time before they progress until the next step. Unlike other platforms, Dittofeed doesn't impose any limitations on the duration of delays. Seconds, hours, days, weeks, months, it's all fair game!
 
+## Variants
+
+### Hardcoded Delay
+
+The simplest variant specifies that the user should wait for a fixed amount of time in the journey.
+
+### Localized Delay
+
+The localized delay variant allows you to specify a delay so that the journey waits for a specific time of day and/or day of the week in the users's timezone.
+
+This requires that the user has a specified `latLon` user property e.g. `"33.812511,-117.9189762"`.
+
+### User Property Delay
+
+This variant allows you to specify a user property that the node will attempt to parse as a timestamp. The node will then wait for the date specified by the user property.
+
+The user property should resolve to either an ISO 8601 string, a unix timestamp in seconds, or a unix timestamp in milliseconds.
+
 ## Example Use Case - Welcome Email
 
 <Frame>

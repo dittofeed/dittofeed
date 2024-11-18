@@ -198,6 +198,15 @@ export async function bootstrapPostgres({
         },
         exampleValue: '"Jane Johnson"',
       },
+      {
+        name: "latLon",
+        workspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "latLon",
+        },
+        exampleValue: '33.812511,-117.9189762',
+      },
     ];
 
   const [writeKey] = await Promise.all([
