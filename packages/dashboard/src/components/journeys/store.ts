@@ -433,6 +433,8 @@ function journeyDefinitionFromStateBranch(
             variant = {
               type: DelayVariantType.UserProperty,
               userProperty: uiNode.variant.userProperty,
+              offsetSeconds: uiNode.variant.offsetSeconds,
+              offsetDirection: uiNode.variant.offsetDirection,
             };
             break;
           }
@@ -1200,6 +1202,8 @@ export function journeyBranchToState(
             variant = {
               type: DelayVariantType.UserProperty,
               userProperty: node.variant.userProperty,
+              offsetSeconds: node.variant.offsetSeconds,
+              offsetDirection: node.variant.offsetDirection,
             };
             break;
           }

@@ -1646,6 +1646,7 @@ export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
     Type.Pick(schema, ["type"]),
   ]);
 
+// FIXME delete
 export const NullableValues = <T extends TSchema>(T: T) =>
   Type.Mapped(Type.KeyOf(T), (K) =>
     Type.Union([Type.Index(T, K), Type.Null()]),
