@@ -92,6 +92,7 @@ export enum EmailProviderType {
   PostMark = "PostMark",
   Smtp = "Smtp",
   Test = "Test",
+  MailChimp = "MailChimp",
 }
 
 export enum MobilePushProviderType {
@@ -1544,7 +1545,16 @@ export const PostMarkEmailProvider = Type.Object({
 
 export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
 
+export const MailChimpEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(), 
+  type: Type.Literal(EmailProviderType.MailChimp),
+});
+
+export type MailChimpEmailProvider = Static<typeof MailChimpEmailProvider>;
+
 export const PersistedEmailProvider = Type.Union([
+  MailChimpEmailProvider,
   SendgridEmailProvider,
   AmazonSesEmailProvider,
   PostMarkEmailProvider,
@@ -3143,7 +3153,14 @@ export const EmailPostMarkSuccess = Type.Object({
 
 export type EmailPostMarkSuccess = Static<typeof EmailPostMarkSuccess>;
 
+export const EmailMailChimpSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+});
+
+export type EmailMailChimpSuccess = Static<typeof EmailMailChimpSuccess>;
+
 export const EmailServiceProviderSuccess = Type.Union([
+  EmailMailChimpSuccess,
   EmailSendgridSuccess,
   EmailAmazonSesSuccess,
   EmailPostMarkSuccess,
@@ -3350,8 +3367,17 @@ export const MessagePostMarkFailure = Type.Object({
 
 export type MessagePostMarkFailure = Static<typeof MessagePostMarkFailure>;
 
+export const MessageMailChimpFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+  message: Type.String(),
+  name: Type.String(),
+});
+
+export type MessageMailChimpFailure = Static<typeof MessageMailChimpFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
+  MessageMailChimpFailure,
   MessageAmazonSesServiceFailure,
   MessageResendFailure,
   MessagePostMarkFailure,
@@ -3662,6 +3688,14 @@ export const ResendSecret = Type.Object({
 
 export type ResendSecret = Static<typeof ResendSecret>;
 
+export const MailChimpSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+  apiKey: Type.Optional(Type.String()),
+  webhookKey: Type.Optional(Type.String()),
+});
+
+export type MailChimpSecret = Static<typeof MailChimpSecret>;
+
 export const SmtpSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   host: Type.Optional(Type.String()),
@@ -3686,6 +3720,7 @@ export type WebhookSecret = Static<typeof WebhookSecret>;
 export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 
 export const EmailProviderSecret = Type.Union([
+  MailChimpSecret,
   SendgridSecret,
   PostMarkSecret,
   AmazonSesSecret,

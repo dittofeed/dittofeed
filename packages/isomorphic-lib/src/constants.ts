@@ -20,6 +20,7 @@ export enum SecretNames {
   AmazonSes = "amazonses",
   Resend = "resend",
   Postmark = "postmark",
+  MailChimp = "mailchimp",
   Fcm = "fcm-key",
   Smtp = "smtp",
   Subscription = "subscription-key",
@@ -45,6 +46,7 @@ export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   [EmailProviderType.Smtp]: SecretNames.Smtp,
   [EmailProviderType.Resend]: SecretNames.Resend,
   [EmailProviderType.PostMark]: SecretNames.Postmark,
+  [EmailProviderType.MailChimp]: SecretNames.MailChimp,
   [EmailProviderType.Test]: "",
 };
 

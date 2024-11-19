@@ -1,3 +1,4 @@
+import { MessagesMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { toMjml } from "emailo/src/toMjml";
@@ -16,6 +17,7 @@ import { Overwrite } from "utility-types";
 
 import { getObject, storage } from "./blobStorage";
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
+import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
   ResendRequiredData,
@@ -1224,6 +1226,80 @@ export async function sendEmail({
         },
       });
     }
+
+    case EmailProviderType.MailChimp: {
+      // Mandatory for Mailchimp
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const website = new URL(`https://${from.split("@")[1]!}`).origin;
+      const mailData: MessagesMessage = {
+        html: body,
+        text: body,
+        subject,
+        from_email: from,
+        to: [{ email: to }],
+        metadata: {
+          website,
+          messageId: messageTags?.messageId,
+          workspaceId,
+        },
+      };
+
+      if (secretConfig.type !== EmailProviderType.MailChimp) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected mailchimp secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+
+      if (!secretConfig.apiKey) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing apiKey in MailChimp secret config`,
+          },
+        });
+      }
+
+      const result = await sendMailMailchimp({
+        apiKey: secretConfig.apiKey,
+        message: mailData,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.MailChimp,
+              name: result.error.code?.toString() ?? "Unknown",
+              message: result.error.message,
+            },
+          },
+        });
+      }
+
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          headers,
+          provider: {
+            type: EmailProviderType.MailChimp,
+          },
+        },
+      });
+    }
+
     case EmailProviderType.Test:
       return ok({
         type: InternalEventType.MessageSent,

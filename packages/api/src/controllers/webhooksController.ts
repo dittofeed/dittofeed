@@ -11,6 +11,7 @@ import {
   submitAmazonSesEvents,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
+import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
@@ -22,17 +23,23 @@ import {
   AmazonSesEventPayload,
   AmazonSNSEvent,
   AmazonSNSEventTypes,
+  MailChimpEvent,
   PostMarkEvent,
   ResendEvent,
   SendgridEvent,
   TwilioEventSms,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
+import { createHmac } from "crypto";
 import { FastifyInstance } from "fastify";
 import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  MailChimpSecret,
   PostMarkSecret,
   ResendSecret,
   SendgridSecret,
@@ -398,6 +405,117 @@ export default async function webhookController(fastify: FastifyInstance) {
         workspaceId,
         events: [request.body],
       });
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/mailchimp",
+    {
+      schema: {
+        description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
+        tags: ["Webhooks"],
+        body: Type.Object({
+          mandrill_events: Type.String(),
+        }),
+        headers: Type.Object({
+          "x-mandrill-signature": Type.String(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const eventsResult = jsonParseSafe(request.body.mandrill_events);
+      if (eventsResult.isErr()) {
+        logger().error("Failed to parse Mailchimp webhook payload");
+        return reply.status(400).send({
+          error: "Invalid JSON in mandrill_events",
+        });
+      }
+
+      const events = schemaValidateWithErr(
+        eventsResult.value,
+        Type.Array(MailChimpEvent),
+      ).unwrapOr([]);
+      logger().debug({ events }, "Parsed Mailchimp webhook events");
+      logger().debug(
+        { rawEvents: eventsResult.value },
+        "Raw Mailchimp webhook events",
+      );
+
+      if (events.length === 0) {
+        return reply.status(200).send();
+      }
+
+      const workspaceId = events[0]?.msg.metadata.workspaceId as string;
+      if (!workspaceId) {
+        logger().error("Missing workspaceId in Mailchimp webhook metadata");
+        return reply.status(400).send({
+          error: "Missing workspaceId in metadata.",
+        });
+      }
+
+      const secret = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            name: SecretNames.MailChimp,
+            workspaceId,
+          },
+        },
+      });
+
+      const webhookKey = schemaValidateWithErr(
+        secret?.configValue,
+        MailChimpSecret,
+      )
+        .map((val) => val.webhookKey)
+        .unwrapOr(null);
+
+      if (!webhookKey) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Missing sendgrid webhook secret.",
+        );
+        return reply.status(400).send({
+          error: "Missing secret.",
+        });
+      }
+
+      const signature = request.headers["x-mandrill-signature"];
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      const url = `https://${request.headers.host}${request.originalUrl}`;
+      const params = request.body;
+
+      const signedData = Object.keys(params)
+        .sort()
+        .reduce((acc, key) => {
+          if (key === "mandrill_events") {
+            return acc + key + params.mandrill_events;
+          }
+          return acc;
+        }, url);
+
+      const expectedSignature = createHmac("sha1", webhookKey)
+        .update(signedData)
+        .digest("base64");
+
+      if (signature !== expectedSignature) {
+        logger().error(
+          { workspaceId },
+          "Invalid signature for Mailchimp webhook.",
+        );
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
+      }
+
+      await Promise.all(
+        events.map((e) =>
+          submitMailChimpEvent({ workspaceId, mailChimpEvent: e }),
+        ),
+      );
+
       return reply.status(200).send();
     },
   );

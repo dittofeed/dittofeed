@@ -3651,6 +3651,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mailchimp/mailchimp_transactional@npm:^1.0.59":
+  version: 1.0.59
+  resolution: "@mailchimp/mailchimp_transactional@npm:1.0.59"
+  dependencies:
+    axios: "npm:^1.6.7"
+  checksum: 10/5dd9c0215ee46bd94f06b0a08857d9eb8658ea8cf314c9c7862eb78138ae1ca9ac50372fbe830fa42815f127fc1c5828a2c4fb9942945583fb8b8a15e9d86562
+  languageName: node
+  linkType: hard
+
 "@mdx-js/mdx@npm:^2.2.1":
   version: 2.3.0
   resolution: "@mdx-js/mdx@npm:2.3.0"
@@ -8837,6 +8846,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mailchimp__mailchimp_transactional@npm:^1.0.10":
+  version: 1.0.10
+  resolution: "@types/mailchimp__mailchimp_transactional@npm:1.0.10"
+  dependencies:
+    axios: "npm:^1.6.7"
+  checksum: 10/fff7776d04ccbfec853396d25b18730e7944c0c1531f7935249aa0dd5411e41c14879b72b16c72e6071de802ed5d2b6a580048144823ea6131f57d63bb204bd0
+  languageName: node
+  linkType: hard
+
 "@types/markdown-it@npm:^12.2.3":
   version: 12.2.3
   resolution: "@types/markdown-it@npm:12.2.3"
@@ -10421,6 +10439,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.6.7":
+  version: 1.7.7
+  resolution: "axios@npm:1.7.7"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.0"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10/7f875ea13b9298cd7b40fd09985209f7a38d38321f1118c701520939de2f113c4ba137832fe8e3f811f99a38e12c8225481011023209a77b0c0641270e20cde1
+  languageName: node
+  linkType: hard
+
 "axobject-query@npm:^3.1.1":
   version: 3.1.1
   resolution: "axobject-query@npm:3.1.1"
@@ -10527,6 +10556,7 @@ __metadata:
     "@fast-csv/format": "npm:^4.3.5"
     "@fastify/type-provider-typebox": "npm:4.0.0"
     "@hyperdx/node-opentelemetry": "npm:^0.8.0"
+    "@mailchimp/mailchimp_transactional": "npm:^1.0.59"
     "@opentelemetry/api": "npm:1.9.0"
     "@opentelemetry/auto-instrumentations-node": "npm:0.39.2"
     "@opentelemetry/exporter-metrics-otlp-grpc": "npm:0.41.2"
@@ -10549,6 +10579,7 @@ __metadata:
     "@types/escape-html": "npm:^1.0.2"
     "@types/jest": "npm:^29.2.6"
     "@types/jsonpath": "npm:^0.2.0"
+    "@types/mailchimp__mailchimp_transactional": "npm:^1.0.10"
     "@types/markdown-it": "npm:^12.2.3"
     "@types/minimist": "npm:^1.2.2"
     "@types/mjml": "npm:^4.7.1"
@@ -14389,6 +14420,16 @@ __metadata:
     debug:
       optional: true
   checksum: 10/d467f13c1c6aa734599b8b369cd7a625b20081af358f6204ff515f6f4116eb440de9c4e0c49f10798eeb0df26c95dd05d5e0d9ddc5786ab1a8a8abefe92929b4
+  languageName: node
+  linkType: hard
+
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.9
+  resolution: "follow-redirects@npm:1.15.9"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 10/e3ab42d1097e90d28b913903841e6779eb969b62a64706a3eb983e894a5db000fbd89296f45f08885a0e54cd558ef62e81be1165da9be25a6c44920da10f424c
   languageName: node
   linkType: hard
 
