@@ -581,10 +581,31 @@ export type GroupParentUserPropertyDefinitions = Static<
   typeof GroupParentUserPropertyDefinitions
 >;
 
+export const KeyedPerformedUserPropertyDefinition = Type.Object({
+  id: Type.Optional(Type.String()),
+  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
+  event: Type.String(),
+  path: Type.String(),
+  key: Type.String(),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: UserPropertyOperator,
+      }),
+    ),
+  ),
+});
+
+export type KeyedPerformedUserPropertyDefinition = Static<
+  typeof KeyedPerformedUserPropertyDefinition
+>;
+
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   FileUserPropertyDefinition,
+  KeyedPerformedUserPropertyDefinition,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
@@ -610,33 +631,12 @@ export type GroupUserPropertyDefinition = Static<
   typeof GroupUserPropertyDefinition
 >;
 
-export const KeyedPerformedUserPropertyDefinition = Type.Object({
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
-  event: Type.String(),
-  path: Type.String(),
-  key: Type.String(),
-  properties: Type.Optional(
-    Type.Array(
-      Type.Object({
-        path: Type.String(),
-        operator: UserPropertyOperator,
-      }),
-    ),
-  ),
-});
-
-export type KeyedPerformedUserPropertyDefinition = Static<
-  typeof KeyedPerformedUserPropertyDefinition
->;
-
 export const UserPropertyDefinition = Type.Union([
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
   PerformedManyUserPropertyDefinition,
-  KeyedPerformedUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

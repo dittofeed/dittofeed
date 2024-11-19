@@ -1865,6 +1865,11 @@ function leafUserPropertyToSubQuery({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(child);
   }
 }
 
@@ -1943,6 +1948,11 @@ function groupedUserPropertyToSubQuery({
       }
       return [subQuery];
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return [];
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
@@ -2342,6 +2352,11 @@ function leafUserPropertyToAssignment({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(child);
   }
 }
 
@@ -2421,6 +2436,11 @@ function groupedUserPropertyToAssignment({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
