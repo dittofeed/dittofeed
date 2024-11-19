@@ -517,11 +517,19 @@ function DelayNodeFields({
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
           if (
-            props.type === JourneyNodeType.DelayNode &&
-            nodeVariant.type === DelayVariantType.Second
+            !(
+              props.type === JourneyNodeType.DelayNode &&
+              nodeVariant.type === DelayVariantType.Second
+            )
           ) {
-            nodeVariant.seconds = seconds;
+            return;
           }
+          // Immer doesn't like adding new properties, given that seconds is optional.
+          const newVariant = {
+            ...nodeVariant,
+            seconds,
+          };
+          props.variant = newVariant;
         });
       };
       variant = (

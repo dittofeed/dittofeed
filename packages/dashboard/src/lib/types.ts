@@ -319,14 +319,20 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export type JourneyNodesIndex = Record<string, number>;
 
+export type DefinitionJourneyNode = Node<
+  JourneyUiNodeDefinitionProps,
+  "journey"
+>;
+
 export type JourneyUiNode =
-  | Node<JourneyUiNodeDefinitionProps, "journey">
+  | DefinitionJourneyNode
   | Node<JourneyUiNodeLabelProps, "label">
   | Node<JourneyUiNodeEmptyProps, "empty">;
 
 export type JourneyUiEdge =
   | Edge<JourneyUiDefinitionEdgeProps, "workflow">
   | Edge<JourneyUiPlaceholderEdgeProps, "placeholder">;
+
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
@@ -346,6 +352,18 @@ export interface AddNodesParams {
   edges: JourneyUiEdge[];
 }
 
+type JourneyNodeUpdaterInPlace = (
+  currentValue: Draft<DefinitionJourneyNode>,
+) => void;
+
+type JourneyNodeUpdaterReturning = (
+  currentValue: Draft<DefinitionJourneyNode>,
+) => DefinitionJourneyNode;
+
+type JourneyNodeUpdater =
+  | JourneyNodeUpdaterInPlace
+  | JourneyNodeUpdaterReturning;
+
 export interface JourneyContent extends JourneyState {
   setDraggedComponentType: (
     t: JourneyUiBodyNodeTypeProps["type"] | null,
@@ -355,10 +373,7 @@ export interface JourneyContent extends JourneyState {
   setEdges: (changes: EdgeChange<JourneyUiEdge>[]) => void;
   setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
-  updateJourneyNodeData: (
-    nodeId: string,
-    updater: (currentValue: Draft<Node<JourneyUiNodeDefinitionProps>>) => void,
-  ) => void;
+  updateJourneyNodeData: (nodeId: string, updater: JourneyNodeUpdater) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
   updateLabelNode: (nodeId: string, title: string) => void;

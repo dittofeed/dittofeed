@@ -74,6 +74,7 @@ import {
 } from "./defaults";
 import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
+import { isJourneyNode } from "./isJourneyNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 
@@ -1077,9 +1078,24 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyNodes,
         state.journeyNodesIndex,
       );
-      if (node) {
-        updater(node);
+      if (!node) {
+        return;
       }
+
+      const newNode = updater(node);
+      if (!newNode) {
+        return;
+      }
+
+      if (!isJourneyNode(newNode)) {
+        throw new Error("Expected journey node");
+      }
+      state.journeyNodes = state.journeyNodes.map((n) => {
+        if (n.id !== nodeId) {
+          return n;
+        }
+        return newNode;
+      });
     }),
   setJourneyUpdateRequest: (request) =>
     set((state) => {

@@ -1,14 +1,14 @@
 import { Node } from "@xyflow/react";
 
 import {
+  DefinitionJourneyNode,
   JourneyNodeUiProps,
-  JourneyUiNodeDefinitionProps,
   JourneyUiNodeType,
 } from "../../lib/types";
 
 export function isJourneyNode(
   node: Node<JourneyNodeUiProps>,
-): node is Node<JourneyUiNodeDefinitionProps> {
+): node is DefinitionJourneyNode {
   return (
     node.type === "journey" &&
     node.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps
