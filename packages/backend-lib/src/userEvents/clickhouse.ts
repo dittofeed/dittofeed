@@ -31,6 +31,7 @@ export async function createUserEventsTables({
 } = {}) {
   logger().info("Creating user events tables");
   const queries: string[] = [
+    // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
     `
         CREATE TABLE IF NOT EXISTS user_events_v2 (
           event_type Enum(
@@ -93,6 +94,15 @@ export async function createUserEventsTables({
           message_id
       );
       `,
+    // This table stores the intermediate state for computed properties, which
+    // allows us to efficiently re-compute them incrementally, rather than
+    // re-computing the entire segment or user property from scratch with each
+    // polling period.
+    //
+    // Each computed property (segment or user property) maintains one or more
+    // pieces of state, typically ~1 per segment or user property "node". For
+    // example, a segment with N conditions joined with an "And" clause will
+    // require N state id's.
     `
         CREATE TABLE IF NOT EXISTS computed_property_state_v2 (
           workspace_id LowCardinality(String),
@@ -116,6 +126,9 @@ export async function createUserEventsTables({
           event_time
         );
       `,
+    // This table stores the assignments of computed properties to users, json
+    // strings in the case of user properties or booleans in the case of
+    // segments.
     `
         CREATE TABLE IF NOT EXISTS computed_property_assignments_v2 (
           workspace_id LowCardinality(String),
@@ -135,6 +148,15 @@ export async function createUserEventsTables({
           user_id
         );
       `,
+    // Computed properties need to be "processed". There are several ways that a
+    // computed property can be processed.
+    //
+    // 1. User property and segment assignments are replicated to postgres from clickhouse, for rapid row-wise reads.
+    // 2. Segment assignments are used to trigger journeys.
+    // 3. User property and segment assignments can be replicated to 3rd party systems like Hubspot etc.
+    //
+    // This table keeps track of which assignments have been processed, so that
+    // we can safely retry only the pending effects upon failure.
     `
         CREATE TABLE IF NOT EXISTS processed_computed_properties_v2 (
           workspace_id LowCardinality(String),
@@ -157,6 +179,9 @@ export async function createUserEventsTables({
           user_id
         );
       `,
+    // Keeps track of which computed properties have been updated recently, so
+    // that we can efficiently assign new computed property values for only the
+    // properties which have had their states updated.
     `
         create table if not exists updated_computed_property_state(
           workspace_id LowCardinality(String),
@@ -170,6 +195,9 @@ export async function createUserEventsTables({
         order by computed_at
         TTL toStartOfDay(computed_at) + interval 24 hour;
       `,
+    // Keeps track of which user property and segment assignments have been
+    // updated so that we can decide which computed properties need to be
+    // re-processed.
     `
         create table if not exists updated_property_assignments_v2(
           workspace_id LowCardinality(String),
@@ -182,6 +210,9 @@ export async function createUserEventsTables({
         order by assigned_at
         TTL toStartOfDay(assigned_at) + interval 24 hour;
       `,
+    // This table maintains indexes for specialized computed properties that
+    // involve numerical values and / or dates e.g. segments using the the
+    // "Within" trait operator
     `
         CREATE TABLE IF NOT EXISTS computed_property_state_index (
             workspace_id LowCardinality(String),
@@ -201,6 +232,8 @@ export async function createUserEventsTables({
             user_id
         );
       `,
+    // Because segments can be represented as a tree of boolean values, joined
+    // by And and Or clauses, we store that tree's node's values separately.
     `
         CREATE TABLE IF NOT EXISTS resolved_segment_state (
             workspace_id LowCardinality(String),
@@ -231,6 +264,9 @@ export async function createUserEventsTables({
         : config().kafkaBrokers.join(",");
 
     // TODO modify kafka consumer settings
+    // This table is used in the kafka write mode to buffer messages from kafka
+    // to clickhouse. It's useful for processing a high volume of messages
+    // without burdening clickhouse with excessive memory usage.
     queries.push(`
         CREATE TABLE IF NOT EXISTS user_events_queue_v2
         (message_raw String, workspace_id String, message_id String)
@@ -252,6 +288,8 @@ export async function createUserEventsTables({
     ),
   );
 
+  // These materialized views help to move data to "updated_" tables, which
+  // track changes in the parent table.
   const mvQueries: string[] = [
     `
       create materialized view if not exists updated_property_assignments_v2_mv to updated_property_assignments_v2
