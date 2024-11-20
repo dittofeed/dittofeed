@@ -14,7 +14,6 @@ import {
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
-import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
