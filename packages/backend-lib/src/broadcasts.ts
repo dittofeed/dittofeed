@@ -11,6 +11,7 @@ import {
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
+  SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
 import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
@@ -139,12 +140,20 @@ export async function getBroadcast({
   };
 }
 
+const DEFAULT_BROADCAST_SEGMENT_DEFINITION: SegmentDefinition = {
+  entryNode: {
+    type: SegmentNodeType.Everyone,
+    id: "1",
+  },
+  nodes: [],
+};
+
 export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
   subscriptionGroupId,
   name,
-  segmentDefinition: sDefinition,
+  segmentDefinition = DEFAULT_BROADCAST_SEGMENT_DEFINITION,
   messageTemplateDefinition: mDefinition,
 }: {
   broadcastId: string;
@@ -154,8 +163,6 @@ export async function upsertBroadcast({
   segmentDefinition?: SegmentDefinition;
   messageTemplateDefinition?: MessageTemplateResourceDefinition;
 }): Promise<BroadcastResources> {
-  const segmentDefinition: SegmentDefinition =
-    sDefinition ?? DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
