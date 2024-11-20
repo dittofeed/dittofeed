@@ -1775,7 +1775,7 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       return [
         {
-          condition: `event_type == 'identify'`,
+          condition: "True",
           type: "segment",
           uniqValue: "''",
           computedPropertyId: segment.id,
