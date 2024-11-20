@@ -1290,6 +1290,19 @@ function segmentToResolvedState({
     case SegmentNodeType.KeyedPerformed: {
       return [];
     }
+    case SegmentNodeType.Everyone: {
+      return [
+        buildRecentUpdateSegmentQuery({
+          workspaceId,
+          stateId,
+          expression: `True`,
+          segmentId: segment.id,
+          now,
+          periodBound,
+          qb,
+        }),
+      ];
+    }
     default:
       assertUnreachable(node);
   }
@@ -1439,6 +1452,12 @@ function resolvedSegmentToAssignment({
       return {
         stateIds: [],
         expression: "False",
+      };
+    }
+    case SegmentNodeType.Everyone: {
+      return {
+        stateIds: [],
+        expression: "True",
       };
     }
     default:
@@ -1752,6 +1771,20 @@ export function segmentNodeToStateSubQuery({
     case SegmentNodeType.KeyedPerformed: {
       return [];
     }
+    case SegmentNodeType.Everyone: {
+      const stateId = segmentNodeStateId(segment, node.id);
+      return [
+        {
+          condition: `event_type == 'identify'`,
+          type: "segment",
+          uniqValue: "''",
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
