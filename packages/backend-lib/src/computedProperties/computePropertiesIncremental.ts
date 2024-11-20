@@ -1456,7 +1456,7 @@ function resolvedSegmentToAssignment({
     }
     case SegmentNodeType.Everyone: {
       return {
-        stateIds: [],
+        stateIds: [stateId],
         expression: "True",
       };
     }
@@ -1777,7 +1777,7 @@ export function segmentNodeToStateSubQuery({
         {
           condition: "True",
           type: "segment",
-          uniqValue: "''",
+          uniqValue: "'0'",
           computedPropertyId: segment.id,
           stateId,
         },

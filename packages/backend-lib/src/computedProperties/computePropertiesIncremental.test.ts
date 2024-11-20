@@ -529,6 +529,7 @@ interface AssertStep {
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
   userCount?: number;
+  userPropertyUserCount?: number;
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
@@ -714,6 +715,42 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a segment that matches everyone",
+      segments: [
+        {
+          name: "everyone",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Everyone,
+              id: randomUUID(),
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEventsTimes,
+          times: 100,
+          events: [
+            (_ctx, i) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: `user-${i}`,
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          userCount: 100,
+          userPropertyUserCount: 0,
+        },
+      ],
+    },
+    {
       description:
         "can efficiently process a large number of user property assignments without OOM'ing",
       skip: true,
@@ -732,7 +769,6 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEventsTimes,
           // NODE_OPTIONS="--max-old-space-size=750" yarn jest packages/backend-lib/src/computedProperties/computePropertiesIncremental.test.t
           times: 4000000,
-          // times: 10,
           events: [
             (_ctx, i) => ({
               type: EventType.Identify,
@@ -5411,9 +5447,10 @@ describe("computeProperties", () => {
                 expect(userCounts, step.description).toEqual({
                   eventsUserCount: step.userCount,
                   processedUserCount: step.userCount,
-                  userPropertyUserCount: step.userCount,
                   stateUserCount: step.userCount,
                   assignmentUserCount: step.userCount,
+                  userPropertyUserCount:
+                    step.userPropertyUserCount ?? step.userCount,
                 });
               })()
             : null;
