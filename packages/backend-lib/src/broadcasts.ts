@@ -286,6 +286,7 @@ export async function getOrCreateBroadcast(params: {
   broadcastId: string;
   workspaceId: string;
   name: string;
+  segmentDefinition?: SegmentDefinition;
 }): Promise<BroadcastResources> {
   const broadcastResources = await getBroadcast(params);
   if (broadcastResources) {
