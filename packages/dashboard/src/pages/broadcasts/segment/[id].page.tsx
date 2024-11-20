@@ -6,7 +6,6 @@ import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups"
 import {
   CompletionStatus,
   SavedSegmentResource,
-  SegmentNodeType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -50,13 +49,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     ] = await Promise.all([
       getOrCreateBroadcast({
         workspaceId: dfContext.workspace.id,
-        segmentDefinition: {
-          entryNode: {
-            type: SegmentNodeType.Everyone,
-            id: "1",
-          },
-          nodes: [],
-        },
         broadcastId: id,
         name,
       }),

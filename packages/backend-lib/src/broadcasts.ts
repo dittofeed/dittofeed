@@ -11,9 +11,9 @@ import {
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
+  SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
-import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
@@ -139,12 +139,20 @@ export async function getBroadcast({
   };
 }
 
+const DEFAULT_BROADCAST_SEGMENT_DEFINITION: SegmentDefinition = {
+  entryNode: {
+    type: SegmentNodeType.Everyone,
+    id: "1",
+  },
+  nodes: [],
+};
+
 export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
-  subscriptionGroupId,
+  subscriptionGroupId: sgId,
   name,
-  segmentDefinition: sDefinition,
+  segmentDefinition = DEFAULT_BROADCAST_SEGMENT_DEFINITION,
   messageTemplateDefinition: mDefinition,
 }: {
   broadcastId: string;
@@ -154,11 +162,16 @@ export async function upsertBroadcast({
   segmentDefinition?: SegmentDefinition;
   messageTemplateDefinition?: MessageTemplateResourceDefinition;
 }): Promise<BroadcastResources> {
-  const segmentDefinition: SegmentDefinition =
-    sDefinition ?? DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
+  logger().info(
+    {
+      sgId,
+      segmentDefinition,
+    },
+    "Upserting broadcast",
+  );
 
   let messageTemplateDefinition: MessageTemplateResourceDefinition;
   if (mDefinition) {
@@ -180,7 +193,7 @@ export async function upsertBroadcast({
     { messageTemplateDefinition, segmentDefinition },
     "Broadcast definitions",
   );
-  const [segment, messageTemplate] = await Promise.all([
+  const [segment, messageTemplate, subscriptionGroup] = await Promise.all([
     prisma().segment.upsert({
       where: {
         workspaceId_name: {
@@ -212,6 +225,20 @@ export async function upsertBroadcast({
       },
       update: {},
     }),
+    sgId
+      ? null
+      : prisma().subscriptionGroup.findFirst({
+          where: {
+            workspaceId,
+            channel: mDefinition?.type ?? ChannelType.Email,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+          },
+        }),
   ]);
 
   const journeyDefinition: JourneyDefinition = {
@@ -225,7 +252,7 @@ export async function upsertBroadcast({
         id: "broadcast-message",
         type: JourneyNodeType.MessageNode,
         name: "Broadcast Message",
-        subscriptionGroupId,
+        subscriptionGroupId: sgId ?? subscriptionGroup?.id,
         variant: {
           type: ChannelType.Email,
           templateId: messageTemplate.id,
