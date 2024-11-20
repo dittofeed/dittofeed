@@ -313,8 +313,8 @@ describe("keyedEventEntry journeys", () => {
           expect(senderMock).toHaveBeenCalledTimes(2);
           expect(
             senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               (call) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 call[0].userPropertyAssignments?.appointmentId ===
                 appointmentId1,
             ),
@@ -322,8 +322,8 @@ describe("keyedEventEntry journeys", () => {
           ).toHaveLength(1);
           expect(
             senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               (call) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 call[0].userPropertyAssignments?.appointmentId ===
                 appointmentId2,
             ),
@@ -347,8 +347,8 @@ describe("keyedEventEntry journeys", () => {
 
           expect(
             senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               (call) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 call[0].userPropertyAssignments?.appointmentId ===
                 appointmentId1,
             ),
@@ -357,8 +357,8 @@ describe("keyedEventEntry journeys", () => {
 
           expect(
             senderMock.mock.calls.filter(
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               (call) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 call[0].userPropertyAssignments?.appointmentId ===
                 appointmentId2,
             ),

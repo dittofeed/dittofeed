@@ -11237,6 +11237,24 @@
                                       "type": {
                                         "type": "string",
                                         "enum": [
+                                          "Everyone"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
                                           "KeyedPerformed"
                                         ]
                                       },
@@ -13511,6 +13529,24 @@
                                   "type": {
                                     "type": "string",
                                     "enum": [
+                                      "Everyone"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
                                       "KeyedPerformed"
                                     ]
                                   },
@@ -15771,6 +15807,24 @@
                               "required": [
                                 "type",
                                 "version",
+                                "id"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Everyone"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
                                 "id"
                               ]
                             },
@@ -27604,6 +27658,24 @@
                                       "type": {
                                         "type": "string",
                                         "enum": [
+                                          "Everyone"
+                                        ]
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "id"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
                                           "KeyedPerformed"
                                         ]
                                       },
@@ -29878,6 +29950,24 @@
                                   "type": {
                                     "type": "string",
                                     "enum": [
+                                      "Everyone"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
                                       "KeyedPerformed"
                                     ]
                                   },
@@ -32138,6 +32228,24 @@
                               "required": [
                                 "type",
                                 "version",
+                                "id"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Everyone"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
                                 "id"
                               ]
                             },
@@ -44512,6 +44620,24 @@
                             "required": [
                               "type",
                               "version",
+                              "id"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Everyone"
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
                               "id"
                             ]
                           },

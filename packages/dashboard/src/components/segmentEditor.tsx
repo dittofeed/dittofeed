@@ -128,9 +128,16 @@ const keyedPerformedOption = {
   label: "Keyed Performed",
 };
 
+const everyoneOption = {
+  id: SegmentNodeType.Everyone,
+  group: "User Data",
+  label: "Everyone",
+};
+
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  everyoneOption,
   randomBucketOption,
   keyedPerformedOption,
   subscriptionGroupGroupedOption,
@@ -147,6 +154,7 @@ const keyedSegmentOptions: Record<
   >,
   SegmentGroupedOption
 > = {
+  [SegmentNodeType.Everyone]: everyoneOption,
   [SegmentNodeType.Manual]: manualOption,
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.Performed]: performedOption,
@@ -1557,7 +1565,8 @@ function SegmentNodeComponent({
         (opt) =>
           isRoot ||
           (opt.id !== SegmentNodeType.Manual &&
-            opt.id !== SegmentNodeType.KeyedPerformed),
+            opt.id !== SegmentNodeType.KeyedPerformed &&
+            opt.id !== SegmentNodeType.Everyone),
       ),
     [isRoot],
   );
@@ -1731,6 +1740,13 @@ function SegmentNodeComponent({
         {conditionSelect}
         <EmailSelect node={node} />
         {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.Everyone) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
       </Stack>
     );
   } else {
