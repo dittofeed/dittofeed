@@ -1,4 +1,5 @@
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BodySegmentNode,
   CompletionStatus,
@@ -22,7 +23,6 @@ import { immer } from "zustand/middleware/immer";
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
 import { getDefaultUserPropertyExampleValue } from "./userProperties";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();

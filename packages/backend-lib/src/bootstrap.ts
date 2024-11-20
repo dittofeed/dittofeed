@@ -205,7 +205,7 @@ export async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "latLon",
         },
-        exampleValue: '33.812511,-117.9189762',
+        exampleValue: "33.812511,-117.9189762",
       },
     ];
 

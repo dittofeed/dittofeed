@@ -11,6 +11,7 @@ import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
 import { enrichJourney } from "../journeys";
+import logger from "../logger";
 import prisma from "../prisma";
 import {
   ComputedPropertiesWorkflowParams,
@@ -31,7 +32,6 @@ import {
   SubscriptionGroupType,
 } from "../types";
 import { getUserJourneyWorkflowId } from "./userWorkflow";
-import logger from "../logger";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
