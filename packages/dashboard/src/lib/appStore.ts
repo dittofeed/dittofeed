@@ -22,6 +22,7 @@ import { immer } from "zustand/middleware/immer";
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
 import { getDefaultUserPropertyExampleValue } from "./userProperties";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -223,6 +224,18 @@ function mapSegmentNodeToNewType(
     }
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
+    }
+    case SegmentNodeType.Everyone: {
+      return {
+        primary: {
+          type: SegmentNodeType.Everyone,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    default: {
+      assertUnreachable(type);
     }
   }
 }
