@@ -242,6 +242,7 @@ export enum SegmentNodeType {
   Manual = "Manual",
   RandomBucket = "RandomBucket",
   KeyedPerformed = "KeyedPerformed",
+  Everyone = "Everyone",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -386,6 +387,13 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
+export const EveryoneSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Everyone),
+  id: Type.String(),
+});
+
+export type EveryoneSegmentNode = Static<typeof EveryoneSegmentNode>;
+
 export const KeyedPerformedPropertiesOperator = Type.Union([
   SegmentEqualsOperator,
   ExistsOperator,
@@ -436,6 +444,7 @@ export type BodySegmentNode = Static<typeof BodySegmentNode>;
 export const SegmentNode = Type.Union([
   BodySegmentNode,
   ManualSegmentNode,
+  EveryoneSegmentNode,
   KeyedPerformedSegmentNode,
 ]);
 
@@ -1547,7 +1556,7 @@ export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
 
 export const MailChimpEmailProvider = Type.Object({
   id: Type.String(),
-  workspaceId: Type.String(), 
+  workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.MailChimp),
 });
 
