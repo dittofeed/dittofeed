@@ -4036,3 +4036,7 @@ export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);
 
 export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
   Required<Pick<T, K>>;
+
+export type WorkspaceIdentifier =
+  | { workspaceId: string }
+  | { externalId: string };

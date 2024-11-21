@@ -106,4 +106,51 @@ describe("authenticateAdminApiKey", () => {
       expect(result).toBe(true);
     });
   });
+
+  describe("when authenticating against a child workspace with a key from the parent workspace, using an externalId", () => {
+    let workspace: Workspace;
+    let childWorkspaceExternalId: string;
+    let adminApiKey: string;
+
+    beforeEach(async () => {
+      workspace = await prisma().workspace.create({
+        data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Parent },
+      });
+      childWorkspaceExternalId = `child-workspace-external-id-${uuidv4()}`;
+      const childWorkspace = await prisma().workspace.create({
+        data: {
+          name: `Child Workspace ${uuidv4()}`,
+          type: WorkspaceType.Child,
+          externalId: childWorkspaceExternalId,
+        },
+      });
+      await prisma().workspaceRelation.create({
+        data: {
+          parentWorkspaceId: workspace.id,
+          childWorkspaceId: childWorkspace.id,
+        },
+      });
+      adminApiKey = unwrap(
+        await createAdminApiKey({
+          workspaceId: workspace.id,
+          name: "my-admin-api-key",
+        }),
+      ).apiKey;
+    });
+    it("should return true with the correct externalId", async () => {
+      const result = await authenticateAdminApiKey({
+        externalId: childWorkspaceExternalId,
+        actualKey: adminApiKey,
+      });
+      expect(result).toBe(true);
+    });
+
+    it("should return false with the wrong externalId", async () => {
+      const result = await authenticateAdminApiKey({
+        externalId: `wrong-external-id-${uuidv4()}`,
+        actualKey: adminApiKey,
+      });
+      expect(result).toBe(false);
+    });
+  });
 });
