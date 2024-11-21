@@ -107,12 +107,6 @@ export function getExternalIdFromReq(
   if (!externalId) {
     return ok(null);
   }
-  if (!validateUuid(externalId)) {
-    return err({
-      type: GetWorkspaceIdentifierErrorType.InvalidWorkspaceId,
-      message: "Invalid externalId, not a valid UUID.",
-    });
-  }
   return ok(externalId);
 }
 
