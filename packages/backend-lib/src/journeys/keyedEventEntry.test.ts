@@ -10,6 +10,7 @@ import {
   CursorDirectionEnum,
   DelayVariantType,
   EmailProviderType,
+  GroupUserPropertyDefinition,
   InternalEventType,
   Journey,
   JourneyDefinition,
@@ -83,12 +84,13 @@ describe("keyedEventEntry journeys", () => {
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;
+    let dateUserPropertyId: string;
     const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
       const appointmentCancelledSegmentId = randomUUID();
       const templateId = randomUUID();
-      const dateUserPropertyId = randomUUID();
+      dateUserPropertyId = randomUUID();
 
       journeyDefinition = {
         entryNode: {
@@ -179,22 +181,6 @@ describe("keyedEventEntry journeys", () => {
         path: "appointmentId",
         id: randomUUID(),
       };
-      const dateUserPropertyDefinition: UserPropertyDefinition = {
-        type: UserPropertyDefinitionType.KeyedPerformed,
-        event: "APPOINTMENT_UPDATE",
-        id: randomUUID(),
-        key: "appointmentId",
-        path: "appointmentDate",
-        properties: [
-          {
-            path: "operation",
-            operator: {
-              type: UserPropertyOperatorType.Equals,
-              value: "STARTED",
-            },
-          },
-        ],
-      };
       [journey] = await Promise.all([
         prisma().journey.create({
           data: {
@@ -219,26 +205,43 @@ describe("keyedEventEntry journeys", () => {
             name: "appointmentId",
           },
         }),
-        prisma().userProperty.create({
+      ]);
+    });
+
+    describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled ", () => {
+      let userId: string;
+      let appointmentId1: string;
+      let appointmentId2: string;
+
+      beforeEach(async () => {
+        userId = randomUUID();
+        appointmentId1 = randomUUID();
+        appointmentId2 = randomUUID();
+
+        const dateUserPropertyDefinition: UserPropertyDefinition = {
+          type: UserPropertyDefinitionType.KeyedPerformed,
+          event: "APPOINTMENT_UPDATE",
+          id: randomUUID(),
+          key: "appointmentId",
+          path: "appointmentDate",
+          properties: [
+            {
+              path: "operation",
+              operator: {
+                type: UserPropertyOperatorType.Equals,
+                value: "STARTED",
+              },
+            },
+          ],
+        };
+        await prisma().userProperty.create({
           data: {
             id: dateUserPropertyId,
             workspaceId: workspace.id,
             definition: dateUserPropertyDefinition,
             name: "appointmentDate",
           },
-        }),
-      ]);
-      // create a journey with a wait-for node conditioned on a cancellation event
-    });
-    describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled ", () => {
-      let userId: string;
-      let appointmentId1: string;
-      let appointmentId2: string;
-
-      beforeEach(() => {
-        userId = randomUUID();
-        appointmentId1 = randomUUID();
-        appointmentId2 = randomUUID();
+        });
       });
 
       it("only the cancelled journey should send a message", async () => {
@@ -252,8 +255,7 @@ describe("keyedEventEntry journeys", () => {
           const appointmentDate = new Date(
             now + 1000 * oneDaySeconds * 2,
           ).toISOString();
-          // delay: 172799588
-          // 47 hours
+
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -308,6 +310,12 @@ describe("keyedEventEntry journeys", () => {
           );
 
           await testEnv.sleep(5000);
+
+          expect(
+            senderMock,
+            "should not have sent any messages before waiting for day before appointment date",
+          ).toHaveBeenCalledTimes(0);
+
           await testEnv.sleep(1000 * oneDaySeconds);
 
           expect(senderMock).toHaveBeenCalledTimes(2);
@@ -365,6 +373,90 @@ describe("keyedEventEntry journeys", () => {
             "should have sent a reminder message for appointment 2 but not a cancellation message",
           ).toHaveLength(1);
           expect(senderMock).toHaveBeenCalledTimes(3);
+        });
+      });
+    });
+    describe("when the appointment date user property is part of an any of group", () => {
+      beforeEach(async () => {
+        const dateUserPropertyDefinition: UserPropertyDefinition = {
+          type: UserPropertyDefinitionType.Group,
+          entry: "1",
+          nodes: [
+            {
+              type: UserPropertyDefinitionType.AnyOf,
+              id: "1",
+              children: ["2", "3"],
+            },
+            {
+              id: "2",
+              type: UserPropertyDefinitionType.Trait,
+              path: "nextAppointmentDate",
+            },
+            {
+              id: "3",
+              type: UserPropertyDefinitionType.KeyedPerformed,
+              event: "APPOINTMENT_UPDATE",
+              key: "appointmentId",
+              path: "appointmentDate",
+            },
+          ],
+        } satisfies GroupUserPropertyDefinition;
+
+        await prisma().userProperty.create({
+          data: {
+            id: dateUserPropertyId,
+            workspaceId: workspace.id,
+            definition: dateUserPropertyDefinition,
+            name: "appointmentDate",
+          },
+        });
+      });
+
+      it("should wait for the resolved value of the user property group", async () => {
+        const userId = randomUUID();
+        const appointmentId1 = randomUUID();
+
+        await worker.runUntil(async () => {
+          const timestamp1 = new Date().toISOString();
+          const now = await testEnv.currentTimeMs();
+          const appointmentDate = new Date(
+            now + 1000 * oneDaySeconds * 2,
+          ).toISOString();
+
+          await testEnv.client.workflow.start(userJourneyWorkflow, {
+            workflowId: "workflow1",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId1,
+                    appointmentDate,
+                  },
+                  messageId: randomUUID(),
+                  timestamp: timestamp1,
+                },
+              },
+            ],
+          });
+
+          await testEnv.sleep(5000);
+
+          expect(
+            senderMock,
+            "should not have sent any messages before waiting for day before appointment date",
+          ).toHaveBeenCalledTimes(0);
+
+          await testEnv.sleep(1000 * oneDaySeconds);
+
+          expect(senderMock).toHaveBeenCalledTimes(1);
         });
       });
     });

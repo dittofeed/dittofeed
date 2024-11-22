@@ -342,11 +342,18 @@ function getAssignmentOverride({
 
       const groupParent = groupNodesById.get(node.entry);
       if (groupParent?.type !== UserPropertyDefinitionType.AnyOf) {
+        logger().error(
+          { node },
+          "getAssignmentOverride group parent is not an AnyOf",
+        );
         continue;
       }
       for (const childId of groupParent.children) {
         const child = groupNodesById.get(childId);
-        if (child?.type === UserPropertyDefinitionType.Performed) {
+        if (
+          child?.type === UserPropertyDefinitionType.Performed ||
+          child?.type === UserPropertyDefinitionType.KeyedPerformed
+        ) {
           nodes.push(child);
         }
       }
@@ -478,12 +485,6 @@ export async function findAllUserPropertyAssignmentsById({
       },
     },
   });
-  logger().debug(
-    {
-      userProperties,
-    },
-    "user properties",
-  );
 
   const combinedAssignments: UserPropertyAssignments = {};
 
