@@ -346,7 +346,10 @@ function getAssignmentOverride({
       }
       for (const childId of groupParent.children) {
         const child = groupNodesById.get(childId);
-        if (child?.type === UserPropertyDefinitionType.Performed) {
+        if (
+          child?.type === UserPropertyDefinitionType.Performed ||
+          child?.type === UserPropertyDefinitionType.KeyedPerformed
+        ) {
           nodes.push(child);
         }
       }

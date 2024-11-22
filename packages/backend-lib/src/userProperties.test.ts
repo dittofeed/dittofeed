@@ -230,7 +230,7 @@ describe("findAllUserPropertyAssignments", () => {
                 {
                   id: "0",
                   type: UserPropertyDefinitionType.AnyOf,
-                  children: ["1", "2", "3"],
+                  children: ["1", "2", "3", "4"],
                 },
                 {
                   id: "1",
@@ -248,6 +248,13 @@ describe("findAllUserPropertyAssignments", () => {
                   type: UserPropertyDefinitionType.Performed,
                   event: "test1",
                   path: "path2",
+                },
+                {
+                  id: "4",
+                  type: UserPropertyDefinitionType.KeyedPerformed,
+                  event: "testKeyed",
+                  key: "keyPath",
+                  path: "keyValuePath",
                 },
               ],
             } satisfies UserPropertyDefinition,
@@ -282,6 +289,22 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments2).toEqual({
         [`test-${upId1}`]: 2,
+        id: "userId",
+      });
+
+      const actualAssignments3 = await findAllUserPropertyAssignments({
+        userId: "userId",
+        workspaceId: workspace.id,
+        context: [
+          {
+            keyPath: "val1",
+            keyValuePath: "val2",
+          },
+        ],
+      });
+
+      expect(actualAssignments3).toEqual({
+        [`test-${upId1}`]: "val2",
         id: "userId",
       });
     });
