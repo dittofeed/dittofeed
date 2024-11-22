@@ -6,7 +6,6 @@ import { ok } from "neverthrow";
 import { createEnvAndWorker } from "../../test/temporal";
 import prisma from "../prisma";
 import {
-  AnyOfUserPropertyDefinition,
   ChannelType,
   CursorDirectionEnum,
   DelayVariantType,
@@ -385,16 +384,16 @@ describe("keyedEventEntry journeys", () => {
           nodes: [
             {
               type: UserPropertyDefinitionType.AnyOf,
-              id: "2",
-              children: ["3", "4"],
+              id: "1",
+              children: ["2", "3"],
             },
             {
-              id: "3",
+              id: "2",
               type: UserPropertyDefinitionType.Trait,
               path: "nextAppointmentDate",
             },
             {
-              id: "4",
+              id: "3",
               type: UserPropertyDefinitionType.KeyedPerformed,
               event: "APPOINTMENT_UPDATE",
               key: "appointmentId",
@@ -412,7 +411,8 @@ describe("keyedEventEntry journeys", () => {
           },
         });
       });
-      it("should wait for the resolved value of the user propertygroup", async () => {
+
+      it("should wait for the resolved value of the user property group", async () => {
         const userId = randomUUID();
         const appointmentId1 = randomUUID();
 
