@@ -389,10 +389,12 @@ describe("keyedEventEntry journeys", () => {
               children: ["3", "4"],
             },
             {
+              id: "3",
               type: UserPropertyDefinitionType.Trait,
               path: "nextAppointmentDate",
             },
             {
+              id: "4",
               type: UserPropertyDefinitionType.KeyedPerformed,
               event: "APPOINTMENT_UPDATE",
               key: "appointmentId",
