@@ -75,14 +75,15 @@ export async function getOrCreateWriteKey({
   workspaceId: string;
   writeKeyName: string;
 }): Promise<WriteKeyResource> {
-  logger().info(
+  const writeKeyValue = generateSecureKey(8);
+  logger().debug(
     {
       writeKeyName,
       workspaceId,
+      writeKeyValue,
     },
     "creating write key",
   );
-  const writeKeyValue = generateSecureKey(8);
 
   const resource = await prisma().$transaction(async (tx) => {
     const existingSecret = await tx.secret.findUnique({

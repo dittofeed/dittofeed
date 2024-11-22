@@ -22,7 +22,7 @@ export function isAuthorized({
 
   if (userAuthCode > requiredRoleCode) {
     return err(
-      new Error(`is ${userRole}, but required ${requiredRole} or greater`)
+      new Error(`is ${userRole}, but required ${requiredRole} or greater`),
     );
   }
   return ok(null);
@@ -31,7 +31,7 @@ export function isAuthorized({
 export function writeKeyToHeader({
   secretId,
   writeKeyValue,
-}: WriteKeyResource): string {
+}: Pick<WriteKeyResource, "secretId" | "writeKeyValue">): string {
   const encoded = toBase64(`${secretId}:${writeKeyValue}`);
   return `Basic ${encoded}`;
 }

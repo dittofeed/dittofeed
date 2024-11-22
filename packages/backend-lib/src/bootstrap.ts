@@ -1,6 +1,7 @@
 import { Prisma, WorkspaceType } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
+import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
@@ -209,7 +210,7 @@ export async function bootstrapPostgres({
       },
     ];
 
-  const [writeKey] = await Promise.all([
+  const [writeKeyResource] = await Promise.all([
     getOrCreateWriteKey({
       workspaceId,
       writeKeyName: DEFAULT_WRITE_KEY_NAME,
@@ -257,13 +258,17 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
   ]);
+  const writeKey = writeKeyToHeader({
+    secretId: writeKeyResource.secretId,
+    writeKeyValue: writeKeyResource.writeKeyValue,
+  });
   return ok({
     externalId: workspace.externalId ?? undefined,
     domain: workspace.domain ?? undefined,
     name: workspace.name,
     id: workspace.id,
     type: workspace.type,
-    writeKey: writeKey.writeKeyValue,
+    writeKey,
   });
 }
 
