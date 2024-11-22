@@ -1,12 +1,13 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import {
+  CompletionStatus,
   JourneyNodeType,
   JourneyUiBodyNodeTypeProps,
+  PartialSegmentResource,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { AdditionalJourneyNodeType, JourneyUiNodeType } from "../../lib/types";
 import { getWarningStyles } from "../../lib/warningTheme";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -21,27 +22,27 @@ const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
 
 function Sidebar() {
   const theme = useTheme();
-  const { setDraggedComponentType, journeyNodes, viewDraft } = useAppStorePick([
+  const {
+    setDraggedComponentType,
+    journeyNodes,
+    viewDraft,
+    segments: segmentsResult,
+  } = useAppStorePick([
     "setDraggedComponentType",
     "journeyNodes",
     "viewDraft",
+    "segments",
   ]);
 
-  const isEventEntry = useMemo(
-    () =>
-      journeyNodes.find(
-        (n) =>
-          n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
-          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
-          n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
-      ),
-    [journeyNodes],
-  );
-
-  const globalErrors = useMemo(
-    () => Array.from(getGlobalJourneyErrors({ nodes: journeyNodes }).values()),
-    [journeyNodes],
-  );
+  const globalErrors = useMemo(() => {
+    const segments: PartialSegmentResource[] =
+      segmentsResult.type === CompletionStatus.Successful
+        ? segmentsResult.value
+        : [];
+    return Array.from(
+      getGlobalJourneyErrors({ nodes: journeyNodes, segments }).values(),
+    );
+  }, [journeyNodes, segmentsResult]);
 
   const onDragStart =
     ({ nodeType }: { nodeType: JourneyUiBodyNodeTypeProps["type"] }) =>
@@ -57,8 +58,7 @@ function Sidebar() {
     SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => {
-    const isDisabled =
-      !viewDraft || (isEventEntry && t === JourneyNodeType.WaitForNode);
+    const isDisabled = !viewDraft;
 
     return (
       <Stack

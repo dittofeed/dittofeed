@@ -1,5 +1,5 @@
+import { EdgeProps, getBezierPath } from "@xyflow/react";
 import React from "react";
-import { EdgeProps, getBezierPath } from "reactflow";
 
 import styles from "./edgeTypes.module.css";
 

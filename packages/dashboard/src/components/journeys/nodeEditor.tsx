@@ -11,6 +11,7 @@ import {
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   Tooltip,
@@ -19,6 +20,7 @@ import {
 } from "@mui/material";
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
+import { Node } from "@xyflow/react";
 import { DAY_INDICES } from "isomorphic-lib/src/constants";
 import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -26,18 +28,20 @@ import {
   AllowedDayIndices,
   ChannelType,
   CompletionStatus,
+  CursorDirectionEnum,
   DelayVariantType,
   EmailProviderType,
   EntryNode,
   JourneyNodeType,
+  JourneyUiNodeType,
   MessageTemplateResource,
   MobilePushProviderType,
   PartialSegmentResource,
+  SegmentNodeType,
   SmsProviderType,
+  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
-import { Node } from "reactflow";
-import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import {
@@ -62,7 +66,7 @@ import { waitForTimeoutLabel } from "./store";
 const width = 420;
 const transitionDuration = ".15s";
 
-function getSegmentLabel(tr: { name: string }) {
+function getLabel(tr: { name: string }) {
   return tr.name;
 }
 
@@ -104,7 +108,7 @@ function SegmentSplitNodeFields({
     <Autocomplete
       value={segment}
       options={segments.value}
-      getOptionLabel={getSegmentLabel}
+      getOptionLabel={getLabel}
       onChange={onSegmentChangeHandler}
       disabled={disabled}
       renderInput={(params) => (
@@ -159,7 +163,7 @@ function EntryNodeFields({
         <Autocomplete
           value={segment}
           options={segments.value}
-          getOptionLabel={getSegmentLabel}
+          getOptionLabel={getLabel}
           onChange={onSegmentChangeHandler}
           disabled={disabled}
           renderInput={(params) => (
@@ -171,33 +175,59 @@ function EntryNodeFields({
     }
     case JourneyNodeType.EventEntryNode:
       variant = (
-        <Autocomplete
-          value={nodeVariant.event ?? ""}
-          options={Object.keys(properties)}
-          freeSolo
-          disabled={disabled}
-          onInputChange={(_event, newEventName) => {
-            if (newEventName === null) {
-              return;
-            }
-            updateJourneyNodeData(nodeId, (node) => {
-              const props = node.data.nodeTypeProps;
-              if (
-                props.type === AdditionalJourneyNodeType.EntryUiNode &&
-                props.variant.type === JourneyNodeType.EventEntryNode
-              ) {
-                props.variant.event = newEventName;
+        <>
+          <Autocomplete
+            value={nodeVariant.event ?? ""}
+            options={Object.keys(properties)}
+            freeSolo
+            disabled={disabled}
+            onInputChange={(_event, newEventName) => {
+              if (newEventName === null) {
+                return;
               }
-            });
-          }}
-          renderInput={(params) => (
-            <TextField
-              label="Event Trigger Name"
-              {...params}
-              variant="outlined"
-            />
-          )}
-        />
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type === AdditionalJourneyNodeType.EntryUiNode &&
+                  props.variant.type === JourneyNodeType.EventEntryNode
+                ) {
+                  props.variant.event = newEventName;
+                }
+              });
+            }}
+            renderInput={(params) => (
+              <TextField
+                label="Event Trigger Name"
+                {...params}
+                variant="outlined"
+              />
+            )}
+          />
+
+          <Autocomplete
+            value={nodeVariant.key ?? ""}
+            options={properties[nodeVariant.event ?? ""] ?? []}
+            freeSolo
+            disabled={disabled}
+            onInputChange={(_event, newPropertyPath) => {
+              if (newPropertyPath === null) {
+                return;
+              }
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type === AdditionalJourneyNodeType.EntryUiNode &&
+                  props.variant.type === JourneyNodeType.EventEntryNode
+                ) {
+                  props.variant.key = newPropertyPath;
+                }
+              });
+            }}
+            renderInput={(params) => (
+              <TextField label="Key" {...params} variant="outlined" />
+            )}
+          />
+        </>
       );
       break;
     default:
@@ -477,26 +507,34 @@ function DelayNodeFields({
   nodeProps: DelayUiNodeProps;
   disabled?: boolean;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData,
-  );
+  const { updateJourneyNodeData, userProperties: userPropertiesResult } =
+    useAppStorePick(["updateJourneyNodeData", "userProperties"]);
   let variant: React.ReactElement;
-  switch (nodeProps.variant.type) {
+  const nodeVariant = nodeProps.variant;
+  switch (nodeVariant.type) {
     case DelayVariantType.Second: {
       const handleDurationChange = (seconds: number) => {
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
           if (
-            props.type === JourneyNodeType.DelayNode &&
-            props.variant.type === DelayVariantType.Second
+            !(
+              props.type === JourneyNodeType.DelayNode &&
+              nodeVariant.type === DelayVariantType.Second
+            )
           ) {
-            props.variant.seconds = seconds;
+            return;
           }
+          // Immer doesn't like adding new properties, given that seconds is optional.
+          const newVariant = {
+            ...nodeVariant,
+            seconds,
+          };
+          props.variant = newVariant;
         });
       };
       variant = (
         <DurationSelect
-          value={nodeProps.variant.seconds}
+          value={nodeVariant.seconds}
           onChange={handleDurationChange}
           description="Will wait"
           inputLabel="Duration"
@@ -507,7 +545,7 @@ function DelayNodeFields({
     }
     case DelayVariantType.LocalTime: {
       const allowedDaysOfWeek = new Set(
-        nodeProps.variant.allowedDaysOfWeek ?? DAY_INDICES,
+        nodeVariant.allowedDaysOfWeek ?? DAY_INDICES,
       );
       const dayEls = DAYS.map((day, i) => {
         const index = i as AllowedDayIndices;
@@ -554,15 +592,7 @@ function DelayNodeFields({
         <>
           <SubtleHeader>User Local Time</SubtleHeader>
           <MultiSectionDigitalClock
-            value={
-              new Date(
-                0,
-                0,
-                0,
-                nodeProps.variant.hour,
-                nodeProps.variant.minute,
-              )
-            }
+            value={new Date(0, 0, 0, nodeVariant.hour, nodeVariant.minute)}
             onChange={(newValue) =>
               updateJourneyNodeData(nodeId, (node) => {
                 const props = node.data.nodeTypeProps;
@@ -581,6 +611,87 @@ function DelayNodeFields({
           <Stack direction="row" spacing={1}>
             {dayEls}
           </Stack>
+        </>
+      );
+      break;
+    }
+    case DelayVariantType.UserProperty: {
+      const userProperties =
+        userPropertiesResult.type === CompletionStatus.Successful
+          ? userPropertiesResult.value
+          : [];
+      const userProperty =
+        userProperties.find((p) => p.id === nodeVariant.userProperty) ?? null;
+      const onUserPropertyChangeHandler = (
+        _event: unknown,
+        up: UserPropertyResource | null,
+      ) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          if (
+            node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
+            node.data.nodeTypeProps.variant.type !==
+              DelayVariantType.UserProperty
+          ) {
+            return;
+          }
+          node.data.nodeTypeProps.variant.userProperty = up?.id ?? undefined;
+        });
+      };
+
+      variant = (
+        <>
+          <Autocomplete
+            value={userProperty}
+            options={userProperties}
+            getOptionLabel={getLabel}
+            onChange={onUserPropertyChangeHandler}
+            renderInput={(params) => (
+              <TextField {...params} label="User Property" variant="outlined" />
+            )}
+            disabled={disabled}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={
+                  nodeVariant.offsetDirection === CursorDirectionEnum.After
+                }
+                onChange={(e) => {
+                  updateJourneyNodeData(nodeId, (node) => {
+                    const props = node.data.nodeTypeProps;
+                    if (
+                      props.type !== JourneyNodeType.DelayNode ||
+                      props.variant.type !== DelayVariantType.UserProperty
+                    ) {
+                      return;
+                    }
+                    props.variant.offsetDirection = e.target.checked
+                      ? CursorDirectionEnum.After
+                      : CursorDirectionEnum.Before;
+                  });
+                }}
+              />
+            }
+            label={`Will offset ${nodeVariant.offsetDirection === CursorDirectionEnum.After ? "forward" : "backward"} in time.`}
+          />
+          <DurationSelect
+            value={nodeVariant.offsetSeconds}
+            onChange={(seconds) => {
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type !== JourneyNodeType.DelayNode ||
+                  props.variant.type !== DelayVariantType.UserProperty
+                ) {
+                  return;
+                }
+                props.variant.offsetSeconds = seconds;
+              });
+            }}
+            description="Offset either forward or backward in time relative to the date expressed in the user property value."
+            inputLabel="Offset"
+            disabled={disabled}
+          />
         </>
       );
       break;
@@ -615,6 +726,11 @@ function DelayNodeFields({
                   hour: 8,
                 };
                 break;
+              case DelayVariantType.UserProperty:
+                props.variant = {
+                  type: DelayVariantType.UserProperty,
+                };
+                break;
               default:
                 assertUnreachable(type);
             }
@@ -623,6 +739,9 @@ function DelayNodeFields({
       >
         <MenuItem value={DelayVariantType.Second}>Hardcoded Delay</MenuItem>
         <MenuItem value={DelayVariantType.LocalTime}>Localized Delay</MenuItem>
+        <MenuItem value={DelayVariantType.UserProperty}>
+          User Property Delay
+        </MenuItem>
       </Select>
       {variant}
     </>
@@ -638,18 +757,40 @@ function WaitForNodeFields({
   nodeProps: WaitForUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, segments, updateLabelNode } = useAppStore(
-    (store) => ({
-      updateJourneyNodeData: store.updateJourneyNodeData,
-      segments: store.segments,
-      updateLabelNode: store.updateLabelNode,
-    }),
-    shallow,
+  const {
+    updateJourneyNodeData,
+    segments: segmentsResult,
+    journeyNodes,
+    updateLabelNode,
+  } = useAppStorePick([
+    "updateJourneyNodeData",
+    "segments",
+    "updateLabelNode",
+    "journeyNodes",
+  ]);
+
+  const isEventEntry = useMemo(
+    () =>
+      journeyNodes.find(
+        (n) =>
+          n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
+          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
+          n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
+      ),
+    [journeyNodes],
   );
 
-  if (segments.type !== CompletionStatus.Successful) {
-    return null;
-  }
+  const segments = useMemo(() => {
+    if (segmentsResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    if (!isEventEntry) {
+      return segmentsResult.value;
+    }
+    return segmentsResult.value.filter(
+      (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+    );
+  }, [segmentsResult, isEventEntry]);
 
   const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
@@ -678,16 +819,15 @@ function WaitForNodeFields({
   };
 
   const segment =
-    segments.value.find(
-      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId,
-    ) ?? null;
+    segments.find((t) => t.id === nodeProps.segmentChildren[0]?.segmentId) ??
+    null;
 
   return (
     <>
       <Autocomplete
         value={segment}
-        options={segments.value}
-        getOptionLabel={getSegmentLabel}
+        options={segments}
+        getOptionLabel={getLabel}
         onChange={onSegmentChangeHandler}
         renderInput={(params) => (
           <TextField {...params} label="segment" variant="outlined" />

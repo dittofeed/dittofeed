@@ -1,12 +1,12 @@
 import { Box } from "@mui/material";
+import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "@xyflow/react";
 import { round } from "isomorphic-lib/src/numbers";
 import { NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
-import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
-import { JourneyUiEdgeProps } from "../../../lib/types";
+import { JourneyUiEdge } from "../../../lib/types";
 import findNode from "../findNode";
 import styles from "./edgeTypes.module.css";
 
@@ -22,7 +22,7 @@ export default function WorkflowEdge({
   targetPosition,
   style,
   markerEnd,
-}: EdgeProps<JourneyUiEdgeProps>) {
+}: EdgeProps<JourneyUiEdge>) {
   const path = useRouter();
 
   const { journeyStats, journeyDraggedComponentType } = useAppStorePick([

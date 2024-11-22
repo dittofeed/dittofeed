@@ -1287,6 +1287,22 @@ function segmentToResolvedState({
       `;
       return [query];
     }
+    case SegmentNodeType.KeyedPerformed: {
+      return [];
+    }
+    case SegmentNodeType.Everyone: {
+      return [
+        buildRecentUpdateSegmentQuery({
+          workspaceId,
+          stateId,
+          expression: `True`,
+          segmentId: segment.id,
+          now,
+          periodBound,
+          qb,
+        }),
+      ];
+    }
     default:
       assertUnreachable(node);
   }
@@ -1431,6 +1447,18 @@ function resolvedSegmentToAssignment({
         segment,
         qb,
       });
+    }
+    case SegmentNodeType.KeyedPerformed: {
+      return {
+        stateIds: [],
+        expression: "False",
+      };
+    }
+    case SegmentNodeType.Everyone: {
+      return {
+        stateIds: [stateId],
+        expression: "True",
+      };
     }
     default:
       assertUnreachable(node);
@@ -1740,6 +1768,23 @@ export function segmentNodeToStateSubQuery({
     case SegmentNodeType.RandomBucket: {
       return [];
     }
+    case SegmentNodeType.KeyedPerformed: {
+      return [];
+    }
+    case SegmentNodeType.Everyone: {
+      const stateId = segmentNodeStateId(segment, node.id);
+      return [
+        {
+          condition: "True",
+          type: "segment",
+          uniqValue: "'0'",
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
@@ -1853,6 +1898,11 @@ function leafUserPropertyToSubQuery({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(child);
   }
 }
 
@@ -1931,6 +1981,11 @@ function groupedUserPropertyToSubQuery({
       }
       return [subQuery];
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return [];
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
@@ -2035,6 +2090,9 @@ function userPropertyToSubQuery({
         return [];
       }
       return [subQuery];
+    }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return [];
     }
   }
 }
@@ -2327,6 +2385,11 @@ function leafUserPropertyToAssignment({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(child);
   }
 }
 
@@ -2406,6 +2469,11 @@ function groupedUserPropertyToAssignment({
         qb,
       });
     }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
+    }
+    default:
+      assertUnreachable(node);
   }
 }
 
@@ -2482,6 +2550,9 @@ function userPropertyToAssignment({
         child: userProperty.definition,
         qb,
       });
+    }
+    case UserPropertyDefinitionType.KeyedPerformed: {
+      return null;
     }
   }
 }

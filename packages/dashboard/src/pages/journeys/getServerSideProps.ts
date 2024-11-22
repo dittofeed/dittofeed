@@ -1,8 +1,9 @@
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import { findPartialMessageTemplates } from "backend-lib/src/messaging";
-import { findManyPartialSegments } from "backend-lib/src/segments";
+import { findSegmentResources } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -41,17 +42,23 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, templateResources, subscriptionGroups] =
-      await Promise.all([
-        await prisma().journey.findUnique({
-          where: { id },
-        }),
-        findManyPartialSegments({ workspaceId }),
-        findPartialMessageTemplates({ workspaceId }),
-        prisma().subscriptionGroup.findMany({
-          where: { workspaceId },
-        }),
-      ]);
+    const [
+      journey,
+      segments,
+      templateResources,
+      subscriptionGroups,
+      userProperties,
+    ] = await Promise.all([
+      await prisma().journey.findUnique({
+        where: { id },
+      }),
+      findSegmentResources({ workspaceId }),
+      findPartialMessageTemplates({ workspaceId }),
+      prisma().subscriptionGroup.findMany({
+        where: { workspaceId },
+      }),
+      findAllUserPropertyResources({ workspaceId }),
+    ]);
 
     const serverInitialState: PreloadedState = {
       messages: {
@@ -141,6 +148,11 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     serverInitialState.segments = {
       type: CompletionStatus.Successful,
       value: segments,
+    };
+
+    serverInitialState.userProperties = {
+      type: CompletionStatus.Successful,
+      value: userProperties,
     };
 
     const props = addInitialStateToProps({

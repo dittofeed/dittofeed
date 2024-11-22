@@ -9,7 +9,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { validate } from "uuid";
 
-import DashboardContent from "../../../components/dashboardContent";
+import TemplatePageContent from "../../../components/messages/templatePageContent";
 import WebhookEditor from "../../../components/messages/webhookEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
@@ -89,12 +89,12 @@ export default function MessageEditor() {
     return null;
   }
   return (
-    <DashboardContent>
+    <TemplatePageContent>
       <WebhookEditor
         key={templateId}
         templateId={templateId}
         member={member ?? undefined}
       />
-    </DashboardContent>
+    </TemplatePageContent>
   );
 }

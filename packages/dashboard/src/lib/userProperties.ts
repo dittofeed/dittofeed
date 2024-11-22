@@ -43,6 +43,8 @@ export function getDefaultUserPropertyExampleValue(
       }
       return getDefaultUserPropertyExampleValue(firstNonParentNode);
     }
+    case UserPropertyDefinitionType.KeyedPerformed:
+      return DEFAULT_PERFORMED_EXAMPLE;
     case UserPropertyDefinitionType.PerformedMany:
       throw new Error("Not implemented");
     default:

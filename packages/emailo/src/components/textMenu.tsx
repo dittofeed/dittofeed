@@ -36,7 +36,7 @@ export function TextMenu({ state }: TextMenuProps) {
   const { isUnsubscribeLinkSelected } = useEditLinkPopover({ editor });
 
   return (
-    <div>
+    <span>
       <BubbleMenu
         tippyOptions={{
           popperOptions: {
@@ -116,7 +116,11 @@ export function TextMenu({ state }: TextMenuProps) {
           >
             <Icon name="Code" />
           </MemoButton>
-          <MemoButton tooltip="Code block" onClick={commands.onCodeBlock}>
+          <MemoButton
+            tooltip="Markup"
+            onClick={commands.onMarkupInline}
+            active={states.isMarkupInline}
+          >
             <Icon name="FileCode" />
           </MemoButton>
           <MemoEditLinkPopover
@@ -220,6 +224,6 @@ export function TextMenu({ state }: TextMenuProps) {
           </Popover.Root>
         </Toolbar.Wrapper>
       </BubbleMenu>
-    </div>
+    </span>
   );
 }

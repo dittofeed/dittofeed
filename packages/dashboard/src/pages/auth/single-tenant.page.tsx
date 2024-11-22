@@ -42,11 +42,18 @@ export const getServerSideProps: GetServerSideProps<
     clickhousePassword,
     secretKey,
     sessionCookieSecure,
+    bootstrap,
   } = backendConfig();
 
   if (password === DEFAULT_BACKEND_CONFIG.password) {
     warnings.push(
       "Default password is being used. Please configure the PASSWORD environment variable.",
+    );
+  }
+
+  if (bootstrap) {
+    warnings.push(
+      "Bootstrap is enabled. Please set BOOTSTRAP to 'false' after initial setup.",
     );
   }
 

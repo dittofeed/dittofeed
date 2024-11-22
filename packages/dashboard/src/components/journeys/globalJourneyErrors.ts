@@ -1,5 +1,9 @@
-import { JourneyNodeType } from "isomorphic-lib/src/types";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
+import {
+  JourneyNodeType,
+  PartialSegmentResource,
+  SegmentNodeType,
+} from "isomorphic-lib/src/types";
 
 import {
   AdditionalJourneyNodeType,
@@ -12,7 +16,9 @@ export enum GlobalJourneyErrorType {
 }
 export function getGlobalJourneyErrors({
   nodes,
+  segments,
 }: {
+  segments: PartialSegmentResource[];
   nodes: Node<JourneyNodeUiProps>[];
 }): Map<GlobalJourneyErrorType, string> {
   let hasEventEntry = false;
@@ -27,7 +33,16 @@ export function getGlobalJourneyErrors({
         hasEventEntry = true;
       }
       if (nodeTypeProps.type === JourneyNodeType.WaitForNode) {
-        hasWaitForNode = true;
+        const notKeyedSegment = segments.find(
+          (s) =>
+            nodeTypeProps.segmentChildren.some(
+              (child) => child.segmentId === s.id,
+            ) &&
+            s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
+        );
+        if (notKeyedSegment) {
+          hasWaitForNode = true;
+        }
       }
     }
   }
@@ -35,7 +50,7 @@ export function getGlobalJourneyErrors({
   if (hasEventEntry && hasWaitForNode) {
     errors.set(
       GlobalJourneyErrorType.WaitForNodeAndEventEntryNode,
-      "A journey cannot have both an Event Entry node and a Wait For node",
+      "A journey cannot have both an Event Entry node and a non-keyed Wait For node",
     );
   }
   return errors;

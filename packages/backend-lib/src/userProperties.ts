@@ -2,6 +2,7 @@ import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   fileUserPropertyToPerformed,
   parseUserProperty as parseUserPropertyAssignment,
@@ -15,10 +16,12 @@ import {
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
+  KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperatorType,
   UserPropertyResource,
 } from "./types";
 
@@ -222,7 +225,7 @@ export async function upsertBulkUserPropertyAssignments({
 interface UserPropertyAssignmentOverrideProps {
   userPropertyId: string;
   definition: UserPropertyDefinition;
-  context: Record<string, JSONValue>;
+  context: Record<string, JSONValue>[];
 }
 
 function getPerformedAssignmentOverride({
@@ -230,23 +233,56 @@ function getPerformedAssignmentOverride({
   node,
   context,
 }: UserPropertyAssignmentOverrideProps & {
-  node: PerformedUserPropertyDefinition;
+  node: PerformedUserPropertyDefinition | KeyedPerformedUserPropertyDefinition;
 }): JSONValue | null {
   const path = toJsonPathParam({ path: node.path }).unwrapOr(null);
   let value: JSONValue | null = null;
-  if (path) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      value = jp.query(context, path)[0] ?? null;
-    } catch (e) {
-      logger().info(
-        {
-          userPropertyId,
-          err: e,
-        },
-        "failed to query context for user property assignment override",
-      );
-      value = null;
+  // assuming events are ordered by timestamps ascending want to check the most
+  // recent event contexts first
+  for (let i = context.length - 1; i >= 0; i--) {
+    const ctxItem = context[i];
+    if (path) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const queried = jp.query(ctxItem, path)[0];
+        if (queried === undefined) {
+          continue;
+        }
+        let matches = true;
+        for (const property of node.properties ?? []) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const queriedForProperty = jp.query(ctxItem, property.path)[0];
+          const { operator } = property;
+          switch (operator.type) {
+            case UserPropertyOperatorType.Equals:
+              matches = queriedForProperty === operator.value;
+              break;
+            default:
+              assertUnreachable(operator.type);
+          }
+
+          if (!matches) {
+            break;
+          }
+        }
+
+        if (!matches) {
+          continue;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        value = queried;
+        break;
+      } catch (e) {
+        logger().info(
+          {
+            userPropertyId,
+            err: e,
+          },
+          "failed to query context for user property assignment override",
+        );
+        value = null;
+      }
     }
   }
   return value;
@@ -263,7 +299,10 @@ function getAssignmentOverride({
     if (!node) {
       break;
     }
-    if (node.type === UserPropertyDefinitionType.Performed) {
+    if (
+      node.type === UserPropertyDefinitionType.Performed ||
+      node.type === UserPropertyDefinitionType.KeyedPerformed
+    ) {
       const value = getPerformedAssignmentOverride({
         userPropertyId,
         node,
@@ -322,11 +361,13 @@ export async function findAllUserPropertyAssignments({
   workspaceId,
   userProperties: userPropertiesFilter,
   context,
+  userPropertyIds,
 }: {
   userId: string;
   workspaceId: string;
   userProperties?: string[];
-  context?: Record<string, JSONValue>;
+  userPropertyIds?: string[];
+  context?: Record<string, JSONValue>[];
 }): Promise<UserPropertyAssignments> {
   const where: Prisma.UserPropertyWhereInput = {
     workspaceId,
@@ -334,6 +375,10 @@ export async function findAllUserPropertyAssignments({
   if (userPropertiesFilter?.length) {
     where.name = {
       in: userPropertiesFilter,
+    };
+  } else if (userPropertyIds?.length) {
+    where.id = {
+      in: userPropertyIds,
     };
   }
 
@@ -391,6 +436,100 @@ export async function findAllUserPropertyAssignments({
           continue;
         }
         combinedAssignments[userProperty.name] = parsed.value;
+      }
+    }
+  }
+
+  combinedAssignments.id = combinedAssignments.id ?? userId;
+  return combinedAssignments;
+}
+
+export async function findAllUserPropertyAssignmentsById({
+  userId,
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  context,
+  userPropertyIds,
+}: {
+  userId: string;
+  workspaceId: string;
+  userProperties?: string[];
+  userPropertyIds?: string[];
+  context?: Record<string, JSONValue>[];
+}): Promise<UserPropertyAssignments> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  } else if (userPropertyIds?.length) {
+    where.id = {
+      in: userPropertyIds,
+    };
+  }
+
+  const userProperties = await prisma().userProperty.findMany({
+    where,
+    include: {
+      UserPropertyAssignment: {
+        where: { userId },
+      },
+    },
+  });
+  logger().debug(
+    {
+      userProperties,
+    },
+    "user properties",
+  );
+
+  const combinedAssignments: UserPropertyAssignments = {};
+
+  for (const userProperty of userProperties) {
+    const definitionResult = schemaValidate(
+      userProperty.definition,
+      UserPropertyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        { err: definitionResult.error, workspaceId, userProperty },
+        "failed to parse user property definition",
+      );
+      continue;
+    }
+    const definition = definitionResult.value;
+    const contextAssignment = context
+      ? getAssignmentOverride({
+          definition,
+          context,
+          userPropertyId: userProperty.id,
+        })
+      : null;
+    if (contextAssignment !== null) {
+      combinedAssignments[userProperty.id] = contextAssignment;
+    } else {
+      const assignments = userProperty.UserPropertyAssignment;
+      const assignment = assignments[0];
+      if (assignment) {
+        const parsed = parseUserPropertyAssignment(
+          definition,
+          assignment.value,
+        );
+        if (parsed.isErr()) {
+          logger().error(
+            {
+              err: parsed.error,
+              workspaceId,
+              userProperty,
+              assignment,
+            },
+            "failed to parse user property assignment",
+          );
+          continue;
+        }
+        combinedAssignments[userProperty.id] = parsed.value;
       }
     }
   }

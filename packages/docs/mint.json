@@ -77,6 +77,7 @@
             {
               "group": "Upgrade Guide",
               "pages": [
+                "deployment/self-hosted/upgrade-guide/v0-19-0",
                 "deployment/self-hosted/upgrade-guide/v0-18-0",
                 "deployment/self-hosted/upgrade-guide/v0-17-0",
                 "deployment/self-hosted/upgrade-guide/v0-16-0",
@@ -171,7 +172,8 @@
             "resources/segment-nodes/manual",
             "resources/segment-nodes/subscription-group",
             "resources/segment-nodes/email",
-            "resources/segment-nodes/random-bucket"
+            "resources/segment-nodes/random-bucket",
+            "resources/segment-nodes/keyed-performed"
           ]
         },
         "resources/templates",
@@ -197,7 +199,8 @@
             "resources/user-property-types/any-of",
             "resources/user-property-types/file",
             "resources/user-property-types/id",
-            "resources/user-property-types/anonymous-id"
+            "resources/user-property-types/anonymous-id",
+            "resources/user-property-types/keyed-performed"
           ]
         },
         "resources/broadcasts"
@@ -210,9 +213,15 @@
         "guide/roadmap",
         "guide/faq",
         "guide/creating-journeys",
+        {
+          "group": "Sample Journeys",
+          "pages": [
+            "guide/sample-journeys/appointment-reminders"
+          ]
+        },
         "guide/accessing-admin-api",
+        "guide/submitting-broadcasts-api",
         "guide/git-workflows",
-        "guide/testing",
         "guide/license"
       ]
     },
@@ -241,7 +250,8 @@
         "api-reference/auto/users/get-apiadminuserssubscriptions",
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
-        "api-reference/auto/events/get-apiadminevents"
+        "api-reference/auto/events/get-apiadminevents",
+        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute"
       ]
     },
     {

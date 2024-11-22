@@ -14,6 +14,7 @@ import {
   RawServerDefault,
 } from "fastify";
 import {
+  DFRequestContext,
   EventType,
   IntegrationDefinition,
   JourneyDefinition,
@@ -21,7 +22,11 @@ import {
   Nullable,
   SegmentDefinition,
   UserPropertyDefinition,
+  WorkspaceMemberResource,
+  WorkspaceMemberRoleResource,
+  WorkspaceResource,
 } from "isomorphic-lib/src/types";
+import { Result } from "neverthrow";
 import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
@@ -515,6 +520,30 @@ export const PostMarkEvent = Type.Composite([
   MessageMetadataFields,
 ]);
 
+export enum MailChimpEventType {
+  Send = "send",
+  Delivered = "delivered",
+  HardBounce = "hard_bounce",
+  Open = "open",
+  Click = "click",
+  Spam = "spam",
+  Unsub = "unsub",
+  Reject = "reject",
+}
+
+export const MailChimpEvent = Type.Object({
+  event: Type.Enum(MailChimpEventType),
+  msg: Type.Object({
+    metadata: Type.Record(Type.String(), Type.Any()),
+    email: Type.String(),
+    _id: Type.String(),
+  }),
+  ts: Type.Number(),
+  url: Type.Optional(Type.String()),
+});
+
+export type MailChimpEvent = Static<typeof MailChimpEvent>;
+
 export type SendgridEvent = Static<typeof SendgridEvent>;
 
 export type ResendEvent = Static<typeof ResendEvent>;
@@ -572,3 +601,52 @@ export enum ComputedPropertyStep {
   ComputeAssignments = "ComputeAssignments",
   ProcessAssignments = "ProcessAssignments",
 }
+
+export enum RequestContextErrorType {
+  Unauthorized = "Unauthorized",
+  NotOnboarded = "NotOnboarded",
+  EmailNotVerified = "EmailNotVerified",
+  ApplicationError = "ApplicationError",
+  NotAuthenticated = "NotAuthenticated",
+}
+
+export interface UnauthorizedError {
+  type: RequestContextErrorType.Unauthorized;
+  message: string;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+  workspace: WorkspaceResource;
+}
+
+export interface NotOnboardedError {
+  type: RequestContextErrorType.NotOnboarded;
+  message: string;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+}
+
+export interface ApplicationError {
+  type: RequestContextErrorType.ApplicationError;
+  message: string;
+}
+
+export interface EmailNotVerifiedError {
+  type: RequestContextErrorType.EmailNotVerified;
+  email: string;
+}
+
+export interface NotAuthenticatedError {
+  type: RequestContextErrorType.NotAuthenticated;
+}
+
+export type RequestContextError =
+  | UnauthorizedError
+  | NotOnboardedError
+  | ApplicationError
+  | EmailNotVerifiedError
+  | NotAuthenticatedError;
+
+export type RequestContextResult = Result<
+  DFRequestContext,
+  RequestContextError
+>;

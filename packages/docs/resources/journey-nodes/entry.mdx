@@ -43,13 +43,48 @@ A user can have multiple instances of the journey running at the same time, if t
 ![Order Cancellation Journey](/images/order-cancellation-journey.png)
 </Frame>
 
-### The Role of Message Ids
+### Choosing a Key
 
-In Dittofeed, message id's are used to uniquely identify events. In the case of journeys with Event Entry Nodes, the message id of the triggering event is also used to identify the journey instance, and to ensure that if you accidentally send duplicate events with the same message id, the user will not receive duplicate messages.
+When using an event to trigger a journey with an Event Entry Node, you must choose a key to identify the journey instance. The key can be chosen from an event property, or from the message id of the triggering event. Given two events with the same key, the user will only enter the journey once.
 
-In most cases, events' message id's can safely be assigned an arbitrary unique value, like a UUID. However, when sending events that are used to trigger Event Entry Nodes, one should ideally assign a message id that identifies the corresponding operation in the context of your application.
+Common use cases for Event Entry journeys include:
 
-For example, when sending an event to trigger a journey for an order cancellation, the message id might be `order-cancelled-${orderId}`.
+- sending messages reminding users about an upcoming appointment i.e. choose an `appointmentId` as the key.
+- sending messages confirming an order i.e. choose an `orderId` as the key.
+
+#### From an Event Property
+
+The key can be chosen from an event properties e.g. `appointmentId` in the case of appointment reminders.
+
+For example, the following appointment confirmation event could be used to trigger a journey:
+
+```json
+{
+  "event": "APPOINTMENT_CONFIRMED",
+  "type": "track",
+  "properties": {
+    "appointmentId": "123",
+    "appointmentTime": "2024-01-01T12:00:00Z"
+    ...
+  },
+  ...
+}
+```
+
+Using a property as the key has the advantage that it allows you to route multiple events to the same event triggered journey, in combination with a [Keyed Performed User Property](/resources/user-property-types/keyed-performed) or [Keyed Performed Segment](/resources/segment-nodes/keyed-performed).
+
+For example, you might anticipate an `APPOINTMENT_CANCELLED` event with the same `appointmentId`, and want to route both events to the same journey instance.
+
+#### From the Message Id
+
+By default, the message id of the triggering event is used as the key.
+
+In most cases, events' message id's can safely be assigned an arbitrary unique value, like a UUID. However, when sending events that are used to trigger Event Entry Nodes and using the message id as the key, one should ideally assign a message id that identifies the corresponding operation in the context of your application - like an `orderId` or `appointmentId`.
+
+#### Example Journey - Appointment Reminders
+
+To see an example of how to set up an appointment reminder Event Entry journey, see the [Appointment Reminders](/guide/sample-journeys/appointment-reminders) guide.
+
 
 ### Performed User Properties
 

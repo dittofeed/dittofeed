@@ -13,6 +13,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { format } from "date-fns";
 import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
@@ -26,13 +27,12 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
-import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   AppState,
-  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeDefinition,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
@@ -100,6 +100,9 @@ export function isNodeComplete(
             props.variant.minute !== undefined &&
             props.variant.hour !== undefined
           );
+        }
+        case DelayVariantType.UserProperty: {
+          return Boolean(props.variant.userProperty);
         }
         default:
           assertUnreachable(props.variant);
@@ -221,6 +224,10 @@ function journNodeTypeToConfig(
           body = <>Delay until {time} in user local time.</>;
           break;
         }
+        case DelayVariantType.UserProperty: {
+          body = <>Delay until date resolved by user property.</>;
+          break;
+        }
         default:
           assertUnreachable(props.variant);
       }
@@ -301,10 +308,7 @@ function StatCategory({
   );
 }
 
-export function JourneyNode({
-  id,
-  data,
-}: NodeProps<JourneyUiNodeDefinitionProps>) {
+export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   const path = useRouter();
   const theme = useTheme();
   const {

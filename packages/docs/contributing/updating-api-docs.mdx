@@ -21,7 +21,27 @@ curl "http://localhost:3001/documentation/json" | jq "." > packages/docs/open-ap
     Note this command assumes you have [jq](https://stedolan.github.io/jq/) installed, which formats the JSON output from the API server.
   </Step>
 
-   <Step title="Run Docs" stepNumber="3" titleSize="h3">
+   <Step title="Add new endpoints to docs (optional)" stepNumber="4" titleSize="h3">
+    Run the following command to add new endpoints to the docs:
+```bash
+npx @mintlify/scraping@latest openapi-file packages/docs/open-api.json --outDir packages/docs/api-reference/auto
+```
+
+    Then add the new endpoints to the [mint.json](https://github.com/dittofeed/dittofeed/blob/main/packages/docs/mint.json) file.
+
+```json mint.json
+{
+  "group": "API Reference",
+  "pages": [
+    "api-reference/auto/content/get-apiadmincontenttemplates",
+    ...
+  ]
+}
+
+```
+  </Step>
+
+   <Step title="Run Docs" stepNumber="4" titleSize="h3">
     Run Dittofeed's docs in local machine:
 
 cd into docs directory

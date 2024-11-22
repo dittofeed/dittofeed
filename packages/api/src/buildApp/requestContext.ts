@@ -1,11 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import {
-  getRequestContext,
-  RequestContextErrorType,
-  SESSION_KEY,
-} from "backend-lib/src/requestContext";
-import { OpenIdProfile } from "backend-lib/src/types";
+import { getRequestContext, SESSION_KEY } from "backend-lib/src/requestContext";
+import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
@@ -24,15 +20,19 @@ export function requestToSessionValue(request: FastifyRequest):
   return { [SESSION_KEY]: hasSession ? "true" : "false" };
 }
 
+export function getRequestContextFastify(request: FastifyRequest) {
+  const headers = {
+    ...request.headers,
+    ...requestToSessionValue(request),
+  };
+  const { user: profile } = request as { user?: OpenIdProfile };
+  return getRequestContext(headers, profile);
+}
+
 // eslint-disable-next-line @typescript-eslint/require-await
 const requestContext = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const headers = {
-      ...request.headers,
-      ...requestToSessionValue(request),
-    };
-    const { user: profile } = request as { user?: OpenIdProfile };
-    const rc = await getRequestContext(headers, profile);
+    const rc = await getRequestContextFastify(request);
 
     if (rc.isErr()) {
       switch (rc.error.type) {

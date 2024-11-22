@@ -1,3 +1,11 @@
+import {
+  applyEdgeChanges,
+  applyNodeChanges,
+  Edge,
+  EdgeChange,
+  Node,
+  NodeChange,
+} from "@xyflow/react";
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { deepEquals } from "isomorphic-lib/src/equality";
@@ -34,14 +42,6 @@ import {
   WaitForSegmentChild,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
-import {
-  applyEdgeChanges,
-  applyNodeChanges,
-  Edge,
-  EdgeChange,
-  Node,
-  NodeChange,
-} from "reactflow";
 import { omit, sortBy } from "remeda";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
@@ -56,9 +56,9 @@ import {
   JourneyContent,
   JourneyNodeUiProps,
   JourneyState,
+  JourneyUiEdge,
   JourneyUiEdgeType,
-  JourneyUiNodeDefinitionProps,
-  JourneyUiNodePresentationalProps,
+  JourneyUiNode,
   JourneyUiNodeType,
   JourneyUiNodeTypeProps,
   MessageUiNodeProps,
@@ -74,6 +74,7 @@ import {
 } from "./defaults";
 import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
+import { isJourneyNode } from "./isJourneyNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 
@@ -123,8 +124,8 @@ function buildJourneyNodeMap(
 }
 
 function buildUiHeritageMap(
-  nodes: Node<JourneyNodeUiProps>[],
-  edges: Edge<JourneyUiEdgeProps>[],
+  nodes: JourneyUiNode[],
+  edges: JourneyUiEdge[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
 
@@ -423,6 +424,21 @@ function journeyDefinitionFromStateBranch(
             };
             break;
           }
+          case DelayVariantType.UserProperty: {
+            if (!uiNode.variant.userProperty) {
+              return err({
+                message: "User property delay node must have a user property",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.UserProperty,
+              userProperty: uiNode.variant.userProperty,
+              offsetSeconds: uiNode.variant.offsetSeconds,
+              offsetDirection: uiNode.variant.offsetDirection,
+            };
+            break;
+          }
           default:
             assertUnreachable(uiNode.variant);
         }
@@ -652,7 +668,7 @@ export function dualNodeNonJourneyNodes({
 }: DualNodeParams & {
   leftLabel: string;
   rightLabel: string;
-}): Node<JourneyUiNodePresentationalProps>[] {
+}): JourneyUiNode[] {
   return [
     {
       id: leftId,
@@ -694,8 +710,8 @@ export function dualNodeEdges({
   source: string;
   target: string;
   nodeId: string;
-}): Edge<JourneyUiEdgeProps>[] {
-  const edges: Edge<JourneyUiEdgeProps>[] = [
+}): JourneyUiEdge[] {
+  const edges: JourneyUiEdge[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -782,7 +798,7 @@ export function edgesForJourneyNode({
   leftId?: string;
   rightId?: string;
   emptyId?: string;
-}): Edge<JourneyUiEdgeProps>[] {
+}): JourneyUiEdge[] {
   if (
     type === JourneyNodeType.SegmentSplitNode ||
     type === JourneyNodeType.WaitForNode
@@ -810,7 +826,7 @@ export function edgesForJourneyNode({
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  const edges: Edge<JourneyUiEdgeProps>[] = [];
+  const edges: JourneyUiEdge[] = [];
   if (source) {
     edges.push({
       id: `${source}=>${nodeId}`,
@@ -846,11 +862,11 @@ export function newStateFromNodes({
   edges,
   existingEdges,
 }: AddNodesParams & {
-  existingNodes: Node<JourneyNodeUiProps>[];
-  existingEdges: Edge<JourneyUiEdgeProps>[];
+  existingNodes: JourneyUiNode[];
+  existingEdges: JourneyUiEdge[];
 }): {
-  edges: Edge<JourneyUiEdgeProps>[];
-  nodes: Node<JourneyNodeUiProps>[];
+  edges: JourneyUiEdge[];
+  nodes: JourneyUiNode[];
 } {
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
@@ -897,7 +913,7 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
-function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
+function buildLabelNode(id: string, title: string): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -909,7 +925,7 @@ function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
   };
 }
 
-function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
+function buildEmptyNode(id: string): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -920,10 +936,7 @@ function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
   };
 }
 
-function buildWorkflowEdge(
-  source: string,
-  target: string,
-): Edge<JourneyUiEdgeProps> {
+function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
   return {
     id: `${source}=>${target}`,
     source,
@@ -937,10 +950,7 @@ function buildWorkflowEdge(
   };
 }
 
-function buildPlaceholderEdge(
-  source: string,
-  target: string,
-): Edge<JourneyUiEdgeProps> {
+function buildPlaceholderEdge(source: string, target: string): JourneyUiEdge {
   return {
     id: `${source}=>${target}`,
     source,
@@ -956,7 +966,7 @@ function buildPlaceholderEdge(
 function buildJourneyNode(
   id: string,
   nodeTypeProps: JourneyUiNodeTypeProps,
-): Node<JourneyUiNodeDefinitionProps> {
+): JourneyUiNode {
   return {
     id,
     position: placeholderNodePosition,
@@ -988,9 +998,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyStats[journeyStats.journeyId] = journeyStats;
       }
     }),
-  setEdges: (changes: EdgeChange[]) =>
+  setEdges: (changes: EdgeChange<JourneyUiEdge>[]) =>
     set((state) => {
-      state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
+      state.journeyEdges = applyEdgeChanges<JourneyUiEdge>(
+        changes,
+        state.journeyEdges,
+      );
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
@@ -1029,9 +1042,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
-  setNodes: (changes: NodeChange[]) =>
+  setNodes: (changes: NodeChange<JourneyUiNode>[]) =>
     set((state) => {
-      state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);
+      state.journeyNodes = applyNodeChanges<JourneyUiNode>(
+        changes,
+        state.journeyNodes,
+      );
     }),
   addNodes: ({ source, target, nodes, edges }) =>
     set((state) => {
@@ -1062,9 +1078,24 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyNodes,
         state.journeyNodesIndex,
       );
-      if (node) {
-        updater(node);
+      if (!node) {
+        return;
       }
+
+      const newNode = updater(node);
+      if (!newNode) {
+        return;
+      }
+
+      if (!isJourneyNode(newNode)) {
+        throw new Error("Expected journey node");
+      }
+      state.journeyNodes = state.journeyNodes.map((n) => {
+        if (n.id !== nodeId) {
+          return n;
+        }
+        return newNode;
+      });
     }),
   setJourneyUpdateRequest: (request) =>
     set((state) => {
@@ -1100,8 +1131,8 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
 export function journeyBranchToState(
   initialNodeId: string,
-  nodesState: Node<JourneyNodeUiProps>[],
-  edgesState: Edge<JourneyUiEdgeProps>[],
+  nodesState: JourneyUiNode[],
+  edgesState: JourneyUiEdge[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
   terminateBefore?: string,
@@ -1180,6 +1211,15 @@ export function journeyBranchToState(
               hour: node.variant.hour,
               minute: node.variant.minute,
               allowedDaysOfWeek: node.variant.allowedDaysOfWeek,
+            };
+            break;
+          }
+          case DelayVariantType.UserProperty: {
+            variant = {
+              type: DelayVariantType.UserProperty,
+              userProperty: node.variant.userProperty,
+              offsetSeconds: node.variant.offsetSeconds,
+              offsetDirection: node.variant.offsetDirection,
             };
             break;
           }
@@ -1447,8 +1487,8 @@ export type JourneyResourceWithDefinitionForState = Pick<
 export function journeyToState(
   journey: JourneyResourceWithDefinitionForState,
 ): JourneyStateForResource {
-  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
-  let journeyNodes: Node<JourneyNodeUiProps>[] = [];
+  const journeyEdges: JourneyUiEdge[] = [];
+  let journeyNodes: JourneyUiNode[] = [];
   const nodes = [
     journey.definition.entryNode,
     ...journey.definition.nodes,
@@ -1526,7 +1566,7 @@ function buildBaseJourneyNode({
 }: {
   id: string;
   nodeTypeProps: JourneyUiNodeTypeProps;
-}): Node<JourneyUiNodeDefinitionProps> {
+}): JourneyUiNode {
   return {
     id,
     data: {
@@ -1539,11 +1579,11 @@ function buildBaseJourneyNode({
 }
 
 export function createConnections(params: CreateConnectionsParams): {
-  newNodes: Node<JourneyNodeUiProps>[];
-  newEdges: Edge<JourneyUiEdgeProps>[];
+  newNodes: JourneyUiNode[];
+  newEdges: JourneyUiEdge[];
 } {
-  let newNodes: Node<JourneyNodeUiProps>[] = [];
-  let newEdges: Edge<JourneyUiEdgeProps>[];
+  let newNodes: JourneyUiNode[] = [];
+  let newEdges: JourneyUiEdge[];
 
   switch (params.type) {
     case JourneyNodeType.SegmentSplitNode: {
@@ -1667,8 +1707,8 @@ export function journeyDraftToState({
   draft,
   name,
 }: JourneyResourceWithDraftForState): JourneyStateForResource {
-  let journeyNodes: Node<JourneyNodeUiProps>[] = draft.nodes.map((n) => {
-    let node: Node<JourneyNodeUiProps>;
+  let journeyNodes: JourneyUiNode[] = draft.nodes.map((n) => {
+    let node: JourneyUiNode;
     switch (n.data.type) {
       case JourneyUiNodeType.JourneyUiNodeDefinitionProps:
         node = buildJourneyNode(n.id, n.data.nodeTypeProps);
@@ -1684,7 +1724,7 @@ export function journeyDraftToState({
     }
     return node;
   });
-  const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
+  const journeyEdges: JourneyUiEdge[] = draft.edges.map((e) => {
     const { source, target, data } = e;
     const baseEdge = {
       id: `${source}=>${target}`,
@@ -1692,7 +1732,7 @@ export function journeyDraftToState({
       target,
       sourceHandle: "bottom",
     };
-    let edge: Edge<JourneyUiEdgeProps>;
+    let edge: JourneyUiEdge;
     switch (data.type) {
       case JourneyUiEdgeType.JourneyUiDefinitionEdgeProps: {
         edge = {
@@ -1740,8 +1780,8 @@ export function shouldDraftBeUpdated({
 }: {
   draft?: JourneyDraft;
   definition?: JourneyDefinition;
-  journeyNodes: Node<JourneyNodeUiProps>[];
-  journeyEdges: Edge<JourneyUiEdgeProps>[];
+  journeyNodes: JourneyUiNode[];
+  journeyEdges: JourneyUiEdge[];
   journeyNodesIndex: JourneyState["journeyNodesIndex"];
 }): boolean {
   if (draft) {

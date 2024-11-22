@@ -3,6 +3,8 @@ import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
 
+export type Present<T> = T extends undefined | null ? never : T;
+
 export type RenameKey<T, K extends keyof T, N extends string> = {
   [P in keyof T as P extends K ? N : P]: T[P];
 };
@@ -68,6 +70,7 @@ export enum InternalEventType {
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
   ManualSegmentUpdate = "DFManualSegmentUpdate",
   AttachedFiles = "DFAttachedFiles",
+  UserTrackSignal = "DFUserTrackSignal",
 }
 
 export enum SubscriptionGroupType {
@@ -89,6 +92,7 @@ export enum EmailProviderType {
   PostMark = "PostMark",
   Smtp = "Smtp",
   Test = "Test",
+  MailChimp = "MailChimp",
 }
 
 export enum MobilePushProviderType {
@@ -237,6 +241,8 @@ export enum SegmentNodeType {
   Email = "Email",
   Manual = "Manual",
   RandomBucket = "RandomBucket",
+  KeyedPerformed = "KeyedPerformed",
+  Everyone = "Everyone",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -381,6 +387,46 @@ export const ManualSegmentNode = Type.Object({
 
 export type ManualSegmentNode = Static<typeof ManualSegmentNode>;
 
+export const EveryoneSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Everyone),
+  id: Type.String(),
+});
+
+export type EveryoneSegmentNode = Static<typeof EveryoneSegmentNode>;
+
+export const KeyedPerformedPropertiesOperator = Type.Union([
+  SegmentEqualsOperator,
+  ExistsOperator,
+  SegmentGreaterThanOrEqualOperator,
+  SegmentLessThanOperator,
+]);
+
+export type KeyedPerformedPropertiesOperator = Static<
+  typeof KeyedPerformedPropertiesOperator
+>;
+
+export const KeyedPerformedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.KeyedPerformed),
+  id: Type.String(),
+  event: Type.String(),
+  key: Type.String(),
+  times: Type.Optional(Type.Number()),
+  // Note that this will not be backwards looking
+  timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: KeyedPerformedPropertiesOperator,
+      }),
+    ),
+  ),
+});
+
+export type KeyedPerformedSegmentNode = Static<
+  typeof KeyedPerformedSegmentNode
+>;
+
 export const BodySegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
@@ -395,7 +441,12 @@ export const BodySegmentNode = Type.Union([
 
 export type BodySegmentNode = Static<typeof BodySegmentNode>;
 
-export const SegmentNode = Type.Union([BodySegmentNode, ManualSegmentNode]);
+export const SegmentNode = Type.Union([
+  BodySegmentNode,
+  ManualSegmentNode,
+  EveryoneSegmentNode,
+  KeyedPerformedSegmentNode,
+]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
 
@@ -414,6 +465,7 @@ export enum UserPropertyDefinitionType {
   Group = "Group",
   AnyOf = "AnyOf",
   PerformedMany = "PerformedMany",
+  KeyedPerformed = "KeyedPerformed",
   File = "File",
 }
 
@@ -539,10 +591,31 @@ export type GroupParentUserPropertyDefinitions = Static<
   typeof GroupParentUserPropertyDefinitions
 >;
 
+export const KeyedPerformedUserPropertyDefinition = Type.Object({
+  id: Type.Optional(Type.String()),
+  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
+  event: Type.String(),
+  path: Type.String(),
+  key: Type.String(),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: UserPropertyOperator,
+      }),
+    ),
+  ),
+});
+
+export type KeyedPerformedUserPropertyDefinition = Static<
+  typeof KeyedPerformedUserPropertyDefinition
+>;
+
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   FileUserPropertyDefinition,
+  KeyedPerformedUserPropertyDefinition,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
@@ -614,6 +687,7 @@ export const EventEntryNode = Type.Object(
   {
     type: Type.Literal(JourneyNodeType.EventEntryNode),
     event: Type.String(),
+    key: Type.Optional(Type.String()),
     child: Type.String(),
   },
   {
@@ -636,10 +710,14 @@ export const WaitForSegmentChild = Type.Object({
 
 export type WaitForSegmentChild = Static<typeof WaitForSegmentChild>;
 
+const WaitForNodeBase = {
+  ...BaseNode,
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+};
+
 export const WaitForNode = Type.Object(
   {
-    ...BaseNode,
-    type: Type.Literal(JourneyNodeType.WaitForNode),
+    ...WaitForNodeBase,
     timeoutSeconds: Type.Number(),
     timeoutChild: Type.String(),
     segmentChildren: Type.Array(WaitForSegmentChild),
@@ -653,10 +731,25 @@ export const WaitForNode = Type.Object(
 
 export type WaitForNode = Static<typeof WaitForNode>;
 
+export enum CursorDirectionEnum {
+  After = "after",
+  Before = "before",
+}
+
 export enum DelayVariantType {
   Second = "Second",
   LocalTime = "LocalTime",
+  UserProperty = "UserProperty",
 }
+
+export const UserPropertyDelayVariant = Type.Object({
+  type: Type.Literal(DelayVariantType.UserProperty),
+  userProperty: Type.String(),
+  offsetSeconds: Type.Optional(Type.Number()),
+  offsetDirection: Type.Optional(Type.Enum(CursorDirectionEnum)),
+});
+
+export type UserPropertyDelayVariant = Static<typeof UserPropertyDelayVariant>;
 
 export const SecondsDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.Second),
@@ -692,6 +785,7 @@ export type LocalTimeDelayVariantFields = Omit<LocalTimeDelayVariant, "type">;
 export const DelayVariant = Type.Union([
   SecondsDelayVariant,
   LocalTimeDelayVariant,
+  UserPropertyDelayVariant,
 ]);
 
 export type DelayVariant = Static<typeof DelayVariant>;
@@ -1460,7 +1554,16 @@ export const PostMarkEmailProvider = Type.Object({
 
 export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
 
+export const MailChimpEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.MailChimp),
+});
+
+export type MailChimpEmailProvider = Static<typeof MailChimpEmailProvider>;
+
 export const PersistedEmailProvider = Type.Union([
+  MailChimpEmailProvider,
   SendgridEmailProvider,
   AmazonSesEmailProvider,
   PostMarkEmailProvider,
@@ -1647,6 +1750,7 @@ export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
 export const DelayUiNodeVariant = Type.Union([
   PartialExceptType(LocalTimeDelayVariant),
   PartialExceptType(SecondsDelayVariant),
+  PartialExceptType(UserPropertyDelayVariant),
 ]);
 
 export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
@@ -1995,11 +2099,6 @@ export const ReadAllUserPropertiesResponse = Type.Object({
 export type ReadAllUserPropertiesResponse = Static<
   typeof ReadAllUserPropertiesResponse
 >;
-
-export enum CursorDirectionEnum {
-  After = "after",
-  Before = "before",
-}
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
@@ -3063,7 +3162,14 @@ export const EmailPostMarkSuccess = Type.Object({
 
 export type EmailPostMarkSuccess = Static<typeof EmailPostMarkSuccess>;
 
+export const EmailMailChimpSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+});
+
+export type EmailMailChimpSuccess = Static<typeof EmailMailChimpSuccess>;
+
 export const EmailServiceProviderSuccess = Type.Union([
+  EmailMailChimpSuccess,
   EmailSendgridSuccess,
   EmailAmazonSesSuccess,
   EmailPostMarkSuccess,
@@ -3270,8 +3376,17 @@ export const MessagePostMarkFailure = Type.Object({
 
 export type MessagePostMarkFailure = Static<typeof MessagePostMarkFailure>;
 
+export const MessageMailChimpFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+  message: Type.String(),
+  name: Type.String(),
+});
+
+export type MessageMailChimpFailure = Static<typeof MessageMailChimpFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
+  MessageMailChimpFailure,
   MessageAmazonSesServiceFailure,
   MessageResendFailure,
   MessagePostMarkFailure,
@@ -3461,9 +3576,12 @@ export const SearchDeliveriesRequest = Type.Object({
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
   userId: Type.Optional(UserId),
-  channel: Type.Optional(Type.Enum(ChannelType)),
+  channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
+  to: Type.Optional(Type.Array(Type.String())),
+  statuses: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
@@ -3579,6 +3697,14 @@ export const ResendSecret = Type.Object({
 
 export type ResendSecret = Static<typeof ResendSecret>;
 
+export const MailChimpSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.MailChimp),
+  apiKey: Type.Optional(Type.String()),
+  webhookKey: Type.Optional(Type.String()),
+});
+
+export type MailChimpSecret = Static<typeof MailChimpSecret>;
+
 export const SmtpSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   host: Type.Optional(Type.String()),
@@ -3603,6 +3729,7 @@ export type WebhookSecret = Static<typeof WebhookSecret>;
 export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 
 export const EmailProviderSecret = Type.Union([
+  MailChimpSecret,
   SendgridSecret,
   PostMarkSecret,
   AmazonSesSecret,
@@ -3803,3 +3930,113 @@ export const GetUserSubscriptionsResponse = Type.Object({
 export type GetUserSubscriptionsResponse = Static<
   typeof GetUserSubscriptionsResponse
 >;
+
+export enum CreateWorkspaceErrorType {
+  WorkspaceAlreadyExists = "WorkspaceAlreadyExists",
+  InvalidDomain = "InvalidDomain",
+}
+
+export const CreateWorkspaceAlreadyExistsError = Type.Object({
+  type: Type.Literal(CreateWorkspaceErrorType.WorkspaceAlreadyExists),
+});
+
+export type CreateWorkspaceAlreadyExistsError = Static<
+  typeof CreateWorkspaceAlreadyExistsError
+>;
+
+export const CreateWorkspaceInvalidDomainError = Type.Object({
+  type: Type.Literal(CreateWorkspaceErrorType.InvalidDomain),
+});
+
+export type CreateWorkspaceInvalidDomainError = Static<
+  typeof CreateWorkspaceInvalidDomainError
+>;
+
+export const CreateWorkspaceError = Type.Union([
+  CreateWorkspaceAlreadyExistsError,
+  CreateWorkspaceInvalidDomainError,
+]);
+
+export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
+
+export const WorkspaceTypeApp = Type.Union([
+  Type.Literal("Root"),
+  Type.Literal("Child"),
+  Type.Literal("Parent"),
+]);
+
+export type WorkspaceTypeApp = Static<typeof WorkspaceTypeApp>;
+
+export const WorkspaceResourceExtended = Type.Composite([
+  WorkspaceResource,
+  Type.Object({
+    externalId: Type.Optional(Type.String()),
+    type: WorkspaceTypeApp,
+    writeKey: Type.String(),
+    domain: Type.Optional(Type.String()),
+  }),
+]);
+
+export type WorkspaceResourceExtended = Static<
+  typeof WorkspaceResourceExtended
+>;
+
+export type CreateWorkspaceResult = Result<
+  WorkspaceResourceExtended,
+  CreateWorkspaceError
+>;
+
+export const CreateWorkspaceResultJson = JsonResult(
+  WorkspaceResourceExtended,
+  CreateWorkspaceError,
+);
+
+export type CreateWorkspaceResultJson = Static<
+  typeof CreateWorkspaceResultJson
+>;
+
+export const ExecuteBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastName: Type.String(),
+  segmentDefinition: SegmentDefinition,
+  messageTemplateDefinition: MessageTemplateResourceDefinition,
+  subscriptionGroupId: Type.Optional(Type.String()),
+});
+
+export type ExecuteBroadcastRequest = Static<typeof ExecuteBroadcastRequest>;
+
+export const ExecuteBroadcastResponse = Type.Object({
+  broadcastName: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type ExecuteBroadcastResponse = Static<typeof ExecuteBroadcastResponse>;
+
+export const UserWorkflowTrackEvent = Type.Pick(KnownTrackData, [
+  "event",
+  "properties",
+  "timestamp",
+  "context",
+  "messageId",
+]);
+
+export type UserWorkflowTrackEvent = Static<typeof UserWorkflowTrackEvent>;
+
+export const KeyedSegmentEventContext = Type.Object({
+  events: Type.Array(UserWorkflowTrackEvent),
+  keyValue: Type.String(),
+  definition: KeyedPerformedSegmentNode,
+});
+
+export type KeyedSegmentEventContext = Static<typeof KeyedSegmentEventContext>;
+
+export type EmptyObject = Record<never, never>;
+
+export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);
+
+export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
+  Required<Pick<T, K>>;
+
+export type WorkspaceIdentifier =
+  | { workspaceId: string }
+  | { externalId: string };

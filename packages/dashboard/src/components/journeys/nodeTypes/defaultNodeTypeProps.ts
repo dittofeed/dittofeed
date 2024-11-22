@@ -1,3 +1,4 @@
+import { Node } from "@xyflow/react";
 import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -7,7 +8,6 @@ import {
   JourneyUiBodyNodeTypeProps,
   SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
 
 import {

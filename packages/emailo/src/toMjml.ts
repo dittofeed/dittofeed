@@ -21,6 +21,16 @@ function applyTextStyles({
   styledText: string;
   styles: string[];
 } {
+  // Check if there's a markup inline mark
+  const hasMarkupInline = marks?.some((mark) => mark.type === "markupInline");
+  if (hasMarkupInline) {
+    // Return raw text without any styling when markup inline is present
+    return {
+      styledText: text,
+      styles: [],
+    };
+  }
+
   let styledText = text;
   const styles: string[] = [];
 
@@ -274,6 +284,12 @@ function toMjmlHelper({
         },
         mode,
       });
+    }
+    case "markupBlock": {
+      return content.content?.[0]?.text ?? "";
+    }
+    case "markupInline": {
+      return content.content?.[0]?.text ?? "";
     }
     default:
       console.error("Unsupported node type", content.type, content);

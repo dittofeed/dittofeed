@@ -7,7 +7,7 @@ import { Surface } from "./surface";
 import { Toolbar } from "./toolbar";
 
 const FONT_SIZES = [
-  { label: "Small", value: "10" },
+  { label: "Small", value: "10pt" },
   { label: "Medium", value: "12pt" },
   { label: "Large", value: "16pt" },
   { label: "Extra Large", value: "22pt" },

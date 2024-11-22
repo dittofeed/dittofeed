@@ -1,0 +1,43 @@
+---
+title: "Keyed Performed - User Property"
+description: "Renders the value of a specific event property - immediately."
+---
+
+The Keyed Performed user property is like the [Performed](/resources/user-property-types/performed) user property, but specialized to [event entry journeys](/resources/journey-nodes/entry#event-entry).
+
+The keyed performed user property allows you to render the properties of `track` events - immediately. This is in contrast to standard segments whose values are calculated with a delay.
+
+This user property also differs from the standard performed user property, in that it is only calculated on a forward-looking basis, from the time the parent event entry journey was first triggered.
+
+This is an advanced feature that should be used by experienced users.
+
+Use cases include:
+
+- Rendering the booking name for an appointment reminder journey.
+- Rendering order details for a delivery completion journey.
+
+## Keys
+
+Keys are used to route the event used to resolve this user property to the correct event entry journey instance. If for example you receive an appointment update event, you can specify the `appointmentId` as the key to route this event to event entry journey instances keyed on that appointment id.
+
+```json
+{
+  "event": "APPOINTMENT_UPDATED",
+  "type": "track",
+  "properties": {
+    "appointmentId": "123",
+    "bookingName": "John Doe",
+    "appointmentTime": "2024-01-01T12:00:00Z"
+    ...
+  },
+  ...
+}
+```
+
+## Implementation Details
+
+This user property is unique, in that it is *not* calculated asynchronously in ClickHouse. Instead, the value is calculated synchronously in memory. This guarantees that the user property value will incorporate the triggering events' properties when rendering message templates within the journey.
+
+## Example Journey - Appointment Reminders
+
+To see an example of how to set up an appointment reminder journey which makes use of the keyed performed user property, see the [Appointment Reminders](/guide/sample-journeys/appointment-reminders) guide.

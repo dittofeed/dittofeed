@@ -1,4 +1,5 @@
 import { writeToString } from "@fast-csv/format";
+import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -6,23 +7,31 @@ import {
   schemaValidate,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 
+import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
+  JsonResult,
+  JsonResultType,
+  KeyedPerformedSegmentNode,
+  KeyedSegmentEventContext,
   PartialSegmentResource,
   Prisma,
+  RelationalOperators,
   SavedSegmentResource,
   Segment,
   SegmentAssignment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
-  SegmentResource,
+  SegmentOperatorType,
   UpsertSegmentResource,
+  UserWorkflowTrackEvent,
 } from "./types";
 
 export function enrichSegment(
@@ -163,7 +172,7 @@ export async function findSegmentResources({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<SegmentResource[]> {
+}): Promise<SavedSegmentResource[]> {
   const segments = await prisma().segment.findMany({
     where: {
       workspaceId,
@@ -537,4 +546,185 @@ export async function findManyPartialSegments({
       createdAt: createdAt.getTime(),
     } satisfies PartialSegmentResource;
   });
+}
+
+export enum CalculateKeyedSegmentsErrorType {
+  InvalidDefinition = "InvalidDefinition",
+}
+
+export const CalculateKeyedSegmentsError = Type.Object({
+  type: Type.Enum(CalculateKeyedSegmentsErrorType),
+});
+
+export type CalculateKeyedSegmentsError = Static<
+  typeof CalculateKeyedSegmentsError
+>;
+
+export const CalculateKeyedSegmentsResult = JsonResult(
+  Type.Boolean(),
+  CalculateKeyedSegmentsError,
+);
+
+export type CalculateKeyedSegmentsResult = Static<
+  typeof CalculateKeyedSegmentsResult
+>;
+
+function filterEvent(
+  {
+    event,
+    properties,
+    ...rest
+  }: Pick<KeyedPerformedSegmentNode, "event" | "properties"> & {
+    propertyPath: string;
+    propertyValue: string;
+  },
+  e: UserWorkflowTrackEvent,
+): boolean {
+  if (e.event !== event) {
+    logger().debug(
+      {
+        event,
+        actualEvent: e.event,
+        messageId: e.messageId,
+      },
+      "event name does not match",
+    );
+    return false;
+  }
+  if ("messageId" in rest) {
+    logger().debug(
+      {
+        messageId: e.messageId,
+        expectedMessageId: rest.messageId,
+      },
+      "message id does not match",
+    );
+    if (e.messageId !== rest.messageId) {
+      return false;
+    }
+  }
+  if ("propertyPath" in rest) {
+    const propertyMatchResult = jsonValue({
+      data: e.properties,
+      path: rest.propertyPath,
+    });
+    const propertyMatches = propertyMatchResult
+      .map((v) => v === rest.propertyValue)
+      .unwrapOr(false);
+    if (!propertyMatches) {
+      logger().debug(
+        {
+          propertyPath: rest.propertyPath,
+          propertyValue: rest.propertyValue,
+          actualPropertyValue: propertyMatchResult.unwrapOr(null),
+        },
+        "property path does not match",
+      );
+      return false;
+    }
+  }
+  for (const property of properties ?? []) {
+    const { path, operator } = property;
+    const value = jsonValue({
+      data: e.properties,
+      path,
+    }).unwrapOr(null);
+
+    let mismatched = false;
+    switch (operator.type) {
+      case SegmentOperatorType.Equals: {
+        mismatched = value !== operator.value;
+        break;
+      }
+      case SegmentOperatorType.Exists: {
+        mismatched = value === null || value === "" || value === undefined;
+        break;
+      }
+      case SegmentOperatorType.LessThan: {
+        const numValue = Number(value);
+        mismatched = Number.isNaN(numValue) || numValue >= operator.value;
+        break;
+      }
+      case SegmentOperatorType.GreaterThanOrEqual: {
+        const numValue = Number(value);
+        mismatched = Number.isNaN(numValue) || numValue < operator.value;
+        break;
+      }
+      default:
+        logger().error(
+          {
+            operator,
+          },
+          "unsupported operator",
+        );
+        return false;
+    }
+
+    if (mismatched) {
+      logger().debug(
+        {
+          path,
+          value,
+          operator,
+        },
+        "property value does not match",
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
+export function calculateKeyedSegment({
+  events: unfilteredEvents,
+  keyValue,
+  definition,
+}: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
+  const entryNode = definition;
+  const { times: maybeTimes, timesOperator: maybeTimesOperator } = entryNode;
+  let eventsCount = 0;
+  for (const e of unfilteredEvents) {
+    if (
+      filterEvent(
+        {
+          event: entryNode.event,
+          properties: definition.properties,
+          propertyPath: definition.key,
+          propertyValue: keyValue,
+        },
+        e,
+      )
+    ) {
+      eventsCount += 1;
+    }
+  }
+  logger().debug(
+    {
+      unfilteredEvents,
+      eventsCount,
+    },
+    "events for calculate keyed segment",
+  );
+  const times = maybeTimes ?? 1;
+  const timesOperator =
+    maybeTimesOperator ?? RelationalOperators.GreaterThanOrEqual;
+
+  let result: boolean;
+  switch (timesOperator) {
+    case RelationalOperators.GreaterThanOrEqual:
+      result = eventsCount >= times;
+      break;
+    case RelationalOperators.LessThan:
+      result = eventsCount < times;
+      break;
+    case RelationalOperators.Equals:
+      result = eventsCount === times;
+      break;
+    default:
+      assertUnreachable(timesOperator);
+  }
+  return {
+    type: JsonResultType.Ok,
+    value: result,
+  };
 }

@@ -42,6 +42,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-is": "18.3.1",
+    "@types/react": "18.3.1",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/auto-instrumentations-node": "0.39.2",
     "@opentelemetry/exporter-metrics-otlp-grpc": "0.41.2",
@@ -49,6 +50,7 @@
     "@opentelemetry/resources": "1.12.0",
     "@opentelemetry/sdk-metrics": "1.12.0",
     "@opentelemetry/sdk-node": "0.38.0",
+    "immer": "9.0.21",
     "@opentelemetry/semantic-conventions": "1.12.0"
   },
   "packageManager": "yarn@4.1.1"

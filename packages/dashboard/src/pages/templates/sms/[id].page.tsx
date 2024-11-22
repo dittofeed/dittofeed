@@ -9,8 +9,8 @@ import { useRouter } from "next/router";
 import React from "react";
 import { validate } from "uuid";
 
-import DashboardContent from "../../../components/dashboardContent";
 import SmsEditor from "../../../components/messages/smsEditor";
+import TemplatePageContent from "../../../components/messages/templatePageContent";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
@@ -89,12 +89,12 @@ export default function MessageEditor() {
     return null;
   }
   return (
-    <DashboardContent>
+    <TemplatePageContent>
       <SmsEditor
         key={messageId}
         templateId={messageId}
         member={member ?? undefined}
       />
-    </DashboardContent>
+    </TemplatePageContent>
   );
 }

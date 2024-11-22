@@ -9,18 +9,18 @@ import {
   Worker,
 } from "@temporalio/worker";
 import { BOOTSTRAP_OPTIONS } from "admin-cli/src/bootstrap";
-import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import buildApp from "api/src/buildApp";
 import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
+import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import logger from "backend-lib/src/logger";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
+import workerLogger from "backend-lib/src/workerLogger";
 import next from "next";
 import path from "path";
 import workerConfig from "worker/src/config";
-import workerLogger from "worker/src/workerLogger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -64,7 +64,7 @@ async function startLite() {
 
   const app = await buildApp();
 
-  if (liteConfig().bootstrap) {
+  if (backendConfig().bootstrap) {
     logger().info("Bootstrapping");
     const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
       .argv;

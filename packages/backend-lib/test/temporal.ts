@@ -8,15 +8,7 @@ import {
 
 import * as activities from "../src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "../src/temporal/activityInboundInterceptor";
-
-const EMPTY_LOGGER = {
-  log() {},
-  trace() {},
-  debug() {},
-  info() {},
-  warn() {},
-  error() {},
-};
+import workerLogger from "../src/workerLogger";
 
 export async function createEnvAndWorker({
   activityOverrides,
@@ -24,6 +16,7 @@ export async function createEnvAndWorker({
   activityOverrides?: Parameters<typeof Worker.create>[0]["activities"];
 } = {}) {
   const testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+
   const worker = await Worker.create({
     connection: testEnv.nativeConnection,
     workflowsPath: require.resolve("../src/temporal/workflows"),
@@ -36,11 +29,11 @@ export async function createEnvAndWorker({
             }),
         ],
       },
-      EMPTY_LOGGER,
+      workerLogger,
     ),
     activities: { ...activities, ...activityOverrides },
+    sinks: defaultSinks(workerLogger),
     taskQueue: "default",
-    sinks: defaultSinks(EMPTY_LOGGER),
   });
   return { testEnv, worker };
 }

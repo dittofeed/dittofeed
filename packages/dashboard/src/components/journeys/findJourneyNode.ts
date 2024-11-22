@@ -1,9 +1,6 @@
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 
-import {
-  JourneyNodeUiProps,
-  JourneyUiNodeDefinitionProps,
-} from "../../lib/types";
+import { DefinitionJourneyNode, JourneyNodeUiProps } from "../../lib/types";
 import findNode from "./findNode";
 import { isJourneyNode } from "./isJourneyNode";
 
@@ -11,7 +8,7 @@ export default function findJourneyNode(
   nodeId: string,
   nodes: Node<JourneyNodeUiProps>[],
   nodesIndex: Record<string, number>,
-): Node<JourneyUiNodeDefinitionProps> | null {
+): DefinitionJourneyNode | null {
   const node = findNode(nodeId, nodes, nodesIndex);
   if (node && isJourneyNode(node)) {
     return node;

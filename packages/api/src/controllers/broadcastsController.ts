@@ -1,12 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { toBroadcastResource } from "backend-lib/src/broadcasts";
-import prisma from "backend-lib/src/prisma";
 import {
-  broadcastWorkflow,
-  generateBroadcastWorkflowId,
-} from "backend-lib/src/segments/broadcastWorkflow";
-import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
-import { isAlreadyStartedError } from "backend-lib/src/temporal/workflow";
+  toBroadcastResource,
+  triggerBroadcast,
+} from "backend-lib/src/broadcasts";
+import prisma from "backend-lib/src/prisma";
 import {
   BroadcastResource,
   TriggerBroadcastRequest,
@@ -54,38 +51,12 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const temporalClient = await connectWorkflowClient();
       const { workspaceId, id: broadcastId } = request.body;
-
-      try {
-        await temporalClient.start(broadcastWorkflow, {
-          taskQueue: "default",
-          workflowId: generateBroadcastWorkflowId({
-            workspaceId,
-            broadcastId,
-          }),
-          args: [
-            {
-              workspaceId,
-              broadcastId,
-            },
-          ],
-        });
-      } catch (e) {
-        if (!isAlreadyStartedError(e)) {
-          throw e;
-        }
-      }
-
-      const broadcast = await prisma().broadcast.update({
-        where: {
-          id: broadcastId,
-        },
-        data: {
-          status: "InProgress",
-        },
+      const broadcast = await triggerBroadcast({
+        broadcastId,
+        workspaceId,
       });
-      return reply.status(200).send(toBroadcastResource(broadcast));
+      return reply.status(200).send(broadcast);
     },
   );
 }

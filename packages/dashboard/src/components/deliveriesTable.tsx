@@ -35,6 +35,12 @@ import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
+import {
+  getFilterValues,
+  NewDeliveriesFilterButton,
+  SelectedDeliveriesFilters,
+  useDeliveriesFilterState,
+} from "./deliveries/deliveriesFilter";
 import EmailPreviewHeader from "./emailPreviewHeader";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
@@ -223,6 +229,8 @@ export function DeliveriesTable({
   ]);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  const [deliveriesFilterState, setDeliveriesFilterState] =
+    useDeliveriesFilterState();
 
   React.useEffect(() => {
     (async () => {
@@ -238,12 +246,23 @@ export function DeliveriesTable({
       });
       let response: AxiosResponse;
       try {
+        const templateIds = getFilterValues(deliveriesFilterState, "template");
+        const channels = getFilterValues(deliveriesFilterState, "channel") as
+          | ChannelType[]
+          | undefined;
+        const to = getFilterValues(deliveriesFilterState, "to");
+        const statuses = getFilterValues(deliveriesFilterState, "status");
+
         const params: SearchDeliveriesRequest = {
           workspaceId,
           cursor: currentCursor,
           limit: pageSize,
           journeyId,
           userId,
+          templateIds,
+          channels,
+          to,
+          statuses,
         };
 
         response = await axios.get(`${apiBase}/api/deliveries`, {
@@ -298,7 +317,7 @@ export function DeliveriesTable({
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, currentCursor]);
+  }, [workspaceId, currentCursor, deliveriesFilterState.filters]);
 
   const rows: TableItem[] = React.useMemo(
     () =>
@@ -485,6 +504,16 @@ export function DeliveriesTable({
   return (
     <>
       <Stack sx={{ width: "100%" }} spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ p: 1 }}>
+          <NewDeliveriesFilterButton
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+          />
+          <SelectedDeliveriesFilters
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+          />
+        </Stack>
         <DataGrid
           rows={rows}
           loading={paginationRequest.type === CompletionStatus.InProgress}

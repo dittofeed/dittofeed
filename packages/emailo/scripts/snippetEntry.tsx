@@ -100,6 +100,9 @@ function Main() {
       {
         name: "favoriteColor",
       },
+      {
+        name: "email",
+      },
     ],
   });
   const [view, setView] = useState<

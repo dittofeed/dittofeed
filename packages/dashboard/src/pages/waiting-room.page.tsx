@@ -1,11 +1,8 @@
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import {
-  getRequestContext,
-  RequestContextErrorType,
-} from "backend-lib/src/requestContext";
-import { OpenIdProfile } from "backend-lib/src/types";
+import { getRequestContext } from "backend-lib/src/requestContext";
+import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";

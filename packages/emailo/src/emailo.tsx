@@ -49,6 +49,7 @@ export function Emailo({
     <div className={cn("emailo", className)}>
       <EditorContent editor={state.editor} readOnly={disabled} />
       {!disabled && <TextMenu state={state} />}
+      <span className="emailo-tippy" />
     </div>
   );
 }
@@ -210,19 +211,45 @@ export const defaultEmailoContent = {
       content: [
         {
           type: "text",
-          text: "Or try a code block:",
+          text: "If you require more more complex templating logic, you can write raw MJML and liquid syntax with a Markup Block.",
         },
       ],
     },
     {
-      type: "codeBlock",
+      type: "markupBlock",
       attrs: {
-        language: "css",
+        language: null,
+        class: "markup-block markup-extension",
       },
       content: [
         {
           type: "text",
-          text: 'function foo() {\n  console.log("bar")\n}',
+          text: '{% assign items = "Item 1,Item 2,Item 3,Item 4" | split: "," %}\n\n<mj-column>\n  {% for item in items limit:2 %}\n    <mj-text>\n      {{ item }}\n    </mj-text>\n  {% endfor %}\n</mj-column>\n<mj-column>\n  {% for item in items offset:2 %}\n    <mj-text>\n      {{ item }}\n    </mj-text>\n  {% endfor %}\n</mj-column>',
+        },
+      ],
+    },
+    {
+      type: "paragraph",
+      attrs: {
+        textAlign: "left",
+        class: null,
+      },
+      content: [
+        {
+          type: "text",
+          text: "Or with inline markup, ",
+        },
+        {
+          type: "text",
+          marks: [
+            {
+              type: "markupInline",
+              attrs: {
+                class: null,
+              },
+            },
+          ],
+          text: '{{ user.email | default: "example@email.com" }}',
         },
       ],
     },
@@ -310,7 +337,7 @@ export const defaultEmailoContent = {
         },
         {
           type: "text",
-          text: ".",
+          text: ". ",
         },
       ],
     },
@@ -323,7 +350,7 @@ export const defaultEmailoContent = {
       content: [
         {
           type: "text",
-          text: "Don’t forget a footer with your company address and an unsubscribe link!",
+          text: "Finally, don’t forget a footer with your company address and an unsubscribe link!",
         },
       ],
     },

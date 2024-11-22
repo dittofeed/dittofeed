@@ -4,6 +4,7 @@ import {
   MessageTemplateResource,
   SavedSegmentResource,
   SavedSubscriptionGroupResource,
+  SegmentDefinition,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -15,6 +16,7 @@ export function getSegmentConfigState({
   segmentId: id,
   messageTemplates,
   name,
+  definition = DEFAULT_SEGMENT_DEFINITION,
   subscriptionGroups,
 }: {
   workspaceId: string;
@@ -23,6 +25,7 @@ export function getSegmentConfigState({
   messageTemplates: MessageTemplateResource[];
   subscriptionGroups: SavedSubscriptionGroupResource[];
   segment: SavedSegmentResource | null;
+  definition?: SegmentDefinition;
 }): Partial<AppState> {
   const serverInitialState: Partial<AppState> = {};
 
@@ -43,7 +46,7 @@ export function getSegmentConfigState({
       name: name ?? `My Segment - ${id}`,
       id,
       workspaceId,
-      definition: DEFAULT_SEGMENT_DEFINITION,
+      definition,
       updatedAt: Number(new Date()),
     };
   }

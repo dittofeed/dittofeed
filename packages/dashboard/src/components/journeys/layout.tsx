@@ -12,6 +12,7 @@ import React, { useEffect, useMemo } from "react";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import formatCurl from "../../lib/formatCurl";
 import MainLayout from "../mainLayout";
 import {
   Publisher,
@@ -35,18 +36,22 @@ import {
   shouldDraftBeUpdated,
 } from "./store";
 
-function formatCurl(journey: SavedJourneyResource) {
-  return `curl --request PUT \\
-  --url https://app.dittofeed.com/api/admin/journeys \\
-  --header 'Authorization: Bearer MY_ADMIN_API_TOKEN' \\
-  --header 'Content-Type: application/json' \\
-  --data '{
-  "id": "${journey.id}",
-  "workspaceId": "${journey.workspaceId}",
-  "name": "${journey.name}",
-  "canRunMultiple": ${journey.canRunMultiple},
-  "definition": ${JSON.stringify(journey.definition, null, 2)}
-}'`;
+function formatJourneyCurl(journey: SavedJourneyResource) {
+  return formatCurl({
+    method: "PUT",
+    url: "https://app.dittofeed.com/api/admin/journeys",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data: {
+      id: journey.id,
+      workspaceId: journey.workspaceId,
+      name: journey.name,
+      canRunMultiple: journey.canRunMultiple,
+      definition: journey.definition,
+    },
+  });
 }
 
 export default function JourneyLayout({
@@ -70,6 +75,7 @@ export default function JourneyLayout({
     resetJourneyState,
     viewDraft,
     setViewDraft,
+    segments: segmentsResult,
   } = useAppStorePick([
     "apiBase",
     "workspace",
@@ -83,6 +89,7 @@ export default function JourneyLayout({
     "resetJourneyState",
     "viewDraft",
     "setViewDraft",
+    "segments",
   ]);
   const journey: SavedJourneyResource | null = useMemo(() => {
     if (journeys.type !== CompletionStatus.Successful) {
@@ -90,6 +97,14 @@ export default function JourneyLayout({
     }
     return journeys.value.find((j) => j.id === journeyId) ?? null;
   }, [journeyId, journeys]);
+
+  const segments = useMemo(
+    () =>
+      segmentsResult.type === CompletionStatus.Successful
+        ? segmentsResult.value
+        : [],
+    [segmentsResult],
+  );
 
   useEffect(() => {
     if (
@@ -173,7 +188,10 @@ export default function JourneyLayout({
       };
       return { publisher, draftToggle: publisher };
     }
-    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    const globalJourneyErrors = getGlobalJourneyErrors({
+      nodes: journeyNodes,
+      segments,
+    });
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
@@ -235,6 +253,7 @@ export default function JourneyLayout({
                 definition,
                 name,
               });
+
               resetJourneyState({
                 edges,
                 nodes,
@@ -327,11 +346,11 @@ export default function JourneyLayout({
           if (!journey) {
             return;
           }
-          const curl = formatCurl(journey);
+          const curl = formatJourneyCurl(journey);
           copyToClipboard({
             value: curl,
-            successNotice: "Journey definition copied to clipboard as JSON.",
-            failureNotice: "Failed to copy journey definition.",
+            successNotice: "Journey definition copied to clipboard as CURL.",
+            failureNotice: "Failed to copy journey CURL.",
           });
         },
       },

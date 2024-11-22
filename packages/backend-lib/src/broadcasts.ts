@@ -7,18 +7,23 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
+  SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
-import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
+import { broadcastWorkflow } from "./segments/broadcastWorkflow";
+import connectWorkflowClient from "./temporal/connectWorkflowClient";
+import { isAlreadyStartedError } from "./temporal/workflow";
+import { generateBroadcastWorkflowId } from "./temporal/workflows";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -134,27 +139,61 @@ export async function getBroadcast({
   };
 }
 
+const DEFAULT_BROADCAST_SEGMENT_DEFINITION: SegmentDefinition = {
+  entryNode: {
+    type: SegmentNodeType.Everyone,
+    id: "1",
+  },
+  nodes: [],
+};
+
 export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
-  subscriptionGroupId,
+  subscriptionGroupId: sgId,
   name,
+  segmentDefinition = DEFAULT_BROADCAST_SEGMENT_DEFINITION,
+  messageTemplateDefinition: mDefinition,
 }: {
   broadcastId: string;
   workspaceId: string;
   subscriptionGroupId?: string;
   name: string;
+  segmentDefinition?: SegmentDefinition;
+  messageTemplateDefinition?: MessageTemplateResourceDefinition;
 }): Promise<BroadcastResources> {
-  const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
-  const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
+  logger().info(
+    {
+      sgId,
+      segmentDefinition,
     },
-  });
-  const [segment, messageTemplate] = await Promise.all([
+    "Upserting broadcast",
+  );
+
+  let messageTemplateDefinition: MessageTemplateResourceDefinition;
+  if (mDefinition) {
+    messageTemplateDefinition = mDefinition;
+  } else {
+    const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique(
+      {
+        where: {
+          workspaceId,
+        },
+      },
+    );
+    messageTemplateDefinition = defaultEmailDefinition({
+      emailContentsType: EmailContentsType.LowCode,
+      emailProvider: defaultEmailProvider ?? undefined,
+    });
+  }
+  logger().info(
+    { messageTemplateDefinition, segmentDefinition },
+    "Broadcast definitions",
+  );
+  const [segment, messageTemplate, subscriptionGroup] = await Promise.all([
     prisma().segment.upsert({
       where: {
         workspaceId_name: {
@@ -182,13 +221,24 @@ export async function upsertBroadcast({
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
-        definition: defaultEmailDefinition({
-          emailContentsType: EmailContentsType.Code,
-          emailProvider: defaultEmailProvider ?? undefined,
-        }),
+        definition: messageTemplateDefinition,
       },
       update: {},
     }),
+    sgId
+      ? null
+      : prisma().subscriptionGroup.findFirst({
+          where: {
+            workspaceId,
+            channel: mDefinition?.type ?? ChannelType.Email,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+          },
+        }),
   ]);
 
   const journeyDefinition: JourneyDefinition = {
@@ -202,7 +252,7 @@ export async function upsertBroadcast({
         id: "broadcast-message",
         type: JourneyNodeType.MessageNode,
         name: "Broadcast Message",
-        subscriptionGroupId,
+        subscriptionGroupId: sgId ?? subscriptionGroup?.id,
         variant: {
           type: ChannelType.Email,
           templateId: messageTemplate.id,
@@ -263,10 +313,66 @@ export async function getOrCreateBroadcast(params: {
   broadcastId: string;
   workspaceId: string;
   name: string;
+  segmentDefinition?: SegmentDefinition;
 }): Promise<BroadcastResources> {
   const broadcastResources = await getBroadcast(params);
   if (broadcastResources) {
     return broadcastResources;
   }
   return upsertBroadcast(params);
+}
+
+export async function triggerBroadcast({
+  broadcastId,
+  workspaceId,
+}: {
+  broadcastId: string;
+  workspaceId: string;
+}): Promise<BroadcastResource> {
+  const temporalClient = await connectWorkflowClient();
+  const broadcast = await prisma().broadcast.findUniqueOrThrow({
+    where: {
+      id: broadcastId,
+    },
+  });
+  if (broadcast.status !== "NotStarted") {
+    logger().error(
+      {
+        broadcast,
+        workspaceId,
+      },
+      "Broadcast is not in the NotStarted status.",
+    );
+    return toBroadcastResource(broadcast);
+  }
+
+  try {
+    await temporalClient.start(broadcastWorkflow, {
+      taskQueue: "default",
+      workflowId: generateBroadcastWorkflowId({
+        workspaceId,
+        broadcastId,
+      }),
+      args: [
+        {
+          workspaceId,
+          broadcastId,
+        },
+      ],
+    });
+  } catch (e) {
+    if (!isAlreadyStartedError(e)) {
+      throw e;
+    }
+  }
+
+  const updatedBroadcast = await prisma().broadcast.update({
+    where: {
+      id: broadcastId,
+    },
+    data: {
+      status: "InProgress",
+    },
+  });
+  return toBroadcastResource(updatedBroadcast);
 }

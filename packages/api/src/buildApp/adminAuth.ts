@@ -3,18 +3,29 @@ import prisma, { Prisma } from "backend-lib/src/prisma";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { AdminApiKeyDefinition } from "isomorphic-lib/src/types";
+import {
+  AdminApiKeyDefinition,
+  WorkspaceIdentifier,
+} from "isomorphic-lib/src/types";
 
-import { getWorkspaceId } from "../workspace";
+import { getWorkspaceIdentifier } from "../workspace";
+
+export type AuthenticateAdminKeyParams = {
+  actualKey: string;
+} & WorkspaceIdentifier;
 
 export async function authenticateAdminApiKeyFull({
-  workspaceId,
   actualKey,
-}: {
+  ...identifier
+}: AuthenticateAdminKeyParams): Promise<{
   workspaceId: string;
-  actualKey: string;
-}): Promise<{ workspaceId: string; keyId: string } | null> {
-  const apiKeysQuery = Prisma.sql`
+  keyId: string;
+} | null> {
+  let apiKeysQuery: Prisma.Sql;
+  if ("workspaceId" in identifier) {
+    const { workspaceId } = identifier;
+
+    apiKeysQuery = Prisma.sql`
       SELECT
         aak.id,
         aak."workspaceId",
@@ -29,6 +40,25 @@ export async function authenticateAdminApiKeyFull({
           WHERE wr."childWorkspaceId" = CAST(${workspaceId} AS UUID)
         )
     `;
+  } else {
+    const { externalId } = identifier;
+    apiKeysQuery = Prisma.sql`
+      SELECT
+        aak.id,
+        aak."workspaceId",
+        s."configValue"
+      FROM "AdminApiKey" aak
+      JOIN "Secret" s ON aak."secretId" = s.id
+      JOIN "Workspace" w ON
+        (aak."workspaceId" = w.id AND w."externalId" = ${externalId})
+        OR aak."workspaceId" IN (
+          SELECT wr."parentWorkspaceId"
+          FROM "WorkspaceRelation" wr
+          JOIN "Workspace" cw ON wr."childWorkspaceId" = cw.id
+          WHERE cw."externalId" = ${externalId}
+        )
+    `;
+  }
   const apiKeys =
     await prisma().$queryRaw<
       { id: string; workspaceId: string; configValue: unknown }[]
@@ -37,7 +67,7 @@ export async function authenticateAdminApiKeyFull({
   if (!actualKey) {
     logger().info(
       {
-        workspaceId,
+        ...identifier,
       },
       "Empty API key",
     );
@@ -51,7 +81,7 @@ export async function authenticateAdminApiKeyFull({
     if (definitionResult.isErr()) {
       logger().error(
         {
-          workspaceId,
+          ...identifier,
           apiKeyId: apiKey.id,
         },
         "Invalid admin API key definition",
@@ -70,7 +100,7 @@ export async function authenticateAdminApiKeyFull({
 
   logger().debug(
     {
-      workspaceId,
+      ...identifier,
       actualKey,
       apiKeys,
     },
@@ -79,43 +109,38 @@ export async function authenticateAdminApiKeyFull({
   return null;
 }
 
-export async function authenticateAdminApiKey({
-  workspaceId,
-  actualKey,
-}: {
-  workspaceId: string;
-  actualKey: string;
-}): Promise<boolean> {
-  const apiKeyId = await authenticateAdminApiKeyFull({
-    workspaceId,
-    actualKey,
-  });
+export async function authenticateAdminApiKey(
+  params: AuthenticateAdminKeyParams,
+): Promise<boolean> {
+  const apiKeyId = await authenticateAdminApiKeyFull(params);
   return apiKeyId !== null;
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const adminAuth = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const workspaceIdResult = await getWorkspaceId(request);
-    if (workspaceIdResult.isErr()) {
+    const workspaceIdentifierResult = await getWorkspaceIdentifier(request);
+    if (workspaceIdentifierResult.isErr()) {
       logger().info(
         {
-          err: workspaceIdResult.error,
+          err: workspaceIdentifierResult.error,
           path: request.url,
           method: request.method,
         },
-        "Error getting workspaceId for admin auth",
+        "Error getting workspace identifier for admin auth",
       );
-      return reply.status(400).send();
+      return reply.status(400).send({
+        message: workspaceIdentifierResult.error.message,
+      });
     }
-    const workspaceId = workspaceIdResult.value;
-    if (!workspaceId) {
+    const workspaceIdentifier = workspaceIdentifierResult.value;
+    if (!workspaceIdentifier) {
       logger().info(
         {
           path: request.url,
           method: request.method,
         },
-        "workspace id missing for request",
+        "workspace identifier missing for request",
       );
       return reply.status(401).send();
     }
@@ -131,7 +156,7 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
       return reply.status(401).send();
     }
     const authenticated = await authenticateAdminApiKey({
-      workspaceId,
+      ...workspaceIdentifier,
       actualKey,
     });
     if (!authenticated) {
@@ -139,7 +164,7 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
         {
           path: request.url,
           method: request.method,
-          workspaceId,
+          ...workspaceIdentifier,
         },
         "API key not authenticated",
       );

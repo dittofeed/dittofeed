@@ -78,9 +78,10 @@ export default async function secretsController(fastify: FastifyInstance) {
             },
           },
         });
-        const existingConfigValue = isObject(secret?.configValue)
-          ? secret?.configValue
-          : undefined;
+        const existingConfigValue =
+          secret?.configValue && isObject(secret.configValue)
+            ? secret.configValue
+            : undefined;
 
         let newConfig: Record<string, unknown> | undefined;
         if (configValue) {
