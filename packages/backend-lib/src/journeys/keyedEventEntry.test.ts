@@ -410,7 +410,53 @@ describe("keyedEventEntry journeys", () => {
           },
         });
       });
-      it("should wait for the resolved value of the group", async () => {});
+      it("should wait for the resolved value of the user propertygroup", async () => {
+        const userId = randomUUID();
+        const appointmentId1 = randomUUID();
+
+        await worker.runUntil(async () => {
+          const timestamp1 = new Date().toISOString();
+          const now = await testEnv.currentTimeMs();
+          const appointmentDate = new Date(
+            now + 1000 * oneDaySeconds * 2,
+          ).toISOString();
+
+          await testEnv.client.workflow.start(userJourneyWorkflow, {
+            workflowId: "workflow1",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId1,
+                    appointmentDate,
+                  },
+                  messageId: randomUUID(),
+                  timestamp: timestamp1,
+                },
+              },
+            ],
+          });
+
+          await testEnv.sleep(5000);
+
+          expect(
+            senderMock,
+            "should not have sent any messages before waiting for day before appointment date",
+          ).toHaveBeenCalledTimes(0);
+
+          await testEnv.sleep(1000 * oneDaySeconds);
+
+          expect(senderMock).toHaveBeenCalledTimes(1);
+        });
+      });
     });
   });
 });
