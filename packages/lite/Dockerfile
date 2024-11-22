@@ -70,11 +70,6 @@ COPY --from=builder /service/packages/lite/package.json ./packages/lite/package.
 COPY --from=builder /service/packages/emailo/dist ./packages/emailo/dist
 COPY --from=builder /service/packages/emailo/package.json ./packages/emailo/package.json
 
-COPY --from=builder /service/packages/dashboard/dist ./packages/dashboard/dist
-COPY --from=builder /service/packages/dashboard/.next ./packages/dashboard/.next
-COPY --from=builder /service/packages/dashboard/next.config.js ./packages/dashboard/next.config.js
-COPY --from=builder /service/packages/dashboard/package.json ./packages/dashboard/package.json
-
 COPY --from=builder /service/packages/api/dist ./packages/api/dist
 COPY --from=builder /service/packages/api/package.json ./packages/api/package.json
 
@@ -90,6 +85,12 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
+
+COPY --from=builder /service/packages/dashboard/dist ./packages/dashboard/dist
+COPY --from=builder /service/packages/dashboard/.next ./packages/dashboard/.next
+COPY --from=builder /service/packages/dashboard/public ./packages/dashboard/public
+COPY --from=builder /service/packages/dashboard/next.config.js ./packages/dashboard/next.config.js
+COPY --from=builder /service/packages/dashboard/package.json ./packages/dashboard/package.json
 
 ENV NODE_ENV=production \
     PRE_BUILT=true \
