@@ -252,8 +252,7 @@ describe("keyedEventEntry journeys", () => {
           const appointmentDate = new Date(
             now + 1000 * oneDaySeconds * 2,
           ).toISOString();
-          // delay: 172799588
-          // 47 hours
+
           const handle1 = await testEnv.client.workflow.start(
             userJourneyWorkflow,
             {
@@ -308,6 +307,12 @@ describe("keyedEventEntry journeys", () => {
           );
 
           await testEnv.sleep(5000);
+
+          expect(
+            senderMock,
+            "should not have sent any messages before waiting for day before appointment date",
+          ).toHaveBeenCalledTimes(0);
+
           await testEnv.sleep(1000 * oneDaySeconds);
 
           expect(senderMock).toHaveBeenCalledTimes(2);
