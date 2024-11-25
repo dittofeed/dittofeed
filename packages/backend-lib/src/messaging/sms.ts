@@ -1,5 +1,6 @@
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 
+import logger from "../logger";
 import prisma from "../prisma";
 import {
   ChannelType,

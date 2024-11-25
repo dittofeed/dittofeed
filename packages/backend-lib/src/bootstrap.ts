@@ -51,7 +51,6 @@ function isValidDomain(domain: string): boolean {
   return DOMAIN_REGEX.test(domain);
 }
 
-// FIXME create providers here
 export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
