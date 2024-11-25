@@ -16,6 +16,8 @@ import { DEFAULT_WRITE_KEY_NAME } from "./constants";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
+import { getOrCreateEmailProviders } from "./messaging/email";
+import { getOrCreateSmsProviders } from "./messaging/sms";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import {
@@ -49,6 +51,7 @@ function isValidDomain(domain: string): boolean {
   return DOMAIN_REGEX.test(domain);
 }
 
+// FIXME create providers here
 export async function bootstrapPostgres({
   workspaceName,
   workspaceDomain,
@@ -233,6 +236,12 @@ export async function bootstrapPostgres({
     ...getDefaultMessageTemplates({
       workspaceId,
     }).map(upsertMessageTemplate),
+    getOrCreateSmsProviders({
+      workspaceId,
+    }),
+    getOrCreateEmailProviders({
+      workspaceId,
+    }),
   ]);
 
   await Promise.all([

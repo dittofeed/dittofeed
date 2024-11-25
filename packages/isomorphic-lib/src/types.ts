@@ -1649,6 +1649,19 @@ export type DefaultEmailProviderResource = Static<
   typeof DefaultEmailProviderResource
 >;
 
+export const UpsertDefaultEmailProviderRequest = Type.Union([
+  DefaultEmailProviderResource,
+  Type.Object({
+    workspaceId: Type.String(),
+    emailProvider: Type.String(),
+    fromAddress: Nullable(Type.String()),
+  }),
+]);
+
+export type UpsertDefaultEmailProviderRequest = Static<
+  typeof UpsertDefaultEmailProviderRequest
+>;
+
 export const JourneyResourceStatusEnum = {
   NotStarted: "NotStarted",
   Running: "Running",
