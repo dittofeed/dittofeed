@@ -27,9 +27,9 @@ import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import { getOrCreateSmsProviders } from "backend-lib/src/messaging/sms";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
-import { getOrCreateSmsProviders } from "backend-lib/src/sms";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {

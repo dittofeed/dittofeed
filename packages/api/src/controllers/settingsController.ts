@@ -2,6 +2,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
