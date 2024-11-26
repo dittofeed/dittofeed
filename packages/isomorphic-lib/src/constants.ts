@@ -25,6 +25,8 @@ export enum SecretNames {
   Smtp = "smtp",
   Subscription = "subscription-key",
   Webhook = "webhook-channel",
+  SmsTestProvider = "SmsTestProvider",
+  EmailTestProvider = "EmailTestProvider",
 }
 
 export enum DataSources {
@@ -34,7 +36,7 @@ export enum DataSources {
 export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   {
     [SmsProviderType.Twilio]: SecretNames.Twilio,
-    [SmsProviderType.Test]: "",
+    [SmsProviderType.Test]: SecretNames.SmsTestProvider,
   };
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
@@ -47,7 +49,7 @@ export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   [EmailProviderType.Resend]: SecretNames.Resend,
   [EmailProviderType.PostMark]: SecretNames.Postmark,
   [EmailProviderType.MailChimp]: SecretNames.MailChimp,
-  [EmailProviderType.Test]: "",
+  [EmailProviderType.Test]: SecretNames.EmailTestProvider,
 };
 
 export const CHANNEL_NAMES: Record<ChannelType, string> = {
