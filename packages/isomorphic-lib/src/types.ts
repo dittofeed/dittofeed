@@ -1082,8 +1082,8 @@ export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   searchTerm: Type.Optional(Type.String()),
   userId: Type.Optional(UserId),
-  offset: Type.Number(),
-  limit: Type.Number(),
+  offset: Type.Optional(Type.Number()),
+  limit: Type.Optional(Type.Number()),
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),
 });

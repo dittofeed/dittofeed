@@ -271,7 +271,7 @@ export type UserIdsByPropertyValue = Record<string, string[]>;
 
 export async function findManyEventsWithCount({
   workspaceId,
-  limit,
+  limit = 100,
   offset = 0,
   startDate,
   endDate,

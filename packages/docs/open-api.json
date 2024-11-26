@@ -3049,7 +3049,7 @@
             },
             "in": "query",
             "name": "offset",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -3057,7 +3057,7 @@
             },
             "in": "query",
             "name": "limit",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -24852,7 +24852,7 @@
             },
             "in": "query",
             "name": "offset",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -24860,7 +24860,7 @@
             },
             "in": "query",
             "name": "limit",
-            "required": true
+            "required": false
           },
           {
             "schema": {
