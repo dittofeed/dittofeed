@@ -5,6 +5,7 @@ import {
   defaultSinks,
   Worker,
 } from "@temporalio/worker";
+import path from "path";
 
 import * as activities from "../src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "../src/temporal/activityInboundInterceptor";
@@ -19,7 +20,9 @@ export async function createEnvAndWorker({
 
   const worker = await Worker.create({
     connection: testEnv.nativeConnection,
-    workflowsPath: require.resolve("../src/temporal/workflows"),
+    workflowsPath: require.resolve(
+      path.join(__dirname, "..", "src/temporal/workflows"),
+    ),
     interceptors: appendDefaultInterceptors(
       {
         activityInbound: [
