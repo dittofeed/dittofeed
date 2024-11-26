@@ -5823,14 +5823,7 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
+                    "type": "string"
                   },
                   "workspaceId": {
                     "allOf": [
@@ -5843,7 +5836,14 @@
                     ]
                   },
                   "name": {
-                    "type": "string"
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "canRunMultiple": {
                     "type": "boolean"
@@ -7095,8 +7095,8 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "workspaceId"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -12470,10 +12470,7 @@
                   {
                     "type": "object",
                     "properties": {
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
+                      "id": {
                         "type": "string"
                       },
                       "definition": {
@@ -14733,12 +14730,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id"
+                      "workspaceId",
+                      "name"
                     ]
                   }
                 ]
@@ -28944,10 +28945,7 @@
                   {
                     "type": "object",
                     "properties": {
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
+                      "id": {
                         "type": "string"
                       },
                       "definition": {
@@ -31207,12 +31205,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id"
+                      "workspaceId",
+                      "name"
                     ]
                   }
                 ]
@@ -36219,14 +36221,7 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
+                    "type": "string"
                   },
                   "workspaceId": {
                     "allOf": [
@@ -36239,7 +36234,14 @@
                     ]
                   },
                   "name": {
-                    "type": "string"
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "canRunMultiple": {
                     "type": "boolean"
@@ -37491,8 +37493,8 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "workspaceId"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
