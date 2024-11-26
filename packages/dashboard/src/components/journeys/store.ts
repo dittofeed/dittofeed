@@ -325,6 +325,7 @@ function journeyDefinitionFromStateBranch(
             const node: EventEntryNode = {
               type: JourneyNodeType.EventEntryNode,
               event: uiNode.variant.event,
+              key: uiNode.variant.key,
               child,
             };
             nodes.push(node);
@@ -1169,6 +1170,7 @@ export function journeyBranchToState(
           variant: {
             type: JourneyNodeType.EventEntryNode,
             event: node.event,
+            key: node.key,
           },
         };
         nodesState.push(
