@@ -1394,9 +1394,9 @@ export type NarrowedMessageTemplateResource<
 };
 
 export const UpsertMessageTemplateResource = Type.Object({
-  workspaceId: Type.Optional(Type.String()),
-  id: Type.String(),
-  name: Type.Optional(Type.String()),
+  workspaceId: Type.String(),
+  id: Type.Optional(Type.String()),
+  name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
 });
@@ -1445,7 +1445,7 @@ export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;
 
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
-  id: Type.String(),
+  name: Type.String(),
   journeyMetadata: Type.Optional(
     Type.Object({
       journeyId: Type.String(),
