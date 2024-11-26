@@ -2080,8 +2080,8 @@ export type SavedUserPropertyResource = Static<
 >;
 
 export const UpsertUserPropertyResource = Type.Intersect([
-  Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),
-  Type.Pick(UserPropertyResource, ["id", "name"]),
+  Type.Omit(Type.Partial(UserPropertyResource), ["name"]),
+  Type.Pick(UserPropertyResource, ["name", "workspaceId"]),
 ]);
 
 export type UpsertUserPropertyResource = Static<

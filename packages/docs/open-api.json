@@ -17374,34 +17374,63 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "emailProviderId": {
-                    "type": "string"
-                  },
-                  "fromAddress": {
-                    "anyOf": [
-                      {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "emailProviderId": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProviderId",
+                      "fromAddress"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "emailProvider": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProvider",
+                      "fromAddress"
                     ]
                   }
-                },
-                "required": [
-                  "workspaceId",
-                  "emailProviderId",
-                  "fromAddress"
                 ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -17411,6 +17440,24 @@
                 "schema": {
                   "description": "An empty String",
                   "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
@@ -17993,6 +18040,9 @@
                   {
                     "type": "object",
                     "properties": {
+                      "id": {
+                        "type": "string"
+                      },
                       "workspaceId": {
                         "type": "string"
                       },
@@ -18457,16 +18507,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "name": {
                         "type": "string"
                       },
-                      "name": {
+                      "workspaceId": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id",
-                      "name"
+                      "name",
+                      "workspaceId"
                     ]
                   }
                 ]
@@ -25017,6 +25067,9 @@
                   {
                     "type": "object",
                     "properties": {
+                      "id": {
+                        "type": "string"
+                      },
                       "workspaceId": {
                         "type": "string"
                       },
@@ -25481,16 +25534,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "name": {
                         "type": "string"
                       },
-                      "name": {
+                      "workspaceId": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id",
-                      "name"
+                      "name",
+                      "workspaceId"
                     ]
                   }
                 ]
@@ -43759,34 +43812,63 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "emailProviderId": {
-                    "type": "string"
-                  },
-                  "fromAddress": {
-                    "anyOf": [
-                      {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "emailProviderId": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProviderId",
+                      "fromAddress"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "emailProvider": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProvider",
+                      "fromAddress"
                     ]
                   }
-                },
-                "required": [
-                  "workspaceId",
-                  "emailProviderId",
-                  "fromAddress"
                 ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -43796,6 +43878,24 @@
                 "schema": {
                   "description": "An empty String",
                   "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
