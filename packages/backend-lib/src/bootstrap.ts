@@ -32,8 +32,10 @@ import {
   ChannelType,
   CreateWorkspaceErrorType,
   CreateWorkspaceResult,
+  EmailProviderType,
   EventType,
   NodeEnvEnum,
+  SmsProviderType,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   Workspace,
@@ -212,10 +214,16 @@ export async function bootstrapPostgres({
       },
     ];
 
-  const [writeKeyResource] = await Promise.all([
+  const [writeKeyResource, smsProviders, emailProviders] = await Promise.all([
     getOrCreateWriteKey({
       workspaceId,
       writeKeyName: DEFAULT_WRITE_KEY_NAME,
+    }),
+    getOrCreateSmsProviders({
+      workspaceId,
+    }),
+    getOrCreateEmailProviders({
+      workspaceId,
     }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
@@ -235,13 +243,13 @@ export async function bootstrapPostgres({
     ...getDefaultMessageTemplates({
       workspaceId,
     }).map(upsertMessageTemplate),
-    getOrCreateSmsProviders({
-      workspaceId,
-    }),
-    getOrCreateEmailProviders({
-      workspaceId,
-    }),
   ]);
+  const testEmailProvider = emailProviders.find(
+    (ep) => ep.type === EmailProviderType.Test,
+  );
+  const testSmsProvider = smsProviders.find(
+    (sp) => sp.type === SmsProviderType.Test,
+  );
 
   await Promise.all([
     upsertSubscriptionGroup({
@@ -265,6 +273,30 @@ export async function bootstrapPostgres({
       type: SubscriptionGroupType.OptOut,
       channel: ChannelType.Sms,
     }),
+    testEmailProvider
+      ? prisma().defaultEmailProvider.upsert({
+          where: {
+            workspaceId,
+          },
+          create: {
+            workspaceId,
+            emailProviderId: testEmailProvider.id,
+          },
+          update: {},
+        })
+      : undefined,
+    testSmsProvider
+      ? prisma().defaultSmsProvider.upsert({
+          where: {
+            workspaceId,
+          },
+          create: {
+            workspaceId,
+            smsProviderId: testSmsProvider.id,
+          },
+          update: {},
+        })
+      : undefined,
   ]);
   const writeKey = writeKeyToHeader({
     secretId: writeKeyResource.secretId,

@@ -195,6 +195,7 @@ function JourneyConfigure() {
     const journeyUpdate: UpsertJourneyResource = {
       id,
       workspaceId: workspace.value.id,
+      name: journeyName,
       definition,
       status: statusValue.nextStatus,
     };
@@ -231,6 +232,7 @@ function JourneyConfigure() {
 
     const journeyUpdate: UpsertJourneyResource = {
       id,
+      name: journeyName,
       workspaceId: workspace.value.id,
       canRunMultiple: newValue,
     };

@@ -2021,7 +2021,7 @@ export const UpsertJourneyResource = Type.Composite([
     ),
   ),
   Type.Object({
-    id: Type.String(),
+    name: Type.String(),
     workspaceId: Type.String(),
     draft: Type.Optional(Nullable(JourneyDraft)),
   }),

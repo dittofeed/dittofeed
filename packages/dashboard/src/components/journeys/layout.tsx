@@ -135,6 +135,7 @@ export default function JourneyLayout({
         url: `${apiBase}/api/journeys`,
         data: {
           id: journey.id,
+          name: journey.name,
           workspaceId: journey.workspaceId,
           draft: journeyStateToDraft({
             journeyEdges,
@@ -206,6 +207,7 @@ export default function JourneyLayout({
 
         const journeyUpdate: UpsertJourneyResource = {
           id: journey.id,
+          name: journey.name,
           workspaceId: workspace.value.id,
           definition: definitionFromState.value,
         };
@@ -231,6 +233,7 @@ export default function JourneyLayout({
       onRevert: () => {
         const journeyUpdate: UpsertJourneyResource = {
           id: journey.id,
+          name: journey.name,
           workspaceId: workspace.value.id,
           draft: null,
         };
@@ -309,6 +312,7 @@ export default function JourneyLayout({
   }, [
     journey,
     workspace,
+    segments,
     journeyNodes,
     journeyEdges,
     journeyNodesIndex,

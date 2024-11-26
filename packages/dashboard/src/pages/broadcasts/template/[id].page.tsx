@@ -242,6 +242,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
       });
       const body: UpsertJourneyResource = {
         id: journeyId,
+        name: journey.name,
         workspaceId: journey.workspaceId,
         definition: {
           ...journey.definition,
