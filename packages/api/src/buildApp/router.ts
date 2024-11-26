@@ -104,6 +104,8 @@ export default async function router(
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),
+        f.register(settingsController, { prefix: "/settings" }),
+        f.register(deliveriesController, { prefix: "/deliveries" }),
         f.register(adminBroadcastsController, {
           prefix: "/broadcasts",
         }),

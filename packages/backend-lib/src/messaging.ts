@@ -146,43 +146,32 @@ export async function findMessageTemplate({
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource,
 ): Promise<MessageTemplateResource> {
-  let messageTemplate: MessageTemplate;
   const draft = data.draft === null ? Prisma.DbNull : data.draft;
+  const where: Prisma.MessageTemplateWhereUniqueInput = data.id
+    ? { id: data.id }
+    : {
+        workspaceId_name: {
+          workspaceId: data.workspaceId,
+          name: data.name,
+        },
+      };
 
-  if (data.name && data.workspaceId) {
-    messageTemplate = await prisma().messageTemplate.upsert({
-      where: {
-        id: data.id,
-      },
-      create: {
-        workspaceId: data.workspaceId,
-        name: data.name,
-        id: data.id,
-        definition: data.definition,
-        draft,
-      },
-      update: {
-        workspaceId: data.workspaceId,
-        name: data.name,
-        id: data.id,
-        definition: data.definition,
-        draft,
-      },
-    });
-  } else {
-    messageTemplate = await prisma().messageTemplate.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        workspaceId: data.workspaceId,
-        name: data.name,
-        id: data.id,
-        definition: data.definition,
-        draft,
-      },
-    });
-  }
+  const messageTemplate = await prisma().messageTemplate.upsert({
+    where,
+    create: {
+      workspaceId: data.workspaceId,
+      name: data.name,
+      id: data.id,
+      definition: data.definition,
+      draft,
+    },
+    update: {
+      name: data.name,
+      definition: data.definition,
+      draft,
+    },
+  });
+
   return unwrap(enrichMessageTemplate(messageTemplate));
 }
 

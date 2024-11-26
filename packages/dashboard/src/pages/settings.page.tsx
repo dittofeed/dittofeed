@@ -27,6 +27,7 @@ import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import { getOrCreateSmsProviders } from "backend-lib/src/messaging/sms";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
@@ -91,7 +92,6 @@ import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
-import { getOrCreateSmsProviders } from "../lib/sms";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 
 function useSecretAvailability(): AppState["secretAvailability"] | undefined {

@@ -48,26 +48,48 @@ export default async function userPropertiesController(
         return reply.status(400).send();
       }
 
-      if (canCreate && id) {
-        userProperty = await prisma().userProperty.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            exampleValue,
-          },
-          update: {
-            workspaceId,
-            name,
-            definition,
-            definitionUpdatedAt,
-            exampleValue,
-          },
-        });
+      if (canCreate) {
+        if (id) {
+          userProperty = await prisma().userProperty.upsert({
+            where: {
+              id,
+            },
+            create: {
+              id,
+              workspaceId,
+              name,
+              definition,
+              exampleValue,
+            },
+            update: {
+              name,
+              definition,
+              definitionUpdatedAt,
+              exampleValue,
+            },
+          });
+        } else {
+          userProperty = await prisma().userProperty.upsert({
+            where: {
+              workspaceId_name: {
+                workspaceId,
+                name,
+              },
+            },
+            create: {
+              id,
+              workspaceId,
+              name,
+              definition,
+              exampleValue,
+            },
+            update: {
+              definition,
+              definitionUpdatedAt,
+              exampleValue,
+            },
+          });
+        }
       } else {
         userProperty = await prisma().userProperty.update({
           where: {

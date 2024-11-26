@@ -568,7 +568,7 @@ export default function TemplateEditor({
   const [debouncedTitle] = useDebounce(editedTemplate?.title, 300);
 
   useUpdateEffect(() => {
-    if (disabled || !workspace) {
+    if (disabled || !workspace || !debouncedTitle) {
       return;
     }
     const workspaceId = workspace.id;

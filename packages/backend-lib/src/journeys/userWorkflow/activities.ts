@@ -176,6 +176,7 @@ export function sendMessageFactory(sender: Sender) {
       timestamp: now.toISOString(),
       properties: trackingProperties,
     };
+    logger().debug({ trackData }, "send message track data");
 
     await submitTrack({
       workspaceId: params.workspaceId,

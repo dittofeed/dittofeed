@@ -1257,7 +1257,8 @@
                   }
                 },
                 "required": [
-                  "id"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -1835,7 +1836,7 @@
                   "workspaceId": {
                     "type": "string"
                   },
-                  "id": {
+                  "name": {
                     "type": "string"
                   },
                   "journeyMetadata": {
@@ -1900,7 +1901,7 @@
                 },
                 "required": [
                   "workspaceId",
-                  "id",
+                  "name",
                   "type"
                 ]
               }
@@ -3048,7 +3049,7 @@
             },
             "in": "query",
             "name": "offset",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -3056,7 +3057,7 @@
             },
             "in": "query",
             "name": "limit",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -5822,14 +5823,7 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
+                    "type": "string"
                   },
                   "workspaceId": {
                     "allOf": [
@@ -5842,7 +5836,14 @@
                     ]
                   },
                   "name": {
-                    "type": "string"
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "canRunMultiple": {
                     "type": "boolean"
@@ -7094,8 +7095,8 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "workspaceId"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -12469,10 +12470,7 @@
                   {
                     "type": "object",
                     "properties": {
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
+                      "id": {
                         "type": "string"
                       },
                       "definition": {
@@ -14732,12 +14730,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id"
+                      "workspaceId",
+                      "name"
                     ]
                   }
                 ]
@@ -17374,34 +17376,63 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "emailProviderId": {
-                    "type": "string"
-                  },
-                  "fromAddress": {
-                    "anyOf": [
-                      {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "emailProviderId": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProviderId",
+                      "fromAddress"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "emailProvider": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProvider",
+                      "fromAddress"
                     ]
                   }
-                },
-                "required": [
-                  "workspaceId",
-                  "emailProviderId",
-                  "fromAddress"
                 ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -17411,6 +17442,24 @@
                 "schema": {
                   "description": "An empty String",
                   "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
@@ -17993,6 +18042,9 @@
                   {
                     "type": "object",
                     "properties": {
+                      "id": {
+                        "type": "string"
+                      },
                       "workspaceId": {
                         "type": "string"
                       },
@@ -18457,16 +18509,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "name": {
                         "type": "string"
                       },
-                      "name": {
+                      "workspaceId": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id",
-                      "name"
+                      "name",
+                      "workspaceId"
                     ]
                   }
                 ]
@@ -24800,7 +24852,7 @@
             },
             "in": "query",
             "name": "offset",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -24808,7 +24860,7 @@
             },
             "in": "query",
             "name": "limit",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -25017,6 +25069,9 @@
                   {
                     "type": "object",
                     "properties": {
+                      "id": {
+                        "type": "string"
+                      },
                       "workspaceId": {
                         "type": "string"
                       },
@@ -25481,16 +25536,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "name": {
                         "type": "string"
                       },
-                      "name": {
+                      "workspaceId": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id",
-                      "name"
+                      "name",
+                      "workspaceId"
                     ]
                   }
                 ]
@@ -28890,10 +28945,7 @@
                   {
                     "type": "object",
                     "properties": {
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
+                      "id": {
                         "type": "string"
                       },
                       "definition": {
@@ -31153,12 +31205,16 @@
                   {
                     "type": "object",
                     "properties": {
-                      "id": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
                         "type": "string"
                       }
                     },
                     "required": [
-                      "id"
+                      "workspaceId",
+                      "name"
                     ]
                   }
                 ]
@@ -36165,14 +36221,7 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
+                    "type": "string"
                   },
                   "workspaceId": {
                     "allOf": [
@@ -36185,7 +36234,14 @@
                     ]
                   },
                   "name": {
-                    "type": "string"
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "canRunMultiple": {
                     "type": "boolean"
@@ -37437,8 +37493,8 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "workspaceId"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -41531,7 +41587,8 @@
                   }
                 },
                 "required": [
-                  "id"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -42109,7 +42166,7 @@
                   "workspaceId": {
                     "type": "string"
                   },
-                  "id": {
+                  "name": {
                     "type": "string"
                   },
                   "journeyMetadata": {
@@ -42174,7 +42231,7 @@
                 },
                 "required": [
                   "workspaceId",
-                  "id",
+                  "name",
                   "type"
                 ]
               }
@@ -43553,6 +43610,1223 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/data-sources": {
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Create or update email provider settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "variant": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "SegmentIO"
+                        ]
+                      },
+                      "sharedSecret": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "sharedSecret"
+                    ]
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "variant"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "variant": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "SegmentIO"
+                          ]
+                        },
+                        "sharedSecret": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "sharedSecret"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "variant"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings/sms-providers/default": {
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Create or update default email provider settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "smsProviderId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "smsProviderId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Twilio"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Test"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId",
+                        "type"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings/email-providers/default": {
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Create or update email provider default",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "emailProviderId": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProviderId",
+                      "fromAddress"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "emailProvider": {
+                        "type": "string"
+                      },
+                      "fromAddress": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "emailProvider",
+                      "fromAddress"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings/write-keys": {
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Create a write key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "writeKeyName": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "writeKeyName",
+                  "workspaceId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "writeKeyName": {
+                      "type": "string"
+                    },
+                    "writeKeyValue": {
+                      "type": "string"
+                    },
+                    "secretId": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "writeKeyName",
+                    "writeKeyValue",
+                    "secretId",
+                    "workspaceId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Get write keys.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "writeKeyName": {
+                        "type": "string"
+                      },
+                      "writeKeyValue": {
+                        "type": "string"
+                      },
+                      "secretId": {
+                        "type": "string"
+                      },
+                      "workspaceId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "writeKeyName",
+                      "writeKeyValue",
+                      "secretId",
+                      "workspaceId"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "description": "Delete a write key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "writeKeyName": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "writeKeyName",
+                  "workspaceId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/deliveries/": {
+      "get": {
+        "tags": [
+          "Deliveries"
+        ],
+        "description": "Search through deliveries.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromIdentifier",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "toIdentifier",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "journeyId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "examples": {
+              "1043": {
+                "value": "1043"
+              },
+              "user-123": {
+                "value": "user-123"
+              },
+              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
+                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+              }
+            },
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Email"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "MobilePush"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Sms"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Webhook"
+                    ]
+                  }
+                ]
+              }
+            },
+            "in": "query",
+            "name": "channels",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "statuses",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "templateIds",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Sms"
+                                    ]
+                                  },
+                                  "provider": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Twilio"
+                                            ]
+                                          },
+                                          "sid": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "sid"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Test"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "body": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "provider",
+                                  "to",
+                                  "body"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFInternalMessageSent"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailDropped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailDelivered"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailOpened"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailClicked"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailBounced"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailMarkedSpam"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Email"
+                                    ]
+                                  },
+                                  "provider": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "MailChimp"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "SendGrid"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "AmazonSes"
+                                            ]
+                                          },
+                                          "messageId": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "PostMark"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Resend"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Smtp"
+                                            ]
+                                          },
+                                          "messageId": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "messageId"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Test"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "subject": {
+                                    "type": "string"
+                                  },
+                                  "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "attachmentUserProperties": {
+                                    "description": "Names of user properties to attach to the email as attachments.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "body": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "provider",
+                                  "to",
+                                  "from",
+                                  "subject",
+                                  "body"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFInternalMessageSent"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailDropped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailDelivered"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailOpened"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailClicked"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailBounced"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DFEmailMarkedSpam"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "Email"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "replyTo": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "attachmentUserProperties": {
+                                "description": "Names of user properties to attach to the email as attachments.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "body": {
+                                "type": "string"
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "to",
+                              "channel",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Webhook"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "url": {
+                                        "type": "string"
+                                      },
+                                      "method": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "params": {},
+                                      "data": {},
+                                      "responseType": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "json"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "text"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "response": {
+                                    "type": "object",
+                                    "properties": {
+                                      "status": {
+                                        "type": "number"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "body": {}
+                                    },
+                                    "required": [
+                                      "body"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "to",
+                                  "request",
+                                  "response"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "cursor": {
+                      "type": "string"
+                    },
+                    "previousCursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "workspaceId",
+                    "items"
+                  ]
+                }
+              }
+            }
           }
         }
       }

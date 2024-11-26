@@ -1037,8 +1037,8 @@ export const TriggerBroadcastRequest = Type.Object({
 export type TriggerBroadcastRequest = Static<typeof TriggerBroadcastRequest>;
 
 export const UpsertSegmentResource = Type.Intersect([
-  Type.Omit(Type.Partial(SegmentResource), ["id"]),
-  Type.Pick(SegmentResource, ["id"]),
+  Type.Omit(Type.Partial(SegmentResource), ["workspaceId", "name"]),
+  Type.Pick(SegmentResource, ["workspaceId", "name"]),
 ]);
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
@@ -1082,8 +1082,8 @@ export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   searchTerm: Type.Optional(Type.String()),
   userId: Type.Optional(UserId),
-  offset: Type.Number(),
-  limit: Type.Number(),
+  offset: Type.Optional(Type.Number()),
+  limit: Type.Optional(Type.Number()),
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),
 });
@@ -1394,9 +1394,9 @@ export type NarrowedMessageTemplateResource<
 };
 
 export const UpsertMessageTemplateResource = Type.Object({
-  workspaceId: Type.Optional(Type.String()),
-  id: Type.String(),
-  name: Type.Optional(Type.String()),
+  workspaceId: Type.String(),
+  id: Type.Optional(Type.String()),
+  name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
 });
@@ -1445,7 +1445,7 @@ export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;
 
 export const ResetMessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
-  id: Type.String(),
+  name: Type.String(),
   journeyMetadata: Type.Optional(
     Type.Object({
       journeyId: Type.String(),
@@ -1647,6 +1647,19 @@ export const DefaultEmailProviderResource = Type.Object({
 
 export type DefaultEmailProviderResource = Static<
   typeof DefaultEmailProviderResource
+>;
+
+export const UpsertDefaultEmailProviderRequest = Type.Union([
+  DefaultEmailProviderResource,
+  Type.Object({
+    workspaceId: Type.String(),
+    emailProvider: Type.String(),
+    fromAddress: Nullable(Type.String()),
+  }),
+]);
+
+export type UpsertDefaultEmailProviderRequest = Static<
+  typeof UpsertDefaultEmailProviderRequest
 >;
 
 export const JourneyResourceStatusEnum = {
@@ -2008,7 +2021,7 @@ export const UpsertJourneyResource = Type.Composite([
     ),
   ),
   Type.Object({
-    id: Type.String(),
+    name: Type.String(),
     workspaceId: Type.String(),
     draft: Type.Optional(Nullable(JourneyDraft)),
   }),
@@ -2067,8 +2080,8 @@ export type SavedUserPropertyResource = Static<
 >;
 
 export const UpsertUserPropertyResource = Type.Intersect([
-  Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),
-  Type.Pick(UserPropertyResource, ["id", "name"]),
+  Type.Omit(Type.Partial(UserPropertyResource), ["name"]),
+  Type.Pick(UserPropertyResource, ["name", "workspaceId"]),
 ]);
 
 export type UpsertUserPropertyResource = Static<

@@ -242,6 +242,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
       });
       const body: UpsertJourneyResource = {
         id: journeyId,
+        name: journey.name,
         workspaceId: journey.workspaceId,
         definition: {
           ...journey.definition,
@@ -276,6 +277,10 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
         return;
       }
 
+      const name = template?.name;
+      if (!name) {
+        return;
+      }
       apiRequestHandlerFactory({
         request: updateTemplateRequest,
         setRequest: (req) =>
@@ -299,7 +304,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
           url: `${apiBase}/api/content/templates/reset`,
           data: {
             workspaceId: broadcast.workspaceId,
-            id: templateId,
+            name,
             type: selectedChannel,
             journeyMetadata: {
               journeyId,

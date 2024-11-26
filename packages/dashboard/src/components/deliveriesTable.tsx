@@ -184,10 +184,29 @@ function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
   return val;
 }
 
+export interface GetDeliveriesRequestParams {
+  params: SearchDeliveriesRequest;
+  apiBase: string;
+}
+
+export type GetDeliveriesRequest = (
+  params: GetDeliveriesRequestParams,
+) => Promise<AxiosResponse<unknown, unknown>>;
+
+const defaultGetDeliveriesRequest: GetDeliveriesRequest =
+  function getDeliveriesRequest({ params, apiBase }) {
+    return axios.get(`${apiBase}/api/deliveries`, {
+      params,
+    });
+  };
+
 export function DeliveriesTable({
   journeyId,
   userId,
-}: Pick<SearchDeliveriesRequest, "journeyId" | "userId">) {
+  getDeliveriesRequest = defaultGetDeliveriesRequest,
+}: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> & {
+  getDeliveriesRequest?: GetDeliveriesRequest;
+}) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
   const [previewObject, setPreviewObject] =
     useState<PreviewObjectInterface>(initPreviewObject());
@@ -265,9 +284,7 @@ export function DeliveriesTable({
           statuses,
         };
 
-        response = await axios.get(`${apiBase}/api/deliveries`, {
-          params,
-        });
+        response = await getDeliveriesRequest({ params, apiBase });
       } catch (e) {
         const error = e as Error;
 
