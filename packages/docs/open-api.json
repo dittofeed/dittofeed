@@ -1257,7 +1257,8 @@
                   }
                 },
                 "required": [
-                  "id"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -1835,7 +1836,7 @@
                   "workspaceId": {
                     "type": "string"
                   },
-                  "id": {
+                  "name": {
                     "type": "string"
                   },
                   "journeyMetadata": {
@@ -1900,7 +1901,7 @@
                 },
                 "required": [
                   "workspaceId",
-                  "id",
+                  "name",
                   "type"
                 ]
               }
@@ -41584,7 +41585,8 @@
                   }
                 },
                 "required": [
-                  "id"
+                  "workspaceId",
+                  "name"
                 ]
               }
             }
@@ -42162,7 +42164,7 @@
                   "workspaceId": {
                     "type": "string"
                   },
-                  "id": {
+                  "name": {
                     "type": "string"
                   },
                   "journeyMetadata": {
@@ -42227,7 +42229,7 @@
                 },
                 "required": [
                   "workspaceId",
-                  "id",
+                  "name",
                   "type"
                 ]
               }
