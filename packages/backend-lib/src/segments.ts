@@ -1,7 +1,6 @@
 import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
-import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
