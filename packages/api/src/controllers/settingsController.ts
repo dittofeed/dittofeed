@@ -28,7 +28,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     "/data-sources",
     {
       schema: {
-        description: "Create or update email provider settings",
+        description: "Create or update data source settings",
         tags: ["Settings"],
         body: UpsertDataSourceConfigurationResource,
         response: {
@@ -105,6 +105,57 @@ export default async function settingsController(fastify: FastifyInstance) {
         update: {
           smsProviderId,
         },
+      });
+
+      return reply.status(201).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/email-providers",
+    {
+      schema: {
+        description: "Create or update email provider",
+        tags: ["Settings"],
+        body: UpsertDefaultEmailProviderRequest,
+        response: {
+          201: EmptyResponse,
+          400: BadRequestResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, fromAddress } = request.body;
+      let resource: DefaultEmailProviderResource;
+      if ("emailProviderId" in request.body) {
+        resource = request.body;
+      } else {
+        const emailProvider = await prisma().emailProvider.findUnique({
+          where: {
+            workspaceId_type: {
+              workspaceId,
+              type: request.body.emailProvider,
+            },
+          },
+        });
+        if (!emailProvider) {
+          return reply.status(400).send({
+            message: "Invalid payload. Email provider not found.",
+          });
+        }
+        resource = {
+          workspaceId,
+          emailProviderId: emailProvider.id,
+          fromAddress,
+        };
+      }
+
+      await prisma().defaultEmailProvider.upsert({
+        where: {
+          workspaceId,
+        },
+        create: resource,
+        update: resource,
       });
 
       return reply.status(201).send();

@@ -3087,15 +3087,6 @@ export const PersistedSmsProvider = Type.Union([
 
 export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
 
-export const UpsertSmsProviderRequest = Type.Object({
-  workspaceId: Type.String(),
-  setDefault: Type.Optional(Type.Boolean()),
-  type: Type.Optional(Type.Enum(SmsProviderType)),
-  secret: Type.Omit(SmsProviderSecret, ["type"]),
-});
-
-export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
-
 export const DefaultSmsProviderResource = Type.Object({
   workspaceId: Type.String(),
   smsProviderId: Type.String(),
@@ -4056,3 +4047,21 @@ export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
 export type WorkspaceIdentifier =
   | { workspaceId: string }
   | { externalId: string };
+
+export const UpsertEmailProviderRequest = Type.Object({
+  workspaceId: Type.String(),
+  setDefault: Type.Optional(Type.Boolean()),
+  config: EmailProviderSecret,
+});
+
+export type UpsertEmailProviderRequest = Static<
+  typeof UpsertEmailProviderRequest
+>;
+
+export const UpsertSmsProviderRequest = Type.Object({
+  workspaceId: Type.String(),
+  setDefault: Type.Optional(Type.Boolean()),
+  config: SmsProviderSecret,
+});
+
+export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
