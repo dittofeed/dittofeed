@@ -7,7 +7,7 @@ import { err, ok, Result } from "neverthrow";
 import path from "path";
 import * as R from "remeda";
 import { URL } from "url";
-import { v4 as uuid } from "uuid";
+import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
@@ -83,6 +83,9 @@ export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId: string;
   userId: string;
 }): Promise<SubscriptionGroupWithAssignment | null> {
+  if (!validateUuid(subscriptionGroupId)) {
+    return null;
+  }
   const sg = await prisma().subscriptionGroup.findUnique({
     where: {
       id: subscriptionGroupId,
