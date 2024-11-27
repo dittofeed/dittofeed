@@ -14,6 +14,7 @@ import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 import { Overwrite } from "utility-types";
+import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
@@ -35,6 +36,7 @@ import {
   constructUnsubscribeHeaders,
   UnsubscribeHeaders,
 } from "./messaging/email";
+import { withSpan } from "./openTelemetry";
 import prisma from "./prisma";
 import {
   inSubscriptionGroup,
@@ -73,7 +75,6 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { withSpan } from "./openTelemetry";
 
 export function enrichMessageTemplate({
   id,
@@ -129,6 +130,9 @@ export async function findMessageTemplate({
   id: string;
   channel: ChannelType;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
+  if (!validateUuid(id)) {
+    return ok(null);
+  }
   const template = await prisma().messageTemplate.findUnique({
     where: {
       id,

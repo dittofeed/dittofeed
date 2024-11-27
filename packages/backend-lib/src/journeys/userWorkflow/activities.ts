@@ -7,6 +7,7 @@ import { omit } from "remeda";
 import { submitTrack } from "../../apps/track";
 import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
+import { withSpan } from "../../openTelemetry";
 import prisma from "../../prisma";
 import { calculateKeyedSegment } from "../../segments";
 import {
@@ -136,53 +137,65 @@ export function sendMessageFactory(sender: Sender) {
   return async function sendMessageWithSender(
     params: SendParamsV2,
   ): Promise<boolean> {
-    const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
-    const now = new Date();
-    const sendResult = await sendMessageInner({
-      ...params,
-      sender,
-    });
-    let shouldContinue: boolean;
-    let event: InternalEventType;
-    let trackingProperties: TrackData["properties"] = {
-      journeyId,
-      nodeId,
-      templateId,
-      runId,
-    };
-
-    if (sendResult.isErr()) {
-      shouldContinue = false;
-      event = sendResult.error.type;
-
-      trackingProperties = {
-        ...trackingProperties,
-        ...omit(sendResult.error, ["type"]),
+    return withSpan({ name: "sendMessageWithSender" }, async (span) => {
+      span.setAttributes({
+        workspaceId: params.workspaceId,
+        messageId: params.messageId,
+        userId: params.userId,
+        journeyId: params.journeyId,
+        nodeId: params.nodeId,
+        templateId: params.templateId,
+        runId: params.runId,
+      });
+      const { messageId, userId, journeyId, nodeId, templateId, runId } =
+        params;
+      const now = new Date();
+      const sendResult = await sendMessageInner({
+        ...params,
+        sender,
+      });
+      let shouldContinue: boolean;
+      let event: InternalEventType;
+      let trackingProperties: TrackData["properties"] = {
+        journeyId,
+        nodeId,
+        templateId,
+        runId,
       };
-    } else {
-      shouldContinue = true;
-      event = sendResult.value.type;
 
-      trackingProperties = {
-        ...trackingProperties,
-        ...omit(sendResult.value, ["type"]),
+      if (sendResult.isErr()) {
+        shouldContinue = false;
+        event = sendResult.error.type;
+
+        trackingProperties = {
+          ...trackingProperties,
+          ...omit(sendResult.error, ["type"]),
+        };
+      } else {
+        shouldContinue = true;
+        event = sendResult.value.type;
+
+        trackingProperties = {
+          ...trackingProperties,
+          ...omit(sendResult.value, ["type"]),
+        };
+      }
+
+      const trackData: TrackData = {
+        userId,
+        messageId,
+        event,
+        timestamp: now.toISOString(),
+        properties: trackingProperties,
       };
-    }
+      logger().debug({ trackData }, "send message track data");
 
-    const trackData: TrackData = {
-      userId,
-      messageId,
-      event,
-      timestamp: now.toISOString(),
-      properties: trackingProperties,
-    };
-    logger().debug({ trackData }, "send message track data");
-
-    await submitTrack({
-      workspaceId: params.workspaceId,
-      data: trackData,
+      await submitTrack({
+        workspaceId: params.workspaceId,
+        data: trackData,
+      });
+      return shouldContinue;
     });
-    return shouldContinue;
   };
 }
 
