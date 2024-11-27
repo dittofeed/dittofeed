@@ -20,6 +20,7 @@ import {
   JourneyDefinition,
   JourneyDraft,
   Nullable,
+  NullableAndOptional,
   SegmentDefinition,
   UserPropertyDefinition,
   WorkspaceMemberResource,
@@ -229,36 +230,36 @@ export enum AmazonSesComplaintSubType {
 }
 
 export const AmazonSesMailData = Type.Object({
-  // Thes fields are required because we use them for application logic.
+  // These fields are required because we use them for application logic.
   // Otherwise we default to making all fields optional, because we don't want
   // to fail our webhook if they're not present.
   timestamp: Type.String(),
   messageId: Type.String(),
-  source: Type.Optional(Type.String()),
-  sourceArn: Type.Optional(Type.String()),
-  sourceIp: Type.Optional(Type.String()),
-  sendingAccountId: Type.Optional(Type.String()),
-  callerIdentity: Type.Optional(Type.String()),
-  destination: Type.Optional(Type.Array(Type.String())),
-  headers: Type.Optional(
+  source: NullableAndOptional(Type.String()),
+  sourceArn: NullableAndOptional(Type.String()),
+  sourceIp: NullableAndOptional(Type.String()),
+  sendingAccountId: NullableAndOptional(Type.String()),
+  callerIdentity: NullableAndOptional(Type.String()),
+  destination: NullableAndOptional(Type.Array(Type.String())),
+  headers: NullableAndOptional(
     Type.Array(
       Type.Object({
-        name: Type.Optional(Type.String()),
-        value: Type.Optional(Type.String()),
+        name: NullableAndOptional(Type.String()),
+        value: NullableAndOptional(Type.String()),
       }),
     ),
   ),
-  headersTruncated: Type.Optional(Type.Boolean()),
-  commonHeaders: Type.Optional(
+  headersTruncated: NullableAndOptional(Type.Boolean()),
+  commonHeaders: NullableAndOptional(
     Type.Object({
-      from: Type.Optional(Type.Array(Type.String())),
-      to: Type.Optional(Type.Array(Type.String())),
-      date: Type.Optional(Type.String()),
-      messageId: Type.Optional(Type.String()),
-      subject: Type.Optional(Type.String()),
+      from: NullableAndOptional(Type.Array(Type.String())),
+      to: NullableAndOptional(Type.Array(Type.String())),
+      date: NullableAndOptional(Type.String()),
+      messageId: NullableAndOptional(Type.String()),
+      subject: NullableAndOptional(Type.String()),
     }),
   ),
-  tags: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
+  tags: NullableAndOptional(Type.Record(Type.String(), Type.Array(Type.String()))),
 });
 
 export type AmazonSesMailData = Static<typeof AmazonSesMailData>;
@@ -267,11 +268,11 @@ export const AmazonSesClickEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Click),
   mail: AmazonSesMailData,
   click: Type.Object({
-    ipAddress: Type.Optional(Type.String()),
+    ipAddress: NullableAndOptional(Type.String()),
     timestamp: Type.String(),
-    userAgent: Type.Optional(Type.String()),
-    link: Type.Optional(Type.String()),
-    linkTags: Type.Optional(Type.String()), // This type may not be correct
+    userAgent: NullableAndOptional(Type.String()),
+    link: NullableAndOptional(Type.String()),
+    linkTags: NullableAndOptional(Type.String()),
   }),
 });
 
@@ -279,9 +280,9 @@ export const AmazonSesOpenEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Open),
   mail: AmazonSesMailData,
   open: Type.Object({
-    ipAddress: Type.Optional(Type.String()),
+    ipAddress: NullableAndOptional(Type.String()),
     timestamp: Type.String(),
-    userAgent: Type.Optional(Type.String()),
+    userAgent: NullableAndOptional(Type.String()),
   }),
 });
 
@@ -302,22 +303,22 @@ export const AmazonSesBounceEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Bounce),
   mail: AmazonSesMailData,
   bounce: Type.Object({
-    bounceType: Type.Optional(Type.Enum(AmazonSesBounceType)),
-    bounceSubType: Type.Optional(Type.Enum(AmazonSesBounceSubType)),
-    bouncedRecipients: Type.Optional(
+    bounceType: NullableAndOptional(Type.Enum(AmazonSesBounceType)),
+    bounceSubType: NullableAndOptional(Type.Enum(AmazonSesBounceSubType)),
+    bouncedRecipients: NullableAndOptional(
       Type.Array(
         Type.Object({
           emailAddress: Type.String(),
-          action: Type.Optional(Type.String()),
-          status: Type.Optional(Type.String()),
-          diagnosticCode: Type.Optional(Type.String()),
+          action: NullableAndOptional(Type.String()),
+          status: NullableAndOptional(Type.String()),
+          diagnosticCode: NullableAndOptional(Type.String()),
         }),
       ),
     ),
     timestamp: Type.String(),
-    feedbackId: Type.Optional(Type.String()),
-    remoteMtaIp: Type.Optional(Type.String()),
-    reportingMTA: Type.Optional(Type.String()),
+    feedbackId: NullableAndOptional(Type.String()),
+    remoteMtaIp: NullableAndOptional(Type.String()),
+    reportingMTA: NullableAndOptional(Type.String()),
   }),
 });
 
@@ -325,7 +326,7 @@ export const AmazonSesComplaintEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Complaint),
   mail: AmazonSesMailData,
   complaint: Type.Object({
-    complainedRecipients: Type.Optional(
+    complainedRecipients: NullableAndOptional(
       Type.Array(
         Type.Object({
           email: Type.String(),
@@ -333,11 +334,11 @@ export const AmazonSesComplaintEvent = Type.Object({
       ),
     ),
     timestamp: Type.String(),
-    feedbackId: Type.Optional(Type.String()),
-    complaintSubType: Type.Optional(Type.Enum(AmazonSesComplaintSubType)),
-    userAgent: Type.Optional(Type.String()),
-    complaintFeedbackType: Type.Optional(Type.String()),
-    arrivalDate: Type.Optional(Type.String()),
+    feedbackId: NullableAndOptional(Type.String()),
+    complaintSubType: NullableAndOptional(Type.Enum(AmazonSesComplaintSubType)),
+    userAgent: NullableAndOptional(Type.String()),
+    complaintFeedbackType: NullableAndOptional(Type.String()),
+    arrivalDate: NullableAndOptional(Type.String()),
   }),
 });
 
@@ -346,11 +347,11 @@ export const AmazonSesDeliveryEvent = Type.Object({
   mail: AmazonSesMailData,
   delivery: Type.Object({
     timestamp: Type.String(),
-    processingTimeMillis: Type.Optional(Type.Integer()),
-    recipients: Type.Optional(Type.Array(Type.String())),
-    smtpResponse: Type.Optional(Type.String()),
-    reportingMTA: Type.Optional(Type.String()),
-    remoteMtaIp: Type.Optional(Type.String()),
+    processingTimeMillis: NullableAndOptional(Type.Integer()),
+    recipients: NullableAndOptional(Type.Array(Type.String())),
+    smtpResponse: NullableAndOptional(Type.String()),
+    reportingMTA: NullableAndOptional(Type.String()),
+    remoteMtaIp: NullableAndOptional(Type.String()),
   }),
 });
 
