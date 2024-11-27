@@ -73,6 +73,7 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { withSpan } from "./openTelemetry";
 
 export function enrichMessageTemplate({
   id,
@@ -1721,15 +1722,24 @@ export type Sender = (
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
-  logger().debug({ params }, "sending message");
-  switch (params.channel) {
-    case ChannelType.Email:
-      return sendEmail(params);
-    case ChannelType.Sms:
-      return sendSms(params);
-    case ChannelType.MobilePush:
-      throw new Error("not implemented");
-    case ChannelType.Webhook:
-      return sendWebhook(params);
-  }
+  return withSpan({ name: "sendMessage" }, async (span) => {
+    span.setAttributes({
+      channel: params.channel,
+      workspaceId: params.workspaceId,
+      templateId: params.templateId,
+      journeyId: params.messageTags?.journeyId,
+      messageId: params.messageTags?.messageId,
+      nodeId: params.messageTags?.nodeId,
+    });
+    switch (params.channel) {
+      case ChannelType.Email:
+        return sendEmail(params);
+      case ChannelType.Sms:
+        return sendSms(params);
+      case ChannelType.MobilePush:
+        throw new Error("not implemented");
+      case ChannelType.Webhook:
+        return sendWebhook(params);
+    }
+  });
 }
