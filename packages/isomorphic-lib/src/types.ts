@@ -35,6 +35,9 @@ export const JsonResult = <T extends TSchema, E extends TSchema>(
 export const Nullable = <T extends TSchema>(type: T) =>
   Type.Union([type, Type.Null()]);
 
+export const NullableAndOptional = <T extends TSchema>(type: T) =>
+  Type.Union([Type.Null(), Type.Optional(type)]);
+
 export type JSONValue =
   | string
   | number
