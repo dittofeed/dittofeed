@@ -1,6 +1,10 @@
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import prisma from "backend-lib/src/prisma";
-import { Workspace, WorkspaceType } from "backend-lib/src/types";
+import {
+  Workspace,
+  WorkspaceStatus,
+  WorkspaceType,
+} from "backend-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -32,6 +36,29 @@ describe("authenticateAdminApiKey", () => {
           actualKey: adminApiKey,
         });
         expect(result).toBe(true);
+      });
+    });
+
+    describe("when the key matches the passed value, but it's from an inactive workspace", () => {
+      let adminApiKey: string;
+      beforeEach(async () => {
+        adminApiKey = unwrap(
+          await createAdminApiKey({
+            workspaceId: workspace.id,
+            name: "my-admin-api-key",
+          }),
+        ).apiKey;
+        await prisma().workspace.update({
+          where: { id: workspace.id },
+          data: { status: WorkspaceStatus.Tombstoned },
+        });
+      });
+      it("should return false", async () => {
+        const result = await authenticateAdminApiKey({
+          workspaceId: workspace.id,
+          actualKey: adminApiKey,
+        });
+        expect(result).toBe(false);
       });
     });
     describe("when the key does not match the passed value", () => {

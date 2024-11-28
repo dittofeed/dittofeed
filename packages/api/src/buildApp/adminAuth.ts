@@ -1,5 +1,6 @@
 import logger from "backend-lib/src/logger";
 import prisma, { Prisma } from "backend-lib/src/prisma";
+import { WorkspaceStatus } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -32,12 +33,16 @@ export async function authenticateAdminApiKeyFull({
         s."configValue"
       FROM "AdminApiKey" aak
       JOIN "Secret" s ON aak."secretId" = s.id
+      JOIN "Workspace" w ON aak."workspaceId" = w.id
       WHERE
-        aak."workspaceId" = CAST(${workspaceId} AS UUID)
-        OR aak."workspaceId" IN (
-          SELECT wr."parentWorkspaceId"
-          FROM "WorkspaceRelation" wr
-          WHERE wr."childWorkspaceId" = CAST(${workspaceId} AS UUID)
+        w."status" = CAST(${WorkspaceStatus.Active} AS "WorkspaceStatus")
+        AND (
+          aak."workspaceId" = CAST(${workspaceId} AS UUID)
+          OR aak."workspaceId" IN (
+            SELECT wr."parentWorkspaceId"
+            FROM "WorkspaceRelation" wr
+            WHERE wr."childWorkspaceId" = CAST(${workspaceId} AS UUID)
+          )
         )
     `;
   } else {
@@ -57,12 +62,16 @@ export async function authenticateAdminApiKeyFull({
           JOIN "Workspace" cw ON wr."childWorkspaceId" = cw.id
           WHERE cw."externalId" = ${externalId}
         )
+      WHERE w."status" = CAST(${WorkspaceStatus.Active} AS "WorkspaceStatus")
     `;
   }
-  const apiKeys =
-    await prisma().$queryRaw<
-      { id: string; workspaceId: string; configValue: unknown }[]
-    >(apiKeysQuery);
+  const apiKeys = await prisma().$queryRaw<
+    {
+      id: string;
+      workspaceId: string;
+      configValue: unknown;
+    }[]
+  >(apiKeysQuery);
 
   if (!actualKey) {
     logger().info(
