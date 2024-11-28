@@ -351,28 +351,6 @@ export async function bootstrapClickhouse() {
   });
 }
 
-export async function bootstrapWorker({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
-  logger().info("Bootstrapping worker.");
-  try {
-    await startComputePropertiesWorkflow({ workspaceId });
-  } catch (e) {
-    const error = e as WorkflowExecutionAlreadyStartedError;
-    if (error instanceof WorkflowExecutionAlreadyStartedError) {
-      logger().info("Compute properties workflow already started.");
-    } else {
-      logger().error({ err: e }, "Failed to bootstrap worker.");
-
-      if (config().bootstrapSafe) {
-        throw e;
-      }
-    }
-  }
-}
-
 async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   logger().debug("Inserting default events.");
   await submitBatch({
@@ -473,7 +451,7 @@ export default async function bootstrap({
   }
 
   if (config().bootstrapWorker) {
-    await bootstrapWorker({ workspaceId });
+    await startComputePropertiesWorkflow({ workspaceId });
     await startGlobalCron();
   }
   return { workspaceId };

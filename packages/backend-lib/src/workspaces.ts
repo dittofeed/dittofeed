@@ -4,6 +4,10 @@ import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import prisma from "./prisma";
+import {
+  startComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
+} from "./segments/computePropertiesWorkflow/lifecycle";
 
 export enum TombstoneWorkspaceErrorType {
   WorkspaceNotFound = "WorkspaceNotFound",
@@ -25,7 +29,7 @@ export async function tombstoneWorkspace(
       type: TombstoneWorkspaceErrorType.WorkspaceNotFound,
     });
   }
-  return await prisma().$transaction(async (tx) => {
+  const result = await prisma().$transaction(async (tx) => {
     const workspace = await tx.workspace.findUnique({
       where: { id: workspaceId },
     });
@@ -46,6 +50,11 @@ export async function tombstoneWorkspace(
     });
     return ok(undefined);
   });
+  if (result.isErr()) {
+    return err(result.error);
+  }
+  await terminateComputePropertiesWorkflow({ workspaceId });
+  return ok(undefined);
 }
 
 export enum ActivateTombstonedWorkspaceErrorType {
@@ -58,7 +67,7 @@ export interface ActivateTombstonedWorkspaceError {
 export async function activateTombstonedWorkspace(
   workspaceId: string,
 ): Promise<Result<void, ActivateTombstonedWorkspaceError>> {
-  return await prisma().$transaction(async (tx) => {
+  const result = await prisma().$transaction(async (tx) => {
     const workspace = await tx.workspace.findUnique({
       where: { id: workspaceId },
     });
@@ -83,4 +92,9 @@ export async function activateTombstonedWorkspace(
     });
     return ok(undefined);
   });
+  if (result.isErr()) {
+    return err(result.error);
+  }
+  await startComputePropertiesWorkflow({ workspaceId });
+  return ok(undefined);
 }
