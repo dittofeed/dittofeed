@@ -5,9 +5,9 @@ import prisma from "../prisma";
 import {
   ChannelType,
   PersistedSmsProvider,
-  SmsProviderSecret,
   SmsProviderType,
   SmsTemplateResource,
+  UpsertSmsProviderRequest,
 } from "../types";
 
 export function defaultSmsDefinition(): SmsTemplateResource {
@@ -19,15 +19,10 @@ export function defaultSmsDefinition(): SmsTemplateResource {
 
 export async function upsertSmsProvider({
   workspaceId,
-  type,
-}: {
-  workspaceId: string;
-  type: SmsProviderType;
-}): Promise<PersistedSmsProvider | null> {
-  const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[type];
-  const secretConfig: SmsProviderSecret = {
-    type,
-  };
+  config,
+  setDefault,
+}: UpsertSmsProviderRequest): Promise<PersistedSmsProvider | null> {
+  const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
   const secret = await prisma().secret.upsert({
     where: {
       workspaceId_name: {
@@ -38,7 +33,7 @@ export async function upsertSmsProvider({
     create: {
       workspaceId,
       name: secretName,
-      configValue: secretConfig,
+      configValue: config,
     },
     update: {},
   });
@@ -47,20 +42,29 @@ export async function upsertSmsProvider({
     where: {
       workspaceId_type: {
         workspaceId,
-        type,
+        type: config.type,
       },
     },
     create: {
       workspaceId,
-      type,
+      type: config.type,
       secretId: secret.id,
     },
     update: {},
   });
+  if (setDefault) {
+    await prisma().defaultSmsProvider.upsert({
+      where: { workspaceId },
+      create: { workspaceId, smsProviderId: smsProvider.id },
+      update: {
+        smsProviderId: smsProvider.id,
+      },
+    });
+  }
   return {
     workspaceId: smsProvider.workspaceId,
     id: smsProvider.id,
-    type,
+    type: config.type,
   };
 }
 
@@ -105,7 +109,7 @@ export async function getOrCreateSmsProviders({
       upsertPromises.push(
         upsertSmsProvider({
           workspaceId,
-          type,
+          config: { type },
         }).then((smsProvider) => {
           if (smsProvider) {
             smsProviders.push(smsProvider);
