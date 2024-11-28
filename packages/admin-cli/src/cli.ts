@@ -1,5 +1,4 @@
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
-import { bootstrapWorker } from "backend-lib/src/bootstrap";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import backendConfig from "backend-lib/src/config";
 import { findBaseDir } from "backend-lib/src/dir";
@@ -10,6 +9,7 @@ import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
+  startComputePropertiesWorkflow,
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
@@ -67,7 +67,7 @@ export async function cli() {
             describe: "The workspace id to bootstrap.",
           },
         }),
-      ({ workspaceId }) => bootstrapWorker({ workspaceId }),
+      ({ workspaceId }) => startComputePropertiesWorkflow({ workspaceId }),
     )
     .command(
       "spawn",
