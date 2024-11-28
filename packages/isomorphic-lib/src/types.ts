@@ -1635,6 +1635,13 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
+export const WorkspaceStatusDb = Type.Union([
+  Type.Literal("Active"),
+  Type.Literal("Tombstoned"),
+]);
+
+export type WorkspaceStatusDb = Static<typeof WorkspaceStatusDb>;
+
 export const WorkspaceResource = Type.Object({
   id: Type.String(),
   name: Type.String(),
@@ -3981,6 +3988,7 @@ export const WorkspaceResourceExtended = Type.Composite([
     type: WorkspaceTypeApp,
     writeKey: Type.String(),
     domain: Type.Optional(Type.String()),
+    status: WorkspaceStatusDb,
   }),
 ]);
 

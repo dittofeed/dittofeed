@@ -367,4 +367,8 @@ export async function getSegmentAssignment(
   };
 }
 
+export function getWorkspace(workspaceId: string) {
+  return prisma().workspace.findUnique({ where: { id: workspaceId } });
+}
+
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";

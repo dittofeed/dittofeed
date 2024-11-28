@@ -50,6 +50,7 @@ const {
   findNextLocalizedTime,
   getEarliestComputePropertyPeriod,
   getUserPropertyDelay,
+  getWorkspace,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -130,6 +131,12 @@ export interface UserJourneyWorkflowPropsV1 {
 export type UserJourneyWorkflowProps =
   | UserJourneyWorkflowPropsV1
   | UserJourneyWorkflowPropsV2;
+
+const LONG_RUNNING_NODE_TYPES = new Set<JourneyNodeType>([
+  JourneyNodeType.WaitForNode,
+  JourneyNodeType.DelayNode,
+  JourneyNodeType.SegmentEntryNode,
+]);
 
 export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
@@ -655,6 +662,19 @@ export async function userJourneyWorkflow(
       eventKey,
       eventKeyName,
     });
+
+    // check if workspace is inactive after a long running node
+    if (LONG_RUNNING_NODE_TYPES.has(currentNode.type)) {
+      const workspace = await getWorkspace(workspaceId);
+      if (workspace?.status !== "Active") {
+        logger.info("workspace is not active, exiting journey", {
+          workspaceId,
+          userId,
+          journeyId,
+        });
+        break;
+      }
+    }
     currentNode = nextNode;
   }
 

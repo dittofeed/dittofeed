@@ -307,6 +307,7 @@ export async function bootstrapPostgres({
     domain: workspace.domain ?? undefined,
     name: workspace.name,
     id: workspace.id,
+    status: workspace.status,
     type: workspace.type,
     writeKey,
   });
