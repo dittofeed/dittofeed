@@ -11,15 +11,10 @@ import {
 
 export enum TombstoneWorkspaceErrorType {
   WorkspaceNotFound = "WorkspaceNotFound",
-  WorkspaceNameViolation = "WorkspaceNameViolation",
 }
-export type TombstoneWorkspaceError =
-  | {
-      type: TombstoneWorkspaceErrorType.WorkspaceNotFound;
-    }
-  | {
-      type: TombstoneWorkspaceErrorType.WorkspaceNameViolation;
-    };
+export interface TombstoneWorkspaceError {
+  type: TombstoneWorkspaceErrorType.WorkspaceNotFound;
+}
 
 export async function tombstoneWorkspace(
   workspaceId: string,
