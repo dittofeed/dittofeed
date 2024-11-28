@@ -8,6 +8,7 @@ import {
   SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,
 } from "isomorphic-lib/src/constants";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { GetServerSideProps } from "next";
 
 import { apiBase } from "./apiBase";
@@ -21,12 +22,13 @@ export const requestContext: <T>(
     const rc = await getRequestContext(context.req.headers, profile);
     const { onboardingUrl } = backendConfig();
     if (rc.isErr()) {
-      switch (rc.error.type) {
+      const { error } = rc;
+      switch (error.type) {
         case RequestContextErrorType.EmailNotVerified:
           logger().info(
             {
               onboardingUrl,
-              email: rc.error.email,
+              email: error.email,
             },
             "email not verified",
           );
@@ -40,7 +42,7 @@ export const requestContext: <T>(
         case RequestContextErrorType.NotOnboarded:
           logger().info(
             {
-              contextErrorMsg: rc.error.message,
+              contextErrorMsg: error.message,
             },
             "user not onboarded",
           );
@@ -54,7 +56,7 @@ export const requestContext: <T>(
         case RequestContextErrorType.Unauthorized:
           logger().info(
             {
-              contextErrorMsg: rc.error.message,
+              contextErrorMsg: error.message,
             },
             "user unauthorized",
           );
@@ -62,7 +64,7 @@ export const requestContext: <T>(
             redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },
           };
         case RequestContextErrorType.ApplicationError:
-          throw new Error(rc.error.message);
+          throw new Error(error.message);
         case RequestContextErrorType.NotAuthenticated:
           if (backendConfig().authMode === "single-tenant") {
             return {
@@ -78,6 +80,19 @@ export const requestContext: <T>(
               permanent: false,
             },
           };
+        case RequestContextErrorType.WorkspaceInactive:
+          logger().info(
+            {
+              contextErrorMsg: error.message,
+              workspace: error.workspace,
+            },
+            "workspace inactive",
+          );
+          return {
+            redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },
+          };
+        default:
+          assertUnreachable(error);
       }
     }
 

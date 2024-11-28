@@ -84,3 +84,5 @@ export const MESSAGE_EVENTS = [
 export enum SourceType {
   Webhook = "webhook",
 }
+
+export const WORKSPACE_TOMBSTONE_PREFIX = "DfTombstoned";

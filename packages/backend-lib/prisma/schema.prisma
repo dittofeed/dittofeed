@@ -20,6 +20,11 @@ enum WorkspaceType {
   Parent
 }
 
+enum WorkspaceStatus {
+  Active
+  Tombstoned
+}
+
 model Workspace {
   id                     String                   @id() @default(uuid()) @db.Uuid
   name                   String
@@ -27,6 +32,7 @@ model Workspace {
   domain                 String?
   type                   WorkspaceType            @default(Root)
   createdAt              DateTime                 @default(now())
+  status                 WorkspaceStatus          @default(Active)
   updatedAt              DateTime                 @updatedAt
   Segment                Segment[]
   Journey                Journey[]

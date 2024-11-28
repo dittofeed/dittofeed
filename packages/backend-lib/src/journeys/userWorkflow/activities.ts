@@ -202,17 +202,21 @@ export function sendMessageFactory(sender: Sender) {
 export const sendMessageV2 = sendMessageFactory(sendMessage);
 
 export async function isRunnable({
-  userId,
+  workspaceId,
   journeyId,
+  userId,
   eventKey,
   eventKeyName,
 }: {
+  // optional so that this is backwards compatible, but should be provided
+  // moving forward
+  workspaceId?: string;
   journeyId: string;
   userId: string;
   eventKey?: string;
   eventKeyName?: string;
 }): Promise<boolean> {
-  const [previousExitEvent, journey] = await Promise.all([
+  const [previousExitEvent, journey, workspace] = await Promise.all([
     prisma().userJourneyEvent.findFirst({
       where: {
         journeyId,
@@ -229,6 +233,9 @@ export async function isRunnable({
         id: journeyId,
       },
     }),
+    workspaceId
+      ? prisma().workspace.findUnique({ where: { id: workspaceId } })
+      : null,
   ]);
   if (!previousExitEvent) {
     return true;
@@ -249,6 +256,9 @@ export async function isRunnable({
       },
       "can run multiple is false, journey is not runnable",
     );
+  }
+  if (workspace !== null && workspace.status !== "Active") {
+    return false;
   }
   return canRunMultiple;
 }
@@ -355,6 +365,10 @@ export async function getSegmentAssignment(
     segmentId,
     inSegment: result.value,
   };
+}
+
+export function getWorkspace(workspaceId: string) {
+  return prisma().workspace.findUnique({ where: { id: workspaceId } });
 }
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";

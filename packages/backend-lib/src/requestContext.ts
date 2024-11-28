@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { Prisma } from "@prisma/client";
+import { Prisma, WorkspaceStatus } from "@prisma/client";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -15,11 +15,13 @@ import {
   RequestContextErrorType,
   RequestContextResult,
   Workspace,
+  WorkspaceInactiveError,
   WorkspaceMember,
   WorkspaceMemberResource,
   WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
+  WorkspaceStatusDb,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
@@ -31,7 +33,11 @@ type MemberWithRoles = WorkspaceMember & {
 };
 
 interface RolesWithWorkspace {
-  workspace: WorkspaceResource | null;
+  workspace:
+    | (WorkspaceResource & {
+        status: WorkspaceStatus;
+      })
+    | null;
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
@@ -270,6 +276,13 @@ export async function getMultiTenantRequestContext({
   }
 
   const { workspace, memberRoles } = await findAndCreateRoles(memberWithRole);
+  if (workspace !== null && workspace.status !== WorkspaceStatus.Active) {
+    return err({
+      type: RequestContextErrorType.WorkspaceInactive,
+      message: "Workspace is not active",
+      workspace,
+    });
+  }
   const memberResouce: WorkspaceMemberResource = {
     id: memberWithRole.id,
     email: memberWithRole.email,
@@ -422,6 +435,18 @@ export async function getRequestContext(
         });
         span.setAttributes({
           type: result.error.type,
+        });
+        break;
+      }
+      case RequestContextErrorType.WorkspaceInactive: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.message,
+        });
+        span.setAttributes({
+          type: result.error.type,
+          workspaceId: result.error.workspace.id,
+          workspaceName: result.error.workspace.name,
         });
         break;
       }
