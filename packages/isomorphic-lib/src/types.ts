@@ -4063,9 +4063,16 @@ export type OptionalAllOrNothing<T, E> = T & (E | EmptyObject);
 export type MakeRequired<T, K extends keyof T> = Omit<T, K> &
   Required<Pick<T, K>>;
 
-export type WorkspaceIdentifier =
-  | { workspaceId: string }
-  | { externalId: string };
+export const WorkspaceIdentifier = Type.Union([
+  Type.Object({
+    workspaceId: Type.String(),
+  }),
+  Type.Object({
+    externalId: Type.String(),
+  }),
+]);
+
+export type WorkspaceIdentifier = Static<typeof WorkspaceIdentifier>;
 
 export const UpsertEmailProviderRequest = Type.Object({
   workspaceId: Type.String(),
@@ -4084,3 +4091,9 @@ export const UpsertSmsProviderRequest = Type.Object({
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const TombstoneWorkspaceRequest = WorkspaceIdentifier;
+
+export type TombstoneWorkspaceRequest = Static<
+  typeof TombstoneWorkspaceRequest
+>;
