@@ -47,7 +47,7 @@ async function setupEmailTemplate(workspace: Workspace) {
     }),
     upsertEmailProvider({
       workspaceId: workspace.id,
-      type: EmailProviderType.Test,
+      config: { type: EmailProviderType.Test },
     }),
     upsertSubscriptionSecret({
       workspaceId: workspace.id,
@@ -119,7 +119,7 @@ describe("messaging", () => {
           }),
           upsertEmailProvider({
             workspaceId: parentWorkspace.id,
-            type: EmailProviderType.Test,
+            config: { type: EmailProviderType.Test },
           }),
         ]);
       });
@@ -260,7 +260,7 @@ describe("messaging", () => {
           }),
           upsertSmsProvider({
             workspaceId: parentWorkspace.id,
-            type: SmsProviderType.Test,
+            config: { type: SmsProviderType.Test },
           }),
         ]);
       });
