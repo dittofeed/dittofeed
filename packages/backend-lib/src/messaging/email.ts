@@ -7,12 +7,12 @@ import {
   ChannelType,
   DefaultEmailProviderResource,
   EmailContentsType,
-  EmailProviderSecret,
   EmailProviderType,
   EmailTemplateResource,
   MessageTemplateRenderError,
   PersistedEmailProvider,
   SubscriptionChange,
+  UpsertEmailProviderRequest,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
@@ -71,15 +71,10 @@ export function constructUnsubscribeHeaders({
 
 export async function upsertEmailProvider({
   workspaceId,
-  type,
-}: {
-  workspaceId: string;
-  type: EmailProviderType;
-}): Promise<EmailProvider | null> {
-  const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[type];
-  const secretConfig: EmailProviderSecret = {
-    type,
-  };
+  config,
+  setDefault,
+}: UpsertEmailProviderRequest): Promise<EmailProvider | null> {
+  const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
   const secret = await prisma().secret.upsert({
     where: {
       workspaceId_name: {
@@ -90,7 +85,7 @@ export async function upsertEmailProvider({
     create: {
       workspaceId,
       name: secretName,
-      configValue: secretConfig,
+      configValue: config,
     },
     update: {},
   });
@@ -99,16 +94,25 @@ export async function upsertEmailProvider({
     where: {
       workspaceId_type: {
         workspaceId,
-        type,
+        type: config.type,
       },
     },
     create: {
       workspaceId,
-      type,
+      type: config.type,
       secretId: secret.id,
     },
     update: {},
   });
+  if (setDefault) {
+    await prisma().defaultEmailProvider.upsert({
+      where: { workspaceId },
+      create: { workspaceId, emailProviderId: ep.id },
+      update: {
+        emailProviderId: ep.id,
+      },
+    });
+  }
   return ep;
 }
 
@@ -130,7 +134,7 @@ export async function getOrCreateEmailProviders({
       upsertPromises.push(
         upsertEmailProvider({
           workspaceId,
-          type,
+          config: { type },
         }).then((ep) => {
           if (ep) {
             emailProviders.push(ep);

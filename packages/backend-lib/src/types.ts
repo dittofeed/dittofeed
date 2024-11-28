@@ -259,7 +259,9 @@ export const AmazonSesMailData = Type.Object({
       subject: NullableAndOptional(Type.String()),
     }),
   ),
-  tags: NullableAndOptional(Type.Record(Type.String(), Type.Array(Type.String()))),
+  tags: NullableAndOptional(
+    Type.Record(Type.String(), Type.Array(Type.String())),
+  ),
 });
 
 export type AmazonSesMailData = Static<typeof AmazonSesMailData>;
