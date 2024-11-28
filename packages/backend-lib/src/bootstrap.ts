@@ -2,7 +2,7 @@ import { Prisma, WorkspaceType } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
+import { DEBUG_USER_ID1, WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 
@@ -66,6 +66,13 @@ export async function bootstrapPostgres({
   workspaceExternalId?: string;
   upsertWorkspace?: boolean;
 }): Promise<CreateWorkspaceResult> {
+  if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
+    return err({
+      type: CreateWorkspaceErrorType.WorkspaceNameViolation,
+      message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
+    });
+  }
+
   logger().info(
     {
       workspaceName,

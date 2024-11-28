@@ -3947,6 +3947,7 @@ export type GetUserSubscriptionsResponse = Static<
 
 export enum CreateWorkspaceErrorType {
   WorkspaceAlreadyExists = "WorkspaceAlreadyExists",
+  WorkspaceNameViolation = "WorkspaceNameViolation",
   InvalidDomain = "InvalidDomain",
 }
 
@@ -3956,6 +3957,15 @@ export const CreateWorkspaceAlreadyExistsError = Type.Object({
 
 export type CreateWorkspaceAlreadyExistsError = Static<
   typeof CreateWorkspaceAlreadyExistsError
+>;
+
+export const CreateWorkspaceNameViolationError = Type.Object({
+  type: Type.Literal(CreateWorkspaceErrorType.WorkspaceNameViolation),
+  message: Type.String(),
+});
+
+export type CreateWorkspaceNameViolationError = Static<
+  typeof CreateWorkspaceNameViolationError
 >;
 
 export const CreateWorkspaceInvalidDomainError = Type.Object({
@@ -3969,6 +3979,7 @@ export type CreateWorkspaceInvalidDomainError = Static<
 export const CreateWorkspaceError = Type.Union([
   CreateWorkspaceAlreadyExistsError,
   CreateWorkspaceInvalidDomainError,
+  CreateWorkspaceNameViolationError,
 ]);
 
 export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
