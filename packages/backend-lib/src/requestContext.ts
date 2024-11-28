@@ -438,6 +438,18 @@ export async function getRequestContext(
         });
         break;
       }
+      case RequestContextErrorType.WorkspaceInactive: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.message,
+        });
+        span.setAttributes({
+          type: result.error.type,
+          workspaceId: result.error.workspace.id,
+          workspaceName: result.error.workspace.name,
+        });
+        break;
+      }
       default:
         assertUnreachable(result.error);
     }
