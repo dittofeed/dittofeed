@@ -611,6 +611,13 @@ export enum RequestContextErrorType {
   EmailNotVerified = "EmailNotVerified",
   ApplicationError = "ApplicationError",
   NotAuthenticated = "NotAuthenticated",
+  WorkspaceInactive = "WorkspaceInactive",
+}
+
+export interface WorkspaceInactiveError {
+  type: RequestContextErrorType.WorkspaceInactive;
+  message: string;
+  workspace: WorkspaceResource;
 }
 
 export interface UnauthorizedError {
@@ -647,7 +654,8 @@ export type RequestContextError =
   | NotOnboardedError
   | ApplicationError
   | EmailNotVerifiedError
-  | NotAuthenticatedError;
+  | NotAuthenticatedError
+  | WorkspaceInactiveError;
 
 export type RequestContextResult = Result<
   DFRequestContext,
