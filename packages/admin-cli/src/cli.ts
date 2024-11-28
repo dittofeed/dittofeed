@@ -13,6 +13,10 @@ import {
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
+import {
+  activateTombstonedWorkspace,
+  tombstoneWorkspace,
+} from "backend-lib/src/workspaces";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -498,6 +502,41 @@ export async function cli() {
           },
         }),
       ({ workspaceId }) => resetWorkspaceData({ workspaceId }),
+    )
+    .command(
+      "activate-tombstoned-workspace",
+      "Activates a tombstoned workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+        }),
+      async ({ workspaceId }) => {
+        const result = await activateTombstonedWorkspace(workspaceId);
+        if (result.isErr()) {
+          logger().error(
+            result.error,
+            "Failed to activate tombstoned workspace",
+          );
+          return;
+        }
+        logger().info("Activated tombstoned workspace.");
+      },
+    )
+    .command(
+      "tombstone-workspace",
+      "Tombstones a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+        }),
+      async ({ workspaceId }) => {
+        const result = await tombstoneWorkspace(workspaceId);
+        if (result.isErr()) {
+          logger().error(result.error, "Failed to tombstone workspace");
+          return;
+        }
+        logger().info("Tombstoned workspace.");
+      },
     )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()
