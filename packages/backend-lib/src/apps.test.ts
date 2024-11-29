@@ -137,7 +137,7 @@ describe("apps", () => {
       submitBatchWithTriggers = apps.submitBatchWithTriggers;
     });
 
-    it.only("it should trigger journeys for users with matching events", async () => {
+    it("it should trigger journeys for users with matching events", async () => {
       const userId1 = uuidv4();
       const userId2 = uuidv4();
 
@@ -151,6 +151,12 @@ describe("apps", () => {
               messageId: uuidv4(),
               userId: userId1,
               properties: { amount: 100 },
+            },
+            {
+              type: EventType.Track,
+              event: "missing-event",
+              messageId: uuidv4(),
+              userId: userId1,
             },
             {
               type: EventType.Identify,
