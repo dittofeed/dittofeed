@@ -739,7 +739,16 @@ export function triggerEventEntryJourneysFactory({
         ) {
           return [];
         }
-        logger().debug("loc6");
+        logger().debug(
+          {
+            journeyId: journey.id,
+            userId,
+            journeyStatus: journey.status,
+            requiredEvent: journey.definition.entryNode.event,
+            actualEvent: triggerEvent.event,
+          },
+          "loc6",
+        );
         return {
           event: journey.definition.entryNode.event,
           journeyId: journey.id,
@@ -764,6 +773,8 @@ export function triggerEventEntryJourneysFactory({
 
         logger().debug(
           {
+            journeyId,
+            userId,
             journeyEvent,
             triggerEvent,
           },
