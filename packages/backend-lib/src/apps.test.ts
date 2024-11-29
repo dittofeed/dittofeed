@@ -60,16 +60,18 @@ describe("apps", () => {
     let notStartedJourneyId: string;
     let startedEventTriggeredJourneyId: string;
     let segmentEntryJourneyId: string;
+    let entryEventName: string;
 
     beforeEach(async () => {
       workspaceId = uuidv4();
       await prisma().workspace.create({
         data: { id: workspaceId, name: `test-${workspaceId}` },
       });
+      entryEventName = "Purchase";
       const eventTriggeredJourneyDefinition: JourneyDefinition = {
         entryNode: {
           type: JourneyNodeType.EventEntryNode,
-          event: "Purchase",
+          event: entryEventName,
           child: JourneyNodeType.ExitNode,
         },
         nodes: [],
@@ -126,7 +128,7 @@ describe("apps", () => {
       jest.resetModules();
     });
 
-    it("should trigger journeys for each event", async () => {
+    it.only("it should trigger journeys for users with matching events", async () => {
       const userId1 = uuidv4();
       const userId2 = uuidv4();
 
@@ -136,7 +138,7 @@ describe("apps", () => {
           batch: [
             {
               type: EventType.Track,
-              event: "Purchase",
+              event: entryEventName,
               messageId: uuidv4(),
               userId: userId1,
               properties: { amount: 100 },
@@ -149,6 +151,11 @@ describe("apps", () => {
             },
           ],
         },
+      });
+      expect(startKeyedJourneyImpl).toHaveBeenCalledTimes(1);
+      expect(startKeyedJourneyImpl).toHaveBeenCalledWith({
+        journeyId: startedEventTriggeredJourneyId,
+        userId: userId1,
       });
     });
   });
