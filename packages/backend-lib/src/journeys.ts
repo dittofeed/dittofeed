@@ -682,66 +682,84 @@ export type TriggerEventEntryJourneysOptions = Omit<
   "definition" | "journeyId"
 >;
 
-export async function triggerEventEntryJourneys({
-  workspaceId,
-  event: triggerEvent,
-  userId,
-}: TriggerEventEntryJourneysOptions): Promise<void> {
-  let journeyDetails: EventTriggerJourneyDetails[] | undefined =
-    EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
+/**
+ * Abstracts the triggerEventEntryJourneys function for ease of testing.
+ * @param journeyCache - A cache of journey details for a given workspace.
+ * @param startKeyedJourneyImpl - The implementation of startKeyedUserJourney to use.
+ */
+export function triggerEventEntryJourneysFactory({
+  startKeyedJourneyImpl,
+  journeyCache,
+}: {
+  journeyCache: NodeCache;
+  startKeyedJourneyImpl: typeof startKeyedUserJourney;
+}) {
+  return async function builtTriggerEventEntryJourneys({
+    workspaceId,
+    event: triggerEvent,
+    userId,
+  }: TriggerEventEntryJourneysOptions): Promise<void> {
+    let journeyDetails: EventTriggerJourneyDetails[] | undefined =
+      journeyCache.get(workspaceId);
 
-  if (!journeyDetails) {
-    const allJourneys = await prisma().journey.findMany({
-      where: {
-        workspaceId,
-      },
-    });
-    journeyDetails = allJourneys.flatMap((j) => {
-      const result = toJourneyResource(j);
-      if (result.isErr()) {
-        logger().error(
-          {
-            workspaceId,
-            journeyId: j.id,
-          },
-          "Failed to convert journey to resource",
-        );
-        return [];
-      }
-      const journey = result.value;
-      if (
-        journey.status !== JourneyStatus.Running ||
-        journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
-      ) {
-        return [];
-      }
-      return {
-        event: journey.definition.entryNode.event,
-        journeyId: journey.id,
-        definition: journey.definition,
-      };
-    });
-    EVENT_TRIGGER_JOURNEY_CACHE.set(workspaceId, journeyDetails);
-  }
-
-  const starts: Promise<unknown>[] = journeyDetails.flatMap(
-    ({ journeyId, event: journeyEvent, definition }) => {
-      if (journeyEvent !== triggerEvent.event) {
-        return [];
-      }
-      return [
-        startKeyedUserJourney({
+    if (!journeyDetails) {
+      const allJourneys = await prisma().journey.findMany({
+        where: {
           workspaceId,
-          userId,
-          journeyId,
-          event: triggerEvent,
-          definition,
-        }),
-      ];
-    },
-  );
-  await Promise.all(starts);
+        },
+      });
+      journeyDetails = allJourneys.flatMap((j) => {
+        const result = toJourneyResource(j);
+        if (result.isErr()) {
+          logger().error(
+            {
+              workspaceId,
+              journeyId: j.id,
+            },
+            "Failed to convert journey to resource",
+          );
+          return [];
+        }
+        const journey = result.value;
+        if (
+          journey.status !== JourneyStatus.Running ||
+          journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
+        ) {
+          return [];
+        }
+        return {
+          event: journey.definition.entryNode.event,
+          journeyId: journey.id,
+          definition: journey.definition,
+        };
+      });
+      journeyCache.set(workspaceId, journeyDetails);
+    }
+
+    const starts: Promise<unknown>[] = journeyDetails.flatMap(
+      ({ journeyId, event: journeyEvent, definition }) => {
+        if (journeyEvent !== triggerEvent.event) {
+          return [];
+        }
+        return [
+          startKeyedJourneyImpl({
+            workspaceId,
+            userId,
+            journeyId,
+            event: triggerEvent,
+            definition,
+          }),
+        ];
+      },
+    );
+    await Promise.all(starts);
+  };
 }
+
+export const triggerEventEntryJourneys = triggerEventEntryJourneysFactory({
+  journeyCache: EVENT_TRIGGER_JOURNEY_CACHE,
+  startKeyedJourneyImpl: startKeyedUserJourney,
+});
 
 export async function upsertJourney(
   params: UpsertJourneyResource,
