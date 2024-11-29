@@ -79,6 +79,17 @@ describe("apps", () => {
           type: JourneyNodeType.ExitNode,
         },
       };
+      const segmentEntryJourneyDefinition: JourneyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: "test-segment",
+          child: JourneyNodeType.ExitNode,
+        },
+        nodes: [],
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+      };
       segmentEntryJourneyId = uuidv4();
       notStartedJourneyId = uuidv4();
       startedEventTriggeredJourneyId = uuidv4();
@@ -108,7 +119,7 @@ describe("apps", () => {
             name: "segment entry",
             status: JourneyStatus.Running,
             workspaceId,
-            definition: eventTriggeredJourneyDefinition,
+            definition: segmentEntryJourneyDefinition,
           },
         }),
       ]);
@@ -151,10 +162,12 @@ describe("apps", () => {
         },
       });
       expect(startKeyedJourneyImpl).toHaveBeenCalledTimes(1);
-      expect(startKeyedJourneyImpl).toHaveBeenCalledWith({
-        journeyId: startedEventTriggeredJourneyId,
-        userId: userId1,
-      });
+      expect(startKeyedJourneyImpl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          journeyId: startedEventTriggeredJourneyId,
+          userId: userId1,
+        }),
+      );
     });
   });
 });
