@@ -1,7 +1,6 @@
 import NodeCache from "node-cache";
 import { v4 as uuidv4 } from "uuid";
 
-import { submitBatchWithTriggers } from "./apps";
 import { submitBatch } from "./apps/batch";
 import { triggerEventEntryJourneysFactory } from "./journeys";
 import prisma from "./prisma";
@@ -61,6 +60,7 @@ describe("apps", () => {
     let startedEventTriggeredJourneyId: string;
     let segmentEntryJourneyId: string;
     let entryEventName: string;
+    let submitBatchWithTriggers: typeof import("./apps").submitBatchWithTriggers;
 
     beforeEach(async () => {
       workspaceId = uuidv4();
@@ -116,16 +116,14 @@ describe("apps", () => {
       startKeyedJourneyImpl = jest.fn();
 
       // Custom implementation
-      jest.mock("./journeys", () => {
-        return triggerEventEntryJourneysFactory({
+      jest.mock("./journeys", () => ({
+        triggerEventEntryJourneys: triggerEventEntryJourneysFactory({
           journeyCache: new NodeCache(),
           startKeyedJourneyImpl,
-        });
-      });
-    });
-
-    afterEach(() => {
-      jest.resetModules();
+        }),
+      }));
+      const apps = await import("./apps");
+      submitBatchWithTriggers = apps.submitBatchWithTriggers;
     });
 
     it.only("it should trigger journeys for users with matching events", async () => {
