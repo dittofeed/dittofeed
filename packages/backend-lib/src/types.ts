@@ -279,23 +279,35 @@ export type AmazonSesMailData = Static<typeof AmazonSesMailData>;
 export const AmazonSesClickEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Click),
   mail: AmazonSesMailData,
-  click: Type.Object({
-    ipAddress: NullableAndOptional(Type.String()),
-    timestamp: Type.String(),
-    userAgent: NullableAndOptional(Type.String()),
-    link: NullableAndOptional(Type.String()),
-    linkTags: NullableAndOptional(Type.String()),
-  }),
+  click: Type.Composite([
+    Type.Object({
+      timestamp: Type.String(),
+    }),
+    Type.Partial(
+      Type.Object({
+        ipAddress: NullableAndOptional(Type.String()),
+        userAgent: NullableAndOptional(Type.String()),
+        link: NullableAndOptional(Type.String()),
+        linkTags: NullableAndOptional(Type.String()),
+      }),
+    ),
+  ]),
 });
 
 export const AmazonSesOpenEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Open),
   mail: AmazonSesMailData,
-  open: Type.Object({
-    ipAddress: NullableAndOptional(Type.String()),
-    timestamp: Type.String(),
-    userAgent: NullableAndOptional(Type.String()),
-  }),
+  open: Type.Composite([
+    Type.Object({
+      timestamp: Type.String(),
+    }),
+    Type.Partial(
+      Type.Object({
+        ipAddress: NullableAndOptional(Type.String()),
+        userAgent: NullableAndOptional(Type.String()),
+      }),
+    ),
+  ]),
 });
 
 export const AmazonSesSendEvent = Type.Object({
@@ -306,9 +318,11 @@ export const AmazonSesSendEvent = Type.Object({
 export const AmazonSesRejectEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Reject),
   mail: AmazonSesMailData,
-  reject: Type.Object({
-    reason: Type.Optional(Type.String()),
-  }),
+  reject: Type.Partial(
+    Type.Object({
+      reason: NullableAndOptional(Type.String()),
+    }),
+  ),
 });
 
 export const AmazonSesBounceEvent = Type.Object({
@@ -352,21 +366,29 @@ export type AmazonSesBounceEvent = Static<typeof AmazonSesBounceEvent>;
 export const AmazonSesComplaintEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Complaint),
   mail: AmazonSesMailData,
-  complaint: Type.Object({
-    complainedRecipients: NullableAndOptional(
-      Type.Array(
-        Type.Object({
-          email: Type.String(),
-        }),
-      ),
+  complaint: Type.Composite([
+    Type.Object({
+      timestamp: Type.String(),
+    }),
+    Type.Partial(
+      Type.Object({
+        complainedRecipients: NullableAndOptional(
+          Type.Array(
+            Type.Object({
+              email: Type.String(),
+            }),
+          ),
+        ),
+        feedbackId: NullableAndOptional(Type.String()),
+        complaintSubType: NullableAndOptional(
+          Type.Enum(AmazonSesComplaintSubType),
+        ),
+        userAgent: NullableAndOptional(Type.String()),
+        complaintFeedbackType: NullableAndOptional(Type.String()),
+        arrivalDate: NullableAndOptional(Type.String()),
+      }),
     ),
-    timestamp: Type.String(),
-    feedbackId: NullableAndOptional(Type.String()),
-    complaintSubType: NullableAndOptional(Type.Enum(AmazonSesComplaintSubType)),
-    userAgent: NullableAndOptional(Type.String()),
-    complaintFeedbackType: NullableAndOptional(Type.String()),
-    arrivalDate: NullableAndOptional(Type.String()),
-  }),
+  ]),
 });
 
 export type AmazonSesComplaintEvent = Static<typeof AmazonSesComplaintEvent>;
