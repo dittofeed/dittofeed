@@ -9,7 +9,7 @@ import {
   SESv2ServiceException,
 } from "@aws-sdk/client-sesv2";
 import { SourceType } from "isomorphic-lib/src/constants";
-import { err, Result, ResultAsync } from "neverthrow";
+import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
 import { Overwrite } from "utility-types";
@@ -25,6 +25,8 @@ import {
   AmazonSesMailFields,
   AmazonSesNotificationType,
   AmazonSNSEvent,
+  AmazonSNSEventTypes,
+  AmazonSNSNotificationEvent,
   AmazonSNSSubscriptionEvent,
   AmazonSNSUnsubscribeEvent,
   BatchTrackData,
@@ -32,6 +34,8 @@ import {
   EventType,
   InternalEventType,
 } from "../types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { SpanStatusCode } from "@opentelemetry/api";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -217,4 +221,54 @@ export async function confirmSubscription(
     }),
     (error) => error,
   );
+}
+
+export async function handleSesNotification(
+  payload: AmazonSNSNotificationEvent,
+): Promise<Result<void, Error>> {
+  return withSpan({ name: "handle-ses-notification" }, async (span) => {
+    const parsed: unknown = JSON.parse(payload.Message);
+    const validated = schemaValidateWithErr(parsed, AmazonSesEventPayload);
+    if (validated.isErr()) {
+      logger().error(
+        {
+          err: validated.error,
+        },
+        "Invalid AmazonSes event payload.",
+      );
+
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: validated.error.message,
+      });
+      return err(validated.error);
+    }
+    for (const [key, values] of Object.entries(
+      validated.value.mail.tags ?? {},
+    )) {
+      const [value] = values;
+      if (!value) {
+        continue;
+      }
+
+      span.setAttribute(key, value);
+    }
+    const result = await submitAmazonSesEvents(validated.value);
+    if (result.isErr()) {
+      logger().error(
+        {
+          err: result.error,
+          notification: validated.value,
+        },
+        "Error submitting AmazonSes events.",
+      );
+
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: result.error.message,
+      });
+      return err(result.error);
+    }
+    return ok(undefined);
+  });
 }

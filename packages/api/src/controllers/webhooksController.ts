@@ -178,8 +178,9 @@ export default async function webhookController(fastify: FastifyInstance) {
       return withSpan({ name: "amazon-ses-webhook" }, async (span) => {
         logger().debug({ body: request.body }, "Received AmazonSES event.");
 
+        const { body } = request;
         // Validate the signature
-        const valid = await validSNSSignature(request.body);
+        const valid = await validSNSSignature(body);
 
         if (valid.isErr()) {
           logger().error(
@@ -189,7 +190,6 @@ export default async function webhookController(fastify: FastifyInstance) {
           return reply.status(401).send({ message: "Invalid signature" });
         }
 
-        const { body } = request;
         span.setAttribute("type", body.Type);
         switch (body.Type) {
           // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
