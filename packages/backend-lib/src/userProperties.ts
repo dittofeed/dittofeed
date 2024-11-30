@@ -370,7 +370,7 @@ export async function findAllUserPropertyAssignments({
   context,
   userPropertyIds,
 }: {
-  userId: string;
+  userId?: string;
   workspaceId: string;
   userProperties?: string[];
   userPropertyIds?: string[];
@@ -389,13 +389,21 @@ export async function findAllUserPropertyAssignments({
     };
   }
 
+  const include = userId
+    ? {
+        UserPropertyAssignment: {
+          where: {
+            userId,
+          },
+        },
+      }
+    : {
+        UserPropertyAssignment: true,
+      };
+
   const userProperties = await prisma().userProperty.findMany({
     where,
-    include: {
-      UserPropertyAssignment: {
-        where: { userId },
-      },
-    },
+    include,
   });
 
   const combinedAssignments: UserPropertyAssignments = {};
@@ -447,7 +455,10 @@ export async function findAllUserPropertyAssignments({
     }
   }
 
-  combinedAssignments.id = combinedAssignments.id ?? userId;
+  const defaultId = combinedAssignments.id ?? userId;
+  if (defaultId) {
+    combinedAssignments.id = defaultId;
+  }
   return combinedAssignments;
 }
 
