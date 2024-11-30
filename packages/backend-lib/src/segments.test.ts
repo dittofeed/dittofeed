@@ -5,6 +5,9 @@ import prisma from "./prisma";
 import { buildSegmentsFile } from "./segments";
 import {
   IdUserPropertyDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
+  TraitSegmentNode,
   TraitUserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "./types";
@@ -60,7 +63,30 @@ describe("segments", () => {
 
     describe("when the identifiers contain valid values", () => {
       beforeEach(async () => {
+        const segment = await prisma().segment.create({
+          data: {
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              id: randomUUID(),
+              type: SegmentNodeType.Trait,
+              path: "name",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            } satisfies TraitSegmentNode,
+          },
+        });
         await Promise.all([
+          prisma().segmentAssignment.create({
+            data: {
+              segmentId: segment.id,
+              workspaceId: workspace.id,
+              userId: randomUUID(),
+              inSegment: true,
+            },
+          }),
           prisma().userPropertyAssignment.create({
             data: {
               userId: randomUUID(),
@@ -93,6 +119,7 @@ describe("segments", () => {
         });
         expect(fileName).toBeDefined();
         expect(fileContent).toBeDefined();
+        expect(fileContent.length).toBeGreaterThan(0);
       });
     });
   });
