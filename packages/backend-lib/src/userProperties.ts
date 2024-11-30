@@ -465,7 +465,9 @@ export async function findAllUserPropertyAssignments({
       assignment: userProperty.UserPropertyAssignment[0],
     });
 
-    combinedAssignments[userProperty.name] = transformed;
+    if (transformed !== null) {
+      combinedAssignments[userProperty.name] = transformed;
+    }
   }
 
   combinedAssignments.id = combinedAssignments.id ?? userId;
