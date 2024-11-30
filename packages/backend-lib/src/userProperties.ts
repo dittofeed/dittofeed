@@ -477,89 +477,73 @@ export async function findAllUserPropertyAssignments({
  * @param param0
  * @returns record from user id to property name to property value
  */
-// export async function findAllUserPropertyAssignmentsForWorkspace({
-//   workspaceId,
-//   userProperties: userPropertiesFilter,
-//   context,
-//   userPropertyIds,
-// }: {
-//   workspaceId: string;
-//   userProperties?: string[];
-//   userPropertyIds?: string[];
-//   context?: Record<string, JSONValue>[];
-// }): Promise<Record<string, UserPropertyAssignments>> {
-//   const where: Prisma.UserPropertyWhereInput = {
-//     workspaceId,
-//   };
-//   if (userPropertiesFilter?.length) {
-//     where.name = {
-//       in: userPropertiesFilter,
-//     };
-//   } else if (userPropertyIds?.length) {
-//     where.id = {
-//       in: userPropertyIds,
-//     };
-//   }
+export async function findAllUserPropertyAssignmentsForWorkspace({
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  context,
+}: {
+  workspaceId: string;
+  userProperties?: string[];
+  context?: Record<string, JSONValue>[];
+}): Promise<Record<string, UserPropertyAssignments>> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  }
 
-//   const userProperties = await prisma().userProperty.findMany({
-//     where,
-//     include: {
-//       UserPropertyAssignment: true,
-//     },
-//   });
+  const userProperties = await prisma().userProperty.findMany({
+    where,
+    include: {
+      UserPropertyAssignment: true,
+    },
+  });
 
-//   const combinedAssignments: Record<string, UserPropertyAssignments> = {};
+  const combinedAssignments: Record<string, UserPropertyAssignments> = {};
 
-//   for (const userProperty of userProperties) {
-//     const definitionResult = schemaValidate(
-//       userProperty.definition,
-//       UserPropertyDefinition,
-//     );
-//     if (definitionResult.isErr()) {
-//       logger().error(
-//         { err: definitionResult.error, workspaceId, userProperty },
-//         "failed to parse user property definition",
-//       );
-//       continue;
-//     }
-//     const definition = definitionResult.value;
-//     const contextAssignment = context
-//       ? getAssignmentOverride({
-//           definition,
-//           context,
-//           userPropertyId: userProperty.id,
-//         })
-//       : null;
-//     let assignment: JSONValue | null = null;
-//     if (contextAssignment !== null) {
-//       assignment = contextAssignment;
-//     } else {
-//       const assignments = userProperty.UserPropertyAssignment;
-//       const unparsed = assignments[0];
-//       if (unparsed) {
-//         const parsed = parseUserPropertyAssignment(definition, unparsed.value);
-//         if (parsed.isErr()) {
-//           logger().error(
-//             {
-//               err: parsed.error,
-//               workspaceId,
-//               userProperty,
-//               assignment,
-//             },
-//             "failed to parse user property assignment",
-//           );
-//           continue;
-//         }
-//         assignment = parsed.value;
-//       }
-//     }
-//     const userId = userProperty.UserPropertyAssignment[0]?.userId;
-//     combinedAssignments[userId] = assignment;
-//   }
+  for (const userProperty of userProperties) {
+    const definitionResult = schemaValidate(
+      userProperty.definition,
+      UserPropertyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        { err: definitionResult.error, workspaceId, userProperty },
+        "failed to parse user property definition",
+      );
+      continue;
+    }
 
-//   combinedAssignments.id = combinedAssignments.id ?? userId;
-//   return combinedAssignments;
-// }
+    const definition = definitionResult.value;
+    for (const userPropertyAssignment of userProperty.UserPropertyAssignment) {
+      const transformedForUser: Record<string, JSONValue> =
+        combinedAssignments[userPropertyAssignment.userId] ?? {};
+
+      const transformed = transformAssignmentValue({
+        workspaceId,
+        userPropertyId: userProperty.id,
+        definition,
+        context,
+        assignment: userPropertyAssignment,
+      });
+      transformedForUser[userProperty.name] = transformed;
+      combinedAssignments[userPropertyAssignment.userId] = transformedForUser;
+    }
+  }
+
+  for (const userId of Object.keys(combinedAssignments)) {
+    const assignmentsForUser = combinedAssignments[userId];
+    if (!assignmentsForUser) {
+      continue;
+    }
+    assignmentsForUser.id = assignmentsForUser.id ?? userId;
+  }
+
+  return combinedAssignments;
+}
 
 export async function findAllUserPropertyAssignmentsById({
   userId,
