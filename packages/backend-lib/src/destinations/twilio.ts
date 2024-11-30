@@ -84,6 +84,7 @@ export async function submitTwilioEvents({
   userId: string;
 }): Promise<ResultAsync<void, Error>> {
   let eventName: InternalEventType;
+  const body = TwilioEvent.Body;
 
   switch (TwilioEvent.SmsStatus) {
     case TwilioMessageStatus.Failed:
@@ -112,6 +113,7 @@ export async function submitTwilioEvents({
     properties: {
       workspaceId,
       userId,
+      body,
     },
   } as BatchTrackData;
 
