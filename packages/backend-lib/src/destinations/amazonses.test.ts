@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import prisma from "../prisma";
-import { AmazonSNSEventTypes, AmazonSNSNotificationEvent } from "../types";
+import {
+  AmazonSesBounceEvent,
+  AmazonSesBounceSubType,
+  AmazonSesBounceType,
+  AmazonSesNotificationType,
+  AmazonSNSEventTypes,
+  AmazonSNSNotificationEvent,
+} from "../types";
 import { handleSesNotification } from "./amazonses";
 
 describe("webhooksController", () => {
@@ -20,12 +27,12 @@ describe("webhooksController", () => {
   describe("handleSesNotification", () => {
     it("it should work with a bounce event", async () => {
       const encodedMessage = JSON.stringify({
-        eventType: "Bounce",
+        eventType: AmazonSesNotificationType.Bounce,
         bounce: {
           feedbackId:
             "010001888dc9cc1d-99a6fe5a-801e-4631-b0cf-c1f49c6dd999-000000",
-          bounceType: "Transient",
-          bounceSubType: "MailboxFull",
+          bounceType: AmazonSesBounceType.Transient,
+          bounceSubType: AmazonSesBounceSubType.MailboxFull,
           bouncedRecipients: [
             {
               emailAddress: "john.smith123@gmail.com",
@@ -111,7 +118,7 @@ describe("webhooksController", () => {
             workspaceId: ["workspace-12345-abcd-efgh-ijkl-mnopqrstuvwx"],
           },
         },
-      });
+      } satisfies AmazonSesBounceEvent);
 
       const body: AmazonSNSNotificationEvent = {
         Type: AmazonSNSEventTypes.Notification,

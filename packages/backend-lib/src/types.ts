@@ -324,6 +324,8 @@ export const AmazonSesBounceEvent = Type.Object({
   }),
 });
 
+export type AmazonSesBounceEvent = Static<typeof AmazonSesBounceEvent>;
+
 export const AmazonSesComplaintEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Complaint),
   mail: AmazonSesMailData,
@@ -344,6 +346,8 @@ export const AmazonSesComplaintEvent = Type.Object({
   }),
 });
 
+export type AmazonSesComplaintEvent = Static<typeof AmazonSesComplaintEvent>;
+
 export const AmazonSesDeliveryEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Delivery),
   mail: AmazonSesMailData,
@@ -356,6 +360,8 @@ export const AmazonSesDeliveryEvent = Type.Object({
     remoteMtaIp: NullableAndOptional(Type.String()),
   }),
 });
+
+export type AmazonSesDeliveryEvent = Static<typeof AmazonSesDeliveryEvent>;
 
 export enum AmazonSNSEventTypes {
   SubscriptionConfirmation = "SubscriptionConfirmation",
