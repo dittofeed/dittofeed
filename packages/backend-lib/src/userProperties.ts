@@ -363,6 +363,48 @@ function getAssignmentOverride({
   return null;
 }
 
+function transformAssignmentValue({
+  workspaceId,
+  userPropertyId,
+  definition,
+  context,
+  assignment,
+}: {
+  workspaceId: string;
+  userPropertyId: string;
+  definition: UserPropertyDefinition;
+  context?: Record<string, JSONValue>[];
+  assignment?: UserPropertyAssignment;
+}): JSONValue {
+  const contextAssignment = context
+    ? getAssignmentOverride({
+        definition,
+        context,
+        userPropertyId,
+      })
+    : null;
+  let transformed: JSONValue = null;
+  if (contextAssignment !== null) {
+    transformed = contextAssignment;
+  } else if (assignment) {
+    const parsed = parseUserPropertyAssignment(definition, assignment.value);
+    if (parsed.isErr()) {
+      logger().error(
+        {
+          err: parsed.error,
+          workspaceId,
+          userPropertyId,
+          assignment,
+        },
+        "failed to parse user property assignment",
+      );
+    } else {
+      transformed = parsed.value;
+    }
+  }
+  return transformed;
+}
+
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
@@ -393,7 +435,9 @@ export async function findAllUserPropertyAssignments({
     where,
     include: {
       UserPropertyAssignment: {
-        where: { userId },
+        where: {
+          userId,
+        },
       },
     },
   });
@@ -413,41 +457,93 @@ export async function findAllUserPropertyAssignments({
       continue;
     }
     const definition = definitionResult.value;
-    const contextAssignment = context
-      ? getAssignmentOverride({
-          definition,
-          context,
-          userPropertyId: userProperty.id,
-        })
-      : null;
-    if (contextAssignment !== null) {
-      combinedAssignments[userProperty.name] = contextAssignment;
-    } else {
-      const assignments = userProperty.UserPropertyAssignment;
-      const assignment = assignments[0];
-      if (assignment) {
-        const parsed = parseUserPropertyAssignment(
-          definition,
-          assignment.value,
-        );
-        if (parsed.isErr()) {
-          logger().error(
-            {
-              err: parsed.error,
-              workspaceId,
-              userProperty,
-              assignment,
-            },
-            "failed to parse user property assignment",
-          );
-          continue;
-        }
-        combinedAssignments[userProperty.name] = parsed.value;
-      }
+    const transformed = transformAssignmentValue({
+      workspaceId,
+      userPropertyId: userProperty.id,
+      definition,
+      context,
+      assignment: userProperty.UserPropertyAssignment[0],
+    });
+
+    if (transformed !== null) {
+      combinedAssignments[userProperty.name] = transformed;
     }
   }
 
   combinedAssignments.id = combinedAssignments.id ?? userId;
+  return combinedAssignments;
+}
+
+/**
+ *
+ * @param param0
+ * @returns record from user id to property name to property value
+ */
+export async function findAllUserPropertyAssignmentsForWorkspace({
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  context,
+}: {
+  workspaceId: string;
+  userProperties?: string[];
+  context?: Record<string, JSONValue>[];
+}): Promise<Record<string, UserPropertyAssignments>> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  }
+
+  const userProperties = await prisma().userProperty.findMany({
+    where,
+    include: {
+      UserPropertyAssignment: true,
+    },
+  });
+
+  const combinedAssignments: Record<string, UserPropertyAssignments> = {};
+
+  for (const userProperty of userProperties) {
+    const definitionResult = schemaValidate(
+      userProperty.definition,
+      UserPropertyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        { err: definitionResult.error, workspaceId, userProperty },
+        "failed to parse user property definition",
+      );
+      continue;
+    }
+
+    const definition = definitionResult.value;
+    for (const userPropertyAssignment of userProperty.UserPropertyAssignment) {
+      const transformedForUser: Record<string, JSONValue> =
+        combinedAssignments[userPropertyAssignment.userId] ?? {};
+
+      const transformed = transformAssignmentValue({
+        workspaceId,
+        userPropertyId: userProperty.id,
+        definition,
+        context,
+        assignment: userPropertyAssignment,
+      });
+      transformedForUser[userProperty.name] = transformed;
+      combinedAssignments[userPropertyAssignment.userId] = transformedForUser;
+    }
+  }
+
+  for (const userId of Object.keys(combinedAssignments)) {
+    const assignmentsForUser = combinedAssignments[userId];
+    if (!assignmentsForUser) {
+      continue;
+    }
+    assignmentsForUser.id = assignmentsForUser.id ?? userId;
+  }
+
   return combinedAssignments;
 }
 

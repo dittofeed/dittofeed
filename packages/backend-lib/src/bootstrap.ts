@@ -1,8 +1,10 @@
 import { Prisma, WorkspaceType } from "@prisma/client";
-import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import { DEBUG_USER_ID1, WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
+import {
+  DEBUG_USER_ID1,
+  WORKSPACE_TOMBSTONE_PREFIX,
+} from "isomorphic-lib/src/constants";
 import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 

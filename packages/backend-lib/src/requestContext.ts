@@ -15,13 +15,11 @@ import {
   RequestContextErrorType,
   RequestContextResult,
   Workspace,
-  WorkspaceInactiveError,
   WorkspaceMember,
   WorkspaceMemberResource,
   WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
-  WorkspaceStatusDb,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";

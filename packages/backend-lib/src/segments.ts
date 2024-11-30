@@ -33,6 +33,7 @@ import {
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
 } from "./types";
+import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
 
 export function enrichSegment(
   segment: Segment,
@@ -381,33 +382,10 @@ export async function buildSegmentsFile({
         },
       },
     }),
-    prisma().userPropertyAssignment.findMany({
-      where: {
-        workspaceId,
-        userProperty: {
-          name: {
-            in: identifiers,
-          },
-        },
-      },
-      select: {
-        userProperty: {
-          select: {
-            name: true,
-          },
-        },
-        userId: true,
-        value: true,
-      },
+    findAllUserPropertyAssignmentsForWorkspace({
+      workspaceId,
     }),
   ]);
-  const userIdentifiersMap = userIdentifiers.reduce((acc, curr) => {
-    const userPropertyName = curr.userProperty.name;
-    const ui = acc.get(curr.userId) ?? new Map<string, string>();
-    ui.set(userPropertyName, curr.value);
-    acc.set(curr.userId, ui);
-    return acc;
-  }, new Map<string, Map<string, string>>());
 
   const assignments: Record<string, string>[] = dbSegmentAssignments.map(
     (a) => {
@@ -418,13 +396,16 @@ export async function buildSegmentsFile({
         userId: a.userId,
         inSegment: a.inSegment.toString(),
       };
-      const ui = userIdentifiersMap.get(a.userId);
-      ui?.forEach((value, key) => {
-        const parsed = JSON.parse(value) as unknown;
-        if (typeof parsed === "string" && parsed.length > 0) {
-          csvAssignment[key] = parsed;
+      const ui = userIdentifiers[a.userId];
+      if (ui) {
+        for (const key in ui) {
+          const value = ui[key];
+
+          if (typeof value === "string" && value.length > 0) {
+            csvAssignment[key] = value;
+          }
         }
-      });
+      }
       return csvAssignment;
     },
   );
