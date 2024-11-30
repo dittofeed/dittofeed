@@ -26,8 +26,25 @@ describe("segments", () => {
     let userIdProperty: UserProperty;
     let emailProperty: UserProperty;
     let phoneProperty: UserProperty;
+    let userId: string;
 
     beforeEach(async () => {
+      userId = randomUUID();
+      const segment = await prisma().segment.create({
+        data: {
+          name: "test",
+          workspaceId: workspace.id,
+          definition: {
+            id: randomUUID(),
+            type: SegmentNodeType.Trait,
+            path: "name",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "test",
+            },
+          } satisfies TraitSegmentNode,
+        },
+      });
       [userIdProperty, emailProperty, phoneProperty] = await Promise.all([
         prisma().userProperty.create({
           data: {
@@ -58,38 +75,23 @@ describe("segments", () => {
             } satisfies TraitUserPropertyDefinition,
           },
         }),
+        prisma().segmentAssignment.create({
+          data: {
+            segmentId: segment.id,
+            workspaceId: workspace.id,
+            userId,
+            inSegment: true,
+          },
+        }),
       ]);
     });
 
     describe("when the identifiers contain valid values", () => {
       beforeEach(async () => {
-        const segment = await prisma().segment.create({
-          data: {
-            name: "test",
-            workspaceId: workspace.id,
-            definition: {
-              id: randomUUID(),
-              type: SegmentNodeType.Trait,
-              path: "name",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "test",
-              },
-            } satisfies TraitSegmentNode,
-          },
-        });
         await Promise.all([
-          prisma().segmentAssignment.create({
-            data: {
-              segmentId: segment.id,
-              workspaceId: workspace.id,
-              userId: randomUUID(),
-              inSegment: true,
-            },
-          }),
           prisma().userPropertyAssignment.create({
             data: {
-              userId: randomUUID(),
+              userId,
               userPropertyId: userIdProperty.id,
               value: "123",
               workspaceId: workspace.id,
@@ -97,7 +99,7 @@ describe("segments", () => {
           }),
           prisma().userPropertyAssignment.create({
             data: {
-              userId: randomUUID(),
+              userId,
               userPropertyId: emailProperty.id,
               value: "test@test.com",
               workspaceId: workspace.id,
@@ -105,7 +107,7 @@ describe("segments", () => {
           }),
           prisma().userPropertyAssignment.create({
             data: {
-              userId: randomUUID(),
+              userId,
               userPropertyId: phoneProperty.id,
               value: "1234567890",
               workspaceId: workspace.id,
