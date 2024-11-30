@@ -33,10 +33,7 @@ import {
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
 } from "./types";
-import {
-  findAllUserPropertyAssignments,
-  findAllUserPropertyAssignmentsForWorkspace,
-} from "./userProperties";
+import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
 
 export function enrichSegment(
   segment: Segment,
