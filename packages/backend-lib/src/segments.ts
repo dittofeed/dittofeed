@@ -33,6 +33,7 @@ import {
   UpsertSegmentResource,
   UserWorkflowTrackEvent,
 } from "./types";
+import { findAllUserPropertyAssignments } from "./userProperties";
 
 export function enrichSegment(
   segment: Segment,
@@ -381,24 +382,9 @@ export async function buildSegmentsFile({
         },
       },
     }),
-    prisma().userPropertyAssignment.findMany({
-      where: {
-        workspaceId,
-        userProperty: {
-          name: {
-            in: identifiers,
-          },
-        },
-      },
-      select: {
-        userProperty: {
-          select: {
-            name: true,
-          },
-        },
-        userId: true,
-        value: true,
-      },
+    findAllUserPropertyAssignments({
+      workspaceId,
+      userProperties: identifiers,
     }),
   ]);
   const userIdentifiersMap = userIdentifiers.reduce((acc, curr) => {
@@ -420,6 +406,7 @@ export async function buildSegmentsFile({
       };
       const ui = userIdentifiersMap.get(a.userId);
       ui?.forEach((value, key) => {
+        logger().debug({ value, key }, "loc1 value");
         const parsed = JSON.parse(value) as unknown;
         if (typeof parsed === "string" && parsed.length > 0) {
           csvAssignment[key] = parsed;
