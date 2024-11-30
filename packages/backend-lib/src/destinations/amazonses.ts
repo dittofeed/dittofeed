@@ -8,8 +8,13 @@ import {
   SESv2Client,
   SESv2ServiceException,
 } from "@aws-sdk/client-sesv2";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { SourceType } from "isomorphic-lib/src/constants";
-import { err, Result, ResultAsync } from "neverthrow";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
 import { Overwrite } from "utility-types";
@@ -25,6 +30,7 @@ import {
   AmazonSesMailFields,
   AmazonSesNotificationType,
   AmazonSNSEvent,
+  AmazonSNSNotificationEvent,
   AmazonSNSSubscriptionEvent,
   AmazonSNSUnsubscribeEvent,
   BatchTrackData,
@@ -113,7 +119,6 @@ export async function submitAmazonSesEvents(
 ): Promise<ResultAsync<void, Error>> {
   return withSpan({ name: "submit-amazon-ses-events" }, async (span) => {
     // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
-    logger().debug(event);
     let tags: Record<string, string>;
     if (event.mail.tags) {
       const mappedTags: Record<string, string> = {};
@@ -217,4 +222,55 @@ export async function confirmSubscription(
     }),
     (error) => error,
   );
+}
+
+export async function handleSesNotification(
+  payload: AmazonSNSNotificationEvent,
+): Promise<Result<void, Error>> {
+  return withSpan({ name: "handle-ses-notification" }, async (span) => {
+    const validated = jsonParseSafe(payload.Message).andThen((parsed) =>
+      schemaValidateWithErr(parsed, AmazonSesEventPayload),
+    );
+    if (validated.isErr()) {
+      logger().error(
+        {
+          err: validated.error,
+        },
+        "Invalid AmazonSes event payload.",
+      );
+
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: validated.error.message,
+      });
+      return err(validated.error);
+    }
+    for (const [key, values] of Object.entries(
+      validated.value.mail.tags ?? {},
+    )) {
+      const [value] = values;
+      if (!value) {
+        continue;
+      }
+
+      span.setAttribute(key, value);
+    }
+    const result = await submitAmazonSesEvents(validated.value);
+    if (result.isErr()) {
+      logger().error(
+        {
+          err: result.error,
+          notification: validated.value,
+        },
+        "Error submitting AmazonSes events.",
+      );
+
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: result.error.message,
+      });
+      return err(result.error);
+    }
+    return ok(undefined);
+  });
 }
