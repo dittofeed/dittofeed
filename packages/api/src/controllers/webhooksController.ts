@@ -8,7 +8,7 @@ import {
 } from "backend-lib/src/crypto";
 import {
   confirmSubscription,
-  submitAmazonSesEvents,
+  handleSesNotification,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
 import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
@@ -20,7 +20,6 @@ import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
 import prisma from "backend-lib/src/prisma";
 import {
-  AmazonSesEventPayload,
   AmazonSNSEvent,
   AmazonSNSEventTypes,
   MailChimpEvent,
@@ -208,38 +207,11 @@ export default async function webhookController(fastify: FastifyInstance) {
             logger().debug("AmazonSES Subscription confirmed");
             break;
           case AmazonSNSEventTypes.Notification: {
-            const parsed: unknown = JSON.parse(body.Message);
-            const validated = schemaValidateWithErr(
-              parsed,
-              AmazonSesEventPayload,
-            );
-            if (validated.isErr()) {
-              logger().error(
-                {
-                  err: validated.error,
-                },
-                "Invalid AmazonSes event payload.",
-              );
-              return reply.status(500).send();
-            }
-            for (const [key, values] of Object.entries(
-              validated.value.mail.tags ?? {},
-            )) {
-              const [value] = values;
-              if (!value) {
-                continue;
-              }
-              span.setAttribute(key, value);
-            }
-            const result = await submitAmazonSesEvents(validated.value);
+            const result = await handleSesNotification(body);
             if (result.isErr()) {
-              logger().error(
-                {
-                  err: result.error,
-                  notification: validated.value,
-                },
-                "Error submitting AmazonSes events.",
-              );
+              logger().error("Error handling AmazonSES notification.", {
+                error: result.error,
+              });
               span.setStatus({
                 code: SpanStatusCode.ERROR,
                 message: result.error.message,
