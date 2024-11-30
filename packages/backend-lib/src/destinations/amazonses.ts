@@ -34,7 +34,10 @@ import {
   EventType,
   InternalEventType,
 } from "../types";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { SpanStatusCode } from "@opentelemetry/api";
 
 // README the typescript types on this are wrong, body is not of type string,
@@ -227,8 +230,9 @@ export async function handleSesNotification(
   payload: AmazonSNSNotificationEvent,
 ): Promise<Result<void, Error>> {
   return withSpan({ name: "handle-ses-notification" }, async (span) => {
-    const parsed: unknown = JSON.parse(payload.Message);
-    const validated = schemaValidateWithErr(parsed, AmazonSesEventPayload);
+    const validated = jsonParseSafe(payload.Message).andThen((parsed) =>
+      schemaValidateWithErr(parsed, AmazonSesEventPayload),
+    );
     if (validated.isErr()) {
       logger().error(
         {
