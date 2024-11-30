@@ -229,40 +229,50 @@ export enum AmazonSesComplaintSubType {
   Virus = "virus",
 }
 
-export const AmazonSesMailData = Type.Object({
-  // These fields are required because we use them for application logic.
-  // Otherwise we default to making all fields optional, because we don't want
-  // to fail our webhook if they're not present.
-  timestamp: Type.String(),
-  messageId: Type.String(),
-  source: NullableAndOptional(Type.String()),
-  sourceArn: NullableAndOptional(Type.String()),
-  sourceIp: NullableAndOptional(Type.String()),
-  sendingAccountId: NullableAndOptional(Type.String()),
-  callerIdentity: NullableAndOptional(Type.String()),
-  destination: NullableAndOptional(Type.Array(Type.String())),
-  headers: NullableAndOptional(
-    Type.Array(
-      Type.Object({
-        name: NullableAndOptional(Type.String()),
-        value: NullableAndOptional(Type.String()),
-      }),
-    ),
-  ),
-  headersTruncated: NullableAndOptional(Type.Boolean()),
-  commonHeaders: NullableAndOptional(
+export const AmazonSesMailData = Type.Composite([
+  Type.Object({
+    // These fields are required because we use them for application logic.
+    // Otherwise we default to making all fields optional, because we don't want
+    // to fail our webhook if they're not present.
+    timestamp: Type.String(),
+    messageId: Type.String(),
+  }),
+  Type.Partial(
     Type.Object({
-      from: NullableAndOptional(Type.Array(Type.String())),
-      to: NullableAndOptional(Type.Array(Type.String())),
-      date: NullableAndOptional(Type.String()),
-      messageId: NullableAndOptional(Type.String()),
-      subject: NullableAndOptional(Type.String()),
+      source: NullableAndOptional(Type.String()),
+      sourceArn: NullableAndOptional(Type.String()),
+      sourceIp: NullableAndOptional(Type.String()),
+      sendingAccountId: NullableAndOptional(Type.String()),
+      callerIdentity: NullableAndOptional(Type.String()),
+      destination: NullableAndOptional(Type.Array(Type.String())),
+      headers: NullableAndOptional(
+        Type.Array(
+          Type.Partial(
+            Type.Object({
+              name: NullableAndOptional(Type.String()),
+              value: NullableAndOptional(Type.String()),
+            }),
+          ),
+        ),
+      ),
+      headersTruncated: NullableAndOptional(Type.Boolean()),
+      commonHeaders: NullableAndOptional(
+        Type.Partial(
+          Type.Object({
+            from: NullableAndOptional(Type.Array(Type.String())),
+            to: NullableAndOptional(Type.Array(Type.String())),
+            date: NullableAndOptional(Type.String()),
+            messageId: NullableAndOptional(Type.String()),
+            subject: NullableAndOptional(Type.String()),
+          }),
+        ),
+      ),
+      tags: NullableAndOptional(
+        Type.Record(Type.String(), Type.Array(Type.String())),
+      ),
     }),
   ),
-  tags: NullableAndOptional(
-    Type.Record(Type.String(), Type.Array(Type.String())),
-  ),
-});
+]);
 
 export type AmazonSesMailData = Static<typeof AmazonSesMailData>;
 
@@ -304,24 +314,37 @@ export const AmazonSesRejectEvent = Type.Object({
 export const AmazonSesBounceEvent = Type.Object({
   eventType: Type.Literal(AmazonSesNotificationType.Bounce),
   mail: AmazonSesMailData,
-  bounce: Type.Object({
-    bounceType: NullableAndOptional(Type.Enum(AmazonSesBounceType)),
-    bounceSubType: NullableAndOptional(Type.Enum(AmazonSesBounceSubType)),
-    bouncedRecipients: NullableAndOptional(
-      Type.Array(
-        Type.Object({
-          emailAddress: Type.String(),
-          action: NullableAndOptional(Type.String()),
-          status: NullableAndOptional(Type.String()),
-          diagnosticCode: NullableAndOptional(Type.String()),
-        }),
-      ),
+  bounce: Type.Composite([
+    Type.Object({
+      timestamp: Type.String(),
+    }),
+
+    Type.Partial(
+      Type.Object({
+        bounceType: NullableAndOptional(Type.Enum(AmazonSesBounceType)),
+        bounceSubType: NullableAndOptional(Type.Enum(AmazonSesBounceSubType)),
+        bouncedRecipients: NullableAndOptional(
+          Type.Array(
+            Type.Composite([
+              Type.Object({
+                emailAddress: Type.String(),
+              }),
+              Type.Partial(
+                Type.Object({
+                  action: NullableAndOptional(Type.String()),
+                  status: NullableAndOptional(Type.String()),
+                  diagnosticCode: NullableAndOptional(Type.String()),
+                }),
+              ),
+            ]),
+          ),
+        ),
+        feedbackId: NullableAndOptional(Type.String()),
+        remoteMtaIp: NullableAndOptional(Type.String()),
+        reportingMTA: NullableAndOptional(Type.String()),
+      }),
     ),
-    timestamp: Type.String(),
-    feedbackId: NullableAndOptional(Type.String()),
-    remoteMtaIp: NullableAndOptional(Type.String()),
-    reportingMTA: NullableAndOptional(Type.String()),
-  }),
+  ]),
 });
 
 export type AmazonSesBounceEvent = Static<typeof AmazonSesBounceEvent>;

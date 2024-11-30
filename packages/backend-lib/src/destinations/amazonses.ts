@@ -8,7 +8,12 @@ import {
   SESv2Client,
   SESv2ServiceException,
 } from "@aws-sdk/client-sesv2";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { SourceType } from "isomorphic-lib/src/constants";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
@@ -25,7 +30,6 @@ import {
   AmazonSesMailFields,
   AmazonSesNotificationType,
   AmazonSNSEvent,
-  AmazonSNSEventTypes,
   AmazonSNSNotificationEvent,
   AmazonSNSSubscriptionEvent,
   AmazonSNSUnsubscribeEvent,
@@ -34,11 +38,6 @@ import {
   EventType,
   InternalEventType,
 } from "../types";
-import {
-  jsonParseSafe,
-  schemaValidateWithErr,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { SpanStatusCode } from "@opentelemetry/api";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -120,7 +119,6 @@ export async function submitAmazonSesEvents(
 ): Promise<ResultAsync<void, Error>> {
   return withSpan({ name: "submit-amazon-ses-events" }, async (span) => {
     // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
-    logger().debug(event);
     let tags: Record<string, string>;
     if (event.mail.tags) {
       const mappedTags: Record<string, string> = {};
