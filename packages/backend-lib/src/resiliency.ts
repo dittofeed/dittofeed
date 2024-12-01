@@ -4,7 +4,7 @@ import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
 import logger, { publicLogger } from "./logger";
 import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
-import { ComputedPropertyStep, Workspace } from "./types";
+import { ComputedPropertyStep, Workspace, WorkspaceStatus } from "./types";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
 
@@ -85,7 +85,11 @@ export async function observeWorkspaceComputeLatency() {
         periodsQuery,
       );
     })(),
-    prisma().workspace.findMany(),
+    prisma().workspace.findMany({
+      where: {
+        status: WorkspaceStatus.Active,
+      },
+    }),
   ]);
 
   observeWorkspaceComputeLatencyInner({
