@@ -35,7 +35,9 @@ export async function upsertSmsProvider({
       name: secretName,
       configValue: config,
     },
-    update: {},
+    update: {
+      configValue: config,
+    },
   });
 
   const smsProvider = await prisma().smsProvider.upsert({
