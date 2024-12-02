@@ -1,6 +1,7 @@
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   EntryNode,
   GroupChildrenUserPropertyDefinitions,
@@ -189,6 +190,10 @@ function mapSegmentOperator({
       return operator;
     case SegmentOperatorType.Exists:
       return operator;
+    case SegmentOperatorType.NotExists:
+      return operator;
+    default:
+      assertUnreachable(operator);
   }
 }
 
