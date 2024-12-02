@@ -748,10 +748,11 @@ function segmentToResolvedState({
       return queries;
     }
     case SegmentNodeType.Trait: {
-      switch (node.operator.type) {
+      const { operator } = node;
+      switch (operator.type) {
         case SegmentOperatorType.Within: {
           const withinLowerBound = Math.round(
-            Math.max(nowSeconds - node.operator.windowSeconds, 0),
+            Math.max(nowSeconds - operator.windowSeconds, 0),
           );
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const computedPropertyIdParam = qb.addQueryValue(
@@ -825,14 +826,9 @@ function segmentToResolvedState({
           return queries;
         }
         case SegmentOperatorType.HasBeen: {
-          const windowBound = Math.max(
-            nowSeconds - node.operator.windowSeconds,
-            0,
-          );
+          const windowBound = Math.max(nowSeconds - operator.windowSeconds, 0);
 
-          const boundInterval = getEventTimeInterval(
-            node.operator.windowSeconds,
-          );
+          const boundInterval = getEventTimeInterval(operator.windowSeconds);
 
           const upperBoundClause = `and cpsi.indexed_value <= ${qb.addQueryValue(Math.ceil(nowSeconds), "Int64")}`;
 
@@ -841,10 +837,7 @@ function segmentToResolvedState({
             const periodBoundSeconds = periodBound / 1000;
             lowerBoundClause = `and cpsi.indexed_value >= toUnixTimestamp(toStartOfInterval(toDateTime64(${periodBoundSeconds}, 3), INTERVAL ${boundInterval} SECOND))`;
           }
-          const lastValueParam = qb.addQueryValue(
-            node.operator.value,
-            "String",
-          );
+          const lastValueParam = qb.addQueryValue(operator.value, "String");
 
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const computedPropertyIdParam = qb.addQueryValue(
@@ -855,7 +848,7 @@ function segmentToResolvedState({
           // comparators are seemingly reversed because we're dealing with times
           // in the past
           const comparator =
-            node.operator.comparator === SegmentHasBeenOperatorComparator.GTE
+            operator.comparator === SegmentHasBeenOperatorComparator.GTE
               ? "<="
               : ">";
 
@@ -1012,7 +1005,7 @@ function segmentToResolvedState({
               workspaceId,
               stateId,
               expression: `argMaxMerge(last_value) == ${qb.addQueryValue(
-                node.operator.value,
+                operator.value,
                 "String",
               )}`,
               segmentId: segment.id,
@@ -1029,7 +1022,7 @@ function segmentToResolvedState({
               workspaceId,
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) >= ${qb.addQueryValue(
-                node.operator.value,
+                operator.value,
                 "Float64",
               )}`,
               segmentId: segment.id,
@@ -1046,7 +1039,7 @@ function segmentToResolvedState({
               workspaceId,
               stateId,
               expression: `(toFloat64OrNull(argMaxMerge(last_value)) as ${varName}) is not Null and assumeNotNull(${varName}) < ${qb.addQueryValue(
-                node.operator.value,
+                operator.value,
                 "Float64",
               )}`,
               segmentId: segment.id,
@@ -1062,7 +1055,7 @@ function segmentToResolvedState({
               workspaceId,
               stateId,
               expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
-                node.operator.value,
+                operator.value,
                 "String",
               )}`,
               segmentId: segment.id,
@@ -1085,11 +1078,14 @@ function segmentToResolvedState({
             }),
           ];
         }
+        case SegmentOperatorType.NotExists: {
+          return [];
+        }
         default:
-          throw new Error(
-            `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`,
-          );
+          assertUnreachable(operator);
+          break;
       }
+      break;
     }
     case SegmentNodeType.And: {
       return node.children.flatMap((child) => {
