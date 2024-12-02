@@ -87,7 +87,9 @@ export async function upsertEmailProvider({
       name: secretName,
       configValue: config,
     },
-    update: {},
+    update: {
+      configValue: config,
+    },
   });
 
   const ep = await prisma().emailProvider.upsert({
