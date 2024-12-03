@@ -206,17 +206,24 @@ const greaterThanOrEqualOperatorOption = {
   label: "Greater Than Or Equal",
 };
 
+const notExistsOperatorOption = {
+  id: SegmentOperatorType.NotExists,
+  label: "Not Exists",
+};
+
 const operatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
+  notExistsOperatorOption,
   lessThanOperatorOption,
   greaterThanOrEqualOperatorOption,
 ];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
+  [SegmentOperatorType.NotExists]: notExistsOperatorOption,
   [SegmentOperatorType.Equals]: equalsOperatorOption,
   [SegmentOperatorType.Within]: withinOperatorOption,
   [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
@@ -1311,6 +1318,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = null;
       break;
     }
+    case SegmentOperatorType.NotExists: {
+      valueSelect = null;
+      break;
+    }
     case SegmentOperatorType.LessThan: {
       valueSelect = (
         <NumericValueSelect nodeId={node.id} operator={node.operator} />
@@ -1383,6 +1394,12 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                   case SegmentOperatorType.Exists: {
                     nodeOperator = {
                       type: SegmentOperatorType.Exists,
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.NotExists: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.NotExists,
                     };
                     break;
                   }
