@@ -206,17 +206,24 @@ const greaterThanOrEqualOperatorOption = {
   label: "Greater Than Or Equal",
 };
 
-const operatorOptions: Option[] = [
+const notExistsOperatorOption = {
+  id: SegmentOperatorType.NotExists,
+  label: "Not Exists",
+};
+
+const traitOperatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
+  notExistsOperatorOption,
   lessThanOperatorOption,
   greaterThanOrEqualOperatorOption,
 ];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
+  [SegmentOperatorType.NotExists]: notExistsOperatorOption,
   [SegmentOperatorType.Equals]: equalsOperatorOption,
   [SegmentOperatorType.Within]: withinOperatorOption,
   [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
@@ -1311,6 +1318,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = null;
       break;
     }
+    case SegmentOperatorType.NotExists: {
+      valueSelect = null;
+      break;
+    }
     case SegmentOperatorType.LessThan: {
       valueSelect = (
         <NumericValueSelect nodeId={node.id} operator={node.operator} />
@@ -1386,6 +1397,12 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     };
                     break;
                   }
+                  case SegmentOperatorType.NotExists: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.NotExists,
+                    };
+                    break;
+                  }
                   case SegmentOperatorType.NotEquals: {
                     nodeOperator = {
                       type: SegmentOperatorType.NotEquals,
@@ -1416,7 +1433,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             });
           }}
           disableClearable
-          options={operatorOptions}
+          options={traitOperatorOptions}
           renderInput={(params) => (
             <TextField label="Operator" {...params} variant="outlined" />
           )}

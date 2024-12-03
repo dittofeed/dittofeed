@@ -3491,6 +3491,89 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "trait segment with not exists operator",
+      only: true,
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "emailNotExists",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "email",
+              operator: {
+                type: SegmentOperatorType.NotExists,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-1",
+              offsetMs: -100,
+              traits: {
+                email: "test1@email.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-2",
+              offsetMs: -100,
+              traits: {
+                email: "",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-3",
+              offsetMs: -100,
+              traits: {},
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                emailNotExists: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                emailNotExists: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                emailNotExists: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with nested properties",
       userProperties: [],
       segments: [

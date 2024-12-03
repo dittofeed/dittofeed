@@ -160,6 +160,7 @@ export enum SegmentOperatorType {
   HasBeen = "HasBeen",
   NotEquals = "NotEquals",
   Exists = "Exists",
+  NotExists = "NotExists",
   GreaterThanOrEqual = "GreaterThanOrEqual",
   LessThan = "LessThan",
 }
@@ -190,6 +191,12 @@ export const ExistsOperator = Type.Object({
 });
 
 export type ExistsOperator = Static<typeof ExistsOperator>;
+
+export const NotExistsOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.NotExists),
+});
+
+export type NotExistsOperator = Static<typeof NotExistsOperator>;
 
 export const SegmentEqualsOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.Equals),
@@ -227,6 +234,7 @@ export const SegmentOperator = Type.Union([
   SegmentNotEqualsOperator,
   SegmentHasBeenOperator,
   ExistsOperator,
+  NotExistsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentLessThanOperator,
 ]);
