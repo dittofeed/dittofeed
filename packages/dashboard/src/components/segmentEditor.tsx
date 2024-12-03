@@ -211,7 +211,7 @@ const notExistsOperatorOption = {
   label: "Not Exists",
 };
 
-const operatorOptions: Option[] = [
+const traitOperatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
   withinOperatorOption,
@@ -1433,7 +1433,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             });
           }}
           disableClearable
-          options={operatorOptions}
+          options={traitOperatorOptions}
           renderInput={(params) => (
             <TextField label="Operator" {...params} variant="outlined" />
           )}
