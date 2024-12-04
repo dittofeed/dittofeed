@@ -131,6 +131,7 @@ export async function findMessageTemplate({
   channel: ChannelType;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
   if (!validateUuid(id)) {
+    logger().info({ id, channel }, "Invalid message template id");
     return ok(null);
   }
   const template = await prisma().messageTemplate.findUnique({
