@@ -494,6 +494,19 @@ function getMessageFileId({
 
 type EmailProviderPayload = (EmailProvider & { secret: Secret | null }) | null;
 
+function getWebsiteFromFromEmail(from: string): string | null {
+  const fromParts = from.split("@");
+  if (fromParts.length !== 2 || !fromParts[1]) {
+    return null;
+  }
+  try {
+    return new URL(`https://${fromParts[1]}`).origin;
+  } catch (error) {
+    logger().info({ err: error }, "error getting website from from email");
+    return null;
+  }
+}
+
 async function getEmailProviderForWorkspace({
   providerOverride,
   workspaceId,
@@ -1224,8 +1237,7 @@ export async function sendEmail({
 
     case EmailProviderType.MailChimp: {
       // Mandatory for Mailchimp
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const website = new URL(`https://${from.split("@")[1]!}`).origin;
+      const website = getWebsiteFromFromEmail(from) ?? "https://dittofeed.com";
       const mailData: MessagesMessage = {
         html: body,
         text: body,
@@ -1265,14 +1277,23 @@ export async function sendEmail({
       });
 
       if (result.isErr()) {
+        let name: string;
+        let message: string;
+        if (result.error instanceof AxiosError) {
+          name = result.error.code?.toString() ?? "Unknown";
+          message = result.error.message;
+        } else {
+          name = result.error.status;
+          message = result.error.reject_reason;
+        }
         return err({
           type: InternalEventType.MessageFailure,
           variant: {
             type: ChannelType.Email,
             provider: {
               type: EmailProviderType.MailChimp,
-              name: result.error.code?.toString() ?? "Unknown",
-              message: result.error.message,
+              name,
+              message,
             },
           },
         });
