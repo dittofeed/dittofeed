@@ -6,7 +6,7 @@ import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
 import pLimit, { Limit } from "p-limit";
-import { v5 as uuidv5 } from "uuid";
+import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import {
   ClickHouseQueryBuilder,
@@ -24,7 +24,7 @@ import {
   userJourneyWorkflow,
 } from "../journeys/userWorkflow";
 import logger from "../logger";
-import { withSpan } from "../openTelemetry";
+import { withSpan, withSpanSync } from "../openTelemetry";
 import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
@@ -93,7 +93,16 @@ function getEventTimeInterval(windowSeconds: number): number {
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
   nodeId = "",
-): string {
+): string | null {
+  if (!validateUuid(userProperty.id)) {
+    logger().error(
+      {
+        userProperty,
+      },
+      "Invalid user property id, not a valid v4 UUID",
+    );
+    return null;
+  }
   const stateId = uuidv5(
     `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
     userProperty.id,
@@ -325,7 +334,16 @@ type SubQueryData = Omit<FullSubQueryData, "version">;
 export function segmentNodeStateId(
   segment: SavedSegmentResource,
   nodeId: string,
-): string {
+): string | null {
+  if (!validateUuid(segment.id)) {
+    logger().error(
+      {
+        segment,
+      },
+      "Invalid segment id, not a valid v4 UUID",
+    );
+    return null;
+  }
   return uuidv5(
     `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
     segment.id,
@@ -342,6 +360,9 @@ function segmentToIndexed({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
 
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
@@ -495,6 +516,9 @@ function segmentToResolvedState({
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
+  if (!stateId) {
+    return [];
+  }
   switch (node.type) {
     case SegmentNodeType.Performed: {
       const operator: RelationalOperators =
@@ -1330,6 +1354,12 @@ function resolvedSegmentToAssignment({
   qb: ClickHouseQueryBuilder;
 }): AssignedSegmentConfig {
   const stateId = segmentNodeStateId(segment, node.id);
+  if (!stateId) {
+    return {
+      stateIds: [],
+      expression: "False",
+    };
+  }
   const stateIdParam = qb.addQueryValue(stateId, "String");
   const stateValue = `state_values[${stateIdParam}]`;
   switch (node.type) {
@@ -1516,6 +1546,9 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
       const path = toJsonPathParamCh({
         path: node.path,
         qb,
@@ -1570,6 +1603,9 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.Performed: {
       const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
       const propertyConditions = node.properties?.flatMap((property) => {
         const { operator } = property;
         const path = toJsonPathParamCh({
@@ -1711,6 +1747,9 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.LastPerformed: {
       const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
       const whereConditions = node.whereProperties?.flatMap((property) => {
         const operatorType = property.operator.type;
         const path = toJsonPathParamCh({
@@ -1806,6 +1845,9 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.Everyone: {
       const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
       return [
         {
           condition: "True",
@@ -1835,7 +1877,7 @@ function leafUserPropertyToSubQuery({
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      if (child.path.length === 0) {
+      if (child.path.length === 0 || !stateId) {
         return null;
       }
       const path = toJsonPathParamCh({
@@ -1860,7 +1902,7 @@ function leafUserPropertyToSubQuery({
     }
     case UserPropertyDefinitionType.Performed: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      if (child.path.length === 0) {
+      if (child.path.length === 0 || !stateId) {
         return null;
       }
       const path = toJsonPathParamCh({
@@ -2030,6 +2072,9 @@ function userPropertyToSubQuery({
   qb: ClickHouseQueryBuilder;
 }): SubQueryData[] {
   const stateId = userPropertyStateId(userProperty);
+  if (!stateId) {
+    return [];
+  }
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const subQuery = leafUserPropertyToSubQuery({
@@ -2390,6 +2435,9 @@ function leafUserPropertyToAssignment({
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
+      if (!stateId) {
+        return null;
+      }
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         type: UserPropertyAssignmentType.Standard,
@@ -2398,6 +2446,9 @@ function leafUserPropertyToAssignment({
     }
     case UserPropertyDefinitionType.Performed: {
       const stateId = userPropertyStateId(userProperty, child.id);
+      if (!stateId) {
+        return null;
+      }
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         type: UserPropertyAssignmentType.Standard,
@@ -2549,6 +2600,9 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.PerformedMany: {
       const stateId = userPropertyStateId(userProperty);
+      if (!stateId) {
+        return null;
+      }
       return {
         type: UserPropertyAssignmentType.PerformedMany,
         stateId,
@@ -2556,6 +2610,9 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.AnonymousId: {
       const stateId = userPropertyStateId(userProperty);
+      if (!stateId) {
+        return null;
+      }
       return {
         type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
@@ -2564,6 +2621,9 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.Id: {
       const stateId = userPropertyStateId(userProperty);
+      if (!stateId) {
+        return null;
+      }
       return {
         type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
@@ -2618,28 +2678,42 @@ export async function computeState({
     let subQueryData: FullSubQueryData[] = [];
 
     for (const segment of segments) {
-      subQueryData = subQueryData.concat(
-        segmentNodeToStateSubQuery({
-          segment,
-          node: segment.definition.entryNode,
-          qb,
-        }).map((subQuery) => ({
-          ...subQuery,
-          version: segment.definitionUpdatedAt.toString(),
-        })),
+      const newSubQueryData = withSpanSync(
+        { name: "compute-segment-state" },
+        (spanSegment) => {
+          spanSegment.setAttribute("workspaceId", workspaceId);
+          spanSegment.setAttribute("segmentId", segment.id);
+
+          return segmentNodeToStateSubQuery({
+            segment,
+            node: segment.definition.entryNode,
+            qb,
+          }).map((subQuery) => ({
+            ...subQuery,
+            version: segment.definitionUpdatedAt.toString(),
+          }));
+        },
       );
+      subQueryData = subQueryData.concat(newSubQueryData);
     }
 
     for (const userProperty of userProperties) {
-      subQueryData = subQueryData.concat(
-        userPropertyToSubQuery({
-          userProperty,
-          qb,
-        }).map((subQuery) => ({
-          ...subQuery,
-          version: userProperty.definitionUpdatedAt.toString(),
-        })),
+      const newSubQueryData = withSpanSync(
+        { name: "compute-user-property-state" },
+        (spanUserProperty) => {
+          spanUserProperty.setAttribute("workspaceId", workspaceId);
+          spanUserProperty.setAttribute("userPropertyId", userProperty.id);
+
+          return userPropertyToSubQuery({
+            userProperty,
+            qb,
+          }).map((subQuery) => ({
+            ...subQuery,
+            version: userProperty.definitionUpdatedAt.toString(),
+          }));
+        },
       );
+      subQueryData = subQueryData.concat(newSubQueryData);
     }
     if (subQueryData.length === 0) {
       return;
@@ -2801,41 +2875,45 @@ export async function computeAssignments({
     );
 
     for (const segment of segments) {
-      const version = segment.definitionUpdatedAt.toString();
-      const period = periodByComputedPropertyId.get({
-        computedPropertyId: segment.id,
-        version,
-      });
-      const periodBound = period?.maxTo.getTime();
-      const qb = new ClickHouseQueryBuilder();
+      withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
+        spanS.setAttribute("workspaceId", workspaceId);
+        spanS.setAttribute("segmentId", segment.id);
 
-      const nowSeconds = now / 1000;
+        const version = segment.definitionUpdatedAt.toString();
+        const period = periodByComputedPropertyId.get({
+          computedPropertyId: segment.id,
+          version,
+        });
+        const periodBound = period?.maxTo.getTime();
+        const qb = new ClickHouseQueryBuilder();
 
-      const lowerBoundClause = getLowerBoundClause(periodBound);
-      const indexedConfig = segmentToIndexed({
-        segment,
-        node: segment.definition.entryNode,
-      });
+        const nowSeconds = now / 1000;
 
-      const resolvedQueries = segmentToResolvedState({
-        segment,
-        workspaceId,
-        node: segment.definition.entryNode,
-        now,
-        qb,
-        periodBound,
-        idUserProperty,
-      });
-      const assignmentConfig = resolvedSegmentToAssignment({
-        segment,
-        node: segment.definition.entryNode,
-        qb,
-      });
-      const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+        const lowerBoundClause = getLowerBoundClause(periodBound);
+        const indexedConfig = segmentToIndexed({
+          segment,
+          node: segment.definition.entryNode,
+        });
 
-      const segmentIdParam = qb.addQueryValue(segment.id, "String");
-      const assignmentQueries = [
-        `
+        const resolvedQueries = segmentToResolvedState({
+          segment,
+          workspaceId,
+          node: segment.definition.entryNode,
+          now,
+          qb,
+          periodBound,
+          idUserProperty,
+        });
+        const assignmentConfig = resolvedSegmentToAssignment({
+          segment,
+          node: segment.definition.entryNode,
+          qb,
+        });
+        const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
+        const segmentIdParam = qb.addQueryValue(segment.id, "String");
+        const assignmentQueries = [
+          `
         insert into computed_property_assignments_v2
         select
           workspace_id,
@@ -2883,15 +2961,15 @@ export async function computeAssignments({
             user_id
         )
       `,
-      ];
+        ];
 
-      if (
-        segment.definitionUpdatedAt &&
-        segment.definitionUpdatedAt <= now &&
-        segment.definitionUpdatedAt >= (periodBound ?? 0) &&
-        segment.definitionUpdatedAt > segment.createdAt
-      ) {
-        const resetQuery = `
+        if (
+          segment.definitionUpdatedAt &&
+          segment.definitionUpdatedAt <= now &&
+          segment.definitionUpdatedAt >= (periodBound ?? 0) &&
+          segment.definitionUpdatedAt > segment.createdAt
+        ) {
+          const resetQuery = `
           insert into computed_property_assignments_v2
           select
             workspace_id,
@@ -2908,13 +2986,13 @@ export async function computeAssignments({
             and type = 'segment'
             and computed_property_id = ${segmentIdParam}
         `;
-        assignmentQueries.unshift(resetQuery);
-      }
+          assignmentQueries.unshift(resetQuery);
+        }
 
-      const queries = [resolvedQueries, ...assignmentQueries];
+        const queries = [resolvedQueries, ...assignmentQueries];
 
-      if (indexedConfig.length) {
-        const indexQuery = `
+        if (indexedConfig.length) {
+          const indexQuery = `
           insert into computed_property_state_index
           select
             workspace_id,
@@ -2952,55 +3030,61 @@ export async function computeAssignments({
             state_id,
             user_id
         `;
-        queries.unshift(indexQuery);
-      }
+          queries.unshift(indexQuery);
+        }
 
-      segmentQueries.push({
-        queries,
-        qb,
+        segmentQueries.push({
+          queries,
+          qb,
+        });
       });
     }
 
     for (const userProperty of userProperties) {
-      const version = userProperty.definitionUpdatedAt.toString();
-      const period = periodByComputedPropertyId.get({
-        computedPropertyId: userProperty.id,
-        version,
-      });
-      const qb = new ClickHouseQueryBuilder();
-      const ac = userPropertyToAssignment({
-        userProperty,
-        qb,
-      });
-      if (!ac) {
-        logger().debug(
-          {
-            userProperty,
-          },
-          "skipping write assignment for user property. failed to generate config",
-        );
-        continue;
-      }
-      const stateQuery = assignUserPropertiesQuery({
-        workspaceId,
-        userPropertyId: userProperty.id,
-        config: ac,
-        qb,
-        now,
-        periodBound: period?.maxTo.getTime(),
-      });
-      if (!stateQuery) {
-        logger().debug(
-          {
-            userProperty,
-          },
-          "skipping write assignment for user property. failed to build query",
-        );
-        continue;
-      }
-      userPropertyQueries.push({
-        queries: [stateQuery],
-        qb,
+      withSpanSync({ name: "compute-user-property-assignments" }, (spanUp) => {
+        spanUp.setAttribute("workspaceId", workspaceId);
+        spanUp.setAttribute("userPropertyId", userProperty.id);
+
+        const version = userProperty.definitionUpdatedAt.toString();
+        const period = periodByComputedPropertyId.get({
+          computedPropertyId: userProperty.id,
+          version,
+        });
+        const qb = new ClickHouseQueryBuilder();
+        const ac = userPropertyToAssignment({
+          userProperty,
+          qb,
+        });
+        if (!ac) {
+          logger().debug(
+            {
+              userProperty,
+            },
+            "skipping write assignment for user property. failed to generate config",
+          );
+          return;
+        }
+        const stateQuery = assignUserPropertiesQuery({
+          workspaceId,
+          userPropertyId: userProperty.id,
+          config: ac,
+          qb,
+          now,
+          periodBound: period?.maxTo.getTime(),
+        });
+        if (!stateQuery) {
+          logger().debug(
+            {
+              userProperty,
+            },
+            "skipping write assignment for user property. failed to build query",
+          );
+          return;
+        }
+        userPropertyQueries.push({
+          queries: [stateQuery],
+          qb,
+        });
       });
     }
 

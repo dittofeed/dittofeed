@@ -32,7 +32,7 @@ import {
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
-import { v4 as uuid } from "uuid";
+import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import { CsvParseResult } from "../types";
 
@@ -54,6 +54,11 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      if (request.body.id && !validateUuid(request.body.id)) {
+        return reply.status(400).send({
+          message: "Invalid subscription group id, must be a valid v4 UUID",
+        });
+      }
       const result = await upsertSubscriptionGroup(request.body);
       if (result.isErr()) {
         return reply.status(400).send({

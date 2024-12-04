@@ -24,6 +24,7 @@ import {
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { validate as validateUuid } from "uuid";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function journeysController(fastify: FastifyInstance) {
@@ -73,6 +74,16 @@ export default async function journeysController(fastify: FastifyInstance) {
         canRunMultiple,
         draft,
       } = request.body;
+
+      if (id && !validateUuid(id)) {
+        return reply.status(400).send({
+          message: "Invalid journey id",
+          variant: {
+            type: JourneyUpsertValidationErrorType.IdError,
+            message: "Invalid journey id, must be a valid v4 UUID",
+          },
+        });
+      }
 
       /*
       TODO validate that status transitions satisfy:

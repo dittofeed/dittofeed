@@ -136,3 +136,32 @@ export function initOpenTelemetry({
     traceExporter,
   };
 }
+
+export function withSpanSync<T>(
+  {
+    name,
+    tracer: tracerName = "default",
+  }: {
+    name: string;
+    tracer?: string;
+  },
+  cb: (span: Span) => T,
+): T {
+  const tracer = trace.getTracer(tracerName);
+  return tracer.startActiveSpan(name, (span) => {
+    try {
+      return cb(span);
+    } catch (e) {
+      if (e instanceof Error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: e.message,
+        });
+        span.recordException(e);
+      }
+      throw e;
+    } finally {
+      span.end();
+    }
+  });
+}

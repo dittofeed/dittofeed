@@ -40,9 +40,12 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   UpsertSegmentResource,
+  UpsertSegmentValidationError,
+  UpsertSegmentValidationErrorType,
   UserUploadRowErrors,
 } from "isomorphic-lib/src/types";
 import { err, ok } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import { CsvParseResult } from "../types";
 
@@ -80,10 +83,17 @@ export default async function segmentsController(fastify: FastifyInstance) {
         body: UpsertSegmentResource,
         response: {
           200: SavedSegmentResource,
+          400: UpsertSegmentValidationError,
         },
       },
     },
     async (request, reply) => {
+      if (request.body.id && !validateUuid(request.body.id)) {
+        return reply.status(400).send({
+          type: UpsertSegmentValidationErrorType.IdError,
+          message: "Invalid segment id, must be a valid v4 UUID",
+        });
+      }
       const resource = await upsertSegment(request.body);
       return reply.status(200).send(resource);
     },

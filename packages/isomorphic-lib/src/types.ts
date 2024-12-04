@@ -1054,6 +1054,19 @@ export const UpsertSegmentResource = Type.Intersect([
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
+export enum UpsertSegmentValidationErrorType {
+  IdError = "IdError",
+}
+
+export const UpsertSegmentValidationError = Type.Object({
+  type: Type.Enum(UpsertSegmentValidationErrorType),
+  message: Type.String(),
+});
+
+export type UpsertSegmentValidationError = Static<
+  typeof UpsertSegmentValidationError
+>;
+
 export const DeleteSegmentRequest = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
@@ -1414,6 +1427,19 @@ export const UpsertMessageTemplateResource = Type.Object({
 
 export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
+>;
+
+export enum UpsertMessageTemplateValidationErrorType {
+  IdError = "IdError",
+}
+
+export const UpsertMessageTemplateValidationError = Type.Object({
+  type: Type.Enum(UpsertMessageTemplateValidationErrorType),
+  message: Type.String(),
+});
+
+export type UpsertMessageTemplateValidationError = Static<
+  typeof UpsertMessageTemplateValidationError
 >;
 
 export const GetMessageTemplatesRequest = Type.Object(
@@ -3858,6 +3884,7 @@ export type JourneyConstraintViolation = Static<
 
 export enum JourneyUpsertValidationErrorType {
   ConstraintViolation = "ConstraintViolation",
+  IdError = "IdError",
 }
 
 export const JourneyUpsertValidationConstraintViolationError = Type.Object({
@@ -3869,8 +3896,16 @@ export type JourneyUpsertValidationConstraintViolationError = Static<
   typeof JourneyUpsertValidationConstraintViolationError
 >;
 
+export const JourneyUpsertIdError = Type.Object({
+  type: Type.Literal(JourneyUpsertValidationErrorType.IdError),
+  message: Type.String(),
+});
+
+export type JourneyUpsertIdError = Static<typeof JourneyUpsertIdError>;
+
 export const JourneyUpsertValidationErrorVariant = Type.Union([
   JourneyUpsertValidationConstraintViolationError,
+  JourneyUpsertIdError,
 ]);
 
 export type JourneyUpsertValidationErrorVariant = Static<

@@ -47,9 +47,12 @@ import {
   RenderMessageTemplateType,
   ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
+  UpsertMessageTemplateValidationError,
+  UpsertMessageTemplateValidationErrorType,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
 import * as R from "remeda";
+import { validate as validateUuid } from "uuid";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
@@ -202,10 +205,17 @@ export default async function contentController(fastify: FastifyInstance) {
         body: UpsertMessageTemplateResource,
         response: {
           200: MessageTemplateResource,
+          400: UpsertMessageTemplateValidationError,
         },
       },
     },
     async (request, reply) => {
+      if (request.body.id && !validateUuid(request.body.id)) {
+        return reply.status(400).send({
+          type: UpsertMessageTemplateValidationErrorType.IdError,
+          message: "Invalid message template id, must be a valid v4 UUID",
+        });
+      }
       const resource = await upsertMessageTemplate(request.body);
       return reply.status(200).send(resource);
     },
