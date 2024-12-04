@@ -1,6 +1,7 @@
 import mailchimp, {
   MessagesMessage,
-  MessagesSendResponse,
+  MessagesSendRejectResponse,
+  MessagesSendSuccessResponse,
 } from "@mailchimp/mailchimp_transactional";
 import { AxiosError } from "axios";
 import { err, ok, Result, ResultAsync } from "neverthrow";
@@ -15,34 +16,33 @@ import {
   MailChimpEvent,
 } from "../types";
 
-type MailChimpResponse = Extract<
-  Awaited<ReturnType<mailchimp.ApiClient["messages"]["send"]>>,
-  MessagesSendResponse[]
->;
-
-const sendMailWrapper = async (apiKey: string, mailData: MessagesMessage) => {
-  const mailchimpClient = mailchimp(apiKey);
-
-  const response = await mailchimpClient.messages.send({ message: mailData });
-  if (response instanceof AxiosError) {
-    throw new Error(response.message, {
-      cause: response.code,
-    });
-  }
-  return response as MailChimpResponse;
-};
-
 export async function sendMail({
   apiKey,
   message,
 }: {
   apiKey: string;
   message: MessagesMessage;
-}): Promise<ResultAsync<MailChimpResponse, AxiosError>> {
-  return ResultAsync.fromPromise(
-    sendMailWrapper(apiKey, message),
-    (error) => error as AxiosError,
-  );
+}): Promise<
+  ResultAsync<
+    MessagesSendSuccessResponse,
+    AxiosError | MessagesSendRejectResponse
+  >
+> {
+  const mailchimpClient = mailchimp(apiKey);
+  const response = await mailchimpClient.messages.send({ message });
+  if (response instanceof AxiosError) {
+    return err(response);
+  }
+  const [firstResponse] = response;
+  if (!firstResponse) {
+    throw new Error("No response from Mailchimp");
+  }
+  switch (firstResponse.status) {
+    case "rejected":
+      return err(firstResponse);
+    default:
+      return ok(firstResponse);
+  }
 }
 
 export async function submitMailChimpEvent({
