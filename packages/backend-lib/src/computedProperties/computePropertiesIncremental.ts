@@ -24,7 +24,7 @@ import {
   userJourneyWorkflow,
 } from "../journeys/userWorkflow";
 import logger from "../logger";
-import { withSpan } from "../openTelemetry";
+import { withSpan, withSpanSync } from "../openTelemetry";
 import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
@@ -2618,28 +2618,42 @@ export async function computeState({
     let subQueryData: FullSubQueryData[] = [];
 
     for (const segment of segments) {
-      subQueryData = subQueryData.concat(
-        segmentNodeToStateSubQuery({
-          segment,
-          node: segment.definition.entryNode,
-          qb,
-        }).map((subQuery) => ({
-          ...subQuery,
-          version: segment.definitionUpdatedAt.toString(),
-        })),
+      const newSubQueryData = withSpanSync(
+        { name: "compute-segment-state" },
+        (spanSegment) => {
+          spanSegment.setAttribute("workspaceId", workspaceId);
+          spanSegment.setAttribute("segmentId", segment.id);
+
+          return segmentNodeToStateSubQuery({
+            segment,
+            node: segment.definition.entryNode,
+            qb,
+          }).map((subQuery) => ({
+            ...subQuery,
+            version: segment.definitionUpdatedAt.toString(),
+          }));
+        },
       );
+      subQueryData = subQueryData.concat(newSubQueryData);
     }
 
     for (const userProperty of userProperties) {
-      subQueryData = subQueryData.concat(
-        userPropertyToSubQuery({
-          userProperty,
-          qb,
-        }).map((subQuery) => ({
-          ...subQuery,
-          version: userProperty.definitionUpdatedAt.toString(),
-        })),
+      const newSubQueryData = withSpanSync(
+        { name: "compute-user-property-state" },
+        (spanUserProperty) => {
+          spanUserProperty.setAttribute("workspaceId", workspaceId);
+          spanUserProperty.setAttribute("userPropertyId", userProperty.id);
+
+          return userPropertyToSubQuery({
+            userProperty,
+            qb,
+          }).map((subQuery) => ({
+            ...subQuery,
+            version: userProperty.definitionUpdatedAt.toString(),
+          }));
+        },
       );
+      subQueryData = subQueryData.concat(newSubQueryData);
     }
     if (subQueryData.length === 0) {
       return;
@@ -2801,8 +2815,7 @@ export async function computeAssignments({
     );
 
     for (const segment of segments) {
-      // eslint-disable-next-line @typescript-eslint/require-await
-      await withSpan({ name: "compute-segment-assignments" }, async (spanS) => {
+      withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
         spanS.setAttribute("workspaceId", workspaceId);
         spanS.setAttribute("segmentId", segment.id);
 
@@ -2968,54 +2981,51 @@ export async function computeAssignments({
     }
 
     for (const userProperty of userProperties) {
-      await withSpan(
-        { name: "compute-user-property-assignments" },
-        async (spanUp) => {
-          spanUp.setAttribute("workspaceId", workspaceId);
-          spanUp.setAttribute("userPropertyId", userProperty.id);
+      withSpanSync({ name: "compute-user-property-assignments" }, (spanUp) => {
+        spanUp.setAttribute("workspaceId", workspaceId);
+        spanUp.setAttribute("userPropertyId", userProperty.id);
 
-          const version = userProperty.definitionUpdatedAt.toString();
-          const period = periodByComputedPropertyId.get({
-            computedPropertyId: userProperty.id,
-            version,
-          });
-          const qb = new ClickHouseQueryBuilder();
-          const ac = userPropertyToAssignment({
-            userProperty,
-            qb,
-          });
-          if (!ac) {
-            logger().debug(
-              {
-                userProperty,
-              },
-              "skipping write assignment for user property. failed to generate config",
-            );
-            return;
-          }
-          const stateQuery = assignUserPropertiesQuery({
-            workspaceId,
-            userPropertyId: userProperty.id,
-            config: ac,
-            qb,
-            now,
-            periodBound: period?.maxTo.getTime(),
-          });
-          if (!stateQuery) {
-            logger().debug(
-              {
-                userProperty,
-              },
-              "skipping write assignment for user property. failed to build query",
-            );
-            return;
-          }
-          userPropertyQueries.push({
-            queries: [stateQuery],
-            qb,
-          });
-        },
-      );
+        const version = userProperty.definitionUpdatedAt.toString();
+        const period = periodByComputedPropertyId.get({
+          computedPropertyId: userProperty.id,
+          version,
+        });
+        const qb = new ClickHouseQueryBuilder();
+        const ac = userPropertyToAssignment({
+          userProperty,
+          qb,
+        });
+        if (!ac) {
+          logger().debug(
+            {
+              userProperty,
+            },
+            "skipping write assignment for user property. failed to generate config",
+          );
+          return;
+        }
+        const stateQuery = assignUserPropertiesQuery({
+          workspaceId,
+          userPropertyId: userProperty.id,
+          config: ac,
+          qb,
+          now,
+          periodBound: period?.maxTo.getTime(),
+        });
+        if (!stateQuery) {
+          logger().debug(
+            {
+              userProperty,
+            },
+            "skipping write assignment for user property. failed to build query",
+          );
+          return;
+        }
+        userPropertyQueries.push({
+          queries: [stateQuery],
+          qb,
+        });
+      });
     }
 
     await Promise.all(
