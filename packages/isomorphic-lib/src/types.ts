@@ -1416,6 +1416,19 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
+export enum UpsertMessageTemplateValidationErrorType {
+  IdError = "IdError",
+}
+
+export const UpsertMessageTemplateValidationError = Type.Object({
+  type: Type.Enum(UpsertMessageTemplateValidationErrorType),
+  message: Type.String(),
+});
+
+export type UpsertMessageTemplateValidationError = Static<
+  typeof UpsertMessageTemplateValidationError
+>;
+
 export const GetMessageTemplatesRequest = Type.Object(
   {
     workspaceId: Type.String(),
