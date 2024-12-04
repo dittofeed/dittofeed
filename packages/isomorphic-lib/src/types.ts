@@ -1054,6 +1054,19 @@ export const UpsertSegmentResource = Type.Intersect([
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
+export enum UpsertSegmentValidationErrorType {
+  IdError = "IdError",
+}
+
+export const UpsertSegmentValidationError = Type.Object({
+  type: Type.Enum(UpsertSegmentValidationErrorType),
+  message: Type.String(),
+});
+
+export type UpsertSegmentValidationError = Static<
+  typeof UpsertSegmentValidationError
+>;
+
 export const DeleteSegmentRequest = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
