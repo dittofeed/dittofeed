@@ -1277,14 +1277,23 @@ export async function sendEmail({
       });
 
       if (result.isErr()) {
+        let name: string;
+        let message: string;
+        if (result.error instanceof AxiosError) {
+          name = result.error.code?.toString() ?? "Unknown";
+          message = result.error.message;
+        } else {
+          name = result.error.status;
+          message = result.error.reject_reason;
+        }
         return err({
           type: InternalEventType.MessageFailure,
           variant: {
             type: ChannelType.Email,
             provider: {
               type: EmailProviderType.MailChimp,
-              name: result.error.code?.toString() ?? "Unknown",
-              message: result.error.message,
+              name,
+              message,
             },
           },
         });
