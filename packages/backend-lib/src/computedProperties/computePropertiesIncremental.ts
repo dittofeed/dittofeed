@@ -1028,7 +1028,7 @@ function segmentToResolvedState({
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value) == ${qb.addQueryValue(
+              expression: `toString(argMaxMerge(last_value)) == ${qb.addQueryValue(
                 operator.value,
                 "String",
               )}`,
@@ -1078,7 +1078,7 @@ function segmentToResolvedState({
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
+              expression: `toString(argMaxMerge(last_value)) != ${qb.addQueryValue(
                 operator.value,
                 "String",
               )}`,
@@ -1781,13 +1781,13 @@ export function segmentNodeToStateSubQuery({
         const propertyValue = `JSON_VALUE(properties, ${path})`;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `${propertyValue} == ${qb.addQueryValue(
+            return `toString(${propertyValue}) == ${qb.addQueryValue(
               property.operator.value,
               "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
-            return `${propertyValue} != ${qb.addQueryValue(
+            return `toString(${propertyValue}) != ${qb.addQueryValue(
               property.operator.value,
               "String",
             )}`;
@@ -1804,9 +1804,6 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const wherePropertyClause = whereConditions?.length
-        ? `and (${whereConditions.join(" and ")})`
-        : "";
       const propertyValues =
         node.hasProperties?.flatMap((property) => {
           const path = toJsonPathParamCh({
