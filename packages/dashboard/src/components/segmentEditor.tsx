@@ -32,6 +32,7 @@ import {
   InternalEventType,
   KeyedPerformedPropertiesOperator,
   KeyedPerformedSegmentNode,
+  LastPerformedSegmentNode,
   ManualSegmentNode,
   ManualSegmentOperationEnum,
   ManualSegmentUploadCsvHeaders,
@@ -64,6 +65,7 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
+import InfoTooltip from "./infoTooltip";
 import TraitAutocomplete from "./traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -134,9 +136,16 @@ const everyoneOption = {
   label: "Everyone",
 };
 
+const lastPerformedOption = {
+  id: SegmentNodeType.LastPerformed,
+  group: "User Data",
+  label: "Last Performed",
+};
+
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  lastPerformedOption,
   everyoneOption,
   randomBucketOption,
   keyedPerformedOption,
@@ -148,10 +157,7 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
 ];
 
 const keyedSegmentOptions: Record<
-  Exclude<
-    SegmentNodeType,
-    SegmentNodeType.LastPerformed | SegmentNodeType.Broadcast
-  >,
+  Exclude<SegmentNodeType, SegmentNodeType.Broadcast>,
   SegmentGroupedOption
 > = {
   [SegmentNodeType.Everyone]: everyoneOption,
@@ -163,6 +169,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
   [SegmentNodeType.Email]: emailOption,
+  [SegmentNodeType.LastPerformed]: lastPerformedOption,
   [SegmentNodeType.RandomBucket]: randomBucketOption,
 };
 
@@ -388,6 +395,518 @@ function DurationValueSelect({
       onChange={handleChange}
       inputLabel="Time Value"
     />
+  );
+}
+
+function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
+  const { disabled } = useContext(DisabledContext);
+  const { properties } = useAppStorePick(["properties"]);
+
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData,
+  );
+
+  const handleEventNameChange = (newEvent: string) => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.LastPerformed) {
+        n.event = newEvent;
+      }
+    });
+  };
+
+  const handleAddHasProperty = () => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.LastPerformed) {
+        let propertyPath: string | null = null;
+        // put arbtitrary limit on the number of properties
+        for (let i = 0; i < 100; i++) {
+          const propertyCount = n.hasProperties?.length ?? 0;
+          const prospectivePath = `myPropertyPath${propertyCount + 1}`;
+          if (!n.hasProperties?.find((p) => p.path === prospectivePath)) {
+            propertyPath = prospectivePath;
+            break;
+          }
+        }
+        if (propertyPath) {
+          n.hasProperties = n.hasProperties ?? [];
+          n.hasProperties.push({
+            path: propertyPath,
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "myPropertyValue",
+            },
+          });
+        }
+      }
+    });
+  };
+
+  const handleAddWhereProperty = () => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.LastPerformed) {
+        let propertyPath: string | null = null;
+        // put arbtitrary limit on the number of properties
+        for (let i = 0; i < 100; i++) {
+          const propertyCount = n.whereProperties?.length ?? 0;
+          const prospectivePath = `myPropertyPath${propertyCount + 1}`;
+          if (!n.whereProperties?.find((p) => p.path === prospectivePath)) {
+            propertyPath = prospectivePath;
+            break;
+          }
+        }
+        if (propertyPath) {
+          n.whereProperties = n.whereProperties ?? [];
+          n.whereProperties.push({
+            path: propertyPath,
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "myPropertyValue",
+            },
+          });
+        }
+      }
+    });
+  };
+  const hasPropertyRows = node.hasProperties?.map((property, i) => {
+    const handlePropertyPathChange = (newPath: string) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          const existingProperty = n.hasProperties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.path = newPath;
+        }
+      });
+    };
+    const operator = keyedOperatorOptions[property.operator.type];
+    const handleDelete = () => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          if (!n.hasProperties) {
+            return;
+          }
+          n.hasProperties = node.hasProperties?.filter(
+            (_, index) => index !== i,
+          );
+        }
+      });
+    };
+
+    const handleOperatorChange = (
+      e: SelectChangeEvent<SegmentOperatorType>,
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          const newOperator = e.target.value as SegmentOperatorType;
+          const existingProperty = n.hasProperties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.operator.type = newOperator;
+        }
+      });
+    };
+    if (!operator) {
+      return null;
+    }
+    let operatorEl: React.ReactNode;
+    switch (property.operator.type) {
+      case SegmentOperatorType.Equals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Equals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.NotEquals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.GreaterThanOrEqual: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = Number(e.target.value);
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !==
+                  SegmentOperatorType.GreaterThanOrEqual ||
+                Number.isNaN(newValue)
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            InputProps={{
+              type: "number",
+            }}
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.LessThan: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = Number(e.target.value);
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !==
+                  SegmentOperatorType.LessThan ||
+                Number.isNaN(newValue)
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            InputProps={{
+              type: "number",
+            }}
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Exists: {
+        operatorEl = null;
+        break;
+      }
+      case SegmentOperatorType.NotExists: {
+        operatorEl = null;
+        break;
+      }
+      default: {
+        throw new Error(`Unsupported operator type: ${property.operator.type}`);
+      }
+    }
+
+    return (
+      <Stack
+        // eslint-disable-next-line react/no-array-index-key
+        key={i}
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+        }}
+      >
+        <Autocomplete
+          value={property.path}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[node.event] ?? []}
+          onInputChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handlePropertyPathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
+        />
+        <Select value={operator.id} onChange={handleOperatorChange}>
+          <MenuItem value={SegmentOperatorType.Equals}>
+            {keyedOperatorOptions[SegmentOperatorType.Equals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Exists}>
+            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
+            {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.LessThan}>
+            {keyedOperatorOptions[SegmentOperatorType.LessThan].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Exists}>
+            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotExists}>
+            {keyedOperatorOptions[SegmentOperatorType.NotExists].label}
+          </MenuItem>
+        </Select>
+        {operatorEl}
+        <IconButton
+          color="error"
+          size="large"
+          disabled={disabled}
+          onClick={handleDelete}
+        >
+          <Delete />
+        </IconButton>
+      </Stack>
+    );
+  });
+
+  const wherePropertyRows = node.whereProperties?.map((property, i) => {
+    const handlePropertyPathChange = (newPath: string) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          const existingProperty = n.whereProperties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.path = newPath;
+        }
+      });
+    };
+    const operator = keyedOperatorOptions[property.operator.type];
+    const handleDelete = () => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          if (!n.whereProperties) {
+            return;
+          }
+          n.whereProperties = node.whereProperties?.filter(
+            (_, index) => index !== i,
+          );
+        }
+      });
+    };
+
+    const handleOperatorChange = (
+      e: SelectChangeEvent<SegmentOperatorType>,
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.LastPerformed) {
+          const newOperator = e.target.value as SegmentOperatorType;
+          const existingProperty = n.whereProperties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.operator.type = newOperator;
+        }
+      });
+    };
+    if (!operator) {
+      return null;
+    }
+    let operatorEl: React.ReactNode;
+    switch (property.operator.type) {
+      case SegmentOperatorType.Equals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.whereProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Equals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.NotEquals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.whereProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Exists: {
+        operatorEl = null;
+        break;
+      }
+      case SegmentOperatorType.NotExists: {
+        operatorEl = null;
+        break;
+      }
+      default: {
+        throw new Error(`Unsupported operator type: ${property.operator.type}`);
+      }
+    }
+
+    return (
+      <Stack
+        // eslint-disable-next-line react/no-array-index-key
+        key={i}
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+        }}
+      >
+        <Autocomplete
+          value={property.path}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={properties[node.event] ?? []}
+          onInputChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handlePropertyPathChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Property Path" {...params} variant="outlined" />
+          )}
+        />
+        <Select value={operator.id} onChange={handleOperatorChange}>
+          <MenuItem value={SegmentOperatorType.Equals}>
+            {keyedOperatorOptions[SegmentOperatorType.Equals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Exists}>
+            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotExists}>
+            {keyedOperatorOptions[SegmentOperatorType.NotExists].label}
+          </MenuItem>
+        </Select>
+        {operatorEl}
+        <IconButton
+          color="error"
+          size="large"
+          disabled={disabled}
+          onClick={handleDelete}
+        >
+          <Delete />
+        </IconButton>
+      </Stack>
+    );
+  });
+
+  return (
+    <Stack direction="column" spacing={2}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Autocomplete
+          value={node.event}
+          disabled={disabled}
+          freeSolo
+          sx={{ width: selectorWidth }}
+          options={Object.keys(properties)}
+          onInputChange={(_event, newPath) => {
+            if (newPath === undefined || newPath === null) {
+              return;
+            }
+            handleEventNameChange(newPath);
+          }}
+          renderInput={(params) => (
+            <TextField label="Event Name" {...params} variant="outlined" />
+          )}
+        />
+        <Button variant="contained" onClick={handleAddWhereProperty}>
+          Where Property
+          <InfoTooltip title="Used to select which events are eligible to be considered." />
+        </Button>
+        <Button variant="contained" onClick={handleAddHasProperty}>
+          Has Property
+          <InfoTooltip title="A user is in the segment if the selected event has the propertties." />
+        </Button>
+      </Stack>
+      {wherePropertyRows?.length ? (
+        <SubtleHeader>Where Properties</SubtleHeader>
+      ) : null}
+      {wherePropertyRows}
+      {hasPropertyRows?.length ? (
+        <SubtleHeader>Has Properties</SubtleHeader>
+      ) : null}
+      {hasPropertyRows}
+    </Stack>
   );
 }
 
@@ -1588,10 +2107,7 @@ function SegmentNodeComponent({
     [isRoot],
   );
 
-  if (
-    node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast
-  ) {
+  if (node.type === SegmentNodeType.Broadcast) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
 
@@ -1721,6 +2237,15 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.LastPerformed) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+        <LastPerformedSelect node={node} />
         {deleteButton}
       </Stack>
     );

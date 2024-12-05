@@ -1207,8 +1207,8 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.LastPerformed: {
       const varName = qb.getVariableName();
-      const hasPropertyConditions = node.hasProperties.flatMap(
-        (property, i) => {
+      const hasPropertyConditions =
+        node.hasProperties?.flatMap((property, i) => {
           const operatorType = property.operator.type;
           const reference =
             i === 0
@@ -1229,13 +1229,32 @@ function segmentToResolvedState({
                 "String",
               )}`;
             }
+            case SegmentOperatorType.GreaterThanOrEqual: {
+              const operatorVarName = qb.getVariableName();
+              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
+                property.operator.value,
+                "Float64",
+              )}`;
+            }
+            case SegmentOperatorType.LessThan: {
+              const operatorVarName = qb.getVariableName();
+              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
+                property.operator.value,
+                "Float64",
+              )}`;
+            }
+            case SegmentOperatorType.Exists: {
+              return `${indexedReference} != ''`;
+            }
+            case SegmentOperatorType.NotExists: {
+              return `${indexedReference} == ''`;
+            }
             default:
               throw new Error(
                 `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
               );
           }
-        },
-      );
+        }) ?? [];
       const expression = hasPropertyConditions.length
         ? `(${hasPropertyConditions.join(" and ")})`
         : `1=1`;
@@ -1773,6 +1792,12 @@ export function segmentNodeToStateSubQuery({
               "String",
             )}`;
           }
+          case SegmentOperatorType.Exists: {
+            return `${propertyValue} != ''`;
+          }
+          case SegmentOperatorType.NotExists: {
+            return `${propertyValue} == ''`;
+          }
           default:
             throw new Error(
               `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
@@ -1782,22 +1807,34 @@ export function segmentNodeToStateSubQuery({
       const wherePropertyClause = whereConditions?.length
         ? `and (${whereConditions.join(" and ")})`
         : "";
-      const propertyValues = node.hasProperties.flatMap((property) => {
-        const path = toJsonPathParamCh({
-          path: property.path,
-          qb,
-        });
-        if (!path) {
-          return [];
-        }
-        return `JSON_VALUE(properties, ${path})`;
-      });
+      const propertyValues =
+        node.hasProperties?.flatMap((property) => {
+          const path = toJsonPathParamCh({
+            path: property.path,
+            qb,
+          });
+          if (!path) {
+            return [];
+          }
+          return `JSON_VALUE(properties, ${path})`;
+        }) ?? [];
       if (propertyValues.length === 0) {
         return [];
       }
 
-      const event = qb.addQueryValue(node.event, "String");
-      const condition = `event_type == 'track' and event == ${event} ${wherePropertyClause}`;
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      if (whereConditions?.length) {
+        conditions.push(`(${whereConditions.join(" and ")})`);
+      }
+      const condition = conditions.join(" and ");
       return [
         {
           condition,
