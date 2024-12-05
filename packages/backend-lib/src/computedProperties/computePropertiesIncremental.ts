@@ -1028,7 +1028,7 @@ function segmentToResolvedState({
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value) == ${qb.addQueryValue(
+              expression: `toString(argMaxMerge(last_value)) == ${qb.addQueryValue(
                 operator.value,
                 "String",
               )}`,
@@ -1078,7 +1078,7 @@ function segmentToResolvedState({
             buildRecentUpdateSegmentQuery({
               workspaceId,
               stateId,
-              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
+              expression: `toString(argMaxMerge(last_value)) != ${qb.addQueryValue(
                 operator.value,
                 "String",
               )}`,
@@ -1218,27 +1218,27 @@ function segmentToResolvedState({
 
           switch (operatorType) {
             case SegmentOperatorType.Equals: {
-              return `${indexedReference} == ${qb.addQueryValue(
+              return `toString(${indexedReference}) == ${qb.addQueryValue(
                 String(property.operator.value),
                 "String",
               )}`;
             }
             case SegmentOperatorType.NotEquals: {
-              return `${indexedReference} != ${qb.addQueryValue(
+              return `toString(${indexedReference}) != ${qb.addQueryValue(
                 String(property.operator.value),
                 "String",
               )}`;
             }
             case SegmentOperatorType.GreaterThanOrEqual: {
               const operatorVarName = qb.getVariableName();
-              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
+              return `(toFloat64OrNull(${indexedReference}) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
                 property.operator.value,
                 "Float64",
               )}`;
             }
             case SegmentOperatorType.LessThan: {
               const operatorVarName = qb.getVariableName();
-              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
+              return `(toFloat64OrNull(${indexedReference}) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
                 property.operator.value,
                 "Float64",
               )}`;
@@ -1637,7 +1637,7 @@ export function segmentNodeToStateSubQuery({
         }
         switch (operator.type) {
           case SegmentOperatorType.Equals: {
-            return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
+            return `toString(JSON_VALUE(properties, ${path})) == ${qb.addQueryValue(
               operator.value,
               "String",
             )}`;
@@ -1663,7 +1663,7 @@ export function segmentNodeToStateSubQuery({
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
-            return `JSON_VALUE(properties, ${path}) != ${qb.addQueryValue(
+            return `toString(JSON_VALUE(properties, ${path})) != ${qb.addQueryValue(
               operator.value,
               "String",
             )}`;
@@ -1781,13 +1781,13 @@ export function segmentNodeToStateSubQuery({
         const propertyValue = `JSON_VALUE(properties, ${path})`;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `${propertyValue} == ${qb.addQueryValue(
+            return `toString(${propertyValue}) == ${qb.addQueryValue(
               property.operator.value,
               "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
-            return `${propertyValue} != ${qb.addQueryValue(
+            return `toString(${propertyValue}) != ${qb.addQueryValue(
               property.operator.value,
               "String",
             )}`;
@@ -1804,9 +1804,6 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const wherePropertyClause = whereConditions?.length
-        ? `and (${whereConditions.join(" and ")})`
-        : "";
       const propertyValues =
         node.hasProperties?.flatMap((property) => {
           const path = toJsonPathParamCh({
