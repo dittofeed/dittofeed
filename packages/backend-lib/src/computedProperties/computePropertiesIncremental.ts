@@ -1822,8 +1822,19 @@ export function segmentNodeToStateSubQuery({
         return [];
       }
 
-      const event = qb.addQueryValue(node.event, "String");
-      const condition = `event_type == 'track' and event == ${event} ${wherePropertyClause}`;
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+      const conditions: string[] = ["event_type == 'track'"];
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      if (whereConditions?.length) {
+        conditions.push(`(${whereConditions.join(" and ")})`);
+      }
+      const condition = conditions.join(" and ");
       return [
         {
           condition,
