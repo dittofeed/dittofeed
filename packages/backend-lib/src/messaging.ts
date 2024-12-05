@@ -1323,6 +1323,7 @@ export async function sendEmail({
           type: ChannelType.Email,
           from,
           body,
+          name: emailName,
           to,
           subject,
           replyTo,
