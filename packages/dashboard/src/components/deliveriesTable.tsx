@@ -205,6 +205,7 @@ interface DeliveriesTableExtendedProps {
   disableJourneyLinks?: boolean;
   disableTemplateLinks?: boolean;
   disableUserId?: boolean;
+  showPreviewSummaryColumn?: boolean;
 }
 
 export function DeliveriesTable({
@@ -214,6 +215,7 @@ export function DeliveriesTable({
   disableJourneyLinks = false,
   disableTemplateLinks = false,
   disableUserId = false,
+  showPreviewSummaryColumn = false,
 }: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> &
   DeliveriesTableExtendedProps) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
