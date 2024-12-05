@@ -549,7 +549,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
               const existingProperty = n.hasProperties?.[i];
               if (
                 !existingProperty ||
-                existingProperty.operator.type !== SegmentOperatorType.Equals
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
               ) {
                 return;
               }
@@ -902,7 +902,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         <SubtleHeader>Where Properties</SubtleHeader>
       ) : null}
       {wherePropertyRows}
-      {hasPropertyRows?.length ? <SubtleHeader>Properties</SubtleHeader> : null}
+      {hasPropertyRows?.length ? (
+        <SubtleHeader>Has Properties</SubtleHeader>
+      ) : null}
       {hasPropertyRows}
     </Stack>
   );
