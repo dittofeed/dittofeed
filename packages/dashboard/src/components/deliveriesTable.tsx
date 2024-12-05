@@ -200,13 +200,20 @@ const defaultGetDeliveriesRequest: GetDeliveriesRequest =
     });
   };
 
+interface DeliveriesTableExtendedProps {
+  getDeliveriesRequest?: GetDeliveriesRequest;
+  disableJourneyLinks?: boolean;
+  disableTemplateLinks?: boolean;
+}
+
 export function DeliveriesTable({
   journeyId,
   userId,
   getDeliveriesRequest = defaultGetDeliveriesRequest,
-}: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> & {
-  getDeliveriesRequest?: GetDeliveriesRequest;
-}) {
+  disableJourneyLinks = false,
+  disableTemplateLinks = false,
+}: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> &
+  DeliveriesTableExtendedProps) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
   const [previewObject, setPreviewObject] =
     useState<PreviewObjectInterface>(initPreviewObject());
@@ -560,6 +567,9 @@ export function DeliveriesTable({
               flex: 1,
               headerName: "Journey / Broadcast",
               renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+                if (disableJourneyLinks) {
+                  return <span>{row.originName}</span>;
+                }
                 const href =
                   row.originType === "broadcast"
                     ? `/broadcasts/review/${row.originId}`
@@ -571,6 +581,9 @@ export function DeliveriesTable({
               field: "templateId",
               headerName: "Template",
               renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+                if (disableTemplateLinks) {
+                  return <span>{row.templateName}</span>;
+                }
                 let href: string | null = null;
                 if (row.originType === "broadcast") {
                   href = `/broadcasts/template/${row.originId}`;
