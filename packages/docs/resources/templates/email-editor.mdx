@@ -66,3 +66,23 @@ Then, include a reference to this file in your template, by clicking on "Options
 <Frame>
   ![Email Template with Attachment File](/images/email-template-with-attachment-file.png)
 </Frame>
+
+Finally, send a track event with the files you'd like to attach.
+
+```json
+{
+  "type": "track",
+  "files": [
+    {
+      "type": "Base64Encoded",
+      "name": "my_file_name.pdf",
+      "mimeType": "application/pdf",
+      "data": "base64-encoded-file-data"
+    }
+  ],
+  "properties": {
+    ...
+  },
+  ...
+}
+```
