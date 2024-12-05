@@ -1243,6 +1243,12 @@ function segmentToResolvedState({
                 "Float64",
               )}`;
             }
+            case SegmentOperatorType.Exists: {
+              return `${indexedReference} != ''`;
+            }
+            case SegmentOperatorType.NotExists: {
+              return `${indexedReference} == ''`;
+            }
             default:
               throw new Error(
                 `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,

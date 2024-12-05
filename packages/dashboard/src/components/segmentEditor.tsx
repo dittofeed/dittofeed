@@ -539,6 +539,33 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         );
         break;
       }
+      case SegmentOperatorType.NotEquals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateSegmentNodeData(node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Equals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+          />
+        );
+        break;
+      }
       case SegmentOperatorType.GreaterThanOrEqual: {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
@@ -607,6 +634,10 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         operatorEl = null;
         break;
       }
+      case SegmentOperatorType.NotExists: {
+        operatorEl = null;
+        break;
+      }
       default: {
         throw new Error(`Unsupported operator type: ${property.operator.type}`);
       }
@@ -642,6 +673,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
           </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
           </MenuItem>
@@ -650,6 +684,12 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           </MenuItem>
           <MenuItem value={SegmentOperatorType.LessThan}>
             {keyedOperatorOptions[SegmentOperatorType.LessThan].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Exists}>
+            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotExists}>
+            {keyedOperatorOptions[SegmentOperatorType.NotExists].label}
           </MenuItem>
         </Select>
         {operatorEl}
@@ -807,14 +847,14 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
           </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
           </MenuItem>
-          <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
-            {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
-          </MenuItem>
-          <MenuItem value={SegmentOperatorType.LessThan}>
-            {keyedOperatorOptions[SegmentOperatorType.LessThan].label}
+          <MenuItem value={SegmentOperatorType.NotExists}>
+            {keyedOperatorOptions[SegmentOperatorType.NotExists].label}
           </MenuItem>
         </Select>
         {operatorEl}
