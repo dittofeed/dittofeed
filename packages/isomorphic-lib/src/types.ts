@@ -344,15 +344,17 @@ export const LastPerformedSegmentNode = Type.Object({
       },
     ),
   ),
-  hasProperties: Type.Array(
-    Type.Object({
-      path: Type.String(),
-      operator: SegmentOperator,
-    }),
-    {
-      description:
-        "Used to evaluate whether the user is in the segment based on the properties of the selected event.",
-    },
+  hasProperties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: SegmentOperator,
+      }),
+      {
+        description:
+          "Used to evaluate whether the user is in the segment based on the properties of the selected event.",
+      },
+    ),
   ),
 });
 
