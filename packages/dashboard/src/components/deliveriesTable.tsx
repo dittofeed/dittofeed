@@ -570,6 +570,36 @@ export function DeliveriesTable({
               field: "status",
               headerName: "Status",
             },
+            ...(showSnippet
+              ? [
+                  {
+                    field: "snippet",
+                    headerName: "Snippet",
+                    flex: 2,
+                    renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+                      const content =
+                        row.channel === ChannelType.Email
+                          ? row.subject
+                          : row.body;
+                      if (!content) return null;
+                      return (
+                        <Tooltip title={content}>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {content}
+                          </Box>
+                        </Tooltip>
+                      );
+                    },
+                  },
+                ]
+              : []),
             {
               field: "originId",
               flex: 1,
@@ -647,36 +677,6 @@ export function DeliveriesTable({
                 );
               },
             },
-            ...(showSnippet
-              ? [
-                  {
-                    field: "snippet",
-                    headerName: "Snippet",
-                    flex: 2,
-                    renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
-                      const content =
-                        row.channel === ChannelType.Email
-                          ? row.subject
-                          : row.body;
-                      if (!content) return null;
-                      return (
-                        <Tooltip title={content}>
-                          <Box
-                            sx={{
-                              width: "100%",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {content}
-                          </Box>
-                        </Tooltip>
-                      );
-                    },
-                  },
-                ]
-              : []),
           ].map((c) => ({ ...baseColumn, ...c }))}
           pagination
           paginationMode="server"
