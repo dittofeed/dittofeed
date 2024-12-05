@@ -3624,7 +3624,7 @@ export const SearchDeliveriesRequest = Type.Object({
   fromIdentifier: Type.Optional(Type.String()),
   toIdentifier: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
-  userId: Type.Optional(UserId),
+  userId: Type.Optional(Type.Union([UserId, Type.Array(UserId)])),
   channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
