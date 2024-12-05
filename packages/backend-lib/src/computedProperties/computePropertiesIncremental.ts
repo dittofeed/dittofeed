@@ -1218,7 +1218,7 @@ function segmentToResolvedState({
 
           switch (operatorType) {
             case SegmentOperatorType.Equals: {
-              return `${indexedReference} == ${qb.addQueryValue(
+              return `toString(${indexedReference}) == ${qb.addQueryValue(
                 String(property.operator.value),
                 "String",
               )}`;
