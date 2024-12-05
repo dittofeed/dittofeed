@@ -1,5 +1,5 @@
 import { WorkspaceStatus } from "@prisma/client";
-import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src//constants";
+import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
