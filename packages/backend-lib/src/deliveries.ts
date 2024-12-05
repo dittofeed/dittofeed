@@ -240,12 +240,20 @@ export async function searchDeliveries({
         "String",
       )}`
     : "";
-  const userIdClause = userId
-    ? `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
+  let userIdClause = "";
+  if (userId) {
+    if (Array.isArray(userId)) {
+      userIdClause = `AND user_or_anonymous_id IN ${queryBuilder.addQueryValue(
+        userId,
+        "Array(String)",
+      )}`;
+    } else {
+      userIdClause = `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
         userId,
         "String",
-      )}`
-    : "";
+      )}`;
+    }
+  }
   const channelClause = channels
     ? `AND JSON_VALUE(properties, '$.variant.type') IN ${queryBuilder.addQueryValue(
         channels,
