@@ -1207,8 +1207,8 @@ function segmentToResolvedState({
     }
     case SegmentNodeType.LastPerformed: {
       const varName = qb.getVariableName();
-      const hasPropertyConditions = node.hasProperties.flatMap(
-        (property, i) => {
+      const hasPropertyConditions =
+        node.hasProperties?.flatMap((property, i) => {
           const operatorType = property.operator.type;
           const reference =
             i === 0
@@ -1234,8 +1234,7 @@ function segmentToResolvedState({
                 `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
               );
           }
-        },
-      );
+        }) ?? [];
       const expression = hasPropertyConditions.length
         ? `(${hasPropertyConditions.join(" and ")})`
         : `1=1`;
@@ -1782,16 +1781,17 @@ export function segmentNodeToStateSubQuery({
       const wherePropertyClause = whereConditions?.length
         ? `and (${whereConditions.join(" and ")})`
         : "";
-      const propertyValues = node.hasProperties.flatMap((property) => {
-        const path = toJsonPathParamCh({
-          path: property.path,
-          qb,
-        });
-        if (!path) {
-          return [];
-        }
-        return `JSON_VALUE(properties, ${path})`;
-      });
+      const propertyValues =
+        node.hasProperties?.flatMap((property) => {
+          const path = toJsonPathParamCh({
+            path: property.path,
+            qb,
+          });
+          if (!path) {
+            return [];
+          }
+          return `JSON_VALUE(properties, ${path})`;
+        }) ?? [];
       if (propertyValues.length === 0) {
         return [];
       }

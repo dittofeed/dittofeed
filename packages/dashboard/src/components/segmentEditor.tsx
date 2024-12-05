@@ -65,8 +65,8 @@ import useLoadTraits from "../lib/useLoadTraits";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
-import TraitAutocomplete from "./traitAutocomplete";
 import InfoTooltip from "./infoTooltip";
+import TraitAutocomplete from "./traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -2098,10 +2098,7 @@ function SegmentNodeComponent({
     [isRoot],
   );
 
-  if (
-    node.type === SegmentNodeType.LastPerformed ||
-    node.type === SegmentNodeType.Broadcast
-  ) {
+  if (node.type === SegmentNodeType.Broadcast) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
 
@@ -2231,6 +2228,15 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.LastPerformed) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+        <LastPerformedSelect node={node} />
         {deleteButton}
       </Stack>
     );
