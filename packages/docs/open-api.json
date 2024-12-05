@@ -20609,23 +20609,33 @@
           },
           {
             "schema": {
-              "type": "string"
-            },
-            "examples": {
-              "1043": {
-                "value": "1043"
-              },
-              "user-123": {
-                "value": "user-123"
-              },
-              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
-                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-              }
+              "anyOf": [
+                {
+                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                  "examples": [
+                    "1043",
+                    "user-123",
+                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                    "examples": [
+                      "1043",
+                      "user-123",
+                      "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                    ],
+                    "type": "string"
+                  }
+                }
+              ]
             },
             "in": "query",
             "name": "userId",
-            "required": false,
-            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
+            "required": true
           },
           {
             "schema": {
@@ -45646,23 +45656,33 @@
           },
           {
             "schema": {
-              "type": "string"
-            },
-            "examples": {
-              "1043": {
-                "value": "1043"
-              },
-              "user-123": {
-                "value": "user-123"
-              },
-              "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b": {
-                "value": "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-              }
+              "anyOf": [
+                {
+                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                  "examples": [
+                    "1043",
+                    "user-123",
+                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                    "examples": [
+                      "1043",
+                      "user-123",
+                      "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                    ],
+                    "type": "string"
+                  }
+                }
+              ]
             },
             "in": "query",
             "name": "userId",
-            "required": false,
-            "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users."
+            "required": true
           },
           {
             "schema": {
