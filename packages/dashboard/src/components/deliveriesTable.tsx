@@ -21,6 +21,7 @@ import {
   ChannelType,
   CompletionStatus,
   EphemeralRequestStatus,
+  InternalEventType,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
@@ -93,6 +94,33 @@ const initPreviewObject = () => {
     channelType: "",
   };
 };
+
+function humanizeStatus(status: string) {
+  switch (status) {
+    case InternalEventType.MessageSent:
+      return "Sent";
+    case InternalEventType.MessageFailure:
+      return "Failed";
+    case InternalEventType.EmailBounced:
+      return "Bounced";
+    case InternalEventType.EmailMarkedSpam:
+      return "Marked as spam";
+    case InternalEventType.EmailDelivered:
+      return "Delivered";
+    case InternalEventType.EmailOpened:
+      return "Opened";
+    case InternalEventType.EmailClicked:
+      return "Clicked";
+    case InternalEventType.EmailDropped:
+      return "Dropped";
+    case InternalEventType.SmsDelivered:
+      return "Delivered";
+    case InternalEventType.SmsFailed:
+      return "Failed";
+    default:
+      return status;
+  }
+}
 
 const baseColumn: Partial<GridColDef<TableItem>> = {
   flex: 1,
@@ -451,7 +479,7 @@ export function DeliveriesTable({
           from,
           subject,
           replyTo,
-          status: item.status,
+          status: humanizeStatus(item.status),
           channel,
           body,
           ...origin,
