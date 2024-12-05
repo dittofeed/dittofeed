@@ -204,6 +204,7 @@ interface DeliveriesTableExtendedProps {
   getDeliveriesRequest?: GetDeliveriesRequest;
   disableJourneyLinks?: boolean;
   disableTemplateLinks?: boolean;
+  disableUserId?: boolean;
 }
 
 export function DeliveriesTable({
@@ -212,6 +213,7 @@ export function DeliveriesTable({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
   disableJourneyLinks = false,
   disableTemplateLinks = false,
+  disableUserId = false,
 }: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> &
   DeliveriesTableExtendedProps) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
@@ -542,14 +544,18 @@ export function DeliveriesTable({
           rows={rows}
           loading={paginationRequest.type === CompletionStatus.InProgress}
           columns={[
-            {
-              field: "userId",
-              headerName: "User ID",
-              renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
-                const href = `/users/${row.userId}`;
-                return <LinkCell href={href} title={row.userId} />;
-              },
-            },
+            ...(disableUserId
+              ? []
+              : [
+                  {
+                    field: "userId",
+                    headerName: "User ID",
+                    renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+                      const href = `/users/${row.userId}`;
+                      return <LinkCell href={href} title={row.userId} />;
+                    },
+                  },
+                ]),
             {
               field: "to",
               headerName: "To",

@@ -23,7 +23,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 export default function DeliveriesPage() {
   return (
     <DashboardContent>
-      <DeliveriesTable />
+      <DeliveriesTable disableUserId />
     </DashboardContent>
   );
 }
