@@ -1224,7 +1224,7 @@ function segmentToResolvedState({
               )}`;
             }
             case SegmentOperatorType.NotEquals: {
-              return `${indexedReference} != ${qb.addQueryValue(
+              return `toString(${indexedReference}) != ${qb.addQueryValue(
                 String(property.operator.value),
                 "String",
               )}`;
@@ -1637,7 +1637,7 @@ export function segmentNodeToStateSubQuery({
         }
         switch (operator.type) {
           case SegmentOperatorType.Equals: {
-            return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
+            return `toString(JSON_VALUE(properties, ${path})) == ${qb.addQueryValue(
               operator.value,
               "String",
             )}`;
@@ -1663,7 +1663,7 @@ export function segmentNodeToStateSubQuery({
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
-            return `JSON_VALUE(properties, ${path}) != ${qb.addQueryValue(
+            return `toString(JSON_VALUE(properties, ${path})) != ${qb.addQueryValue(
               operator.value,
               "String",
             )}`;

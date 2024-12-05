@@ -4168,7 +4168,6 @@ describe("computeProperties", () => {
       description:
         "last performed segment with equals numeric value where property",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "lastPerformed",
