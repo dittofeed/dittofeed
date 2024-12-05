@@ -676,9 +676,6 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           <MenuItem value={SegmentOperatorType.NotEquals}>
             {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
           </MenuItem>
-          <MenuItem value={SegmentOperatorType.Exists}>
-            {keyedOperatorOptions[SegmentOperatorType.Exists].label}
-          </MenuItem>
           <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
             {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
           </MenuItem>
