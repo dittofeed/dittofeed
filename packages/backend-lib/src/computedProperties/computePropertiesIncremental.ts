@@ -1231,14 +1231,14 @@ function segmentToResolvedState({
             }
             case SegmentOperatorType.GreaterThanOrEqual: {
               const operatorVarName = qb.getVariableName();
-              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
+              return `(toFloat64OrNull(${indexedReference}) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
                 property.operator.value,
                 "Float64",
               )}`;
             }
             case SegmentOperatorType.LessThan: {
               const operatorVarName = qb.getVariableName();
-              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
+              return `(toFloat64OrNull(${indexedReference}) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
                 property.operator.value,
                 "Float64",
               )}`;
