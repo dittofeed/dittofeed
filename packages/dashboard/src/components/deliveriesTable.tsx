@@ -205,6 +205,7 @@ interface DeliveriesTableExtendedProps {
   disableJourneyLinks?: boolean;
   disableTemplateLinks?: boolean;
   disableUserId?: boolean;
+  showSnippet?: boolean;
 }
 
 export function DeliveriesTable({
@@ -214,6 +215,7 @@ export function DeliveriesTable({
   disableJourneyLinks = false,
   disableTemplateLinks = false,
   disableUserId = false,
+  showSnippet = false,
 }: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> &
   DeliveriesTableExtendedProps) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
@@ -568,6 +570,36 @@ export function DeliveriesTable({
               field: "status",
               headerName: "Status",
             },
+            ...(showSnippet
+              ? [
+                  {
+                    field: "snippet",
+                    headerName: "Snippet",
+                    flex: 2,
+                    renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+                      const content =
+                        row.channel === ChannelType.Email
+                          ? row.subject
+                          : row.body;
+                      if (!content) return null;
+                      return (
+                        <Tooltip title={content}>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {content}
+                          </Box>
+                        </Tooltip>
+                      );
+                    },
+                  },
+                ]
+              : []),
             {
               field: "originId",
               flex: 1,
