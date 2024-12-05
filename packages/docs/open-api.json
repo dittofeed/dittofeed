@@ -11206,8 +11206,7 @@
                                         "required": [
                                           "type",
                                           "id",
-                                          "event",
-                                          "hasProperties"
+                                          "event"
                                         ]
                                       },
                                       {
@@ -12472,8 +12471,7 @@
                                       "required": [
                                         "type",
                                         "id",
-                                        "event",
-                                        "hasProperties"
+                                        "event"
                                       ]
                                     },
                                     {
@@ -13607,8 +13605,7 @@
                                     "required": [
                                       "type",
                                       "id",
-                                      "event",
-                                      "hasProperties"
+                                      "event"
                                     ]
                                   },
                                   {
@@ -14873,8 +14870,7 @@
                                   "required": [
                                     "type",
                                     "id",
-                                    "event",
-                                    "hasProperties"
+                                    "event"
                                   ]
                                 },
                                 {
@@ -16010,8 +16006,7 @@
                                   "required": [
                                     "type",
                                     "id",
-                                    "event",
-                                    "hasProperties"
+                                    "event"
                                   ]
                                 },
                                 {
@@ -17276,8 +17271,7 @@
                                 "required": [
                                   "type",
                                   "id",
-                                  "event",
-                                  "hasProperties"
+                                  "event"
                                 ]
                               },
                               {
@@ -28368,8 +28362,7 @@
                                         "required": [
                                           "type",
                                           "id",
-                                          "event",
-                                          "hasProperties"
+                                          "event"
                                         ]
                                       },
                                       {
@@ -29634,8 +29627,7 @@
                                       "required": [
                                         "type",
                                         "id",
-                                        "event",
-                                        "hasProperties"
+                                        "event"
                                       ]
                                     },
                                     {
@@ -30769,8 +30761,7 @@
                                     "required": [
                                       "type",
                                       "id",
-                                      "event",
-                                      "hasProperties"
+                                      "event"
                                     ]
                                   },
                                   {
@@ -32035,8 +32026,7 @@
                                   "required": [
                                     "type",
                                     "id",
-                                    "event",
-                                    "hasProperties"
+                                    "event"
                                   ]
                                 },
                                 {
@@ -33172,8 +33162,7 @@
                                   "required": [
                                     "type",
                                     "id",
-                                    "event",
-                                    "hasProperties"
+                                    "event"
                                   ]
                                 },
                                 {
@@ -34438,8 +34427,7 @@
                                 "required": [
                                   "type",
                                   "id",
-                                  "event",
-                                  "hasProperties"
+                                  "event"
                                 ]
                               },
                               {
@@ -47343,8 +47331,7 @@
                                 "required": [
                                   "type",
                                   "id",
-                                  "event",
-                                  "hasProperties"
+                                  "event"
                                 ]
                               },
                               {
@@ -48609,8 +48596,7 @@
                               "required": [
                                 "type",
                                 "id",
-                                "event",
-                                "hasProperties"
+                                "event"
                               ]
                             },
                             {
