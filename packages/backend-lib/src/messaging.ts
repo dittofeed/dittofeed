@@ -653,6 +653,9 @@ export async function sendEmail({
       replyTo: {
         contents: messageTemplateDefinition.replyTo,
       },
+      name: {
+        contents: messageTemplateDefinition.name,
+      },
     },
     secrets: subscriptionGroupSecret
       ? {
@@ -687,9 +690,11 @@ export async function sendEmail({
     subject,
     body,
     replyTo: baseReplyTo,
+    name: baseName,
   } = renderedValuesResult.value;
   // don't pass an empty string for reply to values
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
+  const emailName = !baseName?.length ? undefined : baseName;
   const to = identifier;
 
   let customHeaders: Record<string, string> | undefined;
@@ -874,6 +879,7 @@ export async function sendEmail({
         to,
         subject,
         replyTo,
+        name: emailName,
         body,
         host,
         port: numPort,
@@ -899,6 +905,7 @@ export async function sendEmail({
           subject,
           headers,
           replyTo,
+          name: emailName,
           provider: {
             type: EmailProviderType.Smtp,
             messageId: result.value.messageId,
@@ -930,7 +937,10 @@ export async function sendEmail({
         }));
       const mailData: MailDataRequired = {
         to,
-        from,
+        from: {
+          email: from,
+          name: emailName,
+        },
         subject,
         html: body,
         replyTo,
@@ -982,6 +992,7 @@ export async function sendEmail({
           subject,
           headers,
           replyTo,
+          name: emailName,
           provider: {
             type: EmailProviderType.Sendgrid,
           },
@@ -1002,6 +1013,7 @@ export async function sendEmail({
       const mailData: Parameters<typeof sendMailAmazonSes>[0]["mailData"] = {
         to,
         from,
+        name: emailName,
         subject,
         html: body,
         replyTo,
@@ -1058,6 +1070,7 @@ export async function sendEmail({
           subject,
           headers,
           replyTo,
+          name: emailName,
           provider: {
             type: EmailProviderType.AmazonSes,
             messageId: result.value.MessageId,
@@ -1083,9 +1096,10 @@ export async function sendEmail({
           filename: attachment.name,
           content: attachment.data,
         }));
+      const fromWithName = emailName ? `${emailName} <${from}>` : from;
       const mailData: ResendRequiredData = {
         to,
-        from,
+        from: fromWithName,
         subject,
         html: body,
         reply_to: replyTo,
@@ -1132,6 +1146,7 @@ export async function sendEmail({
         variant: {
           type: ChannelType.Email,
           from,
+          name: emailName,
           body,
           to,
           headers,
@@ -1167,9 +1182,10 @@ export async function sendEmail({
               }),
             }))
           : [];
+      const fromWithName = emailName ? `${emailName} <${from}>` : from;
       const mailData: PostMarkRequiredFields = {
         To: to,
-        From: from,
+        From: fromWithName,
         Subject: subject,
         HtmlBody: body,
         ReplyTo: replyTo,
@@ -1223,6 +1239,7 @@ export async function sendEmail({
         variant: {
           type: ChannelType.Email,
           from,
+          name: emailName,
           body,
           to,
           subject,
@@ -1241,6 +1258,7 @@ export async function sendEmail({
       const mailData: MessagesMessage = {
         html: body,
         text: body,
+        from_name: emailName,
         subject,
         from_email: from,
         to: [{ email: to }],
@@ -1305,6 +1323,7 @@ export async function sendEmail({
           type: ChannelType.Email,
           from,
           body,
+          name: emailName,
           to,
           subject,
           replyTo,

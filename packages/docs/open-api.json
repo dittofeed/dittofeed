@@ -443,6 +443,9 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "name": {
+                                        "type": "string"
+                                      },
                                       "headers": {
                                         "type": "array",
                                         "items": {
@@ -504,6 +507,9 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "name": {
                                         "type": "string"
                                       },
                                       "headers": {
@@ -649,6 +655,9 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "name": {
+                                        "type": "string"
+                                      },
                                       "headers": {
                                         "type": "array",
                                         "items": {
@@ -710,6 +719,9 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "name": {
                                         "type": "string"
                                       },
                                       "headers": {
@@ -899,6 +911,9 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "name": {
+                                "type": "string"
+                              },
                               "headers": {
                                 "type": "array",
                                 "items": {
@@ -960,6 +975,9 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "name": {
                                 "type": "string"
                               },
                               "headers": {
@@ -1107,6 +1125,9 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "name": {
+                                    "type": "string"
+                                  },
                                   "headers": {
                                     "type": "array",
                                     "items": {
@@ -1168,6 +1189,9 @@
                                     "type": "string"
                                   },
                                   "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "name": {
                                     "type": "string"
                                   },
                                   "headers": {
@@ -1373,6 +1397,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -1434,6 +1461,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -1579,6 +1609,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -1640,6 +1673,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -2042,6 +2078,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -2103,6 +2142,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -2248,6 +2290,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -2309,6 +2354,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -2798,6 +2846,9 @@
                                           "type": "string"
                                         },
                                         "replyTo": {
+                                          "type": "string"
+                                        },
+                                        "name": {
                                           "type": "string"
                                         },
                                         "attachmentUserProperties": {
@@ -20963,6 +21014,9 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "name": {
+                                    "type": "string"
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -21084,6 +21138,9 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "name": {
                                 "type": "string"
                               },
                               "headers": {
@@ -41875,6 +41932,9 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "name": {
+                                        "type": "string"
+                                      },
                                       "headers": {
                                         "type": "array",
                                         "items": {
@@ -41936,6 +41996,9 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "name": {
                                         "type": "string"
                                       },
                                       "headers": {
@@ -42081,6 +42144,9 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "name": {
+                                        "type": "string"
+                                      },
                                       "headers": {
                                         "type": "array",
                                         "items": {
@@ -42142,6 +42208,9 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "name": {
                                         "type": "string"
                                       },
                                       "headers": {
@@ -42330,6 +42399,9 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "name": {
+                                "type": "string"
+                              },
                               "headers": {
                                 "type": "array",
                                 "items": {
@@ -42391,6 +42463,9 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "name": {
                                 "type": "string"
                               },
                               "headers": {
@@ -42538,6 +42613,9 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "name": {
+                                    "type": "string"
+                                  },
                                   "headers": {
                                     "type": "array",
                                     "items": {
@@ -42599,6 +42677,9 @@
                                     "type": "string"
                                   },
                                   "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "name": {
                                     "type": "string"
                                   },
                                   "headers": {
@@ -42804,6 +42885,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -42865,6 +42949,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -43010,6 +43097,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -43071,6 +43161,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -43473,6 +43566,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -43534,6 +43630,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -43679,6 +43778,9 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "name": {
+                                  "type": "string"
+                                },
                                 "headers": {
                                   "type": "array",
                                   "items": {
@@ -43740,6 +43842,9 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "name": {
                                   "type": "string"
                                 },
                                 "headers": {
@@ -44229,6 +44334,9 @@
                                           "type": "string"
                                         },
                                         "replyTo": {
+                                          "type": "string"
+                                        },
+                                        "name": {
                                           "type": "string"
                                         },
                                         "attachmentUserProperties": {
@@ -45943,6 +46051,9 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "name": {
+                                    "type": "string"
+                                  },
                                   "attachmentUserProperties": {
                                     "description": "Names of user properties to attach to the email as attachments.",
                                     "type": "array",
@@ -46064,6 +46175,9 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "name": {
                                 "type": "string"
                               },
                               "headers": {
@@ -48703,6 +48817,9 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "name": {
+                                "type": "string"
+                              },
                               "headers": {
                                 "type": "array",
                                 "items": {
@@ -48764,6 +48881,9 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "name": {
                                 "type": "string"
                               },
                               "headers": {
