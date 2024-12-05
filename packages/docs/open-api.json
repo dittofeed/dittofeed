@@ -20635,7 +20635,7 @@
             },
             "in": "query",
             "name": "userId",
-            "required": true
+            "required": false
           },
           {
             "schema": {
@@ -45682,7 +45682,7 @@
             },
             "in": "query",
             "name": "userId",
-            "required": true
+            "required": false
           },
           {
             "schema": {
