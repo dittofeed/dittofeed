@@ -737,19 +737,17 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         );
         break;
       }
-      case SegmentOperatorType.GreaterThanOrEqual: {
+      case SegmentOperatorType.NotEquals: {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
           updateSegmentNodeData(node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
-              const newValue = Number(e.target.value);
+              const newValue = e.target.value;
               const existingProperty = n.whereProperties?.[i];
               if (
                 !existingProperty ||
-                existingProperty.operator.type !==
-                  SegmentOperatorType.GreaterThanOrEqual ||
-                Number.isNaN(newValue)
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
               ) {
                 return;
               }
@@ -760,41 +758,6 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         operatorEl = (
           <TextField
             label="Property Value"
-            InputProps={{
-              type: "number",
-            }}
-            onChange={handlePropertyValueChange}
-            value={property.operator.value}
-          />
-        );
-        break;
-      }
-      case SegmentOperatorType.LessThan: {
-        const handlePropertyValueChange = (
-          e: React.ChangeEvent<HTMLInputElement>,
-        ) => {
-          updateSegmentNodeData(node.id, (n) => {
-            if (n.type === SegmentNodeType.LastPerformed) {
-              const newValue = Number(e.target.value);
-              const existingProperty = n.whereProperties?.[i];
-              if (
-                !existingProperty ||
-                existingProperty.operator.type !==
-                  SegmentOperatorType.LessThan ||
-                Number.isNaN(newValue)
-              ) {
-                return;
-              }
-              existingProperty.operator.value = newValue;
-            }
-          });
-        };
-        operatorEl = (
-          <TextField
-            label="Property Value"
-            InputProps={{
-              type: "number",
-            }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
           />
@@ -802,6 +765,10 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         break;
       }
       case SegmentOperatorType.Exists: {
+        operatorEl = null;
+        break;
+      }
+      case SegmentOperatorType.NotExists: {
         operatorEl = null;
         break;
       }

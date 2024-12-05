@@ -1229,6 +1229,20 @@ function segmentToResolvedState({
                 "String",
               )}`;
             }
+            case SegmentOperatorType.GreaterThanOrEqual: {
+              const operatorVarName = qb.getVariableName();
+              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) >= ${qb.addQueryValue(
+                property.operator.value,
+                "Float64",
+              )}`;
+            }
+            case SegmentOperatorType.LessThan: {
+              const operatorVarName = qb.getVariableName();
+              return `(toFloat64OrNull(JSON_VALUE(properties, ${indexedReference})) as ${operatorVarName}) is not Null and assumeNotNull(${operatorVarName}) < ${qb.addQueryValue(
+                property.operator.value,
+                "Float64",
+              )}`;
+            }
             default:
               throw new Error(
                 `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
@@ -1771,6 +1785,12 @@ export function segmentNodeToStateSubQuery({
               property.operator.value,
               "String",
             )}`;
+          }
+          case SegmentOperatorType.Exists: {
+            return `${propertyValue} != ''`;
+          }
+          case SegmentOperatorType.NotExists: {
+            return `${propertyValue} == ''`;
           }
           default:
             throw new Error(
