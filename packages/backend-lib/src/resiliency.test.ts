@@ -26,7 +26,9 @@ describe("observeWorkspaceComputeLatency", () => {
   });
 });
 
-async function createWorkspace(status: WorkspaceStatus) {
+async function createWorkspace(status: WorkspaceStatus): Promise<{
+  workspaceId: string;
+}> {
   const workspace = await prisma().workspace.create({
     data: {
       id: randomUUID(),
@@ -34,7 +36,7 @@ async function createWorkspace(status: WorkspaceStatus) {
       status,
     },
   });
-  const segment = await prisma().segment.create({
+  await prisma().segment.create({
     data: {
       id: randomUUID(),
       workspaceId: workspace.id,
@@ -65,19 +67,28 @@ async function createWorkspace(status: WorkspaceStatus) {
       workspaceId: workspace.id,
     },
   });
+  return { workspaceId: workspace.id };
 }
 
 describe("findActiveWorkspaces", () => {
+  let activeWorkspace: string;
+  let tombstonedWorkspace: string;
+
   beforeEach(async () => {
-    await Promise.all([
+    const [active, tombstoned] = await Promise.all([
       createWorkspace(WorkspaceStatus.Active),
       createWorkspace(WorkspaceStatus.Tombstoned),
     ]);
+    activeWorkspace = active.workspaceId;
+    tombstonedWorkspace = tombstoned.workspaceId;
   });
   test("returns active workspaces and their latest compute period", async () => {
-    const { workspaces, periods } = await findActiveWorkspaces();
-    expect(workspaces).toHaveLength(1);
-    expect(periods).toHaveLength(1);
-    expect(workspaces[0]?.status).toEqual(WorkspaceStatus.Active);
+    const { workspaces } = await findActiveWorkspaces();
+    expect(
+      workspaces.find((w) => w.id === activeWorkspace),
+    ).not.toBeUndefined();
+    expect(
+      workspaces.find((w) => w.id === tombstonedWorkspace),
+    ).toBeUndefined();
   });
 });

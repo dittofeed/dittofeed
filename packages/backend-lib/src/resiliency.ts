@@ -173,7 +173,7 @@ export async function findActiveWorkspaces(): Promise<{
         JOIN "Workspace" ON "ComputedPropertyPeriod"."workspaceId" = "Workspace"."id"
         WHERE
           "step" = ${ComputedPropertyStep.ProcessAssignments}
-          AND "Workspace"."status" = CAST('${WorkspaceStatus.Active}' AS "WorkspaceStatus")
+          AND "Workspace"."status" = ${WorkspaceStatus.Active}::text::\"WorkspaceStatus\"
         GROUP BY "workspaceId";
       `;
       return prisma().$queryRaw<{ to: Date; workspaceId: string }[]>(
