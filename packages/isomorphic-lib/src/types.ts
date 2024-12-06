@@ -931,10 +931,29 @@ export const MobilePushMessageVariant = Type.Object({
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 
+export enum TwilioSenderOverrideType {
+  MessageSid = "MessageSid",
+  PhoneNumber = "PhoneNumber",
+}
+
+export const TwilioSenderOverride = Type.Union([
+  Type.Object({
+    type: Type.Literal(TwilioSenderOverrideType.MessageSid),
+    messageSid: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal(TwilioSenderOverrideType.PhoneNumber),
+    phoneNumber: Type.String(),
+  }),
+]);
+
+export type TwilioSenderOverride = Static<typeof TwilioSenderOverride>;
+
 const BaseSmsMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   templateId: Type.String(),
 });
+
 export const SmsMessageVariant = Type.Union([
   Type.Composite([
     BaseSmsMessageVariant,
@@ -946,6 +965,7 @@ export const SmsMessageVariant = Type.Union([
     BaseSmsMessageVariant,
     Type.Object({
       providerOverride: Type.Literal(SmsProviderType.Twilio),
+      senderOverride: Type.Optional(TwilioSenderOverride),
     }),
   ]),
   Type.Composite([
