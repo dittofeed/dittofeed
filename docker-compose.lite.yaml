@@ -110,6 +110,10 @@ services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:23.8.8.20-alpine
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: ${CLICKHOUSE_CONTAINER_MEM_LIMIT:-1024}m
     environment:
       <<: *clickhouse-credentials
     ports:
