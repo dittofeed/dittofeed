@@ -18812,8 +18812,12 @@
                         "type": "string"
                       },
                       "definition": {
+                        "title": "UserPropertyDefinition",
+                        "description": "A user property definition.",
                         "anyOf": [
                           {
+                            "title": "IdUserPropertyDefinition",
+                            "description": "A user property definition that resolves to a user's id.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -18828,6 +18832,8 @@
                             ]
                           },
                           {
+                            "title": "AnonymousIdUserPropertyDefinition",
+                            "description": "A user property definition that resolves to a user's anonymous id.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -18842,6 +18848,8 @@
                             ]
                           },
                           {
+                            "title": "GroupUserPropertyDefinition",
+                            "description": "A user property definition that is a parent of other user property definitions.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -18856,8 +18864,12 @@
                               "nodes": {
                                 "type": "array",
                                 "items": {
+                                  "title": "GroupChildrenUserPropertyDefinitions",
+                                  "description": "A user property definition that is a child of a group user property definition.",
                                   "anyOf": [
                                     {
+                                      "title": "GroupParentUserPropertyDefinitions",
+                                      "description": "A user property definition that is a parent of other user property definitions.",
                                       "type": "object",
                                       "properties": {
                                         "id": {
@@ -18883,8 +18895,12 @@
                                       ]
                                     },
                                     {
+                                      "title": "LeafUserPropertyDefinition",
+                                      "description": "Child of a group user property definition.",
                                       "anyOf": [
                                         {
+                                          "title": "TraitUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a matching trait.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -18906,6 +18922,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "PerformedUserPropertyDefinition",
+                                          "description": "A user property definition that renders the last matching track event.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -18964,6 +18982,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "FileUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a file.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -18985,6 +19005,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "KeyedPerformedUserPropertyDefinition",
+                                          "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -19059,8 +19081,12 @@
                             ]
                           },
                           {
+                            "title": "LeafUserPropertyDefinition",
+                            "description": "Child of a group user property definition.",
                             "anyOf": [
                               {
+                                "title": "TraitUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a matching trait.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -19082,6 +19108,8 @@
                                 ]
                               },
                               {
+                                "title": "PerformedUserPropertyDefinition",
+                                "description": "A user property definition that renders the last matching track event.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -19140,6 +19168,8 @@
                                 ]
                               },
                               {
+                                "title": "FileUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a file.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -19161,6 +19191,8 @@
                                 ]
                               },
                               {
+                                "title": "KeyedPerformedUserPropertyDefinition",
+                                "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -19225,6 +19257,8 @@
                             ]
                           },
                           {
+                            "title": "PerformedManyUserPropertyDefinition",
+                            "description": "A user property definition that renders all matching track events.",
                             "type": "object",
                             "properties": {
                               "id": {
@@ -19307,8 +19341,12 @@
                       "type": "string"
                     },
                     "definition": {
+                      "title": "UserPropertyDefinition",
+                      "description": "A user property definition.",
                       "anyOf": [
                         {
+                          "title": "IdUserPropertyDefinition",
+                          "description": "A user property definition that resolves to a user's id.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -19323,6 +19361,8 @@
                           ]
                         },
                         {
+                          "title": "AnonymousIdUserPropertyDefinition",
+                          "description": "A user property definition that resolves to a user's anonymous id.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -19337,6 +19377,8 @@
                           ]
                         },
                         {
+                          "title": "GroupUserPropertyDefinition",
+                          "description": "A user property definition that is a parent of other user property definitions.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -19351,8 +19393,12 @@
                             "nodes": {
                               "type": "array",
                               "items": {
+                                "title": "GroupChildrenUserPropertyDefinitions",
+                                "description": "A user property definition that is a child of a group user property definition.",
                                 "anyOf": [
                                   {
+                                    "title": "GroupParentUserPropertyDefinitions",
+                                    "description": "A user property definition that is a parent of other user property definitions.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -19378,8 +19424,12 @@
                                     ]
                                   },
                                   {
+                                    "title": "LeafUserPropertyDefinition",
+                                    "description": "Child of a group user property definition.",
                                     "anyOf": [
                                       {
+                                        "title": "TraitUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a matching trait.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -19401,6 +19451,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "PerformedUserPropertyDefinition",
+                                        "description": "A user property definition that renders the last matching track event.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -19459,6 +19511,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "FileUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a file.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -19480,6 +19534,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "KeyedPerformedUserPropertyDefinition",
+                                        "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -19554,8 +19610,12 @@
                           ]
                         },
                         {
+                          "title": "LeafUserPropertyDefinition",
+                          "description": "Child of a group user property definition.",
                           "anyOf": [
                             {
+                              "title": "TraitUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a matching trait.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -19577,6 +19637,8 @@
                               ]
                             },
                             {
+                              "title": "PerformedUserPropertyDefinition",
+                              "description": "A user property definition that renders the last matching track event.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -19635,6 +19697,8 @@
                               ]
                             },
                             {
+                              "title": "FileUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a file.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -19656,6 +19720,8 @@
                               ]
                             },
                             {
+                              "title": "KeyedPerformedUserPropertyDefinition",
+                              "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -19720,6 +19786,8 @@
                           ]
                         },
                         {
+                          "title": "PerformedManyUserPropertyDefinition",
+                          "description": "A user property definition that renders all matching track events.",
                           "type": "object",
                           "properties": {
                             "id": {
@@ -19814,8 +19882,12 @@
                             "type": "string"
                           },
                           "definition": {
+                            "title": "UserPropertyDefinition",
+                            "description": "A user property definition.",
                             "anyOf": [
                               {
+                                "title": "IdUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a user's id.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -19830,6 +19902,8 @@
                                 ]
                               },
                               {
+                                "title": "AnonymousIdUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a user's anonymous id.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -19844,6 +19918,8 @@
                                 ]
                               },
                               {
+                                "title": "GroupUserPropertyDefinition",
+                                "description": "A user property definition that is a parent of other user property definitions.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -19858,8 +19934,12 @@
                                   "nodes": {
                                     "type": "array",
                                     "items": {
+                                      "title": "GroupChildrenUserPropertyDefinitions",
+                                      "description": "A user property definition that is a child of a group user property definition.",
                                       "anyOf": [
                                         {
+                                          "title": "GroupParentUserPropertyDefinitions",
+                                          "description": "A user property definition that is a parent of other user property definitions.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -19885,8 +19965,12 @@
                                           ]
                                         },
                                         {
+                                          "title": "LeafUserPropertyDefinition",
+                                          "description": "Child of a group user property definition.",
                                           "anyOf": [
                                             {
+                                              "title": "TraitUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a matching trait.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -19908,6 +19992,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "PerformedUserPropertyDefinition",
+                                              "description": "A user property definition that renders the last matching track event.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -19966,6 +20052,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "FileUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a file.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -19987,6 +20075,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "KeyedPerformedUserPropertyDefinition",
+                                              "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -20061,8 +20151,12 @@
                                 ]
                               },
                               {
+                                "title": "LeafUserPropertyDefinition",
+                                "description": "Child of a group user property definition.",
                                 "anyOf": [
                                   {
+                                    "title": "TraitUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a matching trait.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -20084,6 +20178,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "PerformedUserPropertyDefinition",
+                                    "description": "A user property definition that renders the last matching track event.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -20142,6 +20238,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "FileUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a file.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -20163,6 +20261,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "KeyedPerformedUserPropertyDefinition",
+                                    "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -20227,6 +20327,8 @@
                                 ]
                               },
                               {
+                                "title": "PerformedManyUserPropertyDefinition",
+                                "description": "A user property definition that renders all matching track events.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -25855,8 +25957,12 @@
                         "type": "string"
                       },
                       "definition": {
+                        "title": "UserPropertyDefinition",
+                        "description": "A user property definition.",
                         "anyOf": [
                           {
+                            "title": "IdUserPropertyDefinition",
+                            "description": "A user property definition that resolves to a user's id.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -25871,6 +25977,8 @@
                             ]
                           },
                           {
+                            "title": "AnonymousIdUserPropertyDefinition",
+                            "description": "A user property definition that resolves to a user's anonymous id.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -25885,6 +25993,8 @@
                             ]
                           },
                           {
+                            "title": "GroupUserPropertyDefinition",
+                            "description": "A user property definition that is a parent of other user property definitions.",
                             "type": "object",
                             "properties": {
                               "type": {
@@ -25899,8 +26009,12 @@
                               "nodes": {
                                 "type": "array",
                                 "items": {
+                                  "title": "GroupChildrenUserPropertyDefinitions",
+                                  "description": "A user property definition that is a child of a group user property definition.",
                                   "anyOf": [
                                     {
+                                      "title": "GroupParentUserPropertyDefinitions",
+                                      "description": "A user property definition that is a parent of other user property definitions.",
                                       "type": "object",
                                       "properties": {
                                         "id": {
@@ -25926,8 +26040,12 @@
                                       ]
                                     },
                                     {
+                                      "title": "LeafUserPropertyDefinition",
+                                      "description": "Child of a group user property definition.",
                                       "anyOf": [
                                         {
+                                          "title": "TraitUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a matching trait.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -25949,6 +26067,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "PerformedUserPropertyDefinition",
+                                          "description": "A user property definition that renders the last matching track event.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -26007,6 +26127,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "FileUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a file.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -26028,6 +26150,8 @@
                                           ]
                                         },
                                         {
+                                          "title": "KeyedPerformedUserPropertyDefinition",
+                                          "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -26102,8 +26226,12 @@
                             ]
                           },
                           {
+                            "title": "LeafUserPropertyDefinition",
+                            "description": "Child of a group user property definition.",
                             "anyOf": [
                               {
+                                "title": "TraitUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a matching trait.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -26125,6 +26253,8 @@
                                 ]
                               },
                               {
+                                "title": "PerformedUserPropertyDefinition",
+                                "description": "A user property definition that renders the last matching track event.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -26183,6 +26313,8 @@
                                 ]
                               },
                               {
+                                "title": "FileUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a file.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -26204,6 +26336,8 @@
                                 ]
                               },
                               {
+                                "title": "KeyedPerformedUserPropertyDefinition",
+                                "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -26268,6 +26402,8 @@
                             ]
                           },
                           {
+                            "title": "PerformedManyUserPropertyDefinition",
+                            "description": "A user property definition that renders all matching track events.",
                             "type": "object",
                             "properties": {
                               "id": {
@@ -26350,8 +26486,12 @@
                       "type": "string"
                     },
                     "definition": {
+                      "title": "UserPropertyDefinition",
+                      "description": "A user property definition.",
                       "anyOf": [
                         {
+                          "title": "IdUserPropertyDefinition",
+                          "description": "A user property definition that resolves to a user's id.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -26366,6 +26506,8 @@
                           ]
                         },
                         {
+                          "title": "AnonymousIdUserPropertyDefinition",
+                          "description": "A user property definition that resolves to a user's anonymous id.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -26380,6 +26522,8 @@
                           ]
                         },
                         {
+                          "title": "GroupUserPropertyDefinition",
+                          "description": "A user property definition that is a parent of other user property definitions.",
                           "type": "object",
                           "properties": {
                             "type": {
@@ -26394,8 +26538,12 @@
                             "nodes": {
                               "type": "array",
                               "items": {
+                                "title": "GroupChildrenUserPropertyDefinitions",
+                                "description": "A user property definition that is a child of a group user property definition.",
                                 "anyOf": [
                                   {
+                                    "title": "GroupParentUserPropertyDefinitions",
+                                    "description": "A user property definition that is a parent of other user property definitions.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -26421,8 +26569,12 @@
                                     ]
                                   },
                                   {
+                                    "title": "LeafUserPropertyDefinition",
+                                    "description": "Child of a group user property definition.",
                                     "anyOf": [
                                       {
+                                        "title": "TraitUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a matching trait.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -26444,6 +26596,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "PerformedUserPropertyDefinition",
+                                        "description": "A user property definition that renders the last matching track event.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -26502,6 +26656,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "FileUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a file.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -26523,6 +26679,8 @@
                                         ]
                                       },
                                       {
+                                        "title": "KeyedPerformedUserPropertyDefinition",
+                                        "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -26597,8 +26755,12 @@
                           ]
                         },
                         {
+                          "title": "LeafUserPropertyDefinition",
+                          "description": "Child of a group user property definition.",
                           "anyOf": [
                             {
+                              "title": "TraitUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a matching trait.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -26620,6 +26782,8 @@
                               ]
                             },
                             {
+                              "title": "PerformedUserPropertyDefinition",
+                              "description": "A user property definition that renders the last matching track event.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -26678,6 +26842,8 @@
                               ]
                             },
                             {
+                              "title": "FileUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a file.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -26699,6 +26865,8 @@
                               ]
                             },
                             {
+                              "title": "KeyedPerformedUserPropertyDefinition",
+                              "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -26763,6 +26931,8 @@
                           ]
                         },
                         {
+                          "title": "PerformedManyUserPropertyDefinition",
+                          "description": "A user property definition that renders all matching track events.",
                           "type": "object",
                           "properties": {
                             "id": {
@@ -26857,8 +27027,12 @@
                             "type": "string"
                           },
                           "definition": {
+                            "title": "UserPropertyDefinition",
+                            "description": "A user property definition.",
                             "anyOf": [
                               {
+                                "title": "IdUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a user's id.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -26873,6 +27047,8 @@
                                 ]
                               },
                               {
+                                "title": "AnonymousIdUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a user's anonymous id.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -26887,6 +27063,8 @@
                                 ]
                               },
                               {
+                                "title": "GroupUserPropertyDefinition",
+                                "description": "A user property definition that is a parent of other user property definitions.",
                                 "type": "object",
                                 "properties": {
                                   "type": {
@@ -26901,8 +27079,12 @@
                                   "nodes": {
                                     "type": "array",
                                     "items": {
+                                      "title": "GroupChildrenUserPropertyDefinitions",
+                                      "description": "A user property definition that is a child of a group user property definition.",
                                       "anyOf": [
                                         {
+                                          "title": "GroupParentUserPropertyDefinitions",
+                                          "description": "A user property definition that is a parent of other user property definitions.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -26928,8 +27110,12 @@
                                           ]
                                         },
                                         {
+                                          "title": "LeafUserPropertyDefinition",
+                                          "description": "Child of a group user property definition.",
                                           "anyOf": [
                                             {
+                                              "title": "TraitUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a matching trait.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -26951,6 +27137,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "PerformedUserPropertyDefinition",
+                                              "description": "A user property definition that renders the last matching track event.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -27009,6 +27197,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "FileUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a file.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -27030,6 +27220,8 @@
                                               ]
                                             },
                                             {
+                                              "title": "KeyedPerformedUserPropertyDefinition",
+                                              "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -27104,8 +27296,12 @@
                                 ]
                               },
                               {
+                                "title": "LeafUserPropertyDefinition",
+                                "description": "Child of a group user property definition.",
                                 "anyOf": [
                                   {
+                                    "title": "TraitUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a matching trait.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -27127,6 +27323,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "PerformedUserPropertyDefinition",
+                                    "description": "A user property definition that renders the last matching track event.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -27185,6 +27383,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "FileUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a file.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -27206,6 +27406,8 @@
                                     ]
                                   },
                                   {
+                                    "title": "KeyedPerformedUserPropertyDefinition",
+                                    "description": "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -27270,6 +27472,8 @@
                                 ]
                               },
                               {
+                                "title": "PerformedManyUserPropertyDefinition",
+                                "description": "A user property definition that renders all matching track events.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
