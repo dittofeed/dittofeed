@@ -931,11 +931,30 @@ export const MobilePushMessageVariant = Type.Object({
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 
-export const SmsMessageVariant = Type.Object({
+const BaseSmsMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   templateId: Type.String(),
-  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
 });
+export const SmsMessageVariant = Type.Union([
+  Type.Composite([
+    BaseSmsMessageVariant,
+    Type.Object({
+      providerOverride: Type.Optional(Type.Undefined()),
+    }),
+  ]),
+  Type.Composite([
+    BaseSmsMessageVariant,
+    Type.Object({
+      providerOverride: Type.Literal(SmsProviderType.Twilio),
+    }),
+  ]),
+  Type.Composite([
+    BaseSmsMessageVariant,
+    Type.Object({
+      providerOverride: Type.Literal(SmsProviderType.Test),
+    }),
+  ]),
+]);
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
 
