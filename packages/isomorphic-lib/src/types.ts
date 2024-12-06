@@ -482,26 +482,46 @@ export enum UserPropertyDefinitionType {
   File = "File",
 }
 
-export const TraitUserPropertyDefinition = Type.Object({
-  // set to optional for backwards compatibility
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.Trait),
-  path: Type.String(),
-});
+export const TraitUserPropertyDefinition = Type.Object(
+  {
+    // set to optional for backwards compatibility
+    id: Type.Optional(Type.String()),
+    type: Type.Literal(UserPropertyDefinitionType.Trait),
+    path: Type.String(),
+  },
+  {
+    title: "TraitUserPropertyDefinition",
+    description:
+      "A user property definition that resolves to a matching trait.",
+  },
+);
 
 export type TraitUserPropertyDefinition = Static<
   typeof TraitUserPropertyDefinition
 >;
 
-export const IdUserPropertyDefinition = Type.Object({
-  type: Type.Literal(UserPropertyDefinitionType.Id),
-});
+export const IdUserPropertyDefinition = Type.Object(
+  {
+    type: Type.Literal(UserPropertyDefinitionType.Id),
+  },
+  {
+    title: "IdUserPropertyDefinition",
+    description: "A user property definition that resolves to a user's id.",
+  },
+);
 
 export type IdUserPropertyDefinition = Static<typeof IdUserPropertyDefinition>;
 
-export const AnonymousIdUserPropertyDefinition = Type.Object({
-  type: Type.Literal(UserPropertyDefinitionType.AnonymousId),
-});
+export const AnonymousIdUserPropertyDefinition = Type.Object(
+  {
+    type: Type.Literal(UserPropertyDefinitionType.AnonymousId),
+  },
+  {
+    title: "AnonymousIdUserPropertyDefinition",
+    description:
+      "A user property definition that resolves to a user's anonymous id.",
+  },
+);
 
 export type AnonymousIdUserPropertyDefinition = Static<
   typeof AnonymousIdUserPropertyDefinition
@@ -520,41 +540,61 @@ export const UserPropertyOperator = Type.Union([UserPropertyEqualsOperator]);
 
 export type UserPropertyOperator = Static<typeof UserPropertyOperator>;
 
-export const PerformedUserPropertyDefinition = Type.Object({
-  // set to optional for backwards compatibility
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.Performed),
-  event: Type.String(),
-  path: Type.String(),
-  properties: Type.Optional(
-    Type.Array(
-      Type.Object({
-        path: Type.String(),
-        operator: UserPropertyOperator,
-      }),
+export const PerformedUserPropertyDefinition = Type.Object(
+  {
+    // set to optional for backwards compatibility
+    id: Type.Optional(Type.String()),
+    type: Type.Literal(UserPropertyDefinitionType.Performed),
+    event: Type.String(),
+    path: Type.String(),
+    properties: Type.Optional(
+      Type.Array(
+        Type.Object({
+          path: Type.String(),
+          operator: UserPropertyOperator,
+        }),
+      ),
     ),
-  ),
-});
+  },
+  {
+    title: "PerformedUserPropertyDefinition",
+    description:
+      "A user property definition that renders the last matching track event.",
+  },
+);
 
 export type PerformedUserPropertyDefinition = Static<
   typeof PerformedUserPropertyDefinition
 >;
 
-export const PerformedManyUserPropertyDefinition = Type.Object({
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.PerformedMany),
-  or: Type.Array(Type.Object({ event: Type.String() })),
-});
+export const PerformedManyUserPropertyDefinition = Type.Object(
+  {
+    id: Type.Optional(Type.String()),
+    type: Type.Literal(UserPropertyDefinitionType.PerformedMany),
+    or: Type.Array(Type.Object({ event: Type.String() })),
+  },
+  {
+    title: "PerformedManyUserPropertyDefinition",
+    description:
+      "A user property definition that renders all matching track events.",
+  },
+);
 
 export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
 >;
 
-export const FileUserPropertyDefinition = Type.Object({
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.File),
-  name: Type.String(),
-});
+export const FileUserPropertyDefinition = Type.Object(
+  {
+    id: Type.Optional(Type.String()),
+    type: Type.Literal(UserPropertyDefinitionType.File),
+    name: Type.String(),
+  },
+  {
+    title: "FileUserPropertyDefinition",
+    description: "A user property definition that resolves to a file.",
+  },
+);
 
 export type FileUserPropertyDefinition = Static<
   typeof FileUserPropertyDefinition
@@ -586,81 +626,123 @@ export const PerformedManyValue = Type.Array(PerformedManyValueItem);
 
 export type PerformedManyValue = Static<typeof PerformedManyValue>;
 
-export const AnyOfUserPropertyDefinition = Type.Object({
-  id: Type.String(),
-  type: Type.Literal(UserPropertyDefinitionType.AnyOf),
-  children: Type.Array(Type.String()),
-});
+export const AnyOfUserPropertyDefinition = Type.Object(
+  {
+    id: Type.String(),
+    type: Type.Literal(UserPropertyDefinitionType.AnyOf),
+    children: Type.Array(Type.String()),
+  },
+  {
+    title: "AnyOfUserPropertyDefinition",
+    description:
+      "A user property definition that resolves to the first matching user property definition.",
+  },
+);
 
 export type AnyOfUserPropertyDefinition = Static<
   typeof AnyOfUserPropertyDefinition
 >;
 
-export const GroupParentUserPropertyDefinitions = Type.Union([
-  AnyOfUserPropertyDefinition,
-]);
+export const GroupParentUserPropertyDefinitions = Type.Union(
+  [AnyOfUserPropertyDefinition],
+  {
+    title: "GroupParentUserPropertyDefinitions",
+    description:
+      "A user property definition that is a parent of other user property definitions.",
+  },
+);
 
 export type GroupParentUserPropertyDefinitions = Static<
   typeof GroupParentUserPropertyDefinitions
 >;
 
-export const KeyedPerformedUserPropertyDefinition = Type.Object({
-  id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
-  event: Type.String(),
-  path: Type.String(),
-  key: Type.String(),
-  properties: Type.Optional(
-    Type.Array(
-      Type.Object({
-        path: Type.String(),
-        operator: UserPropertyOperator,
-      }),
+export const KeyedPerformedUserPropertyDefinition = Type.Object(
+  {
+    id: Type.Optional(Type.String()),
+    type: Type.Literal(UserPropertyDefinitionType.KeyedPerformed),
+    event: Type.String(),
+    path: Type.String(),
+    key: Type.String(),
+    properties: Type.Optional(
+      Type.Array(
+        Type.Object({
+          path: Type.String(),
+          operator: UserPropertyOperator,
+        }),
+      ),
     ),
-  ),
-});
+  },
+  {
+    title: "KeyedPerformedUserPropertyDefinition",
+    description:
+      "A user property definition that renders the last matching track event with a given key. Used in event entry journeys.",
+  },
+);
 
 export type KeyedPerformedUserPropertyDefinition = Static<
   typeof KeyedPerformedUserPropertyDefinition
 >;
 
-export const LeafUserPropertyDefinition = Type.Union([
-  TraitUserPropertyDefinition,
-  PerformedUserPropertyDefinition,
-  FileUserPropertyDefinition,
-  KeyedPerformedUserPropertyDefinition,
-]);
+export const LeafUserPropertyDefinition = Type.Union(
+  [
+    TraitUserPropertyDefinition,
+    PerformedUserPropertyDefinition,
+    FileUserPropertyDefinition,
+    KeyedPerformedUserPropertyDefinition,
+  ],
+  {
+    title: "LeafUserPropertyDefinition",
+    description: "Child of a group user property definition.",
+  },
+);
 
 export type LeafUserPropertyDefinition = Static<
   typeof LeafUserPropertyDefinition
 >;
 
-export const GroupChildrenUserPropertyDefinitions = Type.Union([
-  GroupParentUserPropertyDefinitions,
-  LeafUserPropertyDefinition,
-]);
+export const GroupChildrenUserPropertyDefinitions = Type.Union(
+  [GroupParentUserPropertyDefinitions, LeafUserPropertyDefinition],
+  {
+    title: "GroupChildrenUserPropertyDefinitions",
+    description:
+      "A user property definition that is a child of a group user property definition.",
+  },
+);
 
 export type GroupChildrenUserPropertyDefinitions = Static<
   typeof GroupChildrenUserPropertyDefinitions
 >;
 
-export const GroupUserPropertyDefinition = Type.Object({
-  type: Type.Literal(UserPropertyDefinitionType.Group),
-  entry: Type.String(),
-  nodes: Type.Array(GroupChildrenUserPropertyDefinitions),
-});
+export const GroupUserPropertyDefinition = Type.Object(
+  {
+    type: Type.Literal(UserPropertyDefinitionType.Group),
+    entry: Type.String(),
+    nodes: Type.Array(GroupChildrenUserPropertyDefinitions),
+  },
+  {
+    title: "GroupUserPropertyDefinition",
+    description:
+      "A user property definition that is a parent of other user property definitions.",
+  },
+);
 
 export type GroupUserPropertyDefinition = Static<
   typeof GroupUserPropertyDefinition
 >;
 
-export const UserPropertyDefinition = Type.Union([
-  IdUserPropertyDefinition,
-  AnonymousIdUserPropertyDefinition,
-  GroupUserPropertyDefinition,
-  LeafUserPropertyDefinition,
-  PerformedManyUserPropertyDefinition,
-]);
+export const UserPropertyDefinition = Type.Union(
+  [
+    IdUserPropertyDefinition,
+    AnonymousIdUserPropertyDefinition,
+    GroupUserPropertyDefinition,
+    LeafUserPropertyDefinition,
+    PerformedManyUserPropertyDefinition,
+  ],
+  {
+    title: "UserPropertyDefinition",
+    description: "A user property definition.",
+  },
+);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;
 
