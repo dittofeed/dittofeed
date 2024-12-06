@@ -954,26 +954,31 @@ const BaseSmsMessageVariant = Type.Object({
   templateId: Type.String(),
 });
 
+const NoOverride = Type.Object({
+  providerOverride: Type.Optional(Type.Undefined()),
+});
+
+const TwilioOverride = Type.Object({
+  providerOverride: Type.Literal(SmsProviderType.Twilio),
+  senderOverride: Type.Optional(TwilioSenderOverride),
+});
+
+const TestOverride = Type.Object({
+  providerOverride: Type.Literal(SmsProviderType.Test),
+});
+
+export const SmsProviderOverride = Type.Union([
+  NoOverride,
+  TwilioOverride,
+  TestOverride,
+]);
+
+export type SmsProviderOverride = Static<typeof SmsProviderOverride>;
+
 export const SmsMessageVariant = Type.Union([
-  Type.Composite([
-    BaseSmsMessageVariant,
-    Type.Object({
-      providerOverride: Type.Optional(Type.Undefined()),
-    }),
-  ]),
-  Type.Composite([
-    BaseSmsMessageVariant,
-    Type.Object({
-      providerOverride: Type.Literal(SmsProviderType.Twilio),
-      senderOverride: Type.Optional(TwilioSenderOverride),
-    }),
-  ]),
-  Type.Composite([
-    BaseSmsMessageVariant,
-    Type.Object({
-      providerOverride: Type.Literal(SmsProviderType.Test),
-    }),
-  ]),
+  Type.Composite([BaseSmsMessageVariant, NoOverride]),
+  Type.Composite([BaseSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseSmsMessageVariant, TestOverride]),
 ]);
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;

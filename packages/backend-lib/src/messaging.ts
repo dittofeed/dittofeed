@@ -66,6 +66,7 @@ import {
   Prisma,
   Secret,
   SmsProvider,
+  SmsProviderOverride,
   SmsProviderSecret,
   SmsProviderType,
   TwilioSecret,
@@ -344,11 +345,11 @@ export interface SendMessageParametersEmail extends SendMessageParametersBase {
   providerOverride?: EmailProviderType;
 }
 
-export interface SendMessageParametersSms extends SendMessageParametersBase {
-  channel: (typeof ChannelType)["Sms"];
-  providerOverride?: SmsProviderType;
-  disableCallback?: boolean;
-}
+export type SendMessageParametersSms = SendMessageParametersBase &
+  SmsProviderOverride & {
+    channel: (typeof ChannelType)["Sms"];
+    disableCallback?: boolean;
+  };
 
 export interface SendMessageParametersMobilePush
   extends SendMessageParametersBase {
