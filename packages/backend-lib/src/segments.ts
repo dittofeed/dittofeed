@@ -299,6 +299,7 @@ export async function upsertSegment(
       update: {
         definition: params.definition,
         name: params.name,
+        definitionUpdatedAt: new Date(),
       },
       create: {
         workspaceId: params.workspaceId,
