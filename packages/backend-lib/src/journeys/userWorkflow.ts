@@ -543,6 +543,7 @@ export async function userJourneyWorkflow(
             break;
           }
           case ChannelType.Sms: {
+            // FIXME
             variant = {
               ...omit(currentNode.variant, ["type"]),
               channel: currentNode.variant.type,
