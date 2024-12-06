@@ -29,7 +29,10 @@ import {
   sendMail as sendMailSmtp,
   SendSmtpMailParams,
 } from "./destinations/smtp";
-import { sendSms as sendSmsTwilio } from "./destinations/twilio";
+import {
+  Sender as TwilioSender,
+  sendSms as sendSmsTwilio,
+} from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
 import {
@@ -69,13 +72,16 @@ import {
   SmsProviderOverride,
   SmsProviderSecret,
   SmsProviderType,
+  TwilioOverride,
   TwilioSecret,
+  TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export function enrichMessageTemplate({
   id,
@@ -1363,20 +1369,20 @@ export async function sendEmail({
   }
 }
 
-export async function sendSms({
-  workspaceId,
-  templateId,
-  userPropertyAssignments,
-  subscriptionGroupDetails,
-  useDraft,
-  providerOverride,
-  userId,
-  messageTags,
-  disableCallback = false,
-}: Omit<
-  SendMessageParametersSms,
-  "channel"
->): Promise<BackendMessageSendResult> {
+export async function sendSms(
+  params: Omit<SendMessageParametersSms, "channel">,
+): Promise<BackendMessageSendResult> {
+  const {
+    workspaceId,
+    templateId,
+    userPropertyAssignments,
+    subscriptionGroupDetails,
+    useDraft,
+    providerOverride,
+    userId,
+    messageTags,
+    disableCallback = false,
+  } = params;
   const [getSendModelsResult, smsProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
@@ -1484,8 +1490,21 @@ export async function sendSms({
 
   switch (smsProvider.type) {
     case SmsProviderType.Twilio: {
-      const { accountSid, authToken, messagingServiceSid } =
-        parsedConfigResult.value as TwilioSecret;
+      const configResult = schemaValidateWithErr(
+        parsedConfigResult.value,
+        TwilioSecret,
+      );
+      if (configResult.isErr()) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: configResult.error.message,
+          },
+        });
+      }
+
+      const { accountSid, authToken, messagingServiceSid } = configResult.value;
 
       if (!accountSid || !authToken || !messagingServiceSid) {
         return err({
@@ -1496,17 +1515,45 @@ export async function sendSms({
           },
         });
       }
+      let sender: TwilioSender;
+      const { senderOverride } = params;
+      if (providerOverride === SmsProviderType.Twilio) {
+        if (senderOverride) {
+          switch (senderOverride.type) {
+            case TwilioSenderOverrideType.MessageSid:
+              sender = {
+                messagingServiceSid: senderOverride.messagingServiceSid,
+              };
+              break;
+            case TwilioSenderOverrideType.PhoneNumber:
+              sender = {
+                from: senderOverride.phone,
+              };
+              break;
+            default:
+              assertUnreachable(senderOverride);
+          }
+        } else {
+          sender = {
+            messagingServiceSid,
+          };
+        }
+      } else {
+        sender = {
+          messagingServiceSid,
+        };
+      }
 
       const result = await sendSmsTwilio({
         body,
         accountSid,
         authToken,
         userId,
-        messagingServiceSid,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         to,
         workspaceId,
         disableCallback,
+        ...sender,
       });
 
       if (result.isErr()) {
