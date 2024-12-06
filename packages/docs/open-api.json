@@ -19335,6 +19335,7 @@
                                       "anyOf": [
                                         {
                                           "title": "TraitUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a matching trait.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -19520,6 +19521,7 @@
                             "anyOf": [
                               {
                                 "title": "TraitUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a matching trait.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -19862,6 +19864,7 @@
                                     "anyOf": [
                                       {
                                         "title": "TraitUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a matching trait.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -20047,6 +20050,7 @@
                           "anyOf": [
                             {
                               "title": "TraitUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a matching trait.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -20401,6 +20405,7 @@
                                           "anyOf": [
                                             {
                                               "title": "TraitUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a matching trait.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -20586,6 +20591,7 @@
                                 "anyOf": [
                                   {
                                     "title": "TraitUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a matching trait.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
@@ -26474,6 +26480,7 @@
                                       "anyOf": [
                                         {
                                           "title": "TraitUserPropertyDefinition",
+                                          "description": "A user property definition that resolves to a matching trait.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
@@ -26659,6 +26666,7 @@
                             "anyOf": [
                               {
                                 "title": "TraitUserPropertyDefinition",
+                                "description": "A user property definition that resolves to a matching trait.",
                                 "type": "object",
                                 "properties": {
                                   "id": {
@@ -27001,6 +27009,7 @@
                                     "anyOf": [
                                       {
                                         "title": "TraitUserPropertyDefinition",
+                                        "description": "A user property definition that resolves to a matching trait.",
                                         "type": "object",
                                         "properties": {
                                           "id": {
@@ -27186,6 +27195,7 @@
                           "anyOf": [
                             {
                               "title": "TraitUserPropertyDefinition",
+                              "description": "A user property definition that resolves to a matching trait.",
                               "type": "object",
                               "properties": {
                                 "id": {
@@ -27540,6 +27550,7 @@
                                           "anyOf": [
                                             {
                                               "title": "TraitUserPropertyDefinition",
+                                              "description": "A user property definition that resolves to a matching trait.",
                                               "type": "object",
                                               "properties": {
                                                 "id": {
@@ -27725,6 +27736,7 @@
                                 "anyOf": [
                                   {
                                     "title": "TraitUserPropertyDefinition",
+                                    "description": "A user property definition that resolves to a matching trait.",
                                     "type": "object",
                                     "properties": {
                                       "id": {
