@@ -26,6 +26,9 @@ import {
   RenameKey,
   SegmentAssignment as SegmentAssignmentDb,
   SegmentUpdate,
+  SmsMessageVariant,
+  SmsProviderOverride,
+  SmsProviderType,
   UserWorkflowTrackEvent,
   WaitForNode,
   WaitForSegmentChild,
@@ -543,10 +546,36 @@ export async function userJourneyWorkflow(
             break;
           }
           case ChannelType.Sms: {
-            variant = {
-              ...omit(currentNode.variant, ["type"]),
-              channel: currentNode.variant.type,
-            };
+            const { providerOverride, senderOverride } = currentNode.variant;
+
+            let smsProviderOverride: SmsProviderOverride;
+            switch (providerOverride) {
+              case SmsProviderType.Twilio: {
+                smsProviderOverride = {
+                  providerOverride: SmsProviderType.Twilio,
+                  senderOverride,
+                };
+                break;
+              }
+              case SmsProviderType.Test: {
+                smsProviderOverride = {
+                  providerOverride: SmsProviderType.Test,
+                  senderOverride: undefined,
+                };
+                break;
+              }
+              default: {
+                smsProviderOverride = {};
+              }
+            }
+
+            const smsVariant: RenameKey<SmsMessageVariant, "type", "channel"> =
+              {
+                ...smsProviderOverride,
+                templateId: currentNode.variant.templateId,
+                channel: currentNode.variant.type,
+              };
+            variant = smsVariant;
             break;
           }
           case ChannelType.Webhook: {

@@ -931,11 +931,64 @@ export const MobilePushMessageVariant = Type.Object({
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 
-export const SmsMessageVariant = Type.Object({
+export enum TwilioSenderOverrideType {
+  MessageSid = "MessageSid",
+  PhoneNumber = "PhoneNumber",
+}
+
+export const TwilioSenderOverride = Type.Union([
+  Type.Object({
+    type: Type.Literal(TwilioSenderOverrideType.MessageSid),
+    messagingServiceSid: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal(TwilioSenderOverrideType.PhoneNumber),
+    phone: Type.String(),
+  }),
+]);
+
+export type TwilioSenderOverride = Static<typeof TwilioSenderOverride>;
+
+const BaseSmsMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   templateId: Type.String(),
-  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
 });
+
+export const NoSmsProviderOverride = Type.Object({
+  // Provider override has to be nullable to be compatible with JSON schema
+  providerOverride: Type.Optional(Type.Null()),
+  senderOverride: Type.Optional(Type.Null()),
+});
+
+export type NoSmsProviderOverride = Static<typeof NoSmsProviderOverride>;
+
+export const TwilioOverride = Type.Object({
+  providerOverride: Type.Literal(SmsProviderType.Twilio),
+  senderOverride: Type.Optional(TwilioSenderOverride),
+});
+
+export type TwilioOverride = Static<typeof TwilioOverride>;
+
+export const TestSmsOverride = Type.Object({
+  providerOverride: Type.Literal(SmsProviderType.Test),
+  senderOverride: Type.Optional(Type.Null()),
+});
+
+export type TestSmsOverride = Static<typeof TestSmsOverride>;
+
+export const SmsProviderOverride = Type.Union([
+  NoSmsProviderOverride,
+  TwilioOverride,
+  TestSmsOverride,
+]);
+
+export type SmsProviderOverride = Static<typeof SmsProviderOverride>;
+
+export const SmsMessageVariant = Type.Union([
+  Type.Composite([BaseSmsMessageVariant, NoSmsProviderOverride]),
+  Type.Composite([BaseSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseSmsMessageVariant, TestSmsOverride]),
+]);
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
 
