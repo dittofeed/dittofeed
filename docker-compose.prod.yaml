@@ -1,3 +1,4 @@
+# README: this file is deprecated. Please use docker-compose.lite.yaml instead.
 version: "3.9"
 x-database-credentials: &database-credentials
   DATABASE_USER: ${DATABASE_USER:-postgres}
