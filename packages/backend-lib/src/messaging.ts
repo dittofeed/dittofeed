@@ -10,6 +10,7 @@ import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
@@ -72,7 +73,6 @@ import {
   SmsProviderOverride,
   SmsProviderSecret,
   SmsProviderType,
-  TwilioOverride,
   TwilioSecret,
   TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
@@ -81,7 +81,6 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export function enrichMessageTemplate({
   id,
@@ -1517,26 +1516,20 @@ export async function sendSms(
       }
       let sender: TwilioSender;
       const { senderOverride } = params;
-      if (providerOverride === SmsProviderType.Twilio) {
-        if (senderOverride) {
-          switch (senderOverride.type) {
-            case TwilioSenderOverrideType.MessageSid:
-              sender = {
-                messagingServiceSid: senderOverride.messagingServiceSid,
-              };
-              break;
-            case TwilioSenderOverrideType.PhoneNumber:
-              sender = {
-                from: senderOverride.phone,
-              };
-              break;
-            default:
-              assertUnreachable(senderOverride);
-          }
-        } else {
-          sender = {
-            messagingServiceSid,
-          };
+      if (providerOverride === SmsProviderType.Twilio && senderOverride) {
+        switch (senderOverride.type) {
+          case TwilioSenderOverrideType.MessageSid:
+            sender = {
+              messagingServiceSid: senderOverride.messagingServiceSid,
+            };
+            break;
+          case TwilioSenderOverrideType.PhoneNumber:
+            sender = {
+              from: senderOverride.phone,
+            };
+            break;
+          default:
+            assertUnreachable(senderOverride);
         }
       } else {
         sender = {
