@@ -1392,7 +1392,8 @@ export async function sendSms(
     }),
     getSmsProvider({
       workspaceId,
-      providerOverride,
+      // Provider override has to be nullable to be compatible with JSON schema
+      providerOverride: providerOverride ?? undefined,
     }),
   ]);
   if (getSendModelsResult.isErr()) {

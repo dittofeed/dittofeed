@@ -955,8 +955,9 @@ const BaseSmsMessageVariant = Type.Object({
 });
 
 export const NoSmsProviderOverride = Type.Object({
-  providerOverride: Type.Optional(Type.Undefined()),
-  senderOverride: Type.Optional(Type.Undefined()),
+  // Provider override has to be nullable to be compatible with JSON schema
+  providerOverride: Type.Optional(Type.Null()),
+  senderOverride: Type.Optional(Type.Null()),
 });
 
 export type NoSmsProviderOverride = Static<typeof NoSmsProviderOverride>;
@@ -970,7 +971,7 @@ export type TwilioOverride = Static<typeof TwilioOverride>;
 
 export const TestSmsOverride = Type.Object({
   providerOverride: Type.Literal(SmsProviderType.Test),
-  senderOverride: Type.Optional(Type.Undefined()),
+  senderOverride: Type.Optional(Type.Null()),
 });
 
 export type TestSmsOverride = Static<typeof TestSmsOverride>;

@@ -1268,7 +1268,7 @@ export function journeyBranchToState(
             messageNode = {
               ...baseMessageNode,
               channel: ChannelType.Sms,
-              providerOverride: node.variant.providerOverride,
+              providerOverride: node.variant.providerOverride ?? undefined,
             };
             break;
           }
