@@ -18,6 +18,8 @@ import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   InternalEventType,
+  JourneyDefinition,
+  JourneyNodeType,
   JsonResultType,
   JSONValue,
   MessageVariant,
@@ -372,3 +374,54 @@ export function getWorkspace(workspaceId: string) {
 }
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
+
+export async function shouldReEnter({
+  journeyId,
+}: {
+  journeyId: string;
+}): Promise<boolean> {
+  const journey = await prisma().journey.findUnique({
+    where: { id: journeyId },
+  });
+  if (!journey) {
+    return false;
+  }
+  if (!journey.canRunMultiple) {
+    logger().info(
+      {
+        journeyId,
+        workspaceId: journey.workspaceId,
+      },
+      "journey cannot run multiple, skipping re-entry",
+    );
+    return false;
+  }
+  if (journey.status !== "Running") {
+    logger().info(
+      {
+        journeyId,
+        workspaceId: journey.workspaceId,
+      },
+      "journey is not running, skipping re-entry",
+    );
+    return false;
+  }
+  const definitionResult = schemaValidateWithErr(
+    journey.definition,
+    JourneyDefinition,
+  );
+  if (definitionResult.isErr()) {
+    logger().error(
+      {
+        err: definitionResult.error,
+      },
+      "Invalid journey definition",
+    );
+    return false;
+  }
+  const definition = definitionResult.value;
+  if (definition.entryNode.type !== JourneyNodeType.SegmentEntryNode) {
+    return false;
+  }
+  return definition.entryNode.reEnter === true;
+}

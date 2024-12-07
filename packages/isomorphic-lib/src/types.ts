@@ -768,6 +768,7 @@ export const SegmentEntryNode = Type.Object(
     type: Type.Literal(JourneyNodeType.SegmentEntryNode),
     segment: Type.String(),
     child: Type.String(),
+    reEnter: Type.Optional(Type.Boolean()),
   },
   {
     title: "Segment Entry Node",
