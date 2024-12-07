@@ -159,6 +159,7 @@ function EntryNodeFields({
       const segment =
         segments.value.find((t) => t.id === nodeVariant.segment) ?? null;
 
+      // FIXME add re-entry checkbox
       variant = (
         <Autocomplete
           value={segment}
