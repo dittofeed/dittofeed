@@ -65,6 +65,9 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      // FIXME create transaction
+      // FIXME check that transition of status is valid
+      // FIXME trigger re-entry if necessary
       const {
         id,
         name,
