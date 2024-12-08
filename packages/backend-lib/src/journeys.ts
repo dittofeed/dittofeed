@@ -754,11 +754,8 @@ export async function upsertJourney(
 
   if (id && !validateUuid(id)) {
     return err({
-      message: "Invalid journey id",
-      variant: {
-        type: JourneyUpsertValidationErrorType.IdError,
-        message: "Invalid journey id, must be a valid v4 UUID",
-      },
+      type: JourneyUpsertValidationErrorType.IdError,
+      message: "Invalid journey id, must be a valid v4 UUID",
     });
   }
 
@@ -769,11 +766,8 @@ export async function upsertJourney(
     });
     if (constraintViolations.length > 0) {
       return err({
-        message: "Journey definition violates constraints",
-        variant: {
-          type: JourneyUpsertValidationErrorType.ConstraintViolation,
-          violations: constraintViolations,
-        },
+        type: JourneyUpsertValidationErrorType.ConstraintViolation,
+        violations: constraintViolations,
       });
     }
   }
@@ -817,6 +811,21 @@ export async function upsertJourney(
         status === JourneyStatus.Paused &&
         journey.status === JourneyStatus.NotStarted
       ) {
+        return err({
+          type: JourneyUpsertValidationErrorType.ConstraintViolation,
+          message: "Cannot pause a journey that has not been started",
+        });
+      }
+
+      if (
+        status === JourneyStatus.NotStarted &&
+        journey.status !== JourneyStatus.NotStarted
+      ) {
+        return err({
+          type: JourneyUpsertValidationErrorType.ConstraintViolation,
+          message:
+            "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
+        });
       }
     });
 
