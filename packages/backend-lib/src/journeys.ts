@@ -772,13 +772,6 @@ export async function upsertJourney(
     }
   }
 
-  /*
-      TODO validate that status transitions satisfy:
-        NotStarted -> Running OR Running -> Paused
-      But not:
-        NotStarted -> Paused OR * -> NotStarted
-      */
-
   // null out the draft when the definition is updated or when the draft is
   // explicitly set to null
   const nullableDraft = definition || draft === null ? Prisma.DbNull : draft;
@@ -787,32 +780,31 @@ export async function upsertJourney(
     ? { id }
     : { workspaceId_name: { workspaceId, name } };
 
-  const txResult: Result<Journey, UpsertJourneyValidationError> =
+  const txResult: Result<Journey, JourneyUpsertValidationError> =
     await prisma().$transaction(async (tx) => {
-      const journey = await tx.journey.findUnique({
+      let journey: Journey | null = await tx.journey.findUnique({
         where,
       });
       if (!journey) {
-        return ok(
-          tx.journey.create({
-            data: {
-              id,
-              workspaceId,
-              name,
-              definition,
-              draft: nullableDraft,
-              status,
-              canRunMultiple,
-            },
-          }),
-        );
+        const created: Journey = await tx.journey.create({
+          data: {
+            id,
+            workspaceId,
+            name,
+            definition,
+            draft: nullableDraft,
+            status,
+            canRunMultiple,
+          },
+        });
+        return ok(created);
       }
       if (
         status === JourneyStatus.Paused &&
         journey.status === JourneyStatus.NotStarted
       ) {
         return err({
-          type: JourneyUpsertValidationErrorType.ConstraintViolation,
+          type: JourneyUpsertValidationErrorType.StatusTransitionError,
           message: "Cannot pause a journey that has not been started",
         });
       }
@@ -822,49 +814,27 @@ export async function upsertJourney(
         journey.status !== JourneyStatus.NotStarted
       ) {
         return err({
-          type: JourneyUpsertValidationErrorType.ConstraintViolation,
+          type: JourneyUpsertValidationErrorType.StatusTransitionError,
           message:
             "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
         });
       }
+      journey = await tx.journey.update({
+        where,
+        data: {
+          name,
+          definition,
+          draft: nullableDraft,
+          status,
+          canRunMultiple,
+        },
+      });
+      return ok(journey);
     });
-
-  // create: {
-  //   id,
-  //   workspaceId,
-  //   name,
-  //   definition,
-  //   draft: nullableDraft,
-  //   status,
-  //   canRunMultiple,
-  // },
-  // update: {
-  //   name,
-  //   definition,
-  //   draft: nullableDraft,
-  //   status,
-  //   canRunMultiple,
-  // },
-  const journey = await prisma().journey.upsert({
-    where,
-    create: {
-      id,
-      workspaceId,
-      name,
-      definition,
-      draft: nullableDraft,
-      status,
-      canRunMultiple,
-    },
-    update: {
-      name,
-      definition,
-      draft: nullableDraft,
-      status,
-      canRunMultiple,
-    },
-  });
-
+  if (txResult.isErr()) {
+    return err(txResult.error);
+  }
+  const journey = txResult.value;
   const journeyDefinitionResult = journey.definition
     ? schemaValidate(journey.definition, JourneyDefinition)
     : undefined;
@@ -905,6 +875,7 @@ export async function upsertJourney(
   if (journeyStatus !== "NotStarted" && !journeyDefinition) {
     throw new Error("Journey status is not NotStarted but has no definition");
   }
+
   const baseResource = {
     id: journey.id,
     name: journey.name,

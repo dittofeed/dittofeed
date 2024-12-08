@@ -4024,6 +4024,7 @@ export type JourneyConstraintViolation = Static<
 
 export enum JourneyUpsertValidationErrorType {
   ConstraintViolation = "ConstraintViolation",
+  StatusTransitionError = "StatusTransitionError",
   IdError = "IdError",
 }
 
@@ -4043,9 +4044,19 @@ export const JourneyUpsertIdError = Type.Object({
 
 export type JourneyUpsertIdError = Static<typeof JourneyUpsertIdError>;
 
+export const JourneyUpsertStatusTransitionError = Type.Object({
+  type: Type.Literal(JourneyUpsertValidationErrorType.StatusTransitionError),
+  message: Type.String(),
+});
+
+export type JourneyUpsertStatusTransitionError = Static<
+  typeof JourneyUpsertStatusTransitionError
+>;
+
 export const JourneyUpsertValidationError = Type.Union([
   JourneyUpsertValidationConstraintViolationError,
   JourneyUpsertIdError,
+  JourneyUpsertStatusTransitionError,
 ]);
 
 export type JourneyUpsertValidationError = Static<
