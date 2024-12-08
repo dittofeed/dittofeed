@@ -4043,19 +4043,10 @@ export const JourneyUpsertIdError = Type.Object({
 
 export type JourneyUpsertIdError = Static<typeof JourneyUpsertIdError>;
 
-export const JourneyUpsertValidationErrorVariant = Type.Union([
+export const JourneyUpsertValidationError = Type.Union([
   JourneyUpsertValidationConstraintViolationError,
   JourneyUpsertIdError,
 ]);
-
-export type JourneyUpsertValidationErrorVariant = Static<
-  typeof JourneyUpsertValidationErrorVariant
->;
-
-export const JourneyUpsertValidationError = Type.Object({
-  message: Type.String(),
-  variant: JourneyUpsertValidationErrorVariant,
-});
 
 export type JourneyUpsertValidationError = Static<
   typeof JourneyUpsertValidationError

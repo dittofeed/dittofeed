@@ -793,6 +793,49 @@ export async function upsertJourney(
     ? { id }
     : { workspaceId_name: { workspaceId, name } };
 
+  const txResult: Result<Journey, UpsertJourneyValidationError> =
+    await prisma().$transaction(async (tx) => {
+      const journey = await tx.journey.findUnique({
+        where,
+      });
+      if (!journey) {
+        return ok(
+          tx.journey.create({
+            data: {
+              id,
+              workspaceId,
+              name,
+              definition,
+              draft: nullableDraft,
+              status,
+              canRunMultiple,
+            },
+          }),
+        );
+      }
+      if (
+        status === JourneyStatus.Paused &&
+        journey.status === JourneyStatus.NotStarted
+      ) {
+      }
+    });
+
+  // create: {
+  //   id,
+  //   workspaceId,
+  //   name,
+  //   definition,
+  //   draft: nullableDraft,
+  //   status,
+  //   canRunMultiple,
+  // },
+  // update: {
+  //   name,
+  //   definition,
+  //   draft: nullableDraft,
+  //   status,
+  //   canRunMultiple,
+  // },
   const journey = await prisma().journey.upsert({
     where,
     create: {
