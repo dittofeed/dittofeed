@@ -4057,6 +4057,10 @@ export const JourneyUpsertValidationError = Type.Object({
   variant: JourneyUpsertValidationErrorVariant,
 });
 
+export type JourneyUpsertValidationError = Static<
+  typeof JourneyUpsertValidationError
+>;
+
 export type MessageTags = Record<string, string> & { messageId: string };
 
 export const RelatedResourceProperties = Type.Intersect([
