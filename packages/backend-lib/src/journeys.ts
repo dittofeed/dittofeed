@@ -1,7 +1,6 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
-import { validate as validateUuid } from "uuid";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
@@ -17,6 +16,7 @@ import {
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
+import { validate as validateUuid } from "uuid";
 
 import {
   ClickHouseQueryBuilder,
@@ -41,7 +41,6 @@ import {
   JourneyStats,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
-  JourneyUpsertValidationErrorVariant,
   MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
@@ -763,12 +762,6 @@ export async function upsertJourney(
     });
   }
 
-  /*
-      TODO validate that status transitions satisfy:
-        NotStarted -> Running OR Running -> Paused
-      But not:
-        NotStarted -> Paused OR * -> NotStarted
-      */
   if (definition) {
     const constraintViolations = getJourneyConstraintViolations({
       definition,
@@ -784,6 +777,13 @@ export async function upsertJourney(
       });
     }
   }
+
+  /*
+      TODO validate that status transitions satisfy:
+        NotStarted -> Running OR Running -> Paused
+      But not:
+        NotStarted -> Paused OR * -> NotStarted
+      */
 
   // null out the draft when the definition is updated or when the draft is
   // explicitly set to null
@@ -871,14 +871,13 @@ export async function upsertJourney(
     };
   } else {
     if (!journeyDefinition) {
-      const err = new Error(
+      logger().error(
+        {
+          journeyId: journey.id,
+        },
         "Journey status is not NotStarted but has no definition",
       );
-      logger().error({
-        journeyId: journey.id,
-        err,
-      });
-      return reply.status(500).send();
+      throw new Error("Journey status is not NotStarted but has no definition");
     }
     resource = {
       ...baseResource,
@@ -887,5 +886,5 @@ export async function upsertJourney(
     };
   }
 
-  return reply.status(200).send(resource);
+  return ok(resource);
 }

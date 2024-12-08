@@ -1,31 +1,24 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
-  getJourneyConstraintViolations,
   getJourneysStats,
   toJourneyResource,
   upsertJourney,
 } from "backend-lib/src/journeys";
-import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   DeleteJourneyRequest,
   EmptyResponse,
   GetJourneysRequest,
   GetJourneysResponse,
-  JourneyDefinition,
-  JourneyDraft,
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
-  JourneyUpsertValidationErrorType,
   Prisma,
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { validate as validateUuid } from "uuid";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function journeysController(fastify: FastifyInstance) {
