@@ -415,18 +415,25 @@ function handleErrorFactory(message: string) {
 export default async function bootstrap({
   workspaceName,
   workspaceDomain,
+  workspaceType,
 }: {
   workspaceName: string;
+  workspaceType: WorkspaceType;
   workspaceDomain?: string;
 }): Promise<{ workspaceId: string }> {
   await prismaMigrate();
   const workspace = await bootstrapPostgres({
     workspaceName,
     workspaceDomain,
+    workspaceType,
   });
   if (workspace.isErr()) {
     logger().error({ err: workspace.error }, "Failed to bootstrap workspace.");
     throw new Error("Failed to bootstrap workspace.");
+  }
+  if (workspaceType === WorkspaceType.Parent) {
+    logger().info("Parent workspace created, skipping remaining bootstrap steps.");
+    return { workspaceId: workspace.value.id };
   }
   const workspaceId = workspace.value.id;
 
@@ -462,11 +469,13 @@ export default async function bootstrap({
 export interface BootstrapWithDefaultsParams {
   workspaceName?: string;
   workspaceDomain?: string;
+  workspaceType?: WorkspaceType;
 }
 
 export function getBootstrapDefaultParams({
   workspaceName,
   workspaceDomain,
+  workspaceType,
 }: BootstrapWithDefaultsParams): Parameters<typeof bootstrap>[0] {
   const defaultWorkspaceName =
     config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
@@ -479,6 +488,7 @@ export function getBootstrapDefaultParams({
   return {
     workspaceName: workspaceNameWithDefault,
     workspaceDomain,
+    workspaceType: workspaceType ?? WorkspaceType.Root,
   };
 }
 
