@@ -1266,6 +1266,11 @@ export async function sendEmail({
         text: body,
         from_name: emailName,
         subject,
+        attachments: attachments?.map(({ name, data, mimeType }) => ({
+          type: mimeType,
+          name,
+          content: data,
+        })),
         from_email: from,
         to: [{ email: to }],
         metadata: {
