@@ -538,6 +538,23 @@ export async function cli() {
         logger().info("Tombstoned workspace.");
       },
     )
+    .command(
+      "create-admin-api-key",
+      "Creates an admin API key.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+          name: { type: "string", alias: "n", require: true },
+        }),
+      async ({ workspaceId, name }) => {
+        const result = await createAdminApiKey({ workspaceId, name });
+        if (result.isErr()) {
+          logger().error(result.error, "Failed to create admin API key");
+          return;
+        }
+        logger().info(result.value, "Created admin API key");
+      },
+    )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()
     .help()
