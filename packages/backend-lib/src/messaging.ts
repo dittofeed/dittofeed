@@ -839,6 +839,11 @@ export async function sendEmail({
 
     attachments = (await Promise.all(attachmentPromises)).flat();
   }
+  // To set on the message sent event
+  const attachmentsSent = attachments?.map(({ name, mimeType }) => ({
+    name,
+    mimeType,
+  }));
 
   switch (emailProvider.type) {
     case EmailProviderType.Smtp: {
@@ -912,6 +917,7 @@ export async function sendEmail({
           headers,
           replyTo,
           name: emailName,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.Smtp,
             messageId: result.value.messageId,
@@ -999,6 +1005,7 @@ export async function sendEmail({
           headers,
           replyTo,
           name: emailName,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.Sendgrid,
           },
@@ -1158,6 +1165,7 @@ export async function sendEmail({
           headers,
           subject,
           replyTo,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.Resend,
           },
@@ -1251,6 +1259,7 @@ export async function sendEmail({
           subject,
           replyTo,
           headers,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.PostMark,
           },
@@ -1266,6 +1275,11 @@ export async function sendEmail({
         text: body,
         from_name: emailName,
         subject,
+        attachments: attachments?.map(({ name, data, mimeType }) => ({
+          type: mimeType,
+          name,
+          content: data,
+        })),
         from_email: from,
         to: [{ email: to }],
         metadata: {
@@ -1334,6 +1348,7 @@ export async function sendEmail({
           subject,
           replyTo,
           headers,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.MailChimp,
           },
@@ -1352,6 +1367,7 @@ export async function sendEmail({
           subject,
           replyTo,
           headers,
+          attachments: attachmentsSent,
           provider: {
             type: EmailProviderType.Test,
           },
