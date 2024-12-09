@@ -745,8 +745,6 @@ export async function triggerEventEntryJourneys({
 export async function upsertJourney(
   params: UpsertJourneyResource,
 ): Promise<Result<SavedJourneyResource, JourneyUpsertValidationError>> {
-  // FIXME create transaction
-  // FIXME check that transition of status is valid
   // FIXME trigger re-entry if necessary
 
   const { id, name, definition, workspaceId, status, canRunMultiple, draft } =
