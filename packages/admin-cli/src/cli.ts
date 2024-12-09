@@ -538,6 +538,38 @@ export async function cli() {
         logger().info("Tombstoned workspace.");
       },
     )
+    .command(
+      "create-admin-api-key",
+      "Creates an admin API key.",
+      (cmd) =>
+        cmd.options({
+          "workspace-name": { type: "string", alias: "w", require: true },
+          name: { type: "string", alias: "n", require: true },
+        }),
+      async ({ workspaceName, name }) => {
+        const workspace = await prisma().workspace.findUnique({
+          where: {
+            name: workspaceName,
+          },
+        });
+        if (!workspace) {
+          logger().error(
+            { workspaceName },
+            "Failed to find workspace to create admin API key",
+          );
+          return;
+        }
+        const result = await createAdminApiKey({
+          workspaceId: workspace.id,
+          name,
+        });
+        if (result.isErr()) {
+          logger().error(result.error, "Failed to create admin API key");
+          return;
+        }
+        logger().info(result.value, "Created admin API key");
+      },
+    )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()
     .help()

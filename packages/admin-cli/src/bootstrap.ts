@@ -13,6 +13,13 @@ export const BOOTSTRAP_OPTIONS = {
     describe:
       "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
   },
+  "workspace-type": {
+    type: "string",
+    alias: "t",
+    describe: "The type of workspace to create.",
+    choices: ["Root", "Parent"],
+    default: "Root",
+  },
 } as const;
 
 export function boostrapOptions(cmd: Argv) {

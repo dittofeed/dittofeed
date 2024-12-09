@@ -27,9 +27,7 @@ export default async function apiKeyController(
       },
     },
     async (request, reply) => {
-      const adminApiKey = await createAdminApiKey(
-        request.body satisfies CreateAdminApiKeyRequest,
-      );
+      const adminApiKey = await createAdminApiKey(request.body);
       if (adminApiKey.isErr()) {
         return reply.status(409).send();
       }
