@@ -1,8 +1,9 @@
-import { SubscriptionGroup } from "@prisma/client";
+import { SubscriptionGroup, WorkspaceType } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import bootstrap from "./bootstrap";
+import { bootstrapPostgres } from "./bootstrap";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
@@ -20,10 +21,13 @@ describe("subscriptionGroups", () => {
       email = "max@email.com";
       workspaceName = randomUUID();
 
-      const bootstrapResult = await bootstrap({
-        workspaceName,
-      });
-      workspaceId = bootstrapResult.workspaceId;
+      const bootstrapResult = unwrap(
+        await bootstrapPostgres({
+          workspaceName,
+          workspaceType: WorkspaceType.Root,
+        }),
+      );
+      workspaceId = bootstrapResult.id;
 
       const results = await Promise.all([
         prisma().userProperty.findUniqueOrThrow({
