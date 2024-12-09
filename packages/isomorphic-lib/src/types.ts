@@ -3374,6 +3374,14 @@ export const MessageEmailSuccess = Type.Composite([
     provider: EmailServiceProviderSuccess,
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+    attachments: Type.Optional(
+      Type.Array(
+        Type.Object({
+          mimeType: Type.String(),
+          name: Type.String(),
+        }),
+      ),
+    ),
   }),
   Type.Omit(CodeEmailContents, ["headers"]),
 ]);
