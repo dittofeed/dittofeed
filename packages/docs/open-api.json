@@ -2839,6 +2839,24 @@
                                             "type": "string"
                                           }
                                         },
+                                        "attachments": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "mimeType": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "mimeType",
+                                              "name"
+                                            ]
+                                          }
+                                        },
                                         "from": {
                                           "type": "string"
                                         },
@@ -21544,6 +21562,24 @@
                                     "type": "object",
                                     "additionalProperties": {
                                       "type": "string"
+                                    }
+                                  },
+                                  "attachments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "mimeType": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "mimeType",
+                                        "name"
+                                      ]
                                     }
                                   },
                                   "from": {
@@ -45399,6 +45435,24 @@
                                             "type": "string"
                                           }
                                         },
+                                        "attachments": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "mimeType": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "mimeType",
+                                              "name"
+                                            ]
+                                          }
+                                        },
                                         "from": {
                                           "type": "string"
                                         },
@@ -47122,6 +47176,24 @@
                                     "type": "object",
                                     "additionalProperties": {
                                       "type": "string"
+                                    }
+                                  },
+                                  "attachments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "mimeType": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "mimeType",
+                                        "name"
+                                      ]
                                     }
                                   },
                                   "from": {
