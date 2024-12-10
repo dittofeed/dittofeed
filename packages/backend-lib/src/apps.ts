@@ -77,7 +77,10 @@ export async function submitTrackWithTriggers({
   if (userOrAnonymousId) {
     await triggerEventEntryJourneys({
       workspaceId,
-      event: data,
+      event: {
+        ...data,
+        properties,
+      },
       userId: userOrAnonymousId,
     });
   }
