@@ -2,7 +2,6 @@
 /* eslint-disable no-await-in-loop */
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import { ClickHouseQueryBuilder, query as chQuery } from "../clickhouse";
 import {
   getUserJourneyWorkflowId,
   segmentUpdateSignal,
@@ -10,12 +9,9 @@ import {
 } from "../journeys/userWorkflow";
 import logger from "../logger";
 import prisma from "../prisma";
+import { findRecentlyUpdatedUsersInSegment } from "../segments";
 import { getContext } from "../temporal/activity";
 import { JourneyDefinition, JourneyNodeType, SegmentUpdate } from "../types";
-
-interface SegmentAssignment {
-  user_id: string;
-}
 
 export async function restartUserJourneysActivity({
   workspaceId,
@@ -28,8 +24,6 @@ export async function restartUserJourneysActivity({
   pageSize?: number;
   statusUpdatedAt: number;
 }) {
-  let page: SegmentAssignment[] = [];
-  let cursor: string | null = null;
   const journey = await prisma().journey.findUnique({
     where: {
       id: journeyId,
@@ -76,30 +70,18 @@ export async function restartUserJourneysActivity({
   }
 
   const segmentId = definition.entryNode.segment;
-  while (page.length >= pageSize || cursor === null) {
-    const qb = new ClickHouseQueryBuilder();
-    const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-    const segmentIdParam = qb.addQueryValue(segmentId, "String");
-    const paginationClause =
-      cursor === null
-        ? ""
-        : `AND user_id > ${qb.addQueryValue(cursor, "String")}`;
 
-    const query = `
-      SELECT user_id FROM computed_property_state_v2 
-      WHERE 
-        workspace_id = ${workspaceIdParam}
-        AND type = 'segment'
-        AND computed_property_id = ${segmentIdParam}
-        AND assigned_at > toDateTime64(${statusUpdatedAt / 1000}, 3)
-        ${paginationClause}
-      LIMIT ${pageSize}
-    `;
-    const result = await chQuery({
-      query,
+  let page: { userId: string }[] = [];
+  let cursor: string | null = null;
+  while (page.length >= pageSize || cursor === null) {
+    page = await findRecentlyUpdatedUsersInSegment({
+      workspaceId,
+      cursor: cursor ?? undefined,
+      assignedSince: statusUpdatedAt,
+      segmentId,
+      pageSize,
     });
-    page = await result.json<SegmentAssignment>();
-    const newCursor = page[page.length - 1]?.user_id;
+    const newCursor = page[page.length - 1]?.userId;
     if (!newCursor) {
       break;
     }
@@ -111,10 +93,10 @@ export async function restartUserJourneysActivity({
       currentlyInSegment: true,
       segmentVersion: Date.now(),
     };
-    const promises: Promise<unknown>[] = page.map(({ user_id }) => {
+    const promises: Promise<unknown>[] = page.map(({ userId }) => {
       const workflowId = getUserJourneyWorkflowId({
         journeyId,
-        userId: user_id,
+        userId,
       });
       return workflowClient.signalWithStart<
         typeof userJourneyWorkflow,
@@ -127,7 +109,7 @@ export async function restartUserJourneysActivity({
             journeyId,
             definition,
             workspaceId,
-            userId: user_id,
+            userId,
           },
         ],
         signal: segmentUpdateSignal,
