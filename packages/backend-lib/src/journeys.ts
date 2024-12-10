@@ -776,7 +776,7 @@ export async function upsertJourney(
   const nullableDraft = definition || draft === null ? Prisma.DbNull : draft;
 
   const where: Prisma.JourneyWhereUniqueInput = id
-    ? { id }
+    ? { id, workspaceId }
     : { workspaceId_name: { workspaceId, name } };
 
   const txResult: Result<Journey, JourneyUpsertValidationError> =
