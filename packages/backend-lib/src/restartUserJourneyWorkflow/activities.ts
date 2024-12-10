@@ -21,10 +21,12 @@ export async function restartUserJourneysActivity({
   workspaceId,
   journeyId,
   pageSize = 100,
+  statusUpdatedAt,
 }: {
   workspaceId: string;
   journeyId: string;
   pageSize?: number;
+  statusUpdatedAt: number;
 }) {
   let page: SegmentAssignment[] = [];
   let cursor: string | null = null;
@@ -83,13 +85,13 @@ export async function restartUserJourneysActivity({
         ? ""
         : `AND user_id > ${qb.addQueryValue(cursor, "String")}`;
 
-    // FIXME filter by assigned at after status change time
     const query = `
       SELECT user_id FROM computed_property_state_v2 
       WHERE 
         workspace_id = ${workspaceIdParam}
         AND type = 'segment'
         AND computed_property_id = ${segmentIdParam}
+        AND assigned_at > toDateTime64(${statusUpdatedAt / 1000}, 3)
         ${paginationClause}
       LIMIT ${pageSize}
     `;

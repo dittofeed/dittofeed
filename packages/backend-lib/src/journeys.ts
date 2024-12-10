@@ -838,10 +838,15 @@ export async function upsertJourney(
         status === JourneyStatus.Running &&
         journey.status === JourneyStatus.Paused
       ) {
-        await restartUserJourneyWorkflow({
-          journeyId: journey.id,
-          workspaceId,
-        });
+        const priorityStatusUpdatedAt = journey.statusUpdatedAt?.getTime();
+
+        if (priorityStatusUpdatedAt) {
+          await restartUserJourneyWorkflow({
+            journeyId: journey.id,
+            workspaceId,
+            statusUpdatedAt: priorityStatusUpdatedAt,
+          });
+        }
       }
       return ok(journey);
     });
