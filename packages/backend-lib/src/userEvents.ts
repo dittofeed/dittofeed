@@ -288,7 +288,15 @@ export async function findManyEventsWithCount({
   searchTerm?: string;
 }): Promise<{ events: UserEventsWithTraits[]; count: number }> {
   const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const workspaceRelations = await prisma().workspaceRelation.findMany({
+    where: {
+      parentWorkspaceId: workspaceId,
+    },
+  });
+  const childWorkspaceIds = workspaceRelations.map((o) => o.childWorkspaceId);
+  const workspaceIdClause = childWorkspaceIds.length
+    ? `workspace_id IN ${qb.addQueryValue(workspaceId, "Array(String)")}`
+    : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
 
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
@@ -334,7 +342,7 @@ export async function findManyEventsWithCount({
         JSONExtractRaw(message_raw, 'properties') AS properties
     FROM user_events_v2
     WHERE
-      workspace_id = ${workspaceIdParam}
+      ${workspaceIdClause}
       ${startDateClause}
       ${endDateClause}
       ${userIdClause}
