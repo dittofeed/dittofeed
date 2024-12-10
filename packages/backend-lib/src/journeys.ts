@@ -746,8 +746,6 @@ export async function triggerEventEntryJourneys({
 export async function upsertJourney(
   params: UpsertJourneyResource,
 ): Promise<Result<SavedJourneyResource, JourneyUpsertValidationError>> {
-  // FIXME trigger re-entry if necessary
-
   const { id, name, definition, workspaceId, status, canRunMultiple, draft } =
     params;
 
@@ -834,20 +832,6 @@ export async function upsertJourney(
           canRunMultiple,
         },
       });
-      if (
-        status === JourneyStatus.Running &&
-        journey.status === JourneyStatus.Paused
-      ) {
-        const priorityStatusUpdatedAt = journey.statusUpdatedAt?.getTime();
-
-        if (priorityStatusUpdatedAt) {
-          await restartUserJourneyWorkflow({
-            journeyId: journey.id,
-            workspaceId,
-            statusUpdatedAt: priorityStatusUpdatedAt,
-          });
-        }
-      }
       return ok(journey);
     });
   if (txResult.isErr()) {
@@ -893,6 +877,23 @@ export async function upsertJourney(
   const journeyDefinition = journeyDefinitionResult?.value;
   if (journeyStatus !== "NotStarted" && !journeyDefinition) {
     throw new Error("Journey status is not NotStarted but has no definition");
+  }
+
+  if (
+    status === JourneyStatus.Running &&
+    journey.status === JourneyStatus.Paused &&
+    journeyDefinition?.entryNode.type === JourneyNodeType.SegmentEntryNode &&
+    journeyDefinition.entryNode.reEnter
+  ) {
+    const priorityStatusUpdatedAt = journey.statusUpdatedAt?.getTime();
+
+    if (priorityStatusUpdatedAt) {
+      await restartUserJourneyWorkflow({
+        journeyId: journey.id,
+        workspaceId,
+        statusUpdatedAt: priorityStatusUpdatedAt,
+      });
+    }
   }
 
   const baseResource = {
