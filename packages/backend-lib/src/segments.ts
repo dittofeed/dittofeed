@@ -284,6 +284,7 @@ export async function upsertSegment(
 ): Promise<SavedSegmentResource> {
   const where: Prisma.SegmentWhereUniqueInput = params.id
     ? {
+        workspaceId: params.workspaceId,
         id: params.id,
       }
     : {
