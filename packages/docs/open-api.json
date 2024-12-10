@@ -3424,6 +3424,9 @@
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
+                                                                "reEnter": {
+                                                                  "type": "boolean"
+                                                                },
                                                                 "type": {
                                                                   "type": "string",
                                                                   "enum": [
@@ -4049,6 +4052,9 @@
                                           },
                                           "child": {
                                             "type": "string"
+                                          },
+                                          "reEnter": {
+                                            "type": "boolean"
                                           }
                                         },
                                         "required": [
@@ -4762,6 +4768,9 @@
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
+                                                                "reEnter": {
+                                                                  "type": "boolean"
+                                                                },
                                                                 "type": {
                                                                   "type": "string",
                                                                   "enum": [
@@ -5403,6 +5412,9 @@
                                           },
                                           "child": {
                                             "type": "string"
+                                          },
+                                          "reEnter": {
+                                            "type": "boolean"
                                           }
                                         },
                                         "required": [
@@ -6122,6 +6134,9 @@
                               },
                               "child": {
                                 "type": "string"
+                              },
+                              "reEnter": {
+                                "type": "boolean"
                               }
                             },
                             "required": [
@@ -6827,6 +6842,9 @@
                                                         "child": {
                                                           "type": "string"
                                                         },
+                                                        "reEnter": {
+                                                          "type": "boolean"
+                                                        },
                                                         "type": {
                                                           "type": "string",
                                                           "enum": [
@@ -7516,6 +7534,9 @@
                                                           "child": {
                                                             "type": "string"
                                                           },
+                                                          "reEnter": {
+                                                            "type": "boolean"
+                                                          },
                                                           "type": {
                                                             "type": "string",
                                                             "enum": [
@@ -8141,6 +8162,9 @@
                                     },
                                     "child": {
                                       "type": "string"
+                                    },
+                                    "reEnter": {
+                                      "type": "boolean"
                                     }
                                   },
                                   "required": [
@@ -8854,6 +8878,9 @@
                                                           "child": {
                                                             "type": "string"
                                                           },
+                                                          "reEnter": {
+                                                            "type": "boolean"
+                                                          },
                                                           "type": {
                                                             "type": "string",
                                                             "enum": [
@@ -9495,6 +9522,9 @@
                                     },
                                     "child": {
                                       "type": "string"
+                                    },
+                                    "reEnter": {
+                                      "type": "boolean"
                                     }
                                   },
                                   "required": [
@@ -10150,83 +10180,107 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "variant": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "ConstraintViolation"
-                              ]
-                            },
-                            "violations": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "WaitForNodeAndEventEntryNode"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "CantStart"
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "message"
-                                ]
-                              }
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "violations"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "ConstraintViolation"
                           ]
                         },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "IdError"
-                              ]
+                        "violations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "WaitForNodeAndEventEntryNode"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "CantStart"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              }
                             },
-                            "message": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "message"
-                          ]
+                            "required": [
+                              "type",
+                              "message"
+                            ]
+                          }
                         }
+                      },
+                      "required": [
+                        "type",
+                        "violations"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "IdError"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "StatusTransitionError"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "UniqueConstraintViolation"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
                       ]
                     }
-                  },
-                  "required": [
-                    "message",
-                    "variant"
                   ]
                 }
               }
@@ -35519,6 +35573,9 @@
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
+                                                                "reEnter": {
+                                                                  "type": "boolean"
+                                                                },
                                                                 "type": {
                                                                   "type": "string",
                                                                   "enum": [
@@ -36144,6 +36201,9 @@
                                           },
                                           "child": {
                                             "type": "string"
+                                          },
+                                          "reEnter": {
+                                            "type": "boolean"
                                           }
                                         },
                                         "required": [
@@ -36857,6 +36917,9 @@
                                                                 "child": {
                                                                   "type": "string"
                                                                 },
+                                                                "reEnter": {
+                                                                  "type": "boolean"
+                                                                },
                                                                 "type": {
                                                                   "type": "string",
                                                                   "enum": [
@@ -37498,6 +37561,9 @@
                                           },
                                           "child": {
                                             "type": "string"
+                                          },
+                                          "reEnter": {
+                                            "type": "boolean"
                                           }
                                         },
                                         "required": [
@@ -38217,6 +38283,9 @@
                               },
                               "child": {
                                 "type": "string"
+                              },
+                              "reEnter": {
+                                "type": "boolean"
                               }
                             },
                             "required": [
@@ -38922,6 +38991,9 @@
                                                         "child": {
                                                           "type": "string"
                                                         },
+                                                        "reEnter": {
+                                                          "type": "boolean"
+                                                        },
                                                         "type": {
                                                           "type": "string",
                                                           "enum": [
@@ -39611,6 +39683,9 @@
                                                           "child": {
                                                             "type": "string"
                                                           },
+                                                          "reEnter": {
+                                                            "type": "boolean"
+                                                          },
                                                           "type": {
                                                             "type": "string",
                                                             "enum": [
@@ -40236,6 +40311,9 @@
                                     },
                                     "child": {
                                       "type": "string"
+                                    },
+                                    "reEnter": {
+                                      "type": "boolean"
                                     }
                                   },
                                   "required": [
@@ -40949,6 +41027,9 @@
                                                           "child": {
                                                             "type": "string"
                                                           },
+                                                          "reEnter": {
+                                                            "type": "boolean"
+                                                          },
                                                           "type": {
                                                             "type": "string",
                                                             "enum": [
@@ -41590,6 +41671,9 @@
                                     },
                                     "child": {
                                       "type": "string"
+                                    },
+                                    "reEnter": {
+                                      "type": "boolean"
                                     }
                                   },
                                   "required": [
@@ -42245,83 +42329,107 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "variant": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "ConstraintViolation"
-                              ]
-                            },
-                            "violations": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "WaitForNodeAndEventEntryNode"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "CantStart"
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "message"
-                                ]
-                              }
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "violations"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "ConstraintViolation"
                           ]
                         },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "IdError"
-                              ]
+                        "violations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "WaitForNodeAndEventEntryNode"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "CantStart"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              }
                             },
-                            "message": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type",
-                            "message"
-                          ]
+                            "required": [
+                              "type",
+                              "message"
+                            ]
+                          }
                         }
+                      },
+                      "required": [
+                        "type",
+                        "violations"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "IdError"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "StatusTransitionError"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "UniqueConstraintViolation"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
                       ]
                     }
-                  },
-                  "required": [
-                    "message",
-                    "variant"
                   ]
                 }
               }
