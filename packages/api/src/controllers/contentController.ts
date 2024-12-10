@@ -48,11 +48,9 @@ import {
   ResetMessageTemplateResource,
   UpsertMessageTemplateResource,
   UpsertMessageTemplateValidationError,
-  UpsertMessageTemplateValidationErrorType,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
 import * as R from "remeda";
-import { validate as validateUuid } from "uuid";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
@@ -210,14 +208,11 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (request.body.id && !validateUuid(request.body.id)) {
-        return reply.status(400).send({
-          type: UpsertMessageTemplateValidationErrorType.IdError,
-          message: "Invalid message template id, must be a valid v4 UUID",
-        });
-      }
       const resource = await upsertMessageTemplate(request.body);
-      return reply.status(200).send(resource);
+      if (resource.isErr()) {
+        return reply.status(400).send(resource.error);
+      }
+      return reply.status(200).send(resource.value);
     },
   );
 
@@ -230,6 +225,7 @@ export default async function contentController(fastify: FastifyInstance) {
         body: ResetMessageTemplateResource,
         response: {
           200: MessageTemplateResource,
+          400: UpsertMessageTemplateValidationError,
         },
       },
     },
@@ -267,10 +263,14 @@ export default async function contentController(fastify: FastifyInstance) {
           throw new Error("Mobile push templates unimplemented");
         }
       }
-      const resource = await upsertMessageTemplate({
+      const result = await upsertMessageTemplate({
         ...request.body,
         definition,
       });
+      if (result.isErr()) {
+        return reply.status(400).send(result.error);
+      }
+      const resource = result.value;
       const { journeyMetadata } = request.body;
       if (journeyMetadata) {
         const { journeyId, nodeId } = journeyMetadata;

@@ -76,6 +76,8 @@ import {
   TwilioSecret,
   TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
+  UpsertMessageTemplateValidationError,
+  UpsertMessageTemplateValidationErrorType,
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
@@ -157,7 +159,15 @@ export async function findMessageTemplate({
 
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource,
-): Promise<MessageTemplateResource> {
+): Promise<
+  Result<MessageTemplateResource, UpsertMessageTemplateValidationError>
+> {
+  if (data.id && !validateUuid(data.id)) {
+    return err({
+      type: UpsertMessageTemplateValidationErrorType.IdError,
+      message: "Invalid message template id, must be a valid v4 UUID",
+    });
+  }
   const draft = data.draft === null ? Prisma.DbNull : data.draft;
   const where: Prisma.MessageTemplateWhereUniqueInput = data.id
     ? { id: data.id }
@@ -184,7 +194,7 @@ export async function upsertMessageTemplate(
     },
   });
 
-  return unwrap(enrichMessageTemplate(messageTemplate));
+  return ok(unwrap(enrichMessageTemplate(messageTemplate)));
 }
 
 export async function findMessageTemplates({
