@@ -29,6 +29,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
+import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import {
   BaseMessageNodeStats,
   ChannelType,
