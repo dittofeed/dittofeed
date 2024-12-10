@@ -2,13 +2,21 @@ import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
-import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
+import {
+  buildHeritageMap,
+  getJourneyConstraintViolations,
+  HeritageMap,
+} from "isomorphic-lib/src/journeys";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
+import { validate as validateUuid } from "uuid";
 
 import {
   ClickHouseQueryBuilder,
@@ -21,6 +29,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
+import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import {
   BaseMessageNodeStats,
   ChannelType,
@@ -31,10 +40,13 @@ import {
   JourneyDraft,
   JourneyNodeType,
   JourneyStats,
+  JourneyUpsertValidationError,
+  JourneyUpsertValidationErrorType,
   MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
   SmsStats,
+  UpsertJourneyResource,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
@@ -729,4 +741,208 @@ export async function triggerEventEntryJourneys({
     },
   );
   await Promise.all(starts);
+}
+
+export async function upsertJourney(
+  params: UpsertJourneyResource,
+): Promise<Result<SavedJourneyResource, JourneyUpsertValidationError>> {
+  const { id, name, definition, workspaceId, status, canRunMultiple, draft } =
+    params;
+
+  if (id && !validateUuid(id)) {
+    return err({
+      type: JourneyUpsertValidationErrorType.IdError,
+      message: "Invalid journey id, must be a valid v4 UUID",
+    });
+  }
+
+  if (definition) {
+    const constraintViolations = getJourneyConstraintViolations({
+      definition,
+      newStatus: status,
+    });
+    if (constraintViolations.length > 0) {
+      return err({
+        type: JourneyUpsertValidationErrorType.ConstraintViolation,
+        violations: constraintViolations,
+      });
+    }
+  }
+
+  // null out the draft when the definition is updated or when the draft is
+  // explicitly set to null
+  const nullableDraft = definition || draft === null ? Prisma.DbNull : draft;
+
+  const where: Prisma.JourneyWhereUniqueInput = id
+    ? { id, workspaceId }
+    : { workspaceId_name: { workspaceId, name } };
+
+  const txResult: Result<Journey, JourneyUpsertValidationError> =
+    await prisma().$transaction(async (tx) => {
+      let journey: Journey | null = await tx.journey.findUnique({
+        where,
+      });
+      if (!journey) {
+        try {
+          const created: Journey = await tx.journey.create({
+            data: {
+              id,
+              workspaceId,
+              name,
+              definition,
+              draft: nullableDraft,
+              status,
+              canRunMultiple,
+            },
+          });
+
+          return ok(created);
+        } catch (e) {
+          if (
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2002"
+          ) {
+            return err({
+              type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+              message:
+                "Names must be unique in workspace. Id's must be globally unique.",
+            });
+          }
+          throw e;
+        }
+      }
+      if (
+        status === JourneyStatus.Paused &&
+        journey.status === JourneyStatus.NotStarted
+      ) {
+        return err({
+          type: JourneyUpsertValidationErrorType.StatusTransitionError,
+          message: "Cannot pause a journey that has not been started",
+        });
+      }
+
+      if (
+        status === JourneyStatus.NotStarted &&
+        journey.status !== JourneyStatus.NotStarted
+      ) {
+        return err({
+          type: JourneyUpsertValidationErrorType.StatusTransitionError,
+          message:
+            "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
+        });
+      }
+
+      let statusUpdatedAt: Date | undefined;
+      if (status && status !== journey.status) {
+        statusUpdatedAt = new Date();
+      }
+      journey = await tx.journey.update({
+        where,
+        data: {
+          name,
+          definition,
+          draft: nullableDraft,
+          status,
+          statusUpdatedAt,
+          canRunMultiple,
+        },
+      });
+      return ok(journey);
+    });
+  if (txResult.isErr()) {
+    return err(txResult.error);
+  }
+  const journey = txResult.value;
+  const journeyDefinitionResult = journey.definition
+    ? schemaValidate(journey.definition, JourneyDefinition)
+    : undefined;
+
+  // type checker seems not to understand with optional chain
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (journeyDefinitionResult && journeyDefinitionResult.isErr()) {
+    logger().error(
+      {
+        workspaceId,
+        journeyId: journey.id,
+        errors: journeyDefinitionResult.error,
+      },
+      "Failed to validate journey definition",
+    );
+    throw new Error("Failed to validate journey definition");
+  }
+
+  const journeyDraftResult = journey.draft
+    ? schemaValidate(journey.draft, JourneyDraft)
+    : undefined;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (journeyDraftResult && journeyDraftResult.isErr()) {
+    logger().error(
+      {
+        workspaceId,
+        journeyId: journey.id,
+        errors: journeyDraftResult.error,
+      },
+      "Failed to validate journey draft",
+    );
+    throw new Error("Failed to validate journey draft");
+  }
+
+  const journeyStatus = journey.status;
+  const journeyDefinition = journeyDefinitionResult?.value;
+  if (journeyStatus !== "NotStarted" && !journeyDefinition) {
+    throw new Error("Journey status is not NotStarted but has no definition");
+  }
+
+  if (
+    status === JourneyStatus.Running &&
+    journey.status === JourneyStatus.Paused &&
+    journeyDefinition?.entryNode.type === JourneyNodeType.SegmentEntryNode &&
+    journeyDefinition.entryNode.reEnter
+  ) {
+    const priorityStatusUpdatedAt = journey.statusUpdatedAt?.getTime();
+
+    if (priorityStatusUpdatedAt) {
+      await restartUserJourneyWorkflow({
+        journeyId: journey.id,
+        workspaceId,
+        statusUpdatedAt: priorityStatusUpdatedAt,
+      });
+    }
+  }
+
+  const baseResource = {
+    id: journey.id,
+    name: journey.name,
+    workspaceId: journey.workspaceId,
+    draft: journeyDraftResult?.value,
+    updatedAt: Number(journey.updatedAt),
+    createdAt: Number(journey.createdAt),
+  } as const;
+
+  let resource: SavedJourneyResource;
+  if (journeyStatus === "NotStarted") {
+    resource = {
+      ...baseResource,
+      status: journeyStatus,
+      definition: journeyDefinition,
+    };
+  } else {
+    if (!journeyDefinition) {
+      logger().error(
+        {
+          journeyId: journey.id,
+        },
+        "Journey status is not NotStarted but has no definition",
+      );
+      throw new Error("Journey status is not NotStarted but has no definition");
+    }
+    resource = {
+      ...baseResource,
+      status: journeyStatus,
+      definition: journeyDefinition,
+    };
+  }
+
+  return ok(resource);
 }

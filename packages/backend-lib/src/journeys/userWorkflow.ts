@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import {
+  continueAsNew,
   LoggerSinks,
   proxyActivities,
   proxySinks,
@@ -54,6 +55,7 @@ const {
   getEarliestComputePropertyPeriod,
   getUserPropertyDelay,
   getWorkspace,
+  shouldReEnter,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -716,4 +718,8 @@ export async function userJourneyWorkflow(
     eventKey,
     eventKeyName,
   });
+
+  if (await shouldReEnter({ journeyId })) {
+    await continueAsNew<typeof userJourneyWorkflow>(props);
+  }
 }

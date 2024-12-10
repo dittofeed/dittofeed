@@ -768,6 +768,7 @@ export const SegmentEntryNode = Type.Object(
     type: Type.Literal(JourneyNodeType.SegmentEntryNode),
     segment: Type.String(),
     child: Type.String(),
+    reEnter: Type.Optional(Type.Boolean()),
   },
   {
     title: "Segment Entry Node",
@@ -4031,7 +4032,9 @@ export type JourneyConstraintViolation = Static<
 
 export enum JourneyUpsertValidationErrorType {
   ConstraintViolation = "ConstraintViolation",
+  StatusTransitionError = "StatusTransitionError",
   IdError = "IdError",
+  UniqueConstraintViolation = "UniqueConstraintViolation",
 }
 
 export const JourneyUpsertValidationConstraintViolationError = Type.Object({
@@ -4050,19 +4053,36 @@ export const JourneyUpsertIdError = Type.Object({
 
 export type JourneyUpsertIdError = Static<typeof JourneyUpsertIdError>;
 
-export const JourneyUpsertValidationErrorVariant = Type.Union([
-  JourneyUpsertValidationConstraintViolationError,
-  JourneyUpsertIdError,
-]);
+export const JourneyUpsertUniqueConstraintViolationError = Type.Object({
+  type: Type.Literal(
+    JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+  ),
+  message: Type.String(),
+});
 
-export type JourneyUpsertValidationErrorVariant = Static<
-  typeof JourneyUpsertValidationErrorVariant
+export type JourneyUpsertUniqueConstraintViolationError = Static<
+  typeof JourneyUpsertUniqueConstraintViolationError
 >;
 
-export const JourneyUpsertValidationError = Type.Object({
+export const JourneyUpsertStatusTransitionError = Type.Object({
+  type: Type.Literal(JourneyUpsertValidationErrorType.StatusTransitionError),
   message: Type.String(),
-  variant: JourneyUpsertValidationErrorVariant,
 });
+
+export type JourneyUpsertStatusTransitionError = Static<
+  typeof JourneyUpsertStatusTransitionError
+>;
+
+export const JourneyUpsertValidationError = Type.Union([
+  JourneyUpsertValidationConstraintViolationError,
+  JourneyUpsertIdError,
+  JourneyUpsertStatusTransitionError,
+  JourneyUpsertUniqueConstraintViolationError,
+]);
+
+export type JourneyUpsertValidationError = Static<
+  typeof JourneyUpsertValidationError
+>;
 
 export type MessageTags = Record<string, string> & { messageId: string };
 

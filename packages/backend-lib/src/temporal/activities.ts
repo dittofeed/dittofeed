@@ -6,4 +6,5 @@ export {
   emitGlobalSignals,
   observeWorkspaceComputeLatency,
 } from "../resiliency";
+export * from "../restartUserJourneyWorkflow/activities";
 export * from "../segments/computePropertiesWorkflow/activities";

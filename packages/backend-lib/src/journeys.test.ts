@@ -17,6 +17,7 @@ import {
   SegmentEntryNode,
   SegmentSplitNode,
   SegmentSplitVariantType,
+  Workspace,
 } from "./types";
 
 describe("journeys", () => {
@@ -552,6 +553,24 @@ describe("journeys", () => {
         expect(
           stats[0]?.nodeStats["message-node-2"].proportions.childEdge,
         ).toEqual(100);
+      });
+    });
+  });
+  // TODO: add tests for upsertJourney
+  describe.skip("upsertJourney", () => {
+    let workspace: Workspace;
+
+    beforeEach(async () => {
+      workspace = await prisma().workspace.create({
+        data: { name: randomUUID() },
+      });
+    });
+
+    describe("when a journey is started after being paused", () => {
+      it("re-triggers user workflows for journeys that can be re-entered and run multiple times", async () => {
+        // assert that journey without conditions is not triggered
+        // assert that journey with conditions is triggered
+        // asert journey status is updated
       });
     });
   });
