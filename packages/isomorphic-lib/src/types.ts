@@ -1570,12 +1570,29 @@ export type UpsertMessageTemplateResource = Static<
 
 export enum UpsertMessageTemplateValidationErrorType {
   IdError = "IdError",
+  UniqueConstraintViolation = "UniqueConstraintViolation",
 }
 
-export const UpsertMessageTemplateValidationError = Type.Object({
-  type: Type.Enum(UpsertMessageTemplateValidationErrorType),
+export const UniqueConstraintViolationError = Type.Object({
+  type: Type.Literal(
+    UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
+  ),
   message: Type.String(),
 });
+
+export type UniqueConstraintViolationError = Static<
+  typeof UniqueConstraintViolationError
+>;
+
+export const IdErrorMessageTemplateViolation = Type.Object({
+  type: Type.Literal(UpsertMessageTemplateValidationErrorType.IdError),
+  message: Type.String(),
+});
+
+export const UpsertMessageTemplateValidationError = Type.Union([
+  UniqueConstraintViolationError,
+  IdErrorMessageTemplateViolation,
+]);
 
 export type UpsertMessageTemplateValidationError = Static<
   typeof UpsertMessageTemplateValidationError

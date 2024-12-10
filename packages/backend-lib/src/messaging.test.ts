@@ -7,7 +7,7 @@ import {
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { sendEmail, sendSms } from "./messaging";
+import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
 import prisma from "./prisma";
@@ -21,6 +21,7 @@ import {
   SmsProviderType,
   SmsTemplateResource,
   SubscriptionGroupType,
+  UpsertMessageTemplateValidationErrorType,
 } from "./types";
 
 async function setupEmailTemplate(workspace: Workspace) {
@@ -55,6 +56,7 @@ async function setupEmailTemplate(workspace: Workspace) {
   ]);
   return { template, subscriptionGroup };
 }
+
 describe("messaging", () => {
   let workspace: Workspace;
 
@@ -295,6 +297,49 @@ describe("messaging", () => {
         });
         const unwrapped = unwrap(payload);
         expect(unwrapped.type).toBe(InternalEventType.MessageSent);
+      });
+    });
+  });
+  describe("upsertMessageTemplate", () => {
+    describe("when a message template is created in a second workspace with a re-used id", () => {
+      let secondWorkspace: Workspace;
+      beforeEach(async () => {
+        secondWorkspace = await prisma().workspace.create({
+          data: { name: randomUUID() },
+        });
+      });
+      it("returns a unique constraint violation error", async () => {
+        const id = randomUUID();
+        const result = await upsertMessageTemplate({
+          id,
+          name: randomUUID(),
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "{% unsubscribe_link here %}.",
+          } satisfies EmailTemplateResource,
+        });
+        expect(result.isOk()).toBe(true);
+        const secondResult = await upsertMessageTemplate({
+          id,
+          name: randomUUID(),
+          workspaceId: secondWorkspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "{% unsubscribe_link here %}.",
+          } satisfies EmailTemplateResource,
+        });
+        const errorType = secondResult.isErr() && secondResult.error.type;
+        expect(
+          errorType,
+          "second upsert should fail with unique constraint violation",
+        ).toEqual(
+          UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
+        );
       });
     });
   });
