@@ -11,7 +11,7 @@ import {
 import logger from "../logger";
 import prisma from "../prisma";
 import { getContext } from "../temporal/activity";
-import { JourneyDefinition, SegmentUpdate } from "../types";
+import { JourneyDefinition, JourneyNodeType, SegmentUpdate } from "../types";
 
 interface SegmentAssignment {
   user_id: string;
@@ -20,12 +20,10 @@ interface SegmentAssignment {
 export async function restartUserJourneysActivity({
   workspaceId,
   journeyId,
-  segmentId,
   pageSize = 100,
 }: {
   workspaceId: string;
   journeyId: string;
-  segmentId: string;
   pageSize?: number;
 }) {
   let page: SegmentAssignment[] = [];
@@ -63,7 +61,19 @@ export async function restartUserJourneysActivity({
     return;
   }
   const definition = definitionResult.value;
+  if (definition.entryNode.type !== JourneyNodeType.SegmentEntryNode) {
+    logger().info(
+      {
+        journeyId,
+        workspaceId,
+        entryNode: definition.entryNode,
+      },
+      "Journey is not a segment entry node, skipping",
+    );
+    return;
+  }
 
+  const segmentId = definition.entryNode.segment;
   while (page.length >= pageSize || cursor === null) {
     const qb = new ClickHouseQueryBuilder();
     const workspaceIdParam = qb.addQueryValue(workspaceId, "String");

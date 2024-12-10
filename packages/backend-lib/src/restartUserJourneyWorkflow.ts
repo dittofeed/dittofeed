@@ -16,7 +16,16 @@ export function generateRestartUserJourneysWorkflowId({
   return `restart-user-journeys-workflow-${workspaceId}-${journeyId}`;
 }
 
+const { restartUserJourneysActivity } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "2 minutes",
+});
+
 export async function restartUserJourneysWorkflow({
   workspaceId,
   journeyId,
-}: RestartUserJourneyWorkflowProps) {}
+}: RestartUserJourneyWorkflowProps) {
+  await restartUserJourneysActivity({
+    workspaceId,
+    journeyId,
+  });
+}
