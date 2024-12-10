@@ -1,8 +1,12 @@
 import { UserProperty, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
+import { clickhouseClient } from "./clickhouse";
 import prisma from "./prisma";
-import { buildSegmentsFile } from "./segments";
+import {
+  buildSegmentsFile,
+  findRecentlyUpdatedUsersInSegment,
+} from "./segments";
 import {
   IdUserPropertyDefinition,
   SegmentNodeType,
@@ -123,6 +127,73 @@ describe("segments", () => {
         expect(fileContent).toBeDefined();
         expect(fileContent.length).toBeGreaterThan(0);
       });
+    });
+  });
+  describe("findRecentlyUpdatedUsersInSegment", () => {
+    let segmentId: string;
+
+    beforeEach(async () => {
+      segmentId = randomUUID();
+      await clickhouseClient().insert({
+        table: `computed_property_assignments_v2 (workspace_id, type, computed_property_id, user_id, segment_value, user_property_value, max_event_time, assigned_at)`,
+        values: [
+          {
+            workspace_id: workspace.id,
+            type: "segment",
+            computed_property_id: segmentId,
+            user_id: "1",
+            segment_value: true,
+            user_property_value: "",
+            max_event_time: new Date().toISOString(),
+            assigned_at: new Date().toISOString(),
+          },
+          {
+            workspace_id: workspace.id,
+            type: "segment",
+            computed_property_id: randomUUID(),
+            user_id: "2",
+            segment_value: true,
+            user_property_value: "",
+            max_event_time: new Date().toISOString(),
+            assigned_at: new Date().toISOString(),
+          },
+          {
+            workspace_id: workspace.id,
+            type: "segment",
+            computed_property_id: segmentId,
+            user_id: "3",
+            segment_value: true,
+            user_property_value: "",
+            max_event_time: new Date(
+              Date.now() - 1000 * 60 * 60 * 24 * 10,
+            ).toISOString(),
+            assigned_at: new Date(
+              Date.now() - 1000 * 60 * 60 * 24 * 10,
+            ).toISOString(),
+          },
+          {
+            workspace_id: workspace.id,
+            type: "segment",
+            computed_property_id: segmentId,
+            user_id: "4",
+            segment_value: false,
+            user_property_value: "",
+            max_event_time: new Date().toISOString(),
+            assigned_at: new Date().toISOString(),
+          },
+        ],
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+    });
+    it("returns the users that have been added to the segment recently", async () => {
+      const users = await findRecentlyUpdatedUsersInSegment({
+        workspaceId: workspace.id,
+        segmentId,
+        assignedSince: Date.now() - 5000,
+        pageSize: 10,
+      });
+      expect(users).toEqual([{ userId: "1" }]);
     });
   });
 });

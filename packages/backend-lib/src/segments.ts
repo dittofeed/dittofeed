@@ -752,17 +752,19 @@ export async function findRecentlyUpdatedUsersInSegment({
     : `AND user_id > ${qb.addQueryValue(cursor, "String")}`;
 
   const query = `
-    SELECT user_id as "userId" FROM computed_property_state_v2
+    SELECT user_id as "userId" FROM computed_property_assignments_v2
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
       AND computed_property_id = ${segmentIdParam}
       AND assigned_at > toDateTime64(${assignedSince / 1000}, 3)
+      AND segment_value = true
       ${paginationClause}
     LIMIT ${pageSize}
   `;
   const result = await chQuery({
     query,
+    query_params: qb.getQueries(),
   });
   const rows = await result.json<{ userId: string }>();
   return rows;
