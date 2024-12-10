@@ -21,6 +21,20 @@ export function jsonValue({
   return ok(value);
 }
 
+export function jsonStringOrNumber({
+  data,
+  path: rawPath,
+}: {
+  data: unknown;
+  path: string;
+}): Result<string | number, Error> {
+  return jsonValue({ data, path: rawPath }).andThen((v) =>
+    typeof v === "string" || typeof v === "number"
+      ? ok(v)
+      : err(new Error("expected string or number")),
+  );
+}
+
 export function jsonString({
   data,
   path: rawPath,
