@@ -783,18 +783,33 @@ export async function upsertJourney(
         where,
       });
       if (!journey) {
-        const created: Journey = await tx.journey.create({
-          data: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            draft: nullableDraft,
-            status,
-            canRunMultiple,
-          },
-        });
-        return ok(created);
+        try {
+          const created: Journey = await tx.journey.create({
+            data: {
+              id,
+              workspaceId,
+              name,
+              definition,
+              draft: nullableDraft,
+              status,
+              canRunMultiple,
+            },
+          });
+
+          return ok(created);
+        } catch (e) {
+          if (
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2002"
+          ) {
+            return err({
+              type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+              message:
+                "Names must be unique in workspace. Id's must be globally unique.",
+            });
+          }
+          throw e;
+        }
       }
       if (
         status === JourneyStatus.Paused &&
