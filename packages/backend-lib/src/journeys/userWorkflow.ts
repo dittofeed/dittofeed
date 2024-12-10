@@ -12,7 +12,7 @@ import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
-import { jsonString, jsonValue } from "../jsonPath";
+import { jsonStringOrNumber, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
@@ -82,10 +82,12 @@ export function getKeyedUserJourneyWorkflowId({
   let keyValue: string;
   if (entryNode.key) {
     key = entryNode.key;
-    const keyValueResult = jsonString({
+    const keyValueResult = jsonStringOrNumber({
       data: event.properties,
       path: key,
-    }).unwrapOr(null);
+    })
+      .map(String)
+      .unwrapOr(null);
     if (!keyValueResult) {
       return null;
     }
