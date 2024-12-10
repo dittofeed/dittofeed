@@ -15,7 +15,6 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
-import logger from "./logger";
 
 export async function submitIdentify({
   workspaceId,
@@ -117,21 +116,9 @@ export async function submitBatchWithTriggers({
 
   const triggers: TriggerEventEntryJourneysOptions[] = data.batch.flatMap(
     (message) => {
-      logger().debug(
-        {
-          message,
-        },
-        "loc1",
-      );
       if (message.type !== EventType.Track) {
         return [];
       }
-      logger().debug(
-        {
-          message,
-        },
-        "loc2",
-      );
       let userOrAnonymousId: string | null = null;
       if ("userId" in message) {
         userOrAnonymousId = message.userId;
@@ -141,12 +128,6 @@ export async function submitBatchWithTriggers({
       if (!userOrAnonymousId) {
         return [];
       }
-      logger().debug(
-        {
-          message,
-        },
-        "loc3",
-      );
       return {
         workspaceId,
         event: message,
