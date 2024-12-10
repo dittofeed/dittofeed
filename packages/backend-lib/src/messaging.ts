@@ -818,6 +818,16 @@ export async function sendEmail({
           const assignment = userPropertyAssignments[attachmentProperty];
           const file = schemaValidateWithErr(assignment, BlobStorageFile);
           if (file.isErr()) {
+            logger().error(
+              {
+                err: file.error,
+                assignment,
+                attachmentProperty,
+                templateId,
+                workspaceId,
+              },
+              "error validating attachment user property",
+            );
             return [];
           }
 
@@ -826,6 +836,16 @@ export async function sendEmail({
             key,
           });
           if (!object) {
+            logger().error(
+              {
+                key,
+                workspaceId,
+                mimeType,
+                name,
+                templateId,
+              },
+              "error getting attachment object",
+            );
             return [];
           }
           const attachment: Attachment = {
