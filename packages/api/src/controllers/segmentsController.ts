@@ -41,11 +41,9 @@ import {
   SegmentNodeType,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
-  UpsertSegmentValidationErrorType,
   UserUploadRowErrors,
 } from "isomorphic-lib/src/types";
 import { err, ok } from "neverthrow";
-import { validate as validateUuid } from "uuid";
 
 import { CsvParseResult } from "../types";
 

@@ -305,28 +305,42 @@ export async function upsertSegment(
       };
 
   let segment: Segment;
-  if (params.definition) {
-    segment = await prisma().segment.upsert({
-      where,
-      update: {
-        definition: params.definition,
-        name: params.name,
-        definitionUpdatedAt: new Date(),
-      },
-      create: {
-        workspaceId: params.workspaceId,
-        name: params.name,
-        definition: params.definition,
-        id: params.id,
-      },
-    });
-  } else {
-    segment = await prisma().segment.update({
-      where,
-      data: {
-        name: params.name,
-      },
-    });
+  try {
+    if (params.definition) {
+      segment = await prisma().segment.upsert({
+        where,
+        update: {
+          definition: params.definition,
+          name: params.name,
+          definitionUpdatedAt: new Date(),
+        },
+        create: {
+          workspaceId: params.workspaceId,
+          name: params.name,
+          definition: params.definition,
+          id: params.id,
+        },
+      });
+    } else {
+      segment = await prisma().segment.update({
+        where,
+        data: {
+          name: params.name,
+        },
+      });
+    }
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      (e.code === "P2002" || e.code === "P2025")
+    ) {
+      return err({
+        type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
+        message:
+          "Names must be unique in workspace. Id's must be globally unique.",
+      });
+    }
+    throw e;
   }
   return ok({
     id: segment.id,

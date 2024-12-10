@@ -1194,12 +1194,34 @@ export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
 export enum UpsertSegmentValidationErrorType {
   IdError = "IdError",
+  UniqueConstraintViolation = "UniqueConstraintViolation",
 }
 
-export const UpsertSegmentValidationError = Type.Object({
-  type: Type.Enum(UpsertSegmentValidationErrorType),
+export const IdUpsertSegmentValidationError = Type.Object({
+  type: Type.Literal(UpsertSegmentValidationErrorType.IdError),
   message: Type.String(),
 });
+
+export type IdUpsertSegmentValidationError = Static<
+  typeof IdUpsertSegmentValidationError
+>;
+
+export const UniqueConstraintViolationUpsertSegmentValidationError =
+  Type.Object({
+    type: Type.Literal(
+      UpsertSegmentValidationErrorType.UniqueConstraintViolation,
+    ),
+    message: Type.String(),
+  });
+
+export type UniqueConstraintViolationUpsertSegmentValidationError = Static<
+  typeof UniqueConstraintViolationUpsertSegmentValidationError
+>;
+
+export const UpsertSegmentValidationError = Type.Union([
+  IdUpsertSegmentValidationError,
+  UniqueConstraintViolationUpsertSegmentValidationError,
+]);
 
 export type UpsertSegmentValidationError = Static<
   typeof UpsertSegmentValidationError
