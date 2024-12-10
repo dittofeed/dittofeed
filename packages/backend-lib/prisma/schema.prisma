@@ -112,18 +112,19 @@ enum JourneyStatus {
 }
 
 model Journey {
-  id             String         @id() @default(uuid()) @db.Uuid
-  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId    String         @db.Uuid
-  name           String
-  status         JourneyStatus  @default(NotStarted)
-  definition     Json?
-  draft          Json?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  resourceType   DBResourceType @default(Declarative)
-  canRunMultiple Boolean        @default(false)
-  Broadcast      Broadcast[]
+  id              String         @id() @default(uuid()) @db.Uuid
+  workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId     String         @db.Uuid
+  name            String
+  status          JourneyStatus  @default(NotStarted)
+  definition      Json?
+  draft           Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  statusUpdatedAt DateTime?
+  resourceType    DBResourceType @default(Declarative)
+  canRunMultiple  Boolean        @default(false)
+  Broadcast       Broadcast[]
 
   @@unique([workspaceId, name])
 }
@@ -295,13 +296,13 @@ model SegmentIOConfiguration {
 
 // TODO add workspace id
 model UserJourneyEvent {
-  id               String   @id() @default(uuid()) @db.Uuid
-  userId           String
-  nodeId           String?
-  journeyId        String?  @db.Uuid()
-  type             String
-  eventKey         String?
-  eventKeyName     String?
+  id           String  @id() @default(uuid()) @db.Uuid
+  userId       String
+  nodeId       String?
+  journeyId    String? @db.Uuid()
+  type         String
+  eventKey     String?
+  eventKeyName String?
 
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
