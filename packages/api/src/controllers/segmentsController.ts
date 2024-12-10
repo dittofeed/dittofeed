@@ -88,14 +88,11 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (request.body.id && !validateUuid(request.body.id)) {
-        return reply.status(400).send({
-          type: UpsertSegmentValidationErrorType.IdError,
-          message: "Invalid segment id, must be a valid v4 UUID",
-        });
+      const result = await upsertSegment(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send(result.error);
       }
-      const resource = await upsertSegment(request.body);
-      return reply.status(200).send(resource);
+      return reply.status(200).send(result.value);
     },
   );
 

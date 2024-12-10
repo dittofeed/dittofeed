@@ -9,6 +9,7 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { jsonValue } from "./jsonPath";
@@ -32,6 +33,8 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   UpsertSegmentResource,
+  UpsertSegmentValidationError,
+  UpsertSegmentValidationErrorType,
   UserWorkflowTrackEvent,
 } from "./types";
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
@@ -281,7 +284,14 @@ export async function findManySegmentResourcesSafe({
  */
 export async function upsertSegment(
   params: UpsertSegmentResource,
-): Promise<SavedSegmentResource> {
+): Promise<Result<SavedSegmentResource, UpsertSegmentValidationError>> {
+  if (params.id && !validateUuid(params.id)) {
+    return err({
+      type: UpsertSegmentValidationErrorType.IdError,
+      message: "Invalid segment id, must be a valid v4 UUID",
+    });
+  }
+
   const where: Prisma.SegmentWhereUniqueInput = params.id
     ? {
         workspaceId: params.workspaceId,
@@ -318,7 +328,7 @@ export async function upsertSegment(
       },
     });
   }
-  return {
+  return ok({
     id: segment.id,
     workspaceId: segment.workspaceId,
     name: segment.name,
@@ -326,7 +336,7 @@ export async function upsertSegment(
     definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
     updatedAt: segment.updatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
-  };
+  });
 }
 
 export function segmentNodeIsBroadcast(node: SegmentNode): boolean {
