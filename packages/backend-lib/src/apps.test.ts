@@ -73,6 +73,7 @@ describe("apps", () => {
           type: JourneyNodeType.EventEntryNode,
           event: entryEventName,
           child: JourneyNodeType.ExitNode,
+          key: "itemId",
         },
         nodes: [],
         exitNode: {
@@ -150,7 +151,7 @@ describe("apps", () => {
               event: entryEventName,
               messageId: uuidv4(),
               userId: userId1,
-              properties: { amount: 100 },
+              properties: { amount: 100, itemId: "123" },
             },
             {
               type: EventType.Track,
