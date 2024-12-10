@@ -833,6 +833,15 @@ export async function upsertJourney(
           canRunMultiple,
         },
       });
+      if (
+        status === JourneyStatus.Running &&
+        journey.status === JourneyStatus.Paused
+      ) {
+        await restartUserJourneyWorkflow({
+          journeyId: journey.id,
+          workspaceId,
+        });
+      }
       return ok(journey);
     });
   if (txResult.isErr()) {

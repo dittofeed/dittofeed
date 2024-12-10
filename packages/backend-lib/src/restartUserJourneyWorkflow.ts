@@ -4,24 +4,19 @@ import { proxyActivities } from "@temporalio/workflow";
 import type * as activities from "./temporal/activities";
 import { JourneyDefinition } from "./types";
 
+export type RestartUserJourneyWorkflowProps = {
+  workspaceId: string;
+  journeyId: string;
+};
+
 export function generateRestartUserJourneysWorkflowId({
   workspaceId,
   journeyId,
-}: {
-  workspaceId: string;
-  journeyId: string;
-}) {
+}: RestartUserJourneyWorkflowProps) {
   return `restart-user-journeys-workflow-${workspaceId}-${journeyId}`;
 }
 
-export function restartUserJourneysWorkflow({
+export async function restartUserJourneysWorkflow({
   workspaceId,
   journeyId,
-  segmentId,
-}: {
-  workspaceId: string;
-  journeyId: string;
-  segmentId: string;
-}) {
-  // TODO
-}
+}: RestartUserJourneyWorkflowProps) {}
