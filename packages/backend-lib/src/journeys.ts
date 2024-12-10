@@ -817,6 +817,11 @@ export async function upsertJourney(
             "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
         });
       }
+
+      let statusUpdatedAt: Date | undefined;
+      if (status && status !== journey.status) {
+        statusUpdatedAt = new Date();
+      }
       journey = await tx.journey.update({
         where,
         data: {
@@ -824,6 +829,7 @@ export async function upsertJourney(
           definition,
           draft: nullableDraft,
           status,
+          statusUpdatedAt,
           canRunMultiple,
         },
       });

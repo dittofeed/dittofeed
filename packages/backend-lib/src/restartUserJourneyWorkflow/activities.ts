@@ -73,6 +73,7 @@ export async function restartUserJourneysActivity({
         ? ""
         : `AND user_id > ${qb.addQueryValue(cursor, "String")}`;
 
+    // FIXME filter by assigned at after status change time
     const query = `
       SELECT user_id FROM computed_property_state_v2 
       WHERE 
