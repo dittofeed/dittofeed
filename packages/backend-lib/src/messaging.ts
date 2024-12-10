@@ -76,6 +76,8 @@ import {
   TwilioSecret,
   TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
+  UpsertMessageTemplateValidationError,
+  UpsertMessageTemplateValidationErrorType,
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
@@ -157,10 +159,18 @@ export async function findMessageTemplate({
 
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource,
-): Promise<MessageTemplateResource> {
+): Promise<
+  Result<MessageTemplateResource, UpsertMessageTemplateValidationError>
+> {
+  if (data.id && !validateUuid(data.id)) {
+    return err({
+      type: UpsertMessageTemplateValidationErrorType.IdError,
+      message: "Invalid message template id, must be a valid v4 UUID",
+    });
+  }
   const draft = data.draft === null ? Prisma.DbNull : data.draft;
   const where: Prisma.MessageTemplateWhereUniqueInput = data.id
-    ? { id: data.id }
+    ? { id: data.id, workspaceId: data.workspaceId }
     : {
         workspaceId_name: {
           workspaceId: data.workspaceId,
@@ -168,23 +178,37 @@ export async function upsertMessageTemplate(
         },
       };
 
-  const messageTemplate = await prisma().messageTemplate.upsert({
-    where,
-    create: {
-      workspaceId: data.workspaceId,
-      name: data.name,
-      id: data.id,
-      definition: data.definition,
-      draft,
-    },
-    update: {
-      name: data.name,
-      definition: data.definition,
-      draft,
-    },
-  });
+  try {
+    const messageTemplate = await prisma().messageTemplate.upsert({
+      where,
+      create: {
+        workspaceId: data.workspaceId,
+        name: data.name,
+        id: data.id,
+        definition: data.definition,
+        draft,
+      },
+      update: {
+        name: data.name,
+        definition: data.definition,
+        draft,
+      },
+    });
 
-  return unwrap(enrichMessageTemplate(messageTemplate));
+    return ok(unwrap(enrichMessageTemplate(messageTemplate)));
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      (e.code === "P2002" || e.code === "P2025")
+    ) {
+      return err({
+        type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
+        message:
+          "Names must be unique in workspace. Id's must be globally unique.",
+      });
+    }
+    throw e;
+  }
 }
 
 export async function findMessageTemplates({

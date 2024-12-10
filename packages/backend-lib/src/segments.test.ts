@@ -6,13 +6,16 @@ import prisma from "./prisma";
 import {
   buildSegmentsFile,
   findRecentlyUpdatedUsersInSegment,
+  upsertSegment,
 } from "./segments";
 import {
   IdUserPropertyDefinition,
+  SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
   TraitSegmentNode,
   TraitUserPropertyDefinition,
+  UpsertSegmentValidationErrorType,
   UserPropertyDefinitionType,
 } from "./types";
 
@@ -194,6 +197,60 @@ describe("segments", () => {
         pageSize: 10,
       });
       expect(users).toEqual([{ userId: "1" }]);
+    });
+  });
+  describe("upsertSegment", () => {
+    describe("when a segment is created in a second workspace with a re-used id", () => {
+      let secondWorkspace: Workspace;
+      beforeEach(async () => {
+        secondWorkspace = await prisma().workspace.create({
+          data: { name: randomUUID() },
+        });
+      });
+      it("returns a unique constraint violation error", async () => {
+        const id = randomUUID();
+        const result = await upsertSegment({
+          id,
+          name: randomUUID(),
+          workspaceId: workspace.id,
+          definition: {
+            entryNode: {
+              id: randomUUID(),
+              type: SegmentNodeType.Trait,
+              path: "name",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+            nodes: [],
+          } satisfies SegmentDefinition,
+        });
+        expect(result.isOk()).toBe(true);
+
+        const secondResult = await upsertSegment({
+          id,
+          name: randomUUID(),
+          workspaceId: secondWorkspace.id,
+          definition: {
+            entryNode: {
+              id: randomUUID(),
+              type: SegmentNodeType.Trait,
+              path: "name",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+            nodes: [],
+          } satisfies SegmentDefinition,
+        });
+        const errorType = secondResult.isErr() && secondResult.error.type;
+        expect(
+          errorType,
+          "second upsert should fail with unique constraint violation",
+        ).toEqual(UpsertSegmentValidationErrorType.UniqueConstraintViolation);
+      });
     });
   });
 });

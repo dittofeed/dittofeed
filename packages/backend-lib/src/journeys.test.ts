@@ -2,7 +2,11 @@ import { randomUUID } from "crypto";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
-import { getJourneyMessageStats, getJourneysStats } from "./journeys";
+import {
+  getJourneyMessageStats,
+  getJourneysStats,
+  upsertJourney,
+} from "./journeys";
 import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
 import prisma from "./prisma";
 import {
@@ -11,6 +15,7 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
+  JourneyUpsertValidationErrorType,
   MessageNode,
   MessageServiceFailureVariant,
   NodeStatsType,
@@ -557,7 +562,7 @@ describe("journeys", () => {
     });
   });
   // TODO: add tests for upsertJourney
-  describe.skip("upsertJourney", () => {
+  describe("upsertJourney", () => {
     let workspace: Workspace;
 
     beforeEach(async () => {
@@ -566,7 +571,57 @@ describe("journeys", () => {
       });
     });
 
-    describe("when a journey is started after being paused", () => {
+    describe("when a journey is created in a second workspace with a re-used id", () => {
+      let secondWorkspace: Workspace;
+      beforeEach(async () => {
+        secondWorkspace = await prisma().workspace.create({
+          data: { name: randomUUID() },
+        });
+      });
+      it("returns a unique constraint violation error", async () => {
+        const journeyId = randomUUID();
+        const result = await upsertJourney({
+          workspaceId: workspace.id,
+          id: journeyId,
+          name: randomUUID(),
+          definition: {
+            entryNode: {
+              type: JourneyNodeType.SegmentEntryNode,
+              segment: randomUUID(),
+              child: JourneyNodeType.ExitNode,
+            },
+            exitNode: {
+              type: JourneyNodeType.ExitNode,
+            },
+            nodes: [],
+          },
+        });
+        expect(result.isOk(), "first upsert should succeed").toBe(true);
+        const secondResult = await upsertJourney({
+          workspaceId: secondWorkspace.id,
+          id: journeyId,
+          name: randomUUID(),
+          definition: {
+            entryNode: {
+              type: JourneyNodeType.SegmentEntryNode,
+              segment: randomUUID(),
+              child: JourneyNodeType.ExitNode,
+            },
+            exitNode: {
+              type: JourneyNodeType.ExitNode,
+            },
+            nodes: [],
+          },
+        });
+        const errorType = secondResult.isErr() && secondResult.error.type;
+        expect(
+          errorType,
+          "second upsert should fail with unique constraint violation",
+        ).toEqual(JourneyUpsertValidationErrorType.UniqueConstraintViolation);
+      });
+    });
+
+    describe.skip("when a journey is started after being paused", () => {
       it("re-triggers user workflows for journeys that can be re-entered and run multiple times", async () => {
         // assert that journey without conditions is not triggered
         // assert that journey with conditions is triggered

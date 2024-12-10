@@ -116,6 +116,7 @@ export async function upsertSubscriptionGroup({
   const sg = await prisma().$transaction(async (tx) => {
     const subscriptionGroup = await tx.subscriptionGroup.upsert({
       where: {
+        workspaceId,
         id,
       },
       create: {
