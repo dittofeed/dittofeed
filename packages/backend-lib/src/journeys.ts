@@ -702,12 +702,6 @@ export function triggerEventEntryJourneysFactory({
     let journeyDetails: EventTriggerJourneyDetails[] | undefined =
       journeyCache.get(workspaceId);
 
-    logger().debug(
-      {
-        journeyDetails,
-      },
-      "loc4",
-    );
     if (!journeyDetails) {
       const allJourneys = await prisma().journey.findMany({
         where: {
@@ -727,28 +721,12 @@ export function triggerEventEntryJourneysFactory({
           return [];
         }
         const journey = result.value;
-        logger().debug(
-          {
-            journey,
-          },
-          "loc5",
-        );
         if (
           journey.status !== JourneyStatus.Running ||
           journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
         ) {
           return [];
         }
-        logger().debug(
-          {
-            journeyId: journey.id,
-            userId,
-            journeyStatus: journey.status,
-            requiredEvent: journey.definition.entryNode.event,
-            actualEvent: triggerEvent.event,
-          },
-          "loc6",
-        );
         return {
           event: journey.definition.entryNode.event,
           journeyId: journey.id,
@@ -761,25 +739,9 @@ export function triggerEventEntryJourneysFactory({
     const starts: Promise<unknown>[] = journeyDetails.flatMap(
       ({ journeyId, event: journeyEvent, definition }) => {
         if (journeyEvent !== triggerEvent.event) {
-          logger().debug(
-            {
-              journeyEvent,
-              triggerEvent,
-            },
-            "loc7",
-          );
           return [];
         }
 
-        logger().debug(
-          {
-            journeyId,
-            userId,
-            journeyEvent,
-            triggerEvent,
-          },
-          "loc8",
-        );
         return startKeyedJourneyImpl({
           workspaceId,
           userId,
