@@ -706,7 +706,7 @@ export function calculateKeyedSegment({
   events: unfilteredEvents,
   keyValue,
   definition,
-}: KeyedSegmentEventContext): CalculateKeyedSegmentsResult {
+}: KeyedSegmentEventContext): boolean {
   const entryNode = definition;
   const { times: maybeTimes, timesOperator: maybeTimesOperator } = entryNode;
   let eventsCount = 0;
@@ -750,10 +750,7 @@ export function calculateKeyedSegment({
     default:
       assertUnreachable(timesOperator);
   }
-  return {
-    type: JsonResultType.Ok,
-    value: result,
-  };
+  return result;
 }
 
 export async function findRecentlyUpdatedUsersInSegment({

@@ -289,6 +289,7 @@ async function getSegmentAssignmentDb({
   });
   return assignment;
 }
+
 export async function getSegmentAssignment(
   params: OptionalAllOrNothing<
     {
@@ -347,25 +348,16 @@ export async function getSegmentAssignment(
   if (entryNode.type !== SegmentNodeType.KeyedPerformed) {
     return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
   }
-  const result = calculateKeyedSegment({
+  const inSegment = calculateKeyedSegment({
     events: params.events,
     keyValue: params.keyValue,
     definition: entryNode,
   });
-  if (result.type === JsonResultType.Err) {
-    logger().error(
-      {
-        err: result.err,
-      },
-      "error calculating keyed segment",
-    );
-    return null;
-  }
   return {
     userId,
     workspaceId,
     segmentId,
-    inSegment: result.value,
+    inSegment,
   };
 }
 
