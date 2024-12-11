@@ -172,29 +172,31 @@ function EntryNodeFields({
               <TextField {...params} label="segment" variant="outlined" />
             )}
           />
-          <InfoTooltip title="If checked, the user will be re-entered into the journey after exiting it. This is useful for creating loops." />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={nodeVariant.reEnter ?? false}
-                onChange={(event) => {
-                  updateJourneyNodeData(nodeId, (node) => {
-                    const props = node.data.nodeTypeProps;
-                    if (
-                      props.type === AdditionalJourneyNodeType.EntryUiNode &&
-                      props.variant.type === JourneyNodeType.SegmentEntryNode
-                    ) {
-                      props.variant.reEnter = event.target.checked;
-                    }
-                  });
-                }}
-                name="reEnter"
-                color="primary"
-              />
-            }
-            label="Re-enter Journey on Exit"
-            disabled={disabled}
-          />
+          <Stack direction="row" spacing={1}>
+            <InfoTooltip title="If checked, the user will be re-entered into the journey after exiting it. This is useful for creating loops." />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={nodeVariant.reEnter ?? false}
+                  onChange={(event) => {
+                    updateJourneyNodeData(nodeId, (node) => {
+                      const props = node.data.nodeTypeProps;
+                      if (
+                        props.type === AdditionalJourneyNodeType.EntryUiNode &&
+                        props.variant.type === JourneyNodeType.SegmentEntryNode
+                      ) {
+                        props.variant.reEnter = event.target.checked;
+                      }
+                    });
+                  }}
+                  name="reEnter"
+                  color="primary"
+                />
+              }
+              label="Re-enter Journey on Exit"
+              disabled={disabled}
+            />
+          </Stack>
         </>
       );
       break;

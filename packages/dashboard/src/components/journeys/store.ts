@@ -310,6 +310,7 @@ function journeyDefinitionFromStateBranch(
               type: JourneyNodeType.SegmentEntryNode,
               segment: uiNode.variant.segment,
               child,
+              reEnter: uiNode.variant.reEnter,
             };
             nodes.push(node);
             nextId = child;
@@ -1153,6 +1154,7 @@ export function journeyBranchToState(
           variant: {
             type: JourneyNodeType.SegmentEntryNode,
             segment: node.segment,
+            reEnter: node.reEnter,
           },
         };
         nodesState.push(
