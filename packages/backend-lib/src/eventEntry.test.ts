@@ -146,6 +146,13 @@ describe("eventEntry journeys", () => {
           ],
         });
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        const events = await prisma().userJourneyEvent.findMany({
+          where: {
+            journeyId: journey.id,
+            userId,
+          },
+        });
+        expect(events).toHaveLength(4);
       });
     });
   });
