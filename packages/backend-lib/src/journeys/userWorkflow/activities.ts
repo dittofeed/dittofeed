@@ -1,3 +1,4 @@
+import { SpanStatusCode } from "@opentelemetry/api";
 import { SegmentAssignment } from "@prisma/client";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -20,7 +21,6 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
-  JsonResultType,
   JSONValue,
   MessageVariant,
   OptionalAllOrNothing,
@@ -289,6 +289,7 @@ async function getSegmentAssignmentDb({
   });
   return assignment;
 }
+
 export async function getSegmentAssignment(
   params: OptionalAllOrNothing<
     {
@@ -304,69 +305,96 @@ export async function getSegmentAssignment(
     }
   >,
 ): Promise<SegmentAssignment | null> {
-  const { workspaceId, segmentId, userId } = params;
-  const segment = await prisma().segment.findUnique({
-    where: {
-      id: segmentId,
-    },
-  });
-  if (!segment) {
-    logger().error(
-      {
-        segmentId,
+  return withSpan({ name: "get-segment-assignment" }, async (span) => {
+    span.setAttributes({
+      workspaceId: params.workspaceId,
+      segmentId: params.segmentId,
+      userId: params.userId,
+    });
+    const { workspaceId, segmentId, userId } = params;
+    const segment = await prisma().segment.findUnique({
+      where: {
+        id: segmentId,
+      },
+    });
+    if (!segment) {
+      logger().error(
+        {
+          segmentId,
+          workspaceId,
+        },
+        "segment not found",
+      );
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: "segment not found",
+      });
+      return null;
+    }
+    if (
+      !(
+        "version" in params &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        params.version === GetSegmentAssignmentVersion.V1
+      )
+    ) {
+      span.setAttribute("version", GetSegmentAssignmentVersion.V1);
+      const assignment = await getSegmentAssignmentDb({
         workspaceId,
-      },
-      "segment not found",
-    );
-    return null;
-  }
-  if (
-    !(
-      "version" in params &&
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      params.version === GetSegmentAssignmentVersion.V1
-    )
-  ) {
-    return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
-  }
+        segmentId,
+        userId,
+      });
 
-  const definitionResult = schemaValidateWithErr(
-    segment.definition,
-    SegmentDefinition,
-  );
-  if (definitionResult.isErr()) {
-    logger().error(
-      {
-        err: definitionResult.error,
-      },
-      "Invalid segment definition",
+      span.setAttributes({
+        source: "db",
+        inSegment: String(assignment?.inSegment),
+      });
+
+      return assignment;
+    }
+
+    const definitionResult = schemaValidateWithErr(
+      segment.definition,
+      SegmentDefinition,
     );
-    return null;
-  }
-  const { entryNode } = definitionResult.value;
-  if (entryNode.type !== SegmentNodeType.KeyedPerformed) {
-    return getSegmentAssignmentDb({ workspaceId, segmentId, userId });
-  }
-  const result = calculateKeyedSegment({
-    events: params.events,
-    keyValue: params.keyValue,
-    definition: entryNode,
+    if (definitionResult.isErr()) {
+      logger().error(
+        {
+          err: definitionResult.error,
+        },
+        "Invalid segment definition",
+      );
+      return null;
+    }
+    const { entryNode } = definitionResult.value;
+    if (entryNode.type !== SegmentNodeType.KeyedPerformed) {
+      const assignment = await getSegmentAssignmentDb({
+        workspaceId,
+        segmentId,
+        userId,
+      });
+      span.setAttributes({
+        source: "db",
+        inSegment: String(assignment?.inSegment),
+      });
+      return assignment;
+    }
+    const inSegment = calculateKeyedSegment({
+      events: params.events,
+      keyValue: params.keyValue,
+      definition: entryNode,
+    });
+    span.setAttributes({
+      source: "mem",
+      inSegment,
+    });
+    return {
+      userId,
+      workspaceId,
+      segmentId,
+      inSegment,
+    };
   });
-  if (result.type === JsonResultType.Err) {
-    logger().error(
-      {
-        err: result.err,
-      },
-      "error calculating keyed segment",
-    );
-    return null;
-  }
-  return {
-    userId,
-    workspaceId,
-    segmentId,
-    inSegment: result.value,
-  };
 }
 
 export function getWorkspace(workspaceId: string) {
