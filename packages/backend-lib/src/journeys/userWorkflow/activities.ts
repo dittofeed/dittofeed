@@ -405,11 +405,15 @@ export { getEarliestComputePropertyPeriod } from "../../computedProperties/perio
 
 export async function shouldReEnter({
   journeyId,
+  userId,
+  workspaceId,
 }: {
   journeyId: string;
+  userId: string;
+  workspaceId: string;
 }): Promise<boolean> {
   const journey = await prisma().journey.findUnique({
-    where: { id: journeyId },
+    where: { id: journeyId, workspaceId },
   });
   if (!journey) {
     return false;
@@ -451,5 +455,10 @@ export async function shouldReEnter({
   if (definition.entryNode.type !== JourneyNodeType.SegmentEntryNode) {
     return false;
   }
-  return definition.entryNode.reEnter === true;
+  const assignment = await getSegmentAssignmentDb({
+    workspaceId,
+    segmentId: definition.entryNode.segment,
+    userId,
+  });
+  return assignment?.inSegment ?? definition.entryNode.reEnter === true;
 }
