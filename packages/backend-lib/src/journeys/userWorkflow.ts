@@ -172,9 +172,19 @@ export async function userJourneyWorkflow(
         });
         if (
           keyValueFromProps.isOk() &&
-          typeof keyValueFromProps.value === "string"
+          (typeof keyValueFromProps.value === "string" ||
+            typeof keyValueFromProps.value === "number")
         ) {
-          eventKey = keyValueFromProps.value;
+          eventKey = keyValueFromProps.value.toString();
+        } else {
+          logger.debug("unable to generate event key", {
+            workspaceId,
+            journeyId,
+            userId,
+            eventKeyName,
+            event: props.event,
+            eventKey,
+          });
         }
       } else {
         eventKey = props.event.messageId;
