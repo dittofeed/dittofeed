@@ -39,6 +39,16 @@ export async function startKeyedUserJourney({
     entryNode: definition.entryNode,
   });
   if (!workflowId) {
+    logger().debug(
+      {
+        workspaceId,
+        userId,
+        journeyId,
+        event,
+        entryNode: definition.entryNode,
+      },
+      "unable to generate keyed user journey workflow id",
+    );
     return;
   }
 
