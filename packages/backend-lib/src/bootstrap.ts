@@ -432,7 +432,9 @@ export default async function bootstrap({
     throw new Error("Failed to bootstrap workspace.");
   }
   if (workspaceType === WorkspaceType.Parent) {
-    logger().info("Parent workspace created, skipping remaining bootstrap steps.");
+    logger().info(
+      "Parent workspace created, skipping remaining bootstrap steps.",
+    );
     return { workspaceId: workspace.value.id };
   }
   const workspaceId = workspace.value.id;
@@ -466,17 +468,19 @@ export default async function bootstrap({
   return { workspaceId };
 }
 
-export interface BootstrapWithDefaultsParams {
+export interface BootstrapWithoutDefaultsParams {
   workspaceName?: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
+  features?: string;
 }
 
 export function getBootstrapDefaultParams({
   workspaceName,
   workspaceDomain,
   workspaceType,
-}: BootstrapWithDefaultsParams): Parameters<typeof bootstrap>[0] {
+  features,
+}: BootstrapWithoutDefaultsParams): Parameters<typeof bootstrap>[0] {
   const defaultWorkspaceName =
     config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
   const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
@@ -493,7 +497,7 @@ export function getBootstrapDefaultParams({
 }
 
 export async function bootstrapWithDefaults(
-  paramsWithoutDefaults: BootstrapWithDefaultsParams,
+  paramsWithoutDefaults: BootstrapWithoutDefaultsParams,
 ) {
   const params = getBootstrapDefaultParams(paramsWithoutDefaults);
   await bootstrap(params);
