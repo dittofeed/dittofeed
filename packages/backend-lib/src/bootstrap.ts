@@ -5,6 +5,7 @@ import {
   DEBUG_USER_ID1,
   WORKSPACE_TOMBSTONE_PREFIX,
 } from "isomorphic-lib/src/constants";
+import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 
@@ -36,6 +37,7 @@ import {
   CreateWorkspaceResult,
   EmailProviderType,
   EventType,
+  Features,
   NodeEnvEnum,
   SmsProviderType,
   SubscriptionGroupType,
@@ -479,7 +481,7 @@ export function getBootstrapDefaultParams({
   workspaceName,
   workspaceDomain,
   workspaceType,
-  features,
+  features: featuresString,
 }: BootstrapWithoutDefaultsParams): Parameters<typeof bootstrap>[0] {
   const defaultWorkspaceName =
     config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
@@ -487,6 +489,15 @@ export function getBootstrapDefaultParams({
 
   if (!workspaceNameWithDefault) {
     throw new Error("Please provide a workspace name with --workspace-name");
+  }
+  let features: Features | undefined;
+  if (featuresString) {
+    const featuresResult = jsonParseSafeWithSchema(featuresString, Features);
+    if (featuresResult.isErr()) {
+      logger().error({ err: featuresResult.error }, "Failed to parse features");
+      throw new Error("Failed to parse features");
+    }
+    const features = featuresResult.value;
   }
 
   return {
