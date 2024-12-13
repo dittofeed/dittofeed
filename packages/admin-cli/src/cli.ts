@@ -2,6 +2,7 @@ import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import backendConfig from "backend-lib/src/config";
 import { findBaseDir } from "backend-lib/src/dir";
+import { addFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
@@ -20,10 +21,14 @@ import {
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafeWithSchema,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
   EmailProviderType,
+  Features,
   MessageTemplateResourceDefinition,
   SendgridSecret,
 } from "isomorphic-lib/src/types";
@@ -568,6 +573,23 @@ export async function cli() {
           return;
         }
         logger().info(result.value, "Created admin API key");
+      },
+    )
+    .command(
+      "add-features",
+      "Adds features to a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+          features: { type: "string", alias: "f", require: true },
+        }),
+      async ({ workspaceId, features: featuresString }) => {
+        const features = jsonParseSafeWithSchema(featuresString, Features);
+        if (features.isErr()) {
+          logger().error(features.error, "Failed to parse features");
+          return;
+        }
+        await addFeatures({ workspaceId, features: features.value });
       },
     )
     .demandCommand(1, "# Please provide a valid command")
