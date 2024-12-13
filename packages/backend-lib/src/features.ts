@@ -83,3 +83,18 @@ export async function addFeatures({
     ),
   );
 }
+
+export async function removeFeatures({
+  workspaceId,
+  names,
+}: {
+  workspaceId: string;
+  names: FeatureNamesEnum[];
+}) {
+  await prisma().feature.deleteMany({
+    where: {
+      workspaceId,
+      name: { in: names },
+    },
+  });
+}
