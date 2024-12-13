@@ -1,7 +1,7 @@
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import prisma from "./prisma";
-import { FeatureMap, FeatureNames, FeatureNamesEnum } from "./types";
+import { FeatureMap, FeatureNames, FeatureNamesEnum, Features } from "./types";
 
 export async function getFeature({
   name,
@@ -51,4 +51,50 @@ export async function getFeatures({
     acc[validated.value] = feature.enabled;
     return acc;
   }, {});
+}
+
+export async function addFeatures({
+  workspaceId,
+  features,
+}: {
+  workspaceId: string;
+  features: Features;
+}) {
+  await Promise.all(
+    features.map((feature) =>
+      prisma().feature.upsert({
+        where: {
+          workspaceId_name: {
+            workspaceId,
+            name: feature.type,
+          },
+        },
+        create: {
+          workspaceId,
+          name: feature.type,
+          enabled: true,
+          config: feature,
+        },
+        update: {
+          enabled: true,
+          config: feature,
+        },
+      }),
+    ),
+  );
+}
+
+export async function removeFeatures({
+  workspaceId,
+  names,
+}: {
+  workspaceId: string;
+  names: FeatureNamesEnum[];
+}) {
+  await prisma().feature.deleteMany({
+    where: {
+      workspaceId,
+      name: { in: names },
+    },
+  });
 }
