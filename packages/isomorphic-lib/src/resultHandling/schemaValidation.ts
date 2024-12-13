@@ -47,6 +47,13 @@ export function jsonParseSafe(s: string): Result<JSONValue, Error> {
   }
 }
 
+export function jsonParseSafeWithSchema<S extends TSchema>(
+  s: string,
+  schema: S,
+): Result<Static<S>, Error> {
+  return jsonParseSafe(s).andThen((v) => schemaValidateWithErr(v, schema));
+}
+
 export function unwrapJsonObject(s?: string): Record<string, unknown> {
   if (!s) {
     return {};

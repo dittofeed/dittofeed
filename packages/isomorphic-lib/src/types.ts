@@ -4139,6 +4139,7 @@ export type RelatedResourceProperties = Static<
 >;
 
 export enum FeatureNamesEnum {
+  // TODO deprecate this
   DisplayJourneyPercentages = "DisplayJourneyPercentages",
   WhiteLabel = "WhiteLabel",
 }
@@ -4159,6 +4160,19 @@ export const WhiteLabelFeatureConfig = Type.Object({
 });
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
+
+export const FeatureConfig = Type.Union([
+  Type.Object({
+    type: Type.Literal(FeatureNamesEnum.DisplayJourneyPercentages),
+  }),
+  WhiteLabelFeatureConfig,
+]);
+
+export type FeatureConfig = Static<typeof FeatureConfig>;
+
+export const Features = Type.Array(FeatureConfig);
+
+export type Features = Static<typeof Features>;
 
 export enum ManualSegmentOperationEnum {
   Add = "Add",

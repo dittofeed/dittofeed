@@ -2,7 +2,7 @@ import { WorkflowClient } from "@temporalio/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 
 import bootstrap, {
-  BootstrapWithDefaultsParams,
+  BootstrapWithoutDefaultsParams,
   getBootstrapDefaultParams,
 } from "../../bootstrap";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
@@ -15,7 +15,7 @@ export function getBootstrapWorkflowId(
 }
 
 export async function startBootstrapWorkflow(
-  params: BootstrapWithDefaultsParams & {
+  params: BootstrapWithoutDefaultsParams & {
     client?: WorkflowClient;
   },
 ) {

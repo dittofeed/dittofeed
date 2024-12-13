@@ -20,6 +20,12 @@ export const BOOTSTRAP_OPTIONS = {
     choices: ["Root", "Parent"],
     default: "Root",
   },
+  features: {
+    type: "string",
+    alias: "f",
+    describe:
+      "The features to enable for the workspace. Formatted as a json string which should be an array of feature objects.",
+  },
 } as const;
 
 export function boostrapOptions(cmd: Argv) {

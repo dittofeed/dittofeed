@@ -5,6 +5,7 @@ import {
   DEBUG_USER_ID1,
   WORKSPACE_TOMBSTONE_PREFIX,
 } from "isomorphic-lib/src/constants";
+import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { v5 as uuidv5 } from "uuid";
 
@@ -36,6 +37,7 @@ import {
   CreateWorkspaceResult,
   EmailProviderType,
   EventType,
+  Features,
   NodeEnvEnum,
   SmsProviderType,
   SubscriptionGroupType,
@@ -416,10 +418,12 @@ export default async function bootstrap({
   workspaceName,
   workspaceDomain,
   workspaceType,
+  features,
 }: {
   workspaceName: string;
   workspaceType: WorkspaceType;
   workspaceDomain?: string;
+  features?: Features;
 }): Promise<{ workspaceId: string }> {
   await prismaMigrate();
   const workspace = await bootstrapPostgres({
@@ -432,7 +436,9 @@ export default async function bootstrap({
     throw new Error("Failed to bootstrap workspace.");
   }
   if (workspaceType === WorkspaceType.Parent) {
-    logger().info("Parent workspace created, skipping remaining bootstrap steps.");
+    logger().info(
+      "Parent workspace created, skipping remaining bootstrap steps.",
+    );
     return { workspaceId: workspace.value.id };
   }
   const workspaceId = workspace.value.id;
@@ -466,17 +472,19 @@ export default async function bootstrap({
   return { workspaceId };
 }
 
-export interface BootstrapWithDefaultsParams {
+export interface BootstrapWithoutDefaultsParams {
   workspaceName?: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
+  features?: string;
 }
 
 export function getBootstrapDefaultParams({
   workspaceName,
   workspaceDomain,
   workspaceType,
-}: BootstrapWithDefaultsParams): Parameters<typeof bootstrap>[0] {
+  features: featuresString,
+}: BootstrapWithoutDefaultsParams): Parameters<typeof bootstrap>[0] {
   const defaultWorkspaceName =
     config().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
   const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
@@ -484,16 +492,26 @@ export function getBootstrapDefaultParams({
   if (!workspaceNameWithDefault) {
     throw new Error("Please provide a workspace name with --workspace-name");
   }
+  let features: Features | undefined;
+  if (featuresString) {
+    const featuresResult = jsonParseSafeWithSchema(featuresString, Features);
+    if (featuresResult.isErr()) {
+      logger().error({ err: featuresResult.error }, "Failed to parse features");
+      throw new Error("Failed to parse features");
+    }
+    features = featuresResult.value;
+  }
 
   return {
     workspaceName: workspaceNameWithDefault,
     workspaceDomain,
     workspaceType: workspaceType ?? WorkspaceType.Root,
+    features,
   };
 }
 
 export async function bootstrapWithDefaults(
-  paramsWithoutDefaults: BootstrapWithDefaultsParams,
+  paramsWithoutDefaults: BootstrapWithoutDefaultsParams,
 ) {
   const params = getBootstrapDefaultParams(paramsWithoutDefaults);
   await bootstrap(params);
