@@ -14,6 +14,10 @@ import { getOrCreateWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
+import {
+  startComputePropertiesWorkflow,
+  startGlobalCron,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
 import { addFeatures } from "./features";
@@ -24,10 +28,6 @@ import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
-import {
-  startComputePropertiesWorkflow,
-  startGlobalCron,
-} from "./segments/computePropertiesWorkflow/lifecycle";
 import {
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
