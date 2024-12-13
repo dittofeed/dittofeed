@@ -418,10 +418,12 @@ export default async function bootstrap({
   workspaceName,
   workspaceDomain,
   workspaceType,
+  features,
 }: {
   workspaceName: string;
   workspaceType: WorkspaceType;
   workspaceDomain?: string;
+  features?: Features;
 }): Promise<{ workspaceId: string }> {
   await prismaMigrate();
   const workspace = await bootstrapPostgres({
@@ -497,13 +499,14 @@ export function getBootstrapDefaultParams({
       logger().error({ err: featuresResult.error }, "Failed to parse features");
       throw new Error("Failed to parse features");
     }
-    const features = featuresResult.value;
+    features = featuresResult.value;
   }
 
   return {
     workspaceName: workspaceNameWithDefault,
     workspaceDomain,
     workspaceType: workspaceType ?? WorkspaceType.Root,
+    features,
   };
 }
 

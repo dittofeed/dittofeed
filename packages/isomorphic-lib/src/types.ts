@@ -4161,16 +4161,16 @@ export const WhiteLabelFeatureConfig = Type.Object({
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
 
-export const Feature = Type.Union([
+export const FeatureConfig = Type.Union([
   Type.Object({
     type: Type.Literal(FeatureNamesEnum.DisplayJourneyPercentages),
   }),
   WhiteLabelFeatureConfig,
 ]);
 
-export type Feature = Static<typeof Feature>;
+export type FeatureConfig = Static<typeof FeatureConfig>;
 
-export const Features = Type.Array(Feature);
+export const Features = Type.Array(FeatureConfig);
 
 export type Features = Static<typeof Features>;
 
