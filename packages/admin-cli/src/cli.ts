@@ -1,8 +1,9 @@
+import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import backendConfig from "backend-lib/src/config";
 import { findBaseDir } from "backend-lib/src/dir";
-import { addFeatures } from "backend-lib/src/features";
+import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
@@ -28,6 +29,7 @@ import {
 import {
   ChannelType,
   EmailProviderType,
+  FeatureNames,
   Features,
   MessageTemplateResourceDefinition,
   SendgridSecret,
@@ -590,6 +592,26 @@ export async function cli() {
           return;
         }
         await addFeatures({ workspaceId, features: features.value });
+      },
+    )
+    .command(
+      "remove-features",
+      "Removes features from a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+          features: { type: "string", alias: "f", require: true, array: true },
+        }),
+      async ({ workspaceId, features: unvalidatedFeatures }) => {
+        const features = schemaValidateWithErr(
+          unvalidatedFeatures,
+          Type.Array(FeatureNames),
+        );
+        if (features.isErr()) {
+          logger().error(features.error, "Failed to parse features");
+          return;
+        }
+        await removeFeatures({ workspaceId, names: features.value });
       },
     )
     .demandCommand(1, "# Please provide a valid command")
