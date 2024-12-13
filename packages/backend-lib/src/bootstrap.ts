@@ -16,6 +16,7 @@ import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
+import { addFeatures } from "./features";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
@@ -63,12 +64,14 @@ export async function bootstrapPostgres({
   workspaceType,
   workspaceExternalId,
   upsertWorkspace = true,
+  features,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceType;
   workspaceExternalId?: string;
   upsertWorkspace?: boolean;
+  features?: Features;
 }): Promise<CreateWorkspaceResult> {
   if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
     return err({
@@ -131,6 +134,10 @@ export async function bootstrapPostgres({
     }
   }
   const workspaceId = workspace.id;
+
+  if (features) {
+    await addFeatures({ workspaceId, features });
+  }
 
   const userProperties: Prisma.UserPropertyUncheckedCreateWithoutUserPropertyAssignmentInput[] =
     [
@@ -430,6 +437,7 @@ export default async function bootstrap({
     workspaceName,
     workspaceDomain,
     workspaceType,
+    features,
   });
   if (workspace.isErr()) {
     logger().error({ err: workspace.error }, "Failed to bootstrap workspace.");
