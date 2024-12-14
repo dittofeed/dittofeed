@@ -21,7 +21,7 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { addFeatures } from "./features";
+import { addFeatures, getFeature } from "./features";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
@@ -39,6 +39,7 @@ import {
   CreateWorkspaceResult,
   EmailProviderType,
   EventType,
+  FeatureNamesEnum,
   Features,
   NodeEnvEnum,
   SmsProviderType,
@@ -427,8 +428,10 @@ export async function bootstrapComputeProperties({
 }: {
   workspaceId: string;
 }) {
-  // get feature
-  const useGlobal = false;
+  const useGlobal = await getFeature({
+    workspaceId,
+    name: FeatureNamesEnum.ComputePropertiesGlobal,
+  });
   if (useGlobal) {
     await startComputePropertiesWorkflowGlobal();
   } else {
