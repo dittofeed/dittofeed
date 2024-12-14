@@ -9,6 +9,10 @@ import {
   computePropertiesWorkflow,
   generateComputePropertiesId,
 } from "../computePropertiesWorkflow";
+import {
+  COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
+  computePropertiesWorkflowGlobal,
+} from "../computePropertiesWorkflowGlobal";
 
 export async function startComputePropertiesWorkflow({
   workspaceId,
@@ -149,5 +153,27 @@ export async function resetComputePropertiesWorkflow({
       },
       "Failed to start compute properties workflow.",
     );
+  }
+}
+
+export async function startComputePropertiesWorkflowGlobal() {
+  const client = await connectWorkflowClient();
+  try {
+    await client.start(computePropertiesWorkflowGlobal, {
+      taskQueue: "default",
+      workflowId: COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
+      args: [{}],
+    });
+  } catch (e) {
+    if (e instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info("Compute properties global workflow already started.");
+    } else {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to start compute properties global workflow.",
+      );
+    }
   }
 }

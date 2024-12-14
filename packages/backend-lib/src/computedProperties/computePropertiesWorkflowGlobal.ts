@@ -15,8 +15,11 @@ const {} = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
-export interface ComputePropertiesGlobalParams {}
+export const COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID =
+  "compute-properties-global";
 
-export async function computePropertiesGlobal({}: ComputePropertiesGlobalParams) {
+export interface ComputePropertiesWorkflowGlobalParams {}
+
+export async function computePropertiesWorkflowGlobal({}: ComputePropertiesWorkflowGlobalParams) {
   logger.info("computePropertiesGlobal started", {});
 }

@@ -16,6 +16,7 @@ import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import {
   startComputePropertiesWorkflow,
+  startComputePropertiesWorkflowGlobal,
   startGlobalCron,
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
@@ -419,6 +420,20 @@ function handleErrorFactory(message: string) {
       throw error;
     }
   };
+}
+
+export async function bootstrapComputeProperties({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  // get feature
+  const useGlobal = false;
+  if (useGlobal) {
+    await startComputePropertiesWorkflowGlobal();
+  } else {
+    await startComputePropertiesWorkflow({ workspaceId });
+  }
 }
 
 export default async function bootstrap({
