@@ -1,6 +1,11 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
+import {
+  resetComputePropertiesWorkflow,
+  resetGlobalCron,
+  startComputePropertiesWorkflow,
+} from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
@@ -8,11 +13,6 @@ import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
-import {
-  resetComputePropertiesWorkflow,
-  resetGlobalCron,
-  startComputePropertiesWorkflow,
-} from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {

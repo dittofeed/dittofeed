@@ -3,10 +3,8 @@ import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
-import {
-  startComputePropertiesWorkflow,
-  terminateComputePropertiesWorkflow,
-} from "./computedProperties/computePropertiesWorkflow/lifecycle";
+import { bootstrapComputeProperties } from "./bootstrap";
+import { terminateComputePropertiesWorkflow } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import prisma from "./prisma";
 
 export enum TombstoneWorkspaceErrorType {
@@ -90,6 +88,6 @@ export async function activateTombstonedWorkspace(
   if (result.isErr()) {
     return err(result.error);
   }
-  await startComputePropertiesWorkflow({ workspaceId });
+  await bootstrapComputeProperties({ workspaceId });
   return ok(undefined);
 }

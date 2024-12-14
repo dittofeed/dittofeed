@@ -492,7 +492,7 @@ export default async function bootstrap({
   }
 
   if (config().bootstrapWorker) {
-    await startComputePropertiesWorkflow({ workspaceId });
+    await bootstrapComputeProperties({ workspaceId });
     await startGlobalCron();
   }
   return { workspaceId };

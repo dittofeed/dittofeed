@@ -1,10 +1,10 @@
 import { command } from "backend-lib/src/clickhouse";
-import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
 import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
-} from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
+} from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
+import logger from "backend-lib/src/logger";
+import prisma from "backend-lib/src/prisma";
 import {
   EmailProviderSecret,
   EmailProviderType,
