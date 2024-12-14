@@ -29,7 +29,7 @@ export async function startComputePropertiesWorkflow({
 
   try {
     await temporalClient.start(computePropertiesWorkflow, {
-      taskQueue: "default",
+      taskQueue: config().computedPropertiesTaskQueue,
       workflowId: generateComputePropertiesId(workspaceId),
       workflowTaskTimeout: computePropertiesWorkflowTaskTimeout,
       args: [
@@ -60,7 +60,7 @@ export async function startGlobalCron({
   const temporalClient = client ?? (await connectWorkflowClient());
   try {
     await temporalClient.start(globalCronWorkflow, {
-      taskQueue: "default",
+      taskQueue: config().globalCronTaskQueue,
       cronSchedule: "*/5 * * * *",
       workflowId: GLOBAL_CRON_ID,
     });
@@ -160,7 +160,7 @@ export async function startComputePropertiesWorkflowGlobal() {
   const client = await connectWorkflowClient();
   try {
     await client.start(computePropertiesWorkflowGlobal, {
-      taskQueue: "default",
+      taskQueue: config().computedPropertiesTaskQueue,
       workflowId: COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
       args: [{}],
     });

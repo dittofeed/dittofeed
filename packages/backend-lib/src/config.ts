@@ -107,6 +107,8 @@ const BaseRawConfigProps = {
   dittofeedTelemetryDisabled: Type.Optional(BoolStr),
   appVersion: Type.Optional(Type.String()),
   onboardingUrl: Type.Optional(Type.String()),
+  globalCronTaskQueue: Type.Optional(Type.String()),
+  computedPropertiesTaskQueue: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -218,6 +220,8 @@ export type Config = Overwrite<
     trackDashboard: boolean;
     userEventsTopicName: string;
     writeMode: WriteMode;
+    globalCronTaskQueue: string;
+    computedPropertiesTaskQueue: string;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -459,6 +463,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.dittofeedTelemetryDisabled === "true" ||
       nodeEnv === NodeEnvEnum.Development,
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
+    globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
+    computedPropertiesTaskQueue:
+      rawConfig.computedPropertiesTaskQueue ?? "default",
   };
 
   return parsedConfig;
