@@ -1,8 +1,10 @@
+import { Static } from "@sinclair/typebox";
 import {
   schemaValidate,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import {
   FeatureConfigByType,
@@ -11,8 +13,6 @@ import {
   FeatureNamesEnum,
   Features,
 } from "./types";
-import { Static } from "@sinclair/typebox";
-import logger from "./logger";
 
 export async function getFeature({
   name,
@@ -47,7 +47,7 @@ export async function getFeatureConfig<T extends FeatureNamesEnum>({
       },
     },
   });
-  if (!feature) {
+  if (!feature?.enabled) {
     return null;
   }
   const validated = schemaValidateWithErr(
