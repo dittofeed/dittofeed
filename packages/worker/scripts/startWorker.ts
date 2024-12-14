@@ -66,7 +66,7 @@ async function run() {
     namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
     activities,
-    taskQueue: "default",
+    taskQueue: config().taskQueue,
     sinks: {
       ...defaultSinks(workerLogger),
       exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),

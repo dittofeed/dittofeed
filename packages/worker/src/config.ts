@@ -9,8 +9,9 @@ const RawConfig = Type.Object(
     workerServiceName: Type.Optional(Type.String()),
     reuseContext: Type.Optional(BoolStr),
     maxCachedWorkflows: Type.Optional(Type.String({ format: "naturalNumber" })),
+    taskQueue: Type.Optional(Type.String()),
   },
-  { additionalProperties: false }
+  { additionalProperties: false },
 );
 
 type RawConfig = Static<typeof RawConfig>;
@@ -21,6 +22,7 @@ type Config = Overwrite<
     workerServiceName: string;
     reuseContext: boolean;
     maxCachedWorkflows?: number;
+    taskQueue: string;
   }
 >;
 
@@ -33,6 +35,7 @@ function parseRawConfig(raw: RawConfig): Config {
     maxCachedWorkflows: raw.maxCachedWorkflows
       ? parseInt(raw.maxCachedWorkflows, 10)
       : undefined,
+    taskQueue: raw.taskQueue ?? "default",
   };
 }
 
