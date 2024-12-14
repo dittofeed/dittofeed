@@ -730,7 +730,7 @@ export async function userJourneyWorkflow(
     eventKeyName,
   });
 
-  if (await shouldReEnter({ journeyId })) {
+  if (await shouldReEnter({ journeyId, userId, workspaceId })) {
     await continueAsNew<typeof userJourneyWorkflow>(props);
   }
 }
