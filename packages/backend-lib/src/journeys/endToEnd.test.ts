@@ -8,15 +8,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { createEnvAndWorker } from "../../test/temporal";
 import { submitBatch } from "../../test/testEvents";
 import { clickhouseClient } from "../clickhouse";
+import {
+  ComputedPropertiesWorkflowParams,
+  computePropertiesWorkflow,
+} from "../computedProperties/computePropertiesWorkflow";
 import config from "../config";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
 import { enrichJourney } from "../journeys";
 import logger from "../logger";
 import prisma from "../prisma";
-import {
-  ComputedPropertiesWorkflowParams,
-  computePropertiesWorkflow,
-} from "../segments/computePropertiesWorkflow";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   ChannelType,
