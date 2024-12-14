@@ -11,7 +11,7 @@ import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
-import prisma from "backend-lib/src/prisma";
+import prisma, { Prisma } from "backend-lib/src/prisma";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
@@ -98,6 +98,16 @@ export async function cli() {
       "Spawns psql with dittofeed's config used to authenticate.",
       () => {},
       () => spawnWithEnv(["psql", backendConfig().databaseUrl]),
+    )
+    .command(
+      "psql-exec",
+      "Executes a psql command with dittofeed's config used to authenticate.",
+      (cmd) =>
+        cmd.options({
+          command: { type: "string", alias: "c", require: true },
+        }),
+      ({ command }) =>
+        spawnWithEnv(["psql", backendConfig().databaseUrl, "-c", command]),
     )
     .command(
       "clickhouse-client",
@@ -196,15 +206,26 @@ export async function cli() {
             describe:
               "The workspace id of computed property workflows to reset. Can provide multiple comma separated ids. If not provided will apply to all workspaces.",
           },
+          all: {
+            type: "boolean",
+            alias: "a",
+            describe: "Whether to reset all computed property workflows.",
+          },
         }),
-      async ({ workspaceId }) => {
-        const workspaceIds = workspaceId?.split(",");
-        const workspaces = await prisma().workspace.findMany({
-          where: {
+      async ({ workspaceId, all }) => {
+        let where: Prisma.WorkspaceWhereInput;
+        if (all) {
+          where = {};
+        } else {
+          const workspaceIds = workspaceId?.split(",");
+          where = {
             id: {
               in: workspaceIds,
             },
-          },
+          };
+        }
+        const workspaces = await prisma().workspace.findMany({
+          where,
         });
         await Promise.all(
           workspaces.map(async (workspace) => {
