@@ -1,7 +1,18 @@
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import prisma from "./prisma";
-import { FeatureMap, FeatureNames, FeatureNamesEnum, Features } from "./types";
+import {
+  FeatureConfigByType,
+  FeatureMap,
+  FeatureNames,
+  FeatureNamesEnum,
+  Features,
+} from "./types";
+import { Static } from "@sinclair/typebox";
+import logger from "./logger";
 
 export async function getFeature({
   name,
@@ -19,6 +30,43 @@ export async function getFeature({
     },
   });
   return feature?.enabled ?? false;
+}
+
+export async function getFeatureConfig<T extends FeatureNamesEnum>({
+  name,
+  workspaceId,
+}: {
+  workspaceId: string;
+  name: T;
+}): Promise<Static<(typeof FeatureConfigByType)[T]> | null> {
+  const feature = await prisma().feature.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name,
+      },
+    },
+  });
+  if (!feature) {
+    return null;
+  }
+  const validated = schemaValidateWithErr(
+    feature.config,
+    FeatureConfigByType[name],
+  );
+  if (validated.isErr()) {
+    logger().error(
+      {
+        err: validated.error,
+        workspaceId,
+        name,
+        feature,
+      },
+      "Feature config is not valid",
+    );
+    return null;
+  }
+  return validated.value;
 }
 
 export async function getFeatures({

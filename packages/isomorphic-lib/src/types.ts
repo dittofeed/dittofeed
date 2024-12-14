@@ -4142,6 +4142,7 @@ export enum FeatureNamesEnum {
   // TODO deprecate this
   DisplayJourneyPercentages = "DisplayJourneyPercentages",
   WhiteLabel = "WhiteLabel",
+  ComputePropertiesGlobal = "ComputePropertiesGlobal",
 }
 
 export const FeatureNames = Type.Enum(FeatureNamesEnum);
@@ -4161,11 +4162,27 @@ export const WhiteLabelFeatureConfig = Type.Object({
 
 export type WhiteLabelFeatureConfig = Static<typeof WhiteLabelFeatureConfig>;
 
+export const ComputePropertiesGlobalFeatureConfig = Type.Object({
+  type: Type.Literal(FeatureNamesEnum.ComputePropertiesGlobal),
+  targetIntervalMs: Type.Optional(Type.Number()),
+});
+
+export type ComputePropertiesGlobalFeatureConfig = Static<
+  typeof ComputePropertiesGlobalFeatureConfig
+>;
+
+export const DisplayJourneyPercentagesFeatureConfig = Type.Object({
+  type: Type.Literal(FeatureNamesEnum.DisplayJourneyPercentages),
+});
+
+export type DisplayJourneyPercentagesFeatureConfig = Static<
+  typeof DisplayJourneyPercentagesFeatureConfig
+>;
+
 export const FeatureConfig = Type.Union([
-  Type.Object({
-    type: Type.Literal(FeatureNamesEnum.DisplayJourneyPercentages),
-  }),
   WhiteLabelFeatureConfig,
+  ComputePropertiesGlobalFeatureConfig,
+  DisplayJourneyPercentagesFeatureConfig,
 ]);
 
 export type FeatureConfig = Static<typeof FeatureConfig>;
@@ -4173,6 +4190,14 @@ export type FeatureConfig = Static<typeof FeatureConfig>;
 export const Features = Type.Array(FeatureConfig);
 
 export type Features = Static<typeof Features>;
+
+export const FeatureConfigByType = {
+  [FeatureNamesEnum.ComputePropertiesGlobal]:
+    ComputePropertiesGlobalFeatureConfig,
+  [FeatureNamesEnum.WhiteLabel]: WhiteLabelFeatureConfig,
+  [FeatureNamesEnum.DisplayJourneyPercentages]:
+    DisplayJourneyPercentagesFeatureConfig,
+} as const;
 
 export enum ManualSegmentOperationEnum {
   Add = "Add",
