@@ -13,6 +13,10 @@ import {
   FeatureNamesEnum,
   Features,
 } from "./types";
+import {
+  startComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 
 export async function getFeature({
   name,
@@ -130,6 +134,16 @@ export async function addFeatures({
       }),
     ),
   );
+
+  const effects = features.flatMap((feature) => {
+    switch (feature.type) {
+      case FeatureNamesEnum.ComputePropertiesGlobal:
+        return terminateComputePropertiesWorkflow({ workspaceId });
+      default:
+        return [];
+    }
+  });
+  await Promise.all(effects);
 }
 
 export async function removeFeatures({
@@ -145,4 +159,14 @@ export async function removeFeatures({
       name: { in: names },
     },
   });
+
+  const effects = names.flatMap((name) => {
+    switch (name) {
+      case FeatureNamesEnum.ComputePropertiesGlobal:
+        return startComputePropertiesWorkflow({ workspaceId });
+      default:
+        return [];
+    }
+  });
+  await Promise.all(effects);
 }
