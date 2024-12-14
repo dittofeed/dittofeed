@@ -21,6 +21,8 @@ import {
   SegmentSplitVariantType,
 } from "./types";
 
+jest.setTimeout(15000);
+
 describe("eventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;

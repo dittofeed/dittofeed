@@ -14,9 +14,14 @@ import { getOrCreateWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
+import {
+  startComputePropertiesWorkflow,
+  startComputePropertiesWorkflowGlobal,
+  startGlobalCron,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { addFeatures } from "./features";
+import { addFeatures, getFeature } from "./features";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
@@ -24,10 +29,6 @@ import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
-import {
-  startComputePropertiesWorkflow,
-  startGlobalCron,
-} from "./segments/computePropertiesWorkflow/lifecycle";
 import {
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
@@ -38,6 +39,7 @@ import {
   CreateWorkspaceResult,
   EmailProviderType,
   EventType,
+  FeatureNamesEnum,
   Features,
   NodeEnvEnum,
   SmsProviderType,
@@ -421,6 +423,22 @@ function handleErrorFactory(message: string) {
   };
 }
 
+export async function bootstrapComputeProperties({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const useGlobal = await getFeature({
+    workspaceId,
+    name: FeatureNamesEnum.ComputePropertiesGlobal,
+  });
+  if (useGlobal) {
+    await startComputePropertiesWorkflowGlobal();
+  } else {
+    await startComputePropertiesWorkflow({ workspaceId });
+  }
+}
+
 export default async function bootstrap({
   workspaceName,
   workspaceDomain,
@@ -474,7 +492,7 @@ export default async function bootstrap({
   }
 
   if (config().bootstrapWorker) {
-    await startComputePropertiesWorkflow({ workspaceId });
+    await bootstrapComputeProperties({ workspaceId });
     await startGlobalCron();
   }
   return { workspaceId };

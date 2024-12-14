@@ -14,16 +14,18 @@ import {
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
+import {
+  broadcastWorkflow,
+  generateBroadcastWorkflowId,
+} from "./computedProperties/broadcastWorkflow";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
-import { broadcastWorkflow } from "./segments/broadcastWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
-import { generateBroadcastWorkflowId } from "./temporal/workflows";
 
 export function getBroadcastSegmentName({
   broadcastId,

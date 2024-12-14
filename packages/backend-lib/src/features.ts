@@ -1,7 +1,22 @@
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { Static } from "@sinclair/typebox";
+import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 
+import logger from "./logger";
 import prisma from "./prisma";
-import { FeatureMap, FeatureNames, FeatureNamesEnum, Features } from "./types";
+import {
+  FeatureConfigByType,
+  FeatureMap,
+  FeatureNames,
+  FeatureNamesEnum,
+  Features,
+} from "./types";
+import {
+  startComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 
 export async function getFeature({
   name,
@@ -19,6 +34,43 @@ export async function getFeature({
     },
   });
   return feature?.enabled ?? false;
+}
+
+export async function getFeatureConfig<T extends FeatureNamesEnum>({
+  name,
+  workspaceId,
+}: {
+  workspaceId: string;
+  name: T;
+}): Promise<Static<(typeof FeatureConfigByType)[T]> | null> {
+  const feature = await prisma().feature.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name,
+      },
+    },
+  });
+  if (!feature?.enabled) {
+    return null;
+  }
+  const validated = schemaValidateWithErr(
+    feature.config,
+    FeatureConfigByType[name],
+  );
+  if (validated.isErr()) {
+    logger().error(
+      {
+        err: validated.error,
+        workspaceId,
+        name,
+        feature,
+      },
+      "Feature config is not valid",
+    );
+    return null;
+  }
+  return validated.value;
 }
 
 export async function getFeatures({
@@ -82,6 +134,16 @@ export async function addFeatures({
       }),
     ),
   );
+
+  const effects = features.flatMap((feature) => {
+    switch (feature.type) {
+      case FeatureNamesEnum.ComputePropertiesGlobal:
+        return terminateComputePropertiesWorkflow({ workspaceId });
+      default:
+        return [];
+    }
+  });
+  await Promise.all(effects);
 }
 
 export async function removeFeatures({
@@ -97,4 +159,14 @@ export async function removeFeatures({
       name: { in: names },
     },
   });
+
+  const effects = names.flatMap((name) => {
+    switch (name) {
+      case FeatureNamesEnum.ComputePropertiesGlobal:
+        return startComputePropertiesWorkflow({ workspaceId });
+      default:
+        return [];
+    }
+  });
+  await Promise.all(effects);
 }
