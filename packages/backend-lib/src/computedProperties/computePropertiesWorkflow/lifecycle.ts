@@ -160,7 +160,7 @@ export async function startComputePropertiesWorkflowGlobal() {
   const client = await connectWorkflowClient();
   try {
     await client.start(computePropertiesWorkflowGlobal, {
-      taskQueue: "default",
+      taskQueue: config().computedPropertiesTaskQueue,
       workflowId: COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
       args: [{}],
     });
