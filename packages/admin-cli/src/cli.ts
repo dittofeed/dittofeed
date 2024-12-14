@@ -100,6 +100,16 @@ export async function cli() {
       () => spawnWithEnv(["psql", backendConfig().databaseUrl]),
     )
     .command(
+      "psql-exec",
+      "Executes a psql command with dittofeed's config used to authenticate.",
+      (cmd) =>
+        cmd.options({
+          command: { type: "string", alias: "c", require: true },
+        }),
+      ({ command }) =>
+        spawnWithEnv(["psql", backendConfig().databaseUrl, "-c", command]),
+    )
+    .command(
       "clickhouse-client",
       "Spawns clickhouse-client with dittofeed's config used to authenticate.",
       () => {},
