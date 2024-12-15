@@ -8,8 +8,17 @@ const RawConfig = Type.Object(
   {
     workerServiceName: Type.Optional(Type.String()),
     reuseContext: Type.Optional(BoolStr),
-    maxCachedWorkflows: Type.Optional(Type.String({ format: "naturalNumber" })),
     taskQueue: Type.Optional(Type.String()),
+    maxCachedWorkflows: Type.Optional(Type.String({ format: "naturalNumber" })),
+    maxConcurrentWorkflowTaskExecutions: Type.Optional(
+      Type.String({ format: "naturalNumber" }),
+    ),
+    maxConcurrentActivityTaskPolls: Type.Optional(
+      Type.String({ format: "naturalNumber" }),
+    ),
+    maxConcurrentWorkflowTaskPolls: Type.Optional(
+      Type.String({ format: "naturalNumber" }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -23,6 +32,9 @@ type Config = Overwrite<
     reuseContext: boolean;
     maxCachedWorkflows?: number;
     taskQueue: string;
+    maxConcurrentWorkflowTaskExecutions?: number;
+    maxConcurrentActivityTaskPolls?: number;
+    maxConcurrentWorkflowTaskPolls?: number;
   }
 >;
 
@@ -32,10 +44,19 @@ function parseRawConfig(raw: RawConfig): Config {
     ...raw,
     reuseContext: raw.reuseContext === "true",
     workerServiceName: raw.workerServiceName ?? "dittofeed-worker",
+    taskQueue: raw.taskQueue ?? "default",
     maxCachedWorkflows: raw.maxCachedWorkflows
       ? parseInt(raw.maxCachedWorkflows, 10)
       : undefined,
-    taskQueue: raw.taskQueue ?? "default",
+    maxConcurrentWorkflowTaskExecutions: raw.maxConcurrentWorkflowTaskExecutions
+      ? parseInt(raw.maxConcurrentWorkflowTaskExecutions, 10)
+      : undefined,
+    maxConcurrentActivityTaskPolls: raw.maxConcurrentActivityTaskPolls
+      ? parseInt(raw.maxConcurrentActivityTaskPolls, 10)
+      : undefined,
+    maxConcurrentWorkflowTaskPolls: raw.maxConcurrentWorkflowTaskPolls
+      ? parseInt(raw.maxConcurrentWorkflowTaskPolls, 10)
+      : undefined,
   };
 }
 

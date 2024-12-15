@@ -61,12 +61,20 @@ async function run() {
     connectWorkflowCLient(),
   ]);
 
+  const {
+    maxConcurrentWorkflowTaskExecutions,
+    maxConcurrentActivityTaskPolls,
+    maxConcurrentWorkflowTaskPolls,
+    taskQueue,
+    maxCachedWorkflows,
+    reuseContext: reuseV8Context,
+  } = config();
+
   const worker = await Worker.create({
     connection,
     namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
     activities,
-    taskQueue: config().taskQueue,
     sinks: {
       ...defaultSinks(workerLogger),
       exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
@@ -83,9 +91,13 @@ async function run() {
       },
       workerLogger,
     ),
-    reuseV8Context: config().reuseContext,
-    maxCachedWorkflows: config().maxCachedWorkflows,
     enableSDKTracing: true,
+    reuseV8Context,
+    taskQueue,
+    maxConcurrentWorkflowTaskExecutions,
+    maxConcurrentActivityTaskPolls,
+    maxConcurrentWorkflowTaskPolls,
+    maxCachedWorkflows,
   });
 
   otel.start();
