@@ -18,9 +18,15 @@ export type SendSmtpMailParams = Overwrite<
     port?: number;
   }
 > &
-  EmailConfiguration & {
-    attachments?: Mail.Attachment[];
-  };
+  Overwrite<
+    EmailConfiguration & {
+      attachments?: Mail.Attachment[];
+    },
+    {
+      cc?: string[];
+      bcc?: string[];
+    }
+  >;
 
 export async function sendMail({
   host,
