@@ -1357,6 +1357,8 @@ export const BaseEmailContents = Type.Object({
   from: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
+  cc: Type.Optional(Type.String()),
+  bcc: Type.Optional(Type.String()),
   name: Type.Optional(Type.String()),
   headers: Type.Optional(
     Type.Array(
@@ -3913,6 +3915,8 @@ export const AmazonSesMailFields = Type.Object({
   name: Type.Optional(Type.String()),
   replyTo: Type.Optional(Type.String()),
   tags: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
+  cc: Type.Optional(Type.Array(Type.String())),
+  bcc: Type.Optional(Type.Array(Type.String())),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 

@@ -48,12 +48,17 @@ function guardResponseError(e: unknown): SESv2ServiceException {
   throw e;
 }
 
+export type SesMailData = Overwrite<
+  AmazonSesMailFields,
+  { tags?: Record<string, string> }
+>;
+
 export async function sendMail({
   config,
   mailData,
 }: {
   config: AmazonSesConfig;
-  mailData: Overwrite<AmazonSesMailFields, { tags?: Record<string, string> }>;
+  mailData: SesMailData;
 }): Promise<Result<SendEmailCommandOutput, SESv2ServiceException>> {
   const { accessKeyId, secretAccessKey, region } = config;
   const client = new SESv2Client({
@@ -78,6 +83,7 @@ export async function sendMail({
     "sending ses tags",
   );
 
+  // TODO: Add cc and bcc and attachments
   const input: SendEmailRequest = {
     FromEmailAddress: mailData.from,
     Destination: {

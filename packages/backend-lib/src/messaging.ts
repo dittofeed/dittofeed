@@ -1,4 +1,4 @@
-import { MessagesMessage } from "@mailchimp/mailchimp_transactional";
+import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { toMjml } from "emailo/src/toMjml";
@@ -18,7 +18,10 @@ import { Overwrite } from "utility-types";
 import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
-import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
+import {
+  sendMail as sendMailAmazonSes,
+  SesMailData,
+} from "./destinations/amazonses";
 import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
@@ -686,6 +689,12 @@ export async function sendEmail({
       name: {
         contents: messageTemplateDefinition.name,
       },
+      cc: {
+        contents: messageTemplateDefinition.cc,
+      },
+      bcc: {
+        contents: messageTemplateDefinition.bcc,
+      },
     },
     secrets: subscriptionGroupSecret
       ? {
@@ -721,10 +730,13 @@ export async function sendEmail({
     body,
     replyTo: baseReplyTo,
     name: baseName,
+    cc: unsplitCc,
+    bcc: unsplitBcc,
   } = renderedValuesResult.value;
-  // don't pass an empty string for reply to values
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
   const emailName = !baseName?.length ? undefined : baseName;
+  const cc = unsplitCc?.split(",");
+  const bcc = unsplitBcc?.split(",");
   const to = identifier;
 
   let customHeaders: Record<string, string> | undefined;
@@ -939,6 +951,8 @@ export async function sendEmail({
         host,
         port: numPort,
         headers,
+        cc,
+        bcc,
         attachments: smtpAttachments,
       });
       if (result.isErr()) {
@@ -1001,6 +1015,8 @@ export async function sendEmail({
         html: body,
         replyTo,
         headers,
+        cc,
+        bcc,
         attachments: sendgridAttachments,
         customArgs: {
           workspaceId,
@@ -1067,13 +1083,15 @@ export async function sendEmail({
           },
         });
       }
-      const mailData: Parameters<typeof sendMailAmazonSes>[0]["mailData"] = {
+      const mailData: SesMailData = {
         to,
         from,
         name: emailName,
         subject,
         html: body,
         replyTo,
+        cc,
+        bcc,
         headers,
         tags: {
           workspaceId,
@@ -1161,6 +1179,8 @@ export async function sendEmail({
         html: body,
         reply_to: replyTo,
         headers,
+        cc,
+        bcc,
         tags: messageTags
           ? Object.entries(messageTags).map(([name, value]) => ({
               name,
@@ -1247,6 +1267,8 @@ export async function sendEmail({
         Subject: subject,
         HtmlBody: body,
         ReplyTo: replyTo,
+        Cc: unsplitCc,
+        Bcc: unsplitBcc,
         Attachments: postmarkAttachments,
         Headers:
           Object.keys(headers).length > 0
@@ -1314,18 +1336,29 @@ export async function sendEmail({
     case EmailProviderType.MailChimp: {
       // Mandatory for Mailchimp
       const website = getWebsiteFromFromEmail(from) ?? "https://dittofeed.com";
-      const mailData: MessagesMessage = {
+      let mailChimpTo: MailChimpMessage["to"] = [{ email: to }];
+      if (cc && cc.length > 0) {
+        mailChimpTo = mailChimpTo.concat(
+          cc.map((email) => ({ email, type: "cc" })),
+        );
+      }
+      if (bcc && bcc.length > 0) {
+        mailChimpTo = mailChimpTo.concat(
+          bcc.map((email) => ({ email, type: "bcc" })),
+        );
+      }
+      const mailData: MailChimpMessage = {
         html: body,
         text: body,
         from_name: emailName,
         subject,
+        to: mailChimpTo,
         attachments: attachments?.map(({ name, data, mimeType }) => ({
           type: mimeType,
           name,
           content: data,
         })),
         from_email: from,
-        to: [{ email: to }],
         metadata: {
           website,
           messageId: messageTags?.messageId,
@@ -1412,6 +1445,8 @@ export async function sendEmail({
           replyTo,
           headers,
           attachments: attachmentsSent,
+          cc: unsplitCc,
+          bcc: unsplitBcc,
           provider: {
             type: EmailProviderType.Test,
           },
