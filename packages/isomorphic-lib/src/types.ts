@@ -1357,6 +1357,8 @@ export const BaseEmailContents = Type.Object({
   from: Type.String(),
   subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
+  cc: Type.Optional(Type.String()),
+  bcc: Type.Optional(Type.String()),
   name: Type.Optional(Type.String()),
   headers: Type.Optional(
     Type.Array(

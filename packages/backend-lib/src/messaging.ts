@@ -686,6 +686,12 @@ export async function sendEmail({
       name: {
         contents: messageTemplateDefinition.name,
       },
+      cc: {
+        contents: messageTemplateDefinition.cc,
+      },
+      bcc: {
+        contents: messageTemplateDefinition.bcc,
+      },
     },
     secrets: subscriptionGroupSecret
       ? {
@@ -721,10 +727,14 @@ export async function sendEmail({
     body,
     replyTo: baseReplyTo,
     name: baseName,
+    cc: unsplitCc,
+    bcc: unsplitBcc,
   } = renderedValuesResult.value;
   // don't pass an empty string for reply to values
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
   const emailName = !baseName?.length ? undefined : baseName;
+  const cc = unsplitCc?.split(",").filter((c) => c.length);
+  const bcc = unsplitBcc?.split(",").filter((c) => c.length);
   const to = identifier;
 
   let customHeaders: Record<string, string> | undefined;
