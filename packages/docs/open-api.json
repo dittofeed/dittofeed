@@ -443,6 +443,12 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
+                                        "type": "string"
+                                      },
                                       "name": {
                                         "type": "string"
                                       },
@@ -507,6 +513,12 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
                                         "type": "string"
                                       },
                                       "name": {
@@ -655,6 +667,12 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
+                                        "type": "string"
+                                      },
                                       "name": {
                                         "type": "string"
                                       },
@@ -719,6 +737,12 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
                                         "type": "string"
                                       },
                                       "name": {
@@ -911,6 +935,12 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
+                                "type": "string"
+                              },
                               "name": {
                                 "type": "string"
                               },
@@ -975,6 +1005,12 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
                                 "type": "string"
                               },
                               "name": {
@@ -1125,6 +1161,12 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
+                                    "type": "string"
+                                  },
                                   "name": {
                                     "type": "string"
                                   },
@@ -1189,6 +1231,12 @@
                                     "type": "string"
                                   },
                                   "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
                                     "type": "string"
                                   },
                                   "name": {
@@ -1397,6 +1445,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -1461,6 +1515,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -1609,6 +1669,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -1673,6 +1739,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -2100,6 +2172,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -2164,6 +2242,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -2312,6 +2396,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -2376,6 +2466,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -2933,6 +3029,12 @@
                                           "type": "string"
                                         },
                                         "replyTo": {
+                                          "type": "string"
+                                        },
+                                        "cc": {
+                                          "type": "string"
+                                        },
+                                        "bcc": {
                                           "type": "string"
                                         },
                                         "name": {
@@ -21736,6 +21838,12 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
+                                    "type": "string"
+                                  },
                                   "name": {
                                     "type": "string"
                                   },
@@ -21860,6 +21968,12 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
                                 "type": "string"
                               },
                               "name": {
@@ -43261,6 +43375,12 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
+                                        "type": "string"
+                                      },
                                       "name": {
                                         "type": "string"
                                       },
@@ -43325,6 +43445,12 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
                                         "type": "string"
                                       },
                                       "name": {
@@ -43473,6 +43599,12 @@
                                       "replyTo": {
                                         "type": "string"
                                       },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
+                                        "type": "string"
+                                      },
                                       "name": {
                                         "type": "string"
                                       },
@@ -43537,6 +43669,12 @@
                                         "type": "string"
                                       },
                                       "replyTo": {
+                                        "type": "string"
+                                      },
+                                      "cc": {
+                                        "type": "string"
+                                      },
+                                      "bcc": {
                                         "type": "string"
                                       },
                                       "name": {
@@ -43728,6 +43866,12 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
+                                "type": "string"
+                              },
                               "name": {
                                 "type": "string"
                               },
@@ -43792,6 +43936,12 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
                                 "type": "string"
                               },
                               "name": {
@@ -43942,6 +44092,12 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
+                                    "type": "string"
+                                  },
                                   "name": {
                                     "type": "string"
                                   },
@@ -44006,6 +44162,12 @@
                                     "type": "string"
                                   },
                                   "replyTo": {
+                                    "type": "string"
+                                  },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
                                     "type": "string"
                                   },
                                   "name": {
@@ -44214,6 +44376,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -44278,6 +44446,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -44426,6 +44600,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -44490,6 +44670,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -44917,6 +45103,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -44981,6 +45173,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -45129,6 +45327,12 @@
                                 "replyTo": {
                                   "type": "string"
                                 },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
+                                  "type": "string"
+                                },
                                 "name": {
                                   "type": "string"
                                 },
@@ -45193,6 +45397,12 @@
                                   "type": "string"
                                 },
                                 "replyTo": {
+                                  "type": "string"
+                                },
+                                "cc": {
+                                  "type": "string"
+                                },
+                                "bcc": {
                                   "type": "string"
                                 },
                                 "name": {
@@ -45750,6 +45960,12 @@
                                           "type": "string"
                                         },
                                         "replyTo": {
+                                          "type": "string"
+                                        },
+                                        "cc": {
+                                          "type": "string"
+                                        },
+                                        "bcc": {
                                           "type": "string"
                                         },
                                         "name": {
@@ -47495,6 +47711,12 @@
                                   "replyTo": {
                                     "type": "string"
                                   },
+                                  "cc": {
+                                    "type": "string"
+                                  },
+                                  "bcc": {
+                                    "type": "string"
+                                  },
                                   "name": {
                                     "type": "string"
                                   },
@@ -47619,6 +47841,12 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
                                 "type": "string"
                               },
                               "name": {
@@ -50259,6 +50487,12 @@
                               "replyTo": {
                                 "type": "string"
                               },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
+                                "type": "string"
+                              },
                               "name": {
                                 "type": "string"
                               },
@@ -50323,6 +50557,12 @@
                                 "type": "string"
                               },
                               "replyTo": {
+                                "type": "string"
+                              },
+                              "cc": {
+                                "type": "string"
+                              },
+                              "bcc": {
                                 "type": "string"
                               },
                               "name": {
