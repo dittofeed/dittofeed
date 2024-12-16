@@ -47,16 +47,16 @@ function parseRawConfig(raw: RawConfig): Config {
     workerServiceName: raw.workerServiceName ?? "dittofeed-worker",
     taskQueue: raw.taskQueue ?? "default",
     maxCachedWorkflows: raw.maxCachedWorkflows
-      ? parseInt(raw.maxCachedWorkflows, 10)
+      ? parseInt(raw.maxCachedWorkflows)
       : undefined,
     maxConcurrentWorkflowTaskExecutions: raw.maxConcurrentWorkflowTaskExecutions
-      ? parseInt(raw.maxConcurrentWorkflowTaskExecutions, 10)
+      ? parseInt(raw.maxConcurrentWorkflowTaskExecutions)
       : undefined,
     maxConcurrentActivityTaskPolls: raw.maxConcurrentActivityTaskPolls
-      ? parseInt(raw.maxConcurrentActivityTaskPolls, 10)
+      ? parseInt(raw.maxConcurrentActivityTaskPolls)
       : undefined,
     maxConcurrentWorkflowTaskPolls: raw.maxConcurrentWorkflowTaskPolls
-      ? parseInt(raw.maxConcurrentWorkflowTaskPolls, 10)
+      ? parseInt(raw.maxConcurrentWorkflowTaskPolls)
       : undefined,
   };
 }
