@@ -5,6 +5,7 @@ import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
   startComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
 import { findBaseDir } from "backend-lib/src/dir";
@@ -237,6 +238,18 @@ export async function cli() {
             );
           }),
         );
+        logger().info("Done.");
+      },
+    )
+    .command(
+      "terminate-compute-properties",
+      "Terminates compute properties workflow.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+        }),
+      async ({ workspaceId }) => {
+        await terminateComputePropertiesWorkflow({ workspaceId });
         logger().info("Done.");
       },
     )
