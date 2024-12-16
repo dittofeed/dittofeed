@@ -32,6 +32,18 @@ describe("deliveries", () => {
       });
       workspaceId = workspace.id;
     });
+    describe("when the original sent message includes a triggeringMessageId", () => {
+      let triggeringMessageId: string;
+      beforeEach(async () => {});
+
+      it("returns the correct triggeringMessageId", async () => {
+        const deliveries = await searchDeliveries({ workspaceId });
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0].triggeringMessageId).toEqual(
+          triggeringMessageId,
+        );
+      });
+    });
 
     describe("with two different messages from the same journey", () => {
       beforeEach(async () => {
