@@ -15,6 +15,7 @@ import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   ChannelType,
   EmailEventList,
+  GetDeliveryBodyRequest,
   InternalEventType,
   MessageSendSuccessContents,
   MessageSendSuccessVariant,
@@ -115,20 +116,36 @@ export function parseSearchDeliveryRow(
 
 export async function getDeliveryBody({
   workspaceId,
-  journeyId,
-  templateId,
   userId,
-}: {
-  workspaceId: string;
-  journeyId: string;
-  userId: string;
-  templateId: string;
-}): Promise<MessageSendSuccessVariant | null> {
+  ...rest
+}: GetDeliveryBodyRequest): Promise<MessageSendSuccessVariant | null> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
-  const journeyIdParam = qb.addQueryValue(journeyId, "String");
-  const templateIdParam = qb.addQueryValue(templateId, "String");
+  let templateClause = "";
+  let journeyClause = "";
+  let triggeringMessageIdClause = "";
+  let messageIdClause = "";
+  if (typeof rest.triggeringMessageId === "string") {
+    triggeringMessageIdClause = `AND JSONExtractString(properties, 'triggeringMessageId') = ${qb.addQueryValue(
+      rest.triggeringMessageId,
+      "String",
+    )}`;
+  } else if (typeof rest.messageId === "string") {
+    messageIdClause = `AND JSONExtractString(properties, 'messageId') = ${qb.addQueryValue(
+      rest.messageId,
+      "String",
+    )}`;
+  } else {
+    journeyClause = `AND JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(
+      rest.journeyId,
+      "String",
+    )}`;
+    templateClause = `AND JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+      rest.templateId,
+      "String",
+    )}`;
+  }
   const query = `
     SELECT
       properties
@@ -138,8 +155,10 @@ export async function getDeliveryBody({
       AND workspace_id = ${workspaceIdParam}
       AND event_type = 'track'
       AND user_or_anonymous_id = ${userIdParam}
-      AND simpleJSONExtractString(properties, 'journeyId') = ${journeyIdParam}
-      AND simpleJSONExtractString(properties, 'templateId') = ${templateIdParam}
+      ${journeyClause}
+      ${templateClause}
+      ${triggeringMessageIdClause}
+      ${messageIdClause}
     ORDER BY processing_time DESC
     LIMIT 1
   `;

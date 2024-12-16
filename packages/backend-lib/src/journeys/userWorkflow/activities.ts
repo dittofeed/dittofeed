@@ -48,6 +48,7 @@ type BaseSendParams = {
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
+  triggeringMessageId?: string;
 } & RenameKey<MessageVariant, "type", "channel">;
 
 export type SendParams = Omit<BaseSendParams, "channel">;
@@ -148,6 +149,7 @@ export function sendMessageFactory(sender: Sender) {
         nodeId: params.nodeId,
         templateId: params.templateId,
         runId: params.runId,
+        triggeringMessageId: params.triggeringMessageId,
       });
       const { messageId, userId, journeyId, nodeId, templateId, runId } =
         params;
@@ -163,6 +165,7 @@ export function sendMessageFactory(sender: Sender) {
         nodeId,
         templateId,
         runId,
+        triggeringMessageId: params.triggeringMessageId,
       };
 
       if (sendResult.isErr()) {
