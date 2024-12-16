@@ -25223,6 +25223,7 @@ __metadata:
     eslint-plugin-react: "npm:^7.32.2"
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
+    isomorphic-lib: "npm:0.0.3"
     jest: "npm:^29.4.0"
     jest-expect-message: "npm:^1.1.3"
     prettier: "npm:3.2.5"
