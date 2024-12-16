@@ -405,6 +405,27 @@ function MessageNodeFields({
       }
     });
   };
+  let providerOverrideEl: React.ReactNode;
+  if (
+    nodeProps.channel === ChannelType.Email ||
+    nodeProps.channel === ChannelType.Sms
+  ) {
+    providerOverrideEl = (
+      <ChannelProviderAutocomplete
+        providerOverride={nodeProps.providerOverride}
+        channel={nodeProps.channel}
+        disabled={disabled}
+        handler={onProviderOverrideChangeHandler}
+      />
+    );
+  }
+  let providerOverrideConfigEl: React.ReactNode;
+  if (
+    nodeProps.channel === ChannelType.Sms &&
+    nodeProps.providerOverride === SmsProviderType.Twilio
+  ) {
+    providerOverrideConfigEl = <> override config</>;
+  }
 
   return (
     <>
@@ -482,15 +503,8 @@ function MessageNodeFields({
           />
         </Stack>
       ) : null}
-      {nodeProps.channel === ChannelType.Email ||
-      nodeProps.channel === ChannelType.Sms ? (
-        <ChannelProviderAutocomplete
-          providerOverride={nodeProps.providerOverride}
-          channel={nodeProps.channel}
-          disabled={disabled}
-          handler={onProviderOverrideChangeHandler}
-        />
-      ) : null}
+      {providerOverrideEl}
+      {providerOverrideConfigEl}
     </>
   );
 }

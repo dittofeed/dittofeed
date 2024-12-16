@@ -1930,10 +1930,12 @@ export const EmailMessageUiNodeProps = Type.Object({
 
 export type EmailMessageUiNodeProps = Static<typeof EmailMessageUiNodeProps>;
 
-export const SmsMessageUiNodeProps = Type.Object({
-  channel: Type.Literal(ChannelType.Sms),
-  providerOverride: Type.Optional(Type.Enum(SmsProviderType)),
-});
+export const SmsMessageUiNodeProps = Type.Composite([
+  Type.Object({
+    channel: Type.Literal(ChannelType.Sms),
+  }),
+  SmsProviderOverride,
+]);
 
 export type SmsMessageUiNodeProps = Static<typeof SmsMessageUiNodeProps>;
 

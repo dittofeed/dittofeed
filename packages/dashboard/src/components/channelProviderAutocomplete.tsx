@@ -19,7 +19,7 @@ export default function ChannelProviderAutocomplete({
   disabled,
   handler,
 }: {
-  providerOverride?: EmailProviderType | SmsProviderType;
+  providerOverride?: EmailProviderType | SmsProviderType | null;
   disabled?: boolean;
   channel: ChannelType;
   handler: ProviderOverrideChangeHandler;
