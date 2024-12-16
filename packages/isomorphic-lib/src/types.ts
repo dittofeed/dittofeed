@@ -4389,3 +4389,48 @@ export const TombstoneWorkspaceRequest = WorkspaceIdentifier;
 export type TombstoneWorkspaceRequest = Static<
   typeof TombstoneWorkspaceRequest
 >;
+
+export const BaseDeliveryBodyRequest = {
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  journeyId: Type.Optional(Type.Null()),
+  templateId: Type.Optional(Type.Null()),
+  triggeringMessageId: Type.Optional(Type.Null()),
+  messageId: Type.Optional(Type.Null()),
+};
+
+export const JourneyTemplateDeliveryBodyRequest = Type.Object({
+  ...BaseDeliveryBodyRequest,
+  journeyId: Type.String(),
+  templateId: Type.String(),
+});
+
+export type JourneyTemplateDeliveryBodyRequest = Static<
+  typeof JourneyTemplateDeliveryBodyRequest
+>;
+
+export const TriggeringMessageDeliveryBodyRequest = Type.Object({
+  ...BaseDeliveryBodyRequest,
+  triggeringMessageId: Type.String(),
+});
+
+export type TriggeringMessageDeliveryBodyRequest = Static<
+  typeof TriggeringMessageDeliveryBodyRequest
+>;
+
+export const MessageIdDeliveryBodyRequest = Type.Object({
+  ...BaseDeliveryBodyRequest,
+  messageId: Type.String(),
+});
+
+export type MessageIdDeliveryBodyRequest = Static<
+  typeof MessageIdDeliveryBodyRequest
+>;
+
+export const GetDeliveryBodyRequest = Type.Union([
+  JourneyTemplateDeliveryBodyRequest,
+  TriggeringMessageDeliveryBodyRequest,
+  MessageIdDeliveryBodyRequest,
+]);
+
+export type GetDeliveryBodyRequest = Static<typeof GetDeliveryBodyRequest>;
