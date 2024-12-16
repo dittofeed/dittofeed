@@ -3,6 +3,7 @@ import { times } from "remeda";
 
 import { submitBatch } from "./apps/batch";
 import {
+  getDeliveryBody,
   parseSearchDeliveryRow,
   searchDeliveries,
   SearchDeliveryRow,
@@ -15,6 +16,7 @@ import {
   EventType,
   InternalEventType,
   MessageSendSuccess,
+  MessageSendSuccessVariant,
   SmsProviderType,
 } from "./types";
 
@@ -958,19 +960,179 @@ describe("deliveries", () => {
     });
   });
   describe("getDeliveryBody", () => {
+    let workspaceId: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      const workspace = await prisma().workspace.create({
+        data: {
+          name: randomUUID(),
+        },
+      });
+      workspaceId = workspace.id;
+      userId = randomUUID();
+    });
+
     describe("when filtering by journeyId and templateId", () => {
-      it("returns the correct body", () => {
-        expect(true).toBe(true);
+      let journeyId: string;
+      let templateId: string;
+      let expectedVariant: MessageSendSuccessVariant;
+
+      beforeEach(async () => {
+        journeyId = randomUUID();
+        templateId = randomUUID();
+        expectedVariant = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.Sendgrid,
+          },
+        };
+
+        const event: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: randomUUID(),
+            variant: expectedVariant,
+          },
+        };
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: [event],
+          },
+        });
+      });
+
+      it("returns the correct body", async () => {
+        const result = await getDeliveryBody({
+          workspaceId,
+          userId,
+          journeyId,
+          templateId,
+        });
+
+        expect(result).toEqual(expectedVariant);
       });
     });
+
     describe("when filtering by triggeringMessageId", () => {
-      it("returns the correct body", () => {
-        expect(true).toBe(true);
+      let triggeringMessageId: string;
+      let expectedVariant: MessageSendSuccessVariant;
+
+      beforeEach(async () => {
+        triggeringMessageId = randomUUID();
+        expectedVariant = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.Sendgrid,
+          },
+        };
+
+        const event: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId: randomUUID(),
+            triggeringMessageId,
+            variant: expectedVariant,
+          },
+        };
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: [event],
+          },
+        });
+      });
+
+      it("returns the correct body", async () => {
+        const result = await getDeliveryBody({
+          workspaceId,
+          userId,
+          triggeringMessageId,
+        });
+
+        expect(result).toEqual(expectedVariant);
       });
     });
+
     describe("when filtering by messageId", () => {
-      it("returns the correct body", () => {
-        expect(true).toBe(true);
+      let messageId: string;
+      let expectedVariant: MessageSendSuccessVariant;
+
+      beforeEach(async () => {
+        messageId = randomUUID();
+        expectedVariant = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.Sendgrid,
+          },
+        };
+
+        const event: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId,
+            variant: expectedVariant,
+          },
+        };
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: [event],
+          },
+        });
+      });
+
+      it("returns the correct body", async () => {
+        const result = await getDeliveryBody({
+          workspaceId,
+          userId,
+          messageId,
+        });
+
+        expect(result).toEqual(expectedVariant);
       });
     });
   });
