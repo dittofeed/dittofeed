@@ -1206,7 +1206,6 @@ describe("deliveries", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId: randomUUID(),
-            messageId,
             variant: expectedVariant,
           },
         };
@@ -1223,7 +1222,6 @@ describe("deliveries", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId: randomUUID(),
-            messageId: randomUUID(),
             variant: {
               ...expectedVariant,
               body: "wrong body",

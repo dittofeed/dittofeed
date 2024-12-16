@@ -134,7 +134,7 @@ export async function getDeliveryBody({
       "String",
     )}`;
   } else if (typeof rest.messageId === "string") {
-    messageIdClause = `AND JSONExtractString(properties, 'messageId') = ${qb.addQueryValue(
+    messageIdClause = `AND message_id = ${qb.addQueryValue(
       rest.messageId,
       "String",
     )}`;
