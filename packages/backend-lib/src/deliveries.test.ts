@@ -32,14 +32,55 @@ describe("deliveries", () => {
       });
       workspaceId = workspace.id;
     });
+
     describe("when the original sent message includes a triggeringMessageId", () => {
       let triggeringMessageId: string;
-      beforeEach(async () => {});
+      beforeEach(async () => {
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+        triggeringMessageId = randomUUID();
+
+        const events: BatchItem[] = [
+          {
+            userId: randomUUID(),
+            timestamp: new Date(Date.now() - 2000).toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              triggeringMessageId,
+              ...messageSentEvent,
+            },
+          },
+        ];
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
 
       it("returns the correct triggeringMessageId", async () => {
         const deliveries = await searchDeliveries({ workspaceId });
         expect(deliveries.items).toHaveLength(1);
-        expect(deliveries.items[0].triggeringMessageId).toEqual(
+        expect(deliveries.items[0]?.triggeringMessageId).toEqual(
           triggeringMessageId,
         );
       });

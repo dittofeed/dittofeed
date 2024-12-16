@@ -308,7 +308,7 @@ export async function searchDeliveries({
       min(event_time) sent_at,
       user_or_anonymous_id,
       origin_message_id,
-      triggering_message_id,
+      any(triggering_message_id) as triggering_message_id,
       workspace_id
     FROM (
       SELECT

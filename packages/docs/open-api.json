@@ -21620,6 +21620,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -21888,6 +21891,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -22028,6 +22034,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -22142,6 +22151,9 @@
                                 "type": "string"
                               },
                               "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
                                 "type": "string"
                               },
                               "templateId": {
@@ -47493,6 +47505,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -47761,6 +47776,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -47901,6 +47919,9 @@
                               "originMessageId": {
                                 "type": "string"
                               },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
                               "templateId": {
                                 "type": "string"
                               }
@@ -48015,6 +48036,9 @@
                                 "type": "string"
                               },
                               "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
                                 "type": "string"
                               },
                               "templateId": {
