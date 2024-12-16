@@ -539,6 +539,10 @@ export async function userJourneyWorkflow(
       }
       case JourneyNodeType.MessageNode: {
         const messageId = uuid4();
+        const triggeringMessageId =
+          props.version === UserJourneyWorkflowVersion.V2
+            ? props.event?.messageId
+            : undefined;
         const messagePayload: Omit<activities.SendParams, "templateId"> = {
           userId,
           workspaceId,
@@ -547,6 +551,7 @@ export async function userJourneyWorkflow(
           runId,
           nodeId: currentNode.id,
           messageId,
+          triggeringMessageId,
         };
 
         let variant: RenameKey<MessageVariant, "type", "channel">;
