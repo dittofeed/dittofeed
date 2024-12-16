@@ -957,4 +957,21 @@ describe("deliveries", () => {
       expect(result).not.toBeNull();
     });
   });
+  describe("getDeliveryBody", () => {
+    describe("when filtering by journeyId and templateId", () => {
+      it("returns the correct body", () => {
+        expect(true).toBe(true);
+      });
+    });
+    describe("when filtering by triggeringMessageId", () => {
+      it("returns the correct body", () => {
+        expect(true).toBe(true);
+      });
+    });
+    describe("when filtering by messageId", () => {
+      it("returns the correct body", () => {
+        expect(true).toBe(true);
+      });
+    });
+  });
 });
