@@ -149,6 +149,7 @@ export function sendMessageFactory(sender: Sender) {
         nodeId: params.nodeId,
         templateId: params.templateId,
         runId: params.runId,
+        triggeringMessageId: params.triggeringMessageId,
       });
       const { messageId, userId, journeyId, nodeId, templateId, runId } =
         params;
@@ -164,6 +165,7 @@ export function sendMessageFactory(sender: Sender) {
         nodeId,
         templateId,
         runId,
+        triggeringMessageId: params.triggeringMessageId,
       };
 
       if (sendResult.isErr()) {
