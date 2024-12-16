@@ -992,7 +992,7 @@ describe("deliveries", () => {
           },
         };
 
-        const event: BatchItem = {
+        const correctEvent: BatchItem = {
           userId,
           timestamp: new Date().toISOString(),
           type: EventType.Track,
@@ -1009,10 +1009,30 @@ describe("deliveries", () => {
           },
         };
 
+        const wrongEvent: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId: randomUUID(),
+            variant: {
+              ...expectedVariant,
+              body: "wrong body",
+            },
+          },
+        };
+
         await submitBatch({
           workspaceId,
           data: {
-            batch: [event],
+            batch: [correctEvent, wrongEvent],
           },
         });
       });
@@ -1046,7 +1066,7 @@ describe("deliveries", () => {
           },
         };
 
-        const event: BatchItem = {
+        const correctEvent: BatchItem = {
           userId,
           timestamp: new Date().toISOString(),
           type: EventType.Track,
@@ -1064,10 +1084,31 @@ describe("deliveries", () => {
           },
         };
 
+        const wrongEvent: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId: randomUUID(),
+            triggeringMessageId: randomUUID(),
+            variant: {
+              ...expectedVariant,
+              body: "wrong body",
+            },
+          },
+        };
+
         await submitBatch({
           workspaceId,
           data: {
-            batch: [event],
+            batch: [correctEvent, wrongEvent],
           },
         });
       });
@@ -1100,7 +1141,7 @@ describe("deliveries", () => {
           },
         };
 
-        const event: BatchItem = {
+        const correctEvent: BatchItem = {
           userId,
           timestamp: new Date().toISOString(),
           type: EventType.Track,
@@ -1117,10 +1158,30 @@ describe("deliveries", () => {
           },
         };
 
+        const wrongEvent: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId: randomUUID(),
+            variant: {
+              ...expectedVariant,
+              body: "wrong body",
+            },
+          },
+        };
+
         await submitBatch({
           workspaceId,
           data: {
-            batch: [event],
+            batch: [correctEvent, wrongEvent],
           },
         });
       });
