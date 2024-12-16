@@ -30,6 +30,7 @@ export const SearchDeliveryRow = Type.Object({
   updated_at: Type.String(),
   sent_at: Type.String(),
   origin_message_id: Type.String(),
+  triggering_message_id: Type.Optional(Type.String()),
   workspace_id: Type.String(),
   user_or_anonymous_id: Type.String(),
 });
@@ -84,6 +85,7 @@ export function parseSearchDeliveryRow(
       updatedAt: row.updated_at,
       status: row.last_event,
       originMessageId: row.origin_message_id,
+      triggeringMessageId: row.triggering_message_id,
       userId: row.user_or_anonymous_id,
       channel:
         properties.channnel ??
@@ -306,6 +308,7 @@ export async function searchDeliveries({
       min(event_time) sent_at,
       user_or_anonymous_id,
       origin_message_id,
+      triggering_message_id,
       workspace_id
     FROM (
       SELECT
@@ -316,7 +319,10 @@ export async function searchDeliveries({
         event_time,
         if(event = '${
           InternalEventType.MessageSent
-        }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id
+        }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id,
+        if(event = '${
+          InternalEventType.MessageSent
+        }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id
       FROM user_events_v2
       WHERE
         event in ${eventList}

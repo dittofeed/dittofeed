@@ -3828,6 +3828,7 @@ const BaseDeliveryItem = Type.Object({
   journeyId: Type.String(),
   userId: UserId,
   originMessageId: Type.String(),
+  triggeringMessageId: Type.Optional(Type.String()),
   templateId: Type.String(),
 });
 
