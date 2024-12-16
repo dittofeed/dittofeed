@@ -13,6 +13,7 @@ import {
   NativeConnection,
   Runtime,
   Worker,
+  WorkerOptions,
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
 import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "backend-lib/src/constants";
@@ -70,7 +71,7 @@ async function run() {
     reuseContext: reuseV8Context,
   } = config();
 
-  const worker = await Worker.create({
+  const opts: WorkerOptions = {
     connection,
     namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
@@ -92,15 +93,40 @@ async function run() {
       workerLogger,
     ),
     enableSDKTracing: true,
-    reuseV8Context,
     taskQueue,
-    maxConcurrentWorkflowTaskExecutions,
-    maxConcurrentActivityTaskPolls,
-    maxConcurrentWorkflowTaskPolls,
-    maxCachedWorkflows,
-  });
+  };
+
+  if (reuseV8Context) {
+    opts.reuseV8Context = reuseV8Context;
+  }
+
+  if (maxConcurrentWorkflowTaskExecutions) {
+    opts.maxConcurrentWorkflowTaskExecutions =
+      maxConcurrentWorkflowTaskExecutions;
+  }
+
+  if (maxConcurrentActivityTaskPolls) {
+    opts.maxConcurrentActivityTaskPolls = maxConcurrentActivityTaskPolls;
+  }
+
+  if (maxConcurrentWorkflowTaskPolls) {
+    opts.maxConcurrentWorkflowTaskPolls = maxConcurrentWorkflowTaskPolls;
+  }
+
+  if (maxCachedWorkflows) {
+    opts.maxCachedWorkflows = maxCachedWorkflows;
+  }
+
+  const worker = await Worker.create(opts);
 
   otel.start();
+
+  logger().info(
+    {
+      opts,
+    },
+    "Worker started",
+  );
   await worker.run();
 }
 

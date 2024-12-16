@@ -1,6 +1,7 @@
 import { Static, Type } from "@sinclair/typebox";
 import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
 import { BoolStr } from "backend-lib/src/types";
+import { parseInt } from "isomorphic-lib/src/numbers";
 import { Overwrite } from "utility-types";
 
 // Structure of application config.
