@@ -153,6 +153,38 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
         <DialogContent>
           <Stack sx={{ pt: 1 }}>
             <TextField
+              label="CC"
+              variant="outlined"
+              fullWidth
+              disabled={disabled}
+              onChange={(e) => {
+                setDraft((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  return { ...defn, cc: e.target.value };
+                });
+              }}
+              value={draft.cc ?? ""}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="BCC"
+              variant="outlined"
+              fullWidth
+              disabled={disabled}
+              onChange={(e) => {
+                setDraft((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  return { ...defn, bcc: e.target.value };
+                });
+              }}
+              value={draft.bcc ?? ""}
+              sx={{ mb: 2 }}
+            />
+            <TextField
               label="Reply-To"
               variant="outlined"
               fullWidth
