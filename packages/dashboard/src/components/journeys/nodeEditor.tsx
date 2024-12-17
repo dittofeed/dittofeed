@@ -434,7 +434,18 @@ function MessageNodeFields({
               label="Message SID"
               value={nodeProps.senderOverride.messagingServiceSid}
               onChange={(e) => {
-                onProviderOverrideChangeHandler(e.target.value);
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (
+                    props.type === JourneyNodeType.MessageNode &&
+                    props.channel === ChannelType.Sms &&
+                    props.providerOverride === SmsProviderType.Twilio &&
+                    props.senderOverride?.type ===
+                      TwilioSenderOverrideType.MessageSid
+                  ) {
+                    props.senderOverride.messagingServiceSid = e.target.value;
+                  }
+                });
               }}
             />
           );
@@ -446,7 +457,18 @@ function MessageNodeFields({
               label="Phone Number"
               value={nodeProps.senderOverride.phone}
               onChange={(e) => {
-                onProviderOverrideChangeHandler(e.target.value);
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (
+                    props.type === JourneyNodeType.MessageNode &&
+                    props.channel === ChannelType.Sms &&
+                    props.providerOverride === SmsProviderType.Twilio &&
+                    props.senderOverride?.type ===
+                      TwilioSenderOverrideType.PhoneNumber
+                  ) {
+                    props.senderOverride.phone = e.target.value;
+                  }
+                });
               }}
             />
           );
@@ -455,49 +477,51 @@ function MessageNodeFields({
           assertUnreachable(nodeProps.senderOverride);
       }
     }
-    const onSenderOverrideChangeHandler: SelectInputProps<TwilioSenderOverrideType | null>["onChange"] =
-      (_event, senderOverride) => {
-        updateJourneyNodeData(nodeId, (node) => {
-          const props = node.data.nodeTypeProps;
-          if (
-            props.type === JourneyNodeType.MessageNode &&
-            props.channel === ChannelType.Sms &&
-            props.providerOverride === SmsProviderType.Twilio
-          ) {
-            if (senderOverride === null) {
-              props.senderOverride = null;
-            } else {
-              switch (senderOverride) {
-                case TwilioSenderOverrideType.MessageSid:
-                  props.senderOverride = {
-                    type: TwilioSenderOverrideType.MessageSid,
-                    messagingServiceSid: "",
-                  };
-                  break;
-                case TwilioSenderOverrideType.PhoneNumber:
-                  props.senderOverride = {
-                    type: TwilioSenderOverrideType.PhoneNumber,
-                    phone: "",
-                  };
-                  break;
-              }
+    const onSenderOverrideChangeHandler: SelectInputProps<
+      TwilioSenderOverrideType | ""
+    >["onChange"] = (event) => {
+      updateJourneyNodeData(nodeId, (node) => {
+        const props = node.data.nodeTypeProps;
+        if (
+          props.type === JourneyNodeType.MessageNode &&
+          props.channel === ChannelType.Sms &&
+          props.providerOverride === SmsProviderType.Twilio
+        ) {
+          if (!event.target.value) {
+            props.senderOverride = undefined;
+          } else {
+            switch (event.target.value as TwilioSenderOverrideType) {
+              case TwilioSenderOverrideType.MessageSid:
+                props.senderOverride = {
+                  type: TwilioSenderOverrideType.MessageSid,
+                  messagingServiceSid: "",
+                };
+                break;
+              case TwilioSenderOverrideType.PhoneNumber:
+                props.senderOverride = {
+                  type: TwilioSenderOverrideType.PhoneNumber,
+                  phone: "",
+                };
+                break;
             }
           }
-        });
-      };
+        }
+      });
+    };
     providerOverrideConfigEl = (
       <>
         <FormControl>
           <InputLabel id="twilio-sender-override-select-label">
-            Twilio Sender Override
+            Sender Override
           </InputLabel>
           <Select
             labelId="twilio-sender-override-select-label"
             label="Twilio Override"
             onChange={onSenderOverrideChangeHandler}
-            value={nodeProps.senderOverride?.type ?? null}
+            value={nodeProps.senderOverride?.type ?? ""}
             disabled={disabled}
           >
+            <MenuItem value="">None</MenuItem>
             <MenuItem value={TwilioSenderOverrideType.MessageSid}>
               Message SID
             </MenuItem>
