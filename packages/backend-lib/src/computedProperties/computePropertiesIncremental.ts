@@ -3244,11 +3244,13 @@ async function processRows({
   const counter = processCounter();
   if (pgUserPropertyAssignments.length > 0) {
     counter.add(pgUserPropertyAssignments.length, {
+      workspace_id: workspaceId,
       type: "pg_user_property",
     });
   }
   if (pgSegmentAssignments.length > 0) {
     counter.add(pgSegmentAssignments.length, {
+      workspace_id: workspaceId,
       type: "pg_segment",
     });
   }
@@ -3319,11 +3321,13 @@ async function processRows({
 
   if (journeySegmentAssignments.length > 0) {
     counter.add(journeySegmentAssignments.length, {
+      workspace_id: workspaceId,
       type: "journey",
     });
   }
   if (integrationAssignments.length > 0) {
     counter.add(integrationAssignments.length, {
+      workspace_id: workspaceId,
       type: "integration",
     });
   }
