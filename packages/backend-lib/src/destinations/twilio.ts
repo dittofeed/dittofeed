@@ -1,5 +1,7 @@
 import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
+import qs from "querystring";
+import { omit, omitBy } from "remeda";
 import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
 
@@ -10,9 +12,11 @@ import {
   BatchTrackData,
   EventType,
   InternalEventType,
+  MessageTags,
   SmsProviderType,
   TwilioInboundSchema,
   TwilioMessageStatus,
+  TwilioWebhookRequest,
 } from "../types";
 
 export const TwilioRestException = RestException;
@@ -36,6 +40,7 @@ export async function sendSms({
   userId,
   workspaceId,
   disableCallback = false,
+  tags,
   ...sender
 }: {
   body: string;
@@ -46,12 +51,19 @@ export async function sendSms({
   userId: string;
   workspaceId: string;
   disableCallback?: boolean;
+  tags?: MessageTags;
 } & Sender): Promise<Result<{ sid: string }, RestException | Error>> {
   try {
     let statusCallback: string | undefined;
     if (!disableCallback) {
       const baseCallbackUrl = `${config().dashboardUrl}/api/public/webhooks/twilio`;
-      statusCallback = `${baseCallbackUrl}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId}&workspaceId=${workspaceId}`;
+      const queryParams = qs.stringify({
+        ...omitBy(tags, (_v, key) => key === "channel"),
+        subscriptionGroupId,
+        userId,
+        workspaceId,
+      });
+      statusCallback = `${baseCallbackUrl}?${queryParams}`;
     }
 
     const createPayload = {
@@ -86,12 +98,10 @@ export async function submitTwilioEvents({
   workspaceId,
   TwilioEvent,
   userId,
+  ...tags
 }: {
-  workspaceId: string;
   TwilioEvent: TwilioInboundSchema;
-  subscriptionGroupId: string | undefined;
-  userId: string;
-}): Promise<ResultAsync<void, Error>> {
+} & TwilioWebhookRequest): Promise<ResultAsync<void, Error>> {
   let eventName: InternalEventType;
   const body = TwilioEvent.Body;
 
@@ -104,6 +114,14 @@ export async function submitTwilioEvents({
       eventName = InternalEventType.SmsDelivered;
       break;
     default:
+      logger().error(
+        {
+          workspaceId,
+          userId,
+          TwilioEvent,
+        },
+        "Unhandled Twilio event type",
+      );
       return err(
         new Error(`Unhandled Twilio event type: ${TwilioEvent.SmsStatus}`),
       );
@@ -123,6 +141,7 @@ export async function submitTwilioEvents({
       workspaceId,
       userId,
       body,
+      ...tags,
     },
   } as BatchTrackData;
 

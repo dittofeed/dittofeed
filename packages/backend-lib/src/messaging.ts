@@ -1642,6 +1642,7 @@ export async function sendSms(
         to,
         workspaceId,
         disableCallback,
+        tags: messageTags,
         ...sender,
       });
 
