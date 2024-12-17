@@ -233,6 +233,7 @@ interface DeliveriesTableExtendedProps {
   disableJourneyLinks?: boolean;
   disableTemplateLinks?: boolean;
   disableUserId?: boolean;
+  disableToLinks?: boolean;
   showSnippet?: boolean;
 }
 
@@ -242,6 +243,7 @@ export function DeliveriesTable({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
   disableJourneyLinks = false,
   disableTemplateLinks = false,
+  disableToLinks = false,
   disableUserId = false,
   showSnippet = false,
 }: Pick<SearchDeliveriesRequest, "journeyId" | "userId"> &
@@ -591,6 +593,9 @@ export function DeliveriesTable({
               headerName: "To",
               renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
                 const href = `/users/${row.userId}`;
+                if (disableToLinks) {
+                  return <span>{row.to}</span>;
+                }
                 return <LinkCell href={href} title={row.to} />;
               },
             },
