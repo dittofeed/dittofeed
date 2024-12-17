@@ -2,6 +2,7 @@ import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
+import backendConfig from "backend-lib/src/config";
 import {
   generateDigest,
   verifyTimestampedSignature,
@@ -541,14 +542,10 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      // TODO refactor this into the backend config, using just the host not the path
-      const url =
-        process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://app.dittofeed.com";
-
       const verified = validateRequest(
         twilioSecret.authToken,
         request.headers["x-twilio-signature"],
-        `${url}${request.url}`,
+        `${backendConfig().dashboardUrl}${request.url}`,
         request.body,
       );
 
