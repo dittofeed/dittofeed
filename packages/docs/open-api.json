@@ -3786,6 +3786,9 @@
                                                                 "providerOverride": {
                                                                   "anyOf": [
                                                                     {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Twilio"
@@ -3796,6 +3799,56 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                "senderOverride": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "MessageSid"
+                                                                              ]
+                                                                            },
+                                                                            "messagingServiceSid": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "messagingServiceSid"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "PhoneNumber"
+                                                                              ]
+                                                                            },
+                                                                            "phone": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "phone"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "null"
                                                                     }
                                                                   ]
                                                                 }
@@ -5130,6 +5183,9 @@
                                                                 "providerOverride": {
                                                                   "anyOf": [
                                                                     {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Twilio"
@@ -5140,6 +5196,56 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                "senderOverride": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "MessageSid"
+                                                                              ]
+                                                                            },
+                                                                            "messagingServiceSid": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "messagingServiceSid"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "PhoneNumber"
+                                                                              ]
+                                                                            },
+                                                                            "phone": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "phone"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "null"
                                                                     }
                                                                   ]
                                                                 }
@@ -7204,6 +7310,9 @@
                                                         "providerOverride": {
                                                           "anyOf": [
                                                             {
+                                                              "type": "null"
+                                                            },
+                                                            {
                                                               "type": "string",
                                                               "enum": [
                                                                 "Twilio"
@@ -7214,6 +7323,56 @@
                                                               "enum": [
                                                                 "Test"
                                                               ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        "senderOverride": {
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "null"
+                                                            },
+                                                            {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MessageSid"
+                                                                      ]
+                                                                    },
+                                                                    "messagingServiceSid": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type",
+                                                                    "messagingServiceSid"
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "PhoneNumber"
+                                                                      ]
+                                                                    },
+                                                                    "phone": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type",
+                                                                    "phone"
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "null"
                                                             }
                                                           ]
                                                         }
@@ -7896,6 +8055,9 @@
                                                           "providerOverride": {
                                                             "anyOf": [
                                                               {
+                                                                "type": "null"
+                                                              },
+                                                              {
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Twilio"
@@ -7906,6 +8068,56 @@
                                                                 "enum": [
                                                                   "Test"
                                                                 ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          "senderOverride": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "null"
+                                                              },
+                                                              {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "MessageSid"
+                                                                        ]
+                                                                      },
+                                                                      "messagingServiceSid": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "messagingServiceSid"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "PhoneNumber"
+                                                                        ]
+                                                                      },
+                                                                      "phone": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "phone"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "null"
                                                               }
                                                             ]
                                                           }
@@ -9240,6 +9452,9 @@
                                                           "providerOverride": {
                                                             "anyOf": [
                                                               {
+                                                                "type": "null"
+                                                              },
+                                                              {
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Twilio"
@@ -9250,6 +9465,56 @@
                                                                 "enum": [
                                                                   "Test"
                                                                 ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          "senderOverride": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "null"
+                                                              },
+                                                              {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "MessageSid"
+                                                                        ]
+                                                                      },
+                                                                      "messagingServiceSid": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "messagingServiceSid"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "PhoneNumber"
+                                                                        ]
+                                                                      },
+                                                                      "phone": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "phone"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "null"
                                                               }
                                                             ]
                                                           }
@@ -36021,6 +36286,9 @@
                                                                 "providerOverride": {
                                                                   "anyOf": [
                                                                     {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Twilio"
@@ -36031,6 +36299,56 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                "senderOverride": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "MessageSid"
+                                                                              ]
+                                                                            },
+                                                                            "messagingServiceSid": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "messagingServiceSid"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "PhoneNumber"
+                                                                              ]
+                                                                            },
+                                                                            "phone": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "phone"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "null"
                                                                     }
                                                                   ]
                                                                 }
@@ -37365,6 +37683,9 @@
                                                                 "providerOverride": {
                                                                   "anyOf": [
                                                                     {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
                                                                       "type": "string",
                                                                       "enum": [
                                                                         "Twilio"
@@ -37375,6 +37696,56 @@
                                                                       "enum": [
                                                                         "Test"
                                                                       ]
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                "senderOverride": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "null"
+                                                                    },
+                                                                    {
+                                                                      "anyOf": [
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "MessageSid"
+                                                                              ]
+                                                                            },
+                                                                            "messagingServiceSid": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "messagingServiceSid"
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "type": "object",
+                                                                          "properties": {
+                                                                            "type": {
+                                                                              "type": "string",
+                                                                              "enum": [
+                                                                                "PhoneNumber"
+                                                                              ]
+                                                                            },
+                                                                            "phone": {
+                                                                              "type": "string"
+                                                                            }
+                                                                          },
+                                                                          "required": [
+                                                                            "type",
+                                                                            "phone"
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "null"
                                                                     }
                                                                   ]
                                                                 }
@@ -39439,6 +39810,9 @@
                                                         "providerOverride": {
                                                           "anyOf": [
                                                             {
+                                                              "type": "null"
+                                                            },
+                                                            {
                                                               "type": "string",
                                                               "enum": [
                                                                 "Twilio"
@@ -39449,6 +39823,56 @@
                                                               "enum": [
                                                                 "Test"
                                                               ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        "senderOverride": {
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "null"
+                                                            },
+                                                            {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "MessageSid"
+                                                                      ]
+                                                                    },
+                                                                    "messagingServiceSid": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type",
+                                                                    "messagingServiceSid"
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "type": {
+                                                                      "type": "string",
+                                                                      "enum": [
+                                                                        "PhoneNumber"
+                                                                      ]
+                                                                    },
+                                                                    "phone": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  },
+                                                                  "required": [
+                                                                    "type",
+                                                                    "phone"
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "null"
                                                             }
                                                           ]
                                                         }
@@ -40131,6 +40555,9 @@
                                                           "providerOverride": {
                                                             "anyOf": [
                                                               {
+                                                                "type": "null"
+                                                              },
+                                                              {
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Twilio"
@@ -40141,6 +40568,56 @@
                                                                 "enum": [
                                                                   "Test"
                                                                 ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          "senderOverride": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "null"
+                                                              },
+                                                              {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "MessageSid"
+                                                                        ]
+                                                                      },
+                                                                      "messagingServiceSid": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "messagingServiceSid"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "PhoneNumber"
+                                                                        ]
+                                                                      },
+                                                                      "phone": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "phone"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "null"
                                                               }
                                                             ]
                                                           }
@@ -41475,6 +41952,9 @@
                                                           "providerOverride": {
                                                             "anyOf": [
                                                               {
+                                                                "type": "null"
+                                                              },
+                                                              {
                                                                 "type": "string",
                                                                 "enum": [
                                                                   "Twilio"
@@ -41485,6 +41965,56 @@
                                                                 "enum": [
                                                                   "Test"
                                                                 ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          "senderOverride": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "null"
+                                                              },
+                                                              {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "MessageSid"
+                                                                        ]
+                                                                      },
+                                                                      "messagingServiceSid": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "messagingServiceSid"
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "type": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                          "PhoneNumber"
+                                                                        ]
+                                                                      },
+                                                                      "phone": {
+                                                                        "type": "string"
+                                                                      }
+                                                                    },
+                                                                    "required": [
+                                                                      "type",
+                                                                      "phone"
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "null"
                                                               }
                                                             ]
                                                           }
