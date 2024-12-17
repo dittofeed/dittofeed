@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop */
 
+import { Counter } from "@opentelemetry/api";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
@@ -24,7 +25,7 @@ import {
   userJourneyWorkflow,
 } from "../journeys/userWorkflow";
 import logger from "../logger";
-import { withSpan, withSpanSync } from "../openTelemetry";
+import { getMeter, withSpan, withSpanSync } from "../openTelemetry";
 import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
@@ -3137,6 +3138,21 @@ export async function computeAssignments({
   });
 }
 
+let PROCESS_COUNTER: Counter | null = null;
+
+function processCounter() {
+  if (PROCESS_COUNTER !== null) {
+    return PROCESS_COUNTER;
+  }
+  const meter = getMeter();
+  const counter = meter.createCounter("process_assignments_counter", {
+    description: "Counter for the number of assignments processed",
+    unit: "1",
+  });
+  PROCESS_COUNTER = counter;
+  return counter;
+}
+
 async function processRows({
   rows,
   workspaceId,
@@ -3225,6 +3241,18 @@ async function processRows({
     }),
   ]);
 
+  const counter = processCounter();
+  if (pgUserPropertyAssignments.length > 0) {
+    counter.add(pgUserPropertyAssignments.length, {
+      type: "pg_user_property",
+    });
+  }
+  if (pgSegmentAssignments.length > 0) {
+    counter.add(pgSegmentAssignments.length, {
+      type: "pg_segment",
+    });
+  }
+
   await Promise.all([
     ...journeySegmentAssignments.flatMap((assignment) => {
       const journey = subscribedJourneys.find(
@@ -3288,6 +3316,17 @@ async function processRows({
       }
     }),
   ]);
+
+  if (journeySegmentAssignments.length > 0) {
+    counter.add(journeySegmentAssignments.length, {
+      type: "journey",
+    });
+  }
+  if (integrationAssignments.length > 0) {
+    counter.add(integrationAssignments.length, {
+      type: "integration",
+    });
+  }
 
   const processedAssignments: ComputedPropertyAssignment[] =
     assignments.flatMap((assignment) => ({
@@ -3501,6 +3540,7 @@ class AssignmentProcessor {
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
+        const currentCursor = cursor;
         const results = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
@@ -3530,7 +3570,7 @@ class AssignmentProcessor {
               const query = buildProcessAssignmentsQuery({
                 ...processAssignmentsParams,
                 limit: this.pageSize,
-                cursor,
+                cursor: currentCursor,
                 qb,
               });
 
