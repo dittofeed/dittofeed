@@ -44,6 +44,7 @@ import {
   ResendSecret,
   SendgridSecret,
   TwilioSecret,
+  TwilioWebhookRequest,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
 import { Webhook } from "svix";
@@ -409,19 +410,22 @@ export default async function webhookController(fastify: FastifyInstance) {
         eventsResult.value,
         Type.Array(MailChimpEvent),
       ).unwrapOr([]);
-      logger().debug({ events }, "Parsed Mailchimp webhook events");
-      logger().debug(
-        { rawEvents: eventsResult.value },
-        "Raw Mailchimp webhook events",
-      );
 
       if (events.length === 0) {
         return reply.status(200).send();
       }
 
-      const workspaceId = events[0]?.msg.metadata.workspaceId as string;
-      if (!workspaceId) {
-        logger().error("Missing workspaceId in Mailchimp webhook metadata");
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const workspaceId = events[0]?.msg.metadata.workspaceId;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        logger().error(
+          {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            workspaceId,
+          },
+          "Missing workspaceId in Mailchimp webhook metadata",
+        );
         return reply.status(400).send({
           error: "Missing workspaceId in metadata.",
         });
@@ -503,15 +507,12 @@ export default async function webhookController(fastify: FastifyInstance) {
           "x-twilio-signature": Type.String(),
         }),
         body: TwilioEventSms,
-        querystring: Type.Object({
-          workspaceId: Type.String(),
-          userId: Type.String(),
-          subscriptionGroupId: Type.Optional(Type.String()),
-        }),
+        querystring: TwilioWebhookRequest,
       },
     },
     async (request, reply) => {
-      const { workspaceId, userId, subscriptionGroupId } = request.query;
+      const { workspaceId, userId, subscriptionGroupId, ...tags } =
+        request.query;
 
       const twilioSecretModel = await prisma().secret.findUnique({
         where: {
@@ -562,6 +563,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       await submitTwilioEvents({
+        ...tags,
         workspaceId,
         userId,
         TwilioEvent: request.body,

@@ -4437,3 +4437,16 @@ export const GetDeliveryBodyRequest = Type.Union([
 ]);
 
 export type GetDeliveryBodyRequest = Static<typeof GetDeliveryBodyRequest>;
+
+export const TwilioWebhookRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  subscriptionGroupId: Type.Optional(Type.String()),
+  messageId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  templateId: Type.Optional(Type.String()),
+  nodeId: Type.Optional(Type.String()),
+  runId: Type.Optional(Type.String()),
+});
+
+export type TwilioWebhookRequest = Static<typeof TwilioWebhookRequest>;
