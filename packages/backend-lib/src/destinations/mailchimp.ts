@@ -8,6 +8,7 @@ import { err, ok, Result, ResultAsync } from "neverthrow";
 
 import { submitBatch } from "../apps/batch";
 import { getMessageFromInternalMessageSent } from "../deliveries";
+import logger from "../logger";
 import {
   BatchItem,
   BatchTrackData,
@@ -31,6 +32,15 @@ export async function sendMail({
   const mailchimpClient = mailchimp(apiKey);
   const response = await mailchimpClient.messages.send({ message });
   if (response instanceof AxiosError) {
+    logger().error(
+      {
+        err: response,
+        message,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        workspaceId: message.metadata?.workspaceId,
+      },
+      "Error sending mailchimp email",
+    );
     return err(response);
   }
   const [firstResponse] = response;

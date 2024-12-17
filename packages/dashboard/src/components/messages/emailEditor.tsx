@@ -484,7 +484,6 @@ export default function EmailEditor({
           email={up.email}
           from={rendered.from}
           subject={rendered.subject}
-          replyTo={rendered.replyTo}
         />
       )}
       renderPreviewBody={({ rendered }) => (

@@ -735,8 +735,14 @@ export async function sendEmail({
   } = renderedValuesResult.value;
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
   const emailName = !baseName?.length ? undefined : baseName;
-  const cc = unsplitCc?.split(",");
-  const bcc = unsplitBcc?.split(",");
+  const cc = unsplitCc?.split(",").flatMap((email) => {
+    const trimmed = email.trim();
+    return trimmed.length ? trimmed : [];
+  });
+  const bcc = unsplitBcc?.split(",").flatMap((email) => {
+    const trimmed = email.trim();
+    return trimmed.length ? trimmed : [];
+  });
   const to = identifier;
 
   let customHeaders: Record<string, string> | undefined;

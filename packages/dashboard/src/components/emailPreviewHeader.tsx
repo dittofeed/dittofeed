@@ -8,15 +8,9 @@ interface EmailPreviewHeaderProps {
   email: string | undefined;
   from: string | undefined | null;
   subject: string | undefined | null;
-  replyTo: string | undefined | null;
 }
 
-function EmailPreviewHeader({
-  email,
-  from,
-  subject,
-  replyTo,
-}: EmailPreviewHeaderProps) {
+function EmailPreviewHeader({ email, from, subject }: EmailPreviewHeaderProps) {
   const theme = useTheme();
   const disabledStyles = getDisabledInputStyles(theme);
 
@@ -63,19 +57,6 @@ function EmailPreviewHeader({
         }}
         sx={disabledStyles}
         value={escapeHTML(subject ?? "")}
-      />
-      <TextField
-        label="Reply-To"
-        variant="filled"
-        disabled
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopLeftRadius: 0,
-          },
-        }}
-        sx={disabledStyles}
-        value={escapeHTML(replyTo ?? "")}
       />
     </>
   );
