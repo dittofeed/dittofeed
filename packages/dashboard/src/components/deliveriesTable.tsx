@@ -524,12 +524,7 @@ export function DeliveriesTable({
 
   const renderEmailPreviewHeader = (po: PreviewObjectInterface) => {
     return (
-      <EmailPreviewHeader
-        email={po.to}
-        from={po.from}
-        subject={po.subject}
-        replyTo={po.replyTo}
-      />
+      <EmailPreviewHeader email={po.to} from={po.from} subject={po.subject} />
     );
   };
 
