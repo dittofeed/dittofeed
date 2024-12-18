@@ -3171,7 +3171,7 @@ function processCounter() {
   return counter;
 }
 
-async function processRows({
+async function processRowsInner({
   rows,
   workspaceId,
   subscribedJourneys,
@@ -3362,6 +3362,13 @@ async function processRows({
   });
   return cursor;
 }
+
+const processRows: typeof processRowsInner = function processRows(args) {
+  return withSpan({ name: "process-rows" }, async (span) => {
+    span.setAttribute("workspaceId", args.workspaceId);
+    return processRowsInner(args);
+  });
+};
 
 interface BaseProcessAssignmentsQueryArgs {
   workspaceId: string;
