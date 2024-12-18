@@ -1357,6 +1357,7 @@ export async function sendEmail({
         html: body,
         text: body,
         from_name: emailName,
+        preserve_recipients: true,
         subject,
         to: mailChimpTo,
         attachments: attachments?.map(({ name, data, mimeType }) => ({
