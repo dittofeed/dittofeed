@@ -547,6 +547,7 @@ export const PerformedUserPropertyDefinition = Type.Object(
     type: Type.Literal(UserPropertyDefinitionType.Performed),
     event: Type.String(),
     path: Type.String(),
+    skipReCompute: Type.Optional(Type.Boolean()),
     properties: Type.Optional(
       Type.Array(
         Type.Object({

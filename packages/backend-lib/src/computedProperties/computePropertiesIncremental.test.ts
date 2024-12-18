@@ -4563,6 +4563,51 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "with a performed user property with skipReCompute",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "register",
+            path: "status",
+            skipReCompute: true,
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "register",
+              properties: {
+                status: "lead",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "skipReCompute prevents user property from being computed from events",
+          users: [
+            {
+              id: "user-1",
+              properties: {},
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "with a performed user property with a prefix match",
       userProperties: [
         {

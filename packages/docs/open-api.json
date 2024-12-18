@@ -19906,6 +19906,9 @@
                                             "path": {
                                               "type": "string"
                                             },
+                                            "skipReCompute": {
+                                              "type": "boolean"
+                                            },
                                             "properties": {
                                               "type": "array",
                                               "items": {
@@ -20091,6 +20094,9 @@
                                   },
                                   "path": {
                                     "type": "string"
+                                  },
+                                  "skipReCompute": {
+                                    "type": "boolean"
                                   },
                                   "properties": {
                                     "type": "array",
@@ -20435,6 +20441,9 @@
                                           "path": {
                                             "type": "string"
                                           },
+                                          "skipReCompute": {
+                                            "type": "boolean"
+                                          },
                                           "properties": {
                                             "type": "array",
                                             "items": {
@@ -20620,6 +20629,9 @@
                                 },
                                 "path": {
                                   "type": "string"
+                                },
+                                "skipReCompute": {
+                                  "type": "boolean"
                                 },
                                 "properties": {
                                   "type": "array",
@@ -20976,6 +20988,9 @@
                                                 "path": {
                                                   "type": "string"
                                                 },
+                                                "skipReCompute": {
+                                                  "type": "boolean"
+                                                },
                                                 "properties": {
                                                   "type": "array",
                                                   "items": {
@@ -21161,6 +21176,9 @@
                                       },
                                       "path": {
                                         "type": "string"
+                                      },
+                                      "skipReCompute": {
+                                        "type": "boolean"
                                       },
                                       "properties": {
                                         "type": "array",
@@ -27173,6 +27191,9 @@
                                             "path": {
                                               "type": "string"
                                             },
+                                            "skipReCompute": {
+                                              "type": "boolean"
+                                            },
                                             "properties": {
                                               "type": "array",
                                               "items": {
@@ -27358,6 +27379,9 @@
                                   },
                                   "path": {
                                     "type": "string"
+                                  },
+                                  "skipReCompute": {
+                                    "type": "boolean"
                                   },
                                   "properties": {
                                     "type": "array",
@@ -27702,6 +27726,9 @@
                                           "path": {
                                             "type": "string"
                                           },
+                                          "skipReCompute": {
+                                            "type": "boolean"
+                                          },
                                           "properties": {
                                             "type": "array",
                                             "items": {
@@ -27887,6 +27914,9 @@
                                 },
                                 "path": {
                                   "type": "string"
+                                },
+                                "skipReCompute": {
+                                  "type": "boolean"
                                 },
                                 "properties": {
                                   "type": "array",
@@ -28243,6 +28273,9 @@
                                                 "path": {
                                                   "type": "string"
                                                 },
+                                                "skipReCompute": {
+                                                  "type": "boolean"
+                                                },
                                                 "properties": {
                                                   "type": "array",
                                                   "items": {
@@ -28428,6 +28461,9 @@
                                       },
                                       "path": {
                                         "type": "string"
+                                      },
+                                      "skipReCompute": {
+                                        "type": "boolean"
                                       },
                                       "properties": {
                                         "type": "array",
