@@ -22,6 +22,8 @@ services:
     image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.19.0}
     restart: always
     command: node --max-old-space-size=${LITE_MEM_LIMIT:-412} ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME:-Default}
+    logging:
+      driver: "local"
     deploy:
       resources:
         limits:
@@ -48,6 +50,8 @@ services:
     profiles: ["admin-cli"]
     command: tail -f /dev/null
     tty: true
+    logging:
+      driver: "local"
     depends_on:
       - postgres
       - temporal
@@ -62,6 +66,8 @@ services:
   temporal:
     container_name: temporal
     restart: always
+    logging:
+      driver: "local"
     depends_on:
       - postgres
     environment:
@@ -84,6 +90,8 @@ services:
     profiles: ["temporal-ui"]
     container_name: temporal-ui
     restart: always
+    logging:
+      driver: "local"
     depends_on:
       - temporal
     environment:
@@ -97,6 +105,8 @@ services:
   postgres:
     image: postgres:${POSTGRES_VERSION:-15}
     restart: always
+    logging:
+      driver: "local"
     environment:
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-password}
       - POSTGRES_USER=${DATABASE_USER:-postgres}
@@ -110,6 +120,8 @@ services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:23.8.8.20-alpine
     restart: always
+    logging:
+      driver: "local"
     deploy:
       resources:
         limits:
@@ -129,6 +141,8 @@ services:
   blob-storage:
     image: minio/minio
     profiles: ["blob-storage"]
+    logging:
+      driver: "local"
     ports:
       - "9000:9000"
       - "9001:9001"
