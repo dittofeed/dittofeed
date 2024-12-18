@@ -4564,7 +4564,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with a performed user property with skipReCompute",
-      only: true,
       userProperties: [
         {
           name: "performed",
@@ -4597,12 +4596,12 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description:
+            "skipReCompute prevents user property from being computed from events",
           users: [
             {
               id: "user-1",
-              properties: {
-                performed: null,
-              },
+              properties: {},
             },
           ],
         },

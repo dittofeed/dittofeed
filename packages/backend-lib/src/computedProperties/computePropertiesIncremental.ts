@@ -1936,6 +1936,9 @@ function leafUserPropertyToSubQuery({
       };
     }
     case UserPropertyDefinitionType.Performed: {
+      if (child.skipReCompute) {
+        return null;
+      }
       const stateId = userPropertyStateId(userProperty, child.id);
       if (child.path.length === 0 || !stateId) {
         return null;
@@ -2067,6 +2070,9 @@ function groupedUserPropertyToSubQuery({
       return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
+      if (node.skipReCompute) {
+        return [];
+      }
       const subQuery = leafUserPropertyToSubQuery({
         userProperty,
         child: node,
@@ -2124,6 +2130,9 @@ function userPropertyToSubQuery({
       return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
+      if (userProperty.definition.skipReCompute) {
+        return [];
+      }
       const subQuery = leafUserPropertyToSubQuery({
         userProperty,
         child: userProperty.definition,
@@ -2480,6 +2489,9 @@ function leafUserPropertyToAssignment({
       };
     }
     case UserPropertyDefinitionType.Performed: {
+      if (child.skipReCompute) {
+        return null;
+      }
       const stateId = userPropertyStateId(userProperty, child.id);
       if (!stateId) {
         return null;
@@ -2575,6 +2587,9 @@ function groupedUserPropertyToAssignment({
       });
     }
     case UserPropertyDefinitionType.Performed: {
+      if (node.skipReCompute) {
+        return null;
+      }
       return leafUserPropertyToAssignment({
         userProperty,
         child: node,
@@ -2666,6 +2681,9 @@ function userPropertyToAssignment({
       };
     }
     case UserPropertyDefinitionType.Performed: {
+      if (userProperty.definition.skipReCompute) {
+        return null;
+      }
       return leafUserPropertyToAssignment({
         userProperty,
         child: userProperty.definition,
