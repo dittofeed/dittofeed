@@ -133,6 +133,12 @@ export async function getDeliveryBody({
       rest.triggeringMessageId,
       "String",
     )}`;
+    if (typeof rest.templateId === "string") {
+      templateClause = `AND JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+        rest.templateId,
+        "String",
+      )}`;
+    }
   } else if (typeof rest.messageId === "string") {
     messageIdClause = `AND message_id = ${qb.addQueryValue(
       rest.messageId,

@@ -4415,6 +4415,7 @@ export type JourneyTemplateDeliveryBodyRequest = Static<
 export const TriggeringMessageDeliveryBodyRequest = Type.Object({
   ...BaseDeliveryBodyRequest,
   triggeringMessageId: Type.String(),
+  templateId: Type.Optional(Type.String()),
 });
 
 export type TriggeringMessageDeliveryBodyRequest = Static<
