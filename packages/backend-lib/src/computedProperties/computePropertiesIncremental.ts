@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
 
 import { Counter } from "@opentelemetry/api";
@@ -3022,7 +3023,7 @@ export async function computeAssignments({
           segment.definitionUpdatedAt >= (periodBound ?? 0) &&
           segment.definitionUpdatedAt > segment.createdAt
         ) {
-          // FIXME use delete operation based on assigned at
+          // FIXME add assigned_at check
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3045,7 +3046,7 @@ export async function computeAssignments({
 
         const queries: (string | string[])[] = [
           resolvedQueries,
-          assignmentQueries,
+          ...assignmentQueries,
         ];
 
         if (indexedConfig.length) {
@@ -3129,17 +3130,66 @@ export async function computeAssignments({
           now,
           periodBound: period?.maxTo.getTime(),
         });
-        if (!stateQuery) {
+        const queries: string[] = [];
+        if (stateQuery) {
+          queries.push(stateQuery);
+        }
+
+        if (
+          userProperty.definitionUpdatedAt &&
+          userProperty.definitionUpdatedAt <= now &&
+          userProperty.definitionUpdatedAt >= (period?.maxTo.getTime() ?? 0) &&
+          userProperty.definitionUpdatedAt > userProperty.createdAt
+        ) {
+          const nowSeconds = now / 1000;
+          const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+          const userPropertyIdParam = qb.addQueryValue(
+            userProperty.id,
+            "String",
+          );
+          logger().debug("loc1");
+          // FIXME add assigned_at check
+          const resetQuery = `
+          insert into computed_property_assignments_v2
+          select
+            workspace_id,
+            'user_property',
+            computed_property_id,
+            user_id,
+            False,
+            '',
+            max_event_time,
+            toDateTime64(${nowSeconds}, 3) as assigned_at
+          from computed_property_assignments_v2
+          where
+            workspace_id = ${workspaceIdParam}
+            and type = 'user_property'
+            and computed_property_id = ${userPropertyIdParam}
+        `;
+          queries.push(resetQuery);
+        } else {
+          logger().debug(
+            {
+              userProperty,
+              periodMaxTo: period?.maxTo.getTime(),
+              now,
+              definitionUpdatedAt: userProperty.definitionUpdatedAt,
+              createdAt: userProperty.createdAt,
+            },
+            "loc2",
+          );
+        }
+        if (!queries.length) {
           logger().debug(
             {
               userProperty,
             },
-            "skipping write assignment for user property. failed to build query",
+            "skipping write assignment for user property. no queries",
           );
           return;
         }
         userPropertyQueries.push({
-          queries: [stateQuery],
+          queries,
           qb,
         });
       });

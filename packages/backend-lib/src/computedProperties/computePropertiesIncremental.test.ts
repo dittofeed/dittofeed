@@ -601,6 +601,7 @@ async function upsertComputedProperties({
           name: up.name,
           definition: up.definition,
           definitionUpdatedAt: new Date(now),
+          createdAt: new Date(now),
         },
         update: {
           definition: up.definition,
@@ -621,6 +622,7 @@ async function upsertComputedProperties({
           name: s.name,
           definition: s.definition,
           definitionUpdatedAt: new Date(now),
+          createdAt: new Date(now),
         },
         update: {
           definition: s.definition,
@@ -5322,8 +5324,7 @@ describe("computeProperties", () => {
     {
       // FIXME
       description: "when a performed user property is updated with a new path",
-      skip: true,
-      // only: true,
+      only: true,
       userProperties: [
         {
           name: "updatedPath",
@@ -5372,12 +5373,11 @@ describe("computeProperties", () => {
           type: EventsStepType.UpdateComputedProperty,
           userProperties: [
             {
-              name: "skipReCompute",
+              name: "updatedPath",
               definition: {
                 type: UserPropertyDefinitionType.Performed,
                 event: "test",
                 path: "key2",
-                skipReCompute: true,
               } satisfies PerformedUserPropertyDefinition,
             },
           ],
@@ -6515,6 +6515,15 @@ describe("computeProperties", () => {
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
+
+          logger().debug(
+            {
+              now,
+              userProperties: computedProperties.userProperties,
+              segments: computedProperties.segments,
+            },
+            "updateComputedProperty step loc3",
+          );
           break;
         }
         default:
