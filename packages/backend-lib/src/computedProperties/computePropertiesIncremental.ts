@@ -3023,15 +3023,6 @@ export async function computeAssignments({
           segment.definitionUpdatedAt >= (periodBound ?? 0) &&
           segment.definitionUpdatedAt > segment.createdAt
         ) {
-          logger().debug(
-            {
-              periodMaxTo: period?.maxTo.getTime(),
-              now,
-              definitionUpdatedAt: segment.definitionUpdatedAt,
-              createdAt: segment.createdAt,
-            },
-            "loc1 reset",
-          );
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3051,16 +3042,6 @@ export async function computeAssignments({
         `;
 
           assignmentQueries.unshift(resetQuery);
-        } else {
-          logger().debug(
-            {
-              periodMaxTo: period?.maxTo.getTime(),
-              now,
-              definitionUpdatedAt: segment.definitionUpdatedAt,
-              createdAt: segment.createdAt,
-            },
-            "loc2 no reset",
-          );
         }
 
         const queries: (string | string[])[] = [
@@ -3175,17 +3156,6 @@ export async function computeAssignments({
             and computed_property_id = ${userPropertyIdParam}
         `;
           queries.push(resetQuery);
-        } else {
-          logger().debug(
-            {
-              userProperty,
-              periodMaxTo: period?.maxTo.getTime(),
-              now,
-              definitionUpdatedAt: userProperty.definitionUpdatedAt,
-              createdAt: userProperty.createdAt,
-            },
-            "loc2",
-          );
         }
 
         if (stateQuery) {

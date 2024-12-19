@@ -5660,6 +5660,10 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
           type: EventsStepType.ComputeProperties,
         },
         {
