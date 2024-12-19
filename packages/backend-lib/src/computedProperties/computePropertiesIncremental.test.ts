@@ -29,6 +29,7 @@ import {
   JourneyNodeType,
   JSONValue,
   ParsedPerformedManyValueItem,
+  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
@@ -5169,6 +5170,121 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 updatedPerformed: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving another event user satisfies new segment definition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed user property is updated with a new skipReCompute",
+      only: true,
+      userProperties: [
+        {
+          name: "skipReCompute",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "test",
+            path: "key1",
+            skipReCompute: true,
+          } satisfies PerformedUserPropertyDefinition,
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+              properties: {
+                key1: "value1",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                skipReCompute: {
+                  key1: "value1",
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          userProperties: [
+            {
+              name: "skipReCompute",
+              definition: {
+                type: UserPropertyDefinitionType.Performed,
+                event: "test",
+                path: "key1",
+                skipReCompute: true,
+              } satisfies PerformedUserPropertyDefinition,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user property is empty after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                skipReCompute: {
+                  key1: null,
+                },
               },
             },
           ],
