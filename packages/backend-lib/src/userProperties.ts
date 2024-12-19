@@ -437,6 +437,9 @@ export async function findAllUserPropertyAssignments({
       UserPropertyAssignment: {
         where: {
           userId,
+          value: {
+            not: "",
+          },
         },
       },
     },
@@ -577,7 +580,12 @@ export async function findAllUserPropertyAssignmentsById({
     where,
     include: {
       UserPropertyAssignment: {
-        where: { userId },
+        where: {
+          userId,
+          value: {
+            not: "",
+          },
+        },
       },
     },
   });

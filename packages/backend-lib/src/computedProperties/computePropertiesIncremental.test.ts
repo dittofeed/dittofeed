@@ -29,6 +29,7 @@ import {
   JourneyNodeType,
   JSONValue,
   ParsedPerformedManyValueItem,
+  PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
@@ -600,6 +601,7 @@ async function upsertComputedProperties({
           name: up.name,
           definition: up.definition,
           definitionUpdatedAt: new Date(now),
+          createdAt: new Date(now),
         },
         update: {
           definition: up.definition,
@@ -620,6 +622,7 @@ async function upsertComputedProperties({
           name: s.name,
           definition: s.definition,
           definitionUpdatedAt: new Date(now),
+          createdAt: new Date(now),
         },
         update: {
           definition: s.definition,
@@ -5207,6 +5210,198 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "when a performed user property is updated with a new skipReCompute",
+      userProperties: [
+        {
+          name: "skipReCompute",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "test",
+            path: "key1",
+          } satisfies PerformedUserPropertyDefinition,
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+              properties: {
+                key1: "value1",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                skipReCompute: "value1",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          userProperties: [
+            {
+              name: "skipReCompute",
+              definition: {
+                type: UserPropertyDefinitionType.Performed,
+                event: "test",
+                path: "key1",
+                skipReCompute: true,
+              } satisfies PerformedUserPropertyDefinition,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user property is empty after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              properties: {},
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "when a performed user property is updated with a new path",
+      userProperties: [
+        {
+          name: "updatedPath",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "test",
+            path: "key1",
+          } satisfies PerformedUserPropertyDefinition,
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+              properties: {
+                key1: "value1",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                updatedPath: "value1",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          userProperties: [
+            {
+              name: "updatedPath",
+              definition: {
+                type: UserPropertyDefinitionType.Performed,
+                event: "test",
+                path: "key2",
+              } satisfies PerformedUserPropertyDefinition,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user property is empty after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              properties: {},
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+              properties: {
+                key2: "value2",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving another event user property is updated with new path value",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                updatedPath: "value2",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "when a performed segment has a within condition",
       userProperties: [
         {
@@ -5463,6 +5658,10 @@ describe("computeProperties", () => {
               },
             },
           ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
         },
         {
           type: EventsStepType.ComputeProperties,
