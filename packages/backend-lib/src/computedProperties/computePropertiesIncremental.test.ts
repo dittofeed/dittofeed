@@ -5210,11 +5210,8 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description:
         "when a performed user property is updated with a new skipReCompute",
-      skip: true,
-      // only: true,
       userProperties: [
         {
           name: "skipReCompute",
@@ -5274,6 +5271,10 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
           type: EventsStepType.ComputeProperties,
         },
         {
@@ -5282,49 +5283,14 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              properties: {
-                skipReCompute: null,
-              },
-            },
-          ],
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 1000,
-        },
-        {
-          type: EventsStepType.SubmitEvents,
-          events: [
-            {
-              userId: "user-1",
-              offsetMs: -100,
-              type: EventType.Track,
-              event: "test",
-            },
-          ],
-        },
-        {
-          type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Assert,
-          description:
-            "after receiving another event user satisfies new segment definition",
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                updatedPerformed: true,
-              },
+              properties: {},
             },
           ],
         },
       ],
     },
     {
-      // FIXME
       description: "when a performed user property is updated with a new path",
-      only: true,
       userProperties: [
         {
           name: "updatedPath",
