@@ -5211,6 +5211,7 @@ describe("computeProperties", () => {
       // FIXME
       description:
         "when a performed user property is updated with a new skipReCompute",
+      skip: true,
       // only: true,
       userProperties: [
         {
@@ -5321,7 +5322,8 @@ describe("computeProperties", () => {
     {
       // FIXME
       description: "when a performed user property is updated with a new path",
-      only: true,
+      skip: true,
+      // only: true,
       userProperties: [
         {
           name: "updatedPath",

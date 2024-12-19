@@ -3022,6 +3022,7 @@ export async function computeAssignments({
           segment.definitionUpdatedAt >= (periodBound ?? 0) &&
           segment.definitionUpdatedAt > segment.createdAt
         ) {
+          // FIXME use delete operation based on assigned at
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3042,7 +3043,10 @@ export async function computeAssignments({
           assignmentQueries.unshift(resetQuery);
         }
 
-        const queries = [resolvedQueries, ...assignmentQueries];
+        const queries: (string | string[])[] = [
+          resolvedQueries,
+          assignmentQueries,
+        ];
 
         if (indexedConfig.length) {
           const indexQuery = `
