@@ -3032,7 +3032,6 @@ export async function computeAssignments({
             },
             "loc1 reset",
           );
-          // FIXME add assigned_at check
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3051,8 +3050,6 @@ export async function computeAssignments({
             and computed_property_id = ${segmentIdParam}
         `;
 
-          // and assigned_at < toDateTime64(${nowSeconds}, 3)
-          // and segment_value = True
           assignmentQueries.unshift(resetQuery);
         } else {
           logger().debug(
@@ -3147,9 +3144,6 @@ export async function computeAssignments({
             })
           : null;
         const queries: string[] = [];
-        if (stateQuery) {
-          queries.push(stateQuery);
-        }
 
         if (
           userProperty.definitionUpdatedAt &&
@@ -3163,7 +3157,6 @@ export async function computeAssignments({
             userProperty.id,
             "String",
           );
-          // FIXME add assigned_at check
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3194,6 +3187,11 @@ export async function computeAssignments({
             "loc2",
           );
         }
+
+        if (stateQuery) {
+          queries.push(stateQuery);
+        }
+
         if (!queries.length) {
           logger().debug(
             {
