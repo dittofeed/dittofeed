@@ -6490,15 +6490,6 @@ describe("computeProperties", () => {
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
-
-          logger().debug(
-            {
-              now,
-              userProperties: computedProperties.userProperties,
-              segments: computedProperties.segments,
-            },
-            "updateComputedProperty step loc3",
-          );
           break;
         }
         default:
