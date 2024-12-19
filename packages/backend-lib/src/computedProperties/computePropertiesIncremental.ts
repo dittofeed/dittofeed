@@ -3147,7 +3147,17 @@ export async function computeAssignments({
             userProperty.id,
             "String",
           );
-          logger().debug("loc1");
+          // FIXME getting here when shouldnt be
+          logger().debug(
+            {
+              userProperty,
+              periodMaxTo: period?.maxTo.getTime(),
+              now,
+              definitionUpdatedAt: userProperty.definitionUpdatedAt,
+              createdAt: userProperty.createdAt,
+            },
+            "loc1 reset",
+          );
           // FIXME add assigned_at check
           const resetQuery = `
           insert into computed_property_assignments_v2

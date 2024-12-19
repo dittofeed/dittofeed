@@ -5383,6 +5383,10 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
           type: EventsStepType.ComputeProperties,
         },
         {
@@ -5391,9 +5395,7 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              properties: {
-                updatedPath: null,
-              },
+              properties: {},
             },
           ],
         },
@@ -5409,6 +5411,9 @@ describe("computeProperties", () => {
               offsetMs: -100,
               type: EventType.Track,
               event: "test",
+              properties: {
+                key2: "value2",
+              },
             },
           ],
         },
@@ -5418,12 +5423,12 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "after receiving another event user satisfies new segment definition",
+            "after receiving another event user property is updated with new path value",
           users: [
             {
               id: "user-1",
-              segments: {
-                updatedPerformed: true,
+              properties: {
+                updatedPath: "value2",
               },
             },
           ],
