@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
 
 import { Counter } from "@opentelemetry/api";
