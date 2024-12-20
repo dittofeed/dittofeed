@@ -15,7 +15,7 @@ x-backend-app-env: &backend-app-env
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
 services:
   dashboard:
-    image: dittofeed/dittofeed-dashboard:${IMAGE_TAG:-v0.19.0}
+    image: dittofeed/dittofeed-dashboard:${IMAGE_TAG:-v0.20.0}
     ports:
       - "3000:3000"
     restart: always
@@ -30,7 +30,7 @@ services:
     networks:
       - dittofeed-network
   api:
-    image: dittofeed/dittofeed-api:${IMAGE_TAG:-v0.19.0}
+    image: dittofeed/dittofeed-api:${IMAGE_TAG:-v0.20.0}
     restart: always
     ports:
       - "3001:3001"
@@ -45,7 +45,7 @@ services:
     networks:
       - dittofeed-network
   worker:
-    image: dittofeed/dittofeed-worker:${IMAGE_TAG:-v0.19.0}
+    image: dittofeed/dittofeed-worker:${IMAGE_TAG:-v0.20.0}
     restart: always
     depends_on:
       - postgres
@@ -57,7 +57,7 @@ services:
     networks:
       - dittofeed-network
   admin-cli:
-    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.19.0}
+    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}
     entrypoint: []
     command: tail -f /dev/null
     tty: true
