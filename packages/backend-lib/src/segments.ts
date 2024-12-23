@@ -19,7 +19,6 @@ import {
   EnrichedSegment,
   InternalEventType,
   JsonResult,
-  JsonResultType,
   KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
