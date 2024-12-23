@@ -1,6 +1,7 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -19,6 +20,8 @@ import {
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
+  UpsertUserPropertyError,
+  UpsertUserPropertyErrorType,
   UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
@@ -644,16 +647,105 @@ export async function findAllUserPropertyAssignmentsById({
   return combinedAssignments;
 }
 
-export async function upsertUserProperty({
-  id,
-  name,
-  definition,
-  workspaceId,
-  exampleValue,
-}: UpsertUserPropertyResource) {
-  const userProperty = await prisma().userProperty.upsert({
-    where: {
-      id,
-    },
-  });
+export async function upsertUserProperty(
+  params: UpsertUserPropertyResource,
+): Promise<Result<UserPropertyResource, UpsertUserPropertyError>> {
+  let userProperty: UserProperty;
+  const {
+    id,
+    name,
+    definition,
+    workspaceId,
+    exampleValue,
+  }: UpsertUserPropertyResource = params;
+
+  const canCreate = workspaceId && name && definition;
+  const definitionUpdatedAt = definition ? new Date() : undefined;
+
+  if (protectedUserProperties.has(name)) {
+    return err({
+      type: UpsertUserPropertyErrorType.ProtectedUserProperty,
+      message: "User property name is protected",
+    });
+  }
+
+  if (canCreate) {
+    if (id) {
+      userProperty = await prisma().userProperty.upsert({
+        where: {
+          id,
+        },
+        create: {
+          id,
+          workspaceId,
+          name,
+          definition,
+          exampleValue,
+        },
+        update: {
+          name,
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+      });
+    } else {
+      userProperty = await prisma().userProperty.upsert({
+        where: {
+          workspaceId_name: {
+            workspaceId,
+            name,
+          },
+        },
+        create: {
+          id,
+          workspaceId,
+          name,
+          definition,
+          exampleValue,
+        },
+        update: {
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+      });
+    }
+  } else {
+    userProperty = await prisma().userProperty.update({
+      where: {
+        id,
+      },
+      data: {
+        workspaceId,
+        name,
+        definition,
+        exampleValue,
+        definitionUpdatedAt,
+      },
+    });
+  }
+
+  const userPropertyDefinitionResult = schemaValidate(
+    userProperty.definition,
+    UserPropertyDefinition,
+  );
+
+  if (userPropertyDefinitionResult.isErr()) {
+    logger().error(
+      { err: userPropertyDefinitionResult.error, userProperty },
+      "failed to parse user property definition",
+    );
+    throw new Error("failed to parse user property definition");
+  }
+  const resource: UserPropertyResource = {
+    id: userProperty.id,
+    name: userProperty.name,
+    workspaceId: userProperty.workspaceId,
+    definition: userPropertyDefinitionResult.value,
+    exampleValue: userProperty.exampleValue ?? undefined,
+    updatedAt: Number(userProperty.updatedAt),
+  };
+
+  return ok(resource);
 }
