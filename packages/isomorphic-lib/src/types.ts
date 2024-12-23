@@ -4452,3 +4452,33 @@ export const TwilioWebhookRequest = Type.Object({
 });
 
 export type TwilioWebhookRequest = Static<typeof TwilioWebhookRequest>;
+
+export enum UpsertUserPropertyErrorType {
+  UserPropertyAlreadyExists = "UserPropertyAlreadyExists",
+  ProtectedUserProperty = "ProtectedUserProperty",
+}
+
+export const UpsertUserPropertyAlreadyExistsError = Type.Object({
+  type: Type.Literal(UpsertUserPropertyErrorType.UserPropertyAlreadyExists),
+  message: Type.String(),
+});
+
+export type UpsertUserPropertyAlreadyExistsError = Static<
+  typeof UpsertUserPropertyAlreadyExistsError
+>;
+
+export const UpsertUserPropertyProtectedError = Type.Object({
+  type: Type.Literal(UpsertUserPropertyErrorType.ProtectedUserProperty),
+  message: Type.String(),
+});
+
+export type UpsertUserPropertyProtectedError = Static<
+  typeof UpsertUserPropertyProtectedError
+>;
+
+export const UpsertUserPropertyError = Type.Union([
+  UpsertUserPropertyAlreadyExistsError,
+  UpsertUserPropertyProtectedError,
+]);
+
+export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;

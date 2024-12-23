@@ -19,6 +19,7 @@ import {
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
+  UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -641,4 +642,18 @@ export async function findAllUserPropertyAssignmentsById({
 
   combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;
+}
+
+export async function upsertUserProperty({
+  id,
+  name,
+  definition,
+  workspaceId,
+  exampleValue,
+}: UpsertUserPropertyResource) {
+  const userProperty = await prisma().userProperty.upsert({
+    where: {
+      id,
+    },
+  });
 }
