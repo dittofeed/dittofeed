@@ -1,6 +1,7 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -9,6 +10,7 @@ import {
 } from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import logger from "./logger";
 import prisma from "./prisma";
@@ -19,6 +21,9 @@ import {
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
+  UpsertUserPropertyError,
+  UpsertUserPropertyErrorType,
+  UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -641,4 +646,127 @@ export async function findAllUserPropertyAssignmentsById({
 
   combinedAssignments.id = combinedAssignments.id ?? userId;
   return combinedAssignments;
+}
+
+export async function upsertUserProperty(
+  params: UpsertUserPropertyResource,
+): Promise<Result<UserPropertyResource, UpsertUserPropertyError>> {
+  let userProperty: UserProperty;
+  const {
+    id,
+    name,
+    definition,
+    workspaceId,
+    exampleValue,
+  }: UpsertUserPropertyResource = params;
+  if (id && !validateUuid(id)) {
+    return err({
+      type: UpsertUserPropertyErrorType.IdError,
+      message: "Invalid user property id, must be a valid v4 UUID",
+    });
+  }
+
+  const canCreate = workspaceId && name && definition;
+  const definitionUpdatedAt = definition ? new Date() : undefined;
+
+  if (protectedUserProperties.has(name)) {
+    return err({
+      type: UpsertUserPropertyErrorType.ProtectedUserProperty,
+      message: "User property name is protected",
+    });
+  }
+
+  try {
+    if (canCreate) {
+      if (id) {
+        userProperty = await prisma().userProperty.upsert({
+          where: {
+            id,
+          },
+          create: {
+            id,
+            workspaceId,
+            name,
+            definition,
+            exampleValue,
+          },
+          update: {
+            name,
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          },
+        });
+      } else {
+        userProperty = await prisma().userProperty.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name,
+            },
+          },
+          create: {
+            id,
+            workspaceId,
+            name,
+            definition,
+            exampleValue,
+          },
+          update: {
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          },
+        });
+      }
+    } else {
+      userProperty = await prisma().userProperty.update({
+        where: {
+          id,
+        },
+        data: {
+          workspaceId,
+          name,
+          definition,
+          exampleValue,
+          definitionUpdatedAt,
+        },
+      });
+    }
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      (e.code === "P2002" || e.code === "P2025")
+    ) {
+      return err({
+        type: UpsertUserPropertyErrorType.UserPropertyAlreadyExists,
+        message:
+          "Names must be unique in workspace. Id's must be globally unique.",
+      });
+    }
+    throw e;
+  }
+
+  const userPropertyDefinitionResult = schemaValidate(
+    userProperty.definition,
+    UserPropertyDefinition,
+  );
+
+  if (userPropertyDefinitionResult.isErr()) {
+    logger().error(
+      { err: userPropertyDefinitionResult.error, userProperty },
+      "failed to parse user property definition",
+    );
+    throw new Error("failed to parse user property definition");
+  }
+  const resource: UserPropertyResource = {
+    id: userProperty.id,
+    name: userProperty.name,
+    workspaceId: userProperty.workspaceId,
+    definition: userPropertyDefinitionResult.value,
+    exampleValue: userProperty.exampleValue ?? undefined,
+    updatedAt: Number(userProperty.updatedAt),
+  };
+
+  return ok(resource);
 }
