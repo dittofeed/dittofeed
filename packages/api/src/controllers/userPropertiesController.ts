@@ -1,13 +1,11 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
-import { UserProperty } from "backend-lib/src/types";
 import {
   findAllUserPropertyResources,
   upsertUserProperty,
 } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   DeleteUserPropertyRequest,
   EmptyResponse,
@@ -15,7 +13,6 @@ import {
   ReadAllUserPropertiesResponse,
   UpsertUserPropertyError,
   UpsertUserPropertyResource,
-  UserPropertyDefinition,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 
