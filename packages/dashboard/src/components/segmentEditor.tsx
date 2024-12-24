@@ -160,7 +160,6 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.KeyedPerformed]: keyedPerformedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
-  [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
   [SegmentNodeType.Email]: emailOption,
   [SegmentNodeType.LastPerformed]: lastPerformedOption,
   [SegmentNodeType.RandomBucket]: randomBucketOption,
