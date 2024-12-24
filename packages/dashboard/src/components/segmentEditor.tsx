@@ -94,12 +94,6 @@ const orGroupedOption = {
   label: "Any (OR)",
 };
 
-const subscriptionGroupGroupedOption = {
-  id: SegmentNodeType.SubscriptionGroup,
-  group: "User Data",
-  label: "Subscription Group",
-};
-
 const performedOption = {
   id: SegmentNodeType.Performed,
   group: "User Data",
@@ -149,7 +143,6 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   everyoneOption,
   randomBucketOption,
   keyedPerformedOption,
-  subscriptionGroupGroupedOption,
   manualOption,
   andGroupedOption,
   orGroupedOption,
