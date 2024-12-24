@@ -22,11 +22,11 @@ import {
   EmailProviderType,
   EventType,
   InternalEventType,
+  SavedUserPropertyResource,
   SubscriptionChange,
   SubscriptionGroupType,
   SubscriptionParams,
   UserPropertyDefinitionType,
-  UserSubscriptionAction,
 } from "./types";
 import {
   findAllUserPropertyAssignments,
@@ -76,7 +76,7 @@ describe("subscriptionManagementEndToEnd", () => {
         update: {},
       });
 
-      const emailUserProperty = unwrap(
+      const emailUserProperty: SavedUserPropertyResource = unwrap(
         await upsertUserProperty({
           workspaceId: workspace.id,
           name: "email",

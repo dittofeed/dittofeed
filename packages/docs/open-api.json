@@ -20802,9 +20802,22 @@
                       "type": "string"
                     },
                     "updatedAt": {
-                      "type": "number"
+                      "allOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
                     },
                     "lastRecomputed": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "definitionUpdatedAt": {
                       "type": "number"
                     }
                   },
@@ -20813,7 +20826,9 @@
                     "workspaceId",
                     "name",
                     "definition",
-                    "updatedAt"
+                    "updatedAt",
+                    "createdAt",
+                    "definitionUpdatedAt"
                   ]
                 }
               }
@@ -28152,9 +28167,22 @@
                       "type": "string"
                     },
                     "updatedAt": {
-                      "type": "number"
+                      "allOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
                     },
                     "lastRecomputed": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "definitionUpdatedAt": {
                       "type": "number"
                     }
                   },
@@ -28163,7 +28191,9 @@
                     "workspaceId",
                     "name",
                     "definition",
-                    "updatedAt"
+                    "updatedAt",
+                    "createdAt",
+                    "definitionUpdatedAt"
                   ]
                 }
               }
