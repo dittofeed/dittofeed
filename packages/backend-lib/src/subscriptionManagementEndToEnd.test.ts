@@ -3,9 +3,9 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import { computePropertiesIncremental } from "../dist/src/segments/computePropertiesWorkflow/activities/computeProperties";
 import { submitBatch } from "./apps/batch";
 import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
+import { computePropertiesIncremental } from "./computedProperties/computePropertiesWorkflow/activities";
 import { sendMessage, upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import prisma from "./prisma";
