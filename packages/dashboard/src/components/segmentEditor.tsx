@@ -94,6 +94,13 @@ const orGroupedOption = {
   label: "Any (OR)",
 };
 
+// deprecated
+const subscriptionGroupGroupedOption = {
+  id: SegmentNodeType.SubscriptionGroup,
+  group: "User Data",
+  label: "Subscription Group",
+};
+
 const performedOption = {
   id: SegmentNodeType.Performed,
   group: "User Data",
@@ -160,6 +167,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.KeyedPerformed]: keyedPerformedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
+  [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
   [SegmentNodeType.Email]: emailOption,
   [SegmentNodeType.LastPerformed]: lastPerformedOption,
   [SegmentNodeType.RandomBucket]: randomBucketOption,
