@@ -650,7 +650,7 @@ export async function findAllUserPropertyAssignmentsById({
 
 export async function upsertUserProperty(
   params: UpsertUserPropertyResource,
-): Promise<Result<UserPropertyResource, UpsertUserPropertyError>> {
+): Promise<Result<SavedUserPropertyResource, UpsertUserPropertyError>> {
   let userProperty: UserProperty;
   const {
     id,
@@ -759,13 +759,15 @@ export async function upsertUserProperty(
     );
     throw new Error("failed to parse user property definition");
   }
-  const resource: UserPropertyResource = {
+  const resource: SavedUserPropertyResource = {
     id: userProperty.id,
     name: userProperty.name,
     workspaceId: userProperty.workspaceId,
     definition: userPropertyDefinitionResult.value,
     exampleValue: userProperty.exampleValue ?? undefined,
     updatedAt: Number(userProperty.updatedAt),
+    createdAt: Number(userProperty.createdAt),
+    definitionUpdatedAt: Number(userProperty.definitionUpdatedAt),
   };
 
   return ok(resource);
