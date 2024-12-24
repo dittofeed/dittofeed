@@ -12,6 +12,7 @@ import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
   upsertSubscriptionGroup,
+  upsertSubscriptionSecret,
 } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -88,6 +89,9 @@ describe("subscriptionManagementEndToEnd", () => {
           channel: ChannelType.Email,
         }),
       );
+      await upsertSubscriptionSecret({
+        workspaceId: workspace.id,
+      });
       await submitBatch({
         workspaceId: workspace.id,
         data: {
@@ -123,10 +127,10 @@ describe("subscriptionManagementEndToEnd", () => {
         throw new Error("Subscription group with assignment not found");
       }
 
-      const subscriptionDetails = getSubscriptionGroupDetails(
+      const subscriptionGroupDetails = getSubscriptionGroupDetails(
         subscriptionGroupWithAssignment,
       );
-      expect(subscriptionDetails.action).toBe(null);
+      expect(subscriptionGroupDetails.action).toBe(null);
 
       const userPropertyAssignments = await findAllUserPropertyAssignments({
         userId,
@@ -138,13 +142,27 @@ describe("subscriptionManagementEndToEnd", () => {
         workspaceId: workspace.id,
         channel: ChannelType.Email,
         userId,
+        subscriptionGroupDetails: {
+          name: subscriptionGroup.name,
+          ...subscriptionGroupDetails,
+        },
         templateId,
         userPropertyAssignments,
         useDraft: false,
       });
-      expect(unwrap(sendMessageResult).type).toEqual(
-        InternalEventType.MessageSent,
-      );
+      const sent = unwrap(sendMessageResult);
+      if (sent.type !== InternalEventType.MessageSent) {
+        throw new Error("Message not sent");
+      }
+      if (sent.variant.type !== ChannelType.Email) {
+        throw new Error("Email not sent");
+      }
+      const unsubscribeUrl = sent.variant.body.match(
+        /<a[^>]*class="df-unsubscribe"[^>]*href="([^"]*)"[^>]*>/,
+      )?.[1];
+      if (!unsubscribeUrl) {
+        throw new Error("Unsubscribe URL not found in: " + sent.variant.body);
+      }
       // TODO change subscription, check that message skipped
     });
   });
