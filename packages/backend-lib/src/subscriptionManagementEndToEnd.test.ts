@@ -4,7 +4,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { computePropertiesIncremental } from "../dist/src/segments/computePropertiesWorkflow/activities/computeProperties";
 import { submitBatch } from "./apps/batch";
-import { sendMessage } from "./messaging";
+import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
+import { sendMessage, upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import prisma from "./prisma";
 import {
@@ -30,6 +31,7 @@ describe("subscriptionManagementEndToEnd", () => {
     let workspace: Workspace;
     let subscriptionGroup: SubscriptionGroup;
     let userId: string;
+    let templateId: string;
 
     beforeEach(async () => {
       userId = randomUUID();
@@ -42,6 +44,14 @@ describe("subscriptionManagementEndToEnd", () => {
       const emailProviders = await getOrCreateEmailProviders({
         workspaceId: workspace.id,
       });
+      const template = unwrap(
+        await upsertMessageTemplate({
+          workspaceId: workspace.id,
+          name: "test-template",
+          definition: WELCOME_TEMPLATE,
+        }),
+      );
+      templateId = template.id;
       const testEmailProvider = emailProviders.find(
         (provider) => provider.type === EmailProviderType.Test,
       );
@@ -109,6 +119,9 @@ describe("subscriptionManagementEndToEnd", () => {
           userId,
           subscriptionGroupId: subscriptionGroup.id,
         });
+      if (!subscriptionGroupWithAssignment) {
+        throw new Error("Subscription group with assignment not found");
+      }
 
       const subscriptionDetails = getSubscriptionGroupDetails(
         subscriptionGroupWithAssignment,
@@ -121,17 +134,18 @@ describe("subscriptionManagementEndToEnd", () => {
       });
       expect(userPropertyAssignments.email).toBe("max@example.com");
 
-      let sendMessageResult = await sendMessage({
+      const sendMessageResult = await sendMessage({
         workspaceId: workspace.id,
         channel: ChannelType.Email,
         userId,
-        templateId: "test-template",
+        templateId,
         userPropertyAssignments,
         useDraft: false,
       });
       expect(unwrap(sendMessageResult).type).toEqual(
         InternalEventType.MessageSent,
       );
+      // TODO change subscription, check that message skipped
     });
   });
 });
