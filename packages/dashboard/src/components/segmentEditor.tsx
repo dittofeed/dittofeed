@@ -94,6 +94,7 @@ const orGroupedOption = {
   label: "Any (OR)",
 };
 
+// deprecated
 const subscriptionGroupGroupedOption = {
   id: SegmentNodeType.SubscriptionGroup,
   group: "User Data",
@@ -149,7 +150,6 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   everyoneOption,
   randomBucketOption,
   keyedPerformedOption,
-  subscriptionGroupGroupedOption,
   manualOption,
   andGroupedOption,
   orGroupedOption,
