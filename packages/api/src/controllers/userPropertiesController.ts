@@ -11,9 +11,9 @@ import {
   EmptyResponse,
   ReadAllUserPropertiesRequest,
   ReadAllUserPropertiesResponse,
+  SavedUserPropertyResource,
   UpsertUserPropertyError,
   UpsertUserPropertyResource,
-  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -28,7 +28,7 @@ export default async function userPropertiesController(
         tags: ["User Properties"],
         body: UpsertUserPropertyResource,
         response: {
-          200: UserPropertyResource,
+          200: SavedUserPropertyResource,
           400: UpsertUserPropertyError,
         },
       },

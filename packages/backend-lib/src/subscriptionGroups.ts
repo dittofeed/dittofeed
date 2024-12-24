@@ -76,6 +76,7 @@ export function getSubscriptionGroupDetails(
   };
 }
 
+// TODO add workspace id here
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
   userId,
