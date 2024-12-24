@@ -59,14 +59,16 @@ export function getSubscriptionGroupDetails(
 ): SubscriptionGroupDetails {
   let action: UserSubscriptionAction;
   if (sg.Segment[0]?.SegmentAssignment[0] !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    action = sg.Segment[0].SegmentAssignment[0].inSegment
-      ? UserSubscriptionAction.Subscribe
-      : UserSubscriptionAction.Unsubscribe;
+    const segment = sg.Segment[0];
+    const assignment = segment?.SegmentAssignment[0];
+    action =
+      assignment?.inSegment === true
+        ? SubscriptionChange.Subscribe
+        : SubscriptionChange.Unsubscribe;
   } else {
     action = null;
   }
-  return {
+  const details = {
     type:
       sg.type === "OptIn"
         ? SubscriptionGroupType.OptIn
@@ -74,6 +76,8 @@ export function getSubscriptionGroupDetails(
     action,
     id: sg.id,
   };
+
+  return details;
 }
 
 // TODO add workspace id here

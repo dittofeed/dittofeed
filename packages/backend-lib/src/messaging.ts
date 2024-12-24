@@ -284,6 +284,17 @@ async function getSendMessageModels({
         subscriptionGroupType,
       },
     });
+    // eslint-disable-next-line no-else-return
+  } else {
+    logger().debug(
+      {
+        subscriptionGroupDetails,
+        inSubscriptionGroup:
+          subscriptionGroupDetails &&
+          inSubscriptionGroup(subscriptionGroupDetails),
+      },
+      "subscription group details",
+    );
   }
 
   const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([

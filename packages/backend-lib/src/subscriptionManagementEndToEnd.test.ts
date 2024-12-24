@@ -1,6 +1,7 @@
 import { SubscriptionGroup, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { computePropertiesIncremental } from "../dist/src/segments/computePropertiesWorkflow/activities/computeProperties";
 import { submitBatch } from "./apps/batch";
@@ -11,6 +12,8 @@ import prisma from "./prisma";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
+  lookupUserForSubscriptions,
+  updateUserSubscriptions,
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
 } from "./subscriptionGroups";
@@ -19,8 +22,11 @@ import {
   EmailProviderType,
   EventType,
   InternalEventType,
+  SubscriptionChange,
   SubscriptionGroupType,
+  SubscriptionParams,
   UserPropertyDefinitionType,
+  UserSubscriptionAction,
 } from "./types";
 import {
   findAllUserPropertyAssignments,
@@ -118,7 +124,7 @@ describe("subscriptionManagementEndToEnd", () => {
     });
 
     it("should remove the user from the subscription group", async () => {
-      const subscriptionGroupWithAssignment =
+      let subscriptionGroupWithAssignment =
         await getSubscriptionGroupWithAssignment({
           userId,
           subscriptionGroupId: subscriptionGroup.id,
@@ -127,7 +133,7 @@ describe("subscriptionManagementEndToEnd", () => {
         throw new Error("Subscription group with assignment not found");
       }
 
-      const subscriptionGroupDetails = getSubscriptionGroupDetails(
+      let subscriptionGroupDetails = getSubscriptionGroupDetails(
         subscriptionGroupWithAssignment,
       );
       expect(subscriptionGroupDetails.action).toBe(null);
@@ -138,7 +144,7 @@ describe("subscriptionManagementEndToEnd", () => {
       });
       expect(userPropertyAssignments.email).toBe("max@example.com");
 
-      const sendMessageResult = await sendMessage({
+      let sendMessageResult = await sendMessage({
         workspaceId: workspace.id,
         channel: ChannelType.Email,
         userId,
@@ -150,7 +156,7 @@ describe("subscriptionManagementEndToEnd", () => {
         userPropertyAssignments,
         useDraft: false,
       });
-      const sent = unwrap(sendMessageResult);
+      let sent = unwrap(sendMessageResult);
       if (sent.type !== InternalEventType.MessageSent) {
         throw new Error("Message not sent");
       }
@@ -163,7 +169,72 @@ describe("subscriptionManagementEndToEnd", () => {
       if (!unsubscribeUrl) {
         throw new Error("Unsubscribe URL not found in: " + sent.variant.body);
       }
-      // TODO change subscription, check that message skipped
+      const url = new URL(unsubscribeUrl);
+      const params = unwrap(
+        schemaValidateWithErr(
+          Object.fromEntries(url.searchParams),
+          SubscriptionParams,
+        ),
+      );
+      expect(params.sub).toEqual("0");
+      if (!params.s) {
+        throw new Error("Subscription ID not found");
+      }
+
+      const userLookupResult = unwrap(
+        await lookupUserForSubscriptions({
+          workspaceId: params.w,
+          identifier: params.i,
+          identifierKey: params.ik,
+          hash: params.h,
+        }),
+      );
+      expect(userLookupResult.userId).toEqual(userId);
+
+      await updateUserSubscriptions({
+        workspaceId: params.w,
+        userId: userLookupResult.userId,
+        changes: {
+          [params.s]: params.sub === "1",
+        },
+      });
+
+      // looking up subscription details again
+      subscriptionGroupWithAssignment =
+        await getSubscriptionGroupWithAssignment({
+          userId,
+          subscriptionGroupId: subscriptionGroup.id,
+        });
+      if (!subscriptionGroupWithAssignment) {
+        throw new Error("Subscription group with assignment not found");
+      }
+
+      subscriptionGroupDetails = getSubscriptionGroupDetails(
+        subscriptionGroupWithAssignment,
+      );
+      expect(subscriptionGroupDetails.action).toBe(
+        SubscriptionChange.Unsubscribe,
+      );
+
+      sendMessageResult = await sendMessage({
+        workspaceId: workspace.id,
+        channel: ChannelType.Email,
+        userId,
+        subscriptionGroupDetails: {
+          name: subscriptionGroup.name,
+          ...subscriptionGroupDetails,
+        },
+        templateId,
+        userPropertyAssignments,
+        useDraft: false,
+      });
+      if (sendMessageResult.isOk()) {
+        throw new Error("Message sent when it should be skipped");
+      }
+      expect(
+        sendMessageResult.error.type,
+        "After unsubscribing message should be skipped",
+      ).toEqual(InternalEventType.MessageSkipped);
     });
   });
 });
