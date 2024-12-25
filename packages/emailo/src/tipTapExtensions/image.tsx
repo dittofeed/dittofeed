@@ -36,7 +36,7 @@ function ImageForm({
   updateAttributes: (attrs: Partial<ImageOptions>) => void;
 }) {
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-2 bg-white border border-neutral-300 rounded-lg shadow-lg space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">URL</label>
         <input
