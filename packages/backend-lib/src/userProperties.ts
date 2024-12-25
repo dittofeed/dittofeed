@@ -12,6 +12,7 @@ import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
+import { clickhouseClient } from "./clickhouse";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -771,4 +772,30 @@ export async function upsertUserProperty(
   };
 
   return ok(resource);
+}
+
+/**
+ * Insert user property assignments into the computed_property_assignments table
+ * for testing. Should never be used in production.
+ *
+ * @param rawAssignments - An array of raw assignments to insert.
+ */
+export async function insertUserPropertyAssignments(
+  rawAssignments: UserPropertyBulkUpsertItem[],
+) {
+  const client = clickhouseClient();
+  const assignments = rawAssignments.map((assignment) => ({
+    workspace_id: assignment.workspaceId,
+    type: "user_property",
+    user_id: assignment.userId,
+    computed_property_id: assignment.userPropertyId,
+    user_property_value: assignment.value,
+    segment_value: false,
+  }));
+  await client.insert({
+    table: "computed_property_assignments_v2",
+    values: assignments,
+    format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
 }
