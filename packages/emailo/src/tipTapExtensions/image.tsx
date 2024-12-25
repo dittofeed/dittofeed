@@ -14,7 +14,7 @@ interface ImageOptions {
   width: number;
 }
 
-type ImageAttributes = ImageOptions & {
+export type ImageAttributes = ImageOptions & {
   defaultOpen: boolean;
 };
 
