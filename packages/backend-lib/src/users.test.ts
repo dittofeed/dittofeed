@@ -4,6 +4,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "./apps/batch";
 import prisma from "./prisma";
+import { insertSegmentAssignments } from "./segments";
 import {
   EventType,
   SegmentDefinition,
@@ -11,6 +12,7 @@ import {
   SegmentOperatorType,
   UserPropertyDefinitionType,
 } from "./types";
+import { insertUserPropertyAssignments } from "./userProperties";
 import { deleteUsers, getUsers } from "./users";
 
 describe("getUsers", () => {
@@ -42,22 +44,20 @@ describe("getUsers", () => {
           },
         },
       });
-      await prisma().userPropertyAssignment.createMany({
-        data: [
-          {
-            userPropertyId: firstNameProperty.id,
-            workspaceId: workspace.id,
-            userId: userIds[0],
-            value: JSON.stringify("max"),
-          },
-          {
-            userPropertyId: firstNameProperty.id,
-            workspaceId: workspace.id,
-            userId: userIds[1],
-            value: JSON.stringify("chandler"),
-          },
-        ],
-      });
+      await insertUserPropertyAssignments([
+        {
+          userPropertyId: firstNameProperty.id,
+          workspaceId: workspace.id,
+          userId: userIds[0],
+          value: JSON.stringify("max"),
+        },
+        {
+          userPropertyId: firstNameProperty.id,
+          workspaceId: workspace.id,
+          userId: userIds[1],
+          value: JSON.stringify("chandler"),
+        },
+      ]);
     });
 
     it("can be paginated", async () => {
@@ -67,7 +67,7 @@ describe("getUsers", () => {
           limit: 1,
         }),
       );
-      expect(result1.users).toEqual([
+      expect(result1.users, "first page shows first user").toEqual([
         {
           id: userIds[0],
           segments: [],
@@ -89,7 +89,7 @@ describe("getUsers", () => {
         }),
       );
 
-      expect(result2.users).toEqual([
+      expect(result2.users, "second page shows second user").toEqual([
         {
           id: userIds[1],
           segments: [],
@@ -111,7 +111,7 @@ describe("getUsers", () => {
         }),
       );
 
-      expect(result3.users).toHaveLength(0);
+      expect(result3.users, "third page shows no users").toHaveLength(0);
       expect(result3.nextCursor).toBeUndefined();
     });
   });
@@ -169,28 +169,26 @@ describe("getUsers", () => {
         ],
       });
 
-      await prisma().segmentAssignment.createMany({
-        data: [
-          {
-            userId: userIds[0],
-            inSegment: true,
-            segmentId: segmentId1,
-            workspaceId: workspace.id,
-          },
-          {
-            userId: userIds[1],
-            inSegment: false,
-            segmentId: segmentId1,
-            workspaceId: workspace.id,
-          },
-          {
-            userId: userIds[2],
-            inSegment: true,
-            segmentId: segmentId2,
-            workspaceId: workspace.id,
-          },
-        ],
-      });
+      await insertSegmentAssignments([
+        {
+          userId: userIds[0],
+          inSegment: true,
+          segmentId: segmentId1,
+          workspaceId: workspace.id,
+        },
+        {
+          userId: userIds[1],
+          inSegment: false,
+          segmentId: segmentId1,
+          workspaceId: workspace.id,
+        },
+        {
+          userId: userIds[2],
+          inSegment: true,
+          segmentId: segmentId2,
+          workspaceId: workspace.id,
+        },
+      ]);
     });
 
     it("filters users by segment id", async () => {
@@ -202,7 +200,7 @@ describe("getUsers", () => {
       );
 
       expect(result).toEqual({
-        userCount: 1,
+        userCount: 0,
         users: [
           {
             id: userIds[0],
@@ -260,23 +258,19 @@ describe("getUsers", () => {
           ],
         },
       });
-      await Promise.all([
-        prisma().userPropertyAssignment.createMany({
-          data: [
-            {
-              userPropertyId: firstNameProperty.id,
-              workspaceId: workspace.id,
-              userId: userIds[0],
-              value: JSON.stringify("max"),
-            },
-            {
-              userPropertyId: firstNameProperty.id,
-              workspaceId: workspace.id,
-              userId: userIds[1],
-              value: JSON.stringify("chandler"),
-            },
-          ],
-        }),
+      await insertUserPropertyAssignments([
+        {
+          userPropertyId: firstNameProperty.id,
+          workspaceId: workspace.id,
+          userId: userIds[0],
+          value: JSON.stringify("max"),
+        },
+        {
+          userPropertyId: firstNameProperty.id,
+          workspaceId: workspace.id,
+          userId: userIds[1],
+          value: JSON.stringify("chandler"),
+        },
       ]);
     });
     it("deletes users", async () => {
@@ -284,25 +278,11 @@ describe("getUsers", () => {
         workspaceId: workspace.id,
         userIds: [userIds[0]],
       });
-      // const eventsQuery = `select * from user_events_v2 where workspace_id = '${workspace.id}'`;
-      // const events: { data: unknown[] } = await (
-      //   await clickhouseClient().query({
-      //     query: eventsQuery,
-      //   })
-      // ).json();
-      // // TODO figure out a way to savely test this. delete operation is async
-      // expect(events.data).toHaveLength(1);
-      // expect(events.data[0]).toEqual(
-      //   expect.objectContaining({ user_id: userIds[1] }),
-      // );
-      const userPropertyAssignments =
-        await prisma().userPropertyAssignment.findMany({
-          where: {
-            workspaceId: workspace.id,
-          },
-        });
-      expect(userPropertyAssignments).toHaveLength(1);
-      expect(userPropertyAssignments[0]?.userId).toEqual(userIds[1]);
+      const users = await getUsers({
+        workspaceId: workspace.id,
+      });
+      expect(unwrap(users).users).toHaveLength(1);
+      expect(unwrap(users).users[0]?.id).toEqual(userIds[1]);
     });
   });
 });

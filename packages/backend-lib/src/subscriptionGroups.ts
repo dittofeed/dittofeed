@@ -1,4 +1,4 @@
-import { Segment, SegmentAssignment, SubscriptionGroup } from "@prisma/client";
+import { Segment, SubscriptionGroup } from "@prisma/client";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
@@ -13,6 +13,10 @@ import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
+import {
+  findAllSegmentAssignments,
+  findAllSegmentAssignmentsByIds,
+} from "./segments";
 import {
   EventType,
   GetUserSubscriptionsRequest,
@@ -31,11 +35,15 @@ import {
   UserSubscriptionsUpdate,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import { findUserIdsByUserPropertyValue } from "./userProperties";
 
-export type SubscriptionGroupWithAssignment = SubscriptionGroup & {
-  Segment: (Segment & {
-    SegmentAssignment: SegmentAssignment[];
-  })[];
+export type SubscriptionGroupWithAssignment = Pick<
+  SubscriptionGroup,
+  "name" | "id" | "workspaceId" | "channel" | "type"
+> & {
+  userId: string;
+  segmentId: string;
+  value: boolean | null;
 };
 
 export interface SubscriptionGroupDetails {
@@ -58,17 +66,14 @@ export function getSubscriptionGroupDetails(
   sg: SubscriptionGroupWithAssignment,
 ): SubscriptionGroupDetails {
   let action: UserSubscriptionAction;
-  if (sg.Segment[0]?.SegmentAssignment[0] !== undefined) {
-    const segment = sg.Segment[0];
-    const assignment = segment?.SegmentAssignment[0];
-    action =
-      assignment?.inSegment === true
-        ? SubscriptionChange.Subscribe
-        : SubscriptionChange.Unsubscribe;
+  if (sg.value !== null) {
+    action = sg.value
+      ? SubscriptionChange.Subscribe
+      : SubscriptionChange.Unsubscribe;
   } else {
     action = null;
   }
-  const details = {
+  return {
     type:
       sg.type === "OptIn"
         ? SubscriptionGroupType.OptIn
@@ -76,11 +81,8 @@ export function getSubscriptionGroupDetails(
     action,
     id: sg.id,
   };
-
-  return details;
 }
 
-// TODO add workspace id here
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
   userId,
@@ -96,18 +98,33 @@ export async function getSubscriptionGroupWithAssignment({
       id: subscriptionGroupId,
     },
     include: {
-      Segment: {
-        include: {
-          SegmentAssignment: {
-            where: {
-              userId,
-            },
-          },
-        },
-      },
+      Segment: true,
     },
   });
-  return sg;
+  if (!sg?.Segment[0]) {
+    logger().error(
+      {
+        workspaceId: sg?.workspaceId,
+        subscriptionGroupId,
+        userId,
+      },
+      "No segment found for subscription group",
+    );
+    return null;
+  }
+  const segmentId = sg.Segment[0].id;
+  const assignments = await findAllSegmentAssignmentsByIds({
+    workspaceId: sg.workspaceId,
+    segmentIds: [segmentId],
+    userId,
+  });
+  const value = assignments[0]?.inSegment ?? null;
+  return {
+    ...sg,
+    userId,
+    segmentId,
+    value,
+  };
 }
 
 // TODO enable a channel type to specified
@@ -338,20 +355,16 @@ export async function getUserSubscriptions({
       name: "asc",
     },
     include: {
-      Segment: {
-        where: {
-          workspaceId,
-        },
-        include: {
-          SegmentAssignment: {
-            where: {
-              userId,
-              workspaceId,
-            },
-          },
-        },
-      },
+      Segment: true,
     },
+  });
+  const segmentIds = subscriptionGroups.flatMap((sg) =>
+    sg.Segment.map((s) => s.id),
+  );
+  const assignments = await findAllSegmentAssignments({
+    workspaceId,
+    userId,
+    segmentIds,
   });
   const subscriptions: UserSubscriptionResource[] = [];
 
@@ -364,7 +377,7 @@ export async function getUserSubscriptions({
       );
       continue;
     }
-    const inSegment = segment.SegmentAssignment[0]?.inSegment === true;
+    const inSegment = assignments[segment.id] === true;
 
     const { id, name } = subscriptionGroup;
 
@@ -390,7 +403,7 @@ export async function lookupUserForSubscriptions({
   identifierKey,
   hash,
 }: UserSubscriptionLookup): Promise<Result<{ userId: string }, Error>> {
-  const [subscriptionSecret, userProperties] = await Promise.all([
+  const [subscriptionSecret, matchingUserIds] = await Promise.all([
     prisma().secret.findUnique({
       where: {
         workspaceId_name: {
@@ -399,26 +412,14 @@ export async function lookupUserForSubscriptions({
         },
       },
     }),
-    prisma().userProperty.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: identifierKey,
-        },
-      },
-      include: {
-        UserPropertyAssignment: {
-          where: {
-            workspaceId,
-            value: identifier,
-          },
-        },
-      },
+    findUserIdsByUserPropertyValue({
+      workspaceId,
+      userPropertyName: identifierKey,
+      value: identifier,
     }),
   ]);
 
-  const assignments = userProperties?.UserPropertyAssignment;
-  if (!assignments || assignments.length === 0) {
+  if (!matchingUserIds || matchingUserIds.length === 0) {
     logger().warn(
       {
         identifier,
@@ -436,16 +437,16 @@ export async function lookupUserForSubscriptions({
     throw new Error("Subscription secret not found");
   }
 
-  const userId = assignments.find(({ userId: assignmentUserId }) => {
+  const userId = matchingUserIds.find((uId) => {
     const generatedHash = generateSubscriptionHash({
       workspaceId,
-      userId: assignmentUserId,
+      userId: uId,
       identifierKey,
       identifier,
       subscriptionSecret: secretValue,
     });
     return hash === generatedHash;
-  })?.userId;
+  });
 
   if (!userId) {
     logger().warn(

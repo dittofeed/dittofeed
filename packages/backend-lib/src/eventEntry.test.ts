@@ -9,6 +9,7 @@ import {
   UserJourneyWorkflowVersion,
 } from "./journeys/userWorkflow";
 import prisma from "./prisma";
+import { insertSegmentAssignments } from "./segments";
 import {
   ChannelType,
   JourneyDefinition,
@@ -76,14 +77,14 @@ describe("eventEntry journeys", () => {
           } satisfies SegmentDefinition,
         },
       });
-      await prisma().segmentAssignment.create({
-        data: {
+      await insertSegmentAssignments([
+        {
           segmentId,
           userId,
           workspaceId: workspace.id,
           inSegment: true,
         },
-      });
+      ]);
       journeyDefinition = {
         entryNode: {
           type: JourneyNodeType.EventEntryNode,

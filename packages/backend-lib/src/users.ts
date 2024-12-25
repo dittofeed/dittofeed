@@ -1,36 +1,30 @@
-import { Sql } from "@prisma/client/runtime/library";
 import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { ok, Result } from "neverthrow";
 
-import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+} from "./clickhouse";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import prisma from "./prisma";
 import {
   CursorDirectionEnum,
+  DBResourceType,
   DeleteUsersRequest,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
-  GetUsersUserPropertyFilter,
-  Prisma,
   UserProperty,
   UserPropertyDefinition,
 } from "./types";
-
-const UsersQueryItem = Type.Object({
-  type: Type.Union([Type.Literal(0), Type.Literal(1)]),
-  userId: Type.String(),
-  segmentValue: Type.Boolean(),
-  userPropertyValue: Type.String(),
-  computedPropertyName: Type.String(),
-  computedPropertyId: Type.String(),
-});
-
-const UsersQueryResult = Type.Array(UsersQueryItem);
 
 enum CursorKey {
   UserIdKey = "u",
@@ -46,100 +40,6 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
-function getUserPropertyAssignmentConditions(
-  userPropertyFilter: GetUsersUserPropertyFilter,
-) {
-  const fullQuery: Sql[] = [];
-
-  for (const property of userPropertyFilter) {
-    fullQuery.push(
-      Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND "value" ILIKE ANY (ARRAY[${Prisma.join(property.values)}]))`,
-    );
-  }
-
-  // TODO this isn't right. Should be an AND but have to do a group by first
-  return Prisma.join(fullQuery, " OR ");
-}
-
-function buildUserIdQueries({
-  workspaceId,
-  direction,
-  segmentFilter,
-  userPropertyFilter,
-  userIds,
-  cursor,
-}: {
-  workspaceId: string;
-  segmentFilter?: string[];
-  cursor: Cursor | null;
-  direction: CursorDirectionEnum;
-  userIds?: string[];
-  userPropertyFilter?: GetUsersUserPropertyFilter;
-}): Sql {
-  let lastUserIdCondition: Sql;
-  if (cursor) {
-    if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" < ${cursor[CursorKey.UserIdKey]}`;
-    } else {
-      lastUserIdCondition = Prisma.sql`"userId" > ${cursor[CursorKey.UserIdKey]}`;
-    }
-  } else {
-    lastUserIdCondition = Prisma.sql`1=1`;
-  }
-
-  let userIdsCondition: Sql;
-  if (userIds && userIds.length > 0) {
-    userIdsCondition = Prisma.sql`"userId" IN (${Prisma.join(userIds)})`;
-  } else {
-    userIdsCondition = Prisma.sql`1=1`;
-  }
-
-  const segmentIdCondition = segmentFilter
-    ? Prisma.sql`("segmentId" IN (${Prisma.join(segmentFilter.map((segmentId) => Prisma.sql`${segmentId}::uuid`))}))`
-    : Prisma.sql`1=1`;
-
-  const userPropertyAssignmentCondition = userPropertyFilter
-    ? getUserPropertyAssignmentConditions(userPropertyFilter)
-    : Prisma.sql`1=1`;
-
-  const userPropertyAssignmentQuery = Prisma.sql`
-    SELECT "userId"
-    FROM "UserPropertyAssignment"
-    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND ${lastUserIdCondition}
-      AND "value" != ''
-      AND (${userPropertyAssignmentCondition})
-      AND ${userIdsCondition}
-  `;
-  const segmentAssignmentQuery = Prisma.sql`
-    SELECT "userId"
-    FROM "SegmentAssignment"
-    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND ${lastUserIdCondition}
-      AND "inSegment" = TRUE
-      AND ${segmentIdCondition}
-      AND ${userIdsCondition}
-  `;
-
-  const userIdQueries = [];
-
-  if (userPropertyFilter) {
-    userIdQueries.push(userPropertyAssignmentQuery);
-  }
-
-  if (segmentFilter) {
-    userIdQueries.push(segmentAssignmentQuery);
-  }
-
-  if (!userPropertyFilter && !segmentFilter) {
-    userIdQueries.push(segmentAssignmentQuery);
-    userIdQueries.push(userPropertyAssignmentQuery);
-    return Prisma.join(userIdQueries, " UNION ALL ");
-  }
-
-  return Prisma.join(userIdQueries, " INTERSECT ");
-}
-
 export async function getUsers({
   workspaceId,
   cursor: unparsedCursor,
@@ -149,6 +49,7 @@ export async function getUsers({
   direction = CursorDirectionEnum.After,
   limit = 10,
 }: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
+  // TODO implement alternate sorting
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
     try {
@@ -164,142 +65,234 @@ export async function getUsers({
     }
   }
 
-  const userIdQueries = buildUserIdQueries({
-    workspaceId,
-    userIds,
-    cursor,
-    userPropertyFilter,
-    segmentFilter,
-    direction,
-  });
+  const qb = new ClickHouseQueryBuilder();
+  const cursorClause = cursor
+    ? `and user_id ${
+        direction === CursorDirectionEnum.After ? ">" : "<"
+      } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+    : "";
 
-  const query = Prisma.sql`
-      WITH unique_user_ids AS (
-          SELECT DISTINCT "userId"
-          FROM (${userIdQueries}) AS all_user_ids
-          ORDER BY "userId"
-          LIMIT ${limit}
-      )
+  const userPropertyWhereClause = userPropertyFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        userPropertyFilter.map((property) => property.id),
+        "Array(String)",
+      )}`
+    : "";
+  const segmentWhereClause = segmentFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        segmentFilter,
+        "Array(String)",
+      )}`
+    : "";
 
+  const selectUserIdColumns = ["user_id"];
+
+  const havingSubClauses: string[] = [];
+  for (const property of userPropertyFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(
+      `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+    );
+  }
+  for (const segment of segmentFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(`${varName} = True`);
+  }
+  const havingClause =
+    havingSubClauses.length > 0
+      ? `HAVING ${havingSubClauses.join(" AND ")}`
+      : "";
+  const selectUserIdStr = selectUserIdColumns.join(", ");
+  const userIdsClause = userIds
+    ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+    : "";
+
+  const query = `
+    SELECT
+      assignments.user_id,
+      groupArrayIf(
+        (assignments.computed_property_id, assignments.last_user_property_value),
+        assignments.type = 'user_property'
+      ) AS user_properties,
+      groupArrayIf(
+        (assignments.computed_property_id, assignments.last_segment_value),
+        assignments.type = 'segment'
+      ) AS segments
+    FROM (
       SELECT
-        cr."userId",
-        cr."type",
-        cr."computedPropertyName",
-        cr."computedPropertyId",
-        cr."segmentValue",
-        cr."userPropertyValue"
-      FROM (
+          cp.user_id,
+          cp.computed_property_id,
+          cp.type,
+          argMax(user_property_value, assigned_at) AS last_user_property_value,
+          argMax(segment_value, assigned_at) AS last_segment_value
+      FROM computed_property_assignments_v2 cp
+      WHERE
+        cp.workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        AND cp.user_id IN (SELECT user_id FROM (
           SELECT
-              1 AS type,
-              "userId",
-              up.name AS "computedPropertyName",
-              up.id AS "computedPropertyId",
-              FALSE AS "segmentValue",
-              value AS "userPropertyValue"
-          FROM "UserPropertyAssignment" as upa
-          JOIN "UserProperty" AS up ON up.id = "userPropertyId"
+            ${selectUserIdStr}
+          FROM computed_property_assignments_v2
           WHERE
-              upa."workspaceId" = CAST(${workspaceId} AS UUID)
-              AND "userId" IN (SELECT "userId" FROM unique_user_ids)
-              AND "value" != ''
-              AND "value" != '""'
-              AND up."resourceType" != 'Internal'
-
-          UNION ALL
-
-          SELECT
-              0 AS type,
-              "userId",
-              s.name AS "computedPropertyName",
-              s.id AS "computedPropertyId",
-              "inSegment" AS "segmentValue",
-              '' AS "userPropertyValue"
-          FROM "SegmentAssignment" as sa
-          JOIN "Segment" AS s ON s.id = sa."segmentId"
-          WHERE
-              sa."workspaceId" = CAST(${workspaceId} AS UUID)
-              AND "userId" IN (SELECT "userId" FROM unique_user_ids)
-              AND s."resourceType" != 'Internal'
-              AND "inSegment" = TRUE
-      ) AS cr
-      ORDER BY "userId" ASC;
-    `;
-
-  const countQuery = Prisma.sql`
-    SELECT COUNT(DISTINCT "userId") as "userCount"
-    FROM (${userIdQueries}) AS all_user_ids
+            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+            ${cursorClause}
+            ${userPropertyWhereClause}
+            ${segmentWhereClause}
+            ${userIdsClause}
+          GROUP BY workspace_id, user_id
+          ${havingClause}
+          ORDER BY
+            user_id ASC
+          LIMIT ${limit}
+        ))
+      GROUP BY cp.user_id, cp.computed_property_id, cp.type
+    ) as assignments
+    GROUP BY assignments.user_id
+    ORDER BY
+      assignments.user_id ASC
   `;
 
-  const [results, userProperties, countResults] = await Promise.all([
-    prisma().$queryRaw(query),
+  const [results, userProperties, segments] = await Promise.all([
+    chQuery({
+      query,
+      query_params: qb.getQueries(),
+    }),
     prisma().userProperty.findMany({
       where: {
         workspaceId,
+        resourceType: DBResourceType.Declarative,
+      },
+      select: {
+        name: true,
+        id: true,
+        definition: true,
       },
     }),
-    prisma().$queryRaw(countQuery),
+    prisma().segment.findMany({
+      where: {
+        workspaceId,
+        resourceType: DBResourceType.Declarative,
+      },
+      select: {
+        name: true,
+        id: true,
+      },
+    }),
   ]);
-  const userPropertyMap = userProperties.reduce<Map<string, UserProperty>>(
-    (acc, property) => {
-      acc.set(property.id, property);
-      return acc;
-    },
-    new Map(),
-  );
-
-  const userMap = new Map<string, GetUsersResponseItem>();
-  const parsedResult = unwrap(schemaValidate(results, UsersQueryResult));
-
-  for (const result of parsedResult) {
-    const user: GetUsersResponseItem = userMap.get(result.userId) ?? {
-      id: result.userId,
-      segments: [],
-      properties: {},
-    };
-    if (result.type === 0) {
-      user.segments.push({
-        id: result.computedPropertyId,
-        name: result.computedPropertyName,
-      });
-    } else {
-      const userProperty = userPropertyMap.get(result.computedPropertyId);
-      if (!userProperty) {
-        continue;
-      }
-      const parsedUp = parseUserProperty(
-        userProperty.definition as UserPropertyDefinition,
-        result.userPropertyValue,
-      );
-      if (parsedUp.isErr()) {
-        logger().error(
-          {
-            err: parsedUp.error,
-            userPropertyId: userProperty.id,
-            userPropertyValue: result.userPropertyValue,
-          },
-          "failed to parse user property value",
-        );
-        continue;
-      }
-      const { value } = parsedUp;
-
-      user.properties[result.computedPropertyId] = {
-        name: result.computedPropertyName,
-        value,
-      };
+  const segmentNameById = new Map<string, string>();
+  for (const segment of segments) {
+    segmentNameById.set(segment.id, segment.name);
+  }
+  const userPropertyById = new Map<
+    string,
+    Pick<UserProperty, "id" | "name"> & {
+      definition: UserPropertyDefinition;
     }
-    userMap.set(result.userId, user);
+  >();
+  for (const property of userProperties) {
+    const definition = schemaValidateWithErr(
+      property.definition,
+      UserPropertyDefinition,
+    );
+    if (definition.isErr()) {
+      logger().error(
+        {
+          err: definition.error,
+          id: property.id,
+          workspaceId,
+        },
+        "failed to validate user property definition",
+      );
+      continue;
+    }
+    userPropertyById.set(property.id, {
+      id: property.id,
+      name: property.name,
+      definition: definition.value,
+    });
   }
 
-  const lastResult = parsedResult[parsedResult.length - 1];
-  const firstResult = parsedResult[0];
+  const rows = await results.json<{
+    user_id: string;
+    segments: [string, string][];
+    user_properties: [string, string][];
+  }>();
+  const users: GetUsersResponseItem[] = rows.map((row) => {
+    const userSegments: GetUsersResponseItem["segments"] = row.segments.flatMap(
+      ([id, value]) => {
+        const name = segmentNameById.get(id);
+        if (!name || !value) {
+          logger().error(
+            {
+              id,
+              workspaceId,
+            },
+            "segment not found",
+          );
+          return [];
+        }
+        return {
+          id,
+          name,
+        };
+      },
+    );
+    const properties: GetUsersResponseItem["properties"] =
+      row.user_properties.reduce<GetUsersResponseItem["properties"]>(
+        (acc, [id, value]) => {
+          const up = userPropertyById.get(id);
+          if (!up) {
+            logger().error(
+              {
+                id,
+                workspaceId,
+              },
+              "user property not found",
+            );
+            return acc;
+          }
+          const parsedValue = parseUserProperty(up.definition, value);
+          if (parsedValue.isErr()) {
+            logger().error(
+              {
+                err: parsedValue.error,
+                id,
+                workspaceId,
+              },
+              "failed to parse user property value",
+            );
+            return acc;
+          }
+          acc[id] = {
+            name: up.name,
+            value: parsedValue.value,
+          };
+          return acc;
+        },
+        {},
+      );
+    const user: GetUsersResponseItem = {
+      id: row.user_id,
+      segments: userSegments,
+      properties,
+    };
+    return user;
+  });
+
+  const lastResult = users[users.length - 1];
+  const firstResult = users[0];
 
   let nextCursor: Cursor | null;
   let previousCursor: Cursor | null;
 
-  if (lastResult && userMap.size >= limit) {
+  if (lastResult && users.length >= limit) {
     nextCursor = {
-      [CursorKey.UserIdKey]: lastResult.userId,
+      [CursorKey.UserIdKey]: lastResult.id,
     };
   } else {
     nextCursor = null;
@@ -307,15 +300,15 @@ export async function getUsers({
 
   if (firstResult && cursor) {
     previousCursor = {
-      [CursorKey.UserIdKey]: firstResult.userId,
+      [CursorKey.UserIdKey]: firstResult.id,
     };
   } else {
     previousCursor = null;
   }
 
   const val: GetUsersResponse = {
-    users: Array.from(userMap.values()),
-    userCount: Number((countResults as [{ userCount: bigint }])[0].userCount),
+    users,
+    userCount: 0,
   };
 
   if (nextCursor) {

@@ -26,7 +26,6 @@ import {
 } from "../journeys/userWorkflow";
 import logger from "../logger";
 import { getMeter, withSpan, withSpanSync } from "../openTelemetry";
-import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
   BroadcastSegmentNode,
@@ -60,7 +59,6 @@ import {
   UserPropertyOperatorType,
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
-import { upsertBulkUserPropertyAssignments } from "../userProperties";
 import {
   createPeriods,
   getPeriodsByComputedPropertyId,
@@ -3237,23 +3235,12 @@ async function processRowsInner({
     })
     .flat();
   const cursor = assignments[assignments.length - 1]?.user_id ?? null;
-  const pgUserPropertyAssignments: ComputedAssignment[] = [];
-  const pgSegmentAssignments: ComputedAssignment[] = [];
   const journeySegmentAssignments: ComputedAssignment[] = [];
   const integrationAssignments: ComputedAssignment[] = [];
 
   for (const assignment of assignments) {
     let assignmentCategory: ComputedAssignment[];
-    if (assignment.processed_for_type === "pg") {
-      switch (assignment.type) {
-        case "segment":
-          assignmentCategory = pgSegmentAssignments;
-          break;
-        case "user_property":
-          assignmentCategory = pgUserPropertyAssignments;
-          break;
-      }
-    } else if (assignment.processed_for_type === "integration") {
+    if (assignment.processed_for_type === "integration") {
       assignmentCategory = integrationAssignments;
     } else {
       if (!assignment.latest_segment_value) {
@@ -3262,51 +3249,6 @@ async function processRowsInner({
       assignmentCategory = journeySegmentAssignments;
     }
     assignmentCategory.push(assignment);
-  }
-
-  logger().info(
-    {
-      workspaceId,
-      assignmentsCount: assignments.length,
-      pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
-      pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-      journeySegmentAssignmentsCount: journeySegmentAssignments.length,
-      integrationAssignmentsCount: integrationAssignments.length,
-    },
-    "processing computed assignments",
-  );
-
-  await Promise.all([
-    upsertBulkUserPropertyAssignments({
-      data: pgUserPropertyAssignments.map((a) => ({
-        workspaceId: a.workspace_id,
-        userId: a.user_id,
-        userPropertyId: a.computed_property_id,
-        value: a.latest_user_property_value,
-      })),
-    }),
-    upsertBulkSegmentAssignments({
-      data: pgSegmentAssignments.map((a) => ({
-        workspaceId: a.workspace_id,
-        userId: a.user_id,
-        segmentId: a.computed_property_id,
-        inSegment: a.latest_segment_value,
-      })),
-    }),
-  ]);
-
-  const counter = processCounter();
-  if (pgUserPropertyAssignments.length > 0) {
-    counter.add(pgUserPropertyAssignments.length, {
-      workspace_id: workspaceId,
-      type: "pg_user_property",
-    });
-  }
-  if (pgSegmentAssignments.length > 0) {
-    counter.add(pgSegmentAssignments.length, {
-      workspace_id: workspaceId,
-      type: "pg_segment",
-    });
   }
 
   await Promise.all([
@@ -3373,6 +3315,8 @@ async function processRowsInner({
     }),
   ]);
 
+  const counter = processCounter();
+
   if (journeySegmentAssignments.length > 0) {
     counter.add(journeySegmentAssignments.length, {
       workspace_id: workspaceId,
@@ -3428,15 +3372,9 @@ type UserPropertyProcessAssignmentsQueryArgs =
     processedFor: string;
   };
 
-type PgProcessAssignmentsQueryArgs = BaseProcessAssignmentsQueryArgs & {
-  type: "segment" | "user_property";
-  processedForType: "pg";
-};
-
 type ProcessAssignmentsQueryArgs =
   | SegmentProcessAssignmentsQueryArgs
-  | UserPropertyProcessAssignmentsQueryArgs
-  | PgProcessAssignmentsQueryArgs;
+  | UserPropertyProcessAssignmentsQueryArgs;
 
 function buildProcessAssignmentsQuery({
   workspaceId,
@@ -3457,8 +3395,7 @@ function buildProcessAssignmentsQuery({
     computedPropertyId,
     "String",
   );
-  const processedFor =
-    rest.processedForType === "pg" ? "pg" : rest.processedFor;
+  const { processedFor } = rest;
   const processedForParam = qb.addQueryValue(processedFor, "String");
   const processedForTypeParam = qb.addQueryValue(
     rest.processedForType,
@@ -3569,7 +3506,6 @@ type WithoutProcessorParams<T> = Omit<T, "qb" | "limit" | "cursor">;
 type AssignmentProcessorParams = (
   | WithoutProcessorParams<SegmentProcessAssignmentsQueryArgs>
   | WithoutProcessorParams<UserPropertyProcessAssignmentsQueryArgs>
-  | WithoutProcessorParams<PgProcessAssignmentsQueryArgs>
 ) & {
   journeys: HasStartedJourneyResource[];
 };
@@ -3776,34 +3712,6 @@ export async function processAssignments({
     });
 
     const assignmentProcessors: AssignmentProcessor[] = [];
-
-    for (const userProperty of userProperties) {
-      const processor = new AssignmentProcessor({
-        workspaceId,
-        type: "user_property",
-        processedForType: "pg",
-        computedPropertyId: userProperty.id,
-        periodByComputedPropertyId,
-        computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
-        now,
-        journeys,
-      });
-      assignmentProcessors.push(processor);
-    }
-
-    for (const segment of segments) {
-      const processor = new AssignmentProcessor({
-        workspaceId,
-        type: "segment",
-        processedForType: "pg",
-        computedPropertyId: segment.id,
-        periodByComputedPropertyId,
-        computedPropertyVersion: segment.definitionUpdatedAt.toString(),
-        now,
-        journeys,
-      });
-      assignmentProcessors.push(processor);
-    }
 
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
       const segment = segmentById.get(segmentId);

@@ -7,6 +7,7 @@ import { bootstrapPostgres } from "./bootstrap";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
+import { insertUserPropertyAssignments } from "./userProperties";
 
 describe("subscriptionGroups", () => {
   describe("generateSubscriptionChangeUrl", () => {
@@ -51,22 +52,14 @@ describe("subscriptionGroups", () => {
       // eslint-disable-next-line prefer-destructuring
       subscriptionGroup = results[1];
 
-      await prisma().userPropertyAssignment.upsert({
-        where: {
-          workspaceId_userPropertyId_userId: {
-            workspaceId,
-            userId,
-            userPropertyId: up.id,
-          },
-        },
-        create: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           value: JSON.stringify(email),
           userPropertyId: up.id,
           userId,
         },
-        update: {},
-      });
+      ]);
     });
     it("should generate a valid URL", async () => {
       const secret = await prisma().secret.findUnique({

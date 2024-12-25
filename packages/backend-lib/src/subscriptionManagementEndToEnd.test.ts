@@ -28,10 +28,7 @@ import {
   SubscriptionParams,
   UserPropertyDefinitionType,
 } from "./types";
-import {
-  findAllUserPropertyAssignments,
-  upsertUserProperty,
-} from "./userProperties";
+import { findAllUserPropertyAssignments } from "./userProperties";
 
 describe("subscriptionManagementEndToEnd", () => {
   describe("when a user unsubscribes from an opt-out subscription group", () => {
