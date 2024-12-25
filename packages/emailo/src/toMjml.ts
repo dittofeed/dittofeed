@@ -299,7 +299,7 @@ function toMjmlHelper({
     }
     case "dfImage": {
       const { url, alt, width } = content.attrs as ImageAttributes;
-      return `<img src="${url}" alt="${alt}" width="${width}px"></img>`;
+      return `<div style="margin-top: 48px; margin-bottom: 48px;"><img src="${url}" alt="${alt}" width="${width}px" style="display: block;"></img></div>`;
     }
     default:
       console.error("Unsupported node type", content.type, content);

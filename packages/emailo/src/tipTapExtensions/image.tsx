@@ -6,7 +6,7 @@ import {
   NodeViewWrapper,
   ReactNodeViewRenderer,
 } from "@tiptap/react";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
 interface ImageOptions {
   url: string;
