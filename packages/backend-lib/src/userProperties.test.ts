@@ -15,7 +15,7 @@ import {
 import {
   findAllUserPropertyAssignments,
   findAllUserPropertyAssignmentsForWorkspace,
-  findUserIdByUserPropertyValue,
+  findUserIdsByUserPropertyValue,
   insertUserPropertyAssignments,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
@@ -422,12 +422,12 @@ describe("findUserIdByUserPropertyValue", () => {
     ]);
   });
   it("should return the user id for the user property value", async () => {
-    const actual = await findUserIdByUserPropertyValue({
+    const actual = await findUserIdsByUserPropertyValue({
       workspaceId: workspace.id,
       userPropertyName: userProperty.name,
       value: "max@example.com",
     });
 
-    expect(actual).toEqual(userId);
+    expect(actual).toEqual([userId]);
   });
 });

@@ -10,6 +10,7 @@ import { ok, Result } from "neverthrow";
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
+  command as chCommand,
   query as chQuery,
 } from "./clickhouse";
 import logger from "./logger";
@@ -356,15 +357,17 @@ export async function deleteUsers({
     `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
   ];
+  console.log("loc1", queries);
 
   await Promise.all([
     // Execute all Clickhouse deletion queries
     ...queries.map((query) =>
-      clickhouseClient().command({
+      chCommand({
         query,
         query_params: qb.getQueries(),
         clickhouse_settings: {
           wait_end_of_query: 1,
+          mutations_sync: "1",
         },
       }),
     ),
