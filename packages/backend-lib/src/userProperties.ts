@@ -12,7 +12,11 @@ import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
-import { clickhouseClient } from "./clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+} from "./clickhouse";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -798,4 +802,40 @@ export async function insertUserPropertyAssignments(
     format: "JSONEachRow",
     clickhouse_settings: { wait_end_of_query: 1 },
   });
+}
+
+export async function findUserIdsByUserPropertyValue({
+  workspaceId,
+  userPropertyName,
+  value,
+}: {
+  workspaceId: string;
+  userPropertyName: string;
+  value: string;
+}): Promise<string[] | null> {
+  const userProperty = await prisma().userProperty.findFirst({
+    where: {
+      workspaceId,
+      name: userPropertyName,
+    },
+  });
+  if (!userProperty) {
+    return null;
+  }
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select user_id
+    from computed_property_assignments_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and type = 'user_property'
+      and computed_property_id = ${qb.addQueryValue(userProperty.id, "String")}
+      and user_property_value = ${qb.addQueryValue(value, "String")}
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{ user_id: string }>();
+  return rows.map((row) => row.user_id);
 }
