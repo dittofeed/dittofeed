@@ -1,6 +1,6 @@
 import { JSONContent } from "@tiptap/core";
 
-import { ImageAttributes } from "./tipTapExtensions/image";
+import { ImageAttributes } from "./tipTapExtensions/image/types";
 import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
   UserPropertyAttributes,
