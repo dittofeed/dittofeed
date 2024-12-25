@@ -357,7 +357,6 @@ export async function deleteUsers({
     `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
   ];
-  console.log("loc1", queries);
 
   await Promise.all([
     // Execute all Clickhouse deletion queries
