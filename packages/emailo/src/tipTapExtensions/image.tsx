@@ -8,15 +8,7 @@ import {
 } from "@tiptap/react";
 import React, { useState } from "react";
 
-interface ImageOptions {
-  url: string;
-  alt: string;
-  width: number;
-}
-
-export type ImageAttributes = ImageOptions & {
-  defaultOpen: boolean;
-};
+import { ImageAttributes, ImageOptions } from "./image/types";
 
 declare module "@tiptap/core" {
   // eslint-disable-next-line no-unused-vars
