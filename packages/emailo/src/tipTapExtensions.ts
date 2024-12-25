@@ -13,6 +13,7 @@ import StarterKit from "@tiptap/starter-kit";
 
 import { BlockquoteFigure } from "./tipTapExtensions/blockquoteFigure";
 import { FontSize } from "./tipTapExtensions/fontSize";
+import { Image } from "./tipTapExtensions/image";
 import { Link } from "./tipTapExtensions/link";
 import { MarkupBlock } from "./tipTapExtensions/markup/block";
 import { MarkupInline } from "./tipTapExtensions/markup/inline";
@@ -74,6 +75,7 @@ export function getExtensions({
       UnsubscribeLink,
       MarkupBlock,
       MarkupInline,
+      Image.configure({}),
     ];
   }
   return EXTENSIONS;

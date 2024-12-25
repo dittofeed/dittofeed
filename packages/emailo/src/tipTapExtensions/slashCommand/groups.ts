@@ -65,6 +65,13 @@ export const GROUPS: Group[] = [
         },
       },
       {
+        name: "image",
+        label: "Image",
+        iconName: "Image",
+        description: "Insert an image",
+        action: (editor) => editor.chain().focus().setDfImage().run(),
+      },
+      {
         name: "codeBlock",
         label: "Code Block",
         iconName: "SquareCode",
