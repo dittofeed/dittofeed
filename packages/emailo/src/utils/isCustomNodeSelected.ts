@@ -1,7 +1,10 @@
 import { Editor } from "@tiptap/core";
 
 import { BlockquoteFigure } from "../tipTapExtensions/blockquoteFigure";
+import { Image } from "../tipTapExtensions/image";
 import { Link } from "../tipTapExtensions/link";
+import { MarkupBlock } from "../tipTapExtensions/markup/block";
+import { MarkupInline } from "../tipTapExtensions/markup/inline";
 import { UserProperty } from "../tipTapExtensions/userProperty";
 
 export const isTableGripSelected = (node: HTMLElement) => {
@@ -33,6 +36,9 @@ const CUSTOM_NODES = [
   Link.name,
   BlockquoteFigure.name,
   UserProperty.name,
+  Image.name,
+  MarkupInline.name,
+  MarkupBlock.name,
 ];
 
 export const isCustomNodeSelected = (editor: Editor, node: HTMLElement) => {

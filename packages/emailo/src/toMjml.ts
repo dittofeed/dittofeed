@@ -1,5 +1,6 @@
 import { JSONContent } from "@tiptap/core";
 
+import { ImageAttributes } from "./tipTapExtensions/image";
 import { UnsubscribeLinkAttributes } from "./tipTapExtensions/unsubscribeLink/utils";
 import {
   UserPropertyAttributes,
@@ -8,6 +9,11 @@ import {
 
 type Mode = "preview" | "render";
 
+interface Mark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
 // Updated function with named parameters
 function applyTextStyles({
   text,
@@ -15,7 +21,7 @@ function applyTextStyles({
   defaultTextStyles,
 }: {
   text: string;
-  marks?: any[];
+  marks?: Mark[];
   defaultTextStyles?: Record<string, string>;
 }): {
   styledText: string;
@@ -290,6 +296,10 @@ function toMjmlHelper({
     }
     case "markupInline": {
       return content.content?.[0]?.text ?? "";
+    }
+    case "dfImage": {
+      const { url, alt, width } = content.attrs as ImageAttributes;
+      return `<div style="margin-top: 48px; margin-bottom: 48px;"><img src="${url}" alt="${alt}" width="${width}px" style="display: block;"></img></div>`;
     }
     default:
       console.error("Unsupported node type", content.type, content);
