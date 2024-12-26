@@ -10,6 +10,7 @@ import {
 } from "backend-lib/src/integrations/hubspot/activities";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
+import { insertUserPropertyAssignments } from "backend-lib/src/userProperties";
 import { randomUUID } from "crypto";
 import {
   IntegrationType,
@@ -117,27 +118,14 @@ export async function hubspotSync({
   });
 
   const emailValue = JSON.stringify(email);
-  await prisma().userPropertyAssignment.upsert({
-    where: {
-      workspaceId_userPropertyId_userId: {
-        workspaceId,
-        userPropertyId: emailUserProperty.id,
-        userId,
-      },
-    },
-    create: {
+  await insertUserPropertyAssignments([
+    {
       workspaceId,
       userPropertyId: emailUserProperty.id,
       userId,
       value: emailValue,
     },
-    update: {
-      workspaceId,
-      userPropertyId: emailUserProperty.id,
-      userId,
-      value: emailValue,
-    },
-  });
+  ]);
 
   await updateHubspotEmails({
     workspaceId,

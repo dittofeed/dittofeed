@@ -12,6 +12,11 @@ import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+} from "./clickhouse";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -379,7 +384,7 @@ function transformAssignmentValue({
   userPropertyId: string;
   definition: UserPropertyDefinition;
   context?: Record<string, JSONValue>[];
-  assignment?: UserPropertyAssignment;
+  assignment?: string;
 }): JSONValue {
   const contextAssignment = context
     ? getAssignmentOverride({
@@ -392,7 +397,7 @@ function transformAssignmentValue({
   if (contextAssignment !== null) {
     transformed = contextAssignment;
   } else if (assignment) {
-    const parsed = parseUserPropertyAssignment(definition, assignment.value);
+    const parsed = parseUserPropertyAssignment(definition, assignment);
     if (parsed.isErr()) {
       logger().error(
         {
@@ -410,19 +415,28 @@ function transformAssignmentValue({
   return transformed;
 }
 
-export async function findAllUserPropertyAssignments({
-  userId,
-  workspaceId,
-  userProperties: userPropertiesFilter,
-  context,
-  userPropertyIds,
-}: {
+interface ClickhouseUserPropertyAssignment {
+  computed_property_id: string;
+  last_value: string;
+}
+
+export interface FindAllUserPropertyAssignmentsProps {
   userId: string;
   workspaceId: string;
   userProperties?: string[];
   userPropertyIds?: string[];
   context?: Record<string, JSONValue>[];
-}): Promise<UserPropertyAssignments> {
+}
+
+async function findAllUserPropertyAssignmentsComponents({
+  userId,
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  userPropertyIds,
+}: Omit<FindAllUserPropertyAssignmentsProps, "context">): Promise<{
+  userProperties: UserProperty[];
+  assignmentMap: Map<string, string>;
+}> {
   const where: Prisma.UserPropertyWhereInput = {
     workspaceId,
   };
@@ -438,17 +452,54 @@ export async function findAllUserPropertyAssignments({
 
   const userProperties = await prisma().userProperty.findMany({
     where,
-    include: {
-      UserPropertyAssignment: {
-        where: {
-          userId,
-          value: {
-            not: "",
-          },
-        },
-      },
-    },
   });
+
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      computed_property_id,
+      argMax(user_property_value, assigned_at) as last_value
+    from computed_property_assignments_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and user_id = ${qb.addQueryValue(userId, "String")}
+      and type = 'user_property'
+      and computed_property_id in (${qb.addQueryValue(
+        userProperties.map((up) => up.id),
+        "Array(String)",
+      )})
+      and user_property_value != ''
+    group by computed_property_id
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<ClickhouseUserPropertyAssignment>();
+  const chAssignmentMap = new Map<string, string>();
+  for (const row of rows) {
+    chAssignmentMap.set(row.computed_property_id, row.last_value);
+  }
+  return {
+    userProperties,
+    assignmentMap: chAssignmentMap,
+  };
+}
+
+export async function findAllUserPropertyAssignments({
+  userId,
+  workspaceId,
+  userProperties: userPropertiesFilter,
+  context,
+  userPropertyIds,
+}: FindAllUserPropertyAssignmentsProps): Promise<UserPropertyAssignments> {
+  const { userProperties, assignmentMap } =
+    await findAllUserPropertyAssignmentsComponents({
+      userId,
+      workspaceId,
+      userProperties: userPropertiesFilter,
+      userPropertyIds,
+    });
 
   const combinedAssignments: UserPropertyAssignments = {};
 
@@ -470,7 +521,7 @@ export async function findAllUserPropertyAssignments({
       userPropertyId: userProperty.id,
       definition,
       context,
-      assignment: userProperty.UserPropertyAssignment[0],
+      assignment: assignmentMap.get(userProperty.id),
     });
 
     if (transformed !== null) {
@@ -507,10 +558,52 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
 
   const userProperties = await prisma().userProperty.findMany({
     where,
-    include: {
-      UserPropertyAssignment: true,
-    },
   });
+
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      computed_property_id,
+      user_id,
+      argMax(user_property_value, assigned_at) as last_value
+    from computed_property_assignments_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and type = 'user_property'
+      and computed_property_id in (${qb.addQueryValue(
+        userProperties.map((up) => up.id),
+        "Array(String)",
+      )})
+      and user_property_value != ''
+    group by computed_property_id, user_id
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{
+    computed_property_id: string;
+    user_id: string;
+    last_value: string;
+  }>();
+  const chAssignmentMap = new Map<
+    string,
+    { userId: string; value: string }[]
+  >();
+
+  for (const row of rows) {
+    const existing = chAssignmentMap.get(row.computed_property_id);
+    if (existing) {
+      existing.push({
+        userId: row.user_id,
+        value: row.last_value,
+      });
+    } else {
+      chAssignmentMap.set(row.computed_property_id, [
+        { userId: row.user_id, value: row.last_value },
+      ]);
+    }
+  }
 
   const combinedAssignments: Record<string, UserPropertyAssignments> = {};
 
@@ -528,19 +621,23 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
     }
 
     const definition = definitionResult.value;
-    for (const userPropertyAssignment of userProperty.UserPropertyAssignment) {
+    const assignments = chAssignmentMap.get(userProperty.id);
+    if (!assignments) {
+      continue;
+    }
+    for (const assignment of assignments) {
       const transformedForUser: Record<string, JSONValue> =
-        combinedAssignments[userPropertyAssignment.userId] ?? {};
+        combinedAssignments[assignment.userId] ?? {};
 
       const transformed = transformAssignmentValue({
         workspaceId,
         userPropertyId: userProperty.id,
         definition,
         context,
-        assignment: userPropertyAssignment,
+        assignment: assignment.value,
       });
       transformedForUser[userProperty.name] = transformed;
-      combinedAssignments[userPropertyAssignment.userId] = transformedForUser;
+      combinedAssignments[assignment.userId] = transformedForUser;
     }
   }
 
@@ -561,39 +658,14 @@ export async function findAllUserPropertyAssignmentsById({
   userProperties: userPropertiesFilter,
   context,
   userPropertyIds,
-}: {
-  userId: string;
-  workspaceId: string;
-  userProperties?: string[];
-  userPropertyIds?: string[];
-  context?: Record<string, JSONValue>[];
-}): Promise<UserPropertyAssignments> {
-  const where: Prisma.UserPropertyWhereInput = {
-    workspaceId,
-  };
-  if (userPropertiesFilter?.length) {
-    where.name = {
-      in: userPropertiesFilter,
-    };
-  } else if (userPropertyIds?.length) {
-    where.id = {
-      in: userPropertyIds,
-    };
-  }
-
-  const userProperties = await prisma().userProperty.findMany({
-    where,
-    include: {
-      UserPropertyAssignment: {
-        where: {
-          userId,
-          value: {
-            not: "",
-          },
-        },
-      },
-    },
-  });
+}: FindAllUserPropertyAssignmentsProps): Promise<UserPropertyAssignments> {
+  const { userProperties, assignmentMap } =
+    await findAllUserPropertyAssignmentsComponents({
+      userId,
+      workspaceId,
+      userProperties: userPropertiesFilter,
+      userPropertyIds,
+    });
 
   const combinedAssignments: UserPropertyAssignments = {};
 
@@ -620,13 +692,9 @@ export async function findAllUserPropertyAssignmentsById({
     if (contextAssignment !== null) {
       combinedAssignments[userProperty.id] = contextAssignment;
     } else {
-      const assignments = userProperty.UserPropertyAssignment;
-      const assignment = assignments[0];
+      const assignment = assignmentMap.get(userProperty.id);
       if (assignment) {
-        const parsed = parseUserPropertyAssignment(
-          definition,
-          assignment.value,
-        );
+        const parsed = parseUserPropertyAssignment(definition, assignment);
         if (parsed.isErr()) {
           logger().error(
             {
@@ -771,4 +839,69 @@ export async function upsertUserProperty(
   };
 
   return ok(resource);
+}
+
+/**
+ * Insert user property assignments into the computed_property_assignments table
+ * for testing. Should never be used in production.
+ *
+ * @param rawAssignments - An array of raw assignments to insert.
+ */
+export async function insertUserPropertyAssignments(
+  rawAssignments: UserPropertyBulkUpsertItem[],
+) {
+  const client = clickhouseClient();
+  const assignments = rawAssignments.map((assignment) => ({
+    workspace_id: assignment.workspaceId,
+    type: "user_property",
+    user_id: assignment.userId,
+    computed_property_id: assignment.userPropertyId,
+    user_property_value: assignment.value,
+    segment_value: false,
+  }));
+  await client.insert({
+    table: "computed_property_assignments_v2",
+    values: assignments,
+    format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+}
+
+export async function findUserIdsByUserPropertyValue({
+  workspaceId,
+  userPropertyName,
+  value,
+}: {
+  workspaceId: string;
+  userPropertyName: string;
+  value: string;
+}): Promise<string[] | null> {
+  const userProperty = await prisma().userProperty.findFirst({
+    where: {
+      workspaceId,
+      name: userPropertyName,
+    },
+  });
+  if (!userProperty) {
+    return null;
+  }
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      user_id,
+      argMax(user_property_value, assigned_at) as latest_user_property_value
+    from computed_property_assignments_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and type = 'user_property'
+      and computed_property_id = ${qb.addQueryValue(userProperty.id, "String")}
+    group by user_id
+    having latest_user_property_value = ${qb.addQueryValue(value, "String")}
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{ user_id: string }>();
+  return rows.map((row) => row.user_id);
 }

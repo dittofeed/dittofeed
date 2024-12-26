@@ -1,11 +1,13 @@
-import { UserProperty, Workspace } from "@prisma/client";
+import { Segment, UserProperty, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
 import { clickhouseClient } from "./clickhouse";
 import prisma from "./prisma";
 import {
   buildSegmentsFile,
+  findAllSegmentAssignments,
   findRecentlyUpdatedUsersInSegment,
+  insertSegmentAssignments,
   upsertSegment,
 } from "./segments";
 import {
@@ -18,6 +20,7 @@ import {
   UpsertSegmentValidationErrorType,
   UserPropertyDefinitionType,
 } from "./types";
+import { insertUserPropertyAssignments } from "./userProperties";
 
 describe("segments", () => {
   let workspace: Workspace;
@@ -82,44 +85,40 @@ describe("segments", () => {
             } satisfies TraitUserPropertyDefinition,
           },
         }),
-        prisma().segmentAssignment.create({
-          data: {
-            segmentId: segment.id,
+        insertSegmentAssignments([
+          {
             workspaceId: workspace.id,
             userId,
+            segmentId: segment.id,
             inSegment: true,
           },
-        }),
+        ]),
       ]);
     });
 
     describe("when the identifiers contain valid values", () => {
       beforeEach(async () => {
         await Promise.all([
-          prisma().userPropertyAssignment.create({
-            data: {
+          insertUserPropertyAssignments([
+            {
+              workspaceId: workspace.id,
               userId,
               userPropertyId: userIdProperty.id,
               value: "123",
-              workspaceId: workspace.id,
             },
-          }),
-          prisma().userPropertyAssignment.create({
-            data: {
+            {
+              workspaceId: workspace.id,
               userId,
               userPropertyId: emailProperty.id,
               value: "test@test.com",
-              workspaceId: workspace.id,
             },
-          }),
-          prisma().userPropertyAssignment.create({
-            data: {
+            {
               userId,
               userPropertyId: phoneProperty.id,
               value: "1234567890",
               workspaceId: workspace.id,
             },
-          }),
+          ]),
         ]);
       });
       it("generates a file name with its contents", async () => {
@@ -132,6 +131,54 @@ describe("segments", () => {
       });
     });
   });
+  describe("findAllSegmentAssignments", () => {
+    let segment: Segment;
+    let userId: string;
+    beforeEach(async () => {
+      userId = randomUUID();
+      const segmentId = randomUUID();
+      [segment] = await Promise.all([
+        prisma().segment.create({
+          data: {
+            name: "test",
+            workspaceId: workspace.id,
+            id: segmentId,
+            definition: {
+              id: randomUUID(),
+              type: SegmentNodeType.Trait,
+              path: "name",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+          },
+        }),
+        insertSegmentAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            segmentId,
+            inSegment: true,
+          },
+          {
+            workspaceId: workspace.id,
+            userId: randomUUID(),
+            segmentId,
+            inSegment: false,
+          },
+        ]),
+      ]);
+    });
+    it("returns the segment assignments for the workspace", async () => {
+      const assignments = await findAllSegmentAssignments({
+        workspaceId: workspace.id,
+        userId,
+      });
+      expect(assignments).toEqual({ [segment.name]: true });
+    });
+  });
+
   describe("findRecentlyUpdatedUsersInSegment", () => {
     let segmentId: string;
 

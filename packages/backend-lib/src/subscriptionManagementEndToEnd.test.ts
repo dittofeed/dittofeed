@@ -156,7 +156,7 @@ describe("subscriptionManagementEndToEnd", () => {
         userPropertyAssignments,
         useDraft: false,
       });
-      let sent = unwrap(sendMessageResult);
+      const sent = unwrap(sendMessageResult);
       if (sent.type !== InternalEventType.MessageSent) {
         throw new Error("Message not sent");
       }
@@ -212,9 +212,10 @@ describe("subscriptionManagementEndToEnd", () => {
       subscriptionGroupDetails = getSubscriptionGroupDetails(
         subscriptionGroupWithAssignment,
       );
-      expect(subscriptionGroupDetails.action).toBe(
-        SubscriptionChange.Unsubscribe,
-      );
+      expect(
+        subscriptionGroupDetails.action,
+        "User should be explicitly unsubscribed",
+      ).toBe(SubscriptionChange.Unsubscribe);
 
       sendMessageResult = await sendMessage({
         workspaceId: workspace.id,

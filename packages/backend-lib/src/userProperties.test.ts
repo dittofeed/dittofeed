@@ -6,6 +6,7 @@ import {
   BlobStorageFile,
   FileUserPropertyDefinition,
   InternalEventType,
+  UserProperty,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -14,7 +15,8 @@ import {
 import {
   findAllUserPropertyAssignments,
   findAllUserPropertyAssignmentsForWorkspace,
-  upsertBulkUserPropertyAssignments,
+  findUserIdsByUserPropertyValue,
+  insertUserPropertyAssignments,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
 
@@ -80,7 +82,7 @@ describe("findAllUserPropertyAssignments", () => {
       });
 
       // Existing assignment states
-      const assignments: UserPropertyBulkUpsertItem[] = [
+      await insertUserPropertyAssignments([
         {
           workspaceId: workspace.id,
           userId: "userId",
@@ -93,9 +95,7 @@ describe("findAllUserPropertyAssignments", () => {
           userPropertyId: upId2,
           value: "value2",
         },
-      ];
-
-      await upsertBulkUserPropertyAssignments({ data: assignments });
+      ]);
 
       // now find properties with contex override
       const actualAssignments = await findAllUserPropertyAssignments({
@@ -195,7 +195,7 @@ describe("findAllUserPropertyAssignments", () => {
             value: JSON.stringify(value),
           },
         ];
-        await upsertBulkUserPropertyAssignments({ data: assignments });
+        await insertUserPropertyAssignments(assignments);
 
         const actualAssignments = await findAllUserPropertyAssignments({
           userId: "userId",
@@ -325,79 +325,20 @@ describe("findAllUserPropertyAssignments", () => {
         },
       });
 
-      const assignments: UserPropertyBulkUpsertItem[] = [
+      await insertUserPropertyAssignments([
         {
           workspaceId: workspace.id,
           userId: "userId",
           userPropertyId: up.id,
           value: "99999999999999999999999",
         },
-      ];
-
-      await upsertBulkUserPropertyAssignments({ data: assignments });
+      ]);
       const actualAssignments = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
       });
       expect(typeof actualAssignments.largeNumberProp).toBe("string");
     });
-  });
-});
-describe("upsertBulkUserPropertyAssignments", () => {
-  it("should not throw when upserting assignments to existing and non-existing user properties", async () => {
-    const workspace = await prisma().workspace.create({
-      data: {
-        name: `test-${randomUUID()}`,
-      },
-    });
-    const userPropertyDefinition: UserPropertyDefinition = {
-      type: UserPropertyDefinitionType.Trait,
-      path: "email",
-    };
-    // Create a user property
-    const userProperty = await prisma().userProperty.create({
-      data: {
-        workspaceId: workspace.id,
-        name: `test-${randomUUID()}`,
-        definition: userPropertyDefinition,
-      },
-    });
-
-    // Prepare assignments
-    const assignments: UserPropertyBulkUpsertItem[] = [
-      {
-        workspaceId: workspace.id,
-        userId: "userId",
-        userPropertyId: userProperty.id,
-        value: "value1",
-      },
-      {
-        workspaceId: workspace.id,
-        userId: "userId",
-        userPropertyId: randomUUID(),
-        value: "value2",
-      },
-    ];
-
-    // Attempt to upsert assignments
-    await expect(
-      upsertBulkUserPropertyAssignments({ data: assignments }),
-    ).resolves.not.toThrow();
-
-    // Check that the first assignment was written successfully
-    const assignment = await prisma().userPropertyAssignment.findUnique({
-      where: {
-        workspaceId_userPropertyId_userId: {
-          workspaceId: workspace.id,
-          userId: "userId",
-          userPropertyId: userProperty.id,
-        },
-      },
-    });
-    if (!assignment) {
-      throw new Error("Assignment not found");
-    }
-    expect(assignment.value).toEqual("value1");
   });
 });
 
@@ -418,23 +359,19 @@ describe("findAllUserPropertyAssignmentsForWorkspace", () => {
         } satisfies UserPropertyDefinition,
       },
     });
-    await Promise.all([
-      prisma().userPropertyAssignment.create({
-        data: {
-          workspaceId: workspace.id,
-          userId: "userId1",
-          userPropertyId: userProperty.id,
-          value: "value1",
-        },
-      }),
-      prisma().userPropertyAssignment.create({
-        data: {
-          workspaceId: workspace.id,
-          userId: "userId2",
-          userPropertyId: userProperty.id,
-          value: "value2",
-        },
-      }),
+    await insertUserPropertyAssignments([
+      {
+        workspaceId: workspace.id,
+        userId: "userId1",
+        userPropertyId: userProperty.id,
+        value: "value1",
+      },
+      {
+        workspaceId: workspace.id,
+        userId: "userId2",
+        userPropertyId: userProperty.id,
+        value: "value2",
+      },
     ]);
 
     const assignments = await findAllUserPropertyAssignmentsForWorkspace({
@@ -451,5 +388,46 @@ describe("findAllUserPropertyAssignmentsForWorkspace", () => {
         email: "value2",
       },
     });
+  });
+});
+
+describe("findUserIdByUserPropertyValue", () => {
+  let workspace: Workspace;
+  let userProperty: UserProperty;
+  let userId: string;
+  beforeEach(async () => {
+    userId = randomUUID();
+    workspace = await prisma().workspace.create({
+      data: {
+        name: `test-${randomUUID()}`,
+      },
+    });
+    userProperty = await prisma().userProperty.create({
+      data: {
+        workspaceId: workspace.id,
+        name: "email",
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "email",
+        } satisfies UserPropertyDefinition,
+      },
+    });
+    await insertUserPropertyAssignments([
+      {
+        workspaceId: workspace.id,
+        userId,
+        userPropertyId: userProperty.id,
+        value: "max@example.com",
+      },
+    ]);
+  });
+  it("should return the user id for the user property value", async () => {
+    const actual = await findUserIdsByUserPropertyValue({
+      workspaceId: workspace.id,
+      userPropertyName: userProperty.name,
+      value: "max@example.com",
+    });
+
+    expect(actual).toEqual([userId]);
   });
 });

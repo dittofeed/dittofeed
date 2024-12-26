@@ -113,21 +113,6 @@ async function getStateUserCount(workspaceId: string) {
   return Number(values.data[0]?.user_count ?? 0);
 }
 
-async function getProcessedUserCount(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select uniqExact(user_id) as user_count
-    from processed_computed_properties_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values: { data: { user_count: number }[] } = await response.json();
-  return Number(values.data[0]?.user_count ?? 0);
-}
-
 async function getEventsUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
@@ -148,13 +133,11 @@ async function getUserCounts(workspaceId: string) {
     userPropertyUserCount,
     stateUserCount,
     assignmentUserCount,
-    processedUserCount,
     eventsUserCount,
   ] = await Promise.all([
     getUserPropertyUserCount(workspaceId),
     getStateUserCount(workspaceId),
     getAssignmentUserCount(workspaceId),
-    getProcessedUserCount(workspaceId),
     getEventsUserCount(workspaceId),
   ]);
   return {
@@ -162,7 +145,6 @@ async function getUserCounts(workspaceId: string) {
     userPropertyUserCount,
     stateUserCount,
     assignmentUserCount,
-    processedUserCount,
   };
 }
 
@@ -1044,7 +1026,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1158,7 +1140,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1259,7 +1241,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1360,7 +1342,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1628,7 +1610,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                andSegment: false,
+                andSegment: null,
               },
             },
           ],
@@ -1745,7 +1727,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                newUsers: false,
+                newUsers: null,
               },
             },
           ],
@@ -1908,7 +1890,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                newUsers: false,
+                newUsers: null,
               },
             },
           ],
@@ -2121,7 +2103,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                stuckOnboarding: false,
+                stuckOnboarding: null,
               },
             },
           ],
@@ -2250,7 +2232,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -2299,7 +2281,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -2348,7 +2330,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -5171,7 +5153,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                updatedPerformed: false,
+                updatedPerformed: null,
               },
             },
           ],
@@ -5524,7 +5506,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyPerformed: false,
+                recentlyPerformed: null,
               },
             },
           ],
@@ -5683,7 +5665,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                updatedPerformed: false,
+                updatedPerformed: null,
               },
             },
           ],
@@ -6267,7 +6249,6 @@ describe("computeProperties", () => {
 
                 expect(userCounts, step.description).toEqual({
                   eventsUserCount: step.userCount,
-                  processedUserCount: step.userCount,
                   stateUserCount: step.userCount,
                   assignmentUserCount: step.userCount,
                   userPropertyUserCount:

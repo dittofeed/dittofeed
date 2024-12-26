@@ -4,6 +4,7 @@ import { differenceInHours } from "date-fns";
 import { findNextLocalizedTimeInner, getUserPropertyDelay } from "./dates";
 import prisma from "./prisma";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
+import { insertUserPropertyAssignments } from "./userProperties";
 
 describe("findNextLocalizedTimeInner", () => {
   describe("when localizing to disneyland time at 8 pm it", () => {
@@ -94,14 +95,14 @@ describe("getUserPropertyDelay", () => {
 
   describe("with ISO string dates", () => {
     it("returns correct delay for future date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: "2024-01-01T14:00:00.000Z", // 2 hours in future
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -114,14 +115,14 @@ describe("getUserPropertyDelay", () => {
     });
 
     it("returns null for past date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: "2024-01-01T10:00:00.000Z", // 2 hours in past
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -136,14 +137,14 @@ describe("getUserPropertyDelay", () => {
 
   describe("with unix timestamp (seconds)", () => {
     it("returns correct delay for future date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(Math.floor(now / 1000) + 3600), // 1 hour in future
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -156,14 +157,14 @@ describe("getUserPropertyDelay", () => {
     });
 
     it("returns null for past date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(Math.floor(now / 1000) - 3600), // 1 hour in past
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -178,14 +179,14 @@ describe("getUserPropertyDelay", () => {
 
   describe("with unix timestamp (milliseconds)", () => {
     it("returns correct delay for future date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(now + 30 * 60 * 1000), // 30 minutes in future
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -198,14 +199,14 @@ describe("getUserPropertyDelay", () => {
     });
 
     it("returns null for past date", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(now - 30 * 60 * 1000), // 30 minutes in past
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -220,14 +221,14 @@ describe("getUserPropertyDelay", () => {
 
   describe("with offset", () => {
     it("handles 'after' offset correctly", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(now + 60 * 60 * 1000), // 1 hour in future
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,
@@ -242,14 +243,14 @@ describe("getUserPropertyDelay", () => {
     });
 
     it("handles 'before' offset correctly", async () => {
-      await prisma().userPropertyAssignment.create({
-        data: {
+      await insertUserPropertyAssignments([
+        {
           workspaceId,
           userId,
           userPropertyId,
           value: String(now + 60 * 60 * 1000), // 1 hour in future
         },
-      });
+      ]);
 
       const delay = await getUserPropertyDelay({
         workspaceId,

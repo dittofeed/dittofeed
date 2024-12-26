@@ -11,7 +11,11 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
-import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+} from "./clickhouse";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -54,29 +58,88 @@ export function enrichSegment(
   });
 }
 
-export async function findAllSegmentAssignments({
+export async function findAllSegmentAssignmentsByIds({
   workspaceId,
+  segmentIds,
   userId,
 }: {
   workspaceId: string;
+  segmentIds: string[];
   userId: string;
+}): Promise<{ segmentId: string; inSegment: boolean }[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const query = `
+    SELECT
+      computed_property_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND user_id = ${userIdParam}
+      AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}
+    GROUP BY computed_property_id
+  `;
+
+  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const rows = await result.json<{
+    computed_property_id: string;
+    latest_segment_value: boolean;
+  }>();
+  return rows.map((row) => ({
+    segmentId: row.computed_property_id,
+    inSegment: row.latest_segment_value,
+  }));
+}
+
+export async function findAllSegmentAssignments({
+  workspaceId,
+  userId,
+  segmentIds,
+}: {
+  workspaceId: string;
+  userId: string;
+  segmentIds?: string[];
 }): Promise<Record<string, boolean | null>> {
   const segments = await prisma().segment.findMany({
     where: {
       workspaceId,
     },
-    include: {
-      SegmentAssignment: {
-        where: {
-          userId,
-        },
-      },
-    },
   });
-
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const segmentIdsClause = segmentIds
+    ? `AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}`
+    : "";
+  const query = `
+    SELECT
+      computed_property_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND user_id = ${userIdParam}
+      ${segmentIdsClause}
+    GROUP BY computed_property_id
+    HAVING latest_segment_value = true
+  `;
+  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const rows = await result.json<{
+    computed_property_id: string;
+    latest_segment_value: boolean;
+  }>();
+  const assignmentMap = new Map<string, boolean>();
+  for (const row of rows) {
+    assignmentMap.set(row.computed_property_id, row.latest_segment_value);
+  }
+  logger().debug({ rows, assignmentMap, segments }, "assignment map");
   const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
     (memo, curr) => {
-      memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
+      memo[curr.name] = assignmentMap.get(curr.id) ?? null;
       return memo;
     },
     {},
@@ -382,6 +445,37 @@ const downloadCsvHeaders = [
   "subscriptionGroupName",
 ];
 
+async function getWorkspaceSegmentAssignments({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const query = `
+    SELECT
+      computed_property_id,
+      user_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+    GROUP BY computed_property_id, user_id
+  `;
+  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const rows = await result.json<{
+    computed_property_id: string;
+    latest_segment_value: boolean;
+    user_id: string;
+  }>();
+  return rows.map((row) => ({
+    segmentId: row.computed_property_id,
+    inSegment: row.latest_segment_value,
+    userId: row.user_id,
+  }));
+}
+
 // TODO use pagination, and blob store
 export async function buildSegmentsFile({
   workspaceId,
@@ -392,18 +486,15 @@ export async function buildSegmentsFile({
   fileContent: string;
 }> {
   const identifiers = Object.values(CHANNEL_IDENTIFIERS);
-  const [dbSegmentAssignments, userIdentifiers] = await Promise.all([
-    prisma().segmentAssignment.findMany({
-      where: { workspaceId },
+  const [segments, userIdentifiers, segmentAssignments] = await Promise.all([
+    prisma().segment.findMany({
+      where: {
+        workspaceId,
+      },
       include: {
-        segment: {
+        subscriptionGroup: {
           select: {
             name: true,
-            subscriptionGroup: {
-              select: {
-                name: true,
-              },
-            },
           },
         },
       },
@@ -411,13 +502,29 @@ export async function buildSegmentsFile({
     findAllUserPropertyAssignmentsForWorkspace({
       workspaceId,
     }),
+    getWorkspaceSegmentAssignments({ workspaceId }),
   ]);
+  const segmentMap = new Map<string, (typeof segments)[number]>();
+  for (const segment of segments) {
+    segmentMap.set(segment.id, segment);
+  }
 
-  const assignments: Record<string, string>[] = dbSegmentAssignments.map(
+  const assignments: Record<string, string>[] = segmentAssignments.flatMap(
     (a) => {
+      const segment = segmentMap.get(a.segmentId);
+      if (!segment) {
+        logger().error(
+          {
+            workspaceId,
+            segmentId: a.segmentId,
+          },
+          "segment not found for build segment file",
+        );
+        return [];
+      }
       const csvAssignment: Record<string, string> = {
-        segmentName: a.segment.name,
-        subscriptionGroupName: a.segment.subscriptionGroup?.name ?? "",
+        segmentName: segment.name,
+        subscriptionGroupName: segment.subscriptionGroup?.name ?? "",
         segmentId: a.segmentId,
         userId: a.userId,
         inSegment: a.inSegment.toString(),
@@ -432,7 +539,7 @@ export async function buildSegmentsFile({
           }
         }
       }
-      return csvAssignment;
+      return [csvAssignment];
     },
   );
   const fileContent = await writeToString(assignments, {
@@ -452,83 +559,6 @@ export type SegmentBulkUpsertItem = Pick<
   SegmentAssignment,
   "workspaceId" | "userId" | "segmentId" | "inSegment"
 >;
-
-export async function upsertBulkSegmentAssignments({
-  data,
-}: {
-  data: SegmentBulkUpsertItem[];
-}) {
-  if (data.length === 0) {
-    return;
-  }
-  const existing = new Map<string, SegmentBulkUpsertItem>();
-  for (const item of data) {
-    const key = `${item.workspaceId}-${item.segmentId}-${item.userId}`;
-    if (existing.has(key)) {
-      logger().warn(
-        {
-          existing: existing.get(key),
-          new: item,
-          workspaceId: item.workspaceId,
-        },
-        "duplicate segment assignment in bulk upsert",
-      );
-      continue;
-    }
-    existing.set(key, item);
-  }
-  const deduped = Array.from(existing.values());
-  const workspaceIds: Prisma.Sql[] = [];
-  const userIds: string[] = [];
-  const segmentIds: Prisma.Sql[] = [];
-  const inSegment: boolean[] = [];
-
-  for (const item of deduped) {
-    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
-    userIds.push(item.userId);
-    segmentIds.push(Prisma.sql`CAST(${item.segmentId} AS UUID)`);
-    inSegment.push(item.inSegment);
-  }
-
-  const joinedSegmentIds = Prisma.join(segmentIds);
-
-  const query = Prisma.sql`
-    WITH unnested_values AS (
-        SELECT
-            unnest(array[${Prisma.join(workspaceIds)}]) AS "workspaceId",
-            unnest(array[${Prisma.join(userIds)}]) as "userId",
-            unnest(array[${joinedSegmentIds}]) AS "segmentId",
-            unnest(array[${Prisma.join(inSegment)}]) AS "inSegment"
-    )
-    INSERT INTO "SegmentAssignment" ("workspaceId", "userId", "segmentId", "inSegment")
-    SELECT
-        u."workspaceId",
-        u."userId",
-        u."segmentId",
-        u."inSegment"
-    FROM unnested_values u
-    WHERE EXISTS (
-        SELECT 1
-        FROM "Segment" s
-        WHERE s.id = u."segmentId"
-    )
-    ON CONFLICT ("workspaceId", "userId", "segmentId")
-    DO UPDATE SET
-        "inSegment" = EXCLUDED."inSegment"
-  `;
-
-  try {
-    await prisma().$executeRaw(query);
-  } catch (e) {
-    if (
-      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
-    ) {
-      throw e;
-    } else {
-      logger().debug("P2003 error", e);
-    }
-  }
-}
 
 export function getSegmentNode(
   definition: SegmentDefinition,
@@ -789,4 +819,55 @@ export async function findRecentlyUpdatedUsersInSegment({
   });
   const rows = await result.json<{ userId: string }>();
   return rows;
+}
+
+export async function insertSegmentAssignments(
+  rawAssignments: SegmentBulkUpsertItem[],
+) {
+  const client = clickhouseClient();
+  const assignments = rawAssignments.map((assignment) => ({
+    workspace_id: assignment.workspaceId,
+    type: "segment",
+    user_id: assignment.userId,
+    computed_property_id: assignment.segmentId,
+    segment_value: assignment.inSegment,
+  }));
+  await client.insert({
+    table: "computed_property_assignments_v2",
+    values: assignments,
+    format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+}
+
+export async function getSegmentAssignmentDb({
+  workspaceId,
+  segmentId,
+  userId,
+}: {
+  workspaceId: string;
+  segmentId: string;
+  userId: string;
+}): Promise<boolean | null> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const segmentIdParam = qb.addQueryValue(segmentId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const query = `
+    SELECT
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND computed_property_id = ${segmentIdParam}
+      AND user_id = ${userIdParam}
+    GROUP BY computed_property_id, user_id
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{ latest_segment_value: boolean }>();
+  return rows[0]?.latest_segment_value ?? null;
 }

@@ -10,7 +10,7 @@ import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
 import { withSpan } from "../../openTelemetry";
 import prisma from "../../prisma";
-import { calculateKeyedSegment } from "../../segments";
+import { calculateKeyedSegment, getSegmentAssignmentDb } from "../../segments";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
@@ -272,27 +272,6 @@ export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
   await recordNodeProcessed(params);
 }
 
-async function getSegmentAssignmentDb({
-  workspaceId,
-  segmentId,
-  userId,
-}: {
-  workspaceId: string;
-  segmentId: string;
-  userId: string;
-}): Promise<SegmentAssignment | null> {
-  const assignment = await prisma().segmentAssignment.findUnique({
-    where: {
-      workspaceId_userId_segmentId: {
-        workspaceId,
-        segmentId,
-        userId,
-      },
-    },
-  });
-  return assignment;
-}
-
 export async function getSegmentAssignment(
   params: OptionalAllOrNothing<
     {
@@ -342,18 +321,24 @@ export async function getSegmentAssignment(
       )
     ) {
       span.setAttribute("version", GetSegmentAssignmentVersion.V1);
-      const assignment = await getSegmentAssignmentDb({
-        workspaceId,
-        segmentId,
-        userId,
-      });
+      const assignment =
+        (await getSegmentAssignmentDb({
+          workspaceId,
+          segmentId,
+          userId,
+        })) ?? false;
 
       span.setAttributes({
         source: "db",
-        inSegment: String(assignment?.inSegment),
+        inSegment: String(assignment),
       });
 
-      return assignment;
+      return {
+        userId,
+        workspaceId,
+        segmentId,
+        inSegment: assignment,
+      };
     }
 
     const definitionResult = schemaValidateWithErr(
@@ -371,16 +356,22 @@ export async function getSegmentAssignment(
     }
     const { entryNode } = definitionResult.value;
     if (entryNode.type !== SegmentNodeType.KeyedPerformed) {
-      const assignment = await getSegmentAssignmentDb({
-        workspaceId,
-        segmentId,
-        userId,
-      });
+      const assignment =
+        (await getSegmentAssignmentDb({
+          workspaceId,
+          segmentId,
+          userId,
+        })) ?? false;
       span.setAttributes({
         source: "db",
-        inSegment: String(assignment?.inSegment),
+        inSegment: String(assignment),
       });
-      return assignment;
+      return {
+        userId,
+        workspaceId,
+        segmentId,
+        inSegment: assignment,
+      };
     }
     const inSegment = calculateKeyedSegment({
       events: params.events,
@@ -463,5 +454,5 @@ export async function shouldReEnter({
     segmentId: definition.entryNode.segment,
     userId,
   });
-  return assignment?.inSegment ?? definition.entryNode.reEnter === true;
+  return assignment === true && definition.entryNode.reEnter === true;
 }

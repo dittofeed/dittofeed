@@ -1,16 +1,16 @@
 /* eslint-disable no-await-in-loop */
+import {
+  computeAssignments,
+  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
+  computeState,
+  processAssignments,
+} from "../../../computedProperties/computePropertiesIncremental";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import { findAllUserPropertyResources } from "../../../userProperties";
-import {
-  computeAssignments,
-  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
-  computeState,
-  processAssignments,
-} from "../../computePropertiesIncremental";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
