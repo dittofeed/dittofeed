@@ -70,6 +70,7 @@ export async function findAllSegmentAssignmentsByIds({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
+  // FIXME
   const query = `
     SELECT computed_property_id, segment_value FROM computed_property_assignments_v2
     WHERE workspace_id = ${workspaceIdParam}
@@ -110,21 +111,25 @@ export async function findAllSegmentAssignments({
     ? `AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}`
     : "";
   const query = `
-    SELECT computed_property_id, segment_value FROM computed_property_assignments_v2
-    WHERE workspace_id = ${workspaceIdParam}
-    AND type = 'segment'
-    AND user_id = ${userIdParam}
-    AND segment_value = true
-    ${segmentIdsClause}
+    SELECT
+      computed_property_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE 
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND user_id = ${userIdParam}
+      ${segmentIdsClause}
+    GROUP BY computed_property_id
   `;
   const result = await chQuery({ query, query_params: qb.getQueries() });
   const rows = await result.json<{
     computed_property_id: string;
-    segment_value: boolean;
+    latest_segment_value: boolean;
   }>();
   const assignmentMap = new Map<string, boolean>();
   for (const row of rows) {
-    assignmentMap.set(row.computed_property_id, row.segment_value);
+    assignmentMap.set(row.computed_property_id, row.latest_segment_value);
   }
   logger().debug({ rows, assignmentMap, segments }, "assignment map");
   const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
@@ -442,6 +447,7 @@ async function getWorkspaceSegmentAssignments({
 }) {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  // FIXME
   const query = `
     SELECT computed_property_id, segment_value, user_id FROM computed_property_assignments_v2
     WHERE workspace_id = ${workspaceIdParam}
@@ -837,6 +843,7 @@ export async function getSegmentAssignmentDb({
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
+  // FIXME
   const query = `
     SELECT segment_value FROM computed_property_assignments_v2
     WHERE workspace_id = ${workspaceIdParam}
