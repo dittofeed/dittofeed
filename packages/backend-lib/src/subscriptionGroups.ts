@@ -16,6 +16,7 @@ import prisma from "./prisma";
 import {
   findAllSegmentAssignments,
   findAllSegmentAssignmentsByIds,
+  insertSegmentAssignments,
 } from "./segments";
 import {
   EventType,
@@ -529,24 +530,14 @@ export async function updateUserSubscriptions({
         );
         return [];
       }
-      return prisma().segmentAssignment.upsert({
-        where: {
-          workspaceId_userId_segmentId: {
-            workspaceId,
-            userId,
-            segmentId: segment.id,
-          },
-        },
-        create: {
+      return insertSegmentAssignments([
+        {
           workspaceId,
           userId,
           segmentId: segment.id,
           inSegment: isSubscribed,
         },
-        update: {
-          inSegment: isSubscribed,
-        },
-      });
+      ]);
     },
   );
 
