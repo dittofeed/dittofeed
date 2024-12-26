@@ -886,6 +886,7 @@ export async function findUserIdsByUserPropertyValue({
     return null;
   }
   const qb = new ClickHouseQueryBuilder();
+  // FIXME
   const query = `
     select user_id
     from computed_property_assignments_v2

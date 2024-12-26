@@ -70,23 +70,27 @@ export async function findAllSegmentAssignmentsByIds({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
-  // FIXME
   const query = `
-    SELECT computed_property_id, segment_value FROM computed_property_assignments_v2
-    WHERE workspace_id = ${workspaceIdParam}
-    AND type = 'segment'
-    AND user_id = ${userIdParam}
-    AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}
+    SELECT
+      computed_property_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND user_id = ${userIdParam}
+      AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}
+    GROUP BY computed_property_id
   `;
 
   const result = await chQuery({ query, query_params: qb.getQueries() });
   const rows = await result.json<{
     computed_property_id: string;
-    segment_value: boolean;
+    latest_segment_value: boolean;
   }>();
   return rows.map((row) => ({
     segmentId: row.computed_property_id,
-    inSegment: row.segment_value,
+    inSegment: row.latest_segment_value,
   }));
 }
 
@@ -115,7 +119,7 @@ export async function findAllSegmentAssignments({
       computed_property_id,
       argMax(segment_value, assigned_at) as latest_segment_value
     FROM computed_property_assignments_v2
-    WHERE 
+    WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
       AND user_id = ${userIdParam}
@@ -447,21 +451,26 @@ async function getWorkspaceSegmentAssignments({
 }) {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  // FIXME
   const query = `
-    SELECT computed_property_id, segment_value, user_id FROM computed_property_assignments_v2
-    WHERE workspace_id = ${workspaceIdParam}
-    AND type = 'segment'
+    SELECT
+      computed_property_id,
+      user_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+    GROUP BY computed_property_id, user_id
   `;
   const result = await chQuery({ query, query_params: qb.getQueries() });
   const rows = await result.json<{
     computed_property_id: string;
-    segment_value: boolean;
+    latest_segment_value: boolean;
     user_id: string;
   }>();
   return rows.map((row) => ({
     segmentId: row.computed_property_id,
-    inSegment: row.segment_value,
+    inSegment: row.latest_segment_value,
     userId: row.user_id,
   }));
 }
@@ -843,18 +852,21 @@ export async function getSegmentAssignmentDb({
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
-  // FIXME
   const query = `
-    SELECT segment_value FROM computed_property_assignments_v2
-    WHERE workspace_id = ${workspaceIdParam}
-    AND type = 'segment'
-    AND computed_property_id = ${segmentIdParam}
-    AND user_id = ${userIdParam}
+    SELECT
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND computed_property_id = ${segmentIdParam}
+      AND user_id = ${userIdParam}
+    GROUP BY computed_property_id, user_id
   `;
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
   });
-  const rows = await result.json<{ segment_value: boolean }>();
-  return rows[0]?.segment_value ?? null;
+  const rows = await result.json<{ latest_segment_value: boolean }>();
+  return rows[0]?.latest_segment_value ?? null;
 }
