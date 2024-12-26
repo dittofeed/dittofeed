@@ -886,15 +886,17 @@ export async function findUserIdsByUserPropertyValue({
     return null;
   }
   const qb = new ClickHouseQueryBuilder();
-  // FIXME
   const query = `
-    select user_id
+    select
+      user_id,
+      argMax(user_property_value, assigned_at) as latest_user_property_value
     from computed_property_assignments_v2
     where
       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
       and type = 'user_property'
       and computed_property_id = ${qb.addQueryValue(userProperty.id, "String")}
-      and user_property_value = ${qb.addQueryValue(value, "String")}
+    group by user_id
+    having latest_user_property_value = ${qb.addQueryValue(value, "String")}
   `;
   const result = await chQuery({
     query,

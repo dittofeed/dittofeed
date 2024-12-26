@@ -951,7 +951,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -1027,7 +1026,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1141,7 +1140,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1242,7 +1241,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1343,7 +1342,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                test: false,
+                test: null,
               },
             },
           ],
@@ -1611,7 +1610,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                andSegment: false,
+                andSegment: null,
               },
             },
           ],
@@ -1728,7 +1727,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                newUsers: false,
+                newUsers: null,
               },
             },
           ],
@@ -1891,7 +1890,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                newUsers: false,
+                newUsers: null,
               },
             },
           ],
@@ -2104,7 +2103,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                stuckOnboarding: false,
+                stuckOnboarding: null,
               },
             },
           ],
@@ -2233,7 +2232,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -2282,7 +2281,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -2331,7 +2330,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyStartedOnboarding: false,
+                recentlyStartedOnboarding: null,
               },
             },
           ],
@@ -5154,7 +5153,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                updatedPerformed: false,
+                updatedPerformed: null,
               },
             },
           ],
@@ -5507,7 +5506,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                recentlyPerformed: false,
+                recentlyPerformed: null,
               },
             },
           ],
@@ -5666,7 +5665,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                updatedPerformed: false,
+                updatedPerformed: null,
               },
             },
           ],

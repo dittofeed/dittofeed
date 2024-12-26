@@ -125,6 +125,7 @@ export async function findAllSegmentAssignments({
       AND user_id = ${userIdParam}
       ${segmentIdsClause}
     GROUP BY computed_property_id
+    HAVING latest_segment_value = true
   `;
   const result = await chQuery({ query, query_params: qb.getQueries() });
   const rows = await result.json<{
