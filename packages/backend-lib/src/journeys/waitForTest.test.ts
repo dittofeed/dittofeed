@@ -25,6 +25,7 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
+import { insertSegmentAssignments } from "../segments";
 
 jest.setTimeout(15000);
 
@@ -173,31 +174,25 @@ describe("journeys with wait-for nodes", () => {
           },
         }),
       ]);
-      await Promise.all([
-        prisma().segmentAssignment.create({
-          data: {
-            workspaceId: workspace.id,
-            segmentId: entrySegmentId,
-            userId: userId1,
-            inSegment: true,
-          },
-        }),
-        prisma().segmentAssignment.create({
-          data: {
-            workspaceId: workspace.id,
-            segmentId: waitForSegmentId,
-            userId: userId2,
-            inSegment: false,
-          },
-        }),
-        prisma().segmentAssignment.create({
-          data: {
-            workspaceId: workspace.id,
-            segmentId: waitForSegmentId,
-            userId: userId1,
-            inSegment: true,
-          },
-        }),
+      await insertSegmentAssignments([
+        {
+          workspaceId: workspace.id,
+          segmentId: entrySegmentId,
+          userId: userId1,
+          inSegment: true,
+        },
+        {
+          workspaceId: workspace.id,
+          segmentId: waitForSegmentId,
+          userId: userId2,
+          inSegment: false,
+        },
+        {
+          workspaceId: workspace.id,
+          segmentId: waitForSegmentId,
+          userId: userId1,
+          inSegment: true,
+        },
       ]);
     });
 
