@@ -58,7 +58,7 @@ async function createWorkspace(status: WorkspaceStatus): Promise<{
   await prisma().computedPropertyPeriod.create({
     data: {
       id: randomUUID(),
-      step: ComputedPropertyStep.ProcessAssignments,
+      step: ComputedPropertyStep.ComputeAssignments,
       from: new Date(Date.now() - 1000 * 60),
       to: new Date(),
       type: "Segment",

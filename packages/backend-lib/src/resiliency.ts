@@ -172,7 +172,7 @@ export async function findActiveWorkspaces(): Promise<{
         FROM "ComputedPropertyPeriod"
         JOIN "Workspace" ON "ComputedPropertyPeriod"."workspaceId" = "Workspace"."id"
         WHERE
-          "step" = ${ComputedPropertyStep.ProcessAssignments}
+          "step" = ${ComputedPropertyStep.ComputeAssignments}
           AND "Workspace"."status" = ${WorkspaceStatus.Active}::text::\"WorkspaceStatus\"
         GROUP BY "workspaceId";
       `;
