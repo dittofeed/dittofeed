@@ -1363,12 +1363,17 @@ export async function sendEmail({
           bcc.map((email) => ({ email, type: "bcc" })),
         );
       }
+      if (replyTo) {
+        headers["Reply-To"] = replyTo;
+      }
+
       const mailData: MailChimpMessage = {
         html: body,
         text: body,
         from_name: emailName,
         preserve_recipients: true,
         subject,
+        headers,
         to: mailChimpTo,
         attachments: attachments?.map(({ name, data, mimeType }) => ({
           type: mimeType,
