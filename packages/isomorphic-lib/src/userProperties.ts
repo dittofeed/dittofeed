@@ -90,6 +90,7 @@ export function fileUserPropertyToPerformed({
   return {
     type: UserPropertyDefinitionType.Performed,
     id: userProperty.id,
+    skipReCompute: userProperty.skipReCompute,
     event: "*",
     path,
   };

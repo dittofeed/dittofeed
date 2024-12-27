@@ -19963,6 +19963,9 @@
                                                 "File"
                                               ]
                                             },
+                                            "skipReCompute": {
+                                              "type": "boolean"
+                                            },
                                             "name": {
                                               "type": "string"
                                             }
@@ -20151,6 +20154,9 @@
                                     "enum": [
                                       "File"
                                     ]
+                                  },
+                                  "skipReCompute": {
+                                    "type": "boolean"
                                   },
                                   "name": {
                                     "type": "string"
@@ -20498,6 +20504,9 @@
                                               "File"
                                             ]
                                           },
+                                          "skipReCompute": {
+                                            "type": "boolean"
+                                          },
                                           "name": {
                                             "type": "string"
                                           }
@@ -20686,6 +20695,9 @@
                                   "enum": [
                                     "File"
                                   ]
+                                },
+                                "skipReCompute": {
+                                  "type": "boolean"
                                 },
                                 "name": {
                                   "type": "string"
@@ -21125,6 +21137,9 @@
                                                     "File"
                                                   ]
                                                 },
+                                                "skipReCompute": {
+                                                  "type": "boolean"
+                                                },
                                                 "name": {
                                                   "type": "string"
                                                 }
@@ -21313,6 +21328,9 @@
                                         "enum": [
                                           "File"
                                         ]
+                                      },
+                                      "skipReCompute": {
+                                        "type": "boolean"
                                       },
                                       "name": {
                                         "type": "string"
@@ -27328,6 +27346,9 @@
                                                 "File"
                                               ]
                                             },
+                                            "skipReCompute": {
+                                              "type": "boolean"
+                                            },
                                             "name": {
                                               "type": "string"
                                             }
@@ -27516,6 +27537,9 @@
                                     "enum": [
                                       "File"
                                     ]
+                                  },
+                                  "skipReCompute": {
+                                    "type": "boolean"
                                   },
                                   "name": {
                                     "type": "string"
@@ -27863,6 +27887,9 @@
                                               "File"
                                             ]
                                           },
+                                          "skipReCompute": {
+                                            "type": "boolean"
+                                          },
                                           "name": {
                                             "type": "string"
                                           }
@@ -28051,6 +28078,9 @@
                                   "enum": [
                                     "File"
                                   ]
+                                },
+                                "skipReCompute": {
+                                  "type": "boolean"
                                 },
                                 "name": {
                                   "type": "string"
@@ -28490,6 +28520,9 @@
                                                     "File"
                                                   ]
                                                 },
+                                                "skipReCompute": {
+                                                  "type": "boolean"
+                                                },
                                                 "name": {
                                                   "type": "string"
                                                 }
@@ -28678,6 +28711,9 @@
                                         "enum": [
                                           "File"
                                         ]
+                                      },
+                                      "skipReCompute": {
+                                        "type": "boolean"
                                       },
                                       "name": {
                                         "type": "string"

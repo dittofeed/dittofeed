@@ -589,6 +589,7 @@ export const FileUserPropertyDefinition = Type.Object(
   {
     id: Type.Optional(Type.String()),
     type: Type.Literal(UserPropertyDefinitionType.File),
+    skipReCompute: Type.Optional(Type.Boolean()),
     name: Type.String(),
   },
   {
