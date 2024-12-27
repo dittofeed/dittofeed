@@ -117,7 +117,6 @@ export const Image = Node.create({
   addOptions() {},
 
   addAttributes() {
-    console.log("loc4");
     return {
       url: {
         default: "https://storage.googleapis.com/dittofeed-public/logo.png",
@@ -155,9 +154,8 @@ export const Image = Node.create({
     return {
       setDfImage:
         () =>
-        ({ chain }) => {
-          console.log("loc2");
-          return chain()
+        ({ chain }) =>
+          chain()
             .insertContent({
               type: this.name,
               attrs: {
@@ -165,8 +163,7 @@ export const Image = Node.create({
               },
             })
             .blur()
-            .run();
-        },
+            .run(),
     };
   },
 });
