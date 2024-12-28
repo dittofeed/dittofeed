@@ -3,6 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
+import { eq } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -19,7 +20,10 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { db, queryResult } from "./db";
-import { segment as dbSegment } from "./db/schema";
+import {
+  segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -498,18 +502,14 @@ export async function buildSegmentsFile({
 }> {
   const identifiers = Object.values(CHANNEL_IDENTIFIERS);
   const [segments, userIdentifiers, segmentAssignments] = await Promise.all([
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-      include: {
-        subscriptionGroup: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    }),
+    db()
+      .select()
+      .from(dbSegment)
+      .where(eq(dbSegment.workspaceId, workspaceId))
+      .leftJoin(
+        dbSubscriptionGroup,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      ),
     findAllUserPropertyAssignmentsForWorkspace({
       workspaceId,
     }),
@@ -517,7 +517,7 @@ export async function buildSegmentsFile({
   ]);
   const segmentMap = new Map<string, (typeof segments)[number]>();
   for (const segment of segments) {
-    segmentMap.set(segment.id, segment);
+    segmentMap.set(segment.Segment.id, segment);
   }
 
   const assignments: Record<string, string>[] = segmentAssignments.flatMap(
@@ -534,8 +534,8 @@ export async function buildSegmentsFile({
         return [];
       }
       const csvAssignment: Record<string, string> = {
-        segmentName: segment.name,
-        subscriptionGroupName: segment.subscriptionGroup?.name ?? "",
+        segmentName: segment.Segment.name,
+        subscriptionGroupName: segment.SubscriptionGroup?.name ?? "",
         segmentId: a.segmentId,
         userId: a.userId,
         inSegment: a.inSegment.toString(),
