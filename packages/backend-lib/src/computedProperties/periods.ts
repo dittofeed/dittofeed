@@ -1,5 +1,12 @@
 import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
+import { and, eq, max } from "drizzle-orm";
 
+import { db } from "../db";
+import {
+  computedPropertyPeriod as dbComputedPropertyPeriod,
+  segment as dbSegment,
+  userProperty as dbUserProperty,
+} from "../db/schema";
 import logger from "../logger";
 import prisma from "../prisma";
 import {
@@ -75,8 +82,41 @@ export async function getPeriodsByComputedPropertyId({
       AND "step" = ${step}
     ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
-  const periods =
-    await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(periodsQuery);
+
+  const result = await db()
+    .selectDistinctOn(
+      [
+        dbComputedPropertyPeriod.workspaceId,
+        dbComputedPropertyPeriod.type,
+        dbComputedPropertyPeriod.computedPropertyId,
+      ],
+      {
+        type: dbComputedPropertyPeriod.type,
+        computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+        version: dbComputedPropertyPeriod.version,
+        maxTo: max(dbComputedPropertyPeriod.to),
+      },
+    )
+    .from(dbComputedPropertyPeriod)
+    .where(
+      and(
+        eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+        eq(dbComputedPropertyPeriod.step, step),
+      ),
+    )
+    .leftJoin(
+      dbSegment,
+      eq(dbComputedPropertyPeriod.computedPropertyId, dbSegment.id),
+    )
+    .leftJoin(
+      dbUserProperty,
+      eq(dbComputedPropertyPeriod.computedPropertyId, dbUserProperty.id),
+    )
+    .groupBy(
+      dbComputedPropertyPeriod.workspaceId,
+      dbComputedPropertyPeriod.type,
+      dbComputedPropertyPeriod.computedPropertyId,
+    );
 
   const periodByComputedPropertyId =
     periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
