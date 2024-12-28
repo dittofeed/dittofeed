@@ -18,7 +18,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
-import db from "./db";
+import db, { queryResult } from "./db";
 import { segment as dbSegment } from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
@@ -361,17 +361,30 @@ export async function upsertSegment(
     });
   }
 
-  const where: Prisma.SegmentWhereUniqueInput = params.id
-    ? {
-        workspaceId: params.workspaceId,
-        id: params.id,
-      }
-    : {
-        workspaceId_name: {
-          workspaceId: params.workspaceId,
+  const value: typeof dbSegment.$inferInsert = {
+    id: params.id ?? randomUUID(),
+    workspaceId: params.workspaceId,
+    name: params.name,
+    definition: params.definition,
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  await queryResult(
+    db
+      .insert(dbSegment)
+      .values(value)
+      .onConflictDoUpdate({
+        target: [dbSegment.workspaceId, dbSegment.name],
+        set: {
+          definition: params.definition,
           name: params.name,
+          definitionUpdatedAt: params.definition
+            ? new Date().toISOString()
+            : undefined,
         },
-      };
+      }),
+  );
 
   let segment: Segment;
   try {
