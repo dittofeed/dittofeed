@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 
-import config from "../config";
+import config from "./config";
 
 export type QueryError = Error & { code: PostgresError };
 
@@ -26,6 +26,13 @@ export async function queryResult<D, P extends QueryPromise<D>>(
   }
 }
 
-const db = drizzle(config().databaseUrl);
+let DB: ReturnType<typeof drizzle> | null = null;
 
-export default db;
+export function db(): ReturnType<typeof drizzle> {
+  if (!DB) {
+    const d = drizzle(config().databaseUrl);
+    DB = d;
+    return d;
+  }
+  return DB;
+}

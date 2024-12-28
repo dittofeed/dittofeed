@@ -18,7 +18,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
-import db, { queryResult } from "./db";
+import { db, queryResult } from "./db";
 import { segment as dbSegment } from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
@@ -169,7 +169,7 @@ export async function createSegment({
     createdAt: new Date().toISOString(),
   };
 
-  await db.insert(dbSegment).values(segment);
+  await db().insert(dbSegment).values(segment);
 }
 
 export function toSegmentResource(
@@ -371,7 +371,7 @@ export async function upsertSegment(
   };
 
   const result = await queryResult(
-    db
+    db()
       .insert(dbSegment)
       .values(value)
       .onConflictDoUpdate({
