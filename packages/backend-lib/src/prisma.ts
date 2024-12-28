@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { type PrismaClient } from "@prisma/client";
 
 import buildConfig from "./prisma/buildConfig";
 
@@ -19,6 +19,12 @@ export { Prisma } from "@prisma/client";
 
 function prisma(): PrismaClient {
   if (!PRISMA) {
+    // load at runtime to enable transition to drizzle. that way if a code path
+    // doesn't use it, it doesn't get loaded
+    const { PrismaClient } =
+      // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+      require("@prisma/client") as typeof import("@prisma/client");
+
     if (process.env.NODE_ENV === "production") {
       PRISMA = new PrismaClient(buildConfig());
     } else {
