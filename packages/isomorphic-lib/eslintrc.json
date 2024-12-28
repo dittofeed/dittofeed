@@ -1,3 +1,4 @@
 {
-  "extends": ["plugin:@typescript-eslint/recommended-requiring-type-checking"]
+  "extends": ["plugin:@typescript-eslint/recommended-requiring-type-checking"],
+  "ignorePatterns": ["./src/db"]
 }

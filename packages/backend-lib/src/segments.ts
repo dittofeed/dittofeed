@@ -1,7 +1,9 @@
 import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
+import { randomUUID } from "crypto";
 import { format } from "date-fns";
+import { eq } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -16,6 +18,8 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import db from "./db";
+import { segment as dbSegment } from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -156,12 +160,12 @@ export async function createSegment({
   workspaceId: string;
   definition: SegmentDefinition;
 }) {
-  await prisma().segment.create({
-    data: {
-      workspaceId,
-      name,
-      definition,
-    },
+  await db.insert(dbSegment).values({
+    workspaceId,
+    name,
+    definition,
+    updatedAt: new Date(),
+    createdAt: new Date(),
   });
 }
 
