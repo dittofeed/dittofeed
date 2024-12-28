@@ -160,13 +160,16 @@ export async function createSegment({
   workspaceId: string;
   definition: SegmentDefinition;
 }) {
-  await db.insert(dbSegment).values({
+  const segment: typeof dbSegment.$inferInsert = {
+    id: randomUUID(),
     workspaceId,
     name,
     definition,
-    updatedAt: new Date(),
-    createdAt: new Date(),
-  });
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.insert(dbSegment).values(segment);
 }
 
 export function toSegmentResource(
