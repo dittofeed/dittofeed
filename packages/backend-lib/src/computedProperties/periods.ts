@@ -82,7 +82,31 @@ export async function getPeriodsByComputedPropertyId({
       AND "step" = ${step}
     ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
+  const periods =
+    await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(periodsQuery);
 
+  const periodByComputedPropertyId =
+    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
+      const { maxTo } = period;
+      const key = PeriodByComputedPropertyId.getKey(period);
+      acc.set(key, {
+        maxTo,
+        computedPropertyId: period.computedPropertyId,
+        version: period.version,
+      });
+      return acc;
+    }, new Map());
+
+  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
+}
+
+export async function getPeriodsByComputedPropertyIdV2({
+  workspaceId,
+  step,
+}: {
+  workspaceId: string;
+  step: ComputedPropertyStep;
+}): Promise<PeriodByComputedPropertyId> {
   const result = await db()
     .selectDistinctOn(
       [
@@ -119,7 +143,7 @@ export async function getPeriodsByComputedPropertyId({
     );
 
   const periodByComputedPropertyId =
-    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
+    result.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
       const key = PeriodByComputedPropertyId.getKey(period);
       acc.set(key, {
