@@ -11070,6 +11070,7 @@ __metadata:
     nodemailer: "npm:^6.9.7"
     p-limit: "npm:^3.1.0"
     pg: "npm:^8.13.1"
+    pg-error-enum: "npm:^0.7.3"
     pino: "npm:9.3.1"
     pino-pretty: "npm:11.2.1"
     postmark: "npm:^4.0.2"
@@ -21347,6 +21348,13 @@ __metadata:
   version: 2.7.0
   resolution: "pg-connection-string@npm:2.7.0"
   checksum: 10/68015a8874b7ca5dad456445e4114af3d2602bac2fdb8069315ecad0ff9660ec93259b9af7186606529ac4f6f72a06831e6f20897a689b16cc7fda7ca0e247fd
+  languageName: node
+  linkType: hard
+
+"pg-error-enum@npm:^0.7.3":
+  version: 0.7.3
+  resolution: "pg-error-enum@npm:0.7.3"
+  checksum: 10/1aa628c15ef9173b890b276051e5438f385b0f4b741b5e2e15f26cea4c430ab54eb12ac3a6e9dc1f063f27b1a27982b68fe00c7930b91d3e6f07d1dbc5af74bd
   languageName: node
   linkType: hard
 

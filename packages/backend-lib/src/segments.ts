@@ -2,8 +2,8 @@ import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
+import { PostgresError } from "pg-error-enum";
 import { format } from "date-fns";
-import { eq } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -370,7 +370,7 @@ export async function upsertSegment(
     createdAt: new Date().toISOString(),
   };
 
-  await queryResult(
+  const result = await queryResult(
     db
       .insert(dbSegment)
       .values(value)
@@ -383,8 +383,16 @@ export async function upsertSegment(
             ? new Date().toISOString()
             : undefined,
         },
-      }),
+      })
+      .returning(),
   );
+  if (result.isErr() && result.error.code === PostgresError.UNIQUE_VIOLATION) {
+    return err({
+      type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
+      message:
+        "Names must be unique in workspace. Id's must be globally unique.",
+    });
+  }
 
   let segment: Segment;
   try {
