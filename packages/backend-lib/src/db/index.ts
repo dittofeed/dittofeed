@@ -14,7 +14,7 @@ function isQueryError(e: unknown): e is QueryError {
 
 export async function queryResult<D, P extends QueryPromise<D>>(
   promise: P,
-): Promise<Result<D, QueryError>> {
+): Promise<Result<Awaited<P>, QueryError>> {
   try {
     const result = await promise;
     return ok(result);

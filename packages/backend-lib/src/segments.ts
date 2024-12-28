@@ -2,7 +2,6 @@ import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
-import { PostgresError } from "pg-error-enum";
 import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
@@ -11,6 +10,7 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -386,43 +386,10 @@ export async function upsertSegment(
       })
       .returning(),
   );
-  if (result.isErr() && result.error.code === PostgresError.UNIQUE_VIOLATION) {
-    return err({
-      type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
-      message:
-        "Names must be unique in workspace. Id's must be globally unique.",
-    });
-  }
-
-  let segment: Segment;
-  try {
-    if (params.definition) {
-      segment = await prisma().segment.upsert({
-        where,
-        update: {
-          definition: params.definition,
-          name: params.name,
-          definitionUpdatedAt: new Date(),
-        },
-        create: {
-          workspaceId: params.workspaceId,
-          name: params.name,
-          definition: params.definition,
-          id: params.id,
-        },
-      });
-    } else {
-      segment = await prisma().segment.update({
-        where,
-        data: {
-          name: params.name,
-        },
-      });
-    }
-  } catch (e) {
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      result.error.code === PostgresError.UNIQUE_VIOLATION
     ) {
       return err({
         type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
@@ -430,16 +397,32 @@ export async function upsertSegment(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
+
+  const insertedSegment = result.value[0];
+  if (!insertedSegment) {
+    logger().error(
+      {
+        result,
+        params,
+        workspaceId: params.workspaceId,
+      },
+      "No segment inserted",
+    );
+    throw new Error("No segment inserted");
+  }
+
   return ok({
-    id: segment.id,
-    workspaceId: segment.workspaceId,
-    name: segment.name,
-    definition: segment.definition as SegmentDefinition,
-    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
-    updatedAt: segment.updatedAt.getTime(),
-    createdAt: segment.createdAt.getTime(),
+    id: insertedSegment.id,
+    workspaceId: insertedSegment.workspaceId,
+    name: insertedSegment.name,
+    definition: insertedSegment.definition as SegmentDefinition,
+    definitionUpdatedAt: new Date(
+      insertedSegment.definitionUpdatedAt,
+    ).getTime(),
+    updatedAt: new Date(insertedSegment.updatedAt).getTime(),
+    createdAt: new Date(insertedSegment.createdAt).getTime(),
   });
 }
 
