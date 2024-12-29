@@ -9,25 +9,38 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
 } from "../types";
-import { createPeriods, getEarliestComputePropertyPeriod } from "./periods";
+import {
+  createPeriods,
+  getEarliestComputePropertyPeriod,
+  getPeriodsByComputedPropertyId,
+} from "./periods";
+import { workspace as dbWorkspace, segment as dbSegment } from "../db/schema";
+import { db } from "../db";
 
 describe("periods", () => {
+  let workspace: typeof dbWorkspace.$inferSelect;
+
   describe("getEarliestComputePropertyPeriod", () => {
-    let workspaceId: string;
     let date1: number;
     let date2: number;
 
     beforeEach(async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
+      workspace = await db()
+        .insert(dbWorkspace)
+        .values({
+          id: randomUUID(),
           name: `workspace-${randomUUID()}`,
-        },
-      });
-      workspaceId = workspace.id;
-      const segment1 = await prisma().segment.create({
-        data: {
-          workspaceId,
+          updatedAt: new Date().toISOString(),
+          // createdAt: new Date().toISOString(),
+        })
+        .returning();
+
+      const segment1 = await db()
+        .insert(dbSegment)
+        .values({
+          workspaceId: workspace.id,
           name: `segment-${randomUUID()}`,
+          id: randomUUID(),
           definition: {
             entryNode: {
               id: "1",
@@ -39,12 +52,15 @@ describe("periods", () => {
               },
             },
             nodes: [],
-          } satisfies SegmentDefinition,
-        },
-      });
-      const segment2 = await prisma().segment.create({
-        data: {
-          workspaceId,
+          },
+          updatedAt: new Date().toISOString(),
+        })
+        .returning();
+
+      const segment2 = await db()
+        .insert(dbSegment)
+        .values({
+          workspaceId: workspace.id,
           name: `segment-${randomUUID()}`,
           definition: {
             entryNode: {
@@ -57,12 +73,14 @@ describe("periods", () => {
               },
             },
             nodes: [],
-          } satisfies SegmentDefinition,
-        },
-      });
+          },
+          updatedAt: new Date().toISOString(),
+        })
+        .returning();
+
       date1 = Date.now();
       await createPeriods({
-        workspaceId,
+        workspaceId: workspace.id,
         segments: [unwrap(toSegmentResource(segment1))],
         userProperties: [],
         now: date1,
@@ -71,7 +89,7 @@ describe("periods", () => {
 
       date2 = date1 + 1000 * 60 * 3;
       await createPeriods({
-        workspaceId,
+        workspaceId: workspace.id,
         segments: [unwrap(toSegmentResource(segment2))],
         userProperties: [],
         now: date2,
@@ -80,8 +98,20 @@ describe("periods", () => {
     });
 
     it("should return the earliest computed property period", async () => {
-      const period = await getEarliestComputePropertyPeriod({ workspaceId });
+      const period = await getEarliestComputePropertyPeriod({
+        workspaceId: workspace.id,
+      });
       expect(period).toEqual(date1);
     });
   });
+
+  // describe("getPeriodsByComputedPropertyId", () => {
+  //   it("should return the latest computed property period", async () => {
+  //     const period = await getPeriodsByComputedPropertyId({
+  //       workspaceId: ,
+  //       step: ComputedPropertyStep.ProcessAssignments,
+  //     });
+  //     expect(period).toEqual(date2);
+  //   });
+  // });
 });

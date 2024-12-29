@@ -146,8 +146,11 @@ export async function getPeriodsByComputedPropertyIdV2({
     result.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
       const key = PeriodByComputedPropertyId.getKey(period);
+      if (!maxTo) {
+        return acc;
+      }
       acc.set(key, {
-        maxTo,
+        maxTo: new Date(maxTo),
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
