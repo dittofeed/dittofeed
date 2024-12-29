@@ -1,4 +1,5 @@
 import { ValueError } from "@sinclair/typebox/errors";
+import { randomUUID } from "crypto";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
@@ -10,6 +11,7 @@ import {
 } from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -17,7 +19,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
-import { db } from "./db";
+import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
 import {
@@ -635,7 +637,6 @@ export async function findAllUserPropertyAssignmentsById({
 export async function upsertUserProperty(
   params: UpsertUserPropertyResource,
 ): Promise<Result<SavedUserPropertyResource, UpsertUserPropertyError>> {
-  let userProperty: UserProperty;
   const {
     id,
     name,
@@ -651,7 +652,7 @@ export async function upsertUserProperty(
   }
 
   const canCreate = workspaceId && name && definition;
-  const definitionUpdatedAt = definition ? new Date() : undefined;
+  const definitionUpdatedAt = definition ? new Date().toISOString() : undefined;
 
   if (protectedUserProperties.has(name)) {
     return err({
@@ -660,67 +661,95 @@ export async function upsertUserProperty(
     });
   }
 
-  try {
-    if (canCreate) {
-      if (id) {
-        userProperty = await prisma().userProperty.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            exampleValue,
-          },
-          update: {
-            name,
-            definition,
-            definitionUpdatedAt,
-            exampleValue,
-          },
-        });
-      } else {
-        userProperty = await prisma().userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name,
-            },
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            exampleValue,
-          },
-          update: {
-            definition,
-            definitionUpdatedAt,
-            exampleValue,
-          },
-        });
-      }
-    } else {
-      userProperty = await prisma().userProperty.update({
-        where: {
+  let result: Result<UserProperty, QueryError>;
+  if (canCreate) {
+    if (id) {
+      result = await upsert({
+        table: dbUserProperty,
+        values: {
           id,
-        },
-        data: {
           workspaceId,
           name,
           definition,
           exampleValue,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           definitionUpdatedAt,
         },
+        target: [dbUserProperty.id],
+        set: {
+          name,
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+      });
+    } else {
+      result = await upsert({
+        table: dbUserProperty,
+        values: {
+          id: randomUUID(),
+          workspaceId,
+          name,
+          definition,
+          exampleValue,
+          updatedAt: new Date().toISOString(),
+        },
+        set: {
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+        target: [dbUserProperty.workspaceId, dbUserProperty.name],
       });
     }
-  } catch (e) {
+  } else {
+    let updateResult: Result<UserProperty[], QueryError>;
+    if (id) {
+      updateResult = await queryResult(
+        db()
+          .update(dbUserProperty)
+          .set({
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          })
+          .where(eq(dbUserProperty.id, id))
+          .returning(),
+      );
+    } else {
+      updateResult = await queryResult(
+        db()
+          .update(dbUserProperty)
+          .set({
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          })
+          .where(
+            and(
+              eq(dbUserProperty.workspaceId, workspaceId),
+              eq(dbUserProperty.name, name),
+            ),
+          )
+          .returning(),
+      );
+    }
+    result = updateResult.map((r) => {
+      if (!r[0]) {
+        logger().error(
+          { workspaceId, name, id },
+          "failed to update user property",
+        );
+        throw new Error("No result returned from update");
+      }
+      return r[0];
+    });
+  }
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      result.error.code === PostgresError.UNIQUE_VIOLATION
     ) {
       return err({
         type: UpsertUserPropertyErrorType.UserPropertyAlreadyExists,
@@ -728,30 +757,20 @@ export async function upsertUserProperty(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
 
-  const userPropertyDefinitionResult = schemaValidate(
-    userProperty.definition,
-    UserPropertyDefinition,
-  );
+  const userProperty = result.value;
 
-  if (userPropertyDefinitionResult.isErr()) {
-    logger().error(
-      { err: userPropertyDefinitionResult.error, userProperty },
-      "failed to parse user property definition",
-    );
-    throw new Error("failed to parse user property definition");
-  }
   const resource: SavedUserPropertyResource = {
     id: userProperty.id,
     name: userProperty.name,
     workspaceId: userProperty.workspaceId,
-    definition: userPropertyDefinitionResult.value,
+    definition: userProperty.definition as UserPropertyDefinition,
     exampleValue: userProperty.exampleValue ?? undefined,
-    updatedAt: Number(userProperty.updatedAt),
-    createdAt: Number(userProperty.createdAt),
-    definitionUpdatedAt: Number(userProperty.definitionUpdatedAt),
+    updatedAt: new Date(userProperty.updatedAt).getTime(),
+    createdAt: new Date(userProperty.createdAt).getTime(),
+    definitionUpdatedAt: new Date(userProperty.definitionUpdatedAt).getTime(),
   };
 
   return ok(resource);

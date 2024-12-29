@@ -1,5 +1,5 @@
 // eslint-disable-next-line filenames/no-index
-import { QueryPromise, Table } from "drizzle-orm";
+import { QueryPromise, SQL, Table } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
