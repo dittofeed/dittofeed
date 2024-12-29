@@ -469,18 +469,12 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
   userProperties?: string[];
   context?: Record<string, JSONValue>[];
 }): Promise<Record<string, UserPropertyAssignments>> {
-  const where: Prisma.UserPropertyWhereInput = {
-    workspaceId,
-  };
+  const conditions: SQL[] = [eq(dbUserProperty.workspaceId, workspaceId)];
   if (userPropertiesFilter?.length) {
-    where.name = {
-      in: userPropertiesFilter,
-    };
+    conditions.push(inArray(dbUserProperty.name, userPropertiesFilter));
   }
-
-  const userProperties = await prisma().userProperty.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
   const query = `
