@@ -3,7 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, InferSelectModel, SQL } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -34,11 +34,9 @@ import {
   KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
-  Prisma,
   RelationalOperators,
   SavedSegmentResource,
   Segment,
-  SegmentAssignment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -51,7 +49,7 @@ import {
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
 
 export function enrichSegment(
-  segment: Segment,
+  segment: InferSelectModel<typeof dbSegment>,
 ): Result<EnrichedSegment, Error> {
   const definitionResult = schemaValidateWithErr(
     segment.definition,
@@ -164,16 +162,14 @@ export async function createSegment({
   workspaceId: string;
   definition: SegmentDefinition;
 }) {
-  const segment: typeof dbSegment.$inferInsert = {
+  await db().insert(dbSegment).values({
     id: randomUUID(),
     workspaceId,
     name,
     definition,
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
-  };
-
-  await db().insert(dbSegment).values(segment);
+  });
 }
 
 export function toSegmentResource(
@@ -191,18 +187,21 @@ export function toSegmentResource(
     workspaceId,
     definition,
     subscriptionGroupId: subscriptionGroupId ?? undefined,
-    updatedAt: segment.updatedAt.getTime(),
-    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
-    createdAt: segment.createdAt.getTime(),
+    updatedAt: new Date(segment.updatedAt).getTime(),
+    definitionUpdatedAt: new Date(segment.definitionUpdatedAt).getTime(),
+    createdAt: new Date(segment.createdAt).getTime(),
   });
 }
 
 export async function findEnrichedSegment(
   segmentId: string,
 ): Promise<Result<EnrichedSegment | null, Error>> {
-  const segment = await prisma().segment.findFirst({
-    where: { id: segmentId },
-  });
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(eq(dbSegment.id, segmentId));
+
+  const segment = segments[0];
   if (!segment) {
     return ok(null);
   }
@@ -217,17 +216,12 @@ export async function findEnrichedSegments({
   workspaceId: string;
   ids?: string[];
 }): Promise<Result<EnrichedSegment[], Error>> {
-  const where: Prisma.SegmentWhereInput = {
-    workspaceId,
-  };
-  if (ids) {
-    where.id = {
-      in: ids,
-    };
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (ids && ids.length > 0) {
+    conditions.push(inArray(dbSegment.id, ids));
   }
-  const segments = await prisma().segment.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const segments = await db().select().from(dbSegment).where(where);
 
   const enrichedSegments: EnrichedSegment[] = [];
   for (const segment of segments) {

@@ -1,12 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import {
-  Integration,
-  Journey,
-  Prisma,
-  Segment,
-  UserProperty,
-} from "@prisma/client";
+import { Integration, Journey, Prisma, UserProperty } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
+import { InferSelectModel } from "drizzle-orm";
 import {
   FastifyInstance,
   RawReplyDefaultExpression,
@@ -31,6 +26,8 @@ import { Result } from "neverthrow";
 import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
+import { segment as dbSegment } from "./db/schema";
+
 export * from "isomorphic-lib/src/types";
 
 export enum NodeEnvEnum {
@@ -44,6 +41,8 @@ export const NodeEnv = Type.Enum(NodeEnvEnum);
 export enum KafkaMessageTypes {
   JSON = "0",
 }
+
+export type Segment = InferSelectModel<typeof dbSegment>;
 
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
@@ -112,8 +111,6 @@ export const SegmentIOEvent = Type.Union([
 ]);
 
 export type SegmentIOEvent = Static<typeof SegmentIOEvent>;
-
-export * from "@prisma/client";
 
 export const KafkaSaslMechanism = Type.Union([
   Type.Literal("plain"),
