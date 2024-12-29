@@ -1,21 +1,15 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import prisma from "../prisma";
+import { insert } from "../db";
+import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
 import { toSegmentResource } from "../segments";
 import {
   ComputedPropertyStep,
-  SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
 } from "../types";
-import {
-  createPeriods,
-  getEarliestComputePropertyPeriod,
-  getPeriodsByComputedPropertyId,
-} from "./periods";
-import { workspace as dbWorkspace, segment as dbSegment } from "../db/schema";
-import { db } from "../db";
+import { createPeriods, getEarliestComputePropertyPeriod } from "./periods";
 
 describe("periods", () => {
   let workspace: typeof dbWorkspace.$inferSelect;
@@ -25,19 +19,20 @@ describe("periods", () => {
     let date2: number;
 
     beforeEach(async () => {
-      workspace = await db()
-        .insert(dbWorkspace)
-        .values({
-          id: randomUUID(),
-          name: `workspace-${randomUUID()}`,
-          updatedAt: new Date().toISOString(),
-          // createdAt: new Date().toISOString(),
-        })
-        .returning();
+      workspace = unwrap(
+        await insert({
+          table: dbWorkspace,
+          values: {
+            id: randomUUID(),
+            name: `workspace-${randomUUID()}`,
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      );
 
-      const segment1 = await db()
-        .insert(dbSegment)
-        .values({
+      const segment1 = await insert({
+        table: dbSegment,
+        values: {
           workspaceId: workspace.id,
           name: `segment-${randomUUID()}`,
           id: randomUUID(),
@@ -54,12 +49,13 @@ describe("periods", () => {
             nodes: [],
           },
           updatedAt: new Date().toISOString(),
-        })
-        .returning();
+        },
+      });
 
-      const segment2 = await db()
-        .insert(dbSegment)
-        .values({
+      const segment2 = await insert({
+        table: dbSegment,
+        values: {
+          id: randomUUID(),
           workspaceId: workspace.id,
           name: `segment-${randomUUID()}`,
           definition: {
@@ -75,8 +71,8 @@ describe("periods", () => {
             nodes: [],
           },
           updatedAt: new Date().toISOString(),
-        })
-        .returning();
+        },
+      });
 
       date1 = Date.now();
       await createPeriods({

@@ -75,3 +75,23 @@ export async function upsert<
   }
   return ok(result);
 }
+
+export async function insert<TTable extends Table>({
+  table,
+  values,
+}: {
+  table: TTable;
+  values: TTable["$inferInsert"];
+}): Promise<Result<TTable["$inferSelect"], QueryError>> {
+  const results = await queryResult(
+    db().insert(table).values(values).returning(),
+  );
+  if (results.isErr()) {
+    return results;
+  }
+  const result = results.value[0];
+  if (!result) {
+    throw new Error("No result returned from insert");
+  }
+  return ok(result);
+}
