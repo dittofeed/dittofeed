@@ -1,5 +1,5 @@
-import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -17,8 +17,9 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { db } from "./db";
+import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
@@ -29,6 +30,8 @@ import {
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
   UpsertUserPropertyResource,
+  UserProperty,
+  UserPropertyAssignment,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -47,6 +50,9 @@ export function enrichUserProperty(
   }
   return ok({
     ...userProperty,
+    createdAt: new Date(userProperty.createdAt),
+    updatedAt: new Date(userProperty.updatedAt),
+    definitionUpdatedAt: new Date(userProperty.definitionUpdatedAt),
     definition: definitionResult.value,
   });
 }
@@ -97,9 +103,10 @@ export async function findAllUserProperties({
 }: {
   workspaceId: string;
 }): Promise<EnrichedUserProperty[]> {
-  const userProperties = await prisma().userProperty.findMany({
-    where: { workspaceId },
-  });
+  const userProperties = await db()
+    .select()
+    .from(dbUserProperty)
+    .where(eq(dbUserProperty.workspaceId, workspaceId));
 
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
@@ -154,83 +161,6 @@ export type UserPropertyBulkUpsertItem = Pick<
   UserPropertyAssignment,
   "workspaceId" | "userId" | "userPropertyId" | "value"
 >;
-
-export async function upsertBulkUserPropertyAssignments({
-  data,
-}: {
-  data: UserPropertyBulkUpsertItem[];
-}) {
-  if (data.length === 0) {
-    return;
-  }
-  const existing = new Map<string, UserPropertyBulkUpsertItem>();
-
-  for (const item of data) {
-    const key = `${item.workspaceId}-${item.userPropertyId}-${item.userId}`;
-    if (existing.has(key)) {
-      logger().warn(
-        {
-          existing: existing.get(key),
-          new: item,
-          workspaceId: item.workspaceId,
-        },
-        "duplicate user property assignment in bulk upsert",
-      );
-      continue;
-    }
-    existing.set(key, item);
-  }
-  const deduped: UserPropertyBulkUpsertItem[] = Array.from(existing.values());
-
-  const workspaceIds: Prisma.Sql[] = [];
-  const userIds: string[] = [];
-  const userPropertyIds: Prisma.Sql[] = [];
-  const values: string[] = [];
-
-  for (const item of deduped) {
-    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
-    userIds.push(item.userId);
-    userPropertyIds.push(Prisma.sql`CAST(${item.userPropertyId} AS UUID)`);
-    values.push(item.value);
-  }
-
-  const joinedUserPropertyIds = Prisma.join(userPropertyIds);
-
-  const query = Prisma.sql`
-    WITH unnested_values AS (
-        SELECT
-            unnest(array[${Prisma.join(workspaceIds)}]) AS "workspaceId",
-            unnest(array[${Prisma.join(userIds)}]) as "userId",
-            unnest(array[${joinedUserPropertyIds}]) AS "userPropertyId",
-            unnest(array[${Prisma.join(values)}]) AS "value"
-    )
-    INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    SELECT
-        u."workspaceId",
-        u."userId",
-        u."userPropertyId",
-        u."value"
-    FROM unnested_values u
-    WHERE EXISTS (
-        SELECT 1
-        FROM "UserProperty" up
-        WHERE up.id = u."userPropertyId"
-    )
-    ON CONFLICT ("workspaceId", "userId", "userPropertyId")
-    DO UPDATE SET
-        "value" = EXCLUDED."value"
-  `;
-
-  try {
-    await prisma().$executeRaw(query);
-  } catch (e) {
-    if (
-      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
-    ) {
-      throw e;
-    }
-  }
-}
 
 interface UserPropertyAssignmentOverrideProps {
   userPropertyId: string;
@@ -437,22 +367,14 @@ async function findAllUserPropertyAssignmentsComponents({
   userProperties: UserProperty[];
   assignmentMap: Map<string, string>;
 }> {
-  const where: Prisma.UserPropertyWhereInput = {
-    workspaceId,
-  };
+  const conditions: SQL[] = [eq(dbUserProperty.workspaceId, workspaceId)];
   if (userPropertiesFilter?.length) {
-    where.name = {
-      in: userPropertiesFilter,
-    };
+    conditions.push(inArray(dbUserProperty.name, userPropertiesFilter));
   } else if (userPropertyIds?.length) {
-    where.id = {
-      in: userPropertyIds,
-    };
+    conditions.push(inArray(dbUserProperty.id, userPropertyIds));
   }
-
-  const userProperties = await prisma().userProperty.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
   const query = `
