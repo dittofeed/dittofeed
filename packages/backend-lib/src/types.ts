@@ -26,7 +26,12 @@ import { Result } from "neverthrow";
 import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
-import { segment as dbSegment } from "./db/schema";
+import {
+  segment as dbSegment,
+  segmentAssignment as dbSegmentAssignment,
+  userProperty as dbUserProperty,
+  userPropertyAssignment as dbUserPropertyAssignment,
+} from "./db/schema";
 
 export * from "isomorphic-lib/src/types";
 
@@ -43,6 +48,14 @@ export enum KafkaMessageTypes {
 }
 
 export type Segment = InferSelectModel<typeof dbSegment>;
+
+export type SegmentAssignment = InferSelectModel<typeof dbSegmentAssignment>;
+
+export type UserProperty = InferSelectModel<typeof dbUserProperty>;
+
+export type UserPropertyAssignment = InferSelectModel<
+  typeof dbUserPropertyAssignment
+>;
 
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;

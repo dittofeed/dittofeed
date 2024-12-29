@@ -37,6 +37,7 @@ import {
   RelationalOperators,
   SavedSegmentResource,
   Segment,
+  SegmentAssignment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -245,13 +246,16 @@ export async function findSegmentResources({
 }: {
   workspaceId: string;
 }): Promise<SavedSegmentResource[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      status: "Running",
-      resourceType: "Declarative",
-    },
-  });
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(
+      and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.status, "Running"),
+        eq(dbSegment.resourceType, "Declarative"),
+      ),
+    );
   return segments.flatMap((segment) => {
     const result = toSegmentResource(segment);
     if (result.isErr()) {
@@ -277,23 +281,16 @@ export async function findManyEnrichedSegments({
   segmentIds?: string[];
   requireRunning?: boolean;
 }): Promise<Result<EnrichedSegment[], ValueError[]>> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      ...(segmentIds?.length
-        ? {
-            id: {
-              in: segmentIds,
-            },
-          }
-        : null),
-      ...(requireRunning && !segmentIds?.length
-        ? {
-            status: "Running",
-          }
-        : null),
-    },
-  });
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (segmentIds && segmentIds.length > 0) {
+    conditions.push(inArray(dbSegment.id, segmentIds));
+  } else if (requireRunning) {
+    conditions.push(eq(dbSegment.status, "Running"));
+  }
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(and(...conditions));
 
   const enrichedSegments: EnrichedSegment[] = [];
   for (const segment of segments) {
@@ -321,23 +318,15 @@ export async function findManySegmentResourcesSafe({
   segmentIds?: string[];
   requireRunning?: boolean;
 }): Promise<Result<SavedSegmentResource, Error>[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      ...(segmentIds?.length
-        ? {
-            id: {
-              in: segmentIds,
-            },
-          }
-        : null),
-      ...(requireRunning && !segmentIds?.length
-        ? {
-            status: "Running",
-          }
-        : null),
-    },
-  });
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (segmentIds && segmentIds.length > 0) {
+    conditions.push(inArray(dbSegment.id, segmentIds));
+  } else if (requireRunning) {
+    conditions.push(eq(dbSegment.status, "Running"));
+  }
+  const where = and(...conditions);
+  const segments = await db().select().from(dbSegment).where(where);
+
   const results: Result<SavedSegmentResource, Error>[] = segments.map(
     (segment) => toSegmentResource(segment),
   );
