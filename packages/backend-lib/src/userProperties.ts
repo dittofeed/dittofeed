@@ -811,12 +811,16 @@ export async function findUserIdsByUserPropertyValue({
   userPropertyName: string;
   value: string;
 }): Promise<string[] | null> {
-  const userProperty = await prisma().userProperty.findFirst({
-    where: {
-      workspaceId,
-      name: userPropertyName,
-    },
-  });
+  const userProperties = await db()
+    .select()
+    .from(dbUserProperty)
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.name, userPropertyName),
+      ),
+    );
+  const [userProperty] = userProperties;
   if (!userProperty) {
     return null;
   }
