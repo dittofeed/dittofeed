@@ -1,6 +1,6 @@
 // eslint-disable-next-line filenames/no-index
 import { Table } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
   PgInsertOnConflictDoUpdateConfig,
@@ -10,6 +10,8 @@ import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 
 import config from "./config";
+import * as relations from "./db/relations";
+import * as schema from "./db/schema";
 
 export type QueryError = Error & { code: PostgresError };
 
@@ -31,11 +33,18 @@ export async function queryResult<D, P extends Promise<D>>(
   }
 }
 
-let DB: ReturnType<typeof drizzle> | null = null;
+export type Db = NodePgDatabase<typeof schema & typeof relations>;
 
-export function db(): ReturnType<typeof drizzle> {
+let DB: Db | null = null;
+
+export function db(): Db {
   if (!DB) {
-    const d = drizzle(config().databaseUrl);
+    const d = drizzle(config().databaseUrl, {
+      schema: {
+        ...schema,
+        ...relations,
+      },
+    });
     DB = d;
     return d;
   }

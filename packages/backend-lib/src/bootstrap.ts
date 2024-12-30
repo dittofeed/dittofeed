@@ -35,7 +35,6 @@ import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
-// FIXME
 import { prismaMigrate } from "./prisma/migrate";
 import {
   upsertSubscriptionGroup,
@@ -56,6 +55,7 @@ import {
   Workspace,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
+import { createWorkspace } from "./workspaces";
 
 const DOMAIN_REGEX =
   /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
@@ -124,16 +124,14 @@ export async function bootstrapPostgres({
       },
     });
   } else {
-    workspaceResult = await insert({
-      table: dbWorkspace,
-      values: {
-        id: randomUUID(),
-        name: workspaceName,
-        domain: workspaceDomain,
-        type: workspaceType,
-        externalId: workspaceExternalId,
-        updatedAt: new Date().toISOString(),
-      },
+    workspaceResult = await createWorkspace({
+      id: randomUUID(),
+      name: workspaceName,
+      domain: workspaceDomain,
+      type: workspaceType,
+      externalId: workspaceExternalId,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     });
   }
   if (workspaceResult.isErr()) {

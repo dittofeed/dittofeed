@@ -1,18 +1,18 @@
+import { sql } from "drizzle-orm";
 import {
+  boolean,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
   pgTable,
-  uniqueIndex,
-  uuid,
   text,
   timestamp,
-  foreignKey,
-  jsonb,
-  index,
+  uniqueIndex,
+  uuid,
   varchar,
-  integer,
-  boolean,
-  pgEnum,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 export const computedPropertyType = pgEnum("ComputedPropertyType", [
   "Segment",

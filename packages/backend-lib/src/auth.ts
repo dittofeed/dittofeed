@@ -1,10 +1,12 @@
+import { and, eq } from "drizzle-orm";
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { validate } from "uuid";
 
 import { generateSecureKey } from "./crypto";
+import { db } from "./db";
+import { secret as dbSecret } from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import { OpenIdProfile, WriteKeyResource } from "./types";
 
 const decoder = createDecoder();
@@ -52,10 +54,8 @@ export async function validateWriteKey({
     return null;
   }
 
-  const writeKeySecret = await prisma().secret.findUnique({
-    where: {
-      id: secretKeyId,
-    },
+  const writeKeySecret = await db().query.secret.findFirst({
+    where: eq(dbSecret.id, secretKeyId),
   });
 
   if (!writeKeySecret) {
@@ -84,21 +84,19 @@ export async function getOrCreateWriteKey({
     },
     "creating write key",
   );
-
-  const resource = await prisma().$transaction(async (tx) => {
-    const existingSecret = await tx.secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: writeKeyName,
-        },
-      },
-      include: {
-        WriteKey: true,
+  const resource = await db().transaction(async (tx) => {
+    const existingSecret = await tx.query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, writeKeyName),
+      ),
+      with: {
+        writeKeys: true,
       },
     });
-    const existingWriteKey = existingSecret?.WriteKey[0];
-    if (existingSecret?.value && existingWriteKey) {
+    const existingWriteKey = existingSecret?.writeKeys[0];
+
+    if (existingWriteKey) {
       return {
         workspaceId: existingSecret.workspaceId,
         writeKeyName: existingSecret.name,
@@ -106,43 +104,66 @@ export async function getOrCreateWriteKey({
         secretId: existingSecret.id,
       };
     }
-    // Try to find the secret, create if it doesn't exist
-    const secret = await tx.secret.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: writeKeyName,
-        },
-      },
-      update: {},
-      create: {
-        workspaceId,
-        name: writeKeyName,
-        value: writeKeyValue,
-      },
-    });
-
-    // Try to find the writeKey, create if it doesn't exist
-    await tx.writeKey.upsert({
-      where: {
-        workspaceId_secretId: {
-          workspaceId,
-          secretId: secret.id,
-        },
-      },
-      update: {},
-      create: {
-        workspaceId,
-        secretId: secret.id,
-      },
-    });
-    return {
-      workspaceId,
-      writeKeyName,
-      writeKeyValue,
-      secretId: secret.id,
-    };
   });
+
+  // const resource = await prisma().$transaction(async (tx) => {
+  //   const existingSecret = await tx.secret.findUnique({
+  //     where: {
+  //       workspaceId_name: {
+  //         workspaceId,
+  //         name: writeKeyName,
+  //       },
+  //     },
+  //     include: {
+  //       WriteKey: true,
+  //     },
+  //   });
+  //   const existingWriteKey = existingSecret?.WriteKey[0];
+  //   if (existingSecret?.value && existingWriteKey) {
+  //     return {
+  //       workspaceId: existingSecret.workspaceId,
+  //       writeKeyName: existingSecret.name,
+  //       writeKeyValue: existingSecret.value,
+  //       secretId: existingSecret.id,
+  //     };
+  //   }
+  //   // Try to find the secret, create if it doesn't exist
+  //   const secret = await tx.secret.upsert({
+  //     where: {
+  //       workspaceId_name: {
+  //         workspaceId,
+  //         name: writeKeyName,
+  //       },
+  //     },
+  //     update: {},
+  //     create: {
+  //       workspaceId,
+  //       name: writeKeyName,
+  //       value: writeKeyValue,
+  //     },
+  //   });
+
+  //   // Try to find the writeKey, create if it doesn't exist
+  //   await tx.writeKey.upsert({
+  //     where: {
+  //       workspaceId_secretId: {
+  //         workspaceId,
+  //         secretId: secret.id,
+  //       },
+  //     },
+  //     update: {},
+  //     create: {
+  //       workspaceId,
+  //       secretId: secret.id,
+  //     },
+  //   });
+  //   return {
+  //     workspaceId,
+  //     writeKeyName,
+  //     writeKeyValue,
+  //     secretId: secret.id,
+  //   };
+  // });
 
   return resource;
 }
