@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -5,7 +6,7 @@ import { validate } from "uuid";
 
 import { generateSecureKey } from "./crypto";
 import { db } from "./db";
-import { secret as dbSecret } from "./db/schema";
+import { secret as dbSecret, writeKey as dbWriteKey } from "./db/schema";
 import logger from "./logger";
 import { OpenIdProfile, WriteKeyResource } from "./types";
 
@@ -84,7 +85,7 @@ export async function getOrCreateWriteKey({
     },
     "creating write key",
   );
-  const resource = await db().transaction(async (tx) => {
+  return db().transaction(async (tx) => {
     const existingSecret = await tx.query.secret.findFirst({
       where: and(
         eq(dbSecret.workspaceId, workspaceId),
@@ -96,76 +97,50 @@ export async function getOrCreateWriteKey({
     });
     const existingWriteKey = existingSecret?.writeKeys[0];
 
-    if (existingWriteKey) {
+    if (existingWriteKey && existingSecret.value) {
       return {
         workspaceId: existingSecret.workspaceId,
         writeKeyName: existingSecret.name,
         writeKeyValue: existingSecret.value,
         secretId: existingSecret.id,
-      };
+      } satisfies WriteKeyResource;
     }
+
+    // Try to find the secret, create if it doesn't exist
+    const [secret] = await tx
+      .insert(dbSecret)
+      .values({
+        id: randomUUID(),
+        workspaceId,
+        name: writeKeyName,
+        value: writeKeyValue,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!secret) {
+      throw new Error("Failed to create secret");
+    }
+
+    // Try to find the writeKey, create if it doesn't exist
+    await tx
+      .insert(dbWriteKey)
+      .values({
+        id: randomUUID(),
+        secretId: secret.id,
+        workspaceId,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+      .onConflictDoNothing();
+    return {
+      workspaceId,
+      writeKeyName,
+      writeKeyValue,
+      secretId: secret.id,
+    } satisfies WriteKeyResource;
   });
-
-  // const resource = await prisma().$transaction(async (tx) => {
-  //   const existingSecret = await tx.secret.findUnique({
-  //     where: {
-  //       workspaceId_name: {
-  //         workspaceId,
-  //         name: writeKeyName,
-  //       },
-  //     },
-  //     include: {
-  //       WriteKey: true,
-  //     },
-  //   });
-  //   const existingWriteKey = existingSecret?.WriteKey[0];
-  //   if (existingSecret?.value && existingWriteKey) {
-  //     return {
-  //       workspaceId: existingSecret.workspaceId,
-  //       writeKeyName: existingSecret.name,
-  //       writeKeyValue: existingSecret.value,
-  //       secretId: existingSecret.id,
-  //     };
-  //   }
-  //   // Try to find the secret, create if it doesn't exist
-  //   const secret = await tx.secret.upsert({
-  //     where: {
-  //       workspaceId_name: {
-  //         workspaceId,
-  //         name: writeKeyName,
-  //       },
-  //     },
-  //     update: {},
-  //     create: {
-  //       workspaceId,
-  //       name: writeKeyName,
-  //       value: writeKeyValue,
-  //     },
-  //   });
-
-  //   // Try to find the writeKey, create if it doesn't exist
-  //   await tx.writeKey.upsert({
-  //     where: {
-  //       workspaceId_secretId: {
-  //         workspaceId,
-  //         secretId: secret.id,
-  //       },
-  //     },
-  //     update: {},
-  //     create: {
-  //       workspaceId,
-  //       secretId: secret.id,
-  //     },
-  //   });
-  //   return {
-  //     workspaceId,
-  //     writeKeyName,
-  //     writeKeyValue,
-  //     secretId: secret.id,
-  //   };
-  // });
-
-  return resource;
 }
 
 export async function getWriteKeys({
