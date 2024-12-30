@@ -1,5 +1,8 @@
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { insert } from "./db";
+import { workspace as dbWorkspace } from "./db/schema";
 import prisma from "./prisma";
 import {
   AppFileType,
@@ -23,11 +26,16 @@ import {
 describe("findAllUserPropertyAssignments", () => {
   let workspace: Workspace;
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `test-${randomUUID()}`,
-      },
-    });
+    workspace = unwrap(
+      await insert({
+        table: dbWorkspace,
+        values: {
+          id: randomUUID(),
+          name: `workspace-${randomUUID()}`,
+          updatedAt: new Date().toISOString(),
+        },
+      }),
+    );
   });
 
   describe("when passing context with a Performed user property", () => {
@@ -397,11 +405,7 @@ describe("findUserIdByUserPropertyValue", () => {
   let userId: string;
   beforeEach(async () => {
     userId = randomUUID();
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `test-${randomUUID()}`,
-      },
-    });
+
     userProperty = await prisma().userProperty.create({
       data: {
         workspaceId: workspace.id,

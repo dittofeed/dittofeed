@@ -1,5 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Integration, Journey, Prisma, UserProperty } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import { InferSelectModel } from "drizzle-orm";
 import {
@@ -27,10 +27,13 @@ import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 import {
+  integration as dbIntegration,
+  journey as dbJourney,
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
+  workspace as dbWorkspace,
 } from "./db/schema";
 
 export * from "isomorphic-lib/src/types";
@@ -53,9 +56,15 @@ export type SegmentAssignment = InferSelectModel<typeof dbSegmentAssignment>;
 
 export type UserProperty = InferSelectModel<typeof dbUserProperty>;
 
+export type Workspace = InferSelectModel<typeof dbWorkspace>;
+
 export type UserPropertyAssignment = InferSelectModel<
   typeof dbUserPropertyAssignment
 >;
+
+export type Journey = InferSelectModel<typeof dbJourney>;
+
+export type Integration = InferSelectModel<typeof dbIntegration>;
 
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;

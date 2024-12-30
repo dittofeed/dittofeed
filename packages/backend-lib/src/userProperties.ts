@@ -52,9 +52,6 @@ export function enrichUserProperty(
   }
   return ok({
     ...userProperty,
-    createdAt: new Date(userProperty.createdAt),
-    updatedAt: new Date(userProperty.updatedAt),
-    definitionUpdatedAt: new Date(userProperty.definitionUpdatedAt),
     definition: definitionResult.value,
   });
 }
@@ -93,9 +90,9 @@ export function toSavedUserPropertyResource(
       id,
       definition,
       exampleValue: exampleValue ?? undefined,
-      createdAt: createdAt.getTime(),
-      updatedAt: updatedAt.getTime(),
-      definitionUpdatedAt: definitionUpdatedAt.getTime(),
+      createdAt: new Date(createdAt).getTime(),
+      updatedAt: new Date(updatedAt).getTime(),
+      definitionUpdatedAt: new Date(definitionUpdatedAt).getTime(),
     }),
   );
 }
@@ -136,9 +133,9 @@ export async function findAllUserPropertyResources({
   return userProperties.map((up) => ({
     ...up,
     exampleValue: up.exampleValue ?? undefined,
-    definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
-    createdAt: up.createdAt.getTime(),
-    updatedAt: up.updatedAt.getTime(),
+    definitionUpdatedAt: new Date(up.definitionUpdatedAt).getTime(),
+    createdAt: new Date(up.createdAt).getTime(),
+    updatedAt: new Date(up.updatedAt).getTime(),
   }));
 }
 
