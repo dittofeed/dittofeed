@@ -6,7 +6,8 @@ import {
   WORKSPACE_TOMBSTONE_PREFIX,
 } from "isomorphic-lib/src/constants";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
@@ -21,13 +22,18 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
+import { insert, QueryError, upsert } from "./db";
+import {
+  messageTemplate as dbMessageTemplate,
+  userProperty as dbUserProperty,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import { addFeatures, getFeature } from "./features";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
-import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import {
   upsertSubscriptionGroup,
@@ -96,45 +102,54 @@ export async function bootstrapPostgres({
       type: CreateWorkspaceErrorType.InvalidDomain,
     });
   }
-  let workspace: Workspace;
+  let workspaceResult: Result<Workspace, QueryError>;
   if (upsertWorkspace) {
-    workspace = await prisma().workspace.upsert({
-      where: {
+    workspaceResult = await upsert({
+      table: dbWorkspace,
+      values: {
+        id: randomUUID(),
         name: workspaceName,
-      },
-      update: {
         domain: workspaceDomain,
         type: workspaceType,
         externalId: workspaceExternalId,
+        updatedAt: new Date().toISOString(),
       },
-      create: {
-        name: workspaceName,
+      target: [dbWorkspace.name],
+      set: {
         domain: workspaceDomain,
         type: workspaceType,
         externalId: workspaceExternalId,
       },
     });
   } else {
-    try {
-      workspace = await prisma().workspace.create({
-        data: {
-          name: workspaceName,
-          domain: workspaceDomain,
-          type: workspaceType,
-          externalId: workspaceExternalId,
-        },
-      });
-    } catch (e) {
-      const error = e as Prisma.PrismaClientKnownRequestError;
-      if (error.code === "P2002") {
-        return err({
-          type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
-        });
-      }
-      logger().error({ err: error }, "Failed to upsert workspace.");
-      throw error;
-    }
+    workspaceResult = await insert({
+      table: dbWorkspace,
+      values: {
+        id: randomUUID(),
+        name: workspaceName,
+        domain: workspaceDomain,
+        type: workspaceType,
+        externalId: workspaceExternalId,
+        updatedAt: new Date().toISOString(),
+      },
+    });
   }
+  if (workspaceResult.isErr()) {
+    if (
+      workspaceResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      workspaceResult.error.code === PostgresError.UNIQUE_VIOLATION
+    ) {
+      return err({
+        type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
+      });
+    }
+    logger().error(
+      { err: workspaceResult.error },
+      "Failed to upsert workspace.",
+    );
+    throw workspaceResult.error;
+  }
+  const workspace = workspaceResult.value;
   const workspaceId = workspace.id;
 
   if (features) {
