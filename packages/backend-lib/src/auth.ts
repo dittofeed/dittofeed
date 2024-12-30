@@ -148,13 +148,11 @@ export async function getWriteKeys({
 }: {
   workspaceId: string;
 }): Promise<WriteKeyResource[]> {
-  const writeKeys = await prisma().writeKey.findMany({
-    where: {
-      workspaceId,
-    },
-    select: {
+  const writeKeys = await db().query.writeKey.findMany({
+    where: eq(dbWriteKey.workspaceId, workspaceId),
+    with: {
       secret: {
-        select: {
+        columns: {
           name: true,
           value: true,
           id: true,
