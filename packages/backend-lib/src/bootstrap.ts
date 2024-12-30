@@ -24,7 +24,8 @@ import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
 import { insert, QueryError, upsert } from "./db";
 import {
-  messageTemplate as dbMessageTemplate,
+  defaultEmailProvider as dbDefaultEmailProvider,
+  defaultSmsProvider as dbDefaultSmsProvider,
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
@@ -34,6 +35,7 @@ import logger from "./logger";
 import { upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
+// FIXME
 import { prismaMigrate } from "./prisma/migrate";
 import {
   upsertSubscriptionGroup,
@@ -261,15 +263,17 @@ export async function bootstrapPostgres({
       workspaceId,
     }),
     ...userProperties.map((up) =>
-      prisma().userProperty.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId: up.workspaceId,
-            name: up.name,
-          },
+      upsert({
+        table: dbUserProperty,
+        values: {
+          id: randomUUID(),
+          ...up,
+          createdAt: new Date().toISOString(),
+          definitionUpdatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
-        create: up,
-        update: up,
+        target: [dbUserProperty.workspaceId, dbUserProperty.name],
+        set: {},
       }),
     ),
     upsertSubscriptionSecret({
@@ -309,27 +313,27 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
     testEmailProvider
-      ? prisma().defaultEmailProvider.upsert({
-          where: {
-            workspaceId,
-          },
-          create: {
+      ? upsert({
+          table: dbDefaultEmailProvider,
+          values: {
             workspaceId,
             emailProviderId: testEmailProvider.id,
+            updatedAt: new Date().toISOString(),
           },
-          update: {},
+          target: [dbDefaultEmailProvider.workspaceId],
+          set: {},
         })
       : undefined,
     testSmsProvider
-      ? prisma().defaultSmsProvider.upsert({
-          where: {
-            workspaceId,
-          },
-          create: {
+      ? upsert({
+          table: dbDefaultSmsProvider,
+          values: {
             workspaceId,
             smsProviderId: testSmsProvider.id,
+            updatedAt: new Date().toISOString(),
           },
-          update: {},
+          target: [dbDefaultSmsProvider.workspaceId],
+          set: {},
         })
       : undefined,
   ]);
