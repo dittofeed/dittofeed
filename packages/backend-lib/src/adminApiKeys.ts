@@ -1,15 +1,16 @@
 import { randomBytes, randomUUID } from "crypto";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 
+import { db, queryResult } from "./db";
+import { adminApiKey as dbAdminApiKey, secret as dbSecret } from "./db/schema";
 import prisma from "./prisma";
 import {
-  AdminApiKeyDefinition,
   AdminApiKeyPermission,
   AdminApiKeyResource,
   AdminApiKeyType,
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
-  Prisma,
 } from "./types";
 
 export enum AdminApiKeyCreateErrorType {
@@ -27,58 +28,61 @@ export async function createAdminApiKey(
 ): Promise<Result<CreateAdminApiKeyResponse, AdminApiKeyCreateError>> {
   const key = randomBytes(32).toString("hex");
   const id = randomUUID();
-  let isConflictError = false;
-  let createdAt: number | null = null;
 
-  try {
-    await prisma().$transaction(async (tx) => {
-      try {
-        const secret = await tx.secret.create({
-          data: {
-            workspaceId: data.workspaceId,
-            name: `df-admin-api-key-${data.name}`,
-            configValue: {
-              type: AdminApiKeyType.AdminApiKey,
-              key,
-              permissions: [AdminApiKeyPermission.Admin],
-            } satisfies AdminApiKeyDefinition,
+  const result = await queryResult(
+    db().transaction(async (tx) => {
+      const [secret] = await tx
+        .insert(dbSecret)
+        .values({
+          id: randomUUID(),
+          workspaceId: data.workspaceId,
+          name: `df-admin-api-key-${data.name}`,
+          configValue: {
+            type: AdminApiKeyType.AdminApiKey,
+            key,
+            permissions: [AdminApiKeyPermission.Admin],
           },
-        });
-        const adminApiKey = await tx.adminApiKey.create({
-          data: {
-            id,
-            name: data.name,
-            workspaceId: data.workspaceId,
-            secretId: secret.id,
-          },
-        });
-        createdAt = adminApiKey.createdAt.getTime();
-      } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        ) {
-          isConflictError = true;
-        }
-        throw error;
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .returning();
+
+      if (!secret) {
+        throw new Error("Failed to create secret");
       }
-    });
-  } catch (error) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (isConflictError) {
+      const [adminApiKey] = await tx
+        .insert(dbAdminApiKey)
+        .values({
+          id,
+          name: data.name,
+          workspaceId: data.workspaceId,
+          secretId: secret.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .returning();
+
+      if (!adminApiKey) {
+        throw new Error("Failed to create admin api key");
+      }
+      return adminApiKey;
+    }),
+  );
+  if (result.isErr()) {
+    if (
+      result.error.code === PostgresError.UNIQUE_VIOLATION ||
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION
+    ) {
       return err({ type: AdminApiKeyCreateErrorType.Conflict });
     }
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!createdAt) {
-    throw new Error("Unexpected error: createdAt is null");
+    throw result.error;
   }
   return ok({
     workspaceId: data.workspaceId,
     apiKey: key,
     name: data.name,
     id,
-    createdAt,
+    createdAt: new Date(result.value.createdAt).getTime(),
   });
 }
 

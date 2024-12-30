@@ -1,5 +1,5 @@
 // eslint-disable-next-line filenames/no-index
-import { QueryPromise, SQL, Table } from "drizzle-orm";
+import { Table } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
@@ -17,7 +17,7 @@ export function isQueryError(e: unknown): e is QueryError {
   return e instanceof Error && "code" in e && typeof e.code === "string";
 }
 
-export async function queryResult<D, P extends QueryPromise<D>>(
+export async function queryResult<D, P extends Promise<D>>(
   promise: P,
 ): Promise<Result<Awaited<P>, QueryError>> {
   try {
