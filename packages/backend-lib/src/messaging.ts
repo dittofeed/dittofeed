@@ -27,7 +27,9 @@ import {
   defaultSmsProvider as dbDefaultSmsProvider,
   emailProvider as dbEmailProvider,
   messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
   smsProvider as dbSmsProvider,
+  workspaceRelation as dbWorkspaceRelation,
 } from "./db/schema";
 import {
   sendMail as sendMailAmazonSes,
@@ -55,7 +57,6 @@ import {
   UnsubscribeHeaders,
 } from "./messaging/email";
 import { withSpan } from "./openTelemetry";
-import prisma from "./prisma";
 import {
   inSubscriptionGroup,
   SubscriptionGroupDetails,
@@ -275,13 +276,11 @@ async function getSendMessageModels({
       id: templateId,
       channel,
     }),
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: SecretNames.Subscription,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Subscription),
+      ),
     }),
   ]);
   if (messageTemplateResult.isErr()) {
@@ -481,10 +480,8 @@ async function getSmsProvider({
   if (provider) {
     return provider;
   }
-  const relation = await prisma().workspaceRelation.findFirst({
-    where: {
-      childWorkspaceId: workspaceId,
-    },
+  const relation = await db().query.workspaceRelation.findFirst({
+    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
   });
   logger().debug({ relation }, "workspace relation");
   if (!relation) {
@@ -569,10 +566,8 @@ async function getEmailProvider({
   if (provider) {
     return provider;
   }
-  const relation = await prisma().workspaceRelation.findFirst({
-    where: {
-      childWorkspaceId: workspaceId,
-    },
+  const relation = await db().query.workspaceRelation.findFirst({
+    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
   });
   logger().debug({ relation }, "workspace relation");
   if (!relation) {
@@ -1716,13 +1711,11 @@ export async function sendWebhook({
       useDraft,
       subscriptionGroupDetails,
     }),
-    await prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: SecretNames.Webhook,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Webhook),
+      ),
     }),
   ]);
   if (getSendModelsResult.isErr()) {
