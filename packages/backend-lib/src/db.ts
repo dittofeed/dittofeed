@@ -7,6 +7,7 @@ import {
   PgQueryResultHKT,
 } from "drizzle-orm/pg-core";
 import { err, ok, Result } from "neverthrow";
+import { Pool } from "pg";
 import { PostgresError } from "pg-error-enum";
 
 import config from "./config";
@@ -36,10 +37,21 @@ export async function queryResult<D, P extends Promise<D>>(
 export type Db = NodePgDatabase<typeof schema & typeof relations>;
 
 let DB: Db | null = null;
+let POOL: Pool | null = null;
+
+export function pool(): Pool {
+  if (!POOL) {
+    POOL = new Pool({
+      connectionString: config().databaseUrl,
+    });
+  }
+  return POOL;
+}
 
 export function db(): Db {
   if (!DB) {
-    const d = drizzle(config().databaseUrl, {
+    const d = drizzle({
+      client: pool(),
       schema: {
         ...schema,
         ...relations,

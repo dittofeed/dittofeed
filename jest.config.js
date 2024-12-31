@@ -15,6 +15,7 @@ const config = {
       ...BASE_CONFIG,
       globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
       globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
+      setupFilesAfterEnv: ["<rootDir>/packages/backend-lib/test/setup.ts"],
       displayName: "backend-lib",
       roots: ["<rootDir>/packages/backend-lib/src"],
       transform: {
@@ -48,6 +49,7 @@ const config = {
       roots: ["<rootDir>/packages/api/src"],
       globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
       globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
+      setupFilesAfterEnv: ["<rootDir>/packages/backend-lib/test/setup.ts"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",

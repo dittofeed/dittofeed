@@ -1,10 +1,12 @@
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { toBase64 } from "isomorphic-lib/src/encode";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { getOrCreateWriteKey, validateWriteKey } from "./auth";
-import prisma from "./prisma";
+import { db } from "./db";
+import { secret as dbSecret } from "./db/schema";
 import { Workspace } from "./types";
 import { createWorkspace } from "./workspaces";
 
@@ -61,13 +63,11 @@ describe("validateWriteKey", () => {
         workspaceId: workspace.id,
         writeKeyName: "test",
       });
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            workspaceId: workspace.id,
-            name: "test",
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, "test"),
+        ),
       });
       const secretID = `${secret?.id ?? ""}:wrong`;
       valid = await validateWriteKey({
