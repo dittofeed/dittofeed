@@ -18,6 +18,13 @@ import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
+import { db } from "./db";
+import {
+  broadcast as dbBroadcast,
+  journey as dbJourney,
+  messageTemplate as dbMessageTemplate,
+  segment as dbSegment,
+} from "./db/schema";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";

@@ -1,12 +1,15 @@
-import * as NodeCache from "node-cache";
+import NodeCache from "node-cache";
 import { v4 as uuidv4 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
+import { db } from "./db";
+import { journey as dbJourney, journeyStatus } from "./db/schema";
 import { triggerEventEntryJourneysFactory } from "./journeys";
 import prisma from "./prisma";
 import {
   EventType,
   JourneyDefinition,
+  JourneyInsert,
   JourneyNodeType,
   JourneyStatus,
 } from "./types";
@@ -90,35 +93,46 @@ describe("apps", () => {
       notStartedJourneyId = uuidv4();
       startedEventTriggeredJourneyId = uuidv4();
 
-      await Promise.all([
-        prisma().journey.create({
-          data: {
-            id: notStartedJourneyId,
-            name: "not started",
-            status: JourneyStatus.NotStarted,
-            workspaceId,
-            definition: eventTriggeredJourneyDefinition,
-          },
-        }),
-        prisma().journey.create({
-          data: {
-            id: startedEventTriggeredJourneyId,
-            name: "started event triggered",
-            status: JourneyStatus.Running,
-            workspaceId,
-            definition: eventTriggeredJourneyDefinition,
-          },
-        }),
-        prisma().journey.create({
-          data: {
-            id: segmentEntryJourneyId,
-            name: "segment entry",
-            status: JourneyStatus.Running,
-            workspaceId,
-            definition: segmentEntryJourneyDefinition,
-          },
-        }),
-      ]);
+      await db()
+        .insert(dbJourney)
+        .values({
+          id: notStartedJourneyId,
+          name: "not started",
+          status: journeyStatus.enumValues[0],
+          workspaceId,
+          definition: eventTriggeredJourneyDefinition,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        } as const satisfies JourneyInsert);
+      // await Promise.all([
+      //   prisma().journey.create({
+      //     data: {
+      //       id: notStartedJourneyId,
+      //       name: "not started",
+      //       status: "NotStarted",
+      //       workspaceId,
+      //       definition: eventTriggeredJourneyDefinition,
+      //     },
+      //   }),
+      //   prisma().journey.create({
+      //     data: {
+      //       id: startedEventTriggeredJourneyId,
+      //       name: "started event triggered",
+      //       status: "Running",
+      //       workspaceId,
+      //       definition: eventTriggeredJourneyDefinition,
+      //     },
+      //   }),
+      //   prisma().journey.create({
+      //     data: {
+      //       id: segmentEntryJourneyId,
+      //       name: "segment entry",
+      //       status: "Running",
+      //       workspaceId,
+      //       definition: segmentEntryJourneyDefinition,
+      //     },
+      //   }),
+      // ]);
 
       startKeyedJourneyImpl = jest.fn();
 

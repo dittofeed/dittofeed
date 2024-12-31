@@ -88,6 +88,8 @@ export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
 
 export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
 
+export type JourneyInsert = typeof dbJourney.$inferInsert;
+
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
