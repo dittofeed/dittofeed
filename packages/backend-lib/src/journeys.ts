@@ -45,7 +45,6 @@ import {
   JourneyNodeType,
   JourneyResourceStatusEnum,
   JourneyStats,
-  JourneyStatus,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
   MessageChannelStats,
