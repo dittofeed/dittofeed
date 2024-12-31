@@ -1,6 +1,6 @@
 import { Row } from "@clickhouse/client";
-import { Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import { SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
@@ -23,12 +23,12 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import * as schema from "./db/schema";
 import {
   startKeyedUserJourney,
   StartKeyedUserJourneyProps,
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
-import prisma from "./prisma";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import {
   BaseMessageNodeStats,
@@ -50,6 +50,7 @@ import {
   SmsStats,
   UpsertJourneyResource,
 } from "./types";
+import { db } from "./db";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -82,12 +83,12 @@ export function enrichJourney(
   });
 }
 
-type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
-
 export async function findManyJourneys(
-  params: FindManyParams,
+  params: SQL<typeof schema>,
 ): Promise<Result<EnrichedJourney[], Error>> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
 
   const subscribedJourneys: EnrichedJourney[] = [];
 
