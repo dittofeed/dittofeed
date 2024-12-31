@@ -2,7 +2,7 @@ import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transa
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { randomUUID } from "crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
@@ -217,14 +217,14 @@ export async function findMessageTemplates({
   workspaceId: string;
   includeInternal?: boolean;
 }): Promise<MessageTemplateResource[]> {
-  return (
-    await prisma().messageTemplate.findMany({
-      where: {
-        workspaceId,
-        resourceType: includeInternal ? undefined : "Declarative",
-      },
-    })
-  ).map((mt) => unwrap(enrichMessageTemplate(mt)));
+  const conditions: SQL[] = [eq(dbMessageTemplate.workspaceId, workspaceId)];
+  if (!includeInternal) {
+    conditions.push(eq(dbMessageTemplate.resourceType, "Declarative"));
+  }
+  const messageTemplates = await db().query.messageTemplate.findMany({
+    where: and(...conditions),
+  });
+  return messageTemplates.map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
 
 export async function findPartialMessageTemplates({
