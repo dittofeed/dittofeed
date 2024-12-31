@@ -227,24 +227,6 @@ export async function findMessageTemplates({
   return messageTemplates.map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
 
-export async function findPartialMessageTemplates({
-  workspaceId,
-  includeInternal,
-}: {
-  workspaceId: string;
-  includeInternal?: boolean;
-}): Promise<MessageTemplateResource[]> {
-  const messageTemplates = await prisma().messageTemplate.findMany({
-    where: {
-      workspaceId,
-      resourceType: includeInternal ? undefined : "Declarative",
-    },
-  });
-  return messageTemplates.map((mt) =>
-    R.omit(unwrap(enrichMessageTemplate(mt)), ["definition", "draft"]),
-  );
-}
-
 async function getSendMessageModels({
   templateId,
   workspaceId,

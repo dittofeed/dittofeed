@@ -1,6 +1,6 @@
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
-import { findPartialMessageTemplates } from "backend-lib/src/messaging";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import { findSegmentResources } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
@@ -53,7 +53,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         where: { id },
       }),
       findSegmentResources({ workspaceId }),
-      findPartialMessageTemplates({ workspaceId }),
+      findMessageTemplates({ workspaceId }),
       prisma().subscriptionGroup.findMany({
         where: { workspaceId },
       }),
