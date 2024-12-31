@@ -1,4 +1,5 @@
 import { Broadcast } from "@prisma/client";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
@@ -58,7 +59,9 @@ export function getBroadcastJourneyName({
   return `Broadcast - ${broadcastId}`;
 }
 
-export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
+export function toBroadcastResource(
+  broadcast: Broadcast | typeof dbBroadcast.$inferSelect,
+): BroadcastResource {
   const resource: BroadcastResource = {
     workspaceId: broadcast.workspaceId,
     id: broadcast.id,
@@ -67,11 +70,11 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     journeyId: broadcast.journeyId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
     triggeredAt: broadcast.triggeredAt
-      ? broadcast.triggeredAt.getTime()
+      ? new Date(broadcast.triggeredAt).getTime()
       : undefined,
     status: broadcast.status,
-    createdAt: broadcast.createdAt.getTime(),
-    updatedAt: broadcast.updatedAt.getTime(),
+    createdAt: new Date(broadcast.createdAt).getTime(),
+    updatedAt: new Date(broadcast.updatedAt).getTime(),
   };
   return resource;
 }
@@ -93,37 +96,30 @@ export async function getBroadcast({
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
+
   const [broadcast, segment, messageTemplate] = await Promise.all([
-    prisma().broadcast.findUnique({
-      where: {
-        id,
-      },
+    db().query.broadcast.findFirst({
+      where: eq(dbBroadcast.id, id),
     }),
-    prisma().segment.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastSegmentName,
-        },
-      },
+    db().query.segment.findFirst({
+      where: and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.name, broadcastSegmentName),
+      ),
     }),
-    prisma().messageTemplate.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastTemplateName,
-        },
-      },
+    db().query.messageTemplate.findFirst({
+      where: and(
+        eq(dbMessageTemplate.workspaceId, workspaceId),
+        eq(dbMessageTemplate.name, broadcastTemplateName),
+      ),
     }),
   ]);
 
-  const journey = await prisma().journey.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: broadcastJourneyName,
-      },
-    },
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.workspaceId, workspaceId),
+      eq(dbJourney.name, broadcastJourneyName),
+    ),
   });
 
   if (!broadcast || !segment || !messageTemplate || !journey) {

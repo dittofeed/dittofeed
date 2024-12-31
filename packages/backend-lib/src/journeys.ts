@@ -1,5 +1,5 @@
 import { Row } from "@clickhouse/client";
-import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
@@ -36,10 +36,12 @@ import {
   EmailStats,
   EnrichedJourney,
   InternalEventType,
+  Journey,
   JourneyDefinition,
   JourneyDraft,
   JourneyNodeType,
   JourneyStats,
+  JourneyStatus,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
   MessageChannelStats,
@@ -115,8 +117,8 @@ export function toJourneyResource(
     ...rest,
     ...(definition ? { definition } : {}),
     ...(draft ? { draft } : {}),
-    createdAt: createdAt.getTime(),
-    updatedAt: updatedAt.getTime(),
+    createdAt: new Date(createdAt).getTime(),
+    updatedAt: new Date(updatedAt).getTime(),
     status,
   };
   if (status === JourneyStatus.NotStarted) {
