@@ -22,7 +22,13 @@ import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
 import { db, upsert } from "./db";
-import { messageTemplate as dbMessageTemplate } from "./db/schema";
+import {
+  defaultEmailProvider as dbDefaultEmailProvider,
+  defaultSmsProvider as dbDefaultSmsProvider,
+  emailProvider as dbEmailProvider,
+  messageTemplate as dbMessageTemplate,
+  smsProvider as dbSmsProvider,
+} from "./db/schema";
 import {
   sendMail as sendMailAmazonSes,
   SesMailData,
@@ -436,25 +442,22 @@ async function getSmsProviderForWorkspace({
   providerOverride?: SmsProviderType;
 }): Promise<(SmsProvider & { secret: Secret | null }) | null> {
   if (providerOverride) {
-    return prisma().smsProvider.findUnique({
-      where: {
-        workspaceId_type: {
-          workspaceId,
-          type: providerOverride,
-        },
-      },
-      include: {
+    const provider = await db().query.smsProvider.findFirst({
+      where: and(
+        eq(dbSmsProvider.workspaceId, workspaceId),
+        eq(dbSmsProvider.type, providerOverride),
+      ),
+      with: {
         secret: true,
       },
     });
+    return provider ?? null;
   }
-  const defaultProvider = await prisma().defaultSmsProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-    include: {
+  const defaultProvider = await db().query.defaultSmsProvider.findFirst({
+    where: eq(dbDefaultSmsProvider.workspaceId, workspaceId),
+    with: {
       smsProvider: {
-        include: {
+        with: {
           secret: true,
         },
       },
@@ -526,30 +529,28 @@ async function getEmailProviderForWorkspace({
   providerOverride?: EmailProviderType;
 }): Promise<EmailProviderPayload> {
   if (providerOverride) {
-    return prisma().emailProvider.findUnique({
-      where: {
-        workspaceId_type: {
-          workspaceId,
-          type: providerOverride,
-        },
-      },
-      include: {
+    const provider = await db().query.emailProvider.findFirst({
+      where: and(
+        eq(dbEmailProvider.workspaceId, workspaceId),
+        eq(dbEmailProvider.type, providerOverride),
+      ),
+      with: {
         secret: true,
       },
     });
+    return provider ?? null;
   }
-  const defaultProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-    include: {
+  const defaultProvider = await db().query.defaultEmailProvider.findFirst({
+    where: eq(dbDefaultEmailProvider.workspaceId, workspaceId),
+    with: {
       emailProvider: {
-        include: {
+        with: {
           secret: true,
         },
       },
     },
   });
+
   return defaultProvider?.emailProvider ?? null;
 }
 
