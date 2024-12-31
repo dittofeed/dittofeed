@@ -1,22 +1,28 @@
-import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { toBase64 } from "isomorphic-lib/src/encode";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { getOrCreateWriteKey, validateWriteKey } from "./auth";
 import prisma from "./prisma";
+import { Workspace } from "./types";
+import { createWorkspace } from "./workspaces";
 
 describe("validateWriteKey", () => {
   let workspace: Workspace;
   let valid: string | null;
+  beforeEach(async () => {
+    workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: randomUUID(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  });
 
   describe("when write key is valid", () => {
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
       const writeKey = await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",
@@ -51,11 +57,6 @@ describe("validateWriteKey", () => {
 
   describe("when write key has the wrong value", () => {
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
       await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",

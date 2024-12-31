@@ -1,6 +1,8 @@
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
+import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
@@ -12,12 +14,15 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 import { Overwrite } from "utility-types";
 import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
+import { db, upsert } from "./db";
+import { messageTemplate as dbMessageTemplate } from "./db/schema";
 import {
   sendMail as sendMailAmazonSes,
   SesMailData,
@@ -70,7 +75,6 @@ import {
   MessageWebhookSuccess,
   MobilePushProviderType,
   ParsedWebhookBody,
-  Prisma,
   Secret,
   SmsProvider,
   SmsProviderOverride,
@@ -97,8 +101,8 @@ export function enrichMessageTemplate({
 }: Overwrite<
   MessageTemplate,
   {
-    draft?: Prisma.JsonValue;
-    definition?: Prisma.JsonValue;
+    draft?: unknown;
+    definition?: unknown;
   }
 >): Result<MessageTemplateResource, Error> {
   const enrichedDefinition = definition
@@ -145,10 +149,8 @@ export async function findMessageTemplate({
     logger().info({ id, channel }, "Invalid message template id");
     return ok(null);
   }
-  const template = await prisma().messageTemplate.findUnique({
-    where: {
-      id,
-    },
+  const template = await db().query.messageTemplate.findFirst({
+    where: eq(dbMessageTemplate.id, id),
   });
   if (!template) {
     return ok(null);
@@ -171,38 +173,31 @@ export async function upsertMessageTemplate(
       message: "Invalid message template id, must be a valid v4 UUID",
     });
   }
-  const draft = data.draft === null ? Prisma.DbNull : data.draft;
-  const where: Prisma.MessageTemplateWhereUniqueInput = data.id
-    ? { id: data.id, workspaceId: data.workspaceId }
-    : {
-        workspaceId_name: {
-          workspaceId: data.workspaceId,
-          name: data.name,
-        },
-      };
-
-  try {
-    const messageTemplate = await prisma().messageTemplate.upsert({
-      where,
-      create: {
-        workspaceId: data.workspaceId,
-        name: data.name,
-        id: data.id,
-        definition: data.definition,
-        draft,
-      },
-      update: {
-        name: data.name,
-        definition: data.definition,
-        draft,
-      },
-    });
-
-    return ok(unwrap(enrichMessageTemplate(messageTemplate)));
-  } catch (e) {
+  const result = await upsert({
+    table: dbMessageTemplate,
+    values: {
+      id: data.id ?? randomUUID(),
+      workspaceId: data.workspaceId,
+      name: data.name,
+      definition: data.definition,
+      draft: data.draft,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    target: data.id
+      ? [dbMessageTemplate.id, dbMessageTemplate.workspaceId]
+      : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
+    set: {
+      name: data.name,
+      definition: data.definition,
+      draft: data.draft,
+      updatedAt: new Date().toISOString(),
+    },
+  });
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.UNIQUE_VIOLATION ||
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION
     ) {
       return err({
         type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
@@ -210,8 +205,9 @@ export async function upsertMessageTemplate(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
+  return ok(unwrap(enrichMessageTemplate(result.value)));
 }
 
 export async function findMessageTemplates({

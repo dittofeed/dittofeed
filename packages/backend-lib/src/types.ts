@@ -27,13 +27,18 @@ import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 import {
+  emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
+  messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
+  smsProvider as dbSmsProvider,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
   workspace as dbWorkspace,
+  writeKey as dbWriteKey,
 } from "./db/schema";
 
 export * from "isomorphic-lib/src/types";
@@ -65,6 +70,16 @@ export type UserPropertyAssignment = InferSelectModel<
 export type Journey = InferSelectModel<typeof dbJourney>;
 
 export type Integration = InferSelectModel<typeof dbIntegration>;
+
+export type EmailProvider = InferSelectModel<typeof dbEmailProvider>;
+
+export type SmsProvider = InferSelectModel<typeof dbSmsProvider>;
+
+export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
+
+export type Secret = InferSelectModel<typeof dbSecret>;
+
+export type WriteKey = InferSelectModel<typeof dbWriteKey>;
 
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
