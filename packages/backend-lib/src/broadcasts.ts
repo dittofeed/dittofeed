@@ -19,14 +19,14 @@ import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
-import { db } from "./db";
+import { db, insert, upsert } from "./db";
 import {
   broadcast as dbBroadcast,
   journey as dbJourney,
   messageTemplate as dbMessageTemplate,
   segment as dbSegment,
 } from "./db/schema";
-import { toJourneyResource } from "./journeys";
+import { toJourneyResource, upsertJourney } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
@@ -270,36 +270,38 @@ export async function upsertBroadcast({
     },
   };
 
-  const journey = await prisma().journey.upsert({
-    where: {
-      workspaceId_name: {
+  const journey = unwrap(
+    await insert({
+      table: dbJourney,
+      doNothingOnConflict: true,
+      values: {
+        id,
         workspaceId,
         name: broadcastJourneyName,
+        definition: journeyDefinition,
+        resourceType: "Internal",
+        status: "Broadcast",
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       },
-    },
-    create: {
-      workspaceId,
-      name: broadcastJourneyName,
-      definition: journeyDefinition,
-      resourceType: "Internal",
-      status: "Broadcast",
-    },
-    update: {},
-  });
-  const broadcast = await prisma().broadcast.upsert({
-    where: {
-      id,
-    },
-    create: {
-      id,
-      workspaceId,
-      name,
-      segmentId: segment.id,
-      journeyId: journey.id,
-      messageTemplateId: messageTemplate.id,
-    },
-    update: {},
-  });
+    }),
+  );
+  const broadcast = unwrap(
+    await insert({
+      table: dbBroadcast,
+      doNothingOnConflict: true,
+      values: {
+        id,
+        workspaceId,
+        name,
+        segmentId: segment.id,
+        journeyId: journey.id,
+        messageTemplateId: messageTemplate.id,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      },
+    }),
+  );
 
   const journeyResource = unwrap(toJourneyResource(journey));
   if (journeyResource.status !== "Broadcast") {

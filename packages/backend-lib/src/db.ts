@@ -103,13 +103,16 @@ export async function insert<TTable extends Table>({
   table,
   values,
   tx = db(),
+  doNothingOnConflict = false,
 }: {
   table: TTable;
   values: TTable["$inferInsert"];
+  doNothingOnConflict?: boolean;
   tx?: Db;
 }): Promise<Result<TTable["$inferSelect"], QueryError>> {
+  const query = tx.insert(table).values(values).returning();
   const results = await queryResult(
-    tx.insert(table).values(values).returning(),
+    doNothingOnConflict ? query.onConflictDoNothing() : query,
   );
   if (results.isErr()) {
     return results;
