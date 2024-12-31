@@ -1,10 +1,12 @@
 // eslint-disable-next-line filenames/no-index
-import { Table } from "drizzle-orm";
+import { SQL, Table, TableConfig } from "drizzle-orm";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
   PgInsertOnConflictDoUpdateConfig,
   PgQueryResultHKT,
+  PgTable,
+  PgTableWithColumns,
 } from "drizzle-orm/pg-core";
 import { err, ok, Result } from "neverthrow";
 import { Pool } from "pg";
@@ -100,12 +102,14 @@ export async function upsert<
 export async function insert<TTable extends Table>({
   table,
   values,
+  tx = db(),
 }: {
   table: TTable;
   values: TTable["$inferInsert"];
+  tx?: Db;
 }): Promise<Result<TTable["$inferSelect"], QueryError>> {
   const results = await queryResult(
-    db().insert(table).values(values).returning(),
+    tx.insert(table).values(values).returning(),
   );
   if (results.isErr()) {
     return results;
