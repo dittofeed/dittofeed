@@ -23,6 +23,7 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import { db } from "./db";
 import * as schema from "./db/schema";
 import {
   startKeyedUserJourney,
@@ -40,6 +41,7 @@ import {
   JourneyDefinition,
   JourneyDraft,
   JourneyNodeType,
+  JourneyResourceStatusEnum,
   JourneyStats,
   JourneyStatus,
   JourneyUpsertValidationError,
@@ -50,7 +52,6 @@ import {
   SmsStats,
   UpsertJourneyResource,
 } from "./types";
-import { db } from "./db";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -122,7 +123,7 @@ export function toJourneyResource(
     updatedAt: new Date(updatedAt).getTime(),
     status,
   };
-  if (status === JourneyStatus.NotStarted) {
+  if (status === JourneyResourceStatusEnum.NotStarted) {
     return ok({
       ...baseResource,
       status,
@@ -143,9 +144,11 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: FindManyParams,
+  params: SQL<typeof schema>,
 ): Promise<Result<SavedJourneyResource, Error>[]> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
   const results: Result<SavedJourneyResource, Error>[] = journeys.map(
     (journey) => toJourneyResource(journey),
   );
@@ -153,16 +156,18 @@ export async function findManyJourneyResourcesSafe(
 }
 
 export async function findManyJourneyResourcesUnsafe(
-  params: FindManyParams,
+  params: SQL<typeof schema>,
 ): Promise<SavedJourneyResource[]> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
   const results = journeys.map((journey) => unwrap(toJourneyResource(journey)));
   return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: FindManyParams,
+  params: SQL<typeof schema>,
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
