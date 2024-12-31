@@ -1,4 +1,4 @@
-import NodeCache from "node-cache";
+import * as NodeCache from "node-cache";
 import { v4 as uuidv4 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
@@ -13,18 +13,18 @@ import {
 import { findManyEventsWithCount } from "./userEvents";
 
 describe("apps", () => {
+  let workspaceId: string;
+
+  beforeEach(async () => {
+    workspaceId = uuidv4();
+    await prisma().workspace.create({
+      data: { id: workspaceId, name: `test-${workspaceId}` },
+    });
+  });
+
   describe("submitBatch", () => {
     describe("when events don't have traits or properties", () => {
       it("should default traits or properties to empty object", async () => {
-        const workspaceId = uuidv4();
-
-        await prisma().workspace.create({
-          data: {
-            id: workspaceId,
-            name: `test-${workspaceId}`,
-          },
-        });
-
         await submitBatch({
           workspaceId,
           data: {
@@ -54,7 +54,6 @@ describe("apps", () => {
     });
   });
   describe("submitBatchWithTriggers", () => {
-    let workspaceId: string;
     let startKeyedJourneyImpl: jest.Mock;
     let notStartedJourneyId: string;
     let startedEventTriggeredJourneyId: string;
@@ -63,10 +62,6 @@ describe("apps", () => {
     let submitBatchWithTriggers: typeof import("./apps").submitBatchWithTriggers;
 
     beforeEach(async () => {
-      workspaceId = uuidv4();
-      await prisma().workspace.create({
-        data: { id: workspaceId, name: `test-${workspaceId}` },
-      });
       entryEventName = "Purchase";
       const eventTriggeredJourneyDefinition: JourneyDefinition = {
         entryNode: {

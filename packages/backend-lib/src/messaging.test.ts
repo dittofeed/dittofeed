@@ -1,9 +1,3 @@
-import {
-  MessageTemplate,
-  SubscriptionGroup,
-  Workspace,
-  WorkspaceType,
-} from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -18,10 +12,13 @@ import {
   EmailTemplateResource,
   InternalEventType,
   MessageTags,
+  MessageTemplate,
   SmsProviderType,
   SmsTemplateResource,
+  SubscriptionGroup,
   SubscriptionGroupType,
   UpsertMessageTemplateValidationErrorType,
+  Workspace,
 } from "./types";
 
 async function setupEmailTemplate(workspace: Workspace) {

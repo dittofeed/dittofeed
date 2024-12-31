@@ -30,14 +30,17 @@ import {
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
+  journeyStatus as dbJourneyStatus,
   messageTemplate as dbMessageTemplate,
   secret as dbSecret,
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
   smsProvider as dbSmsProvider,
+  subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
   workspace as dbWorkspace,
+  workspaceType as dbWorkspaceType,
   writeKey as dbWriteKey,
 } from "./db/schema";
 
@@ -80,6 +83,10 @@ export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
 export type Secret = InferSelectModel<typeof dbSecret>;
 
 export type WriteKey = InferSelectModel<typeof dbWriteKey>;
+
+export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
+
+export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
 
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;

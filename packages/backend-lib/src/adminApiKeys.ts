@@ -1,10 +1,10 @@
 import { randomBytes, randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 
 import { db, queryResult } from "./db";
 import { adminApiKey as dbAdminApiKey, secret as dbSecret } from "./db/schema";
-import prisma from "./prisma";
 import {
   AdminApiKeyPermission,
   AdminApiKeyResource,
@@ -91,15 +91,14 @@ export async function getAdminApiKeys({
 }: {
   workspaceId: string;
 }): Promise<AdminApiKeyResource[]> {
-  const keys = await prisma().adminApiKey.findMany({
-    where: {
-      workspaceId,
-    },
-  });
+  const keys = await db()
+    .select()
+    .from(dbAdminApiKey)
+    .where(eq(dbAdminApiKey.workspaceId, workspaceId));
   return keys.map((key) => ({
     workspaceId,
     id: key.id,
     name: key.name,
-    createdAt: key.createdAt.getTime(),
+    createdAt: new Date(key.createdAt).getTime(),
   }));
 }
