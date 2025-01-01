@@ -1,4 +1,3 @@
-import { Broadcast } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -20,23 +19,23 @@ import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
-import { db, insert, upsert } from "./db";
+import { db, insert } from "./db";
 import {
   broadcast as dbBroadcast,
   defaultEmailProvider as dbDefaultEmailProvider,
-  defaultSmsProvider as dbDefaultSmsProvider,
   journey as dbJourney,
   messageTemplate as dbMessageTemplate,
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
 } from "./db/schema";
-import { toJourneyResource, upsertJourney } from "./journeys";
+import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
 import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
+import { Broadcast } from "./types";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -62,9 +61,7 @@ export function getBroadcastJourneyName({
   return `Broadcast - ${broadcastId}`;
 }
 
-export function toBroadcastResource(
-  broadcast: Broadcast | typeof dbBroadcast.$inferSelect,
-): BroadcastResource {
+export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
   const resource: BroadcastResource = {
     workspaceId: broadcast.workspaceId,
     id: broadcast.id,
@@ -326,11 +323,23 @@ export async function triggerBroadcast({
   workspaceId: string;
 }): Promise<BroadcastResource> {
   const temporalClient = await connectWorkflowClient();
-  const broadcast = await prisma().broadcast.findUniqueOrThrow({
-    where: {
-      id: broadcastId,
-    },
+  const broadcast = await db().query.broadcast.findFirst({
+    where: and(
+      eq(dbBroadcast.id, broadcastId),
+      eq(dbBroadcast.workspaceId, workspaceId),
+    ),
   });
+  if (!broadcast) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast not found",
+    );
+    throw new Error("Broadcast not found");
+  }
+
   if (broadcast.status !== "NotStarted") {
     logger().error(
       {
@@ -362,13 +371,28 @@ export async function triggerBroadcast({
     }
   }
 
-  const updatedBroadcast = await prisma().broadcast.update({
-    where: {
-      id: broadcastId,
-    },
-    data: {
+  const [updatedBroadcast] = await db()
+    .update(dbBroadcast)
+    .set({
       status: "InProgress",
-    },
-  });
+    })
+    .where(
+      and(
+        eq(dbBroadcast.id, broadcastId),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      ),
+    )
+    .returning();
+
+  if (updatedBroadcast == null) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast not found",
+    );
+    throw new Error("Broadcast not found");
+  }
   return toBroadcastResource(updatedBroadcast);
 }

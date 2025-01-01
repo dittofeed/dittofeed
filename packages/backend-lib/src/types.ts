@@ -27,6 +27,7 @@ import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 import {
+  broadcast as dbBroadcast,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
@@ -90,6 +91,7 @@ export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
 
 export type JourneyInsert = typeof dbJourney.$inferInsert;
 
+export type Broadcast = InferSelectModel<typeof dbBroadcast>;
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
