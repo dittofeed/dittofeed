@@ -1,5 +1,6 @@
 import { Broadcast } from "@prisma/client";
-import { and, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
@@ -22,15 +23,17 @@ import {
 import { db, insert, upsert } from "./db";
 import {
   broadcast as dbBroadcast,
+  defaultEmailProvider as dbDefaultEmailProvider,
+  defaultSmsProvider as dbDefaultSmsProvider,
   journey as dbJourney,
   messageTemplate as dbMessageTemplate,
   segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
 } from "./db/schema";
 import { toJourneyResource, upsertJourney } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
-import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
@@ -182,13 +185,10 @@ export async function upsertBroadcast({
   if (mDefinition) {
     messageTemplateDefinition = mDefinition;
   } else {
-    const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique(
-      {
-        where: {
-          workspaceId,
-        },
-      },
-    );
+    const defaultEmailProvider =
+      await db().query.defaultEmailProvider.findFirst({
+        where: eq(dbDefaultEmailProvider.workspaceId, workspaceId),
+      });
     messageTemplateDefinition = defaultEmailDefinition({
       emailContentsType: EmailContentsType.LowCode,
       emailProvider: defaultEmailProvider ?? undefined,
@@ -199,51 +199,40 @@ export async function upsertBroadcast({
     "Broadcast definitions",
   );
   const [segment, messageTemplate, subscriptionGroup] = await Promise.all([
-    prisma().segment.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastSegmentName,
-        },
-      },
-      create: {
+    insert({
+      table: dbSegment,
+      doNothingOnConflict: true,
+      values: {
+        id: randomUUID(),
         workspaceId,
         name: broadcastSegmentName,
         definition: segmentDefinition,
         resourceType: "Internal",
         status: "NotStarted",
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       },
-      update: {},
-    }),
-    prisma().messageTemplate.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastTemplateName,
-        },
-      },
-      create: {
+    }).then(unwrap),
+    insert({
+      table: dbMessageTemplate,
+      doNothingOnConflict: true,
+      values: {
+        id: randomUUID(),
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: messageTemplateDefinition,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       },
-      update: {},
+    }).then(unwrap),
+    db().query.subscriptionGroup.findFirst({
+      where: and(
+        eq(dbSubscriptionGroup.workspaceId, workspaceId),
+        eq(dbSubscriptionGroup.channel, mDefinition?.type ?? ChannelType.Email),
+      ),
+      orderBy: [asc(dbSubscriptionGroup.createdAt)],
     }),
-    sgId
-      ? null
-      : prisma().subscriptionGroup.findFirst({
-          where: {
-            workspaceId,
-            channel: mDefinition?.type ?? ChannelType.Email,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-          select: {
-            id: true,
-          },
-        }),
   ]);
 
   const journeyDefinition: JourneyDefinition = {
