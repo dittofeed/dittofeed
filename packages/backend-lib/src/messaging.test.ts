@@ -1,14 +1,17 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { WorkspaceTypeAppEnum } from "isomorphic-lib/src/types";
 
 import { db, insert } from "./db";
 import {
   messageTemplate as dbMessageTemplate,
   subscriptionGroup as dbSubscriptionGroup,
+  workspace as dbWorkspace,
 } from "./db/schema";
 import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
+import prisma from "./prisma";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -23,6 +26,7 @@ import {
   SubscriptionGroupType,
   UpsertMessageTemplateValidationErrorType,
   Workspace,
+  WorkspaceType,
 } from "./types";
 
 async function setupEmailTemplate(workspace: Workspace) {
@@ -73,12 +77,19 @@ describe("messaging", () => {
   let workspace: Workspace;
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `workspace-${randomUUID()}`,
-      },
-    });
+    workspace = unwrap(
+      await insert({
+        table: dbWorkspace,
+        values: {
+          id: randomUUID(),
+          name: `workspace-${randomUUID()}`,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+      }),
+    );
   });
+
   describe("sendEmail", () => {
     describe("when sent from a child workspace", () => {
       let childWorkspace: Workspace;
@@ -88,10 +99,14 @@ describe("messaging", () => {
 
       beforeEach(async () => {
         [parentWorkspace, childWorkspace] = await Promise.all([
-          prisma().workspace.create({
-            data: {
+          insert({
+            table: dbWorkspace,
+            values: {
+              id: randomUUID(),
               name: `parent-workspace-${randomUUID()}`,
-              type: WorkspaceType.Parent,
+              type: WorkspaceTypeAppEnum.Parent,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
           }),
           prisma().workspace.create({

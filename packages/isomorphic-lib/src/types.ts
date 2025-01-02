@@ -4281,11 +4281,13 @@ export const CreateWorkspaceError = Type.Union([
 
 export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
 
-export const WorkspaceTypeApp = Type.Union([
-  Type.Literal("Root"),
-  Type.Literal("Child"),
-  Type.Literal("Parent"),
-]);
+export enum WorkspaceTypeAppEnum {
+  Root = "Root",
+  Child = "Child",
+  Parent = "Parent",
+}
+
+export const WorkspaceTypeApp = Type.Enum(WorkspaceTypeAppEnum);
 
 export type WorkspaceTypeApp = Static<typeof WorkspaceTypeApp>;
 
