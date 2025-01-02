@@ -1,10 +1,14 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { db, insert } from "./db";
+import {
+  messageTemplate as dbMessageTemplate,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
-import prisma from "./prisma";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -22,27 +26,38 @@ import {
 } from "./types";
 
 async function setupEmailTemplate(workspace: Workspace) {
+  const templatePromise = insert({
+    table: dbMessageTemplate,
+    values: {
+      id: randomUUID(),
+      workspaceId: workspace.id,
+      name: `template-${randomUUID()}`,
+      definition: {
+        type: ChannelType.Email,
+        from: "support@company.com",
+        subject: "Hello",
+        body: "{% unsubscribe_link here %}.",
+      } satisfies EmailTemplateResource,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+  }).then(unwrap);
+  const subscriptionGroupPromise = insert({
+    table: dbSubscriptionGroup,
+    values: {
+      id: randomUUID(),
+      workspaceId: workspace.id,
+      name: `group-${randomUUID()}`,
+      type: "OptOut",
+      channel: ChannelType.Email,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+  }).then(unwrap);
+
   const [template, subscriptionGroup] = await Promise.all([
-    prisma().messageTemplate.create({
-      data: {
-        workspaceId: workspace.id,
-        name: `template-${randomUUID()}`,
-        definition: {
-          type: ChannelType.Email,
-          from: "support@company.com",
-          subject: "Hello",
-          body: "{% unsubscribe_link here %}.",
-        } satisfies EmailTemplateResource,
-      },
-    }),
-    prisma().subscriptionGroup.create({
-      data: {
-        workspaceId: workspace.id,
-        name: `group-${randomUUID()}`,
-        type: "OptOut",
-        channel: ChannelType.Email,
-      },
-    }),
+    templatePromise,
+    subscriptionGroupPromise,
     upsertEmailProvider({
       workspaceId: workspace.id,
       config: { type: EmailProviderType.Test },
