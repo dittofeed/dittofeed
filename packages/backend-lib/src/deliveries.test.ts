@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { times } from "remeda";
 
 import { submitBatch } from "./apps/batch";
@@ -8,7 +9,6 @@ import {
   searchDeliveries,
   SearchDeliveryRow,
 } from "./deliveries";
-import prisma from "./prisma";
 import {
   BatchItem,
   ChannelType,
@@ -19,20 +19,22 @@ import {
   MessageSendSuccessVariant,
   SmsProviderType,
 } from "./types";
+import { createWorkspace } from "./workspaces";
 
 describe("deliveries", () => {
+  let workspaceId: string;
+
+  beforeEach(async () => {
+    const workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: `test-workspace-${randomUUID()}`,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    workspaceId = workspace.id;
+  });
   describe("searchDeliveries", () => {
-    let workspaceId: string;
-
-    beforeEach(async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
-      workspaceId = workspace.id;
-    });
-
     describe("when the original sent message includes a triggeringMessageId", () => {
       let triggeringMessageId: string;
       beforeEach(async () => {
@@ -1013,16 +1015,9 @@ describe("deliveries", () => {
     });
   });
   describe("getDeliveryBody", () => {
-    let workspaceId: string;
     let userId: string;
 
-    beforeEach(async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
-      workspaceId = workspace.id;
+    beforeEach(() => {
       userId = randomUUID();
     });
 
