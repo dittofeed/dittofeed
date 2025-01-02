@@ -1,11 +1,13 @@
+import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { pick } from "remeda";
 
-import { db } from "./db";
+import { db, upsert } from "./db";
 import { integration as dbIntegration } from "./db/schema";
+import logger from "./logger";
 import {
   EnrichedIntegration,
   Integration,
@@ -109,38 +111,45 @@ export async function upsertIntegration({
   let integration: Integration;
   if (definition) {
     const now = new Date();
-    integration = await prisma().integration.upsert({
-      where: {
-        workspaceId_name: {
+    integration = unwrap(
+      await upsert({
+        table: dbIntegration,
+        values: {
           name,
           workspaceId,
+          definition,
+          enabled,
+          definitionUpdatedAt: now.toISOString(),
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          id: randomUUID(),
         },
-      },
-      create: {
-        name,
-        workspaceId,
-        definition,
-        enabled,
-        definitionUpdatedAt: now,
-      },
-      update: {
-        definition,
-        enabled,
-        definitionUpdatedAt: now,
-      },
-    });
+        target: [dbIntegration.workspaceId, dbIntegration.name],
+        set: {
+          definition,
+          enabled,
+          definitionUpdatedAt: now.toISOString(),
+        },
+      }),
+    );
   } else {
-    integration = await prisma().integration.update({
-      where: {
-        workspaceId_name: {
-          name,
-          workspaceId,
-        },
-      },
-      data: {
+    const [updatedIntegration] = await db()
+      .update(dbIntegration)
+      .set({
         enabled,
-      },
-    });
+      })
+      .where(
+        and(
+          eq(dbIntegration.workspaceId, workspaceId),
+          eq(dbIntegration.name, name),
+        ),
+      )
+      .returning();
+    if (!updatedIntegration) {
+      logger().error({ workspaceId, name }, "Integration not found");
+      throw new Error("Integration not found");
+    }
+    integration = updatedIntegration;
   }
   const enriched = unwrap(enrichIntegration(integration));
   return pick(enriched, ["id", "name", "workspaceId", "definition", "enabled"]);
