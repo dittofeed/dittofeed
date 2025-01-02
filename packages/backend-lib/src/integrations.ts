@@ -1,9 +1,11 @@
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { pick } from "remeda";
 
-import prisma from "./prisma";
+import { db } from "./db";
+import { integration as dbIntegration } from "./db/schema";
 import {
   EnrichedIntegration,
   Integration,
@@ -38,17 +40,20 @@ function toIntegrationResource(
     id: i.id,
     definition: i.definition,
     enabled: i.enabled,
-    createdAt: i.createdAt.getTime(),
-    updatedAt: i.updatedAt.getTime(),
-    definitionUpdatedAt: i.definitionUpdatedAt.getTime(),
+    createdAt: new Date(i.createdAt).getTime(),
+    updatedAt: new Date(i.updatedAt).getTime(),
+    definitionUpdatedAt: new Date(i.definitionUpdatedAt).getTime(),
   }));
 }
 
 export async function findAllEnrichedIntegrations(
   workspaceId: string,
 ): Promise<Result<EnrichedIntegration[], Error>> {
-  const dbVals = await prisma().integration.findMany({
-    where: { workspaceId, enabled: true },
+  const dbVals = await db().query.integration.findMany({
+    where: and(
+      eq(dbIntegration.workspaceId, workspaceId),
+      eq(dbIntegration.enabled, true),
+    ),
   });
 
   const enriched: EnrichedIntegration[] = [];
@@ -67,8 +72,11 @@ export async function findAllIntegrationResources({
 }: {
   workspaceId: string;
 }): Promise<Result<SavedIntegrationResource, Error>[]> {
-  const dbVals = await prisma().integration.findMany({
-    where: { workspaceId, enabled: true },
+  const dbVals = await db().query.integration.findMany({
+    where: and(
+      eq(dbIntegration.workspaceId, workspaceId),
+      eq(dbIntegration.enabled, true),
+    ),
   });
   return dbVals.map(toIntegrationResource);
 }
@@ -80,13 +88,11 @@ export async function findEnrichedIntegration({
   workspaceId: string;
   name: string;
 }): Promise<Result<EnrichedIntegration | null, Error>> {
-  const integration = await prisma().integration.findUnique({
-    where: {
-      workspaceId_name: {
-        name,
-        workspaceId,
-      },
-    },
+  const integration = await db().query.integration.findFirst({
+    where: and(
+      eq(dbIntegration.workspaceId, workspaceId),
+      eq(dbIntegration.name, name),
+    ),
   });
   if (!integration) {
     return ok(null);

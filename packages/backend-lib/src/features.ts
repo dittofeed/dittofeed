@@ -1,5 +1,6 @@
 import { Static } from "@sinclair/typebox";
-import { and, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import {
   schemaValidate,
   schemaValidateWithErr,
@@ -78,11 +79,12 @@ export async function getFeatures({
   workspaceId: string;
   names?: FeatureNamesEnum[];
 }): Promise<FeatureMap> {
-  const features = await prisma().feature.findMany({
-    where: {
-      workspaceId,
-      ...(names ? { name: { in: names } } : {}),
-    },
+  const conditions: SQL[] = [eq(dbFeature.workspaceId, workspaceId)];
+  if (names) {
+    conditions.push(inArray(dbFeature.name, names));
+  }
+  const features = await db().query.feature.findMany({
+    where: and(...conditions),
   });
   return features.reduce<FeatureMap>((acc, feature) => {
     const validated = schemaValidate(feature.name, FeatureNames);
@@ -112,24 +114,23 @@ export async function addFeatures({
 }) {
   await Promise.all(
     features.map((feature) =>
-      prisma().feature.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: feature.type,
-          },
-        },
-        create: {
+      db()
+        .insert(dbFeature)
+        .values({
           workspaceId,
           name: feature.type,
           enabled: true,
           config: feature,
-        },
-        update: {
-          enabled: true,
-          config: feature,
-        },
-      }),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .onConflictDoUpdate({
+          target: [dbFeature.workspaceId, dbFeature.name],
+          set: {
+            enabled: true,
+            config: feature,
+          },
+        }),
     ),
   );
 
@@ -151,12 +152,14 @@ export async function removeFeatures({
   workspaceId: string;
   names: FeatureNamesEnum[];
 }) {
-  await prisma().feature.deleteMany({
-    where: {
-      workspaceId,
-      name: { in: names },
-    },
-  });
+  await db()
+    .delete(dbFeature)
+    .where(
+      and(
+        eq(dbFeature.workspaceId, workspaceId),
+        inArray(dbFeature.name, names),
+      ),
+    );
 
   const effects = names.flatMap((name) => {
     switch (name) {
