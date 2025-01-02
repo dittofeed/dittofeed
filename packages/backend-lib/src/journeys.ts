@@ -1,7 +1,7 @@
 import { Row } from "@clickhouse/client";
 import { Type } from "@sinclair/typebox";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, isNotNull, SQL } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
@@ -456,7 +456,7 @@ export async function getJourneysStats({
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
   const conditions: SQL[] = [
-    eq(dbJourney.status, JourneyResourceStatusEnum.NotStarted),
+    not(eq(dbJourney.status, JourneyResourceStatusEnum.NotStarted)),
     isNotNull(dbJourney.definition),
   ];
   if (allJourneyIds?.length) {

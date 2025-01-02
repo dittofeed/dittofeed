@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
+import { PgInsertValue } from "drizzle-orm/pg-core";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
-import { db } from "./db";
+import { db, insert } from "./db";
 import { journey as dbJourney } from "./db/schema";
 import {
   getJourneyMessageStats,
@@ -17,6 +18,7 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
+  JourneyResourceStatusEnum,
   JourneyUpsertValidationErrorType,
   MessageNode,
   MessageServiceFailureVariant,
@@ -37,7 +39,6 @@ describe("journeys", () => {
       await createWorkspace({
         id: randomUUID(),
         name: randomUUID(),
-        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }),
     );
@@ -324,10 +325,27 @@ describe("journeys", () => {
           id: journeyId,
           definition: journeyDefinition,
           name: randomUUID(),
-          status: "Running",
+          status: JourneyResourceStatusEnum.Running,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          canRunMultiple: false,
+          resourceType: "Declarative",
+          draft: null,
+          statusUpdatedAt: new Date().toISOString(),
         });
+        await insert({
+          table: dbJourney,
+          values: {
+            workspaceId,
+            id: journeyId,
+            // definition: journeyDefinition,
+            name: randomUUID(),
+            // status: "Running",
+            // createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+
         const userId = randomUUID();
 
         await Promise.all([
@@ -444,15 +462,16 @@ describe("journeys", () => {
           },
         };
         journeyId = randomUUID();
-        await db().insert(dbJourney).values({
-          workspaceId,
-          id: journeyId,
-          definition: journeyDefinition,
-          name: randomUUID(),
-          status: "Running",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+        await db()
+          .insert(dbJourney)
+          .values({
+            workspaceId,
+            id: journeyId,
+            definition: journeyDefinition,
+            name: randomUUID(),
+            status: JourneyResourceStatusEnum.Running,
+            updatedAt: new Date().toISOString(),
+          } satisfies PgInsertValue<typeof dbJourney>);
 
         const journeyStartedAt = Date.now();
 

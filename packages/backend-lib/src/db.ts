@@ -1,12 +1,10 @@
 // eslint-disable-next-line filenames/no-index
-import { SQL, Table, TableConfig } from "drizzle-orm";
+import { Table } from "drizzle-orm";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
   PgInsertOnConflictDoUpdateConfig,
   PgQueryResultHKT,
-  PgTable,
-  PgTableWithColumns,
 } from "drizzle-orm/pg-core";
 import { err, ok, Result } from "neverthrow";
 import { Pool } from "pg";
@@ -52,12 +50,13 @@ export function pool(): Pool {
 
 export function db(): Db {
   if (!DB) {
+    const dbSchema = {
+      ...schema,
+      ...relations,
+    };
     const d = drizzle({
       client: pool(),
-      schema: {
-        ...schema,
-        ...relations,
-      },
+      schema: dbSchema,
     });
     DB = d;
     return d;
