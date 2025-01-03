@@ -51,18 +51,6 @@ async function findAndCreateRoles(
   member: MemberWithRoles,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
-  // const workspaces = await prisma().workspace.findMany({
-  //   where: {
-  //     OR: or,
-  //   },
-  //   include: {
-  //     WorkspaceMemberRole: {
-  //       where: {
-  //         workspaceMemberId: member.id,
-  //       },
-  //     },
-  //   },
-  // });
 
   const conditions: SQL[] = [isNotNull(dbWorkspaceMember.id)];
   if (domain) {
@@ -85,32 +73,29 @@ async function findAndCreateRoles(
   const domainWorkspacesWithoutRole = workspaces.filter(
     (w) => w.WorkspaceMemberRole === null,
   );
-  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
+  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole ?? []);
   if (domainWorkspacesWithoutRole.length !== 0) {
     const newRoles = await Promise.all(
       domainWorkspacesWithoutRole.map((w) =>
-        prisma().workspaceMemberRole.upsert({
-          where: {
-            workspaceId_workspaceMemberId: {
-              workspaceId: w.id,
-              workspaceMemberId: member.id,
-            },
-          },
-          update: {},
-          create: {
-            workspaceId: w.id,
+        db()
+          .insert(dbWorkspaceMemberRole)
+          .values({
+            workspaceId: w.Workspace.id,
             workspaceMemberId: member.id,
             role: "Admin",
-          },
-        }),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+          .onConflictDoNothing()
+          .returning(),
       ),
     );
-    for (const role of newRoles) {
+    for (const role of newRoles.flat()) {
       roles.push(role);
     }
   }
   const workspaceById = workspaces.reduce((acc, w) => {
-    acc.set(w.id, w);
+    acc.set(w.Workspace.id, w.Workspace);
     return acc;
   }, new Map<string, WorkspaceResource>());
 
@@ -132,13 +117,15 @@ async function findAndCreateRoles(
     const lastWorkspaceRole = roles.find(
       (r) => r.workspaceId === member.lastWorkspaceId,
     );
-    const workspace = workspaces.find((w) => w.id === member.lastWorkspaceId);
+    const workspace = workspaces.find(
+      (w) => w.Workspace.id === member.lastWorkspaceId,
+    )?.Workspace;
     if (lastWorkspaceRole && workspace) {
       return { memberRoles, workspace };
     }
   }
 
-  roles = sortBy(roles, (r) => r.createdAt.getTime());
+  roles = sortBy(roles, (r) => new Date(r.createdAt).getTime());
   const role = roles[0];
   if (!role) {
     return {
@@ -146,7 +133,10 @@ async function findAndCreateRoles(
       workspace: null,
     };
   }
-  const workspace = workspaces.find((w) => w.id === role.workspaceId);
+  const workspace = workspaces.find(
+    (w) => w.Workspace.id === role.workspaceId,
+  )?.Workspace;
+
   if (!workspace) {
     return {
       memberRoles,
