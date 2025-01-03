@@ -22,7 +22,7 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { insert, QueryError, upsert } from "./db";
+import { QueryError, upsert } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -55,7 +55,7 @@ import {
   Workspace,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
-import { createWorkspace } from "./workspaces";
+import { createWorkspace } from "./workspaces/createWorkspace";
 
 const DOMAIN_REGEX =
   /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;

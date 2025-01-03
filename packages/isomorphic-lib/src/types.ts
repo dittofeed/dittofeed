@@ -1851,10 +1851,12 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
-export const WorkspaceStatusDb = Type.Union([
-  Type.Literal("Active"),
-  Type.Literal("Tombstoned"),
-]);
+export const WorkspaceStatusDbEnum = {
+  Active: "Active",
+  Tombstoned: "Tombstoned",
+} as const;
+
+export const WorkspaceStatusDb = Type.KeyOf(Type.Const(WorkspaceStatusDbEnum));
 
 export type WorkspaceStatusDb = Static<typeof WorkspaceStatusDb>;
 
@@ -4281,13 +4283,13 @@ export const CreateWorkspaceError = Type.Union([
 
 export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
 
-export enum WorkspaceTypeAppEnum {
-  Root = "Root",
-  Child = "Child",
-  Parent = "Parent",
-}
+export const WorkspaceTypeAppEnum = {
+  Root: "Root",
+  Child: "Child",
+  Parent: "Parent",
+} as const;
 
-export const WorkspaceTypeApp = Type.Enum(WorkspaceTypeAppEnum);
+export const WorkspaceTypeApp = Type.KeyOf(Type.Const(WorkspaceTypeAppEnum));
 
 export type WorkspaceTypeApp = Static<typeof WorkspaceTypeApp>;
 

@@ -5,8 +5,6 @@ import { validate as validateUuid } from "uuid";
 
 import { bootstrapComputeProperties } from "./bootstrap";
 import { terminateComputePropertiesWorkflow } from "./computedProperties/computePropertiesWorkflow/lifecycle";
-import { db, insert, QueryError } from "./db";
-import { workspace as dbWorkspace } from "./db/schema";
 import prisma from "./prisma";
 
 export enum TombstoneWorkspaceErrorType {
@@ -94,11 +92,4 @@ export async function activateTombstonedWorkspace(
   return ok(undefined);
 }
 
-export async function createWorkspace(
-  values: typeof dbWorkspace.$inferInsert,
-): Promise<Result<typeof dbWorkspace.$inferSelect, QueryError>> {
-  return insert({
-    table: dbWorkspace,
-    values,
-  });
-}
+export { createWorkspace } from "./workspaces/createWorkspace";
