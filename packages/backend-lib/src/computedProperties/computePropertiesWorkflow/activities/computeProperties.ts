@@ -1,16 +1,19 @@
 /* eslint-disable no-await-in-loop */
-import {
-  computeAssignments,
-  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
-  computeState,
-  processAssignments,
-} from "../../../computedProperties/computePropertiesIncremental";
+import { and, eq } from "drizzle-orm";
+
+import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import { findAllUserPropertyResources } from "../../../userProperties";
+import {
+  computeAssignments,
+  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
+  computeState,
+  processAssignments,
+} from "../../computePropertiesIncremental";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
@@ -18,11 +21,14 @@ export async function computePropertiesIncrementalArgs({
   workspaceId: string;
 }): Promise<Omit<ComputePropertiesIncrementalArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
-    findManyJourneyResourcesSafe({
-      where: {
-        workspaceId,
-        status: "Running",
-      },
+    findManyJourneyResourcesSafe(
+      and(
+        eq(dbJourney.workspaceId, workspaceId),
+        eq(dbJourney.status, "Running"),
+      ),
+    ),
+    findAllUserPropertyResources({
+      workspaceId,
     }),
     findAllUserPropertyResources({
       workspaceId,

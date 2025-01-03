@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { Prisma, WorkspaceStatus } from "@prisma/client";
+import { and, eq, isNotNull, or, SQL } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -7,24 +7,32 @@ import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import { db } from "./db";
+import {
+  workspace as dbWorkspace,
+  workspaceMembeAccount as dbWorkspaceMembeAccount,
+  workspaceMember as dbWorkspaceMember,
+  workspaceMemberRole as dbWorkspaceMemberRole,
+} from "./db/schema";
 import { withSpan } from "./openTelemetry";
-import prisma from "./prisma";
 import {
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
+  Role,
+  RoleEnum,
   Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
-  WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
+  WorkspaceStatusDb,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
 
-type RoleWithWorkspace = WorkspaceMemberRole & { workspace: Workspace };
+type RoleWithWorkspace = Role & { workspace: Workspace };
 
 type MemberWithRoles = WorkspaceMember & {
   WorkspaceMemberRole: RoleWithWorkspace[];
@@ -33,7 +41,7 @@ type MemberWithRoles = WorkspaceMember & {
 interface RolesWithWorkspace {
   workspace:
     | (WorkspaceResource & {
-        status: WorkspaceStatus;
+        status: WorkspaceStatusDb;
       })
     | null;
   memberRoles: WorkspaceMemberRoleResource[];
@@ -43,34 +51,39 @@ async function findAndCreateRoles(
   member: MemberWithRoles,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
-  const or: Prisma.WorkspaceWhereInput[] = [
-    {
-      WorkspaceMemberRole: {
-        some: {
-          workspaceMemberId: member.id,
-        },
-      },
-    },
-  ];
+  // const workspaces = await prisma().workspace.findMany({
+  //   where: {
+  //     OR: or,
+  //   },
+  //   include: {
+  //     WorkspaceMemberRole: {
+  //       where: {
+  //         workspaceMemberId: member.id,
+  //       },
+  //     },
+  //   },
+  // });
+
+  const conditions: SQL[] = [isNotNull(dbWorkspaceMember.id)];
   if (domain) {
-    or.push({ domain });
+    conditions.push(eq(dbWorkspace.domain, domain));
   }
 
-  const workspaces = await prisma().workspace.findMany({
-    where: {
-      OR: or,
-    },
-    include: {
-      WorkspaceMemberRole: {
-        where: {
-          workspaceMemberId: member.id,
-        },
-      },
-    },
-  });
+  const workspaces = await db()
+    .select()
+    .from(dbWorkspace)
+    .leftJoin(
+      dbWorkspaceMemberRole,
+      and(
+        eq(dbWorkspace.id, dbWorkspaceMemberRole.workspaceId),
+        eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
+      ),
+    )
+    .where(or(...conditions))
+    .groupBy(dbWorkspace.id);
 
   const domainWorkspacesWithoutRole = workspaces.filter(
-    (w) => w.WorkspaceMemberRole.length === 0,
+    (w) => w.WorkspaceMemberRole === null,
   );
   let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
   if (domainWorkspacesWithoutRole.length !== 0) {

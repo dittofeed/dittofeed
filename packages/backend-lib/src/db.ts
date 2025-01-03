@@ -1,5 +1,5 @@
 // eslint-disable-next-line filenames/no-index
-import { Table } from "drizzle-orm";
+import { SQL, Table } from "drizzle-orm";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
@@ -34,7 +34,9 @@ export async function queryResult<D, P extends Promise<D>>(
   }
 }
 
-export type Db = NodePgDatabase<typeof schema & typeof relations>;
+export type Schema = typeof schema & typeof relations;
+
+export type Db = NodePgDatabase<Schema>;
 
 let DB: Db | null = null;
 let POOL: Pool | null = null;

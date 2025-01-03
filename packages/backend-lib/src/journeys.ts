@@ -88,7 +88,7 @@ export function enrichJourney(
 }
 
 export async function findManyJourneys(
-  params: SQL<typeof schema>,
+  params?: SQL,
 ): Promise<Result<EnrichedJourney[], Error>> {
   const journeys = await db().query.journey.findMany({
     where: params,
@@ -147,7 +147,7 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: SQL<typeof schema>,
+  params?: SQL,
 ): Promise<Result<SavedJourneyResource, Error>[]> {
   const journeys = await db().query.journey.findMany({
     where: params,
@@ -159,7 +159,7 @@ export async function findManyJourneyResourcesSafe(
 }
 
 export async function findManyJourneyResourcesUnsafe(
-  params: SQL<typeof schema>,
+  params?: SQL,
 ): Promise<SavedJourneyResource[]> {
   const journeys = await db().query.journey.findMany({
     where: params,
@@ -170,7 +170,7 @@ export async function findManyJourneyResourcesUnsafe(
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: SQL<typeof schema>,
+  params?: SQL,
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
@@ -761,7 +761,7 @@ export async function updateJourney({
   tx = db(),
 }: {
   set: Partial<Journey>;
-  where: SQL<unknown>;
+  where?: SQL;
   tx?: Db;
 }): Promise<Result<Journey, QueryError>> {
   const results = await queryResult(

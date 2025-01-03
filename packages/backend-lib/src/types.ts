@@ -41,6 +41,7 @@ import {
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
   workspace as dbWorkspace,
+  workspaceMember as dbWorkspaceMember,
   workspaceType as dbWorkspaceType,
   writeKey as dbWriteKey,
 } from "./db/schema";
@@ -58,6 +59,8 @@ export const NodeEnv = Type.Enum(NodeEnvEnum);
 export enum KafkaMessageTypes {
   JSON = "0",
 }
+
+export type WorkspaceMember = InferSelectModel<typeof dbWorkspaceMember>;
 
 export type Segment = InferSelectModel<typeof dbSegment>;
 
