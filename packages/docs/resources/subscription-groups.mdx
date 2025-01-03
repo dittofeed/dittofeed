@@ -13,16 +13,14 @@ Subscription groups are associated with a specific channel e.g. email, SMS, or p
 
 By default, workspaces are populated with one subscription group per channel. Additional subscription groups can be created via [`/dashboard/subscription-groups`](https://demo.dittofeed.com/dashboard/subscription-groups) page.
 
-<Frame>
-![Subscription Groups Page](/images/subscription-groups-page.png)
-</Frame>
+<Frame>![Subscription Groups Page](/images/subscription-groups-page.png)</Frame>
 
 To create a new subscription group, click the (+) button. Then edit the subscription group name, and press save.
 
 <Frame>
-![Subscription Groups Configuration Page](/images/subscription-groups-configure-page.png)
+  ![Subscription Groups Configuration
+  Page](/images/subscription-groups-configure-page.png)
 </Frame>
-
 
 ## Opt-In vs Opt-Out Subscription Groups
 
@@ -67,30 +65,29 @@ Users' subscription state can also be updated programmatically, by submitting us
 
 ```json Subscribe Track Event
 {
-    "userId": "4f40e10c-2a45-4215-8f6b-51c01c06beb7",
-    "timestamp": "2023-05-19T00:48:43.494Z",
-    "messageId": "550700ed-f92a-4b9f-86dd-40e76e03fb6f",
-    "type": "track",
-    "event": "DFSubscriptionChange",
-    "properties": {
-      "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
-      "action": "Subscribe",
-    },
-
+  "userId": "4f40e10c-2a45-4215-8f6b-51c01c06beb7",
+  "timestamp": "2023-05-19T00:48:43.494Z",
+  "messageId": "550700ed-f92a-4b9f-86dd-40e76e03fb6f",
+  "type": "track",
+  "event": "DFSubscriptionChange",
+  "properties": {
+    "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
+    "action": "Subscribe"
+  }
 }
 ```
 
 ```json Unsubscribe Track Event
 {
-    "userId": "4f40e10c-2a45-4215-8f6b-51c01c06beb7",
-    "timestamp": "2023-05-19T00:48:43.494Z",
-    "messageId": "550700ed-f92a-4b9f-86dd-40e76e03fb6f",
-    "type": "track",
-    "event": "DFSubscriptionChange",
-    "properties": {
-      "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
-      "action": "Unsubscribe",
-    },
+  "userId": "4f40e10c-2a45-4215-8f6b-51c01c06beb7",
+  "timestamp": "2023-05-19T00:48:43.494Z",
+  "messageId": "550700ed-f92a-4b9f-86dd-40e76e03fb6f",
+  "type": "track",
+  "event": "DFSubscriptionChange",
+  "properties": {
+    "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
+    "action": "Unsubscribe"
+  }
 }
 ```
 
@@ -105,7 +102,7 @@ The subscription management will either unsubscribe, or subscribe the user to a 
 Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
 
 <Frame>
-![Subscription Management Page](/images/subscription-management-page.png)
+  ![Subscription Management Page](/images/subscription-management-page.png)
 </Frame>
 
 This page is exempt from the dashboard's standard authentication requirements, and can be accessed by any user. Instead, it is authenticated by a cryptographically signed hash, which is generated on the backend and included in the link to the page.
@@ -113,16 +110,17 @@ This page is exempt from the dashboard's standard authentication requirements, a
 The subscription management page can be previewed from the dashboard's settings page [`/dashboard/settings`](https://demo.dittofeed.com/dashboard/settings).
 
 <Frame>
-![Subscription Management Preview](/images/subscription-management-preview.png)
+  ![Subscription Management
+  Preview](/images/subscription-management-preview.png)
 </Frame>
-
 
 ## Adding Subscription Groups to a User Journey
 
 In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in the subscription group at the time of send.
 
 <Frame>
-![Subscription Groups in User Journeys](/images/journey-message-subscription-group.png)
+  ![Subscription Groups in User
+  Journeys](/images/journey-message-subscription-group.png)
 </Frame>
 
 It also allows unsubscribe links to be rendered in emails.
@@ -136,13 +134,15 @@ When journey message nodes have subscription groups associated with them, unsubs
 ```
 
 <Frame>
-![Unsubscribe Link in Email](/images/template-unsubscribe-link.png)
+  ![Unsubscribe Link in Email](/images/template-unsubscribe-link.png)
 </Frame>
 
 You can also use the `unsubscribe_url` liquid tag to just render the unsubscribe url, without the link element. This can be useful if you want to customize the unsubscribe link styling.
 
 ```html
-<a class="custom-unsubscribe-link" href="{% unsubscribe_url %}">custom unsubscribe link</a>
+<a class="custom-unsubscribe-link" href="{% unsubscribe_url %}"
+  >custom unsubscribe link</a
+>
 ```
 
 On loading the Subscription Management page, users will be either subscribed or unsubscribed to a specific subscription group.
@@ -154,3 +154,16 @@ Subscription groups are important for regulatory compliance. Regulations like [C
 ## Viewing Users in a Subscription Group
 
 You can view which users are in a subscription group by navigating to the subscription group's user page in the dashboard `/dashboard/subscription-groups/users/[id]`.
+
+---
+
+## Opt-in Tutorial Video
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/BQkYCbRzqQI?si=IxH_1b8IuKIg2h_1"
+  title="Subscription Groups | Opt-in Consent for Email"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
