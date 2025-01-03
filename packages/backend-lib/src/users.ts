@@ -1,4 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
+import { and, eq, inArray } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   schemaValidate,
@@ -8,17 +9,22 @@ import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { ok, Result } from "neverthrow";
 
 import {
-  clickhouseClient,
   ClickHouseQueryBuilder,
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import { db } from "./db";
+import {
+  segment as dbSegment,
+  segmentAssignment as dbSegmentAssignment,
+  userProperty as dbUserProperty,
+  userPropertyAssignment as dbUserPropertyAssignment,
+} from "./db/schema";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
-import prisma from "./prisma";
 import {
   CursorDirectionEnum,
-  DBResourceType,
+  DBResourceTypeEnum,
   DeleteUsersRequest,
   GetUsersRequest,
   GetUsersResponse,
@@ -163,27 +169,32 @@ export async function getUsers({
       query,
       query_params: qb.getQueries(),
     }),
-    prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-        resourceType: DBResourceType.Declarative,
-      },
-      select: {
-        name: true,
-        id: true,
-        definition: true,
-      },
-    }),
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-        resourceType: DBResourceType.Declarative,
-      },
-      select: {
-        name: true,
-        id: true,
-      },
-    }),
+    db()
+      .select({
+        name: dbUserProperty.name,
+        id: dbUserProperty.id,
+        definition: dbUserProperty.definition,
+      })
+      .from(dbUserProperty)
+      .where(
+        and(
+          eq(dbUserProperty.workspaceId, workspaceId),
+          eq(dbUserProperty.resourceType, DBResourceTypeEnum.Declarative),
+        ),
+      ),
+    db()
+      .select({
+        name: dbSegment.name,
+        id: dbSegment.id,
+        definition: dbSegment.definition,
+      })
+      .from(dbSegment)
+      .where(
+        and(
+          eq(dbSegment.workspaceId, workspaceId),
+          eq(dbSegment.resourceType, DBResourceTypeEnum.Declarative),
+        ),
+      ),
   ]);
   const segmentNameById = new Map<string, string>();
   for (const segment of segments) {
@@ -371,21 +382,21 @@ export async function deleteUsers({
       }),
     ),
     // Delete from Prisma tables
-    prisma().userPropertyAssignment.deleteMany({
-      where: {
-        workspaceId,
-        userId: {
-          in: userIds,
-        },
-      },
-    }),
-    prisma().segmentAssignment.deleteMany({
-      where: {
-        workspaceId,
-        userId: {
-          in: userIds,
-        },
-      },
-    }),
+    db()
+      .delete(dbUserPropertyAssignment)
+      .where(
+        and(
+          eq(dbUserPropertyAssignment.workspaceId, workspaceId),
+          inArray(dbUserPropertyAssignment.userId, userIds),
+        ),
+      ),
+    db()
+      .delete(dbSegmentAssignment)
+      .where(
+        and(
+          eq(dbSegmentAssignment.workspaceId, workspaceId),
+          inArray(dbSegmentAssignment.userId, userIds),
+        ),
+      ),
   ]);
 }

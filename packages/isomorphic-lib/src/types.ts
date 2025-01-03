@@ -256,6 +256,15 @@ export enum SegmentNodeType {
   Everyone = "Everyone",
 }
 
+export const DBResourceTypeEnum = {
+  Declarative: "Declarative",
+  Internal: "Internal",
+} as const;
+
+export const DBResourceType = Type.KeyOf(Type.Const(DBResourceTypeEnum));
+
+export type DBResourceType = Static<typeof DBResourceType>;
+
 export const SubscriptionGroupSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.SubscriptionGroup),
   id: Type.String(),
