@@ -198,24 +198,22 @@ export async function getMultiTenantRequestContext({
 
   // eslint-disable-next-line prefer-const
   let [member, account] = await Promise.all([
-    prisma().workspaceMember.findUnique({
-      where: { email },
-      include: {
-        WorkspaceMemberRole: {
-          take: 1,
-          include: {
+    db().query.workspaceMember.findFirst({
+      where: eq(dbWorkspaceMember.email, email),
+      with: {
+        workspaceMemberRoles: {
+          limit: 1,
+          with: {
             workspace: true,
           },
         },
       },
     }),
-    prisma().workspaceMembeAccount.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: authProvider,
-          providerAccountId: sub,
-        },
-      },
+    db().query.workspaceMembeAccount.findFirst({
+      where: and(
+        eq(dbWorkspaceMembeAccount.provider, authProvider),
+        eq(dbWorkspaceMembeAccount.providerAccountId, sub),
+      ),
     }),
   ]);
 
