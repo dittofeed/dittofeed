@@ -216,9 +216,7 @@
         "guide/creating-journeys",
         {
           "group": "Sample Journeys",
-          "pages": [
-            "guide/sample-journeys/appointment-reminders"
-          ]
+          "pages": ["guide/sample-journeys/appointment-reminders"]
         },
         "guide/accessing-admin-api",
         "guide/submitting-broadcasts-api",

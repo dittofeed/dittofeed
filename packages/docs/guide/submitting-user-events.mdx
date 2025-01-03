@@ -3,16 +3,42 @@ title: "Submitting User Events"
 description: "How to submit user events to Dittofeed's API."
 ---
 
-User events are the core of Dittofeed. They inform the application about your end users's identify, characteristics, and actions. This data can then be used to decide how, when, and where to send messages to your users.
+User events are the core of Dittofeed. They inform the application about your end users's identity, characteristics, and actions. This data can then be used to decide how, when, and where to send messages to your users.
+
+## Ways to Send Event Data to Dittofeed
 
 <CardGroup cols={2}>
   <Card title="SDK" icon="book" color="#4CAF50" href="/integrations/sdks">
     Sending data directly to Dittofeed's segment compatible API.
   </Card>
-  <Card title="REST API" icon="server" color="#ea5a0c" href="/integrations/sources/api">
+  <Card
+    title="REST API"
+    icon="server"
+    color="#ea5a0c"
+    href="/integrations/sources/api"
+  >
     Sending data directly to Dittofeed's segment compatible API.
   </Card>
-  <Card title="Using Segment.io as an event Source" icon="pipe-section" color="#0285c7" href="/integrations/sources/segment">
-    Segment is a popular customer data platform, which centralizes user data for business applications.
+  <Card
+    title="Using Segment.io as an event Source"
+    icon="pipe-section"
+    color="#0285c7"
+    href="/integrations/sources/segment"
+  >
+    Segment is a popular customer data platform, which centralizes user data for
+    business applications.
   </Card>
 </CardGroup>
+
+---
+
+Here's an example of how to use Identify and Track events to automate welcome emails.
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/GX4UFeIwGYc?si=C0tGsbDMOKzqW6IK"
+  title="Welcome Journeys | Setting Up User Events"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
