@@ -33,16 +33,6 @@ import {
 
 export const SESSION_KEY = "df-session-key";
 
-interface RoleWithWorkspace {
-  role: Role;
-  workspace: Workspace;
-}
-
-interface MemberWithRoles {
-  member: WorkspaceMember;
-  roles: RoleWithWorkspace[];
-}
-
 interface RolesWithWorkspace {
   workspace:
     | (WorkspaceResource & {
@@ -323,7 +313,7 @@ export async function getMultiTenantRequestContext({
 }
 
 async function getAnonymousRequestContext(): Promise<RequestContextResult> {
-  const workspace = await prisma().workspace.findFirst();
+  const workspace = await db().query.workspace.findFirst();
   if (!workspace) {
     return err({
       type: RequestContextErrorType.ApplicationError,
