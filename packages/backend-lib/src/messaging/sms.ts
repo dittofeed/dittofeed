@@ -1,5 +1,10 @@
+import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { upsert } from "../db";
+import { secret as dbSecret } from "../db/schema";
 import logger from "../logger";
 import prisma from "../prisma";
 import {
@@ -23,22 +28,23 @@ export async function upsertSmsProvider({
   setDefault,
 }: UpsertSmsProviderRequest): Promise<PersistedSmsProvider | null> {
   const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
-  const secret = await prisma().secret.upsert({
-    where: {
-      workspaceId_name: {
+  const secret = unwrap(
+    await upsert({
+      table: dbSecret,
+      target: [dbSecret.workspaceId, dbSecret.name],
+      values: {
+        id: randomUUID(),
         workspaceId,
         name: secretName,
+        configValue: config,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
-    },
-    create: {
-      workspaceId,
-      name: secretName,
-      configValue: config,
-    },
-    update: {
-      configValue: config,
-    },
-  });
+      set: {
+        configValue: config,
+      },
+    }),
+  );
 
   const smsProvider = await prisma().smsProvider.upsert({
     where: {
