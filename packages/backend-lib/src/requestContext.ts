@@ -1,4 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
+import { randomUUID } from "crypto";
 import { and, eq, isNotNull, or, SQL } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -14,6 +15,7 @@ import {
   workspaceMember as dbWorkspaceMember,
   workspaceMemberRole as dbWorkspaceMemberRole,
 } from "./db/schema";
+import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import {
   NotOnboardedError,
@@ -21,7 +23,6 @@ import {
   RequestContextErrorType,
   RequestContextResult,
   Role,
-  RoleEnum,
   Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
@@ -32,11 +33,15 @@ import {
 
 export const SESSION_KEY = "df-session-key";
 
-type RoleWithWorkspace = Role & { workspace: Workspace };
+interface RoleWithWorkspace {
+  role: Role;
+  workspace: Workspace;
+}
 
-type MemberWithRoles = WorkspaceMember & {
-  WorkspaceMemberRole: RoleWithWorkspace[];
-};
+interface MemberWithRoles {
+  member: WorkspaceMember;
+  roles: RoleWithWorkspace[];
+}
 
 interface RolesWithWorkspace {
   workspace:
@@ -48,7 +53,7 @@ interface RolesWithWorkspace {
 }
 
 async function findAndCreateRoles(
-  member: MemberWithRoles,
+  member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
 
@@ -197,7 +202,7 @@ export async function getMultiTenantRequestContext({
   }
 
   // eslint-disable-next-line prefer-const
-  let [member, account] = await Promise.all([
+  let [existingMember, account] = await Promise.all([
     db().query.workspaceMember.findFirst({
       where: eq(dbWorkspaceMember.email, email),
       with: {
@@ -217,65 +222,74 @@ export async function getMultiTenantRequestContext({
     }),
   ]);
 
-  let memberWithRole: MemberWithRoles;
+  let member: WorkspaceMember;
   if (
-    !member ||
-    member.emailVerified !== email_verified ||
-    member.image !== picture
+    !existingMember ||
+    existingMember.emailVerified !== email_verified ||
+    existingMember.image !== picture
   ) {
-    memberWithRole = await prisma().workspaceMember.upsert({
-      where: { email },
-      create: {
+    const [updatedMember] = await db()
+      .insert(dbWorkspaceMember)
+      .values({
+        id: existingMember?.id ?? randomUUID(),
         email,
         emailVerified: email_verified,
         image: picture,
         name,
         nickname,
-      },
-      include: {
-        WorkspaceMemberRole: {
-          take: 1,
-          include: {
-            workspace: true,
-          },
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: [dbWorkspaceMember.email],
+        set: {
+          emailVerified: email_verified,
+          image: picture,
+          name,
+          nickname,
         },
-      },
-      update: {
-        emailVerified: email_verified,
-        image: picture,
+      })
+      .returning();
+    if (!updatedMember) {
+      logger().error("Failed to update member", {
+        email,
+        email_verified,
+        picture,
         name,
         nickname,
-      },
-    });
+      });
+      return err({
+        type: RequestContextErrorType.ApplicationError,
+        message: "Failed to update member",
+      });
+    }
+    member = updatedMember;
   } else {
-    memberWithRole = member;
+    member = existingMember;
   }
 
   if (!account) {
-    await prisma().workspaceMembeAccount.upsert({
-      where: {
-        provider_providerAccountId: {
-          provider: authProvider,
-          providerAccountId: sub,
-        },
-      },
-      create: {
+    await db()
+      .insert(dbWorkspaceMembeAccount)
+      .values({
+        id: randomUUID(),
         provider: authProvider,
         providerAccountId: sub,
-        workspaceMemberId: memberWithRole.id,
-      },
-      update: {},
-    });
+        workspaceMemberId: member.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflictDoNothing();
   }
-  if (!memberWithRole.email) {
+  if (!member.email) {
     return err({
       type: RequestContextErrorType.ApplicationError,
       message: "User missing email",
     });
   }
 
-  const { workspace, memberRoles } = await findAndCreateRoles(memberWithRole);
-  if (workspace !== null && workspace.status !== WorkspaceStatus.Active) {
+  const { workspace, memberRoles } = await findAndCreateRoles(member);
+  if (workspace !== null && workspace.status !== WorkspaceStatusDb.Active) {
     return err({
       type: RequestContextErrorType.WorkspaceInactive,
       message: "Workspace is not active",
@@ -283,13 +297,13 @@ export async function getMultiTenantRequestContext({
     });
   }
   const memberResouce: WorkspaceMemberResource = {
-    id: memberWithRole.id,
-    email: memberWithRole.email,
-    emailVerified: memberWithRole.emailVerified,
-    name: memberWithRole.name ?? undefined,
-    nickname: memberWithRole.nickname ?? undefined,
-    picture: memberWithRole.image ?? undefined,
-    createdAt: memberWithRole.createdAt.toISOString(),
+    id: member.id,
+    email: member.email,
+    emailVerified: member.emailVerified,
+    name: member.name ?? undefined,
+    nickname: member.nickname ?? undefined,
+    picture: member.image ?? undefined,
+    createdAt: member.createdAt,
   };
 
   if (!workspace) {
