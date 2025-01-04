@@ -21,7 +21,7 @@ import { Overwrite } from "utility-types";
 import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
-import { db, upsert } from "./db";
+import { db, queryResult, upsert } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -180,27 +180,32 @@ export async function upsertMessageTemplate(
       message: "Invalid message template id, must be a valid v4 UUID",
     });
   }
-  const result = await upsert({
-    table: dbMessageTemplate,
-    values: {
-      id: data.id ?? randomUUID(),
-      workspaceId: data.workspaceId,
-      name: data.name,
-      definition: data.definition,
-      draft: data.draft,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-    target: data.id
-      ? [dbMessageTemplate.id]
-      : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
-    set: {
-      name: data.name,
-      definition: data.definition,
-      draft: data.draft,
-      updatedAt: new Date().toISOString(),
-    },
-  });
+  const result = await queryResult(
+    db()
+      .insert(dbMessageTemplate)
+      .values({
+        id: data.id ?? randomUUID(),
+        workspaceId: data.workspaceId,
+        name: data.name,
+        definition: data.definition,
+        draft: data.draft,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: data.id
+          ? [dbMessageTemplate.id]
+          : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
+        set: {
+          name: data.name,
+          definition: data.definition,
+          draft: data.draft,
+          updatedAt: new Date().toISOString(),
+        },
+        setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
+      })
+      .returning(),
+  );
   if (result.isErr()) {
     if (
       result.error.code === PostgresError.UNIQUE_VIOLATION ||
@@ -214,7 +219,16 @@ export async function upsertMessageTemplate(
     }
     throw result.error;
   }
-  return ok(unwrap(enrichMessageTemplate(result.value)));
+
+  const [messageTemplate] = result.value;
+  if (!messageTemplate) {
+    return err({
+      type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
+      message:
+        "Names must be unique in workspace. Id's must be globally unique.",
+    });
+  }
+  return ok(unwrap(enrichMessageTemplate(messageTemplate)));
 }
 
 export async function findMessageTemplates({
