@@ -1,5 +1,4 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { randomUUID } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -300,10 +299,8 @@ export async function getSegmentAssignment(
       userId: params.userId,
     });
     const { workspaceId, segmentId, userId } = params;
-    const segment = await prisma().segment.findUnique({
-      where: {
-        id: segmentId,
-      },
+    const segment = await db().query.segment.findFirst({
+      where: eq(dbSegment.id, segmentId),
     });
     if (!segment) {
       logger().error(
@@ -398,7 +395,9 @@ export async function getSegmentAssignment(
 }
 
 export function getWorkspace(workspaceId: string) {
-  return prisma().workspace.findUnique({ where: { id: workspaceId } });
+  return db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
+  });
 }
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
@@ -412,8 +411,11 @@ export async function shouldReEnter({
   userId: string;
   workspaceId: string;
 }): Promise<boolean> {
-  const journey = await prisma().journey.findUnique({
-    where: { id: journeyId, workspaceId },
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.id, journeyId),
+      eq(dbJourney.workspaceId, workspaceId),
+    ),
   });
   if (!journey) {
     return false;
