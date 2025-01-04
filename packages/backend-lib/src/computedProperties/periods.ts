@@ -1,6 +1,6 @@
 import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { and, eq, lt, max } from "drizzle-orm";
+import { and, eq, lt, max, min, sql } from "drizzle-orm";
 
 import { db } from "../db";
 import {
@@ -266,43 +266,64 @@ export async function createPeriods({
   });
 }
 
+const EARLIEST_COMPUTE_PROPERTY_STEP = ComputedPropertyStep.ProcessAssignments;
+
 export async function getEarliestComputePropertyPeriod({
   workspaceId,
 }: {
   workspaceId: string;
 }): Promise<number> {
-  const step = ComputedPropertyStep.ProcessAssignments;
-  const query = Prisma.sql`
-    SELECT
-      MIN("maxTo") as "minTo"
-    FROM (
-      SELECT
-        cpp."type",
-        cpp."computedPropertyId",
-        MAX(cpp."to") as "maxTo"
-      FROM "ComputedPropertyPeriod" cpp
-      LEFT JOIN "Segment" s ON s."id" = cpp."computedPropertyId" AND cpp."type" = 'Segment'
-      LEFT JOIN "UserProperty" up ON up."id" = cpp."computedPropertyId" AND cpp."type" = 'UserProperty'
-      WHERE
-        cpp."workspaceId" = CAST(${workspaceId} AS UUID)
-        AND cpp."step" = ${step}
-        AND cpp."version" = round(extract(epoch from COALESCE(s."definitionUpdatedAt", up."definitionUpdatedAt")) * 1000) :: text
-      GROUP BY
-        cpp."type",
-        cpp."computedPropertyId"
-    ) as "maxPerComputedProperty"
-  `;
+  const maxPerComputedProperty = db()
+    .select({
+      type: dbComputedPropertyPeriod.type,
+      computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+      maxTo: max(dbComputedPropertyPeriod.to).as("maxTo"),
+    })
+    .from(dbComputedPropertyPeriod)
+    .leftJoin(
+      dbSegment,
+      and(
+        eq(dbComputedPropertyPeriod.computedPropertyId, dbSegment.id),
+        eq(dbComputedPropertyPeriod.type, "Segment"),
+      ),
+    )
+    .leftJoin(
+      dbUserProperty,
+      and(
+        eq(dbComputedPropertyPeriod.computedPropertyId, dbUserProperty.id),
+        eq(dbComputedPropertyPeriod.type, "UserProperty"),
+      ),
+    )
+    .where(
+      and(
+        eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+        eq(dbComputedPropertyPeriod.step, EARLIEST_COMPUTE_PROPERTY_STEP),
+        eq(
+          dbComputedPropertyPeriod.version,
+          sql`round(extract(epoch from COALESCE(${dbSegment.definitionUpdatedAt}, ${dbUserProperty.definitionUpdatedAt})) * 1000)::text`,
+        ),
+      ),
+    )
+    .groupBy(
+      dbComputedPropertyPeriod.type,
+      dbComputedPropertyPeriod.computedPropertyId,
+    )
+    .as("maxPerComputedProperty");
 
-  const result = await prisma().$queryRaw<{ minTo: Date | null }[]>(query);
+  const result = await db()
+    .select({
+      minTo: min(maxPerComputedProperty.maxTo),
+    })
+    .from(maxPerComputedProperty);
   logger().debug({ result }, "Earliest computed property period");
 
-  const minTo = result[0]?.minTo?.getTime();
+  const minTo = result[0]?.minTo ? new Date(result[0].minTo).getTime() : null;
   if (!minTo) {
     logger().error(
       {
         result,
         workspaceId,
-        step,
+        step: EARLIEST_COMPUTE_PROPERTY_STEP,
       },
       "No computed property periods found",
     );
