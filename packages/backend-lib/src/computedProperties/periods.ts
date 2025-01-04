@@ -1,5 +1,6 @@
 import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
-import { aliasedTable, and, eq, max } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { and, eq, lt, max } from "drizzle-orm";
 
 import { db } from "../db";
 import {
@@ -204,7 +205,8 @@ export async function createPeriods({
   periodByComputedPropertyId?: PeriodByComputedPropertyId;
   now: number;
 }) {
-  const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
+  const nowISO = new Date(now).toISOString();
+  const newPeriods: (typeof dbComputedPropertyPeriod.$inferInsert)[] = [];
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
@@ -213,13 +215,15 @@ export async function createPeriods({
       computedPropertyId: segment.id,
     });
     newPeriods.push({
+      id: randomUUID(),
       workspaceId,
       step,
       type: "Segment",
       computedPropertyId: segment.id,
-      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
-      to: new Date(now),
+      from: previousPeriod ? previousPeriod.maxTo.toISOString() : null,
+      to: nowISO,
       version,
+      createdAt: nowISO,
     });
   }
 
@@ -230,31 +234,35 @@ export async function createPeriods({
       computedPropertyId: userProperty.id,
     });
     newPeriods.push({
+      id: randomUUID(),
       workspaceId,
       step,
       type: "UserProperty",
       computedPropertyId: userProperty.id,
-      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
-      to: new Date(now),
+      from: previousPeriod ? previousPeriod.maxTo.toISOString() : null,
+      to: nowISO,
       version,
+      createdAt: nowISO,
     });
   }
 
-  await prisma().$transaction(async (tx) => {
-    await tx.computedPropertyPeriod.createMany({
-      data: newPeriods,
-      skipDuplicates: true,
-    });
-    await tx.computedPropertyPeriod.deleteMany({
-      where: {
-        workspaceId,
-        step,
-        to: {
-          // 5 minutes retention
-          lt: new Date(now - 60 * 1000 * 5),
-        },
-      },
-    });
+  await db().transaction(async (tx) => {
+    await tx
+      .insert(dbComputedPropertyPeriod)
+      .values(newPeriods)
+      .onConflictDoNothing();
+    await tx
+      .delete(dbComputedPropertyPeriod)
+      .where(
+        and(
+          eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+          eq(dbComputedPropertyPeriod.step, step),
+          lt(
+            dbComputedPropertyPeriod.to,
+            new Date(now - 60 * 1000 * 5).toISOString(),
+          ),
+        ),
+      );
   });
 }
 
