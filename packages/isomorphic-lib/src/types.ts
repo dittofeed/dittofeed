@@ -98,6 +98,10 @@ export enum EmailProviderType {
   MailChimp = "MailChimp",
 }
 
+export const EmailProviderTypeSchema = Type.Enum(EmailProviderType);
+
+export type EmailProviderTypeSchema = Static<typeof EmailProviderTypeSchema>;
+
 export enum MobilePushProviderType {
   Firebase = "Firebase",
   Test = "Test",
