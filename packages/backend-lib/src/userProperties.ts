@@ -674,6 +674,7 @@ export async function upsertUserProperty(
           definitionUpdatedAt,
         },
         target: [dbUserProperty.id],
+        setWhere: eq(dbUserProperty.workspaceId, workspaceId),
         set: {
           name,
           definition,
