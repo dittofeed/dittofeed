@@ -1,7 +1,8 @@
-import { EmailProvider } from "@prisma/client";
+import { eq } from "drizzle-orm";
 import { defaultEmailoContent } from "emailo";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BadWorkspaceConfigurationType,
   ChannelType,
@@ -16,9 +17,16 @@ import {
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
+import { db, upsert } from "../db";
+import {
+  defaultEmailProvider as dbDefaultEmailProvider,
+  emailProvider as dbEmailProvider,
+  secret as dbSecret,
+} from "../db/schema";
 import logger from "../logger";
-import prisma from "../prisma";
 import { generateSubscriptionChangeUrl } from "../subscriptionGroups";
+import { randomUUID } from "crypto";
+import { EmailProvider } from "../types";
 
 const LIST_UNSUBSCRIBE_POST = "List-Unsubscribe=One-Click" as const;
 
@@ -75,47 +83,59 @@ export async function upsertEmailProvider({
   setDefault,
 }: UpsertEmailProviderRequest): Promise<EmailProvider | null> {
   const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
-  const secret = await prisma().secret.upsert({
-    where: {
-      workspaceId_name: {
+  const secret = unwrap(
+    await upsert({
+      table: dbSecret,
+      target: [dbSecret.workspaceId, dbSecret.name],
+      values: {
+        id: randomUUID(),
         workspaceId,
         name: secretName,
+        configValue: config,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
-    },
-    create: {
-      workspaceId,
-      name: secretName,
-      configValue: config,
-    },
-    update: {
-      configValue: config,
-    },
-  });
+      set: {
+        configValue: config,
+      },
+    }),
+  );
 
-  const ep = await prisma().emailProvider.upsert({
-    where: {
-      workspaceId_type: {
-        workspaceId,
-        type: config.type,
-      },
-    },
-    create: {
+  const [emailProvider] = await db()
+    .insert(dbEmailProvider)
+    .values({
+      id: randomUUID(),
       workspaceId,
       type: config.type,
       secretId: secret.id,
-    },
-    update: {},
-  });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (!emailProvider) {
+    throw new Error("Failed to upsert email provider");
+  }
+
   if (setDefault) {
-    await prisma().defaultEmailProvider.upsert({
-      where: { workspaceId },
-      create: { workspaceId, emailProviderId: ep.id },
-      update: {
-        emailProviderId: ep.id,
+    await upsert({
+      table: dbDefaultEmailProvider,
+      target: [
+        dbDefaultEmailProvider.workspaceId,
+        dbDefaultEmailProvider.emailProviderId,
+      ],
+      values: {
+        workspaceId,
+        emailProviderId: emailProvider.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      set: {
+        emailProviderId: emailProvider.id,
       },
     });
   }
-  return ep;
+  return emailProvider;
 }
 
 export async function getOrCreateEmailProviders({
