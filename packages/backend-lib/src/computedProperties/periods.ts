@@ -1,5 +1,5 @@
 import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
-import { and, eq, max } from "drizzle-orm";
+import { aliasedTable, and, eq, max } from "drizzle-orm";
 
 import { db } from "../db";
 import {
@@ -8,7 +8,6 @@ import {
   userProperty as dbUserProperty,
 } from "../db/schema";
 import logger from "../logger";
-import prisma from "../prisma";
 import {
   ComputedPropertyStep,
   SavedSegmentResource,
@@ -70,27 +69,57 @@ export async function getPeriodsByComputedPropertyId({
   workspaceId: string;
   step: ComputedPropertyStep;
 }): Promise<PeriodByComputedPropertyId> {
-  const periodsQuery = Prisma.sql`
-    SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
-      "type",
-      "computedPropertyId",
-      "version",
-      MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
-    FROM "ComputedPropertyPeriod"
-    WHERE
-      "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND "step" = ${step}
-    ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
-  `;
-  const periods =
-    await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(periodsQuery);
+  const maxPeriods = db()
+    .select({
+      workspaceId: dbComputedPropertyPeriod.workspaceId,
+      type: dbComputedPropertyPeriod.type,
+      computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+      maxTo: max(dbComputedPropertyPeriod.to).as("maxTo"),
+    })
+    .from(dbComputedPropertyPeriod)
+    .groupBy(
+      dbComputedPropertyPeriod.workspaceId,
+      dbComputedPropertyPeriod.type,
+      dbComputedPropertyPeriod.computedPropertyId,
+    )
+    .as("maxPeriods");
+
+  const periods = await db()
+    .select({
+      type: dbComputedPropertyPeriod.type,
+      computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+      version: dbComputedPropertyPeriod.version,
+      maxTo: maxPeriods.maxTo,
+    })
+    .from(dbComputedPropertyPeriod)
+    .innerJoin(
+      maxPeriods,
+      and(
+        eq(dbComputedPropertyPeriod.workspaceId, maxPeriods.workspaceId),
+        eq(dbComputedPropertyPeriod.type, maxPeriods.type),
+        eq(
+          dbComputedPropertyPeriod.computedPropertyId,
+          maxPeriods.computedPropertyId,
+        ),
+        eq(dbComputedPropertyPeriod.to, maxPeriods.maxTo),
+      ),
+    )
+    .where(
+      and(
+        eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+        eq(dbComputedPropertyPeriod.step, step),
+      ),
+    );
 
   const periodByComputedPropertyId =
     periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
       const key = PeriodByComputedPropertyId.getKey(period);
+      if (!maxTo) {
+        return acc;
+      }
       acc.set(key, {
-        maxTo,
+        maxTo: new Date(maxTo),
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
