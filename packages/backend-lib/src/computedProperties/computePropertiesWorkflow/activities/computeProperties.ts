@@ -30,9 +30,6 @@ export async function computePropertiesIncrementalArgs({
     findAllUserPropertyResources({
       workspaceId,
     }),
-    findAllUserPropertyResources({
-      workspaceId,
-    }),
     findManySegmentResourcesSafe({
       workspaceId,
     }),
