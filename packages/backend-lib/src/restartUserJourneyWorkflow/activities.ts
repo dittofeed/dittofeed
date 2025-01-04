@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
+import { and, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
+import { db } from "../db";
+import { journey as dbJourney } from "../db/schema";
 import {
   getUserJourneyWorkflowId,
   segmentUpdateSignal,
   userJourneyWorkflow,
 } from "../journeys/userWorkflow";
 import logger from "../logger";
-import prisma from "../prisma";
 import { findRecentlyUpdatedUsersInSegment } from "../segments";
 import { getContext } from "../temporal/activity";
 import { JourneyDefinition, JourneyNodeType, SegmentUpdate } from "../types";
@@ -24,11 +26,12 @@ export async function restartUserJourneysActivity({
   pageSize?: number;
   statusUpdatedAt: number;
 }) {
-  const journey = await prisma().journey.findUnique({
-    where: {
-      id: journeyId,
-    },
-    select: {
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.id, journeyId),
+      eq(dbJourney.workspaceId, workspaceId),
+    ),
+    columns: {
       definition: true,
     },
   });
