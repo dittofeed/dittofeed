@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 import { Static, Type } from "@sinclair/typebox";
 import axios, { AxiosError } from "axios";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -21,8 +22,12 @@ import {
   HUBSPOT_INTEGRATION,
   HUBSPOT_OAUTH_TOKEN,
 } from "../../constants";
+import { db } from "../../db";
+import {
+  integration as dbIntegration,
+  oauthToken as dbOauthToken,
+} from "../../db/schema";
 import logger from "../../logger";
-import prisma from "../../prisma";
 import { findEnrichedSegments } from "../../segments";
 import { EnrichedUserProperty } from "../../types";
 import {
@@ -37,17 +42,17 @@ interface AuthError {
 }
 
 async function disableIntegration({ workspaceId }: { workspaceId: string }) {
-  await prisma().integration.update({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: HUBSPOT_INTEGRATION,
-      },
-    },
-    data: {
+  await db()
+    .update(dbIntegration)
+    .set({
       enabled: false,
-    },
-  });
+    })
+    .where(
+      and(
+        eq(dbIntegration.workspaceId, workspaceId),
+        eq(dbIntegration.name, HUBSPOT_INTEGRATION),
+      ),
+    );
 }
 
 function handleAuthFailure<T extends unknown[], U>(
@@ -88,21 +93,19 @@ export async function getOauthToken({
 }: {
   workspaceId: string;
 }): Promise<OauthTokenResource | null> {
-  const token = await prisma().oauthToken.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: HUBSPOT_OAUTH_TOKEN,
-      },
-    },
+  const token = await db().query.oauthToken.findFirst({
+    where: and(
+      eq(dbOauthToken.workspaceId, workspaceId),
+      eq(dbOauthToken.name, HUBSPOT_OAUTH_TOKEN),
+    ),
   });
   if (!token) {
     return null;
   }
   return {
     ...token,
-    updatedAt: token.updatedAt.getTime(),
-    createdAt: token.createdAt.getTime(),
+    updatedAt: new Date(token.updatedAt).getTime(),
+    createdAt: new Date(token.createdAt).getTime(),
   };
 }
 
