@@ -1,12 +1,15 @@
 import { randomUUID } from "crypto";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { upsert } from "../db";
-import { secret as dbSecret } from "../db/schema";
+import { db, upsert } from "../db";
+import {
+  defaultSmsProvider as dbDefaultSmsProvider,
+  secret as dbSecret,
+  smsProvider as dbSmsProvider,
+} from "../db/schema";
 import logger from "../logger";
-import prisma from "../prisma";
 import {
   ChannelType,
   PersistedSmsProvider,
@@ -46,25 +49,36 @@ export async function upsertSmsProvider({
     }),
   );
 
-  const smsProvider = await prisma().smsProvider.upsert({
-    where: {
-      workspaceId_type: {
-        workspaceId,
-        type: config.type,
-      },
-    },
-    create: {
+  const [smsProvider] = await db()
+    .insert(dbSmsProvider)
+    .values({
+      id: randomUUID(),
       workspaceId,
       type: config.type,
       secretId: secret.id,
-    },
-    update: {},
-  });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (!smsProvider) {
+    throw new Error("Failed to upsert SMS provider");
+  }
   if (setDefault) {
-    await prisma().defaultSmsProvider.upsert({
-      where: { workspaceId },
-      create: { workspaceId, smsProviderId: smsProvider.id },
-      update: {
+    await upsert({
+      table: dbDefaultSmsProvider,
+      target: [
+        dbDefaultSmsProvider.workspaceId,
+        dbDefaultSmsProvider.smsProviderId,
+      ],
+      values: {
+        workspaceId,
+        smsProviderId: smsProvider.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      set: {
         smsProviderId: smsProvider.id,
       },
     });
@@ -82,9 +96,9 @@ export async function getOrCreateSmsProviders({
   workspaceId: string;
 }): Promise<PersistedSmsProvider[]> {
   const smsProviders: PersistedSmsProvider[] = (
-    await prisma().smsProvider.findMany({
-      where: { workspaceId },
-      include: {
+    await db().query.smsProvider.findMany({
+      where: eq(dbSmsProvider.workspaceId, workspaceId),
+      with: {
         secret: true,
       },
     })
