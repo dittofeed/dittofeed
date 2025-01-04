@@ -7,11 +7,11 @@ import {
   messageTemplate as dbMessageTemplate,
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
+  workspaceRelation as dbWorkspaceRelation,
 } from "./db/schema";
 import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
-import prisma from "./prisma";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -26,7 +26,6 @@ import {
   SubscriptionGroupType,
   UpsertMessageTemplateValidationErrorType,
   Workspace,
-  WorkspaceType,
 } from "./types";
 
 async function setupEmailTemplate(workspace: Workspace) {
@@ -108,25 +107,34 @@ describe("messaging", () => {
               updatedAt: new Date().toISOString(),
               createdAt: new Date().toISOString(),
             },
-          }),
-          prisma().workspace.create({
-            data: {
+          }).then(unwrap),
+          insert({
+            table: dbWorkspace,
+            values: {
+              id: randomUUID(),
               name: `child-workspace-${randomUUID()}`,
-              type: WorkspaceType.Child,
+              type: WorkspaceTypeAppEnum.Child,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
-          }),
+          }).then(unwrap),
         ]);
-        await prisma().workspaceRelation.create({
-          data: {
+        await insert({
+          table: dbWorkspaceRelation,
+          values: {
             parentWorkspaceId: parentWorkspace.id,
             childWorkspaceId: childWorkspace.id,
           },
         });
         [template, subscriptionGroup] = await Promise.all([
-          prisma().messageTemplate.create({
-            data: {
+          insert({
+            table: dbMessageTemplate,
+            values: {
+              id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `template-${randomUUID()}`,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
               definition: {
                 type: ChannelType.Email,
                 from: "support@company.com",
@@ -134,15 +142,19 @@ describe("messaging", () => {
                 body: "{% unsubscribe_link here %}.",
               } satisfies EmailTemplateResource,
             },
-          }),
-          prisma().subscriptionGroup.create({
-            data: {
+          }).then(unwrap),
+          insert({
+            table: dbSubscriptionGroup,
+            values: {
+              id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `group-${randomUUID()}`,
               type: "OptOut",
               channel: ChannelType.Email,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
-          }),
+          }).then(unwrap),
           upsertSubscriptionSecret({
             workspaceId: childWorkspace.id,
           }),
@@ -246,44 +258,61 @@ describe("messaging", () => {
 
       beforeEach(async () => {
         [parentWorkspace, childWorkspace] = await Promise.all([
-          prisma().workspace.create({
-            data: {
+          insert({
+            table: dbWorkspace,
+            values: {
+              id: randomUUID(),
               name: `parent-workspace-${randomUUID()}`,
-              type: WorkspaceType.Parent,
+              type: WorkspaceTypeAppEnum.Parent,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
-          }),
-          prisma().workspace.create({
-            data: {
+          }).then(unwrap),
+          insert({
+            table: dbWorkspace,
+            values: {
+              id: randomUUID(),
               name: `child-workspace-${randomUUID()}`,
-              type: WorkspaceType.Child,
+              type: WorkspaceTypeAppEnum.Child,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
-          }),
+          }).then(unwrap),
         ]);
-        await prisma().workspaceRelation.create({
-          data: {
+        await insert({
+          table: dbWorkspaceRelation,
+          values: {
             parentWorkspaceId: parentWorkspace.id,
             childWorkspaceId: childWorkspace.id,
           },
         });
         [template, subscriptionGroup] = await Promise.all([
-          prisma().messageTemplate.create({
-            data: {
+          insert({
+            table: dbMessageTemplate,
+            values: {
+              id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `template-${randomUUID()}`,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
               definition: {
                 type: ChannelType.Sms,
                 body: "Test SMS body",
               } satisfies SmsTemplateResource,
             },
-          }),
-          prisma().subscriptionGroup.create({
-            data: {
+          }).then(unwrap),
+          insert({
+            table: dbSubscriptionGroup,
+            values: {
+              id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `group-${randomUUID()}`,
               type: "OptOut",
               channel: ChannelType.Sms,
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
-          }),
+          }).then(unwrap),
           upsertSubscriptionSecret({
             workspaceId: childWorkspace.id,
           }),
@@ -331,9 +360,15 @@ describe("messaging", () => {
     describe("when a message template is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;
       beforeEach(async () => {
-        secondWorkspace = await prisma().workspace.create({
-          data: { name: randomUUID() },
-        });
+        secondWorkspace = await insert({
+          table: dbWorkspace,
+          values: {
+            id: randomUUID(),
+            name: randomUUID(),
+            updatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          },
+        }).then(unwrap);
       });
       it("returns a unique constraint violation error", async () => {
         const id = randomUUID();

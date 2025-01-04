@@ -192,7 +192,7 @@ export async function upsertMessageTemplate(
       createdAt: new Date().toISOString(),
     },
     target: data.id
-      ? [dbMessageTemplate.id, dbMessageTemplate.workspaceId]
+      ? [dbMessageTemplate.id]
       : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
     set: {
       name: data.name,
