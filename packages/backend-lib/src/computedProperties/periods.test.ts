@@ -84,7 +84,7 @@ describe("periods", () => {
         segments: [unwrap(toSegmentResource(segment1))],
         userProperties: [],
         now: date1,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStep.ComputeAssignments,
       });
 
       date2 = date1 + 1000 * 60 * 3;
@@ -93,7 +93,7 @@ describe("periods", () => {
         segments: [unwrap(toSegmentResource(segment2))],
         userProperties: [],
         now: date2,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStep.ComputeAssignments,
       });
     });
 

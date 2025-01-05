@@ -263,7 +263,7 @@ export async function createPeriods({
   });
 }
 
-const EARLIEST_COMPUTE_PROPERTY_STEP = ComputedPropertyStep.ProcessAssignments;
+const EARLIEST_COMPUTE_PROPERTY_STEP = ComputedPropertyStep.ComputeAssignments;
 
 export async function getEarliestComputePropertyPeriod({
   workspaceId,
