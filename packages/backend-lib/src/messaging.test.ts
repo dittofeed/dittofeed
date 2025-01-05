@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { WorkspaceTypeAppEnum } from "isomorphic-lib/src/types";
 
-import { db, insert } from "./db";
+import { insert } from "./db";
 import {
   messageTemplate as dbMessageTemplate,
   subscriptionGroup as dbSubscriptionGroup,
@@ -41,8 +41,8 @@ async function setupEmailTemplate(workspace: Workspace) {
         subject: "Hello",
         body: "{% unsubscribe_link here %}.",
       } satisfies EmailTemplateResource,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      updatedAt: new Date(),
+      createdAt: new Date(),
     },
   }).then(unwrap);
   const subscriptionGroupPromise = insert({
@@ -53,8 +53,8 @@ async function setupEmailTemplate(workspace: Workspace) {
       name: `group-${randomUUID()}`,
       type: "OptOut",
       channel: ChannelType.Email,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      updatedAt: new Date(),
+      createdAt: new Date(),
     },
   }).then(unwrap);
 
@@ -82,8 +82,8 @@ describe("messaging", () => {
         values: {
           id: randomUUID(),
           name: `workspace-${randomUUID()}`,
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
+          updatedAt: new Date(),
+          createdAt: new Date(),
         },
       }),
     );
@@ -104,8 +104,8 @@ describe("messaging", () => {
               id: randomUUID(),
               name: `parent-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Parent,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
           insert({
@@ -114,8 +114,8 @@ describe("messaging", () => {
               id: randomUUID(),
               name: `child-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Child,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
         ]);
@@ -133,8 +133,8 @@ describe("messaging", () => {
               id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `template-${randomUUID()}`,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
               definition: {
                 type: ChannelType.Email,
                 from: "support@company.com",
@@ -151,8 +151,8 @@ describe("messaging", () => {
               name: `group-${randomUUID()}`,
               type: "OptOut",
               channel: ChannelType.Email,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
           upsertSubscriptionSecret({
@@ -264,8 +264,8 @@ describe("messaging", () => {
               id: randomUUID(),
               name: `parent-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Parent,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
           insert({
@@ -274,8 +274,8 @@ describe("messaging", () => {
               id: randomUUID(),
               name: `child-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Child,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
         ]);
@@ -293,8 +293,8 @@ describe("messaging", () => {
               id: randomUUID(),
               workspaceId: childWorkspace.id,
               name: `template-${randomUUID()}`,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
               definition: {
                 type: ChannelType.Sms,
                 body: "Test SMS body",
@@ -309,8 +309,8 @@ describe("messaging", () => {
               name: `group-${randomUUID()}`,
               type: "OptOut",
               channel: ChannelType.Sms,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
+              updatedAt: new Date(),
+              createdAt: new Date(),
             },
           }).then(unwrap),
           upsertSubscriptionSecret({
@@ -365,8 +365,8 @@ describe("messaging", () => {
           values: {
             id: randomUUID(),
             name: randomUUID(),
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            updatedAt: new Date(),
+            createdAt: new Date(),
           },
         }).then(unwrap);
       });

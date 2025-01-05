@@ -18,7 +18,7 @@ describe("validateWriteKey", () => {
       await createWorkspace({
         id: randomUUID(),
         name: randomUUID(),
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       }),
     );
   });

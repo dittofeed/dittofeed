@@ -29,7 +29,7 @@ describe("deliveries", () => {
       await createWorkspace({
         id: randomUUID(),
         name: `test-workspace-${randomUUID()}`,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       }),
     );
     workspaceId = workspace.id;
