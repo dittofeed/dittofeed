@@ -25,54 +25,58 @@ describe("periods", () => {
           values: {
             id: randomUUID(),
             name: `workspace-${randomUUID()}`,
-            updatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
           },
         }),
       );
 
-      const segment1 = await insert({
-        table: dbSegment,
-        values: {
-          workspaceId: workspace.id,
-          name: `segment-${randomUUID()}`,
-          id: randomUUID(),
-          definition: {
-            entryNode: {
-              id: "1",
-              type: SegmentNodeType.Trait,
-              path: "email",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "example@test.com",
+      const segment1 = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            workspaceId: workspace.id,
+            name: `segment-${randomUUID()}`,
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "email",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "example@test.com",
+                },
               },
+              nodes: [],
             },
-            nodes: [],
+            updatedAt: new Date(),
           },
-          updatedAt: new Date().toISOString(),
-        },
-      });
+        }),
+      );
 
-      const segment2 = await insert({
-        table: dbSegment,
-        values: {
-          id: randomUUID(),
-          workspaceId: workspace.id,
-          name: `segment-${randomUUID()}`,
-          definition: {
-            entryNode: {
-              id: "1",
-              type: SegmentNodeType.Trait,
-              path: "name",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "max",
+      const segment2 = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: `segment-${randomUUID()}`,
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "max",
+                },
               },
+              nodes: [],
             },
-            nodes: [],
+            updatedAt: new Date(),
           },
-          updatedAt: new Date().toISOString(),
-        },
-      });
+        }),
+      );
 
       date1 = Date.now();
       await createPeriods({
