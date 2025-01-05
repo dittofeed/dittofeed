@@ -122,8 +122,8 @@ export function toJourneyResource(
     ...rest,
     ...(definition ? { definition } : {}),
     ...(draft ? { draft } : {}),
-    createdAt: new Date(createdAt).getTime(),
-    updatedAt: new Date(updatedAt).getTime(),
+    createdAt: createdAt.getTime(),
+    updatedAt: updatedAt.getTime(),
     status,
   };
   if (status === JourneyResourceStatusEnum.NotStarted) {
@@ -857,8 +857,8 @@ export async function upsertJourney(
               draft: nullableDraft,
               status,
               canRunMultiple,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
             },
           })
         ).mapErr(mapUpsertValidationError);
@@ -898,7 +898,7 @@ export async function upsertJourney(
             definition,
             draft: nullableDraft,
             status,
-            statusUpdatedAt: statusUpdatedAt?.toISOString(),
+            statusUpdatedAt,
             canRunMultiple,
           })
           .where(and(...conditions))
@@ -972,7 +972,7 @@ export async function upsertJourney(
     journeyDefinition.entryNode.reEnter
   ) {
     const priorityStatusUpdatedAt = journey.statusUpdatedAt
-      ? new Date(journey.statusUpdatedAt).getTime()
+      ? journey.statusUpdatedAt.getTime()
       : undefined;
 
     if (priorityStatusUpdatedAt) {

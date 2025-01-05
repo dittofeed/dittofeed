@@ -21,7 +21,7 @@ import { Overwrite } from "utility-types";
 import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
-import { db, queryResult, upsert } from "./db";
+import { db, queryResult } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -189,8 +189,8 @@ export async function upsertMessageTemplate(
         name: data.name,
         definition: data.definition,
         draft: data.draft,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       })
       .onConflictDoUpdate({
         target: data.id
@@ -200,7 +200,7 @@ export async function upsertMessageTemplate(
           name: data.name,
           definition: data.definition,
           draft: data.draft,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         },
         setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
       })

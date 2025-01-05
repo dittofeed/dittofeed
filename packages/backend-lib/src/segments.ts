@@ -168,8 +168,8 @@ export async function createSegment({
     workspaceId,
     name,
     definition,
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
+    updatedAt: new Date(),
+    createdAt: new Date(),
   });
 }
 
@@ -188,9 +188,9 @@ export function toSegmentResource(
     workspaceId,
     definition,
     subscriptionGroupId: subscriptionGroupId ?? undefined,
-    updatedAt: new Date(segment.updatedAt).getTime(),
-    definitionUpdatedAt: new Date(segment.definitionUpdatedAt).getTime(),
-    createdAt: new Date(segment.createdAt).getTime(),
+    updatedAt: segment.updatedAt.getTime(),
+    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
+    createdAt: segment.createdAt.getTime(),
   });
 }
 
@@ -353,8 +353,8 @@ export async function upsertSegment(
     workspaceId: params.workspaceId,
     name: params.name,
     definition: params.definition,
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
+    updatedAt: new Date(),
+    createdAt: new Date(),
   };
 
   const result = await queryResult(
@@ -366,9 +366,7 @@ export async function upsertSegment(
         set: {
           definition: params.definition,
           name: params.name,
-          definitionUpdatedAt: params.definition
-            ? new Date().toISOString()
-            : undefined,
+          definitionUpdatedAt: params.definition ? new Date() : undefined,
         },
       })
       .returning(),
@@ -405,11 +403,9 @@ export async function upsertSegment(
     workspaceId: insertedSegment.workspaceId,
     name: insertedSegment.name,
     definition: insertedSegment.definition as SegmentDefinition,
-    definitionUpdatedAt: new Date(
-      insertedSegment.definitionUpdatedAt,
-    ).getTime(),
-    updatedAt: new Date(insertedSegment.updatedAt).getTime(),
-    createdAt: new Date(insertedSegment.createdAt).getTime(),
+    definitionUpdatedAt: insertedSegment.definitionUpdatedAt.getTime(),
+    updatedAt: insertedSegment.updatedAt.getTime(),
+    createdAt: insertedSegment.createdAt.getTime(),
   });
 }
 

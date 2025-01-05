@@ -40,8 +40,8 @@ export async function upsertSmsProvider({
         workspaceId,
         name: secretName,
         configValue: config,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       set: {
         configValue: config,
@@ -56,8 +56,8 @@ export async function upsertSmsProvider({
       workspaceId,
       type: config.type,
       secretId: secret.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
     .onConflictDoNothing()
     .returning();
@@ -75,8 +75,8 @@ export async function upsertSmsProvider({
       values: {
         workspaceId,
         smsProviderId: smsProvider.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       set: {
         smsProviderId: smsProvider.id,

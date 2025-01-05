@@ -70,11 +70,11 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     journeyId: broadcast.journeyId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
     triggeredAt: broadcast.triggeredAt
-      ? new Date(broadcast.triggeredAt).getTime()
+      ? broadcast.triggeredAt.getTime()
       : undefined,
     status: broadcast.status,
-    createdAt: new Date(broadcast.createdAt).getTime(),
-    updatedAt: new Date(broadcast.updatedAt).getTime(),
+    createdAt: broadcast.createdAt.getTime(),
+    updatedAt: broadcast.updatedAt.getTime(),
   };
   return resource;
 }

@@ -106,8 +106,8 @@ export async function getOauthToken({
   }
   return {
     ...token,
-    updatedAt: new Date(token.updatedAt).getTime(),
-    createdAt: new Date(token.createdAt).getTime(),
+    updatedAt: token.updatedAt.getTime(),
+    createdAt: token.createdAt.getTime(),
   };
 }
 
@@ -191,8 +191,8 @@ export async function refreshToken({
           accessToken: access_token,
           refreshToken: refresh_token,
           expiresIn: expires_in,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         target: [dbOauthToken.workspaceId, dbOauthToken.name],
         set: {
@@ -206,8 +206,8 @@ export async function refreshToken({
       type: JsonResultType.Ok,
       value: {
         ...newOauthToken,
-        createdAt: new Date(newOauthToken.createdAt).getTime(),
-        updatedAt: new Date(newOauthToken.updatedAt).getTime(),
+        createdAt: newOauthToken.createdAt.getTime(),
+        updatedAt: newOauthToken.updatedAt.getTime(),
       },
     };
   } catch (e) {

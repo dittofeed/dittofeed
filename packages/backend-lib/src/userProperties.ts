@@ -90,9 +90,9 @@ export function toSavedUserPropertyResource(
       id,
       definition,
       exampleValue: exampleValue ?? undefined,
-      createdAt: new Date(createdAt).getTime(),
-      updatedAt: new Date(updatedAt).getTime(),
-      definitionUpdatedAt: new Date(definitionUpdatedAt).getTime(),
+      createdAt: createdAt.getTime(),
+      updatedAt: updatedAt.getTime(),
+      definitionUpdatedAt: definitionUpdatedAt.getTime(),
     }),
   );
 }
@@ -133,9 +133,9 @@ export async function findAllUserPropertyResources({
   return userProperties.map((up) => ({
     ...up,
     exampleValue: up.exampleValue ?? undefined,
-    definitionUpdatedAt: new Date(up.definitionUpdatedAt).getTime(),
-    createdAt: new Date(up.createdAt).getTime(),
-    updatedAt: new Date(up.updatedAt).getTime(),
+    definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
+    createdAt: up.createdAt.getTime(),
+    updatedAt: up.updatedAt.getTime(),
   }));
 }
 
@@ -649,7 +649,7 @@ export async function upsertUserProperty(
   }
 
   const canCreate = workspaceId && name && definition;
-  const definitionUpdatedAt = definition ? new Date().toISOString() : undefined;
+  const definitionUpdatedAt = definition ? new Date() : undefined;
 
   if (protectedUserProperties.has(name)) {
     return err({
@@ -669,8 +669,8 @@ export async function upsertUserProperty(
           name,
           definition,
           exampleValue,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
           definitionUpdatedAt,
         },
         target: [dbUserProperty.id],
@@ -691,7 +691,7 @@ export async function upsertUserProperty(
           name,
           definition,
           exampleValue,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         },
         set: {
           definition,
@@ -766,9 +766,9 @@ export async function upsertUserProperty(
     workspaceId: userProperty.workspaceId,
     definition: userProperty.definition as UserPropertyDefinition,
     exampleValue: userProperty.exampleValue ?? undefined,
-    updatedAt: new Date(userProperty.updatedAt).getTime(),
-    createdAt: new Date(userProperty.createdAt).getTime(),
-    definitionUpdatedAt: new Date(userProperty.definitionUpdatedAt).getTime(),
+    updatedAt: userProperty.updatedAt.getTime(),
+    createdAt: userProperty.createdAt.getTime(),
+    definitionUpdatedAt: userProperty.definitionUpdatedAt.getTime(),
   };
 
   return ok(resource);

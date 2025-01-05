@@ -22,8 +22,6 @@ import {
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
-  Role,
-  Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
   WorkspaceMemberRoleResource,
@@ -78,8 +76,8 @@ async function findAndCreateRoles(
             workspaceId: w.Workspace.id,
             workspaceMemberId: member.id,
             role: "Admin",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
           })
           .onConflictDoNothing()
           .returning(),
@@ -120,7 +118,7 @@ async function findAndCreateRoles(
     }
   }
 
-  roles = sortBy(roles, (r) => new Date(r.createdAt).getTime());
+  roles = sortBy(roles, (r) => r.createdAt.getTime());
   const role = roles[0];
   if (!role) {
     return {
@@ -227,8 +225,8 @@ export async function getMultiTenantRequestContext({
         image: picture,
         name,
         nickname,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       })
       .onConflictDoUpdate({
         target: [dbWorkspaceMember.email],
@@ -266,8 +264,8 @@ export async function getMultiTenantRequestContext({
         provider: authProvider,
         providerAccountId: sub,
         workspaceMemberId: member.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .onConflictDoNothing();
   }
@@ -293,7 +291,7 @@ export async function getMultiTenantRequestContext({
     name: member.name ?? undefined,
     nickname: member.nickname ?? undefined,
     picture: member.image ?? undefined,
-    createdAt: member.createdAt,
+    createdAt: member.createdAt.toISOString(),
   };
 
   if (!workspace) {

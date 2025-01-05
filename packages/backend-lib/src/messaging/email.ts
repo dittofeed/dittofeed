@@ -93,8 +93,8 @@ export async function upsertEmailProvider({
         workspaceId,
         name: secretName,
         configValue: config,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       set: {
         configValue: config,
@@ -109,8 +109,8 @@ export async function upsertEmailProvider({
       workspaceId,
       type: config.type,
       secretId: secret.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
     .onConflictDoNothing()
     .returning();
@@ -131,8 +131,8 @@ export async function upsertEmailProvider({
       values: {
         workspaceId,
         emailProviderId: emailProvider.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       set: {
         emailProviderId: emailProvider.id,

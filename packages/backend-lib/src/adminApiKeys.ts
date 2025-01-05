@@ -42,8 +42,8 @@ export async function createAdminApiKey(
             key,
             permissions: [AdminApiKeyPermission.Admin],
           },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
         .returning();
 
@@ -57,8 +57,8 @@ export async function createAdminApiKey(
           name: data.name,
           workspaceId: data.workspaceId,
           secretId: secret.id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
         .returning();
 
@@ -82,7 +82,7 @@ export async function createAdminApiKey(
     apiKey: key,
     name: data.name,
     id,
-    createdAt: new Date(result.value.createdAt).getTime(),
+    createdAt: result.value.createdAt.getTime(),
   });
 }
 
@@ -99,6 +99,6 @@ export async function getAdminApiKeys({
     workspaceId,
     id: key.id,
     name: key.name,
-    createdAt: new Date(key.createdAt).getTime(),
+    createdAt: key.createdAt.getTime(),
   }));
 }
