@@ -180,7 +180,7 @@ export async function getPeriodsByComputedPropertyIdV2({
         return acc;
       }
       acc.set(key, {
-        maxTo: new Date(maxTo),
+        maxTo,
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
@@ -315,7 +315,9 @@ export async function getEarliestComputePropertyPeriod({
   logger().debug({ result }, "Earliest computed property period");
 
   // FIXME can't parse minTo as a unix timestamp string
-  const minTo = result[0]?.minTo ? new Date(result[0].minTo).getTime() : null;
+  const minTo = result[0]?.minTo
+    ? new Date(`${result[0].minTo}+0000`).getTime()
+    : null;
   if (!minTo) {
     logger().error(
       {
