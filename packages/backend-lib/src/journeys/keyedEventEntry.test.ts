@@ -1,10 +1,16 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import prisma from "../prisma";
+import { insert } from "../db";
+import {
+  journey as dbJourney,
+  segment as dbSegment,
+  userProperty as dbUserProperty,
+} from "../db/schema";
 import {
   ChannelType,
   CursorDirectionEnum,
@@ -27,6 +33,7 @@ import {
   UserPropertyOperatorType,
   Workspace,
 } from "../types";
+import { createWorkspace } from "../workspaces";
 import {
   trackSignal,
   userJourneyWorkflow,
@@ -64,11 +71,13 @@ describe("keyedEventEntry journeys", () => {
   };
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `event-entry-${randomUUID()}`,
-      },
-    });
+    workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: randomUUID(),
+        updatedAt: new Date(),
+      }),
+    );
 
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
@@ -182,29 +191,38 @@ describe("keyedEventEntry journeys", () => {
         id: randomUUID(),
       };
       [journey] = await Promise.all([
-        prisma().journey.create({
-          data: {
+        insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
             name: "appointment-cancelled-journey",
             definition: journeyDefinition,
             workspaceId: workspace.id,
             status: "Running",
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-        }),
-        prisma().segment.create({
-          data: {
+        }).then(unwrap),
+        insert({
+          table: dbSegment,
+          values: {
             id: appointmentCancelledSegmentId,
             name: "appointment-cancelled",
             definition: segmentDefinition,
             workspaceId: workspace.id,
+            updatedAt: new Date(),
           },
-        }),
-        prisma().userProperty.create({
-          data: {
-            workspaceId: workspace.id,
-            definition: keyedUserPropertyDefinition,
+        }).then(unwrap),
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
             name: "appointmentId",
+            definition: keyedUserPropertyDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
           },
-        }),
+        }).then(unwrap),
       ]);
     });
 
@@ -234,14 +252,16 @@ describe("keyedEventEntry journeys", () => {
             },
           ],
         };
-        await prisma().userProperty.create({
-          data: {
+        await insert({
+          table: dbUserProperty,
+          values: {
             id: dateUserPropertyId,
             workspaceId: workspace.id,
             definition: dateUserPropertyDefinition,
             name: "appointmentDate",
+            updatedAt: new Date(),
           },
-        });
+        }).then(unwrap);
       });
 
       it("only the cancelled journey should send a message", async () => {
@@ -402,14 +422,16 @@ describe("keyedEventEntry journeys", () => {
           ],
         } satisfies GroupUserPropertyDefinition;
 
-        await prisma().userProperty.create({
-          data: {
+        await insert({
+          table: dbUserProperty,
+          values: {
             id: dateUserPropertyId,
             workspaceId: workspace.id,
             definition: dateUserPropertyDefinition,
             name: "appointmentDate",
+            updatedAt: new Date(),
           },
-        });
+        }).then(unwrap);
       });
 
       it("should wait for the resolved value of the user property group", async () => {
