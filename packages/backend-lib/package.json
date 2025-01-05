@@ -65,6 +65,7 @@
     "p-limit": "^3.1.0",
     "pg": "^8.13.1",
     "pg-error-enum": "^0.7.3",
+    "pg-types": "^2.2.0",
     "pino": "9.3.1",
     "pino-pretty": "11.2.1",
     "postmark": "^4.0.2",

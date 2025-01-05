@@ -75,10 +75,10 @@ export const workspace = pgTable(
   {
     id: uuid().primaryKey().notNull(),
     name: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     domain: text(),
     type: workspaceType().default("Root").notNull(),
     externalId: text(),
@@ -102,10 +102,10 @@ export const segmentIoConfiguration = pgTable(
     id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     sharedSecret: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("SegmentIOConfiguration_workspaceId_key").using(
@@ -129,12 +129,12 @@ export const userProperty = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
-    definitionUpdatedAt: timestamp({ precision: 3, mode: "string" })
+    definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     exampleValue: text(),
@@ -200,10 +200,10 @@ export const emailProvider = pgTable(
     workspaceId: uuid().notNull(),
     type: text().notNull(),
     apiKey: text(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     secretId: uuid(),
   },
   (table) => [
@@ -236,8 +236,8 @@ export const userJourneyEvent = pgTable(
     userId: text().notNull(),
     journeyId: uuid(),
     type: text().notNull(),
-    journeyStartedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    journeyStartedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     nodeId: text(),
@@ -269,10 +269,10 @@ export const emailTemplate = pgTable(
     from: text().notNull(),
     subject: text().notNull(),
     body: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     replyTo: text(),
   },
   (table) => [
@@ -293,10 +293,10 @@ export const subscriptionGroup = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     type: dbSubscriptionGroupType().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     channel: dbChannelType().notNull(),
   },
   (table) => [
@@ -324,10 +324,10 @@ export const defaultEmailProvider = pgTable(
   {
     workspaceId: uuid().notNull(),
     emailProviderId: uuid().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     fromAddress: text(),
   },
   (table) => [
@@ -359,11 +359,11 @@ export const broadcast = pgTable(
     workspaceId: uuid().notNull(),
     segmentId: uuid(),
     name: text().notNull(),
-    triggeredAt: timestamp({ precision: 3, mode: "string" }),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    triggeredAt: timestamp({ precision: 3, mode: "date" }),
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     journeyId: uuid(),
     messageTemplateId: uuid(),
     status: dbBroadcastStatus().default("NotStarted").notNull(),
@@ -405,22 +405,6 @@ export const broadcast = pgTable(
   ],
 );
 
-export const prismaMigrations = pgTable("_prisma_migrations", {
-  id: varchar({ length: 36 }).primaryKey().notNull(),
-  checksum: varchar({ length: 64 }).notNull(),
-  finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
-  migrationName: varchar("migration_name", { length: 255 }).notNull(),
-  logs: text(),
-  rolledBackAt: timestamp("rolled_back_at", {
-    withTimezone: true,
-    mode: "string",
-  }),
-  startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
-    .defaultNow()
-    .notNull(),
-  appliedStepsCount: integer("applied_steps_count").default(0).notNull(),
-});
-
 export const segmentAssignment = pgTable(
   "SegmentAssignment",
   {
@@ -459,10 +443,10 @@ export const workspaceMemberRole = pgTable(
     workspaceId: uuid().notNull(),
     workspaceMemberId: uuid().notNull(),
     role: dbRoleType().default("Viewer").notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("WorkspaceMemberRole_workspaceId_workspaceMemberId_key").using(
@@ -494,10 +478,10 @@ export const secret = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     value: text(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     configValue: jsonb(),
   },
   (table) => [
@@ -523,10 +507,10 @@ export const workspaceMembeAccount = pgTable(
     workspaceMemberId: uuid().notNull(),
     provider: text().notNull(),
     providerAccountId: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("WorkspaceMembeAccount_provider_providerAccountId_key").using(
@@ -551,10 +535,10 @@ export const messageTemplate = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
     draft: jsonb(),
   },
@@ -582,11 +566,11 @@ export const integration = pgTable(
     name: text().notNull(),
     definition: jsonb().notNull(),
     enabled: boolean().default(true).notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
-    definitionUpdatedAt: timestamp({ precision: 3, mode: "string" })
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
@@ -612,10 +596,10 @@ export const writeKey = pgTable(
     id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("WriteKey_workspaceId_secretId_key").using(
@@ -649,10 +633,10 @@ export const oauthToken = pgTable(
     refreshToken: text().notNull(),
     accessToken: text().notNull(),
     expiresIn: integer().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("OauthToken_workspaceId_name_key").using(
@@ -675,10 +659,10 @@ export const workspaceMember = pgTable(
   {
     id: uuid().primaryKey().notNull(),
     email: text(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     emailVerified: boolean().default(false).notNull(),
     image: text(),
     name: text(),
@@ -707,14 +691,14 @@ export const segment = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
     subscriptionGroupId: uuid(),
     status: segmentStatus().default("Running").notNull(),
-    definitionUpdatedAt: timestamp({ precision: 3, mode: "string" })
+    definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
@@ -750,10 +734,10 @@ export const defaultSmsProvider = pgTable(
   {
     workspaceId: uuid().notNull(),
     smsProviderId: uuid().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("DefaultSmsProvider_workspaceId_key").using(
@@ -784,10 +768,10 @@ export const smsProvider = pgTable(
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
     type: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("SmsProvider_workspaceId_type_key").using(
@@ -820,14 +804,14 @@ export const journey = pgTable(
     name: text().notNull(),
     status: journeyStatus().default("NotStarted").notNull(),
     definition: jsonb(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
     canRunMultiple: boolean().default(false).notNull(),
     draft: jsonb(),
-    statusUpdatedAt: timestamp({ precision: 3, mode: "string" }),
+    statusUpdatedAt: timestamp({ precision: 3, mode: "date" }),
   },
   (table) => [
     uniqueIndex("Journey_workspaceId_name_key").using(
@@ -853,10 +837,10 @@ export const computedPropertyPeriod = pgTable(
     type: computedPropertyType().notNull(),
     computedPropertyId: uuid().notNull(),
     version: text().notNull(),
-    from: timestamp({ precision: 3, mode: "string" }),
-    to: timestamp({ precision: 3, mode: "string" }).notNull(),
+    from: timestamp({ precision: 3, mode: "date" }),
+    to: timestamp({ precision: 3, mode: "date" }).notNull(),
     step: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
@@ -887,10 +871,10 @@ export const adminApiKey = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     secretId: uuid().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
   },
   (table) => [
     uniqueIndex("AdminApiKey_workspaceId_name_key").using(
@@ -921,10 +905,10 @@ export const feature = pgTable(
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     enabled: boolean().default(false).notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
+    createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
     config: jsonb(),
   },
   (table) => [
