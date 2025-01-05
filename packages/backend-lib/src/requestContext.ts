@@ -27,6 +27,7 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WorkspaceStatusDb,
+  WorkspaceStatusDbEnum,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
@@ -67,22 +68,30 @@ async function findAndCreateRoles(
   );
   let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole ?? []);
   if (domainWorkspacesWithoutRole.length !== 0) {
-    const newRoles = await Promise.all(
-      domainWorkspacesWithoutRole.map((w) =>
-        db()
-          .insert(dbWorkspaceMemberRole)
-          .values({
-            workspaceId: w.Workspace.id,
-            workspaceMemberId: member.id,
-            role: "Admin",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .onConflictDoNothing()
-          .returning(),
-      ),
+    const newRoles = (
+      await Promise.all(
+        domainWorkspacesWithoutRole.map((w) =>
+          db()
+            .insert(dbWorkspaceMemberRole)
+            .values({
+              workspaceId: w.Workspace.id,
+              workspaceMemberId: member.id,
+              role: "Admin",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .onConflictDoNothing()
+            .returning(),
+        ),
+      )
+    ).flat();
+    logger().debug(
+      {
+        newRoles,
+      },
+      "new roles",
     );
-    for (const role of newRoles.flat()) {
+    for (const role of newRoles) {
       roles.push(role);
     }
   }
@@ -120,6 +129,12 @@ async function findAndCreateRoles(
   roles = sortBy(roles, (r) => r.createdAt.getTime());
   const role = roles[0];
   if (!role) {
+    logger().debug(
+      {
+        roles,
+      },
+      "missing role",
+    );
     return {
       memberRoles,
       workspace: null,
@@ -130,6 +145,13 @@ async function findAndCreateRoles(
   )?.Workspace;
 
   if (!workspace) {
+    logger().debug(
+      {
+        role,
+        workspaces,
+      },
+      "missing workspace no role found",
+    );
     return {
       memberRoles,
       workspace: null,
@@ -278,7 +300,7 @@ export async function getMultiTenantRequestContext({
   }
 
   const { workspace, memberRoles } = await findAndCreateRoles(member);
-  if (workspace !== null && workspace.status !== WorkspaceStatusDb.Active) {
+  if (workspace !== null && workspace.status !== WorkspaceStatusDbEnum.Active) {
     return err({
       type: RequestContextErrorType.WorkspaceInactive,
       message: "Workspace is not active",

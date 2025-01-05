@@ -7,14 +7,6 @@ import { getMultiTenantRequestContext } from "./requestContext";
 import { RequestContextErrorType, RoleEnum } from "./types";
 
 describe("getMultiTenantRequestContext", () => {
-  beforeEach(async () => {
-    await db().insert(dbWorkspace).values({
-      id: randomUUID(),
-      name: randomUUID(),
-      domain: null,
-      updatedAt: new Date(),
-    });
-  });
   describe("when auth role is missing", () => {
     let header: string;
     let emailDomain: string;
@@ -28,6 +20,15 @@ describe("getMultiTenantRequestContext", () => {
     });
 
     describe("without a domain", () => {
+      beforeEach(async () => {
+        await db().insert(dbWorkspace).values({
+          id: randomUUID(),
+          name: randomUUID(),
+          domain: null,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        });
+      });
       it("returns an error", async () => {
         const result = await getMultiTenantRequestContext({
           authorizationToken: header,
@@ -41,6 +42,15 @@ describe("getMultiTenantRequestContext", () => {
     });
 
     describe("when workspace has a domain", () => {
+      beforeEach(async () => {
+        await db().insert(dbWorkspace).values({
+          id: randomUUID(),
+          name: randomUUID(),
+          domain: emailDomain,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        });
+      });
       it("succeeds and creates a role for the user", async () => {
         const result = await getMultiTenantRequestContext({
           authorizationToken: header,
