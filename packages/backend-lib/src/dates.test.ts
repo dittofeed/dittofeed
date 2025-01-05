@@ -80,7 +80,7 @@ describe("getUserPropertyDelay", () => {
       await createWorkspace({
         id: randomUUID(),
         name: `test-workspace-${randomUUID()}`,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       }),
     );
     const userProperty = unwrap(
@@ -95,7 +95,7 @@ describe("getUserPropertyDelay", () => {
             event: "*",
           } satisfies UserPropertyDefinition,
           workspaceId: workspace.id,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         },
       }),
     );

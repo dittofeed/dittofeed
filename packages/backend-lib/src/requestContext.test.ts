@@ -1,11 +1,20 @@
 import { randomUUID } from "crypto";
 
 import { encodeMockJwt } from "../test/factories/jwt";
-import prisma from "./prisma";
+import { db } from "./db";
+import { workspace as dbWorkspace } from "./db/schema";
 import { getMultiTenantRequestContext } from "./requestContext";
 import { RequestContextErrorType, RoleEnum } from "./types";
 
 describe("getMultiTenantRequestContext", () => {
+  beforeEach(async () => {
+    await db().insert(dbWorkspace).values({
+      id: randomUUID(),
+      name: randomUUID(),
+      domain: null,
+      updatedAt: new Date(),
+    });
+  });
   describe("when auth role is missing", () => {
     let header: string;
     let emailDomain: string;
@@ -19,13 +28,6 @@ describe("getMultiTenantRequestContext", () => {
     });
 
     describe("without a domain", () => {
-      beforeEach(async () => {
-        await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-          },
-        });
-      });
       it("returns an error", async () => {
         const result = await getMultiTenantRequestContext({
           authorizationToken: header,
@@ -39,14 +41,6 @@ describe("getMultiTenantRequestContext", () => {
     });
 
     describe("when workspace has a domain", () => {
-      beforeEach(async () => {
-        await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-            domain: emailDomain,
-          },
-        });
-      });
       it("succeeds and creates a role for the user", async () => {
         const result = await getMultiTenantRequestContext({
           authorizationToken: header,
