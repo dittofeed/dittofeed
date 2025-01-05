@@ -39,7 +39,7 @@ describe("journeys", () => {
       await createWorkspace({
         id: randomUUID(),
         name: randomUUID(),
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       }),
     );
     workspaceId = workspace.id;
@@ -80,8 +80,8 @@ describe("journeys", () => {
         definition: journeyDefinition,
         name: randomUUID(),
         status: "Running",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     });
 
@@ -326,23 +326,23 @@ describe("journeys", () => {
           definition: journeyDefinition,
           name: randomUUID(),
           status: JourneyResourceStatusEnum.Running,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
           canRunMultiple: false,
           resourceType: "Declarative",
           draft: null,
-          statusUpdatedAt: new Date().toISOString(),
+          statusUpdatedAt: new Date(),
         });
         await insert({
           table: dbJourney,
           values: {
             workspaceId,
             id: journeyId,
-            // definition: journeyDefinition,
+            definition: journeyDefinition,
             name: randomUUID(),
-            // status: "Running",
-            // createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            status: "Running",
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         });
 
@@ -470,7 +470,7 @@ describe("journeys", () => {
             definition: journeyDefinition,
             name: randomUUID(),
             status: JourneyResourceStatusEnum.Running,
-            updatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
           } satisfies PgInsertValue<typeof dbJourney>);
 
         const journeyStartedAt = Date.now();
@@ -590,8 +590,8 @@ describe("journeys", () => {
           await createWorkspace({
             name: randomUUID(),
             id: randomUUID(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
           }),
         );
       });
