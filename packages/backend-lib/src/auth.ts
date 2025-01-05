@@ -114,8 +114,8 @@ export async function getOrCreateWriteKey({
         workspaceId,
         name: writeKeyName,
         value: writeKeyValue,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       })
       .onConflictDoNothing()
       .returning();
@@ -130,8 +130,8 @@ export async function getOrCreateWriteKey({
         id: randomUUID(),
         secretId: secret.id,
         workspaceId,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       })
       .onConflictDoNothing();
     return {

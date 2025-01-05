@@ -206,8 +206,8 @@ export async function upsertBroadcast({
         definition: segmentDefinition,
         resourceType: "Internal",
         status: "NotStarted",
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       },
     }).then(unwrap),
     insert({
@@ -219,8 +219,8 @@ export async function upsertBroadcast({
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: messageTemplateDefinition,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       },
     }).then(unwrap),
     db().query.subscriptionGroup.findFirst({
@@ -267,8 +267,8 @@ export async function upsertBroadcast({
         definition: journeyDefinition,
         resourceType: "Internal",
         status: "Broadcast",
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       },
     }),
   );
@@ -283,8 +283,8 @@ export async function upsertBroadcast({
         segmentId: segment.id,
         journeyId: journey.id,
         messageTemplateId: messageTemplate.id,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+        createdAt: new Date(),
       },
     }),
   );

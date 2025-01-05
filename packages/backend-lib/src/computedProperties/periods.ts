@@ -1,4 +1,3 @@
-import { ComputedPropertyPeriod, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { and, eq, lt, max, min, sql } from "drizzle-orm";
 
@@ -10,6 +9,7 @@ import {
 } from "../db/schema";
 import logger from "../logger";
 import {
+  ComputedPropertyPeriod,
   ComputedPropertyStep,
   SavedSegmentResource,
   SavedUserPropertyResource,
@@ -205,7 +205,7 @@ export async function createPeriods({
   periodByComputedPropertyId?: PeriodByComputedPropertyId;
   now: number;
 }) {
-  const nowISO = new Date(now).toISOString();
+  const nowD = new Date(now);
   const newPeriods: (typeof dbComputedPropertyPeriod.$inferInsert)[] = [];
 
   for (const segment of segments) {
@@ -220,10 +220,10 @@ export async function createPeriods({
       step,
       type: "Segment",
       computedPropertyId: segment.id,
-      from: previousPeriod ? previousPeriod.maxTo.toISOString() : null,
-      to: nowISO,
+      from: previousPeriod ? previousPeriod.maxTo : null,
+      to: nowD,
       version,
-      createdAt: nowISO,
+      createdAt: nowD,
     });
   }
 
@@ -239,10 +239,10 @@ export async function createPeriods({
       step,
       type: "UserProperty",
       computedPropertyId: userProperty.id,
-      from: previousPeriod ? previousPeriod.maxTo.toISOString() : null,
-      to: nowISO,
+      from: previousPeriod ? previousPeriod.maxTo : null,
+      to: nowD,
       version,
-      createdAt: nowISO,
+      createdAt: nowD,
     });
   }
 
@@ -257,10 +257,7 @@ export async function createPeriods({
         and(
           eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
           eq(dbComputedPropertyPeriod.step, step),
-          lt(
-            dbComputedPropertyPeriod.to,
-            new Date(now - 60 * 1000 * 5).toISOString(),
-          ),
+          lt(dbComputedPropertyPeriod.to, new Date(now - 60 * 1000 * 5)),
         ),
       );
   });

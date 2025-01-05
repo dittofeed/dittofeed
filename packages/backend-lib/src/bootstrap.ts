@@ -114,7 +114,7 @@ export async function bootstrapPostgres({
         domain: workspaceDomain,
         type: workspaceType,
         externalId: workspaceExternalId,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       },
       target: [dbWorkspace.name],
       set: {
@@ -130,8 +130,8 @@ export async function bootstrapPostgres({
       domain: workspaceDomain,
       type: workspaceType,
       externalId: workspaceExternalId,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      updatedAt: new Date(),
+      createdAt: new Date(),
     });
   }
   if (workspaceResult.isErr()) {
@@ -266,9 +266,9 @@ export async function bootstrapPostgres({
         values: {
           id: randomUUID(),
           ...up,
-          createdAt: new Date().toISOString(),
-          definitionUpdatedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          definitionUpdatedAt: new Date(),
+          updatedAt: new Date(),
         },
         target: [dbUserProperty.workspaceId, dbUserProperty.name],
         set: {},
@@ -316,7 +316,7 @@ export async function bootstrapPostgres({
           values: {
             workspaceId,
             emailProviderId: testEmailProvider.id,
-            updatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
           },
           target: [dbDefaultEmailProvider.workspaceId],
           set: {},
@@ -328,7 +328,7 @@ export async function bootstrapPostgres({
           values: {
             workspaceId,
             smsProviderId: testSmsProvider.id,
-            updatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
           },
           target: [dbDefaultSmsProvider.workspaceId],
           set: {},

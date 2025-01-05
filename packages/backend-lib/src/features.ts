@@ -1,5 +1,4 @@
 import { Static } from "@sinclair/typebox";
-import { randomUUID } from "crypto";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import {
   schemaValidate,
@@ -121,8 +120,8 @@ export async function addFeatures({
           name: feature.type,
           enabled: true,
           config: feature,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [dbFeature.workspaceId, dbFeature.name],

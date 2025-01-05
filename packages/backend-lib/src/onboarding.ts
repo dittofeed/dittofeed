@@ -38,8 +38,8 @@ export async function onboardUser({
         values: {
           email,
           id: randomUUID(),
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
+          updatedAt: new Date(),
+          createdAt: new Date(),
         },
       }),
     );
@@ -68,8 +68,8 @@ export async function onboardUser({
       workspaceId: workspace.id,
       workspaceMemberId: workspaceMember.id,
       role: "Admin",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: [

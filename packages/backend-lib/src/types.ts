@@ -28,6 +28,7 @@ import { Overwrite } from "utility-types";
 
 import {
   broadcast as dbBroadcast,
+  computedPropertyPeriod as dbComputedPropertyPeriod,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
@@ -72,6 +73,10 @@ export type Workspace = InferSelectModel<typeof dbWorkspace>;
 
 export type UserPropertyAssignment = InferSelectModel<
   typeof dbUserPropertyAssignment
+>;
+
+export type ComputedPropertyPeriod = InferSelectModel<
+  typeof dbComputedPropertyPeriod
 >;
 
 export type Journey = InferSelectModel<typeof dbJourney>;
