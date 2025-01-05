@@ -39,6 +39,7 @@ import {
   segmentAssignment as dbSegmentAssignment,
   smsProvider as dbSmsProvider,
   subscriptionGroup as dbSubscriptionGroup,
+  userJourneyEvent as dbUserJourneyEvent,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
   workspace as dbWorkspace,
@@ -100,6 +101,8 @@ export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
 export type JourneyInsert = typeof dbJourney.$inferInsert;
 
 export type Broadcast = InferSelectModel<typeof dbBroadcast>;
+
+export type UserJourneyEvent = InferSelectModel<typeof dbUserJourneyEvent>;
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }

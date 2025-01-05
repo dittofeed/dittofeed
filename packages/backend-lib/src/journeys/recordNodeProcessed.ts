@@ -1,9 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+
 import { getNodeId } from "isomorphic-lib/src/journeys";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../apps/track";
-import prisma from "../prisma";
+import { db } from "../db";
+import { userJourneyEvent as dbUserJourneyEvent } from "../db/schema";
 import { InternalEventType, JourneyNode } from "../types";
 
 export async function recordNodeProcessed({
@@ -25,24 +27,25 @@ export async function recordNodeProcessed({
     nodeId,
   ].join("-");
 
-  const trackedFields: Omit<Prisma.UserJourneyEventCreateManyInput, "userId"> =
-    {
-      journeyStartedAt: journeyStartedAtDate,
-      journeyId,
-      type: node.type,
-      nodeId,
-      eventKey,
-    };
+  const trackedFields: Omit<
+    typeof dbUserJourneyEvent.$inferInsert,
+    "userId" | "id"
+  > = {
+    journeyStartedAt: journeyStartedAtDate,
+    journeyId,
+    type: node.type,
+    nodeId,
+    eventKey,
+  };
   await Promise.all([
-    prisma().userJourneyEvent.createMany({
-      data: [
-        {
-          ...trackedFields,
-          userId,
-        },
-      ],
-      skipDuplicates: true,
-    }),
+    db()
+      .insert(dbUserJourneyEvent)
+      .values({
+        ...trackedFields,
+        userId,
+        id: randomUUID(),
+      })
+      .onConflictDoNothing(),
     submitTrack({
       workspaceId,
       data: {
