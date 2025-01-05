@@ -22,7 +22,7 @@ describe("apps", () => {
     await createWorkspace({
       id: workspaceId,
       name: `test-${workspaceId}`,
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
     });
   });
 
@@ -103,8 +103,8 @@ describe("apps", () => {
             status: "NotStarted",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            updatedAt: new Date(),
+            createdAt: new Date(),
           } satisfies JourneyInsert,
           {
             id: startedEventTriggeredJourneyId,
@@ -112,8 +112,8 @@ describe("apps", () => {
             status: "Running",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            updatedAt: new Date(),
+            createdAt: new Date(),
           },
           {
             id: segmentEntryJourneyId,
@@ -121,8 +121,8 @@ describe("apps", () => {
             status: "Running",
             workspaceId,
             definition: segmentEntryJourneyDefinition,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            updatedAt: new Date(),
+            createdAt: new Date(),
           },
         ]);
 
