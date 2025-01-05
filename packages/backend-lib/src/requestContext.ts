@@ -1,6 +1,6 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { randomUUID } from "crypto";
-import { and, eq, isNotNull, or, SQL } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -45,23 +45,22 @@ async function findAndCreateRoles(
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
 
-  const conditions: SQL[] = [isNotNull(dbWorkspaceMember.id)];
-  if (domain) {
-    conditions.push(eq(dbWorkspace.domain, domain));
-  }
-
   const workspaces = await db()
     .select()
     .from(dbWorkspace)
     .leftJoin(
       dbWorkspaceMemberRole,
       and(
-        eq(dbWorkspace.id, dbWorkspaceMemberRole.workspaceId),
+        eq(dbWorkspaceMemberRole.workspaceId, dbWorkspace.id),
         eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
       ),
     )
-    .where(or(...conditions))
-    .groupBy(dbWorkspace.id);
+    .where(
+      or(
+        eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
+        domain ? eq(dbWorkspace.domain, domain) : undefined,
+      ),
+    );
 
   const domainWorkspacesWithoutRole = workspaces.filter(
     (w) => w.WorkspaceMemberRole === null,
@@ -229,7 +228,9 @@ export async function getMultiTenantRequestContext({
         createdAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: [dbWorkspaceMember.email],
+        target: existingMember
+          ? [dbWorkspaceMember.id]
+          : [dbWorkspaceMember.email],
         set: {
           emailVerified: email_verified,
           image: picture,
