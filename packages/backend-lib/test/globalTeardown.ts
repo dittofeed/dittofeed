@@ -1,5 +1,6 @@
 import { clickhouseClient } from "../src/clickhouse";
 import config from "../src/config";
+import { pool } from "../src/db";
 
 async function dropClickhouse() {
   await clickhouseClient().exec({
@@ -12,5 +13,5 @@ async function dropClickhouse() {
 }
 
 export default async function globalTeardown() {
-  await dropClickhouse();
+  await Promise.all([dropClickhouse(), pool().end()]);
 }

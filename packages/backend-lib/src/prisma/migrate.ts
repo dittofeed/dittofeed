@@ -2,10 +2,10 @@ import spawn from "cross-spawn";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import path from "path";
 import { Client } from "pg";
+import { PostgresError } from "pg-error-enum";
 
 import config from "../config";
 import { db } from "../db";
-import { PostgresError } from "pg-error-enum";
 import logger from "../logger";
 
 function databaseUrlWithoutName() {
