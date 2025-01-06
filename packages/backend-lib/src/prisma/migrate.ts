@@ -29,11 +29,13 @@ export async function drizzleMigrate() {
     if (
       "code" in error &&
       typeof error.code === "string" &&
-      error.code.includes(PostgresError.DUPLICATE_DATABASE)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      error.code === PostgresError.DUPLICATE_DATABASE
     ) {
       logger().info({ database }, "Database already exists");
+    } else {
+      throw error;
     }
-    throw error;
   } finally {
     await client.end();
   }
