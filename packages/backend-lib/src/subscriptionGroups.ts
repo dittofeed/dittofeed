@@ -1,4 +1,4 @@
-import { Segment, SubscriptionGroup } from "@prisma/client";
+import { eq } from "drizzle-orm";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
@@ -11,8 +11,12 @@ import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
+import { db } from "./db";
+import {
+  segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   findAllSegmentAssignments,
   findAllSegmentAssignmentsByIds,
@@ -27,6 +31,7 @@ import {
   SegmentNodeType,
   SubscriptionChange,
   SubscriptionChangeEvent,
+  SubscriptionGroup,
   SubscriptionGroupType,
   SubscriptionParams,
   UpsertSubscriptionGroupResource,
@@ -94,15 +99,13 @@ export async function getSubscriptionGroupWithAssignment({
   if (!validateUuid(subscriptionGroupId)) {
     return null;
   }
-  const sg = await prisma().subscriptionGroup.findUnique({
-    where: {
-      id: subscriptionGroupId,
-    },
-    include: {
-      Segment: true,
+  const sg = await db().query.subscriptionGroup.findFirst({
+    where: eq(dbSubscriptionGroup.id, subscriptionGroupId),
+    with: {
+      segments: true,
     },
   });
-  if (!sg?.Segment[0]) {
+  if (!sg?.segments[0]) {
     logger().error(
       {
         workspaceId: sg?.workspaceId,
@@ -113,7 +116,7 @@ export async function getSubscriptionGroupWithAssignment({
     );
     return null;
   }
-  const segmentId = sg.Segment[0].id;
+  const segmentId = sg.segments[0].id;
   const assignments = await findAllSegmentAssignmentsByIds({
     workspaceId: sg.workspaceId,
     segmentIds: [segmentId],
