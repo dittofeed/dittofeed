@@ -1,4 +1,4 @@
-import { getUnsafe } from "isomorphic-lib/src/maps";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -25,8 +25,9 @@ import {
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
+import { db } from "./db";
+import * as schema from "./db/schema";
 import logger from "./logger";
-import prisma, { Prisma } from "./prisma";
 
 function newSubscriptionGroupName({
   name,
@@ -405,45 +406,44 @@ export async function transferResources({
   );
 
   const [workspace, destinationWorkspace] = await Promise.all([
-    prisma().workspace.findUniqueOrThrow({
-      where: {
-        id: workspaceId,
-      },
+    db().query.workspace.findFirst({
+      where: eq(schema.workspace.id, workspaceId),
     }),
-    prisma().workspace.findUniqueOrThrow({
-      where: {
-        id: destinationWorkspaceId,
-      },
+    db().query.workspace.findFirst({
+      where: eq(schema.workspace.id, destinationWorkspaceId),
     }),
   ]);
 
-  await prisma().$transaction(async (tx) => {
+  if (!workspace || !destinationWorkspace) {
+    logger().error(
+      {
+        workspace: workspace ? workspace.name : "not found",
+        destinationWorkspace: destinationWorkspace
+          ? destinationWorkspace.name
+          : "not found",
+      },
+      "Workspace not found",
+    );
+    throw new Error("Workspace not found");
+  }
+
+  await db().transaction(async (tx) => {
     const [userProperties, templates, subscriptionGroups, segments, journeys] =
       await Promise.all([
-        tx.userProperty.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.userProperty.findMany({
+          where: eq(schema.userProperty.workspaceId, workspaceId),
         }),
-        tx.messageTemplate.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.messageTemplate.findMany({
+          where: eq(schema.messageTemplate.workspaceId, workspaceId),
         }),
-        tx.subscriptionGroup.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.subscriptionGroup.findMany({
+          where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
         }),
-        tx.segment.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.segment.findMany({
+          where: eq(schema.segment.workspaceId, workspaceId),
         }),
-        tx.journey.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.journey.findMany({
+          where: eq(schema.journey.workspaceId, workspaceId),
         }),
       ]);
 
