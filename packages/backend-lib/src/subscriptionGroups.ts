@@ -11,7 +11,7 @@ import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
-import { db } from "./db";
+import { db, upsert } from "./db";
 import {
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
@@ -42,6 +42,7 @@ import {
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 import { findUserIdsByUserPropertyValue } from "./userProperties";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 export type SubscriptionGroupWithAssignment = Pick<
   SubscriptionGroup,
@@ -139,24 +140,28 @@ export async function upsertSubscriptionGroup({
   workspaceId,
   channel,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
-  const sg = await prisma().$transaction(async (tx) => {
-    const subscriptionGroup = await tx.subscriptionGroup.upsert({
-      where: {
-        workspaceId,
-        id,
-      },
-      create: {
-        name,
-        type,
-        channel,
-        workspaceId,
-        id,
-      },
-      update: {
-        name,
-        type,
-      },
-    });
+  const sg = await db().transaction(async (tx) => {
+    const subscriptionGroup = unwrap(
+      await upsert({
+        table: dbSubscriptionGroup,
+        values: {
+          id,
+          name,
+          type,
+          channel,
+          workspaceId,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        },
+        target: [dbSubscriptionGroup.id],
+        setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
+        tx,
+        set: {
+          name,
+          type,
+        },
+      }),
+    );
 
     const segmentName = `subscriptionGroup-${id}`;
     const segmentDefinition: SegmentDefinition = {

@@ -77,19 +77,17 @@ export async function upsert<
 >({
   table,
   values,
+  tx = db(),
   ...onConflict
 }: {
   table: TTable;
   values: TTable["$inferInsert"];
+  tx?: Db;
 } & PgInsertOnConflictDoUpdateConfig<TInsert>): Promise<
   Result<TTable["$inferSelect"], QueryError>
 > {
   const results = await queryResult(
-    db()
-      .insert(table)
-      .values(values)
-      .onConflictDoUpdate(onConflict)
-      .returning(),
+    tx.insert(table).values(values).onConflictDoUpdate(onConflict).returning(),
   );
   if (results.isErr()) {
     return results;
