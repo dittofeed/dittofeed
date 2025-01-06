@@ -1,17 +1,22 @@
-import { Journey, Workspace } from "@prisma/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 
 import { createEnvAndWorker } from "../test/temporal";
+import { db } from "./db";
+import {
+  segment as dbSegment,
+  userJourneyEvent as dbUserJourneyEvent,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import {
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./journeys/userWorkflow";
-import prisma from "./prisma";
 import { insertSegmentAssignments } from "./segments";
 import {
   ChannelType,
+  Journey,
   JourneyDefinition,
   JourneyNodeType,
   MessageNode,
@@ -20,7 +25,10 @@ import {
   SegmentOperatorType,
   SegmentSplitNode,
   SegmentSplitVariantType,
+  Workspace,
 } from "./types";
+import { createWorkspace } from "./workspaces";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 jest.setTimeout(15000);
 
@@ -34,11 +42,11 @@ describe("eventEntry journeys", () => {
   };
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `event-entry-${randomUUID()}`,
-      },
-    });
+    workspace = await createWorkspace({
+      name: `event-entry-${randomUUID()}`,
+      updatedAt: new Date(),
+      id: randomUUID(),
+    }).then(unwrap);
 
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
