@@ -142,7 +142,7 @@ export const userProperty = pgTable(
   (table) => [
     uniqueIndex("UserProperty_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -172,8 +172,8 @@ export const userPropertyAssignment = pgTable(
       "UserPropertyAssignment_workspaceId_userPropertyId_userId_key",
     ).using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
-      table.userPropertyId.asc().nullsLast().op("uuid_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
+      table.userPropertyId.asc().nullsLast().op("uuid_ops"), // Already correct
       table.userId.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -209,7 +209,7 @@ export const emailProvider = pgTable(
   (table) => [
     uniqueIndex("EmailProvider_workspaceId_type_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.type.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -249,13 +249,13 @@ export const userJourneyEvent = pgTable(
       "UserJourneyEvent_journeyId_userId_eventKey_eventKeyName_typ_key",
     ).using(
       "btree",
-      table.journeyId.asc().nullsLast().op("timestamp_ops"),
-      table.userId.asc().nullsLast().op("uuid_ops"),
-      table.eventKey.asc().nullsLast().op("uuid_ops"),
+      table.journeyId.asc().nullsLast().op("uuid_ops"), // Change from timestamp_ops
+      table.userId.asc().nullsLast().op("text_ops"), // Change from uuid_ops
+      table.eventKey.asc().nullsLast().op("text_ops"), // Change from uuid_ops
       table.eventKeyName.asc().nullsLast().op("text_ops"),
-      table.type.asc().nullsLast().op("timestamp_ops"),
-      table.journeyStartedAt.asc().nullsLast().op("text_ops"),
-      table.nodeId.asc().nullsLast().op("timestamp_ops"),
+      table.type.asc().nullsLast().op("text_ops"), // Change from timestamp_ops
+      table.journeyStartedAt.asc().nullsLast().op("timestamp_ops"), // Change from text_ops
+      table.nodeId.asc().nullsLast().op("text_ops"), // Change from timestamp_ops
     ),
   ],
 );
@@ -306,7 +306,7 @@ export const subscriptionGroup = pgTable(
     ),
     uniqueIndex("SubscriptionGroup_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -371,7 +371,7 @@ export const broadcast = pgTable(
   (table) => [
     uniqueIndex("Broadcast_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -416,9 +416,9 @@ export const segmentAssignment = pgTable(
   (table) => [
     uniqueIndex("SegmentAssignment_workspaceId_userId_segmentId_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.userId.asc().nullsLast().op("text_ops"),
-      table.segmentId.asc().nullsLast().op("text_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
     ),
     foreignKey({
       columns: [table.workspaceId],
@@ -487,7 +487,7 @@ export const secret = pgTable(
   (table) => [
     uniqueIndex("Secret_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -545,7 +545,7 @@ export const messageTemplate = pgTable(
   (table) => [
     uniqueIndex("MessageTemplate_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -577,7 +577,7 @@ export const integration = pgTable(
   (table) => [
     uniqueIndex("Integration_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -641,7 +641,7 @@ export const oauthToken = pgTable(
   (table) => [
     uniqueIndex("OauthToken_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -709,7 +709,7 @@ export const segment = pgTable(
     ),
     uniqueIndex("Segment_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -776,7 +776,7 @@ export const smsProvider = pgTable(
   (table) => [
     uniqueIndex("SmsProvider_workspaceId_type_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.type.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -816,7 +816,7 @@ export const journey = pgTable(
   (table) => [
     uniqueIndex("Journey_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -850,9 +850,9 @@ export const computedPropertyPeriod = pgTable(
     ).using(
       "btree",
       table.workspaceId.asc().nullsLast().op("uuid_ops"),
-      table.type.asc().nullsLast().op("uuid_ops"),
+      table.type.asc().nullsLast().op("enum_ops"), // Change from uuid_ops
       table.computedPropertyId.asc().nullsLast().op("uuid_ops"),
-      table.to.asc().nullsLast().op("uuid_ops"),
+      table.to.asc().nullsLast().op("timestamp_ops"), // Change from uuid_ops
     ),
     foreignKey({
       columns: [table.workspaceId],
@@ -879,7 +879,7 @@ export const adminApiKey = pgTable(
   (table) => [
     uniqueIndex("AdminApiKey_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
@@ -914,7 +914,7 @@ export const feature = pgTable(
   (table) => [
     uniqueIndex("Feature_workspaceId_name_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("text_ops"),
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
