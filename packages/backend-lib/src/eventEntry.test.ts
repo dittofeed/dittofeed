@@ -1,13 +1,15 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { createEnvAndWorker } from "../test/temporal";
-import { db } from "./db";
+import { db, insert } from "./db";
+import { and, eq } from "drizzle-orm";
 import {
   segment as dbSegment,
+  journey as dbJourney,
   userJourneyEvent as dbUserJourneyEvent,
-  workspace as dbWorkspace,
 } from "./db/schema";
 import {
   userJourneyWorkflow,
@@ -28,7 +30,6 @@ import {
   Workspace,
 } from "./types";
 import { createWorkspace } from "./workspaces";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 jest.setTimeout(15000);
 
@@ -66,11 +67,13 @@ describe("eventEntry journeys", () => {
     beforeEach(async () => {
       userId = "user1";
       const segmentId = randomUUID();
-      await prisma().segment.create({
-        data: {
+      await db()
+        .insert(dbSegment)
+        .values({
           id: segmentId,
           workspaceId: workspace.id,
           name: "test-segment",
+          updatedAt: new Date(),
           definition: {
             entryNode: {
               id: randomUUID(),
@@ -83,8 +86,7 @@ describe("eventEntry journeys", () => {
             },
             nodes: [],
           } satisfies SegmentDefinition,
-        },
-      });
+        });
       await insertSegmentAssignments([
         {
           segmentId,
@@ -124,14 +126,17 @@ describe("eventEntry journeys", () => {
           type: JourneyNodeType.ExitNode,
         },
       };
-      journey = await prisma().journey.create({
-        data: {
+      journey = await insert({
+        table: dbJourney,
+        values: {
           id: randomUUID(),
           workspaceId: workspace.id,
           name: "test-journey",
           definition: journeyDefinition,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-      });
+      }).then(unwrap);
     });
     it("segment splits should respect the pre-assignment", async () => {
       await worker.runUntil(async () => {
@@ -157,12 +162,15 @@ describe("eventEntry journeys", () => {
           ],
         });
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
-        const events = await prisma().userJourneyEvent.findMany({
-          where: {
-            journeyId: journey.id,
-            userId,
-          },
-        });
+        const events = await db()
+          .select()
+          .from(dbUserJourneyEvent)
+          .where(
+            and(
+              eq(dbUserJourneyEvent.journeyId, journey.id),
+              eq(dbUserJourneyEvent.userId, userId),
+            ),
+          );
         expect(events).toHaveLength(4);
       });
     });
