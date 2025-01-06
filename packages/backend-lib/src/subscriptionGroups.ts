@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
 } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
 import * as R from "remeda";
@@ -13,6 +14,7 @@ import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
 import { db, upsert } from "./db";
 import {
+  secret as dbSecret,
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
 } from "./db/schema";
@@ -42,7 +44,6 @@ import {
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 import { findUserIdsByUserPropertyValue } from "./userProperties";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 export type SubscriptionGroupWithAssignment = Pick<
   SubscriptionGroup,
@@ -410,13 +411,11 @@ export async function lookupUserForSubscriptions({
   hash,
 }: UserSubscriptionLookup): Promise<Result<{ userId: string }, Error>> {
   const [subscriptionSecret, matchingUserIds] = await Promise.all([
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          name: SecretNames.Subscription,
-          workspaceId,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Subscription),
+      ),
     }),
     findUserIdsByUserPropertyValue({
       workspaceId,
