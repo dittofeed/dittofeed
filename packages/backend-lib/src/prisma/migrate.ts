@@ -1,4 +1,15 @@
 import spawn from "cross-spawn";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import path from "path";
+
+import { db } from "../db";
+
+export async function drizzleMigrate() {
+  const migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
+  await migrate(db(), {
+    migrationsFolder,
+  });
+}
 
 export async function prismaMigrate() {
   await new Promise<void>((resolve, reject) => {
