@@ -495,7 +495,7 @@ export async function transferResources({
           },
           doNothingOnConflict: true,
           tx,
-        });
+        }).then(unwrap);
       }),
     );
 
@@ -508,22 +508,18 @@ export async function transferResources({
 
     await Promise.all(
       templates.map((template) =>
-        tx.messageTemplate.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: template.name,
-            },
-          },
-          create: {
+        insert({
+          table: schema.messageTemplate,
+          values: {
             ...template,
             id: getUnsafe(templateMap, template.id),
-            definition: template.definition ?? Prisma.DbNull,
-            draft: template.draft ?? Prisma.DbNull,
+            definition: template.definition ?? null,
+            draft: template.draft ?? null,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        }),
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap),
       ),
     );
 
@@ -547,16 +543,12 @@ export async function transferResources({
           workspaceId: destinationWorkspaceId,
           name: newName,
         };
-        return tx.subscriptionGroup.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: newName,
-            },
-          },
-          create: data,
-          update: data,
-        });
+        return insert({
+          table: schema.subscriptionGroup,
+          values: data,
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
 
@@ -591,21 +583,17 @@ export async function transferResources({
           ),
         };
 
-        return tx.segment.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: segment.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.segment,
+          values: {
             ...segment,
             id: getUnsafe(segmentMap, segment.id),
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        });
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
 
@@ -647,23 +635,19 @@ export async function transferResources({
           exitNode: definition.exitNode,
         } satisfies JourneyDefinition;
 
-        return tx.journey.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: journey.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.journey,
+          values: {
             ...journey,
             id: getUnsafe(journeyMap, journey.id),
             status: "Paused",
-            draft: Prisma.DbNull,
+            draft: null,
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        });
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
   });
