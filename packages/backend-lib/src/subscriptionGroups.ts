@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
@@ -484,13 +484,11 @@ export async function updateUserSubscriptions({
   userId: string;
   changes: UserSubscriptionsUpdate["changes"];
 }) {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      subscriptionGroupId: {
-        in: Object.keys(changes),
-      },
-    },
+  const segments = await db().query.segment.findMany({
+    where: and(
+      eq(dbSegment.workspaceId, workspaceId),
+      inArray(dbSegment.subscriptionGroupId, Object.keys(changes)),
+    ),
   });
 
   const segmentBySubscriptionGroupId = segments.reduce<Record<string, Segment>>(
