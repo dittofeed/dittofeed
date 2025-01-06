@@ -332,30 +332,30 @@ ALTER TABLE "WorkspaceRelation" ADD CONSTRAINT "WorkspaceRelation_childWorkspace
 CREATE UNIQUE INDEX "Workspace_externalId_key" ON "Workspace" USING btree ("externalId" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "Workspace_name_key" ON "Workspace" USING btree ("name" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "SegmentIOConfiguration_workspaceId_key" ON "SegmentIOConfiguration" USING btree ("workspaceId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "UserProperty_workspaceId_name_key" ON "UserProperty" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "UserProperty_workspaceId_name_key" ON "UserProperty" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE INDEX "UserPropertyAssignment_userId_idx" ON "UserPropertyAssignment" USING btree ("userId" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "UserPropertyAssignment_workspaceId_userPropertyId_userId_key" ON "UserPropertyAssignment" USING btree ("workspaceId" text_ops,"userPropertyId" uuid_ops,"userId" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "EmailProvider_workspaceId_type_key" ON "EmailProvider" USING btree ("workspaceId" text_ops,"type" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "UserJourneyEvent_journeyId_userId_eventKey_eventKeyName_typ_key" ON "UserJourneyEvent" USING btree ("journeyId" timestamp_ops,"userId" uuid_ops,"eventKey" uuid_ops,"eventKeyName" text_ops,"type" timestamp_ops,"journeyStartedAt" text_ops,"nodeId" timestamp_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "EmailProvider_workspaceId_type_key" ON "EmailProvider" USING btree ("workspaceId" uuid_ops,"type" text_ops);
+CREATE UNIQUE INDEX "UserJourneyEvent_journeyId_userId_eventKey_eventKeyName_typ_key" ON "UserJourneyEvent" USING btree ("journeyId" uuid_ops,"userId" text_ops,"eventKey" text_ops,"eventKeyName" text_ops,"type" text_ops,"journeyStartedAt" timestamp_ops,"nodeId" text_ops);
 CREATE INDEX "SubscriptionGroup_workspaceId_idx" ON "SubscriptionGroup" USING btree ("workspaceId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "SubscriptionGroup_workspaceId_name_key" ON "SubscriptionGroup" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "SubscriptionGroup_workspaceId_name_key" ON "SubscriptionGroup" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE UNIQUE INDEX "DefaultEmailProvider_workspaceId_key" ON "DefaultEmailProvider" USING btree ("workspaceId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "Broadcast_workspaceId_name_key" ON "Broadcast" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "SegmentAssignment_workspaceId_userId_segmentId_key" ON "SegmentAssignment" USING btree ("workspaceId" text_ops,"userId" text_ops,"segmentId" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "Broadcast_workspaceId_name_key" ON "Broadcast" USING btree ("workspaceId" uuid_ops,"name" text_ops);
+CREATE UNIQUE INDEX "SegmentAssignment_workspaceId_userId_segmentId_key" ON "SegmentAssignment" USING btree ("workspaceId" uuid_ops,"userId" text_ops,"segmentId" uuid_ops);
 CREATE UNIQUE INDEX "WorkspaceMemberRole_workspaceId_workspaceMemberId_key" ON "WorkspaceMemberRole" USING btree ("workspaceId" uuid_ops,"workspaceMemberId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "Secret_workspaceId_name_key" ON "Secret" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "Secret_workspaceId_name_key" ON "Secret" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE UNIQUE INDEX "WorkspaceMembeAccount_provider_providerAccountId_key" ON "WorkspaceMembeAccount" USING btree ("provider" text_ops,"providerAccountId" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "MessageTemplate_workspaceId_name_key" ON "MessageTemplate" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "Integration_workspaceId_name_key" ON "Integration" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "MessageTemplate_workspaceId_name_key" ON "MessageTemplate" USING btree ("workspaceId" uuid_ops,"name" text_ops);
+CREATE UNIQUE INDEX "Integration_workspaceId_name_key" ON "Integration" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE UNIQUE INDEX "WriteKey_workspaceId_secretId_key" ON "WriteKey" USING btree ("workspaceId" uuid_ops,"secretId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "OauthToken_workspaceId_name_key" ON "OauthToken" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "OauthToken_workspaceId_name_key" ON "Integration" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE UNIQUE INDEX "WorkspaceMember_email_key" ON "WorkspaceMember" USING btree ("email" text_ops);--> statement-breakpoint
 CREATE INDEX "Segment_resourceType_idx" ON "Segment" USING btree ("resourceType" enum_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "Segment_workspaceId_name_key" ON "Segment" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "DefaultSmsProvider_workspaceId_key" ON "DefaultSmsProvider" USING btree ("workspaceId" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "SmsProvider_workspaceId_type_key" ON "SmsProvider" USING btree ("workspaceId" text_ops,"type" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "Journey_workspaceId_name_key" ON "Journey" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "SmsProvider_workspaceId_type_key" ON "SmsProvider" USING btree ("workspaceId" uuid_ops,"type" text_ops);
+CREATE UNIQUE INDEX "Journey_workspaceId_name_key" ON "Journey" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE INDEX "ComputedPropertyPeriod_workspaceId_type_computedPropertyId__idx" ON "ComputedPropertyPeriod" USING btree ("workspaceId" uuid_ops,"type" uuid_ops,"computedPropertyId" uuid_ops,"to" uuid_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "AdminApiKey_workspaceId_name_key" ON "AdminApiKey" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
-CREATE UNIQUE INDEX "Feature_workspaceId_name_key" ON "Feature" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
+CREATE UNIQUE INDEX "AdminApiKey_workspaceId_name_key" ON "AdminApiKey" USING btree ("workspaceId" uuid_ops,"name" text_ops);
+CREATE UNIQUE INDEX "Feature_workspaceId_name_key" ON "Feature" USING btree ("workspaceId" uuid_ops,"name" text_ops);
 CREATE UNIQUE INDEX "WorkspaceRelation_parentWorkspaceId_childWorkspaceId_key" ON "WorkspaceRelation" USING btree ("parentWorkspaceId" uuid_ops,"childWorkspaceId" uuid_ops);

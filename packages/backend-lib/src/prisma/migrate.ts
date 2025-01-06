@@ -5,6 +5,8 @@ import { Client } from "pg";
 
 import config from "../config";
 import { db } from "../db";
+import { PostgresError } from "pg-error-enum";
+import logger from "../logger";
 
 function databaseUrlWithoutName() {
   const { databaseUrl } = config();
@@ -16,6 +18,26 @@ function databaseUrlWithoutName() {
 // FIXME rename file
 export async function drizzleMigrate() {
   const client = new Client(databaseUrlWithoutName());
+  const { database } = config();
+  try {
+    await client.connect();
+    await client.query(`
+      CREATE DATABASE ${database}
+    `);
+  } catch (e) {
+    const error = e as Error;
+    if (
+      "code" in error &&
+      typeof error.code === "string" &&
+      error.code.includes(PostgresError.DUPLICATE_DATABASE)
+    ) {
+      logger().info({ database }, "Database already exists");
+    }
+    throw error;
+  } finally {
+    await client.end();
+  }
+
   const migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
   await migrate(db(), {
     migrationsFolder,
