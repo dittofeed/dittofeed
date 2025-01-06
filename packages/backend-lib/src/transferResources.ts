@@ -25,9 +25,10 @@ import {
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
-import { db } from "./db";
+import { db, insert } from "./db";
 import * as schema from "./db/schema";
 import logger from "./logger";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 
 function newSubscriptionGroupName({
   name,
@@ -484,20 +485,16 @@ export async function transferResources({
           templateMap,
           subscriptionGroupMap,
         });
-        return tx.userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: userProperty.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.userProperty,
+          values: {
             ...userProperty,
             definition: newUserPropertyDefinition,
             id: getUnsafe(userPropertyMap, userProperty.id),
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
+          doNothingOnConflict: true,
+          tx,
         });
       }),
     );
