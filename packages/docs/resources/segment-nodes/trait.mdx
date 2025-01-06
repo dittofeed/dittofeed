@@ -9,18 +9,27 @@ Trait segment nodes are used to restrict segments to users whose traits, provide
 
 Let's say you want to send a welcome email to new users. You can create a segment that includes users whose `createdAt` trait is a timestamp within the last 30 minutes.
 
-<Frame>
-![New Users Segment Example](/images/new-users-segment.png)
-</Frame>
+<Frame>![New Users Segment Example](/images/new-users-segment.png)</Frame>
 
 Users who were created more than 30 minutes ago will not be included in this segment, or will leave the segment once that time has elapsed.
 
 Imagine that you're using this "new users" segment as the entry condition to a simple journey that sends a welcome email.
 
-<Frame>
-![Simple Welcome Journey](/images/simple-welcome-journey.png)
-</Frame>
+<Frame>![Simple Welcome Journey](/images/simple-welcome-journey.png)</Frame>
 
 This has the benefit that you can safely backfill data without worrying that older users will receive the welcome email.
 
 <Snippet file="path-syntax.mdx" />
+
+---
+
+## Walkthrough Video
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/wIDcOg1sMf0?si=85cNxbPxFbaFwY8U"
+  title="Trait Segment Nodes | Segmenting Users Based on Their Traits"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>

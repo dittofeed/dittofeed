@@ -5,14 +5,30 @@ description: "Condition on whether users have performed a specific action."
 
 The performed segment node allows you to target users who have performed a specific action.
 
-<Info> `Performed` segments are calculated synchronously from within [event entry Journeys](/resources/journey-nodes/entry#event-entry). This guarantees that the segment value will incorporate the triggering events' properties when rendering message templates within the journey. </Info>
+<Info>
+  {" "}
+  `Performed` segments are calculated synchronously from within [event entry Journeys](/resources/journey-nodes/entry#event-entry).
+  This guarantees that the segment value will incorporate the triggering events'
+  properties when rendering message templates within the journey.{" "}
+</Info>
 
 ## Example Use Case - Created Their First Project
 
 Imagine you're building an application. Your application internally has "projects". You want to target users who have created their first project with instructions on how to make the most of your application. You might then create a performed segment on the `PROJECT_CREATED` event.
 
-<Frame>
-![Performed Segment](/images/performed-segment.png)
-</Frame>
+<Frame>![Performed Segment](/images/performed-segment.png)</Frame>
 
 <Snippet file="path-syntax.mdx" />
+
+---
+
+## Walkthrough Video
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/iKBZE03kn5Y?si=MuiIlcUzEVepqf3i"
+  title="Performed Segment Nodes | Segmenting Users Based on Their Actions"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
