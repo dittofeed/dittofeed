@@ -1,10 +1,21 @@
 import spawn from "cross-spawn";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import path from "path";
+import { Client } from "pg";
 
+import config from "../config";
 import { db } from "../db";
 
+function databaseUrlWithoutName() {
+  const { databaseUrl } = config();
+  const url = new URL(databaseUrl);
+  url.pathname = "";
+  return url.toString();
+}
+
+// FIXME rename file
 export async function drizzleMigrate() {
+  const client = new Client(databaseUrlWithoutName());
   const migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
   await migrate(db(), {
     migrationsFolder,

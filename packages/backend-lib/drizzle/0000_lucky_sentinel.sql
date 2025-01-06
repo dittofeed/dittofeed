@@ -1,6 +1,5 @@
 -- Current sql file was generated after introspecting the database
 -- If you want to run this migration please uncomment this code before executing migrations
-/*
 CREATE TYPE "public"."ComputedPropertyType" AS ENUM('Segment', 'UserProperty');--> statement-breakpoint
 CREATE TYPE "public"."DBBroadcastStatus" AS ENUM('NotStarted', 'InProgress', 'Triggered');--> statement-breakpoint
 CREATE TYPE "public"."DBChannelType" AS ENUM('Email', 'MobilePush', 'Sms', 'Webhook');--> statement-breakpoint
@@ -360,4 +359,3 @@ CREATE INDEX "ComputedPropertyPeriod_workspaceId_type_computedPropertyId__idx" O
 CREATE UNIQUE INDEX "AdminApiKey_workspaceId_name_key" ON "AdminApiKey" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "Feature_workspaceId_name_key" ON "Feature" USING btree ("workspaceId" text_ops,"name" text_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX "WorkspaceRelation_parentWorkspaceId_childWorkspaceId_key" ON "WorkspaceRelation" USING btree ("parentWorkspaceId" uuid_ops,"childWorkspaceId" uuid_ops);
-*/
