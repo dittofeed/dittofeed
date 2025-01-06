@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -28,7 +29,6 @@ import { v5 as uuidv5 } from "uuid";
 import { db, insert } from "./db";
 import * as schema from "./db/schema";
 import logger from "./logger";
-import { getUnsafe } from "isomorphic-lib/src/maps";
 
 function newSubscriptionGroupName({
   name,

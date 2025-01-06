@@ -43,7 +43,6 @@ let POOL: Pool | null = null;
 
 export function pool(): Pool {
   if (!POOL) {
-    console.log("loc1", config().databaseUrl);
     POOL = new Pool({
       connectionString: config().databaseUrl,
     });
