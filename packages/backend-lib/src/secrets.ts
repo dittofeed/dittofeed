@@ -1,6 +1,8 @@
+import { and, eq, inArray } from "drizzle-orm";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 
-import prisma from "./prisma";
+import { db } from "./db";
+import { secret as dbSecret } from "./db/schema";
 import { SecretAvailabilityResource } from "./types";
 
 export async function getSecretAvailability({
@@ -10,13 +12,11 @@ export async function getSecretAvailability({
   workspaceId: string;
   names?: string[];
 }): Promise<SecretAvailabilityResource[]> {
-  const secrets = await prisma().secret.findMany({
-    where: {
-      workspaceId,
-      name: {
-        in: names,
-      },
-    },
+  const secrets = await db().query.secret.findMany({
+    where: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      names ? inArray(dbSecret.name, names) : undefined,
+    ),
   });
   return secrets.map((secret) => {
     let configValue: Record<string, boolean> | undefined;
