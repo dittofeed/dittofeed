@@ -3,7 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
-import { and, eq, inArray, InferSelectModel, SQL } from "drizzle-orm";
+import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -26,7 +26,6 @@ import {
 } from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
@@ -110,10 +109,8 @@ export async function findAllSegmentAssignments({
   userId: string;
   segmentIds?: string[];
 }): Promise<Record<string, boolean | null>> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-    },
+  const segments = await db().query.segment.findMany({
+    where: eq(dbSegment.workspaceId, workspaceId),
   });
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
@@ -565,13 +562,11 @@ export async function findManyPartialSegments({
 }: {
   workspaceId: string;
 }): Promise<PartialSegmentResource[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      resourceType: {
-        not: "Internal",
-      },
-    },
+  const segments = await db().query.segment.findMany({
+    where: and(
+      eq(dbSegment.workspaceId, workspaceId),
+      not(eq(dbSegment.resourceType, "Internal")),
+    ),
   });
   return segments.flatMap((segment) => {
     const {
