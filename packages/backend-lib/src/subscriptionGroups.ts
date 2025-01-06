@@ -12,7 +12,7 @@ import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
-import { db, upsert } from "./db";
+import { db, insert, upsert } from "./db";
 import {
   secret as dbSecret,
   segment as dbSegment,
@@ -29,6 +29,7 @@ import {
   GetUserSubscriptionsRequest,
   InternalEventType,
   SavedSubscriptionGroupResource,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
@@ -142,27 +143,25 @@ export async function upsertSubscriptionGroup({
   channel,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
   const sg = await db().transaction(async (tx) => {
-    const subscriptionGroup = unwrap(
-      await upsert({
-        table: dbSubscriptionGroup,
-        values: {
-          id,
-          name,
-          type,
-          channel,
-          workspaceId,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-        },
-        target: [dbSubscriptionGroup.id],
-        setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
-        tx,
-        set: {
-          name,
-          type,
-        },
-      }),
-    );
+    const subscriptionGroup = await upsert({
+      table: dbSubscriptionGroup,
+      values: {
+        id,
+        name,
+        type,
+        channel,
+        workspaceId,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      },
+      target: [dbSubscriptionGroup.id],
+      setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
+      tx,
+      set: {
+        name,
+        type,
+      },
+    }).then(unwrap);
 
     const segmentName = `subscriptionGroup-${id}`;
     const segmentDefinition: SegmentDefinition = {
@@ -193,7 +192,7 @@ export async function upsertSubscriptionGroup({
         definition: segmentDefinition,
       },
       tx,
-    });
+    }).then(unwrap);
 
     return subscriptionGroup;
   });
@@ -557,18 +556,15 @@ export async function upsertSubscriptionSecret({
 }: {
   workspaceId: string;
 }) {
-  return prisma().secret.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: SecretNames.Subscription,
-      },
-    },
-    create: {
+  return insert({
+    table: dbSecret,
+    values: {
+      id: uuid(),
       workspaceId,
       name: SecretNames.Subscription,
       value: generateSecureKey(8),
+      updatedAt: new Date(),
+      createdAt: new Date(),
     },
-    update: {},
-  });
+  }).then(unwrap);
 }
