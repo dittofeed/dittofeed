@@ -173,26 +173,27 @@ export async function upsertSubscriptionGroup({
       },
       nodes: [],
     };
-
-    await tx.segment.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: segmentName,
-        },
-      },
-      create: {
+    await upsert({
+      table: dbSegment,
+      values: {
+        id: uuid(),
         name: segmentName,
         workspaceId,
         definition: segmentDefinition,
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
+        updatedAt: new Date(),
+        createdAt: new Date(),
       },
-      update: {
+      target: [dbSegment.id],
+      setWhere: eq(dbSegment.workspaceId, workspaceId),
+      set: {
         name: segmentName,
         definition: segmentDefinition,
       },
+      tx,
     });
+
     return subscriptionGroup;
   });
 
