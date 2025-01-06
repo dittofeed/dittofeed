@@ -533,3 +533,10 @@ export default function config(): Config {
   }
   return CONFIG;
 }
+
+export function databaseUrlWithoutName() {
+  const { databaseUrl } = config();
+  const url = new URL(databaseUrl);
+  url.pathname = "";
+  return url.toString();
+}

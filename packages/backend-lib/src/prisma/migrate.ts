@@ -4,16 +4,9 @@ import path from "path";
 import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
-import config from "../config";
+import config, { databaseUrlWithoutName } from "../config";
 import { db } from "../db";
 import logger from "../logger";
-
-function databaseUrlWithoutName() {
-  const { databaseUrl } = config();
-  const url = new URL(databaseUrl);
-  url.pathname = "";
-  return url.toString();
-}
 
 // FIXME rename file
 export async function drizzleMigrate() {
