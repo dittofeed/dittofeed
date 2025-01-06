@@ -1,6 +1,9 @@
+import { and, eq } from "drizzle-orm";
+
 import { getBroadcast } from "../../../broadcasts";
+import { db } from "../../../db";
+import { broadcast as dbBroadcast } from "../../../db/schema";
 import logger from "../../../logger";
-import prisma from "../../../prisma";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import { computePropertiesIncremental } from "./computeProperties";
 
@@ -52,16 +55,18 @@ export async function performBroadcastIncremental({
     now: triggeredAt.getTime(),
     userProperties,
   });
-
-  await prisma().broadcast.update({
-    where: {
-      id: broadcast.id,
-    },
-    data: {
+  await db()
+    .update(dbBroadcast)
+    .set({
       triggeredAt,
       status: "Triggered",
-    },
-  });
+    })
+    .where(
+      and(
+        eq(dbBroadcast.id, broadcast.id),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      ),
+    );
 
   return null;
 }
