@@ -357,19 +357,15 @@ export async function getUserSubscriptions({
   workspaceId,
   userId,
 }: GetUserSubscriptionsRequest): Promise<UserSubscriptionResource[]> {
-  const subscriptionGroups = await prisma().subscriptionGroup.findMany({
-    where: {
-      workspaceId,
-    },
-    orderBy: {
-      name: "asc",
-    },
-    include: {
-      Segment: true,
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    where: eq(dbSubscriptionGroup.workspaceId, workspaceId),
+    orderBy: (sg, { asc }) => [asc(sg.name)],
+    with: {
+      segments: true,
     },
   });
   const segmentIds = subscriptionGroups.flatMap((sg) =>
-    sg.Segment.map((s) => s.id),
+    sg.segments.map((s) => s.id),
   );
   const assignments = await findAllSegmentAssignments({
     workspaceId,
@@ -379,7 +375,7 @@ export async function getUserSubscriptions({
   const subscriptions: UserSubscriptionResource[] = [];
 
   for (const subscriptionGroup of subscriptionGroups) {
-    const segment = subscriptionGroup.Segment[0];
+    const segment = subscriptionGroup.segments[0];
     if (!segment) {
       logger().error(
         { subscriptionGroup },
