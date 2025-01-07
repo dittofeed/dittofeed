@@ -807,7 +807,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait user property over multiple periods",
-      only: true,
       userProperties: [
         {
           name: "email",

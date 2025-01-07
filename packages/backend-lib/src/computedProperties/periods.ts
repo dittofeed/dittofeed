@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { and, eq, lt, max, min, sql } from "drizzle-orm";
+import { Overwrite } from "utility-types";
 
 import { db } from "../db";
 import {
@@ -14,7 +15,6 @@ import {
   SavedSegmentResource,
   SavedUserPropertyResource,
 } from "../types";
-import { Overwrite } from "utility-types";
 
 export type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
@@ -80,48 +80,6 @@ export async function getPeriodsByComputedPropertyId({
   workspaceId: string;
   step: ComputedPropertyStep;
 }): Promise<PeriodByComputedPropertyId> {
-  // // FIXME not right just use original query
-  // const maxPeriods = db()
-  //   .select({
-  //     workspaceId: dbComputedPropertyPeriod.workspaceId,
-  //     type: dbComputedPropertyPeriod.type,
-  //     computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
-  //     maxTo: max(dbComputedPropertyPeriod.to).as("maxTo"),
-  //   })
-  //   .from(dbComputedPropertyPeriod)
-  //   .groupBy(
-  //     dbComputedPropertyPeriod.workspaceId,
-  //     dbComputedPropertyPeriod.type,
-  //     dbComputedPropertyPeriod.computedPropertyId,
-  //   )
-  //   .as("maxPeriods");
-
-  // const periods = await db()
-  //   .select({
-  //     type: dbComputedPropertyPeriod.type,
-  //     computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
-  //     version: dbComputedPropertyPeriod.version,
-  //     maxTo: maxPeriods.maxTo,
-  //   })
-  //   .from(dbComputedPropertyPeriod)
-  //   .innerJoin(
-  //     maxPeriods,
-  //     and(
-  //       eq(dbComputedPropertyPeriod.workspaceId, maxPeriods.workspaceId),
-  //       eq(dbComputedPropertyPeriod.type, maxPeriods.type),
-  //       eq(
-  //         dbComputedPropertyPeriod.computedPropertyId,
-  //         maxPeriods.computedPropertyId,
-  //       ),
-  //       eq(dbComputedPropertyPeriod.to, maxPeriods.maxTo),
-  //     ),
-  //   )
-  //   .where(
-  //     and(
-  //       eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
-  //       eq(dbComputedPropertyPeriod.step, step),
-  //     ),
-  //   );
   const periods = (
     await db().execute<AggregatedComputedPropertyPeriod>(sql`
     SELECT DISTINCT ON (${dbComputedPropertyPeriod.workspaceId}, ${dbComputedPropertyPeriod.type}, ${dbComputedPropertyPeriod.computedPropertyId})
@@ -148,66 +106,6 @@ export async function getPeriodsByComputedPropertyId({
       const key = PeriodByComputedPropertyId.getKey(period);
       acc.set(key, {
         maxTo: new Date(`${maxTo}+0000`),
-        computedPropertyId: period.computedPropertyId,
-        version: period.version,
-      });
-      return acc;
-    }, new Map());
-
-  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
-}
-
-export async function getPeriodsByComputedPropertyIdV2({
-  workspaceId,
-  step,
-}: {
-  workspaceId: string;
-  step: ComputedPropertyStep;
-}): Promise<PeriodByComputedPropertyId> {
-  const result = await db()
-    .selectDistinctOn(
-      [
-        dbComputedPropertyPeriod.workspaceId,
-        dbComputedPropertyPeriod.type,
-        dbComputedPropertyPeriod.computedPropertyId,
-      ],
-      {
-        type: dbComputedPropertyPeriod.type,
-        computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
-        version: dbComputedPropertyPeriod.version,
-        maxTo: max(dbComputedPropertyPeriod.to),
-      },
-    )
-    .from(dbComputedPropertyPeriod)
-    .where(
-      and(
-        eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
-        eq(dbComputedPropertyPeriod.step, step),
-      ),
-    )
-    .leftJoin(
-      dbSegment,
-      eq(dbComputedPropertyPeriod.computedPropertyId, dbSegment.id),
-    )
-    .leftJoin(
-      dbUserProperty,
-      eq(dbComputedPropertyPeriod.computedPropertyId, dbUserProperty.id),
-    )
-    .groupBy(
-      dbComputedPropertyPeriod.workspaceId,
-      dbComputedPropertyPeriod.type,
-      dbComputedPropertyPeriod.computedPropertyId,
-    );
-
-  const periodByComputedPropertyId =
-    result.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
-      const { maxTo } = period;
-      const key = PeriodByComputedPropertyId.getKey(period);
-      if (!maxTo) {
-        return acc;
-      }
-      acc.set(key, {
-        maxTo,
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
