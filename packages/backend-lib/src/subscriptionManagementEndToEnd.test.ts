@@ -1,4 +1,3 @@
-import { SubscriptionGroup, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -6,9 +5,10 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { submitBatch } from "./apps/batch";
 import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
 import { computePropertiesIncremental } from "./computedProperties/computePropertiesWorkflow/activities";
+import { db } from "./db";
+import { defaultEmailProvider as dbDefaultEmailProvider } from "./db/schema";
 import { sendMessage, upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
-import prisma from "./prisma";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
@@ -24,14 +24,17 @@ import {
   InternalEventType,
   SavedUserPropertyResource,
   SubscriptionChange,
+  SubscriptionGroup,
   SubscriptionGroupType,
   SubscriptionParams,
   UserPropertyDefinitionType,
+  Workspace,
 } from "./types";
 import {
   findAllUserPropertyAssignments,
   upsertUserProperty,
 } from "./userProperties";
+import { createWorkspace } from "./workspaces";
 
 describe("subscriptionManagementEndToEnd", () => {
   describe("when a user unsubscribes from an opt-out subscription group", () => {
@@ -42,11 +45,13 @@ describe("subscriptionManagementEndToEnd", () => {
 
     beforeEach(async () => {
       userId = randomUUID();
-      workspace = await prisma().workspace.create({
-        data: {
+      workspace = unwrap(
+        await createWorkspace({
+          id: randomUUID(),
           name: `test-${randomUUID()}`,
-        },
-      });
+          updatedAt: new Date(),
+        }),
+      );
 
       const emailProviders = await getOrCreateEmailProviders({
         workspaceId: workspace.id,
@@ -65,16 +70,14 @@ describe("subscriptionManagementEndToEnd", () => {
       if (!testEmailProvider) {
         throw new Error("No test email provider found");
       }
-      await prisma().defaultEmailProvider.upsert({
-        where: {
-          workspaceId: workspace.id,
-        },
-        create: {
+      await db()
+        .insert(dbDefaultEmailProvider)
+        .values({
           workspaceId: workspace.id,
           emailProviderId: testEmailProvider.id,
-        },
-        update: {},
-      });
+          updatedAt: new Date(),
+        })
+        .onConflictDoNothing();
 
       const emailUserProperty: SavedUserPropertyResource = unwrap(
         await upsertUserProperty({
@@ -167,7 +170,7 @@ describe("subscriptionManagementEndToEnd", () => {
         /<a[^>]*class="df-unsubscribe"[^>]*href="([^"]*)"[^>]*>/,
       )?.[1];
       if (!unsubscribeUrl) {
-        throw new Error("Unsubscribe URL not found in: " + sent.variant.body);
+        throw new Error(`Unsubscribe URL not found in: ${sent.variant.body}`);
       }
       const url = new URL(unsubscribeUrl);
       const params = unwrap(

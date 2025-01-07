@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Prisma } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import { InferSelectModel } from "drizzle-orm";
 import {
@@ -662,7 +661,7 @@ export type PostMarkEvent = Static<typeof PostMarkEvent>;
 
 export type IntegrationCreateDefinition = Omit<
   Overwrite<
-    Prisma.IntegrationUncheckedCreateInput,
+    typeof dbIntegration.$inferInsert,
     {
       definition: IntegrationDefinition;
     }
