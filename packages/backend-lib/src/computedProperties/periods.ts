@@ -31,7 +31,7 @@ export type PeriodByComputedPropertyIdMap = Map<
 >;
 
 export class PeriodByComputedPropertyId {
-  private map: PeriodByComputedPropertyIdMap;
+  readonly map: PeriodByComputedPropertyIdMap;
 
   static getKey({
     computedPropertyId,
@@ -207,6 +207,14 @@ export async function createPeriods({
 }) {
   const nowD = new Date(now);
   const newPeriods: (typeof dbComputedPropertyPeriod.$inferInsert)[] = [];
+  logger().debug(
+    {
+      periodByComputedPropertyId: Object.fromEntries(
+        periodByComputedPropertyId?.map ?? new Map(),
+      ),
+    },
+    "loc4 periodByComputedPropertyId",
+  );
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
@@ -246,6 +254,7 @@ export async function createPeriods({
     });
   }
 
+  logger().debug({ newPeriods }, "Creating computed property periods");
   await db().transaction(async (tx) => {
     await tx
       .insert(dbComputedPropertyPeriod)
