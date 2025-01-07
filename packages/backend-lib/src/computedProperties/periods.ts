@@ -53,12 +53,17 @@ export class PeriodByComputedPropertyId {
     computedPropertyId: string;
     version: string;
   }): Period | undefined {
-    return this.map.get(
-      PeriodByComputedPropertyId.getKey({
-        computedPropertyId,
-        version,
-      }),
+    const key = PeriodByComputedPropertyId.getKey({
+      computedPropertyId,
+      version,
+    });
+    // FIXME this is empty when it shouldn't be2
+    const value = this.map.get(key);
+    logger().debug(
+      { key, map: Array.from(this.map.entries()), value },
+      "loc6 key",
     );
+    return value;
   }
 }
 
@@ -189,6 +194,10 @@ export async function getPeriodsByComputedPropertyIdV2({
   return new PeriodByComputedPropertyId(periodByComputedPropertyId);
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function createPeriods({
   workspaceId,
   userProperties,
@@ -221,6 +230,14 @@ export async function createPeriods({
       version,
       computedPropertyId: segment.id,
     });
+    logger().debug(
+      {
+        version,
+        computedPropertyId: segment.id,
+        previousPeriod: previousPeriod ?? "none",
+      },
+      "loc5 previousPeriod",
+    );
     newPeriods.push({
       id: randomUUID(),
       workspaceId,
@@ -233,6 +250,8 @@ export async function createPeriods({
       createdAt: nowD,
     });
   }
+  logger().debug("loc7");
+  await sleep(1000);
 
   for (const userProperty of userProperties) {
     const version = userProperty.definitionUpdatedAt.toString();

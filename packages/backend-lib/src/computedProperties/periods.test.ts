@@ -2,11 +2,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { db, insert } from "../db";
-import {
-  computedPropertyPeriod as dbComputedPropertyPeriod,
-  segment as dbSegment,
-  workspace as dbWorkspace,
-} from "../db/schema";
+import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
 import { toSegmentResource } from "../segments";
 import {
   ComputedPropertyStep,
@@ -175,8 +171,6 @@ describe("periods", () => {
 
       const nowPrior = now;
       now += 1000 * 60 * 3;
-      segment.definitionUpdatedAt = now;
-      segment.updatedAt = now;
 
       await createPeriods({
         workspaceId: workspace.id,
@@ -206,6 +200,7 @@ describe("periods", () => {
         where: (table, { eq }) => eq(table.workspaceId, workspace.id),
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
+
       expect(periods).toEqual([
         expect.objectContaining({
           from: null,
