@@ -1,16 +1,22 @@
-import { UserProperty, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "./apps/batch";
-import prisma from "./prisma";
+import { insert } from "./db";
+import {
+  segment as dbSegment,
+  userProperty as dbUserProperty,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import { insertSegmentAssignments } from "./segments";
 import {
   EventType,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  UserProperty,
   UserPropertyDefinitionType,
+  Workspace,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 import { deleteUsers, getUsers } from "./users";
@@ -18,11 +24,16 @@ import { deleteUsers, getUsers } from "./users";
 describe("getUsers", () => {
   let workspace: Workspace;
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `workspace-${randomUUID()}`,
-      },
-    });
+    workspace = unwrap(
+      await insert({
+        table: dbWorkspace,
+        values: {
+          id: randomUUID(),
+          name: `workspace-${randomUUID()}`,
+          updatedAt: new Date(),
+        },
+      }),
+    );
   });
 
   describe("when number of users is greater than the limit", () => {
@@ -34,16 +45,21 @@ describe("getUsers", () => {
         "185410bb-60e0-407a-95bb-4568ad450ff9",
         "787ec382-1f3a-4375-ae7d-2dae8b863991",
       ];
-      firstNameProperty = await prisma().userProperty.create({
-        data: {
-          name: "firstName",
-          workspaceId: workspace.id,
-          definition: {
-            type: UserPropertyDefinitionType.Trait,
-            path: "firstName",
+      firstNameProperty = unwrap(
+        await insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "firstName",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "firstName",
+            },
           },
-        },
-      });
+        }),
+      );
       await insertUserPropertyAssignments([
         {
           userPropertyId: firstNameProperty.id,
@@ -152,22 +168,29 @@ describe("getUsers", () => {
       };
       segmentId1 = randomUUID();
       const segmentId2 = randomUUID();
-      await prisma().segment.createMany({
-        data: [
-          {
+
+      await Promise.all([
+        insert({
+          table: dbSegment,
+          values: {
             id: segmentId1,
             workspaceId: workspace.id,
-            name: `segment1`,
+            name: "segment1",
+            updatedAt: new Date(),
             definition: segmentDefinition1,
           },
-          {
+        }),
+        insert({
+          table: dbSegment,
+          values: {
             id: segmentId2,
             workspaceId: workspace.id,
-            name: `segment2`,
+            name: "segment2",
+            updatedAt: new Date(),
             definition: segmentDefinition2,
           },
-        ],
-      });
+        }),
+      ]);
 
       await insertSegmentAssignments([
         {
@@ -225,16 +248,21 @@ describe("getUsers", () => {
         "185410bb-60e0-407a-95bb-4568ad450ff9",
         "787ec382-1f3a-4375-ae7d-2dae8b863991",
       ];
-      const firstNameProperty = await prisma().userProperty.create({
-        data: {
-          name: "firstName",
-          workspaceId: workspace.id,
-          definition: {
-            type: UserPropertyDefinitionType.Trait,
-            path: "firstName",
+      const firstNameProperty = unwrap(
+        await insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "firstName",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "firstName",
+            },
           },
-        },
-      });
+        }),
+      );
       await submitBatch({
         workspaceId: workspace.id,
         data: {

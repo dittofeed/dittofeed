@@ -381,7 +381,7 @@ export async function deleteUsers({
         },
       }),
     ),
-    // Delete from Prisma tables
+    // Delete from postgres tables
     db()
       .delete(dbUserPropertyAssignment)
       .where(

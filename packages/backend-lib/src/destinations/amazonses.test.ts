@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import prisma from "../prisma";
 import {
   AmazonSesBounceEvent,
   AmazonSesBounceSubType,
@@ -11,16 +10,15 @@ import {
   AmazonSNSEventTypes,
   AmazonSNSNotificationEvent,
 } from "../types";
+import { createWorkspace } from "../workspaces";
 import { handleSesNotification } from "./amazonses";
 
 describe("webhooksController", () => {
-  // let workspace: Workspace;
-
   beforeEach(async () => {
-    await prisma().workspace.create({
-      data: {
-        name: `test-${randomUUID()}`,
-      },
+    await createWorkspace({
+      id: randomUUID(),
+      name: `test-${randomUUID()}`,
+      updatedAt: new Date(),
     });
   });
 
