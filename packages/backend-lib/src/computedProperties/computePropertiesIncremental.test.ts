@@ -6350,6 +6350,7 @@ describe("computeProperties", () => {
                     ),
                     orderBy: [asc(schema.computedPropertyPeriod.createdAt)],
                   });
+                logger().debug({ periods }, "periods loc8");
                 const simplifiedPeriods = periods.map((p) => {
                   const s: TestPeriod = {
                     to: p.to.getTime() - now,

@@ -74,6 +74,7 @@ export async function getPeriodsByComputedPropertyId({
   workspaceId: string;
   step: ComputedPropertyStep;
 }): Promise<PeriodByComputedPropertyId> {
+  // FIXME not right just use original query
   const maxPeriods = db()
     .select({
       workspaceId: dbComputedPropertyPeriod.workspaceId,
