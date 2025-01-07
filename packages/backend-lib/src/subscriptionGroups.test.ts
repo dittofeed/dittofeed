@@ -13,9 +13,9 @@ import {
   WorkspaceTypeAppEnum,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
+import logger from "./logger";
 
 describe("subscriptionGroups", () => {
-  // FIXME
   describe("generateSubscriptionChangeUrl", () => {
     let userId: string;
     let email: string;

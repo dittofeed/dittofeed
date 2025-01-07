@@ -1,14 +1,14 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { createEnvAndWorker } from "../test/temporal";
 import { db, insert } from "./db";
-import { and, eq } from "drizzle-orm";
 import {
-  segment as dbSegment,
   journey as dbJourney,
+  segment as dbSegment,
   userJourneyEvent as dbUserJourneyEvent,
 } from "./db/schema";
 import {

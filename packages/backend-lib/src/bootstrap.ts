@@ -4,6 +4,7 @@ import {
   DEBUG_USER_ID1,
   WORKSPACE_TOMBSTONE_PREFIX,
 } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
@@ -21,7 +22,7 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { QueryError, upsert } from "./db";
+import { insert, QueryError, upsert } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -264,7 +265,7 @@ export async function bootstrapPostgres({
       workspaceId,
     }),
     ...userProperties.map((up) =>
-      upsert({
+      insert({
         table: dbUserProperty,
         values: {
           id: randomUUID(),
@@ -273,9 +274,8 @@ export async function bootstrapPostgres({
           definitionUpdatedAt: new Date(),
           updatedAt: new Date(),
         },
-        target: [dbUserProperty.workspaceId, dbUserProperty.name],
-        set: {},
-      }),
+        doNothingOnConflict: true,
+      }).then(unwrap),
     ),
     upsertSubscriptionSecret({
       workspaceId,
@@ -314,28 +314,26 @@ export async function bootstrapPostgres({
       channel: ChannelType.Sms,
     }),
     testEmailProvider
-      ? upsert({
+      ? insert({
           table: dbDefaultEmailProvider,
           values: {
             workspaceId,
             emailProviderId: testEmailProvider.id,
             updatedAt: new Date(),
           },
-          target: [dbDefaultEmailProvider.workspaceId],
-          set: {},
-        })
+          doNothingOnConflict: true,
+        }).then(unwrap)
       : undefined,
     testSmsProvider
-      ? upsert({
+      ? insert({
           table: dbDefaultSmsProvider,
           values: {
             workspaceId,
             smsProviderId: testSmsProvider.id,
             updatedAt: new Date(),
           },
-          target: [dbDefaultSmsProvider.workspaceId],
-          set: {},
-        })
+          doNothingOnConflict: true,
+        }).then(unwrap)
       : undefined,
   ]);
   const writeKey = writeKeyToHeader({

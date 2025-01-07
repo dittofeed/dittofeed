@@ -666,7 +666,7 @@ export type IntegrationCreateDefinition = Omit<
       definition: IntegrationDefinition;
     }
   >,
-  "workspaceId"
+  "workspaceId" | "id" | "updatedAt" | "createdAt" | "updatedAt"
 >;
 
 export type EnrichedIntegration = Overwrite<
