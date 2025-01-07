@@ -22,13 +22,12 @@ export type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
-export type PeriodByComputedPropertyIdMap = Map<
-  string,
-  Pick<
-    AggregatedComputedPropertyPeriod,
-    "maxTo" | "computedPropertyId" | "version"
-  >
+export type Period = Pick<
+  AggregatedComputedPropertyPeriod,
+  "maxTo" | "computedPropertyId" | "version"
 >;
+
+export type PeriodByComputedPropertyIdMap = Map<string, Period>;
 
 export class PeriodByComputedPropertyId {
   readonly map: PeriodByComputedPropertyIdMap;
@@ -53,7 +52,7 @@ export class PeriodByComputedPropertyId {
   }: {
     computedPropertyId: string;
     version: string;
-  }) {
+  }): Period | undefined {
     return this.map.get(
       PeriodByComputedPropertyId.getKey({
         computedPropertyId,
@@ -210,7 +209,7 @@ export async function createPeriods({
   logger().debug(
     {
       periodByComputedPropertyId: Object.fromEntries(
-        periodByComputedPropertyId?.map ?? new Map(),
+        periodByComputedPropertyId?.map ?? [],
       ),
     },
     "loc4 periodByComputedPropertyId",
