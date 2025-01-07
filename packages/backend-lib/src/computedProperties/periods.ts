@@ -14,17 +14,23 @@ import {
   SavedSegmentResource,
   SavedUserPropertyResource,
 } from "../types";
+import { Overwrite } from "utility-types";
 
 export type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
   "from" | "workspaceId" | "to"
 > & {
-  maxTo: ComputedPropertyPeriod["to"];
+  maxTo: string;
 };
 
-export type Period = Pick<
-  AggregatedComputedPropertyPeriod,
-  "maxTo" | "computedPropertyId" | "version"
+export type Period = Overwrite<
+  Pick<
+    AggregatedComputedPropertyPeriod,
+    "maxTo" | "computedPropertyId" | "version"
+  >,
+  {
+    maxTo: Date;
+  }
 >;
 
 export type PeriodByComputedPropertyIdMap = Map<string, Period>;
@@ -74,58 +80,74 @@ export async function getPeriodsByComputedPropertyId({
   workspaceId: string;
   step: ComputedPropertyStep;
 }): Promise<PeriodByComputedPropertyId> {
-  // FIXME not right just use original query
-  const maxPeriods = db()
-    .select({
-      workspaceId: dbComputedPropertyPeriod.workspaceId,
-      type: dbComputedPropertyPeriod.type,
-      computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
-      maxTo: max(dbComputedPropertyPeriod.to).as("maxTo"),
-    })
-    .from(dbComputedPropertyPeriod)
-    .groupBy(
-      dbComputedPropertyPeriod.workspaceId,
-      dbComputedPropertyPeriod.type,
-      dbComputedPropertyPeriod.computedPropertyId,
-    )
-    .as("maxPeriods");
+  // // FIXME not right just use original query
+  // const maxPeriods = db()
+  //   .select({
+  //     workspaceId: dbComputedPropertyPeriod.workspaceId,
+  //     type: dbComputedPropertyPeriod.type,
+  //     computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+  //     maxTo: max(dbComputedPropertyPeriod.to).as("maxTo"),
+  //   })
+  //   .from(dbComputedPropertyPeriod)
+  //   .groupBy(
+  //     dbComputedPropertyPeriod.workspaceId,
+  //     dbComputedPropertyPeriod.type,
+  //     dbComputedPropertyPeriod.computedPropertyId,
+  //   )
+  //   .as("maxPeriods");
 
-  const periods = await db()
-    .select({
-      type: dbComputedPropertyPeriod.type,
-      computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
-      version: dbComputedPropertyPeriod.version,
-      maxTo: maxPeriods.maxTo,
-    })
-    .from(dbComputedPropertyPeriod)
-    .innerJoin(
-      maxPeriods,
-      and(
-        eq(dbComputedPropertyPeriod.workspaceId, maxPeriods.workspaceId),
-        eq(dbComputedPropertyPeriod.type, maxPeriods.type),
-        eq(
-          dbComputedPropertyPeriod.computedPropertyId,
-          maxPeriods.computedPropertyId,
-        ),
-        eq(dbComputedPropertyPeriod.to, maxPeriods.maxTo),
-      ),
-    )
-    .where(
-      and(
-        eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
-        eq(dbComputedPropertyPeriod.step, step),
-      ),
-    );
+  // const periods = await db()
+  //   .select({
+  //     type: dbComputedPropertyPeriod.type,
+  //     computedPropertyId: dbComputedPropertyPeriod.computedPropertyId,
+  //     version: dbComputedPropertyPeriod.version,
+  //     maxTo: maxPeriods.maxTo,
+  //   })
+  //   .from(dbComputedPropertyPeriod)
+  //   .innerJoin(
+  //     maxPeriods,
+  //     and(
+  //       eq(dbComputedPropertyPeriod.workspaceId, maxPeriods.workspaceId),
+  //       eq(dbComputedPropertyPeriod.type, maxPeriods.type),
+  //       eq(
+  //         dbComputedPropertyPeriod.computedPropertyId,
+  //         maxPeriods.computedPropertyId,
+  //       ),
+  //       eq(dbComputedPropertyPeriod.to, maxPeriods.maxTo),
+  //     ),
+  //   )
+  //   .where(
+  //     and(
+  //       eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+  //       eq(dbComputedPropertyPeriod.step, step),
+  //     ),
+  //   );
+  const periods = (
+    await db().execute<AggregatedComputedPropertyPeriod>(sql`
+    SELECT DISTINCT ON (${dbComputedPropertyPeriod.workspaceId}, ${dbComputedPropertyPeriod.type}, ${dbComputedPropertyPeriod.computedPropertyId})
+      ${dbComputedPropertyPeriod.type},
+      ${dbComputedPropertyPeriod.computedPropertyId},
+      ${dbComputedPropertyPeriod.version},
+      MAX(${dbComputedPropertyPeriod.to}) OVER (
+        PARTITION BY ${dbComputedPropertyPeriod.workspaceId}, ${dbComputedPropertyPeriod.type}, ${dbComputedPropertyPeriod.computedPropertyId}
+      ) as ${sql.identifier("maxTo")}
+    FROM ${dbComputedPropertyPeriod}
+    WHERE
+      ${dbComputedPropertyPeriod.workspaceId} = CAST(${workspaceId} AS UUID)
+      AND ${dbComputedPropertyPeriod.step} = ${step}
+    ORDER BY 
+      ${dbComputedPropertyPeriod.workspaceId}, 
+      ${dbComputedPropertyPeriod.type}, 
+      ${dbComputedPropertyPeriod.computedPropertyId}, 
+      ${dbComputedPropertyPeriod.to} DESC`)
+  ).rows;
 
   const periodByComputedPropertyId =
     periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
       const key = PeriodByComputedPropertyId.getKey(period);
-      if (!maxTo) {
-        return acc;
-      }
       acc.set(key, {
-        maxTo: new Date(maxTo),
+        maxTo: new Date(`${maxTo}+0000`),
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
@@ -195,10 +217,6 @@ export async function getPeriodsByComputedPropertyIdV2({
   return new PeriodByComputedPropertyId(periodByComputedPropertyId);
 }
 
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function createPeriods({
   workspaceId,
   userProperties,
@@ -251,8 +269,6 @@ export async function createPeriods({
       createdAt: nowD,
     });
   }
-  logger().debug("loc7");
-  await sleep(1000);
 
   for (const userProperty of userProperties) {
     const version = userProperty.definitionUpdatedAt.toString();
