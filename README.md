@@ -67,25 +67,38 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 ☑️ = in development | ✅ = in production
 
 
-### Q3: July 1 to Sept 30
+### Q4 2024: Oct 1 to Dec 31
 
-| Feature                       | Purpose                                                                                                               | Status  |
-|-------------------------------|-----------------------------------------------------------------------------------------------------------------------|---------|
-| Low code template builder     | Allows members to build email templates in a low-code interface without manual encoding in MJML.                      | - ✅  |
-| Embeddable Components        | Enables embedding of Journey Builder, Segment Builder, Template Builder, etc., into third-party apps.                  | - ✅   |
-
----
-
-### Q4: Oct 1 to Dec 31
-
-| Feature                      | Purpose                                                                                               | Status  |
-|------------------------------|-------------------------------------------------------------------------------------------------------|---------|
-| LLM Integration              | Drives the generation of journeys, segments, and templates.                                           | - \[ ]   |
-| Identity resolution           | Enables joining of users based on traits or behavior, important for identifying anonymous users post sign-up/sign-in. | - ☑️   |
-| User grouping                 | Provides a way to represent a collection of users (e.g., club, company, team) for segment membership conditions.      | - ☑️   |
+| Feature                       | Purpose                                                                                                       | Status  |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------|---------|
+| Low code template builder     | Allow members to build email templates in a low-code interface without manual encoding in MJML.               | - ✅  |
+| Embedded components (private beta)  | Enable embedding of Journey Builder, Segment Builder, Template Builder, etc., into third-party apps.    | - ✅  |
 
 ---
 
+### Q1 2025: Jan 1 to Mar 31
+
+| Feature                      | Purpose                                                                                                         | Status  |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
+| Replace Prisma with Drizzle  | Enhance memory efficiency and stability.                                                                        | - ☑️  |
+| Identity resolution          | Enable joining of users based on traits or behavior. Important for identifying anonymous users post sign-up/sign-in. | - ☑️  |
+| Embedded components (public release)  | Implement internal dashboard for embedded low code components. Write great docs. Create demo projects. | - ☑️  |
+| Expand Emailo functionality  | Add more commands to the low code email editor command palette to improve email editing experience.             | - \[ ]  |
+| Deprecate Postgres user property & segment assignments  | Improve computed properties efficiency.                                              | - ✅  |
+
+---
+
+### Q2 2025: Apr 1 to Jun 30
+
+| Feature                      | Purpose                                                                                                         | Status  |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
+| LLM Integration              | Drive quicker, easier generation of journeys, segments, and templates.                                          | - \[ ]  |
+| Stripe integration           | Sync customer data between Stripe and Dittofeed.                                                                | - \[ ]  |
+| User grouping                | Provide a way to represent a collection of users (e.g., club, company, team) for segment membership conditions. | - \[ ]  |
+| Git-based resources          | Track changes, audit, and transfer resources between workspaces.                                                | - \[ ]  |
+
+
+---
 
 
 ## Developer-centric
