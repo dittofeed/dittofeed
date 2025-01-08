@@ -1,10 +1,13 @@
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
-import prisma from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
   Workspace,
-  WorkspaceStatus,
-  WorkspaceType,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "backend-lib/src/types";
+import { createWorkspace } from "backend-lib/src/workspaces";
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -15,9 +18,13 @@ describe("authenticateAdminApiKey", () => {
     let workspace: Workspace;
 
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Root },
-      });
+      workspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Root,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
     });
 
     describe("when the key matches the passed value", () => {
@@ -48,10 +55,12 @@ describe("authenticateAdminApiKey", () => {
             name: "my-admin-api-key",
           }),
         ).apiKey;
-        await prisma().workspace.update({
-          where: { id: workspace.id },
-          data: { status: WorkspaceStatus.Tombstoned },
-        });
+        await db()
+          .update(schema.workspace)
+          .set({
+            status: WorkspaceStatusDbEnum.Tombstoned,
+          })
+          .where(eq(schema.workspace.id, workspace.id));
       });
       it("should return false", async () => {
         const result = await authenticateAdminApiKey({
@@ -83,9 +92,13 @@ describe("authenticateAdminApiKey", () => {
     let workspace: Workspace;
 
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Root },
-      });
+      workspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Root,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
     });
 
     it("should return false", async () => {
@@ -103,20 +116,23 @@ describe("authenticateAdminApiKey", () => {
     let adminApiKey: string;
 
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Parent },
-      });
-      childWorkspace = await prisma().workspace.create({
-        data: {
-          name: `Child Workspace ${uuidv4()}`,
-          type: WorkspaceType.Child,
-        },
-      });
-      await prisma().workspaceRelation.create({
-        data: {
-          parentWorkspaceId: workspace.id,
-          childWorkspaceId: childWorkspace.id,
-        },
+      workspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Parent,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
+      childWorkspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Child Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Child,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
+      await db().insert(schema.workspaceRelation).values({
+        parentWorkspaceId: workspace.id,
+        childWorkspaceId: childWorkspace.id,
       });
       adminApiKey = unwrap(
         await createAdminApiKey({
@@ -140,23 +156,27 @@ describe("authenticateAdminApiKey", () => {
     let adminApiKey: string;
 
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `Workspace ${uuidv4()}`, type: WorkspaceType.Parent },
-      });
+      workspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Parent,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
       childWorkspaceExternalId = `child-workspace-external-id-${uuidv4()}`;
-      const childWorkspace = await prisma().workspace.create({
-        data: {
-          name: `Child Workspace ${uuidv4()}`,
-          type: WorkspaceType.Child,
-          externalId: childWorkspaceExternalId,
-        },
+      const childWorkspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Child Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Child,
+        externalId: childWorkspaceExternalId,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }).then(unwrap);
+      await db().insert(schema.workspaceRelation).values({
+        parentWorkspaceId: workspace.id,
+        childWorkspaceId: childWorkspace.id,
       });
-      await prisma().workspaceRelation.create({
-        data: {
-          parentWorkspaceId: workspace.id,
-          childWorkspaceId: childWorkspace.id,
-        },
-      });
+
       adminApiKey = unwrap(
         await createAdminApiKey({
           workspaceId: workspace.id,
