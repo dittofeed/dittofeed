@@ -1,9 +1,11 @@
 import { LoadingButton } from "@mui/lab";
 import { Stack, Tooltip, Typography } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findMessageTemplates } from "backend-lib/src/messaging";
-import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { eq } from "drizzle-orm";
 import {
   BroadcastResource,
   CompletionStatus,
@@ -52,10 +54,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         name,
         broadcastId: id,
       }),
-      prisma().subscriptionGroup.findMany({
-        where: {
-          workspaceId,
-        },
+      db().query.subscriptionGroup.findMany({
+        where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
       }),
       findMessageTemplates({
         workspaceId,

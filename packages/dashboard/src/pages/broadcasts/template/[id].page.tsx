@@ -12,8 +12,11 @@ import {
   useTheme,
 } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
+import { eq } from "drizzle-orm";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -45,7 +48,6 @@ import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
 import { getBroadcastMessageNode } from "../../../lib/broadcasts";
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
@@ -60,10 +62,8 @@ async function getChannelState({
   workspaceId: string;
 }): Promise<Partial<AppState> | null> {
   const userProperties = (
-    await prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-      },
+    await db().query.userProperty.findMany({
+      where: eq(schema.userProperty.workspaceId, workspaceId),
     })
   ).flatMap((up) => unwrap(toSavedUserPropertyResource(up)));
   return {
@@ -108,10 +108,8 @@ export const getServerSideProps: GetServerSideProps<
         name,
         broadcastId: id,
       }),
-      prisma().subscriptionGroup.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.subscriptionGroup.findMany({
+        where: eq(schema.subscriptionGroup.workspaceId, dfContext.workspace.id),
       }),
     ]);
 
