@@ -1,4 +1,7 @@
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { eq } from "drizzle-orm";
 import {
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
@@ -11,7 +14,6 @@ import { ResourceTable } from "../components/resourceTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../lib/types";
 
@@ -21,10 +23,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const workspaceId = dfContext.workspace.id;
     const serverInitialState: Partial<AppState> = {};
-    const subscriptionGroup = await prisma().subscriptionGroup.findMany({
-      where: {
-        workspaceId,
-      },
+    const subscriptionGroup = await db().query.subscriptionGroup.findMany({
+      where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
     });
 
     serverInitialState.subscriptionGroups = subscriptionGroup.map(

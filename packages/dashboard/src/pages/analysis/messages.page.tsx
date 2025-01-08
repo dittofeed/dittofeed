@@ -1,8 +1,11 @@
 import { Box, Stack, Tabs, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
+import { eq } from "drizzle-orm";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -22,7 +25,6 @@ import DashboardContent from "../../components/dashboardContent";
 import TabLink from "../../components/tabLink";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
@@ -62,16 +64,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { workspace } = dfContext;
     const workspaceId = workspace.id;
     const [journeys, messages] = await Promise.all([
-      prisma().journey.findMany({
-        where: {
-          workspaceId,
+      db().query.journey.findMany({
+        where: eq(schema.journey.workspaceId, workspaceId),
+        with: {
+          broadcasts: true,
         },
-        include: {
-          Broadcast: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: (journey, { desc }) => [desc(journey.createdAt)],
       }),
       findMessageTemplates({ workspaceId, includeInternal: true }),
     ]);
@@ -80,7 +78,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     for (const journey of journeys) {
       journeyResources.push(unwrap(toJourneyResource(journey)));
-      for (const broadcast of journey.Broadcast) {
+      for (const broadcast of journey.broadcasts) {
         broadcastResources.push(toBroadcastResource(broadcast));
       }
     }
