@@ -1,10 +1,12 @@
 import { Stack } from "@mui/material";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messaging";
-import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
+import { eq } from "drizzle-orm";
 import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
@@ -36,15 +38,11 @@ export const getServerSideProps: GetServerSideProps<
       findMessageTemplates({
         workspaceId: dfContext.workspace.id,
       }),
-      prisma().broadcast.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.broadcast.findMany({
+        where: eq(schema.broadcast.workspaceId, dfContext.workspace.id),
       }),
-      prisma().journey.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.journey.findMany({
+        where: eq(schema.journey.workspaceId, dfContext.workspace.id),
       }),
     ]);
 

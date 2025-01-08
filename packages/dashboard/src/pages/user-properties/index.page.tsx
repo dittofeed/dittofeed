@@ -1,9 +1,12 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { Button, Stack, Typography } from "@mui/material";
 import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { ComputedPropertyStep } from "backend-lib/src/types";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
+import { and, eq } from "drizzle-orm";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -12,7 +15,6 @@ import { v4 as uuid } from "uuid";
 import DashboardContent from "../../components/dashboardContent";
 import UserPropertiesTable from "../../components/userPropertiesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import {
   AppState,
@@ -26,9 +28,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const [userPropertyResources, templateResources, computedPropertyPeriods] =
       await Promise.all([
-        prisma()
-          .userProperty.findMany({
-            where: { workspaceId, resourceType: "Declarative" },
+        db()
+          .query.userProperty.findMany({
+            where: and(
+              eq(schema.userProperty.workspaceId, workspaceId),
+              eq(schema.userProperty.resourceType, "Declarative"),
+            ),
           })
           .then((userProperties) => {
             return userProperties.flatMap((up) => {
