@@ -1,6 +1,8 @@
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma, { Prisma } from "backend-lib/src/prisma";
-import { WorkspaceStatus } from "backend-lib/src/types";
+import { WorkspaceStatusDbEnum } from "backend-lib/src/types";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -22,56 +24,78 @@ export async function authenticateAdminApiKeyFull({
   workspaceId: string;
   keyId: string;
 } | null> {
-  let apiKeysQuery: Prisma.Sql;
+  let apiKeys: {
+    id: string;
+    workspaceId: string;
+    configValue: unknown;
+  }[];
   if ("workspaceId" in identifier) {
     const { workspaceId } = identifier;
-
-    apiKeysQuery = Prisma.sql`
-      SELECT
-        aak.id,
-        aak."workspaceId",
-        s."configValue"
-      FROM "AdminApiKey" aak
-      JOIN "Secret" s ON aak."secretId" = s.id
-      JOIN "Workspace" w ON aak."workspaceId" = w.id
-      WHERE
-        w."status" = CAST(${WorkspaceStatus.Active} AS "WorkspaceStatus")
-        AND (
-          aak."workspaceId" = CAST(${workspaceId} AS UUID)
-          OR aak."workspaceId" IN (
-            SELECT wr."parentWorkspaceId"
-            FROM "WorkspaceRelation" wr
-            WHERE wr."childWorkspaceId" = CAST(${workspaceId} AS UUID)
-          )
-        )
-    `;
+    const parentWorkspaceQuery = db()
+      .select({
+        parentWorkspaceId: schema.workspaceRelation.parentWorkspaceId,
+      })
+      .from(schema.workspaceRelation)
+      .where(eq(schema.workspaceRelation.childWorkspaceId, workspaceId));
+    apiKeys = await db()
+      .select({
+        id: schema.adminApiKey.id,
+        workspaceId: schema.adminApiKey.workspaceId,
+        configValue: schema.secret.configValue,
+      })
+      .from(schema.adminApiKey)
+      .innerJoin(
+        schema.secret,
+        eq(schema.adminApiKey.secretId, schema.secret.id),
+      )
+      .innerJoin(
+        schema.workspace,
+        eq(schema.adminApiKey.workspaceId, schema.workspace.id),
+      )
+      .where(
+        and(
+          eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
+          or(
+            eq(schema.adminApiKey.workspaceId, workspaceId),
+            inArray(schema.adminApiKey.workspaceId, parentWorkspaceQuery),
+          ),
+        ),
+      );
   } else {
     const { externalId } = identifier;
-    apiKeysQuery = Prisma.sql`
-      SELECT
-        aak.id,
-        aak."workspaceId",
-        s."configValue"
-      FROM "AdminApiKey" aak
-      JOIN "Secret" s ON aak."secretId" = s.id
-      JOIN "Workspace" w ON
-        (aak."workspaceId" = w.id AND w."externalId" = ${externalId})
-        OR aak."workspaceId" IN (
-          SELECT wr."parentWorkspaceId"
-          FROM "WorkspaceRelation" wr
-          JOIN "Workspace" cw ON wr."childWorkspaceId" = cw.id
-          WHERE cw."externalId" = ${externalId}
-        )
-      WHERE w."status" = CAST(${WorkspaceStatus.Active} AS "WorkspaceStatus")
-    `;
+    const parentWorkspaceQuery = db()
+      .select({
+        parentWorkspaceId: schema.workspaceRelation.parentWorkspaceId,
+      })
+      .from(schema.workspaceRelation)
+      .innerJoin(
+        schema.workspace,
+        eq(schema.workspaceRelation.childWorkspaceId, schema.workspace.id),
+      )
+      .where(eq(schema.workspace.externalId, externalId));
+    apiKeys = await db()
+      .select({
+        id: schema.adminApiKey.id,
+        workspaceId: schema.adminApiKey.workspaceId,
+        configValue: schema.secret.configValue,
+      })
+      .from(schema.adminApiKey)
+      .innerJoin(
+        schema.secret,
+        eq(schema.adminApiKey.secretId, schema.secret.id),
+      )
+      .innerJoin(
+        schema.workspace,
+        and(
+          or(
+            eq(schema.adminApiKey.workspaceId, schema.workspace.id),
+            inArray(schema.adminApiKey.workspaceId, parentWorkspaceQuery),
+          ),
+          eq(schema.workspace.externalId, externalId),
+        ),
+      )
+      .where(eq(schema.workspace.status, WorkspaceStatusDbEnum.Active));
   }
-  const apiKeys = await prisma().$queryRaw<
-    {
-      id: string;
-      workspaceId: string;
-      configValue: unknown;
-    }[]
-  >(apiKeysQuery);
 
   if (!actualKey) {
     logger().info(

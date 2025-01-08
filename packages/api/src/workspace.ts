@@ -1,8 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
-import * as schema from "backend-lib/src/db/schema";
-import { eq } from "drizzle-orm";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
