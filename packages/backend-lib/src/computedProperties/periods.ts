@@ -132,14 +132,6 @@ export async function createPeriods({
 }) {
   const nowD = new Date(now);
   const newPeriods: (typeof dbComputedPropertyPeriod.$inferInsert)[] = [];
-  logger().debug(
-    {
-      periodByComputedPropertyId: Object.fromEntries(
-        periodByComputedPropertyId?.map ?? [],
-      ),
-    },
-    "loc4 periodByComputedPropertyId",
-  );
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
@@ -147,14 +139,6 @@ export async function createPeriods({
       version,
       computedPropertyId: segment.id,
     });
-    logger().debug(
-      {
-        version,
-        computedPropertyId: segment.id,
-        previousPeriod: previousPeriod ?? "none",
-      },
-      "loc5 previousPeriod",
-    );
     newPeriods.push({
       id: randomUUID(),
       workspaceId,

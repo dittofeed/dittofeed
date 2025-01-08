@@ -184,6 +184,7 @@ export async function getDeliveryBody({
   if (propertiesResult.isErr()) {
     return null;
   }
+
   const parsedResult = schemaValidateWithErr(
     propertiesResult.value,
     MessageSendSuccessContents,
