@@ -1,7 +1,10 @@
+import { db, insert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
 import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -20,7 +23,6 @@ import EmailEditor from "../../../components/messages/emailEditor";
 import TemplatePageContent from "../../../components/messages/templatePageContent";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 
@@ -47,28 +49,26 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const [emailTemplate, userProperties, defaultEmailProvider] =
       await Promise.all([
-        prisma().messageTemplate.findUnique({
-          where: {
-            id: templateId,
-          },
+        db().query.messageTemplate.findFirst({
+          where: and(
+            eq(schema.messageTemplate.id, templateId),
+            eq(schema.messageTemplate.workspaceId, workspaceId),
+          ),
         }),
-        prisma().userProperty.findMany({
-          where: {
-            workspaceId,
-          },
+        db().query.userProperty.findMany({
+          where: eq(schema.userProperty.workspaceId, workspaceId),
         }),
-        prisma().defaultEmailProvider.findUnique({
-          where: {
-            workspaceId,
-          },
+        db().query.defaultEmailProvider.findFirst({
+          where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
         }),
       ]);
 
     let emailTemplateWithDefault: MessageTemplate;
     if (!emailTemplate) {
-      emailTemplateWithDefault = await prisma().messageTemplate.upsert({
-        where: { id: templateId },
-        create: {
+      emailTemplateWithDefault = await insert({
+        table: schema.messageTemplate,
+        doNothingOnConflict: true,
+        values: {
           workspaceId,
           name: name ?? `New Email Message - ${templateId}`,
           id: templateId,
@@ -78,9 +78,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
               | DefaultEmailProviderResource
               | undefined,
           }) satisfies EmailTemplateResource,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-        update: {},
-      });
+      }).then(unwrap);
     } else {
       emailTemplateWithDefault = emailTemplate;
     }
