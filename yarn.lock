@@ -10565,6 +10565,7 @@ __metadata:
     csv-parser: "npm:^3.0.0"
     date-fns: "npm:^2.29.3"
     dotenv: "npm:^16.0.3"
+    drizzle-orm: "npm:^0.38.3"
     emailo: "npm:0.0.1"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb-base: "npm:^15.0.0"

@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
-import prisma from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { eq } from "drizzle-orm";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -80,7 +82,11 @@ export async function getWorkspaceId(
     return ok(null);
   }
 
-  return ok((await prisma().workspace.findFirstOrThrow()).id);
+  const workspace = await db().query.workspace.findFirst();
+  if (!workspace) {
+    throw new Error("No workspace found, ensure application is bootstrapped");
+  }
+  return ok(workspace.id);
 }
 
 export function getExternalIdFromReq(
@@ -135,5 +141,9 @@ export async function getWorkspaceIdentifier(
     return ok(null);
   }
 
-  return ok({ workspaceId: (await prisma().workspace.findFirstOrThrow()).id });
+  const workspace = await db().query.workspace.findFirst();
+  if (!workspace) {
+    throw new Error("No workspace found, ensure application is bootstrapped");
+  }
+  return ok({ workspaceId: workspace.id });
 }
