@@ -1,11 +1,13 @@
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 
 import BroadcastsTable from "../components/broadcastsTable";
 import DashboardContent from "../components/dashboardContent";
 import { ResourceListContainer } from "../components/resourceList";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
-import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../lib/types";
 
@@ -14,13 +16,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { workspace } = dfContext;
 
     const appState: Partial<AppState> = {};
-    const broadcasts = await prisma().broadcast.findMany({
-      where: {
-        workspaceId: workspace.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+    const broadcasts = await db().query.broadcast.findMany({
+      where: eq(schema.broadcast.workspaceId, workspace.id),
+      orderBy: (broadcast, { desc }) => [desc(broadcast.createdAt)],
     });
 
     appState.broadcasts = broadcasts.map(toBroadcastResource);
