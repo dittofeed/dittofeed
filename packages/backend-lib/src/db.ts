@@ -14,6 +14,8 @@ import config from "./config";
 import * as relations from "./db/relations";
 import * as schema from "./db/schema";
 
+export { PostgresError };
+
 export type QueryError = Error & { code: PostgresError };
 
 export function isQueryError(e: unknown): e is QueryError {
