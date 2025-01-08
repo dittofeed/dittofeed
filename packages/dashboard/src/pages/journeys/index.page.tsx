@@ -1,6 +1,8 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { Button, Stack, Typography } from "@mui/material";
+import * as schema from "backend-lib/src/db/schema";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
+import { and, eq } from "drizzle-orm";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -16,9 +18,12 @@ import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
-    const journeys = await findManyJourneyResourcesUnsafe({
-      where: { workspaceId, resourceType: "Declarative" },
-    });
+    const journeys = await findManyJourneyResourcesUnsafe(
+      and(
+        eq(schema.journey.workspaceId, workspaceId),
+        eq(schema.journey.resourceType, "Declarative"),
+      ),
+    );
 
     const serverInitialState: PreloadedState = {
       journeys: {

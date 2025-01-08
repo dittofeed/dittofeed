@@ -1,11 +1,13 @@
 // yarn workspace backend-lib ts-node scripts/sendgridEmail.ts --to=name@dittofeed.com --from=support@dittofeed.com
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import { db } from "../src/db";
+import * as schema from "../src/db/schema";
 import { sendMail } from "../src/destinations/sendgrid";
 import logger from "../src/logger";
-import prisma from "../src/prisma";
 
 async function sendgridEmail() {
   const argv = await yargs(hideBin(process.argv))
@@ -18,11 +20,9 @@ async function sendgridEmail() {
     .parse();
 
   const { workspaceId } = argv;
-  const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-    include: { emailProvider: true },
+  const defaultEmailProvider = await db().query.defaultEmailProvider.findFirst({
+    where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
+    with: { emailProvider: true },
   });
   if (!defaultEmailProvider?.emailProvider.apiKey) {
     throw new Error("Default email provider not found");
