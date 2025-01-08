@@ -16,6 +16,7 @@
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "cross-spawn": "^7.0.3",
+    "drizzle-orm": "^0.38.3",
     "isomorphic-lib": "0.0.3",
     "remeda": "^1.56.0",
     "ts-node": "10.9.1",

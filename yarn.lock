@@ -10287,6 +10287,7 @@ __metadata:
     axios: "npm:^1.2.2"
     backend-lib: "npm:0.0.3"
     cross-spawn: "npm:^7.0.3"
+    drizzle-orm: "npm:^0.38.3"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb-base: "npm:^15.0.0"
     eslint-config-airbnb-typescript: "npm:^17.0.0"
