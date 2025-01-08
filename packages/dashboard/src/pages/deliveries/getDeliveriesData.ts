@@ -1,9 +1,11 @@
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
+import { eq } from "drizzle-orm";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 
-import prisma from "../../lib/prisma";
 import { AppState } from "../../lib/types";
 
 type DeliveriesData = Pick<AppState, "messages" | "broadcasts" | "journeys">;
@@ -17,16 +19,14 @@ export async function getDeliveriesData({
     findMessageTemplates({
       workspaceId,
     }),
-    prisma().broadcast.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-    prisma().journey.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
+    db()
+      .select()
+      .from(schema.broadcast)
+      .where(eq(schema.broadcast.workspaceId, workspaceId)),
+    db()
+      .select()
+      .from(schema.journey)
+      .where(eq(schema.journey.workspaceId, workspaceId)),
   ]);
 
   return {

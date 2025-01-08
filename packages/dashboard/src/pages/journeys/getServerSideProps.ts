@@ -1,9 +1,12 @@
+import { db, insert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { findSegmentResources } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -24,7 +27,6 @@ import {
   journeyToState,
 } from "../../components/journeys/store";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
@@ -49,13 +51,13 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       subscriptionGroups,
       userProperties,
     ] = await Promise.all([
-      await prisma().journey.findUnique({
-        where: { id },
+      await db().query.journey.findFirst({
+        where: eq(schema.journey.id, id),
       }),
       findSegmentResources({ workspaceId }),
       findMessageTemplates({ workspaceId }),
-      prisma().subscriptionGroup.findMany({
-        where: { workspaceId },
+      db().query.subscriptionGroup.findMany({
+        where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
       }),
       findAllUserPropertyResources({ workspaceId }),
     ]);
@@ -123,16 +125,19 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
       const name = `New Journey - ${id}`;
 
-      const newJourney = await prisma().journey.upsert({
-        where: { id },
-        create: {
+      const newJourney = await insert({
+        table: schema.journey,
+        values: {
           id,
           workspaceId,
           draft: journeyStateToDraft(stateForDraft),
           name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-        update: {},
-      });
+        doNothingOnConflict: true,
+      }).then(unwrap);
+
       serverInitialState.journeyName = name;
       serverInitialState.journeyEdges = DEFAULT_EDGES;
       serverInitialState.journeyNodes = DEFAULT_JOURNEY_NODES;
