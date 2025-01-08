@@ -1,10 +1,9 @@
-import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "../test/testEvents";
 import { segmentIdentifyEvent } from "./segmentIO";
-import { EventType } from "./types";
+import { EventType, Workspace } from "./types";
 import {
   findIdentifyTraits,
   findManyEventsWithCount,
