@@ -7,6 +7,8 @@ import {
   generateDigest,
   verifyTimestampedSignature,
 } from "backend-lib/src/crypto";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
   confirmSubscription,
   handleSesNotification,
@@ -19,7 +21,6 @@ import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
 import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
-import prisma from "backend-lib/src/prisma";
 import {
   AmazonSNSEvent,
   AmazonSNSEventTypes,
@@ -31,6 +32,7 @@ import {
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { createHmac } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { fastifyRawBody } from "fastify-raw-body";
 import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
@@ -99,13 +101,11 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            name: SecretNames.Sendgrid,
-            workspaceId,
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Sendgrid),
+        ),
       });
       const webhookKey = schemaValidateWithErr(
         secret?.configValue,
@@ -260,14 +260,13 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            name: SecretNames.Resend,
-            workspaceId,
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Resend),
+        ),
       });
+
       const webhookKey = schemaValidateWithErr(
         secret?.configValue,
         ResendSecret,
@@ -338,13 +337,11 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            name: SecretNames.Postmark,
-            workspaceId,
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Postmark),
+        ),
       });
 
       const secretHeader = request.headers["x-postmark-secret"];
@@ -431,13 +428,11 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            name: SecretNames.MailChimp,
-            workspaceId,
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.MailChimp),
+        ),
       });
 
       const webhookKey = schemaValidateWithErr(
@@ -514,13 +509,11 @@ export default async function webhookController(fastify: FastifyInstance) {
       const { workspaceId, userId, subscriptionGroupId, ...tags } =
         request.query;
 
-      const twilioSecretModel = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            name: SecretNames.Twilio,
-            workspaceId,
-          },
-        },
+      const twilioSecretModel = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Twilio),
+        ),
       });
 
       const twilioSecretResult = schemaValidateWithErr(
@@ -604,8 +597,8 @@ export default async function webhookController(fastify: FastifyInstance) {
           error: "Missing workspaceId. Try setting the df-workspace-id header.",
         });
       }
-      const config = await prisma().segmentIOConfiguration.findUnique({
-        where: { workspaceId: workspaceIdResult.value },
+      const config = await db().query.segmentIoConfiguration.findFirst({
+        where: eq(schema.segmentIoConfiguration.workspaceId, workspaceId),
       });
 
       if (!config) {
