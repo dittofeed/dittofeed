@@ -2,8 +2,9 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitBatchWithTriggers } from "backend-lib/src/apps";
 import { SubmitBatchOptions } from "backend-lib/src/apps/batch";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma, { Prisma } from "backend-lib/src/prisma";
 import {
   buildSegmentsFile,
   toSegmentResource,
@@ -11,6 +12,7 @@ import {
 } from "backend-lib/src/segments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
+import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   DataSources,
@@ -62,10 +64,8 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const segmentModels = await prisma().segment.findMany({
-        where: {
-          workspaceId: request.query.workspaceId,
-        },
+      const segmentModels = await db().query.segment.findMany({
+        where: eq(schema.segment.workspaceId, request.query.workspaceId),
       });
       const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
       return reply.status(200).send({ segments });
@@ -109,30 +109,13 @@ export default async function segmentsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.body;
-
-      try {
-        await prisma().segmentAssignment.deleteMany({
-          where: {
-            segmentId: id,
-          },
-        });
-        await prisma().segment.delete({
-          where: {
-            id,
-          },
-        });
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          switch (e.code) {
-            case "P2025":
-              return reply.status(404).send();
-            case "P2023":
-              return reply.status(404).send();
-          }
-        }
-        throw e;
+      const result = await db()
+        .delete(schema.segment)
+        .where(eq(schema.segment.id, id))
+        .returning();
+      if (!result.length) {
+        return reply.status(404).send();
       }
-
       return reply.status(204).send();
     },
   );
@@ -247,10 +230,8 @@ export default async function segmentsController(fastify: FastifyInstance) {
       });
       const [rows, segment] = await Promise.all([
         csvPromise,
-        prisma().segment.findUnique({
-          where: {
-            id: segmentId,
-          },
+        db().query.segment.findFirst({
+          where: eq(schema.segment.id, segmentId),
         }),
       ]);
       const definitionResult = schemaValidateWithErr(
