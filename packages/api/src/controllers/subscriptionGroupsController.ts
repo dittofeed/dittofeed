@@ -1,7 +1,8 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
 import {
   buildSubscriptionChangeEvent,
   subscriptionGroupToResource,
@@ -24,6 +25,7 @@ import {
   insertUserEvents,
 } from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
+import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
@@ -249,11 +251,13 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
-      await prisma().subscriptionGroup.delete({
-        where: {
-          id: request.body.id,
-        },
-      });
+      const result = await db()
+        .delete(schema.subscriptionGroup)
+        .where(eq(schema.subscriptionGroup.id, request.body.id))
+        .returning();
+      if (!result.length) {
+        return reply.status(404).send();
+      }
       return reply.status(204).send();
     },
   );
