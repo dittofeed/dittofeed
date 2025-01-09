@@ -78,7 +78,10 @@ export const workspace = pgTable(
     createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdate(() => sql`CURRENT_TIMESTAMP`)
+      .notNull(),
     domain: text(),
     type: workspaceType().default("Root").notNull(),
     externalId: text(),
