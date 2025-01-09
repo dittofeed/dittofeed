@@ -322,7 +322,10 @@ export const emailTemplate = pgTable(
 export const subscriptionGroup = pgTable(
   "SubscriptionGroup",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     type: dbSubscriptionGroupType().notNull(),
@@ -557,7 +560,10 @@ export const secret = pgTable(
 export const workspaceMembeAccount = pgTable(
   "WorkspaceMembeAccount",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceMemberId: uuid().notNull(),
     provider: text().notNull(),
     providerAccountId: text().notNull(),
@@ -624,7 +630,10 @@ export const messageTemplate = pgTable(
 export const integration = pgTable(
   "Integration",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
@@ -659,7 +668,10 @@ export const integration = pgTable(
 export const writeKey = pgTable(
   "WriteKey",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" })
@@ -696,7 +708,10 @@ export const writeKey = pgTable(
 export const oauthToken = pgTable(
   "OauthToken",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     refreshToken: text().notNull(),

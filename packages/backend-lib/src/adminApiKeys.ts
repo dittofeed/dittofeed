@@ -34,7 +34,6 @@ export async function createAdminApiKey(
       const [secret] = await tx
         .insert(dbSecret)
         .values({
-          id: randomUUID(),
           workspaceId: data.workspaceId,
           name: `df-admin-api-key-${data.name}`,
           configValue: {
@@ -42,8 +41,6 @@ export async function createAdminApiKey(
             key,
             permissions: [AdminApiKeyPermission.Admin],
           },
-          createdAt: new Date(),
-          updatedAt: new Date(),
         })
         .returning();
 
@@ -57,8 +54,6 @@ export async function createAdminApiKey(
           name: data.name,
           workspaceId: data.workspaceId,
           secretId: secret.id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         })
         .returning();
 

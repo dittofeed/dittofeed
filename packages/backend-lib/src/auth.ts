@@ -110,12 +110,9 @@ export async function getOrCreateWriteKey({
     const [secret] = await tx
       .insert(dbSecret)
       .values({
-        id: randomUUID(),
         workspaceId,
         name: writeKeyName,
         value: writeKeyValue,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       })
       .onConflictDoNothing()
       .returning();
@@ -130,8 +127,6 @@ export async function getOrCreateWriteKey({
         id: randomUUID(),
         secretId: secret.id,
         workspaceId,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       })
       .onConflictDoNothing();
     return {

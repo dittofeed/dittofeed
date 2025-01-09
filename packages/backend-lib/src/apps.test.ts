@@ -20,9 +20,7 @@ describe("apps", () => {
   beforeEach(async () => {
     workspaceId = uuidv4();
     await createWorkspace({
-      id: workspaceId,
       name: `test-${workspaceId}`,
-      updatedAt: new Date(),
     });
   });
 
