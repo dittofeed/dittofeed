@@ -1,6 +1,8 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import prisma from "backend-lib/src/prisma";
-import { Prisma } from "backend-lib/src/types";
+import { db, upsert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { isObject } from "isomorphic-lib/src/objects";
 import {
@@ -29,27 +31,26 @@ export default async function secretsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const { workspaceId, names } = request.query;
 
-      const where: Prisma.SecretFindManyArgs["where"] = {
-        workspaceId,
-      };
+      const conditions: SQL[] = [eq(schema.secret.workspaceId, workspaceId)];
       if (names?.length) {
-        where.name = {
-          in: names,
-        };
+        conditions.push(inArray(schema.secret.name, names));
       }
 
-      const secrets = (await prisma().secret.findMany({ where })).flatMap(
-        (secret) => {
-          if (!secret.value) {
-            return [];
-          }
-          return {
-            workspaceId: secret.workspaceId,
-            name: secret.name,
-            value: secret.value,
-          };
-        },
-      );
+      const secrets = (
+        await db()
+          .select()
+          .from(schema.secret)
+          .where(and(...conditions))
+      ).flatMap((secret) => {
+        if (!secret.value) {
+          return [];
+        }
+        return {
+          workspaceId: secret.workspaceId,
+          name: secret.name,
+          value: secret.value,
+        };
+      });
       return reply.status(200).send(secrets);
     },
   );
@@ -69,14 +70,12 @@ export default async function secretsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, name, value, configValue } = request.body;
-      await prisma().$transaction(async (pTx) => {
-        const secret = await pTx.secret.findUnique({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name,
-            },
-          },
+      await db().transaction(async (pTx) => {
+        const secret = await pTx.query.secret.findFirst({
+          where: and(
+            eq(schema.secret.workspaceId, workspaceId),
+            eq(schema.secret.name, name),
+          ),
         });
         const existingConfigValue =
           secret?.configValue && isObject(secret.configValue)
@@ -95,21 +94,20 @@ export default async function secretsController(fastify: FastifyInstance) {
         const configValueToSave = newConfig as
           | Record<string, JSONValue>
           | undefined;
-
-        await pTx.secret.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name,
-            },
-          },
-          create: {
+        await upsert({
+          table: schema.secret,
+          tx: pTx,
+          values: {
+            id: secret?.id ?? randomUUID(),
             workspaceId,
             name,
             value,
             configValue: configValueToSave,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-          update: {
+          target: [schema.secret.workspaceId, schema.secret.name],
+          set: {
             value,
             configValue: configValueToSave,
           },
@@ -134,12 +132,18 @@ export default async function secretsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, id } = request.query;
-      await prisma().secret.delete({
-        where: {
-          workspaceId,
-          id,
-        },
-      });
+      const result = await db()
+        .delete(schema.secret)
+        .where(
+          and(
+            eq(schema.secret.workspaceId, workspaceId),
+            eq(schema.secret.id, id),
+          ),
+        )
+        .returning();
+      if (!result.length) {
+        return reply.status(404).send();
+      }
       return reply.status(204).send();
     },
   );
