@@ -73,7 +73,10 @@ export const workspaceType = pgEnum("WorkspaceType", [
 export const workspace = pgTable(
   "Workspace",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     name: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -102,7 +105,10 @@ export const workspace = pgTable(
 export const segmentIoConfiguration = pgTable(
   "SegmentIOConfiguration",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     sharedSecret: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" })
@@ -131,7 +137,10 @@ export const segmentIoConfiguration = pgTable(
 export const userProperty = pgTable(
   "UserProperty",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
@@ -205,7 +214,10 @@ export const userPropertyAssignment = pgTable(
 export const emailProvider = pgTable(
   "EmailProvider",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     type: text().notNull(),
     apiKey: text(),
@@ -244,7 +256,10 @@ export const emailProvider = pgTable(
 export const userJourneyEvent = pgTable(
   "UserJourneyEvent",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     userId: text().notNull(),
     journeyId: uuid(),
     type: text().notNull(),
@@ -275,7 +290,10 @@ export const userJourneyEvent = pgTable(
 export const emailTemplate = pgTable(
   "EmailTemplate",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     from: text().notNull(),
@@ -376,7 +394,10 @@ export const defaultEmailProvider = pgTable(
 export const broadcast = pgTable(
   "Broadcast",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     segmentId: uuid(),
     name: text().notNull(),
@@ -501,7 +522,10 @@ export const workspaceMemberRole = pgTable(
 export const secret = pgTable(
   "Secret",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     value: text(),
@@ -564,7 +588,10 @@ export const workspaceMembeAccount = pgTable(
 export const messageTemplate = pgTable(
   "MessageTemplate",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb(),
@@ -702,7 +729,10 @@ export const oauthToken = pgTable(
 export const workspaceMember = pgTable(
   "WorkspaceMember",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     email: text(),
     createdAt: timestamp({ precision: 3, mode: "date" })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -735,7 +765,10 @@ export const workspaceMember = pgTable(
 export const segment = pgTable(
   "Segment",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
@@ -818,7 +851,10 @@ export const defaultSmsProvider = pgTable(
 export const smsProvider = pgTable(
   "SmsProvider",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
     type: text().notNull(),
@@ -856,7 +892,10 @@ export const smsProvider = pgTable(
 export const journey = pgTable(
   "Journey",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     status: journeyStatus().default("NotStarted").notNull(),
@@ -892,7 +931,10 @@ export const journey = pgTable(
 export const computedPropertyPeriod = pgTable(
   "ComputedPropertyPeriod",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     type: computedPropertyType().notNull(),
     computedPropertyId: uuid().notNull(),
@@ -927,7 +969,10 @@ export const computedPropertyPeriod = pgTable(
 export const adminApiKey = pgTable(
   "AdminApiKey",
   {
-    id: uuid().primaryKey().notNull(),
+    id: uuid()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`)
+      .notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     secretId: uuid().notNull(),
