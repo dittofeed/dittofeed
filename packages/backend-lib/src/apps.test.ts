@@ -20,6 +20,7 @@ describe("apps", () => {
   beforeEach(async () => {
     workspaceId = uuidv4();
     await createWorkspace({
+      id: workspaceId,
       name: `test-${workspaceId}`,
     });
   });
@@ -101,8 +102,6 @@ describe("apps", () => {
             status: "NotStarted",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
-            updatedAt: new Date(),
-            createdAt: new Date(),
           } satisfies JourneyInsert,
           {
             id: startedEventTriggeredJourneyId,
@@ -110,8 +109,6 @@ describe("apps", () => {
             status: "Running",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
-            updatedAt: new Date(),
-            createdAt: new Date(),
           },
           {
             id: segmentEntryJourneyId,
@@ -119,8 +116,6 @@ describe("apps", () => {
             status: "Running",
             workspaceId,
             definition: segmentEntryJourneyDefinition,
-            updatedAt: new Date(),
-            createdAt: new Date(),
           },
         ]);
 

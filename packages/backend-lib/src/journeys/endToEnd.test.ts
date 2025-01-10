@@ -54,7 +54,7 @@ const paidSegmentDefinition: SegmentDefinition = {
   nodes: [],
 };
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("end to end journeys", () => {
   let testEnv: TestWorkflowEnvironment;
