@@ -30,6 +30,7 @@ declare module "@fastify/request-context" {
 async function buildApp(opts?: BuildAppOpts) {
   const fastifyLogger = logger();
   const server: DittofeedFastifyInstance = fastify({
+    bodyLimit: config().apiBodyLimit,
     querystringParser: (str) => qs.parse(str),
     rewriteUrl: (req) => {
       const { apiPrefix } = config();

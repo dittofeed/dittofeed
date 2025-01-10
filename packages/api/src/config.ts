@@ -13,6 +13,11 @@ const RawConfigProps = {
   ),
   apiHost: Type.Optional(Type.String()),
   apiPrefix: Type.Optional(Type.String()),
+  apiBodyLimit: Type.Optional(
+    Type.String({
+      format: "naturalNumber",
+    }),
+  ),
 };
 
 // Structure of application config.
@@ -27,11 +32,13 @@ export type Config = Overwrite<
     apiServiceName: string;
     apiHost: string;
     apiPort: number;
+    apiBodyLimit: number;
   }
 >;
 function parseRawConfig(raw: RawConfig): Config {
   const nodeEnv = raw.nodeEnv ?? "development";
   const port = Number(raw.apiPort);
+  const bodyLimit = Number(raw.apiBodyLimit);
 
   return {
     ...raw,
@@ -40,6 +47,7 @@ function parseRawConfig(raw: RawConfig): Config {
     apiHost:
       raw.apiHost ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
     apiPort: Number.isNaN(port) ? 3001 : port,
+    apiBodyLimit: Number.isNaN(bodyLimit) ? 5 * 1024 * 1024 : bodyLimit,
   };
 }
 
