@@ -12,36 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1736473746793,
-      "tag": "0001_overjoyed_triathlon",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1736474635132,
-      "tag": "0002_productive_apocalypse",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1736488358843,
-      "tag": "0003_clumsy_gorgon",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1736488567639,
-      "tag": "0004_useful_kronos",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1736489283984,
-      "tag": "0005_perpetual_dark_beast",
+      "when": 1736494464743,
+      "tag": "0001_quiet_ultimo",
       "breakpoints": true
     }
   ]
