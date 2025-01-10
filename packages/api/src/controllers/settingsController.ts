@@ -6,7 +6,6 @@ import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { upsertEmailProvider } from "backend-lib/src/messaging/email";
 import { upsertSmsProvider } from "backend-lib/src/messaging/sms";
-import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -61,11 +60,8 @@ export default async function settingsController(fastify: FastifyInstance) {
           const { id } = await upsert({
             table: schema.segmentIoConfiguration,
             values: {
-              id: randomUUID(),
               workspaceId,
               sharedSecret: variant.sharedSecret,
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
             target: [schema.segmentIoConfiguration.workspaceId],
             set: {
@@ -108,8 +104,6 @@ export default async function settingsController(fastify: FastifyInstance) {
         values: {
           workspaceId,
           smsProviderId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         target: [schema.defaultSmsProvider.workspaceId],
         set: {
@@ -198,11 +192,7 @@ export default async function settingsController(fastify: FastifyInstance) {
 
       await upsert({
         table: schema.defaultEmailProvider,
-        values: {
-          ...resource,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+        values: resource,
         target: [schema.defaultEmailProvider.workspaceId],
         set: resource,
       });

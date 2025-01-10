@@ -1,7 +1,6 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
-import { randomUUID } from "crypto";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { isObject } from "isomorphic-lib/src/objects";
@@ -98,13 +97,11 @@ export default async function secretsController(fastify: FastifyInstance) {
           table: schema.secret,
           tx: pTx,
           values: {
-            id: secret?.id ?? randomUUID(),
+            id: secret?.id,
             workspaceId,
             name,
             value,
             configValue: configValueToSave,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
           target: [schema.secret.workspaceId, schema.secret.name],
           set: {
