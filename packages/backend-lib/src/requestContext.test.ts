@@ -41,11 +41,8 @@ describe("getMultiTenantRequestContext", () => {
     describe("when workspace has a domain", () => {
       beforeEach(async () => {
         await db().insert(dbWorkspace).values({
-          id: randomUUID(),
           name: randomUUID(),
           domain: emailDomain,
-          updatedAt: new Date(),
-          createdAt: new Date(),
         });
       });
       it("succeeds and creates a role for the user", async () => {
