@@ -24,6 +24,7 @@ describe("getMultiTenantRequestContext", () => {
         await db().insert(dbWorkspace).values({
           name: randomUUID(),
           domain: null,
+          updatedAt: new Date(),
         });
       });
       it("returns an error", async () => {
