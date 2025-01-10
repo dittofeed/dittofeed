@@ -22,11 +22,8 @@ describe("getMultiTenantRequestContext", () => {
     describe("without a domain", () => {
       beforeEach(async () => {
         await db().insert(dbWorkspace).values({
-          id: randomUUID(),
           name: randomUUID(),
           domain: null,
-          updatedAt: new Date(),
-          createdAt: new Date(),
         });
       });
       it("returns an error", async () => {
