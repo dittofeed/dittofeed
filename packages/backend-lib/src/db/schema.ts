@@ -73,11 +73,10 @@ export const workspaceType = pgEnum("WorkspaceType", [
 export const workspace = pgTable(
   "Workspace",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     name: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     domain: text(),
@@ -100,12 +99,11 @@ export const workspace = pgTable(
 export const segmentIoConfiguration = pgTable(
   "SegmentIOConfiguration",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     sharedSecret: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -127,13 +125,12 @@ export const segmentIoConfiguration = pgTable(
 export const userProperty = pgTable(
   "UserProperty",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
@@ -199,13 +196,12 @@ export const userPropertyAssignment = pgTable(
 export const emailProvider = pgTable(
   "EmailProvider",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     type: text().notNull(),
     apiKey: text(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     secretId: uuid(),
@@ -236,7 +232,7 @@ export const emailProvider = pgTable(
 export const userJourneyEvent = pgTable(
   "UserJourneyEvent",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     userId: text().notNull(),
     journeyId: uuid(),
     type: text().notNull(),
@@ -265,7 +261,7 @@ export const userJourneyEvent = pgTable(
 export const emailTemplate = pgTable(
   "EmailTemplate",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     from: text().notNull(),
@@ -273,7 +269,6 @@ export const emailTemplate = pgTable(
     body: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     replyTo: text(),
@@ -292,13 +287,12 @@ export const emailTemplate = pgTable(
 export const subscriptionGroup = pgTable(
   "SubscriptionGroup",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     type: dbSubscriptionGroupType().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     channel: dbChannelType().notNull(),
@@ -330,7 +324,6 @@ export const defaultEmailProvider = pgTable(
     emailProviderId: uuid().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     fromAddress: text(),
@@ -360,14 +353,13 @@ export const defaultEmailProvider = pgTable(
 export const broadcast = pgTable(
   "Broadcast",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     segmentId: uuid(),
     name: text().notNull(),
     triggeredAt: timestamp({ precision: 3, mode: "date" }),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     journeyId: uuid(),
@@ -451,7 +443,6 @@ export const workspaceMemberRole = pgTable(
     role: dbRoleType().default("Viewer").notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -481,13 +472,12 @@ export const workspaceMemberRole = pgTable(
 export const secret = pgTable(
   "Secret",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     value: text(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     configValue: jsonb(),
@@ -511,13 +501,12 @@ export const secret = pgTable(
 export const workspaceMembeAccount = pgTable(
   "WorkspaceMembeAccount",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceMemberId: uuid().notNull(),
     provider: text().notNull(),
     providerAccountId: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -540,13 +529,12 @@ export const workspaceMembeAccount = pgTable(
 export const messageTemplate = pgTable(
   "MessageTemplate",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
@@ -571,14 +559,13 @@ export const messageTemplate = pgTable(
 export const integration = pgTable(
   "Integration",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
     enabled: boolean().default(true).notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
@@ -604,12 +591,11 @@ export const integration = pgTable(
 export const writeKey = pgTable(
   "WriteKey",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -639,7 +625,7 @@ export const writeKey = pgTable(
 export const oauthToken = pgTable(
   "OauthToken",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     refreshToken: text().notNull(),
@@ -647,7 +633,6 @@ export const oauthToken = pgTable(
     expiresIn: integer().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -670,11 +655,10 @@ export const oauthToken = pgTable(
 export const workspaceMember = pgTable(
   "WorkspaceMember",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     email: text(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     emailVerified: boolean().default(false).notNull(),
@@ -701,13 +685,12 @@ export const workspaceMember = pgTable(
 export const segment = pgTable(
   "Segment",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     definition: jsonb().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
@@ -751,7 +734,6 @@ export const defaultSmsProvider = pgTable(
     smsProviderId: uuid().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -780,13 +762,12 @@ export const defaultSmsProvider = pgTable(
 export const smsProvider = pgTable(
   "SmsProvider",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     secretId: uuid().notNull(),
     type: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -816,14 +797,13 @@ export const smsProvider = pgTable(
 export const journey = pgTable(
   "Journey",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     status: journeyStatus().default("NotStarted").notNull(),
     definition: jsonb(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
@@ -850,7 +830,7 @@ export const journey = pgTable(
 export const computedPropertyPeriod = pgTable(
   "ComputedPropertyPeriod",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     type: computedPropertyType().notNull(),
     computedPropertyId: uuid().notNull(),
@@ -883,13 +863,12 @@ export const computedPropertyPeriod = pgTable(
 export const adminApiKey = pgTable(
   "AdminApiKey",
   {
-    id: uuid().primaryKey().defaultRandom().notNull(),
+    id: uuid().primaryKey().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
     secretId: uuid().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -924,7 +903,6 @@ export const feature = pgTable(
     enabled: boolean().default(false).notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
     config: jsonb(),
