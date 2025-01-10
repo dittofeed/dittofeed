@@ -111,12 +111,10 @@ export async function bootstrapPostgres({
     workspaceResult = await upsert({
       table: dbWorkspace,
       values: {
-        id: randomUUID(),
         name: workspaceName,
         domain: workspaceDomain,
         type: workspaceType,
         externalId: workspaceExternalId,
-        updatedAt: new Date(),
       },
       target: [dbWorkspace.name],
       set: {
@@ -127,13 +125,10 @@ export async function bootstrapPostgres({
     });
   } else {
     workspaceResult = await createWorkspace({
-      id: randomUUID(),
       name: workspaceName,
       domain: workspaceDomain,
       type: workspaceType,
       externalId: workspaceExternalId,
-      updatedAt: new Date(),
-      createdAt: new Date(),
     });
   }
   if (workspaceResult.isErr()) {
@@ -267,13 +262,7 @@ export async function bootstrapPostgres({
     ...userProperties.map((up) =>
       insert({
         table: dbUserProperty,
-        values: {
-          id: randomUUID(),
-          ...up,
-          createdAt: new Date(),
-          definitionUpdatedAt: new Date(),
-          updatedAt: new Date(),
-        },
+        values: up,
         doNothingOnConflict: true,
       }).then(unwrap),
     ),
@@ -319,7 +308,6 @@ export async function bootstrapPostgres({
           values: {
             workspaceId,
             emailProviderId: testEmailProvider.id,
-            updatedAt: new Date(),
           },
           doNothingOnConflict: true,
         }).then(unwrap)
@@ -330,7 +318,6 @@ export async function bootstrapPostgres({
           values: {
             workspaceId,
             smsProviderId: testSmsProvider.id,
-            updatedAt: new Date(),
           },
           doNothingOnConflict: true,
         }).then(unwrap)

@@ -184,13 +184,11 @@ export async function upsertMessageTemplate(
     db()
       .insert(dbMessageTemplate)
       .values({
-        id: data.id ?? randomUUID(),
+        id: data.id,
         workspaceId: data.workspaceId,
         name: data.name,
         definition: data.definition,
         draft: data.draft,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       })
       .onConflictDoUpdate({
         target: data.id
@@ -200,7 +198,6 @@ export async function upsertMessageTemplate(
           name: data.name,
           definition: data.definition,
           draft: data.draft,
-          updatedAt: new Date(),
         },
         setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
       })

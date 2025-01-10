@@ -120,8 +120,6 @@ export async function addFeatures({
           name: feature.type,
           enabled: true,
           config: feature,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [dbFeature.workspaceId, dbFeature.name],

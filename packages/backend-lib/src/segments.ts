@@ -1,7 +1,6 @@
 import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
-import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -161,12 +160,9 @@ export async function createSegment({
   definition: SegmentDefinition;
 }) {
   await db().insert(dbSegment).values({
-    id: randomUUID(),
     workspaceId,
     name,
     definition,
-    updatedAt: new Date(),
-    createdAt: new Date(),
   });
 }
 
@@ -346,12 +342,10 @@ export async function upsertSegment(
   }
 
   const value: typeof dbSegment.$inferInsert = {
-    id: params.id ?? randomUUID(),
+    id: params.id,
     workspaceId: params.workspaceId,
     name: params.name,
     definition: params.definition,
-    updatedAt: new Date(),
-    createdAt: new Date(),
   };
 
   const result = await queryResult(

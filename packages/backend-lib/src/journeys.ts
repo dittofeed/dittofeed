@@ -844,21 +844,18 @@ export async function upsertJourney(
         where: and(...conditions),
       });
       if (!journey) {
-        const createdId = id ?? randomUUID();
         const created = (
           await insert({
             table: dbJourney,
             tx,
             values: {
-              id: createdId,
+              id,
               workspaceId,
               name,
               definition,
               draft: nullableDraft,
               status,
               canRunMultiple,
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
           })
         ).mapErr(mapUpsertValidationError);

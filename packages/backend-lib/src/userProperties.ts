@@ -669,8 +669,6 @@ export async function upsertUserProperty(
           name,
           definition,
           exampleValue,
-          createdAt: new Date(),
-          updatedAt: new Date(),
           definitionUpdatedAt,
         },
         target: [dbUserProperty.id],
@@ -691,7 +689,6 @@ export async function upsertUserProperty(
           name,
           definition,
           exampleValue,
-          updatedAt: new Date(),
         },
         set: {
           definition,

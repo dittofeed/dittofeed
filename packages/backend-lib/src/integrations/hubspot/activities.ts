@@ -191,8 +191,6 @@ export async function refreshToken({
           accessToken: access_token,
           refreshToken: refresh_token,
           expiresIn: expires_in,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         target: [dbOauthToken.workspaceId, dbOauthToken.name],
         set: {

@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
@@ -37,9 +36,6 @@ export async function onboardUser({
         table: dbWorkspaceMember,
         values: {
           email,
-          id: randomUUID(),
-          updatedAt: new Date(),
-          createdAt: new Date(),
         },
       }),
     );
@@ -68,8 +64,6 @@ export async function onboardUser({
       workspaceId: workspace.id,
       workspaceMemberId: workspaceMember.id,
       role: "Admin",
-      createdAt: new Date(),
-      updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: [

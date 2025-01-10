@@ -151,8 +151,6 @@ export async function upsertSubscriptionGroup({
         type,
         channel,
         workspaceId,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
       target: [dbSubscriptionGroup.id],
       setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
@@ -176,14 +174,11 @@ export async function upsertSubscriptionGroup({
     await upsert({
       table: dbSegment,
       values: {
-        id: uuid(),
         name: segmentName,
         workspaceId,
         definition: segmentDefinition,
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
       target: [dbSegment.id],
       setWhere: eq(dbSegment.workspaceId, workspaceId),
@@ -559,12 +554,9 @@ export async function upsertSubscriptionSecret({
   return insert({
     table: dbSecret,
     values: {
-      id: uuid(),
       workspaceId,
       name: SecretNames.Subscription,
       value: generateSecureKey(8),
-      updatedAt: new Date(),
-      createdAt: new Date(),
     },
   }).then(unwrap);
 }

@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
@@ -200,27 +199,21 @@ export async function upsertBroadcast({
       table: dbSegment,
       doNothingOnConflict: true,
       values: {
-        id: randomUUID(),
         workspaceId,
         name: broadcastSegmentName,
         definition: segmentDefinition,
         resourceType: "Internal",
         status: "NotStarted",
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
     }).then(unwrap),
     insert({
       table: dbMessageTemplate,
       doNothingOnConflict: true,
       values: {
-        id: randomUUID(),
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: messageTemplateDefinition,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
     }).then(unwrap),
     db().query.subscriptionGroup.findFirst({
@@ -261,14 +254,11 @@ export async function upsertBroadcast({
       table: dbJourney,
       doNothingOnConflict: true,
       values: {
-        id,
         workspaceId,
         name: broadcastJourneyName,
         definition: journeyDefinition,
         resourceType: "Internal",
         status: "Broadcast",
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
     }),
   );
@@ -283,8 +273,6 @@ export async function upsertBroadcast({
         segmentId: segment.id,
         journeyId: journey.id,
         messageTemplateId: messageTemplate.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       },
     }),
   );

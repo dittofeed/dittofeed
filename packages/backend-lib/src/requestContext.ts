@@ -1,5 +1,4 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { randomUUID } from "crypto";
 import { and, eq, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -77,8 +76,6 @@ async function findAndCreateRoles(
               workspaceId: w.Workspace.id,
               workspaceMemberId: member.id,
               role: "Admin",
-              createdAt: new Date(),
-              updatedAt: new Date(),
             })
             .onConflictDoNothing()
             .returning(),
@@ -240,14 +237,12 @@ export async function getMultiTenantRequestContext({
     const [updatedMember] = await db()
       .insert(dbWorkspaceMember)
       .values({
-        id: existingMember?.id ?? randomUUID(),
+        id: existingMember?.id,
         email,
         emailVerified: email_verified,
         image: picture,
         name,
         nickname,
-        updatedAt: new Date(),
-        createdAt: new Date(),
       })
       .onConflictDoUpdate({
         target: existingMember
@@ -283,12 +278,9 @@ export async function getMultiTenantRequestContext({
     await db()
       .insert(dbWorkspaceMembeAccount)
       .values({
-        id: randomUUID(),
         provider: authProvider,
         providerAccountId: sub,
         workspaceMemberId: member.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       })
       .onConflictDoNothing();
   }

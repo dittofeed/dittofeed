@@ -36,12 +36,9 @@ export async function upsertSmsProvider({
       table: dbSecret,
       target: [dbSecret.workspaceId, dbSecret.name],
       values: {
-        id: randomUUID(),
         workspaceId,
         name: secretName,
         configValue: config,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
       set: {
         configValue: config,
@@ -56,8 +53,6 @@ export async function upsertSmsProvider({
       workspaceId,
       type: config.type,
       secretId: secret.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     })
     .onConflictDoNothing()
     .returning();
@@ -75,8 +70,6 @@ export async function upsertSmsProvider({
       values: {
         workspaceId,
         smsProviderId: smsProvider.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
       set: {
         smsProviderId: smsProvider.id,
