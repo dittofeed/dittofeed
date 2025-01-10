@@ -8,6 +8,13 @@
       "when": 1735339553309,
       "tag": "0000_lucky_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1736473746793,
+      "tag": "0001_overjoyed_triathlon",
+      "breakpoints": true
     }
   ]
 }
