@@ -1,4 +1,5 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import fs from "fs/promises";
 import path from "path";
 import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
@@ -31,7 +32,21 @@ export async function drizzleMigrate() {
     await client.end();
   }
 
-  const migrationsFolder = path.join(__dirname, "..", "drizzle");
+  let migrationsFolder = path.join(__dirname, "..", "drizzle");
+  if (!(await fs.stat(migrationsFolder)).isDirectory()) {
+    logger().info(
+      { migrationsFolder },
+      "Migrations folder not found, trying root package dir",
+    );
+  }
+  migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
+  if (!(await fs.stat(migrationsFolder)).isDirectory()) {
+    logger().error(
+      { migrationsFolder },
+      "Migrations folder not found, aborting",
+    );
+    throw new Error("Migrations folder not found");
+  }
 
   logger().info({ migrationsFolder }, "Running migrations");
   await migrate(db(), {
