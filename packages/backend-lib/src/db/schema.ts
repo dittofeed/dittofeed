@@ -106,11 +106,9 @@ export const segmentIoConfiguration = pgTable(
       .notNull(),
     workspaceId: uuid().notNull(),
     sharedSecret: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -486,11 +484,9 @@ export const workspaceMemberRole = pgTable(
     workspaceId: uuid().notNull(),
     workspaceMemberId: uuid().notNull(),
     role: dbRoleType().default("Viewer").notNull(),
-    createdAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -562,11 +558,9 @@ export const workspaceMembeAccount = pgTable(
     workspaceMemberId: uuid().notNull(),
     provider: text().notNull(),
     providerAccountId: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -745,10 +739,10 @@ export const workspaceMember = pgTable(
       .notNull(),
     email: text(),
     createdAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .default(sql`now()`)
       .notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .default(sql`now()`)
       .$onUpdate(() => new Date())
       .notNull(),
     emailVerified: boolean().default(false).notNull(),
