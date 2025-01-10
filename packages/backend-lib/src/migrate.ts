@@ -8,6 +8,15 @@ import config, { databaseUrlWithoutName } from "./config";
 import { db } from "./db";
 import logger from "./logger";
 
+async function checkDirectory(p: string) {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function drizzleMigrate() {
   const client = new Client(databaseUrlWithoutName());
   const { database } = config();
@@ -33,19 +42,19 @@ export async function drizzleMigrate() {
   }
 
   let migrationsFolder = path.join(__dirname, "..", "drizzle");
-  if (!(await fs.stat(migrationsFolder)).isDirectory()) {
+  if (!(await checkDirectory(migrationsFolder))) {
     logger().info(
       { migrationsFolder },
       "Migrations folder not found, trying root package dir",
     );
-  }
-  migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
-  if (!(await fs.stat(migrationsFolder)).isDirectory()) {
-    logger().error(
-      { migrationsFolder },
-      "Migrations folder not found, aborting",
-    );
-    throw new Error("Migrations folder not found");
+    migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
+    if (!(await checkDirectory(migrationsFolder))) {
+      logger().error(
+        { migrationsFolder },
+        "Migrations folder not found, aborting",
+      );
+      throw new Error("Migrations folder not found");
+    }
   }
 
   logger().info({ migrationsFolder }, "Running migrations");
