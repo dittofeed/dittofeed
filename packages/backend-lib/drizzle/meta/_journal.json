@@ -8,13 +8,6 @@
       "when": 1735339553309,
       "tag": "0000_lucky_sentinel",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1736494464743,
-      "tag": "0001_quiet_ultimo",
-      "breakpoints": true
     }
   ]
 }
