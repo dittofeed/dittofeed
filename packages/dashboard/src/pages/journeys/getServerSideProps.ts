@@ -132,8 +132,6 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
           workspaceId,
           draft: journeyStateToDraft(stateForDraft),
           name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         doNothingOnConflict: true,
       }).then(unwrap);

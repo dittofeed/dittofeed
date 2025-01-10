@@ -54,8 +54,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           name: name ?? `New Webhook Template - ${id}`,
           id,
           definition: DEFAULT_WEBHOOK_DEFINITION,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         doNothingOnConflict: true,
       }).then(unwrap);

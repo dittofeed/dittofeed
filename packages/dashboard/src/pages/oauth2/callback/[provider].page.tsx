@@ -12,7 +12,6 @@ import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import logger from "backend-lib/src/logger";
-import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 
@@ -75,14 +74,11 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           upsert({
             table: schema.oauthToken,
             values: {
-              id: randomUUID(),
               workspaceId: dfContext.workspace.id,
               name: HUBSPOT_OAUTH_TOKEN,
               accessToken: access_token,
               refreshToken: refresh_token,
               expiresIn: expires_in,
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
             set: {
               accessToken: access_token,
@@ -95,10 +91,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             table: schema.integration,
             values: {
               ...HUBSPOT_INTEGRATION_DEFINITION,
-              id: randomUUID(),
               workspaceId: dfContext.workspace.id,
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
             target: [schema.integration.workspaceId, schema.integration.name],
             set: {
@@ -116,13 +109,10 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           insert({
             table: schema.userProperty,
             values: {
-              id: randomUUID(),
               workspaceId: dfContext.workspace.id,
               name: EMAIL_EVENTS_UP_NAME,
               definition: EMAIL_EVENTS_UP_DEFINITION,
               resourceType: "Internal",
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
             doNothingOnConflict: true,
           }).then(unwrap),

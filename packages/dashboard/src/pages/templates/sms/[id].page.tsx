@@ -54,8 +54,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           name: name ?? `New SMS Message - ${id}`,
           id,
           definition: defaultSmsDefinition(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         doNothingOnConflict: true,
       }).then(unwrap);
