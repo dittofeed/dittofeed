@@ -1,5 +1,7 @@
 import { submitBatch } from "backend-lib/src/apps/batch";
-import prisma from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { eq } from "drizzle-orm";
 import { EventType } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
 
@@ -7,7 +9,13 @@ async function seedDemo() {
   const now = Date.now();
   const messageId1 = uuid();
 
-  const workspace = await prisma().workspace.findFirstOrThrow();
+  const workspace = await db().query.workspace.findFirst({
+    where: eq(schema.workspace.id, "123"),
+  });
+
+  if (!workspace) {
+    throw new Error("Workspace not found");
+  }
 
   await submitBatch({
     workspaceId: workspace.id,
