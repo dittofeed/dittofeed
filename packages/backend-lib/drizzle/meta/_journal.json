@@ -36,6 +36,13 @@
       "when": 1736488567639,
       "tag": "0004_useful_kronos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1736489283984,
+      "tag": "0005_perpetual_dark_beast",
+      "breakpoints": true
     }
   ]
 }
