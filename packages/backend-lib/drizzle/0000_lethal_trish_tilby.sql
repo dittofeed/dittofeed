@@ -1,67 +1,67 @@
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'computedpropertytype') THEN
-        CREATE TYPE ComputedPropertyType AS ENUM ('Segment', 'UserProperty');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ComputedPropertyType') THEN
+        CREATE TYPE "ComputedPropertyType" AS ENUM ('Segment', 'UserProperty');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbbroadcaststatus') THEN
-        CREATE TYPE DBBroadcastStatus AS ENUM ('NotStarted', 'InProgress', 'Triggered');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBBroadcastStatus') THEN
+        CREATE TYPE "DBBroadcastStatus" AS ENUM ('NotStarted', 'InProgress', 'Triggered');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbchanneltype') THEN
-        CREATE TYPE DBChannelType AS ENUM ('Email', 'MobilePush', 'Sms', 'Webhook');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBChannelType') THEN
+        CREATE TYPE "DBChannelType" AS ENUM ('Email', 'MobilePush', 'Sms', 'Webhook');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbcompletionstatus') THEN
-        CREATE TYPE DBCompletionStatus AS ENUM ('NotStarted', 'InProgress', 'Successful', 'Failed');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBCompletionStatus') THEN
+        CREATE TYPE "DBCompletionStatus" AS ENUM ('NotStarted', 'InProgress', 'Successful', 'Failed');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbresourcetype') THEN
-        CREATE TYPE DBResourceType AS ENUM ('Declarative', 'Internal');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBResourceType') THEN
+        CREATE TYPE "DBResourceType" AS ENUM ('Declarative', 'Internal');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbroletype') THEN
-        CREATE TYPE DBRoleType AS ENUM ('Admin', 'WorkspaceManager', 'Author', 'Viewer');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBRoleType') THEN
+        CREATE TYPE "DBRoleType" AS ENUM ('Admin', 'WorkspaceManager', 'Author', 'Viewer');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbsubscriptiongrouptype') THEN
-        CREATE TYPE DBSubscriptionGroupType AS ENUM ('OptIn', 'OptOut');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DBSubscriptionGroupType') THEN
+        CREATE TYPE "DBSubscriptionGroupType" AS ENUM ('OptIn', 'OptOut');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'journeystatus') THEN
-        CREATE TYPE JourneyStatus AS ENUM ('NotStarted', 'Running', 'Paused', 'Broadcast');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'JourneyStatus') THEN
+        CREATE TYPE "JourneyStatus" AS ENUM ('NotStarted', 'Running', 'Paused', 'Broadcast');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'segmentstatus') THEN
-        CREATE TYPE SegmentStatus AS ENUM ('NotStarted', 'Running', 'Paused');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SegmentStatus') THEN
+        CREATE TYPE "SegmentStatus" AS ENUM ('NotStarted', 'Running', 'Paused');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'workspacestatus') THEN
-        CREATE TYPE WorkspaceStatus AS ENUM ('Active', 'Tombstoned');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'WorkspaceStatus') THEN
+        CREATE TYPE "WorkspaceStatus" AS ENUM ('Active', 'Tombstoned');
     END IF;
 END $$ ;--> statement-breakpoint
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'workspacetype') THEN
-        CREATE TYPE WorkspaceType AS ENUM ('Root', 'Child', 'Parent');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'WorkspaceType') THEN
+        CREATE TYPE "WorkspaceType" AS ENUM ('Root', 'Child', 'Parent');
     END IF;
 END $$ ;--> statement-breakpoint
 
