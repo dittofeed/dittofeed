@@ -78,6 +78,7 @@ COPY --from=builder /service/packages/admin-cli/dist ./packages/admin-cli/dist
 COPY --from=builder /service/packages/admin-cli/package.json ./packages/admin-cli/package.json
 
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
+COPY --from=builder /service/packages/backend-lib/drizzle ./packages/backend-lib/drizzle
 COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
