@@ -17,6 +17,7 @@
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "cross-spawn": "^7.0.3",
+    "drizzle-kit": "^0.30.1",
     "drizzle-orm": "^0.38.3",
     "isomorphic-lib": "0.0.3",
     "prisma": "5.21.1",
