@@ -65,14 +65,24 @@ import {
   PeriodByComputedPropertyId,
 } from "./periods";
 
-let READ_LIMIT: Limit | null = null;
+type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
-function readLimit(): Limit {
+let READ_LIMIT: AsyncWrapper | null = null;
+
+function identityWrapper<T>(fn: () => Promise<T>): Promise<T> {
+  return fn();
+}
+
+function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
     const concurrency = config().readQueryConcurrency;
-    const newLimit = pLimit(concurrency);
-    READ_LIMIT = newLimit;
-    return newLimit;
+    if (concurrency === 0) {
+      logger().info("No read query concurrency limit, using identity wrapper");
+      READ_LIMIT = identityWrapper;
+    } else {
+      const newLimit = pLimit(concurrency);
+      READ_LIMIT = newLimit;
+    }
   }
   return READ_LIMIT;
 }
