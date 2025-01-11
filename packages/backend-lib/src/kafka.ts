@@ -51,8 +51,9 @@ let KAFKA_PRODUCER: null | Producer = null;
 
 export async function kafkaProducer() {
   if (!KAFKA_PRODUCER) {
-    KAFKA_PRODUCER = kafka().producer(kafkaProducerConfig);
-    await KAFKA_PRODUCER.connect();
+    const producer = kafka().producer(kafkaProducerConfig);
+    await producer.connect();
+    KAFKA_PRODUCER = producer;
   }
   return KAFKA_PRODUCER;
 }
