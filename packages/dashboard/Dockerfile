@@ -22,7 +22,6 @@ RUN mkdir -p packages/dashboard/public/public && \
 
 RUN yarn workspace emailo build && \
     yarn workspace isomorphic-lib build && \
-    yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
     yarn workspace dashboard build
 
@@ -52,8 +51,6 @@ COPY --from=builder /app/packages/dashboard/.next/static ./.next/static
 COPY --from=builder /app/packages/dashboard/public ./public
 COPY --from=builder /app/.yarn ./.yarn
 COPY --from=builder /app/*.json /app/yarn.lock /app/.yarnrc.yml ./
-
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000
 
