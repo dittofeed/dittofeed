@@ -152,8 +152,7 @@ export async function upsertSubscriptionGroup({
         channel,
         workspaceId,
       },
-      target: [dbSubscriptionGroup.id],
-      setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
+      target: [dbSubscriptionGroup.workspaceId, dbSubscriptionGroup.name],
       tx,
       set: {
         name,
@@ -180,8 +179,7 @@ export async function upsertSubscriptionGroup({
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
       },
-      target: [dbSegment.id],
-      setWhere: eq(dbSegment.workspaceId, workspaceId),
+      target: [dbSegment.workspaceId, dbSegment.name],
       set: {
         name: segmentName,
         definition: segmentDefinition,

@@ -106,6 +106,7 @@ export async function insert<TTable extends Table>(params: {
   table: TTable;
   values: TTable["$inferInsert"];
   doNothingOnConflict: true;
+  lookupExisting?: undefined;
   tx?: Db;
 }): Promise<Result<TTable["$inferSelect"] | null, QueryError>>;
 
@@ -116,6 +117,7 @@ export async function insert<TTable extends Table>(
         table: TTable;
         values: TTable["$inferInsert"];
         doNothingOnConflict: false;
+        lookupExisting?: undefined;
         tx?: Db;
       }
     | {
