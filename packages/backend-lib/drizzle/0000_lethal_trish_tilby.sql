@@ -1,14 +1,69 @@
-CREATE TYPE IF NOT EXISTS "public"."ComputedPropertyType" AS ENUM('Segment', 'UserProperty');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBBroadcastStatus" AS ENUM('NotStarted', 'InProgress', 'Triggered');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBChannelType" AS ENUM('Email', 'MobilePush', 'Sms', 'Webhook');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBCompletionStatus" AS ENUM('NotStarted', 'InProgress', 'Successful', 'Failed');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBResourceType" AS ENUM('Declarative', 'Internal');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBRoleType" AS ENUM('Admin', 'WorkspaceManager', 'Author', 'Viewer');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."DBSubscriptionGroupType" AS ENUM('OptIn', 'OptOut');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."JourneyStatus" AS ENUM('NotStarted', 'Running', 'Paused', 'Broadcast');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."SegmentStatus" AS ENUM('NotStarted', 'Running', 'Paused');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."WorkspaceStatus" AS ENUM('Active', 'Tombstoned');--> statement-breakpoint
-CREATE TYPE IF NOT EXISTS "public"."WorkspaceType" AS ENUM('Root', 'Child', 'Parent');--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'computedpropertytype') THEN
+        CREATE TYPE ComputedPropertyType AS ENUM ('Segment', 'UserProperty');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbbroadcaststatus') THEN
+        CREATE TYPE DBBroadcastStatus AS ENUM ('NotStarted', 'InProgress', 'Triggered');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbchanneltype') THEN
+        CREATE TYPE DBChannelType AS ENUM ('Email', 'MobilePush', 'Sms', 'Webhook');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbcompletionstatus') THEN
+        CREATE TYPE DBCompletionStatus AS ENUM ('NotStarted', 'InProgress', 'Successful', 'Failed');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbresourcetype') THEN
+        CREATE TYPE DBResourceType AS ENUM ('Declarative', 'Internal');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbroletype') THEN
+        CREATE TYPE DBRoleType AS ENUM ('Admin', 'WorkspaceManager', 'Author', 'Viewer');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dbsubscriptiongrouptype') THEN
+        CREATE TYPE DBSubscriptionGroupType AS ENUM ('OptIn', 'OptOut');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'journeystatus') THEN
+        CREATE TYPE JourneyStatus AS ENUM ('NotStarted', 'Running', 'Paused', 'Broadcast');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'segmentstatus') THEN
+        CREATE TYPE SegmentStatus AS ENUM ('NotStarted', 'Running', 'Paused');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'workspacestatus') THEN
+        CREATE TYPE WorkspaceStatus AS ENUM ('Active', 'Tombstoned');
+    END IF;
+END $$ ;--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'workspacetype') THEN
+        CREATE TYPE WorkspaceType AS ENUM ('Root', 'Child', 'Parent');
+    END IF;
+END $$ ;--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS "AdminApiKey" (
 	"id" uuid PRIMARY KEY NOT NULL,
