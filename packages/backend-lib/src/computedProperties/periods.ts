@@ -63,12 +63,7 @@ export class PeriodByComputedPropertyId {
       computedPropertyId,
       version,
     });
-    // FIXME this is empty when it shouldn't be2
     const value = this.map.get(key);
-    logger().debug(
-      { key, map: Array.from(this.map.entries()), value },
-      "loc6 key",
-    );
     return value;
   }
 }
