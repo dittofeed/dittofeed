@@ -1,8 +1,9 @@
-import { Segment, SubscriptionGroup } from "@prisma/client";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
 } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
 import * as R from "remeda";
@@ -11,8 +12,13 @@ import { v4 as uuid, validate as validateUuid } from "uuid";
 
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
+import { db, insert, upsert } from "./db";
+import {
+  secret as dbSecret,
+  segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   findAllSegmentAssignments,
   findAllSegmentAssignmentsByIds,
@@ -23,10 +29,12 @@ import {
   GetUserSubscriptionsRequest,
   InternalEventType,
   SavedSubscriptionGroupResource,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
   SubscriptionChangeEvent,
+  SubscriptionGroup,
   SubscriptionGroupType,
   SubscriptionParams,
   UpsertSubscriptionGroupResource,
@@ -94,15 +102,13 @@ export async function getSubscriptionGroupWithAssignment({
   if (!validateUuid(subscriptionGroupId)) {
     return null;
   }
-  const sg = await prisma().subscriptionGroup.findUnique({
-    where: {
-      id: subscriptionGroupId,
-    },
-    include: {
-      Segment: true,
+  const sg = await db().query.subscriptionGroup.findFirst({
+    where: eq(dbSubscriptionGroup.id, subscriptionGroupId),
+    with: {
+      segments: true,
     },
   });
-  if (!sg?.Segment[0]) {
+  if (!sg?.segments[0]) {
     logger().error(
       {
         workspaceId: sg?.workspaceId,
@@ -113,7 +119,7 @@ export async function getSubscriptionGroupWithAssignment({
     );
     return null;
   }
-  const segmentId = sg.Segment[0].id;
+  const segmentId = sg.segments[0].id;
   const assignments = await findAllSegmentAssignmentsByIds({
     workspaceId: sg.workspaceId,
     segmentIds: [segmentId],
@@ -136,24 +142,23 @@ export async function upsertSubscriptionGroup({
   workspaceId,
   channel,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
-  const sg = await prisma().$transaction(async (tx) => {
-    const subscriptionGroup = await tx.subscriptionGroup.upsert({
-      where: {
-        workspaceId,
+  const sg = await db().transaction(async (tx) => {
+    const subscriptionGroup = await upsert({
+      table: dbSubscriptionGroup,
+      values: {
         id,
-      },
-      create: {
         name,
         type,
         channel,
         workspaceId,
-        id,
       },
-      update: {
+      target: [dbSubscriptionGroup.workspaceId, dbSubscriptionGroup.name],
+      tx,
+      set: {
         name,
         type,
       },
-    });
+    }).then(unwrap);
 
     const segmentName = `subscriptionGroup-${id}`;
     const segmentDefinition: SegmentDefinition = {
@@ -165,26 +170,23 @@ export async function upsertSubscriptionGroup({
       },
       nodes: [],
     };
-
-    await tx.segment.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: segmentName,
-        },
-      },
-      create: {
+    await upsert({
+      table: dbSegment,
+      values: {
         name: segmentName,
         workspaceId,
         definition: segmentDefinition,
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
       },
-      update: {
+      target: [dbSegment.workspaceId, dbSegment.name],
+      set: {
         name: segmentName,
         definition: segmentDefinition,
       },
-    });
+      tx,
+    }).then(unwrap);
+
     return subscriptionGroup;
   });
 
@@ -348,19 +350,15 @@ export async function getUserSubscriptions({
   workspaceId,
   userId,
 }: GetUserSubscriptionsRequest): Promise<UserSubscriptionResource[]> {
-  const subscriptionGroups = await prisma().subscriptionGroup.findMany({
-    where: {
-      workspaceId,
-    },
-    orderBy: {
-      name: "asc",
-    },
-    include: {
-      Segment: true,
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    where: eq(dbSubscriptionGroup.workspaceId, workspaceId),
+    orderBy: (sg, { asc }) => [asc(sg.name)],
+    with: {
+      segments: true,
     },
   });
   const segmentIds = subscriptionGroups.flatMap((sg) =>
-    sg.Segment.map((s) => s.id),
+    sg.segments.map((s) => s.id),
   );
   const assignments = await findAllSegmentAssignments({
     workspaceId,
@@ -370,7 +368,7 @@ export async function getUserSubscriptions({
   const subscriptions: UserSubscriptionResource[] = [];
 
   for (const subscriptionGroup of subscriptionGroups) {
-    const segment = subscriptionGroup.Segment[0];
+    const segment = subscriptionGroup.segments[0];
     if (!segment) {
       logger().error(
         { subscriptionGroup },
@@ -405,13 +403,11 @@ export async function lookupUserForSubscriptions({
   hash,
 }: UserSubscriptionLookup): Promise<Result<{ userId: string }, Error>> {
   const [subscriptionSecret, matchingUserIds] = await Promise.all([
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          name: SecretNames.Subscription,
-          workspaceId,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Subscription),
+      ),
     }),
     findUserIdsByUserPropertyValue({
       workspaceId,
@@ -480,13 +476,11 @@ export async function updateUserSubscriptions({
   userId: string;
   changes: UserSubscriptionsUpdate["changes"];
 }) {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      subscriptionGroupId: {
-        in: Object.keys(changes),
-      },
-    },
+  const segments = await db().query.segment.findMany({
+    where: and(
+      eq(dbSegment.workspaceId, workspaceId),
+      inArray(dbSegment.subscriptionGroupId, Object.keys(changes)),
+    ),
   });
 
   const segmentBySubscriptionGroupId = segments.reduce<Record<string, Segment>>(
@@ -555,18 +549,17 @@ export async function upsertSubscriptionSecret({
 }: {
   workspaceId: string;
 }) {
-  return prisma().secret.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: SecretNames.Subscription,
-      },
-    },
-    create: {
+  return insert({
+    table: dbSecret,
+    doNothingOnConflict: true,
+    lookupExisting: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      eq(dbSecret.name, SecretNames.Subscription),
+    )!,
+    values: {
       workspaceId,
       name: SecretNames.Subscription,
       value: generateSecureKey(8),
     },
-    update: {},
-  });
+  }).then(unwrap);
 }

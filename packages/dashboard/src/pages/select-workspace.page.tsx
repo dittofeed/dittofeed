@@ -1,7 +1,9 @@
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
-import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
 
@@ -19,14 +21,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     if (typeof workspaceId !== "string" || !validate(workspaceId)) {
       return REDIRECT_TARGET;
     }
-    await prisma().workspaceMember.update({
-      where: {
-        id: dfContext.member.id,
-      },
-      data: {
+    await db()
+      .update(schema.workspaceMember)
+      .set({
         lastWorkspaceId: workspaceId,
-      },
-    });
+      })
+      .where(eq(schema.workspaceMember.id, dfContext.member.id));
 
     return REDIRECT_TARGET;
   });

@@ -1,6 +1,7 @@
 import { Row } from "@clickhouse/client";
-import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
@@ -16,6 +17,7 @@ import {
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
+import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -23,12 +25,13 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import { Db, db, insert, QueryError, queryResult } from "./db";
+import * as schema from "./db/schema";
 import {
   startKeyedUserJourney,
   StartKeyedUserJourneyProps,
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
-import prisma from "./prisma";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import {
   BaseMessageNodeStats,
@@ -36,9 +39,11 @@ import {
   EmailStats,
   EnrichedJourney,
   InternalEventType,
+  Journey,
   JourneyDefinition,
   JourneyDraft,
   JourneyNodeType,
+  JourneyResourceStatusEnum,
   JourneyStats,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
@@ -48,6 +53,8 @@ import {
   SmsStats,
   UpsertJourneyResource,
 } from "./types";
+
+const { journey: dbJourney } = schema;
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -80,12 +87,12 @@ export function enrichJourney(
   });
 }
 
-type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
-
 export async function findManyJourneys(
-  params: FindManyParams,
+  params?: SQL,
 ): Promise<Result<EnrichedJourney[], Error>> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
 
   const subscribedJourneys: EnrichedJourney[] = [];
 
@@ -119,7 +126,7 @@ export function toJourneyResource(
     updatedAt: updatedAt.getTime(),
     status,
   };
-  if (status === JourneyStatus.NotStarted) {
+  if (status === JourneyResourceStatusEnum.NotStarted) {
     return ok({
       ...baseResource,
       status,
@@ -140,9 +147,11 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: FindManyParams,
+  params?: SQL,
 ): Promise<Result<SavedJourneyResource, Error>[]> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
   const results: Result<SavedJourneyResource, Error>[] = journeys.map(
     (journey) => toJourneyResource(journey),
   );
@@ -150,16 +159,18 @@ export async function findManyJourneyResourcesSafe(
 }
 
 export async function findManyJourneyResourcesUnsafe(
-  params: FindManyParams,
+  params?: SQL,
 ): Promise<SavedJourneyResource[]> {
-  const journeys = await prisma().journey.findMany(params);
+  const journeys = await db().query.journey.findMany({
+    where: params,
+  });
   const results = journeys.map((journey) => unwrap(toJourneyResource(journey)));
   return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: FindManyParams,
+  params?: SQL,
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
@@ -444,24 +455,15 @@ export async function getJourneysStats({
   journeyIds?: string[];
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
-  const journeys = await prisma().journey.findMany({
-    where: {
-      AND: {
-        ...(allJourneyIds?.length
-          ? {
-              id: {
-                in: allJourneyIds,
-              },
-            }
-          : {}),
-        status: {
-          not: JourneyStatus.NotStarted,
-        },
-        definition: {
-          not: Prisma.AnyNull,
-        },
-      },
-    },
+  const conditions: SQL[] = [
+    not(eq(dbJourney.status, JourneyResourceStatusEnum.NotStarted)),
+    isNotNull(dbJourney.definition),
+  ];
+  if (allJourneyIds?.length) {
+    conditions.push(inArray(dbJourney.id, allJourneyIds));
+  }
+  const journeys = await db().query.journey.findMany({
+    where: and(...conditions),
   });
   const journeyIds = journeys.map((j) => j.id);
   if (!journeyIds.length) {
@@ -703,10 +705,8 @@ export function triggerEventEntryJourneysFactory({
       journeyCache.get(workspaceId);
 
     if (!journeyDetails) {
-      const allJourneys = await prisma().journey.findMany({
-        where: {
-          workspaceId,
-        },
+      const allJourneys = await db().query.journey.findMany({
+        where: eq(dbJourney.workspaceId, workspaceId),
       });
       journeyDetails = allJourneys.flatMap((j) => {
         const result = toJourneyResource(j);
@@ -722,7 +722,7 @@ export function triggerEventEntryJourneysFactory({
         }
         const journey = result.value;
         if (
-          journey.status !== JourneyStatus.Running ||
+          journey.status !== JourneyResourceStatusEnum.Running ||
           journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
         ) {
           return [];
@@ -755,10 +755,50 @@ export function triggerEventEntryJourneysFactory({
   };
 }
 
+export async function updateJourney({
+  set,
+  where,
+  tx = db(),
+}: {
+  set: Partial<Journey>;
+  where?: SQL;
+  tx?: Db;
+}): Promise<Result<Journey, QueryError>> {
+  const results = await queryResult(
+    tx.update(dbJourney).set(set).where(where).returning(),
+  );
+
+  if (results.isErr()) {
+    return err(results.error);
+  }
+
+  const result = results.value[0];
+  if (!result) {
+    throw new Error("No result returned from update");
+  }
+
+  return ok(result);
+}
+
 export const triggerEventEntryJourneys = triggerEventEntryJourneysFactory({
   journeyCache: EVENT_TRIGGER_JOURNEY_CACHE,
   startKeyedJourneyImpl: startKeyedUserJourney,
 });
+
+function mapUpsertValidationError(
+  error: QueryError,
+): JourneyUpsertValidationError {
+  if (
+    error.code === PostgresError.UNIQUE_VIOLATION ||
+    error.code === PostgresError.FOREIGN_KEY_VIOLATION
+  ) {
+    return {
+      type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+      message: "Journey with this name already exists",
+    };
+  }
+  throw error;
+}
 
 export async function upsertJourney(
   params: UpsertJourneyResource,
@@ -788,21 +828,28 @@ export async function upsertJourney(
 
   // null out the draft when the definition is updated or when the draft is
   // explicitly set to null
-  const nullableDraft = definition || draft === null ? Prisma.DbNull : draft;
+  const nullableDraft = definition || draft === null ? null : draft;
 
-  const where: Prisma.JourneyWhereUniqueInput = id
-    ? { id, workspaceId }
-    : { workspaceId_name: { workspaceId, name } };
+  const conditions: SQL[] = [];
+  if (id) {
+    conditions.push(eq(dbJourney.id, id));
+  }
+  if (workspaceId) {
+    conditions.push(eq(dbJourney.workspaceId, workspaceId));
+  }
 
   const txResult: Result<Journey, JourneyUpsertValidationError> =
-    await prisma().$transaction(async (tx) => {
-      let journey: Journey | null = await tx.journey.findUnique({
-        where,
+    await db().transaction(async (tx) => {
+      const journey = await tx.query.journey.findFirst({
+        where: and(...conditions),
       });
       if (!journey) {
-        try {
-          const created: Journey = await tx.journey.create({
-            data: {
+        const created = (
+          await insert({
+            table: dbJourney,
+            tx,
+            doNothingOnConflict: true,
+            values: {
               id,
               workspaceId,
               name,
@@ -811,26 +858,21 @@ export async function upsertJourney(
               status,
               canRunMultiple,
             },
-          });
-
-          return ok(created);
-        } catch (e) {
-          if (
-            e instanceof Prisma.PrismaClientKnownRequestError &&
-            e.code === "P2002"
-          ) {
+          })
+        ).mapErr(mapUpsertValidationError);
+        return created.andThen((c) => {
+          if (!c) {
             return err({
               type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
-              message:
-                "Names must be unique in workspace. Id's must be globally unique.",
-            });
+              message: "Journey with this name already exists",
+            } satisfies JourneyUpsertValidationError);
           }
-          throw e;
-        }
+          return ok(c);
+        });
       }
       if (
-        status === JourneyStatus.Paused &&
-        journey.status === JourneyStatus.NotStarted
+        status === JourneyResourceStatusEnum.Paused &&
+        journey.status === JourneyResourceStatusEnum.NotStarted
       ) {
         return err({
           type: JourneyUpsertValidationErrorType.StatusTransitionError,
@@ -839,8 +881,8 @@ export async function upsertJourney(
       }
 
       if (
-        status === JourneyStatus.NotStarted &&
-        journey.status !== JourneyStatus.NotStarted
+        status === JourneyResourceStatusEnum.NotStarted &&
+        journey.status !== JourneyResourceStatusEnum.NotStarted
       ) {
         return err({
           type: JourneyUpsertValidationErrorType.StatusTransitionError,
@@ -853,18 +895,36 @@ export async function upsertJourney(
       if (status && status !== journey.status) {
         statusUpdatedAt = new Date();
       }
-      journey = await tx.journey.update({
-        where,
-        data: {
-          name,
-          definition,
-          draft: nullableDraft,
-          status,
-          statusUpdatedAt,
-          canRunMultiple,
-        },
-      });
-      return ok(journey);
+
+      const updateResult = await queryResult(
+        tx
+          .update(dbJourney)
+          .set({
+            name,
+            definition,
+            draft: nullableDraft,
+            status,
+            statusUpdatedAt,
+            canRunMultiple,
+          })
+          .where(and(...conditions))
+          .returning(),
+      );
+      return updateResult
+        .map(([updated]) => {
+          if (!updated) {
+            logger().error(
+              {
+                workspaceId,
+                journeyId: journey.id,
+              },
+              "No result returned from update",
+            );
+            throw new Error("No result returned from update");
+          }
+          return updated;
+        })
+        .mapErr(mapUpsertValidationError);
     });
   if (txResult.isErr()) {
     return err(txResult.error);
@@ -912,12 +972,14 @@ export async function upsertJourney(
   }
 
   if (
-    status === JourneyStatus.Running &&
-    journey.status === JourneyStatus.Paused &&
+    status === JourneyResourceStatusEnum.Running &&
+    journey.status === JourneyResourceStatusEnum.Paused &&
     journeyDefinition?.entryNode.type === JourneyNodeType.SegmentEntryNode &&
     journeyDefinition.entryNode.reEnter
   ) {
-    const priorityStatusUpdatedAt = journey.statusUpdatedAt?.getTime();
+    const priorityStatusUpdatedAt = journey.statusUpdatedAt
+      ? journey.statusUpdatedAt.getTime()
+      : undefined;
 
     if (priorityStatusUpdatedAt) {
       await restartUserJourneyWorkflow({

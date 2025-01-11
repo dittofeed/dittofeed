@@ -50,9 +50,7 @@ export function setConfigOnEnv(configForEnv: object) {
     } else if (typeof value === "string") {
       serializedValue = value;
     } else {
-      throw new Error(
-        `Unable to serialize env key: ${key}, value: ${JSON.stringify(value)}`,
-      );
+      continue;
     }
 
     const casedKey = constantCase(key);

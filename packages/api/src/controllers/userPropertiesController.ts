@@ -1,9 +1,11 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import prisma, { Prisma } from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
   findAllUserPropertyResources,
   upsertUserProperty,
 } from "backend-lib/src/userProperties";
+import { and, eq, inArray, not } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
@@ -84,52 +86,21 @@ export default async function userPropertiesController(
     async (request, reply) => {
       const { id }: DeleteUserPropertyRequest = request.body;
 
-      let deletedCount: number;
-      try {
-        await prisma().userPropertyAssignment.deleteMany({
-          where: {
-            AND: [
-              {
-                userPropertyId: id,
-              },
-              {
-                userProperty: {
-                  name: {
-                    notIn: Array.from(protectedUserProperties),
-                  },
-                },
-              },
-            ],
-          },
-        });
-        const response = await prisma().userProperty.deleteMany({
-          where: {
-            AND: [
-              {
-                id,
-              },
-              {
-                name: {
-                  notIn: Array.from(protectedUserProperties),
-                },
-              },
-            ],
-          },
-        });
-        deletedCount = response.count;
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          switch (e.code) {
-            case "P2025":
-              return reply.status(404).send();
-            case "P2023":
-              return reply.status(404).send();
-          }
-        }
-        throw e;
-      }
-
-      if (deletedCount <= 0) {
+      const result = await db()
+        .delete(schema.userProperty)
+        .where(
+          and(
+            eq(schema.userProperty.id, id),
+            not(
+              inArray(
+                schema.userProperty.name,
+                Array.from(protectedUserProperties),
+              ),
+            ),
+          ),
+        )
+        .returning();
+      if (!result.length) {
         return reply.status(404).send();
       }
 

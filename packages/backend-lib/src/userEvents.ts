@@ -1,4 +1,5 @@
 import { ClickHouseSettings, Row } from "@clickhouse/client";
+import { and, eq } from "drizzle-orm";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
@@ -8,8 +9,12 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import config from "./config";
+import { db } from "./db";
+import {
+  userProperty as dbUserProperty,
+  workspaceRelation as dbWorkspaceRelation,
+} from "./db/schema";
 import { kafkaProducer } from "./kafka";
-import prisma from "./prisma";
 import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
 
 export interface InsertUserEvent {
@@ -288,11 +293,11 @@ export async function findManyEventsWithCount({
   searchTerm?: string;
 }): Promise<{ events: UserEventsWithTraits[]; count: number }> {
   const qb = new ClickHouseQueryBuilder();
-  const workspaceRelations = await prisma().workspaceRelation.findMany({
-    where: {
-      parentWorkspaceId: workspaceId,
-    },
-  });
+  const workspaceRelations = await db()
+    .select()
+    .from(dbWorkspaceRelation)
+    .where(eq(dbWorkspaceRelation.parentWorkspaceId, workspaceId));
+
   const childWorkspaceIds = workspaceRelations.map((o) => o.childWorkspaceId);
   const workspaceIdClause = childWorkspaceIds.length
     ? `workspace_id IN ${qb.addQueryValue(workspaceId, "Array(String)")}`
@@ -392,14 +397,13 @@ export async function findUserIdsByUserProperty({
   valueSet: Set<string>;
   workspaceId: string;
 }): Promise<UserIdsByPropertyValue> {
-  const userProperty = await prisma().userProperty.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: userPropertyName,
-      },
-    },
+  const userProperty = await db().query.userProperty.findFirst({
+    where: and(
+      eq(dbUserProperty.workspaceId, workspaceId),
+      eq(dbUserProperty.name, userPropertyName),
+    ),
   });
+
   if (!userProperty) {
     return {};
   }

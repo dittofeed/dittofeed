@@ -193,6 +193,7 @@ export type Config = Overwrite<
     computedPropertiesTopicName: string;
     dashboardUrl: string;
     databaseUrl: string;
+    databaseParams: Record<string, string>;
     dittofeedTelemetryDisabled: boolean;
     enableBlobStorage: boolean;
     enableMobilePush: boolean;
@@ -239,15 +240,42 @@ export const DEFAULT_BACKEND_CONFIG = {
   secretKey: "o/UopmFUqiYriIzOCXnzZXGbcYTWuE3iVx2822jC0fY=",
 } as const;
 
-function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
+function parseDatabaseUrl(
+  rawConfig: RawConfig,
+): Pick<
+  Config,
+  | "databaseUrl"
+  | "database"
+  | "databaseUser"
+  | "databasePassword"
+  | "databasePort"
+  | "databaseHost"
+  | "databaseParams"
+> {
   if (rawConfig.databaseUrl) {
     const url = new URL(rawConfig.databaseUrl);
 
+    const databaseParams = Object.fromEntries(url.searchParams);
     url.search = new URLSearchParams({
       ...defaultDbParams,
-      ...Object.fromEntries(url.searchParams),
+      ...databaseParams,
     }).toString();
-    return url.toString();
+
+    const databaseUrl = url.toString();
+    const databaseUser = url.username;
+    const databasePassword = url.password;
+    const databasePort = url.port;
+    const databaseHost = url.hostname;
+    const database = url.pathname.slice(1);
+    return {
+      databaseUrl,
+      database,
+      databaseUser,
+      databasePassword,
+      databasePort,
+      databaseHost,
+      databaseParams,
+    };
   }
 
   if (
@@ -262,6 +290,9 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
     rawConfig.databasePassword ?? DEFAULT_BACKEND_CONFIG.databasePassword;
   const databaseHost = rawConfig.databaseHost ?? "localhost";
   const databasePort = rawConfig.databasePort ?? "5432";
+  const database =
+    rawConfig.databaseName ??
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
   const url = new URL(
     `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/${database}`,
   );
@@ -280,7 +311,15 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   };
   url.search = new URLSearchParams(params).toString();
 
-  return url.toString();
+  return {
+    databaseUrl: url.toString(),
+    database,
+    databaseUser,
+    databasePassword,
+    databasePort,
+    databaseHost,
+    databaseParams: params,
+  };
 }
 
 function parseToNumber({
@@ -330,11 +369,15 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     rawConfig.clickhouseDatabase ??
     (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
-  const database =
-    rawConfig.databaseName ??
-    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
-
-  const databaseUrl = parseDatabaseUrl(rawConfig, database);
+  const {
+    databaseUrl,
+    database,
+    databaseUser,
+    databasePassword,
+    databasePort,
+    databaseHost,
+    databaseParams,
+  } = parseDatabaseUrl(rawConfig);
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
   const writeMode: WriteMode =
     rawConfig.writeMode ??
@@ -373,6 +416,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     databaseUrl,
     database,
     clickhouseDatabase,
+    databasePort,
+    databaseHost,
+    databaseUser,
+    databasePassword,
+    databaseParams,
     clickhouseHost: defaultChUrl(
       rawConfig.clickhouseHost,
       rawConfig.clickhouseProtocol,
@@ -484,4 +532,11 @@ export default function config(): Config {
     setConfigOnEnv(CONFIG);
   }
   return CONFIG;
+}
+
+export function databaseUrlWithoutName() {
+  const { databaseUrl } = config();
+  const url = new URL(databaseUrl);
+  url.pathname = "";
+  return url.toString();
 }

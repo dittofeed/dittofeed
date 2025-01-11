@@ -1,6 +1,7 @@
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
+import { and, eq, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
@@ -12,12 +13,23 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 import { Overwrite } from "utility-types";
 import { validate as validateUuid } from "uuid";
 
 import { getObject, storage } from "./blobStorage";
+import { db, queryResult } from "./db";
+import {
+  defaultEmailProvider as dbDefaultEmailProvider,
+  defaultSmsProvider as dbDefaultSmsProvider,
+  emailProvider as dbEmailProvider,
+  messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
+  smsProvider as dbSmsProvider,
+  workspaceRelation as dbWorkspaceRelation,
+} from "./db/schema";
 import {
   sendMail as sendMailAmazonSes,
   SesMailData,
@@ -44,7 +56,6 @@ import {
   UnsubscribeHeaders,
 } from "./messaging/email";
 import { withSpan } from "./openTelemetry";
-import prisma from "./prisma";
 import {
   inSubscriptionGroup,
   SubscriptionGroupDetails,
@@ -70,7 +81,6 @@ import {
   MessageWebhookSuccess,
   MobilePushProviderType,
   ParsedWebhookBody,
-  Prisma,
   Secret,
   SmsProvider,
   SmsProviderOverride,
@@ -97,8 +107,8 @@ export function enrichMessageTemplate({
 }: Overwrite<
   MessageTemplate,
   {
-    draft?: Prisma.JsonValue;
-    definition?: Prisma.JsonValue;
+    draft?: unknown;
+    definition?: unknown;
   }
 >): Result<MessageTemplateResource, Error> {
   const enrichedDefinition = definition
@@ -145,10 +155,8 @@ export async function findMessageTemplate({
     logger().info({ id, channel }, "Invalid message template id");
     return ok(null);
   }
-  const template = await prisma().messageTemplate.findUnique({
-    where: {
-      id,
-    },
+  const template = await db().query.messageTemplate.findFirst({
+    where: eq(dbMessageTemplate.id, id),
   });
   if (!template) {
     return ok(null);
@@ -171,38 +179,33 @@ export async function upsertMessageTemplate(
       message: "Invalid message template id, must be a valid v4 UUID",
     });
   }
-  const draft = data.draft === null ? Prisma.DbNull : data.draft;
-  const where: Prisma.MessageTemplateWhereUniqueInput = data.id
-    ? { id: data.id, workspaceId: data.workspaceId }
-    : {
-        workspaceId_name: {
-          workspaceId: data.workspaceId,
-          name: data.name,
-        },
-      };
-
-  try {
-    const messageTemplate = await prisma().messageTemplate.upsert({
-      where,
-      create: {
+  const result = await queryResult(
+    db()
+      .insert(dbMessageTemplate)
+      .values({
+        id: data.id,
         workspaceId: data.workspaceId,
         name: data.name,
-        id: data.id,
         definition: data.definition,
-        draft,
-      },
-      update: {
-        name: data.name,
-        definition: data.definition,
-        draft,
-      },
-    });
-
-    return ok(unwrap(enrichMessageTemplate(messageTemplate)));
-  } catch (e) {
+        draft: data.draft,
+      })
+      .onConflictDoUpdate({
+        target: data.id
+          ? [dbMessageTemplate.id]
+          : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
+        set: {
+          name: data.name,
+          definition: data.definition,
+          draft: data.draft,
+        },
+        setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
+      })
+      .returning(),
+  );
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.UNIQUE_VIOLATION ||
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION
     ) {
       return err({
         type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
@@ -210,8 +213,18 @@ export async function upsertMessageTemplate(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
+
+  const [messageTemplate] = result.value;
+  if (!messageTemplate) {
+    return err({
+      type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
+      message:
+        "Names must be unique in workspace. Id's must be globally unique.",
+    });
+  }
+  return ok(unwrap(enrichMessageTemplate(messageTemplate)));
 }
 
 export async function findMessageTemplates({
@@ -221,32 +234,14 @@ export async function findMessageTemplates({
   workspaceId: string;
   includeInternal?: boolean;
 }): Promise<MessageTemplateResource[]> {
-  return (
-    await prisma().messageTemplate.findMany({
-      where: {
-        workspaceId,
-        resourceType: includeInternal ? undefined : "Declarative",
-      },
-    })
-  ).map((mt) => unwrap(enrichMessageTemplate(mt)));
-}
-
-export async function findPartialMessageTemplates({
-  workspaceId,
-  includeInternal,
-}: {
-  workspaceId: string;
-  includeInternal?: boolean;
-}): Promise<MessageTemplateResource[]> {
-  const messageTemplates = await prisma().messageTemplate.findMany({
-    where: {
-      workspaceId,
-      resourceType: includeInternal ? undefined : "Declarative",
-    },
+  const conditions: SQL[] = [eq(dbMessageTemplate.workspaceId, workspaceId)];
+  if (!includeInternal) {
+    conditions.push(eq(dbMessageTemplate.resourceType, "Declarative"));
+  }
+  const messageTemplates = await db().query.messageTemplate.findMany({
+    where: and(...conditions),
   });
-  return messageTemplates.map((mt) =>
-    R.omit(unwrap(enrichMessageTemplate(mt)), ["definition", "draft"]),
-  );
+  return messageTemplates.map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
 
 async function getSendMessageModels({
@@ -291,13 +286,11 @@ async function getSendMessageModels({
       id: templateId,
       channel,
     }),
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: SecretNames.Subscription,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Subscription),
+      ),
     }),
   ]);
   if (messageTemplateResult.isErr()) {
@@ -458,25 +451,22 @@ async function getSmsProviderForWorkspace({
   providerOverride?: SmsProviderType;
 }): Promise<(SmsProvider & { secret: Secret | null }) | null> {
   if (providerOverride) {
-    return prisma().smsProvider.findUnique({
-      where: {
-        workspaceId_type: {
-          workspaceId,
-          type: providerOverride,
-        },
-      },
-      include: {
+    const provider = await db().query.smsProvider.findFirst({
+      where: and(
+        eq(dbSmsProvider.workspaceId, workspaceId),
+        eq(dbSmsProvider.type, providerOverride),
+      ),
+      with: {
         secret: true,
       },
     });
+    return provider ?? null;
   }
-  const defaultProvider = await prisma().defaultSmsProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-    include: {
+  const defaultProvider = await db().query.defaultSmsProvider.findFirst({
+    where: eq(dbDefaultSmsProvider.workspaceId, workspaceId),
+    with: {
       smsProvider: {
-        include: {
+        with: {
           secret: true,
         },
       },
@@ -500,10 +490,8 @@ async function getSmsProvider({
   if (provider) {
     return provider;
   }
-  const relation = await prisma().workspaceRelation.findFirst({
-    where: {
-      childWorkspaceId: workspaceId,
-    },
+  const relation = await db().query.workspaceRelation.findFirst({
+    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
   });
   logger().debug({ relation }, "workspace relation");
   if (!relation) {
@@ -548,30 +536,28 @@ async function getEmailProviderForWorkspace({
   providerOverride?: EmailProviderType;
 }): Promise<EmailProviderPayload> {
   if (providerOverride) {
-    return prisma().emailProvider.findUnique({
-      where: {
-        workspaceId_type: {
-          workspaceId,
-          type: providerOverride,
-        },
-      },
-      include: {
+    const provider = await db().query.emailProvider.findFirst({
+      where: and(
+        eq(dbEmailProvider.workspaceId, workspaceId),
+        eq(dbEmailProvider.type, providerOverride),
+      ),
+      with: {
         secret: true,
       },
     });
+    return provider ?? null;
   }
-  const defaultProvider = await prisma().defaultEmailProvider.findUnique({
-    where: {
-      workspaceId,
-    },
-    include: {
+  const defaultProvider = await db().query.defaultEmailProvider.findFirst({
+    where: eq(dbDefaultEmailProvider.workspaceId, workspaceId),
+    with: {
       emailProvider: {
-        include: {
+        with: {
           secret: true,
         },
       },
     },
   });
+
   return defaultProvider?.emailProvider ?? null;
 }
 
@@ -590,10 +576,8 @@ async function getEmailProvider({
   if (provider) {
     return provider;
   }
-  const relation = await prisma().workspaceRelation.findFirst({
-    where: {
-      childWorkspaceId: workspaceId,
-    },
+  const relation = await db().query.workspaceRelation.findFirst({
+    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
   });
   logger().debug({ relation }, "workspace relation");
   if (!relation) {
@@ -1737,13 +1721,11 @@ export async function sendWebhook({
       useDraft,
       subscriptionGroupDetails,
     }),
-    await prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: SecretNames.Webhook,
-        },
-      },
+    db().query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, SecretNames.Webhook),
+      ),
     }),
   ]);
   if (getSendModelsResult.isErr()) {

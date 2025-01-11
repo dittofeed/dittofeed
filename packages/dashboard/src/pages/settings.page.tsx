@@ -26,11 +26,14 @@ import {
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
 import { getOrCreateSmsProviders } from "backend-lib/src/messaging/sms";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { and, eq } from "drizzle-orm";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
@@ -90,7 +93,6 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
-import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 
@@ -216,26 +218,27 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       adminApiKeys,
     ] = await Promise.all([
       getOrCreateEmailProviders({ workspaceId }),
-      prisma().defaultEmailProvider.findFirst({
-        where: { workspaceId },
+      db().query.defaultEmailProvider.findFirst({
+        where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
       }),
-      prisma().subscriptionGroup.findMany({
-        where: {
-          workspaceId,
-        },
+      db().query.subscriptionGroup.findMany({
+        where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
       }),
       getWriteKeys({ workspaceId }).then((keys) => keys[0]),
       findAllEnrichedIntegrations(workspaceId),
-      prisma()
-        .segment.findMany({
-          where: { workspaceId, resourceType: "Declarative" },
+      db()
+        .query.segment.findMany({
+          where: and(
+            eq(schema.segment.workspaceId, workspaceId),
+            eq(schema.segment.resourceType, "Declarative"),
+          ),
         })
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
       getOrCreateSmsProviders({ workspaceId }),
-      prisma().defaultSmsProvider.findFirst({
-        where: { workspaceId },
+      db().query.defaultSmsProvider.findFirst({
+        where: eq(schema.defaultSmsProvider.workspaceId, workspaceId),
       }),
       getSecretAvailability({
         workspaceId,

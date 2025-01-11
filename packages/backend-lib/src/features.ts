@@ -1,11 +1,17 @@
 import { Static } from "@sinclair/typebox";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import {
   schemaValidate,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
+import {
+  startComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
+import { db } from "./db";
+import { feature as dbFeature } from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   FeatureConfigByType,
   FeatureMap,
@@ -13,10 +19,6 @@ import {
   FeatureNamesEnum,
   Features,
 } from "./types";
-import {
-  startComputePropertiesWorkflow,
-  terminateComputePropertiesWorkflow,
-} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 
 export async function getFeature({
   name,
@@ -25,13 +27,11 @@ export async function getFeature({
   workspaceId: string;
   name: FeatureNamesEnum;
 }): Promise<boolean> {
-  const feature = await prisma().feature.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name,
-      },
-    },
+  const feature = await db().query.feature.findFirst({
+    where: and(
+      eq(dbFeature.workspaceId, workspaceId),
+      eq(dbFeature.name, name),
+    ),
   });
   return feature?.enabled ?? false;
 }
@@ -43,13 +43,11 @@ export async function getFeatureConfig<T extends FeatureNamesEnum>({
   workspaceId: string;
   name: T;
 }): Promise<Static<(typeof FeatureConfigByType)[T]> | null> {
-  const feature = await prisma().feature.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name,
-      },
-    },
+  const feature = await db().query.feature.findFirst({
+    where: and(
+      eq(dbFeature.workspaceId, workspaceId),
+      eq(dbFeature.name, name),
+    ),
   });
   if (!feature?.enabled) {
     return null;
@@ -80,11 +78,12 @@ export async function getFeatures({
   workspaceId: string;
   names?: FeatureNamesEnum[];
 }): Promise<FeatureMap> {
-  const features = await prisma().feature.findMany({
-    where: {
-      workspaceId,
-      ...(names ? { name: { in: names } } : {}),
-    },
+  const conditions: SQL[] = [eq(dbFeature.workspaceId, workspaceId)];
+  if (names) {
+    conditions.push(inArray(dbFeature.name, names));
+  }
+  const features = await db().query.feature.findMany({
+    where: and(...conditions),
   });
   return features.reduce<FeatureMap>((acc, feature) => {
     const validated = schemaValidate(feature.name, FeatureNames);
@@ -114,24 +113,21 @@ export async function addFeatures({
 }) {
   await Promise.all(
     features.map((feature) =>
-      prisma().feature.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: feature.type,
-          },
-        },
-        create: {
+      db()
+        .insert(dbFeature)
+        .values({
           workspaceId,
           name: feature.type,
           enabled: true,
           config: feature,
-        },
-        update: {
-          enabled: true,
-          config: feature,
-        },
-      }),
+        })
+        .onConflictDoUpdate({
+          target: [dbFeature.workspaceId, dbFeature.name],
+          set: {
+            enabled: true,
+            config: feature,
+          },
+        }),
     ),
   );
 
@@ -153,12 +149,14 @@ export async function removeFeatures({
   workspaceId: string;
   names: FeatureNamesEnum[];
 }) {
-  await prisma().feature.deleteMany({
-    where: {
-      workspaceId,
-      name: { in: names },
-    },
-  });
+  await db()
+    .delete(dbFeature)
+    .where(
+      and(
+        eq(dbFeature.workspaceId, workspaceId),
+        inArray(dbFeature.name, names),
+      ),
+    );
 
   const effects = names.flatMap((name) => {
     switch (name) {

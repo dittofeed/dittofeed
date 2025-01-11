@@ -1,7 +1,10 @@
 import { Box, Stack } from "@mui/material";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
+import { eq } from "drizzle-orm";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import React from "react";
@@ -9,7 +12,6 @@ import React from "react";
 import DashboardContent from "../components/dashboardContent";
 import { EventsTable } from "../components/eventsTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
-import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
@@ -19,15 +21,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       findMessageTemplates({
         workspaceId: dfContext.workspace.id,
       }),
-      prisma().broadcast.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.broadcast.findMany({
+        where: eq(schema.broadcast.workspaceId, dfContext.workspace.id),
       }),
-      prisma().journey.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.journey.findMany({
+        where: eq(schema.journey.workspaceId, dfContext.workspace.id),
       }),
     ]);
     const serverInitialState: PreloadedState = {

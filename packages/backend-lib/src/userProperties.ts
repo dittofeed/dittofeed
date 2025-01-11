@@ -1,5 +1,6 @@
-import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -10,6 +11,7 @@ import {
 } from "isomorphic-lib/src/userProperties";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -17,8 +19,9 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { db, QueryError, queryResult, upsert } from "./db";
+import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
@@ -29,6 +32,8 @@ import {
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
   UpsertUserPropertyResource,
+  UserProperty,
+  UserPropertyAssignment,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -97,9 +102,10 @@ export async function findAllUserProperties({
 }: {
   workspaceId: string;
 }): Promise<EnrichedUserProperty[]> {
-  const userProperties = await prisma().userProperty.findMany({
-    where: { workspaceId },
-  });
+  const userProperties = await db()
+    .select()
+    .from(dbUserProperty)
+    .where(eq(dbUserProperty.workspaceId, workspaceId));
 
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
@@ -154,83 +160,6 @@ export type UserPropertyBulkUpsertItem = Pick<
   UserPropertyAssignment,
   "workspaceId" | "userId" | "userPropertyId" | "value"
 >;
-
-export async function upsertBulkUserPropertyAssignments({
-  data,
-}: {
-  data: UserPropertyBulkUpsertItem[];
-}) {
-  if (data.length === 0) {
-    return;
-  }
-  const existing = new Map<string, UserPropertyBulkUpsertItem>();
-
-  for (const item of data) {
-    const key = `${item.workspaceId}-${item.userPropertyId}-${item.userId}`;
-    if (existing.has(key)) {
-      logger().warn(
-        {
-          existing: existing.get(key),
-          new: item,
-          workspaceId: item.workspaceId,
-        },
-        "duplicate user property assignment in bulk upsert",
-      );
-      continue;
-    }
-    existing.set(key, item);
-  }
-  const deduped: UserPropertyBulkUpsertItem[] = Array.from(existing.values());
-
-  const workspaceIds: Prisma.Sql[] = [];
-  const userIds: string[] = [];
-  const userPropertyIds: Prisma.Sql[] = [];
-  const values: string[] = [];
-
-  for (const item of deduped) {
-    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
-    userIds.push(item.userId);
-    userPropertyIds.push(Prisma.sql`CAST(${item.userPropertyId} AS UUID)`);
-    values.push(item.value);
-  }
-
-  const joinedUserPropertyIds = Prisma.join(userPropertyIds);
-
-  const query = Prisma.sql`
-    WITH unnested_values AS (
-        SELECT
-            unnest(array[${Prisma.join(workspaceIds)}]) AS "workspaceId",
-            unnest(array[${Prisma.join(userIds)}]) as "userId",
-            unnest(array[${joinedUserPropertyIds}]) AS "userPropertyId",
-            unnest(array[${Prisma.join(values)}]) AS "value"
-    )
-    INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    SELECT
-        u."workspaceId",
-        u."userId",
-        u."userPropertyId",
-        u."value"
-    FROM unnested_values u
-    WHERE EXISTS (
-        SELECT 1
-        FROM "UserProperty" up
-        WHERE up.id = u."userPropertyId"
-    )
-    ON CONFLICT ("workspaceId", "userId", "userPropertyId")
-    DO UPDATE SET
-        "value" = EXCLUDED."value"
-  `;
-
-  try {
-    await prisma().$executeRaw(query);
-  } catch (e) {
-    if (
-      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
-    ) {
-      throw e;
-    }
-  }
-}
 
 interface UserPropertyAssignmentOverrideProps {
   userPropertyId: string;
@@ -437,22 +366,14 @@ async function findAllUserPropertyAssignmentsComponents({
   userProperties: UserProperty[];
   assignmentMap: Map<string, string>;
 }> {
-  const where: Prisma.UserPropertyWhereInput = {
-    workspaceId,
-  };
+  const conditions: SQL[] = [eq(dbUserProperty.workspaceId, workspaceId)];
   if (userPropertiesFilter?.length) {
-    where.name = {
-      in: userPropertiesFilter,
-    };
+    conditions.push(inArray(dbUserProperty.name, userPropertiesFilter));
   } else if (userPropertyIds?.length) {
-    where.id = {
-      in: userPropertyIds,
-    };
+    conditions.push(inArray(dbUserProperty.id, userPropertyIds));
   }
-
-  const userProperties = await prisma().userProperty.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
   const query = `
@@ -547,18 +468,12 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
   userProperties?: string[];
   context?: Record<string, JSONValue>[];
 }): Promise<Record<string, UserPropertyAssignments>> {
-  const where: Prisma.UserPropertyWhereInput = {
-    workspaceId,
-  };
+  const conditions: SQL[] = [eq(dbUserProperty.workspaceId, workspaceId)];
   if (userPropertiesFilter?.length) {
-    where.name = {
-      in: userPropertiesFilter,
-    };
+    conditions.push(inArray(dbUserProperty.name, userPropertiesFilter));
   }
-
-  const userProperties = await prisma().userProperty.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
   const query = `
@@ -719,7 +634,6 @@ export async function findAllUserPropertyAssignmentsById({
 export async function upsertUserProperty(
   params: UpsertUserPropertyResource,
 ): Promise<Result<SavedUserPropertyResource, UpsertUserPropertyError>> {
-  let userProperty: UserProperty;
   const {
     id,
     name,
@@ -744,67 +658,93 @@ export async function upsertUserProperty(
     });
   }
 
-  try {
-    if (canCreate) {
-      if (id) {
-        userProperty = await prisma().userProperty.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            exampleValue,
-          },
-          update: {
-            name,
-            definition,
-            definitionUpdatedAt,
-            exampleValue,
-          },
-        });
-      } else {
-        userProperty = await prisma().userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name,
-            },
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-            exampleValue,
-          },
-          update: {
-            definition,
-            definitionUpdatedAt,
-            exampleValue,
-          },
-        });
-      }
-    } else {
-      userProperty = await prisma().userProperty.update({
-        where: {
+  let result: Result<UserProperty, QueryError>;
+  if (canCreate) {
+    if (id) {
+      result = await upsert({
+        table: dbUserProperty,
+        values: {
           id,
-        },
-        data: {
           workspaceId,
           name,
           definition,
           exampleValue,
           definitionUpdatedAt,
         },
+        target: [dbUserProperty.id],
+        setWhere: eq(dbUserProperty.workspaceId, workspaceId),
+        set: {
+          name,
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+      });
+    } else {
+      result = await upsert({
+        table: dbUserProperty,
+        values: {
+          id: randomUUID(),
+          workspaceId,
+          name,
+          definition,
+          exampleValue,
+        },
+        set: {
+          definition,
+          definitionUpdatedAt,
+          exampleValue,
+        },
+        target: [dbUserProperty.workspaceId, dbUserProperty.name],
       });
     }
-  } catch (e) {
+  } else {
+    let updateResult: Result<UserProperty[], QueryError>;
+    if (id) {
+      updateResult = await queryResult(
+        db()
+          .update(dbUserProperty)
+          .set({
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          })
+          .where(eq(dbUserProperty.id, id))
+          .returning(),
+      );
+    } else {
+      updateResult = await queryResult(
+        db()
+          .update(dbUserProperty)
+          .set({
+            definition,
+            definitionUpdatedAt,
+            exampleValue,
+          })
+          .where(
+            and(
+              eq(dbUserProperty.workspaceId, workspaceId),
+              eq(dbUserProperty.name, name),
+            ),
+          )
+          .returning(),
+      );
+    }
+    result = updateResult.map((r) => {
+      if (!r[0]) {
+        logger().error(
+          { workspaceId, name, id },
+          "failed to update user property",
+        );
+        throw new Error("No result returned from update");
+      }
+      return r[0];
+    });
+  }
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      result.error.code === PostgresError.UNIQUE_VIOLATION
     ) {
       return err({
         type: UpsertUserPropertyErrorType.UserPropertyAlreadyExists,
@@ -812,30 +752,20 @@ export async function upsertUserProperty(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
 
-  const userPropertyDefinitionResult = schemaValidate(
-    userProperty.definition,
-    UserPropertyDefinition,
-  );
+  const userProperty = result.value;
 
-  if (userPropertyDefinitionResult.isErr()) {
-    logger().error(
-      { err: userPropertyDefinitionResult.error, userProperty },
-      "failed to parse user property definition",
-    );
-    throw new Error("failed to parse user property definition");
-  }
   const resource: SavedUserPropertyResource = {
     id: userProperty.id,
     name: userProperty.name,
     workspaceId: userProperty.workspaceId,
-    definition: userPropertyDefinitionResult.value,
+    definition: userProperty.definition as UserPropertyDefinition,
     exampleValue: userProperty.exampleValue ?? undefined,
-    updatedAt: Number(userProperty.updatedAt),
-    createdAt: Number(userProperty.createdAt),
-    definitionUpdatedAt: Number(userProperty.definitionUpdatedAt),
+    updatedAt: userProperty.updatedAt.getTime(),
+    createdAt: userProperty.createdAt.getTime(),
+    definitionUpdatedAt: userProperty.definitionUpdatedAt.getTime(),
   };
 
   return ok(resource);
@@ -876,12 +806,16 @@ export async function findUserIdsByUserPropertyValue({
   userPropertyName: string;
   value: string;
 }): Promise<string[] | null> {
-  const userProperty = await prisma().userProperty.findFirst({
-    where: {
-      workspaceId,
-      name: userPropertyName,
-    },
-  });
+  const userProperties = await db()
+    .select()
+    .from(dbUserProperty)
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.name, userPropertyName),
+      ),
+    );
+  const [userProperty] = userProperties;
   if (!userProperty) {
     return null;
   }

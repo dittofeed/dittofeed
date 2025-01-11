@@ -3,12 +3,15 @@ import {
   toBroadcastResource,
   triggerBroadcast,
 } from "backend-lib/src/broadcasts";
-import prisma from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
+  BaseMessageResponse,
   BroadcastResource,
   TriggerBroadcastRequest,
   UpdateBroadcastRequest,
 } from "backend-lib/src/types";
+import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -22,18 +25,23 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         body: UpdateBroadcastRequest,
         response: {
           200: BroadcastResource,
+          404: BaseMessageResponse,
         },
       },
     },
     async (request, reply) => {
-      const broadcast = await prisma().broadcast.update({
-        where: {
-          id: request.body.id,
-        },
-        data: {
+      const [broadcast] = await db()
+        .update(schema.broadcast)
+        .set({
           name: request.body.name,
-        },
-      });
+        })
+        .where(eq(schema.broadcast.id, request.body.id))
+        .returning();
+      if (!broadcast) {
+        return reply.status(404).send({
+          message: "Broadcast not found",
+        });
+      }
       return reply.status(200).send(toBroadcastResource(broadcast));
     },
   );

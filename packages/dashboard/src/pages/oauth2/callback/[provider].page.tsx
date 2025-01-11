@@ -6,6 +6,8 @@ import {
   HUBSPOT_INTEGRATION_DEFINITION,
   HUBSPOT_OAUTH_TOKEN,
 } from "backend-lib/src/constants";
+import { insert, upsert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
@@ -13,7 +15,6 @@ import logger from "backend-lib/src/logger";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
@@ -70,38 +71,30 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
         await Promise.all([
-          prisma().oauthToken.upsert({
-            where: {
-              workspaceId_name: {
-                workspaceId: dfContext.workspace.id,
-                name: HUBSPOT_OAUTH_TOKEN,
-              },
-            },
-            create: {
+          upsert({
+            table: schema.oauthToken,
+            values: {
               workspaceId: dfContext.workspace.id,
               name: HUBSPOT_OAUTH_TOKEN,
               accessToken: access_token,
               refreshToken: refresh_token,
               expiresIn: expires_in,
             },
-            update: {
+            set: {
               accessToken: access_token,
               refreshToken: refresh_token,
               expiresIn: expires_in,
             },
-          }),
-          prisma().integration.upsert({
-            where: {
-              workspaceId_name: {
-                workspaceId: dfContext.workspace.id,
-                name: HUBSPOT_INTEGRATION,
-              },
-            },
-            create: {
+            target: [schema.oauthToken.workspaceId, schema.oauthToken.name],
+          }).then(unwrap),
+          upsert({
+            table: schema.integration,
+            values: {
               ...HUBSPOT_INTEGRATION_DEFINITION,
               workspaceId: dfContext.workspace.id,
             },
-            update: {
+            target: [schema.integration.workspaceId, schema.integration.name],
+            set: {
               enabled: true,
               definition: integration
                 ? {
@@ -112,22 +105,17 @@ export const getServerSideProps: GetServerSideProps = requestContext(
                   }
                 : undefined,
             },
-          }),
-          prisma().userProperty.upsert({
-            where: {
-              workspaceId_name: {
-                workspaceId: dfContext.workspace.id,
-                name: EMAIL_EVENTS_UP_NAME,
-              },
-            },
-            create: {
+          }).then(unwrap),
+          insert({
+            table: schema.userProperty,
+            values: {
               workspaceId: dfContext.workspace.id,
               name: EMAIL_EVENTS_UP_NAME,
               definition: EMAIL_EVENTS_UP_DEFINITION,
               resourceType: "Internal",
             },
-            update: {},
-          }),
+            doNothingOnConflict: true,
+          }).then(unwrap),
         ]);
         await startHubspotIntegrationWorkflow({
           workspaceId: dfContext.workspace.id,

@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 import { Static, Type } from "@sinclair/typebox";
 import axios, { AxiosError } from "axios";
+import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -21,8 +23,13 @@ import {
   HUBSPOT_INTEGRATION,
   HUBSPOT_OAUTH_TOKEN,
 } from "../../constants";
+import { db, upsert } from "../../db";
+import {
+  integration as dbIntegration,
+  oauthToken as dbOauthToken,
+  userProperty as dbUserProperty,
+} from "../../db/schema";
 import logger from "../../logger";
-import prisma from "../../prisma";
 import { findEnrichedSegments } from "../../segments";
 import { EnrichedUserProperty } from "../../types";
 import {
@@ -37,17 +44,17 @@ interface AuthError {
 }
 
 async function disableIntegration({ workspaceId }: { workspaceId: string }) {
-  await prisma().integration.update({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: HUBSPOT_INTEGRATION,
-      },
-    },
-    data: {
+  await db()
+    .update(dbIntegration)
+    .set({
       enabled: false,
-    },
-  });
+    })
+    .where(
+      and(
+        eq(dbIntegration.workspaceId, workspaceId),
+        eq(dbIntegration.name, HUBSPOT_INTEGRATION),
+      ),
+    );
 }
 
 function handleAuthFailure<T extends unknown[], U>(
@@ -88,13 +95,11 @@ export async function getOauthToken({
 }: {
   workspaceId: string;
 }): Promise<OauthTokenResource | null> {
-  const token = await prisma().oauthToken.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: HUBSPOT_OAUTH_TOKEN,
-      },
-    },
+  const token = await db().query.oauthToken.findFirst({
+    where: and(
+      eq(dbOauthToken.workspaceId, workspaceId),
+      eq(dbOauthToken.name, HUBSPOT_OAUTH_TOKEN),
+    ),
   });
   if (!token) {
     return null;
@@ -176,26 +181,25 @@ export async function refreshToken({
       expires_in: number;
     };
 
-    const newOauthToken = await prisma().oauthToken.upsert({
-      where: {
-        workspaceId_name: {
+    const newOauthToken = unwrap(
+      await upsert({
+        table: dbOauthToken,
+        values: {
+          id: randomUUID(),
           workspaceId,
           name: HUBSPOT_OAUTH_TOKEN,
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: expires_in,
         },
-      },
-      create: {
-        workspaceId,
-        name: HUBSPOT_OAUTH_TOKEN,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: expires_in,
-      },
-      update: {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: expires_in,
-      },
-    });
+        target: [dbOauthToken.workspaceId, dbOauthToken.name],
+        set: {
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: expires_in,
+        },
+      }),
+    );
     return {
       type: JsonResultType.Ok,
       value: {
@@ -225,17 +229,17 @@ export async function refreshToken({
     if (badRefreshTokenError.isErr()) {
       throw e;
     }
-    await prisma().integration.update({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: HUBSPOT_INTEGRATION,
-        },
-      },
-      data: {
+    await db()
+      .update(dbIntegration)
+      .set({
         enabled: false,
-      },
-    });
+      })
+      .where(
+        and(
+          eq(dbIntegration.workspaceId, workspaceId),
+          eq(dbIntegration.name, HUBSPOT_INTEGRATION),
+        ),
+      );
     return {
       type: JsonResultType.Err,
       err: badRefreshTokenError.value,
@@ -331,13 +335,11 @@ export async function findEmailEventsUserProperty({
 }: {
   workspaceId: string;
 }): Promise<EnrichedUserProperty | null> {
-  const up = await prisma().userProperty.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: EMAIL_EVENTS_UP_NAME,
-      },
-    },
+  const up = await db().query.userProperty.findFirst({
+    where: and(
+      eq(dbUserProperty.workspaceId, workspaceId),
+      eq(dbUserProperty.name, EMAIL_EVENTS_UP_NAME),
+    ),
   });
   if (!up) {
     return null;
@@ -358,18 +360,13 @@ export async function getIntegrationEnabled({
 }: {
   workspaceId: string;
 }): Promise<boolean> {
-  return (
-    (
-      await prisma().integration.findUnique({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: HUBSPOT_INTEGRATION,
-          },
-        },
-      })
-    )?.enabled === true
-  );
+  const integration = await db().query.integration.findFirst({
+    where: and(
+      eq(dbIntegration.workspaceId, workspaceId),
+      eq(dbIntegration.name, HUBSPOT_INTEGRATION),
+    ),
+  });
+  return integration?.enabled ?? false;
 }
 
 async function searchEmails(

@@ -1,12 +1,14 @@
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { getSegmentConfigState } from "../../../lib/segments";
 import { PropsWithInitialState } from "../../../lib/types";
@@ -27,15 +29,11 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const workspaceId = dfContext.workspace.id;
     const [segment, subscriptionGroups, messageTemplates] = await Promise.all([
-      prisma().segment.findUnique({
-        where: {
-          id,
-        },
+      db().query.segment.findFirst({
+        where: eq(schema.segment.id, id),
       }),
-      prisma().subscriptionGroup.findMany({
-        where: {
-          workspaceId,
-        },
+      db().query.subscriptionGroup.findMany({
+        where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
       }),
       findMessageTemplates({
         workspaceId,

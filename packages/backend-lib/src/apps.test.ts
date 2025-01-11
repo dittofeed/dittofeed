@@ -2,29 +2,32 @@ import NodeCache from "node-cache";
 import { v4 as uuidv4 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
+import { db } from "./db";
+import { journey as dbJourney } from "./db/schema";
 import { triggerEventEntryJourneysFactory } from "./journeys";
-import prisma from "./prisma";
 import {
   EventType,
   JourneyDefinition,
+  JourneyInsert,
   JourneyNodeType,
-  JourneyStatus,
 } from "./types";
 import { findManyEventsWithCount } from "./userEvents";
+import { createWorkspace } from "./workspaces";
 
 describe("apps", () => {
+  let workspaceId: string;
+
+  beforeEach(async () => {
+    workspaceId = uuidv4();
+    await createWorkspace({
+      id: workspaceId,
+      name: `test-${workspaceId}`,
+    });
+  });
+
   describe("submitBatch", () => {
     describe("when events don't have traits or properties", () => {
       it("should default traits or properties to empty object", async () => {
-        const workspaceId = uuidv4();
-
-        await prisma().workspace.create({
-          data: {
-            id: workspaceId,
-            name: `test-${workspaceId}`,
-          },
-        });
-
         await submitBatch({
           workspaceId,
           data: {
@@ -54,7 +57,6 @@ describe("apps", () => {
     });
   });
   describe("submitBatchWithTriggers", () => {
-    let workspaceId: string;
     let startKeyedJourneyImpl: jest.Mock;
     let notStartedJourneyId: string;
     let startedEventTriggeredJourneyId: string;
@@ -63,10 +65,6 @@ describe("apps", () => {
     let submitBatchWithTriggers: typeof import("./apps").submitBatchWithTriggers;
 
     beforeEach(async () => {
-      workspaceId = uuidv4();
-      await prisma().workspace.create({
-        data: { id: workspaceId, name: `test-${workspaceId}` },
-      });
       entryEventName = "Purchase";
       const eventTriggeredJourneyDefinition: JourneyDefinition = {
         entryNode: {
@@ -95,35 +93,31 @@ describe("apps", () => {
       notStartedJourneyId = uuidv4();
       startedEventTriggeredJourneyId = uuidv4();
 
-      await Promise.all([
-        prisma().journey.create({
-          data: {
+      await db()
+        .insert(dbJourney)
+        .values([
+          {
             id: notStartedJourneyId,
             name: "not started",
-            status: JourneyStatus.NotStarted,
+            status: "NotStarted",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
-          },
-        }),
-        prisma().journey.create({
-          data: {
+          } satisfies JourneyInsert,
+          {
             id: startedEventTriggeredJourneyId,
             name: "started event triggered",
-            status: JourneyStatus.Running,
+            status: "Running",
             workspaceId,
             definition: eventTriggeredJourneyDefinition,
           },
-        }),
-        prisma().journey.create({
-          data: {
+          {
             id: segmentEntryJourneyId,
             name: "segment entry",
-            status: JourneyStatus.Running,
+            status: "Running",
             workspaceId,
             definition: segmentEntryJourneyDefinition,
           },
-        }),
-      ]);
+        ]);
 
       startKeyedJourneyImpl = jest.fn();
 

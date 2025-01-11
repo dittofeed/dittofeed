@@ -1,20 +1,24 @@
 import { randomUUID } from "crypto";
+import { PgInsertValue } from "drizzle-orm/pg-core";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
+import { db, insert } from "./db";
+import { journey as dbJourney } from "./db/schema";
 import {
   getJourneyMessageStats,
   getJourneysStats,
   upsertJourney,
 } from "./journeys";
 import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
-import prisma from "./prisma";
 import {
   ChannelType,
   EmailProviderType,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
+  JourneyResourceStatusEnum,
   JourneyUpsertValidationErrorType,
   MessageNode,
   MessageServiceFailureVariant,
@@ -24,20 +28,28 @@ import {
   SegmentSplitVariantType,
   Workspace,
 } from "./types";
+import { createWorkspace } from "./workspaces";
 
 describe("journeys", () => {
+  let workspaceId: string;
+  let workspace: Workspace;
+
+  beforeEach(async () => {
+    workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: randomUUID(),
+        updatedAt: new Date(),
+      }),
+    );
+    workspaceId = workspace.id;
+  });
+
   describe("getJourneyMessageStats", () => {
-    let workspaceId: string;
     let journeyId: string;
     let messageNodeId: string;
 
     beforeEach(async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
-      workspaceId = workspace.id;
       messageNodeId = randomUUID();
 
       const journeyDefinition: JourneyDefinition = {
@@ -61,15 +73,14 @@ describe("journeys", () => {
           },
         ],
       };
-      const journey = await prisma().journey.create({
-        data: {
-          workspaceId,
-          definition: journeyDefinition,
-          name: randomUUID(),
-          status: "Running",
-        },
+      journeyId = randomUUID();
+      await db().insert(dbJourney).values({
+        workspaceId,
+        id: journeyId,
+        definition: journeyDefinition,
+        name: randomUUID(),
+        status: "Running",
       });
-      journeyId = journey.id;
     });
 
     describe("when the the message has one failed message one delivered message one bounced message and one marked as spam", () => {
@@ -277,19 +288,12 @@ describe("journeys", () => {
     });
   });
   describe("getJourneysStats", () => {
-    let workspaceId: string;
     let journeyId: string;
 
     describe("when a journey node has associated message stats", () => {
       let messageNodeId: string;
 
       beforeEach(async () => {
-        const workspace = await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-          },
-        });
-        workspaceId = workspace.id;
         messageNodeId = randomUUID();
         const entryNode = {
           type: JourneyNodeType.SegmentEntryNode,
@@ -313,15 +317,29 @@ describe("journeys", () => {
           },
           nodes: [messageNode],
         };
-        const journey = await prisma().journey.create({
-          data: {
+        journeyId = randomUUID();
+        await db().insert(dbJourney).values({
+          workspaceId,
+          id: journeyId,
+          definition: journeyDefinition,
+          name: randomUUID(),
+          status: JourneyResourceStatusEnum.Running,
+          canRunMultiple: false,
+          resourceType: "Declarative",
+          draft: null,
+          statusUpdatedAt: new Date(),
+        });
+        await insert({
+          table: dbJourney,
+          values: {
             workspaceId,
+            id: journeyId,
             definition: journeyDefinition,
             name: randomUUID(),
             status: "Running",
           },
         });
-        journeyId = journey.id;
+
         const userId = randomUUID();
 
         await Promise.all([
@@ -385,13 +403,6 @@ describe("journeys", () => {
 
     describe("when the journey node has nested segment splits", () => {
       beforeEach(async () => {
-        const workspace = await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-          },
-        });
-        workspaceId = workspace.id;
-
         const entryNode: SegmentEntryNode = {
           type: JourneyNodeType.SegmentEntryNode,
           segment: randomUUID(),
@@ -444,15 +455,17 @@ describe("journeys", () => {
             type: JourneyNodeType.ExitNode,
           },
         };
-        const journey = await prisma().journey.create({
-          data: {
+        journeyId = randomUUID();
+        await db()
+          .insert(dbJourney)
+          .values({
             workspaceId,
+            id: journeyId,
             definition: journeyDefinition,
             name: randomUUID(),
-            status: "Running",
-          },
-        });
-        journeyId = journey.id;
+            status: JourneyResourceStatusEnum.Running,
+            updatedAt: new Date(),
+          } satisfies PgInsertValue<typeof dbJourney>);
 
         const journeyStartedAt = Date.now();
 
@@ -563,20 +576,18 @@ describe("journeys", () => {
   });
   // TODO: add tests for upsertJourney
   describe("upsertJourney", () => {
-    let workspace: Workspace;
-
-    beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: randomUUID() },
-      });
-    });
-
     describe("when a journey is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;
+
       beforeEach(async () => {
-        secondWorkspace = await prisma().workspace.create({
-          data: { name: randomUUID() },
-        });
+        secondWorkspace = unwrap(
+          await createWorkspace({
+            name: randomUUID(),
+            id: randomUUID(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }),
+        );
       });
       it("returns a unique constraint violation error", async () => {
         const journeyId = randomUUID();

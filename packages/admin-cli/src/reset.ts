@@ -1,6 +1,8 @@
 import { ClickHouseQueryBuilder, command } from "backend-lib/src/clickhouse";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
+import { eq } from "drizzle-orm";
 
 export async function resetWorkspaceData({
   workspaceId,
@@ -59,16 +61,12 @@ export async function resetWorkspaceData({
   ]);
 
   await Promise.all([
-    prisma().segmentAssignment.deleteMany({
-      where: {
-        workspaceId,
-      },
-    }),
-    prisma().userPropertyAssignment.deleteMany({
-      where: {
-        workspaceId,
-      },
-    }),
+    db()
+      .delete(schema.segmentAssignment)
+      .where(eq(schema.segmentAssignment.workspaceId, workspaceId)),
+    db()
+      .delete(schema.userPropertyAssignment)
+      .where(eq(schema.userPropertyAssignment.workspaceId, workspaceId)),
   ]);
 
   logger().info(

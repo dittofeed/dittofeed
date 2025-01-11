@@ -98,6 +98,10 @@ export enum EmailProviderType {
   MailChimp = "MailChimp",
 }
 
+export const EmailProviderTypeSchema = Type.Enum(EmailProviderType);
+
+export type EmailProviderTypeSchema = Static<typeof EmailProviderTypeSchema>;
+
 export enum MobilePushProviderType {
   Firebase = "Firebase",
   Test = "Test",
@@ -255,6 +259,15 @@ export enum SegmentNodeType {
   KeyedPerformed = "KeyedPerformed",
   Everyone = "Everyone",
 }
+
+export const DBResourceTypeEnum = {
+  Declarative: "Declarative",
+  Internal: "Internal",
+} as const;
+
+export const DBResourceType = Type.KeyOf(Type.Const(DBResourceTypeEnum));
+
+export type DBResourceType = Static<typeof DBResourceType>;
 
 export const SubscriptionGroupSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.SubscriptionGroup),
@@ -1851,10 +1864,12 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
-export const WorkspaceStatusDb = Type.Union([
-  Type.Literal("Active"),
-  Type.Literal("Tombstoned"),
-]);
+export const WorkspaceStatusDbEnum = {
+  Active: "Active",
+  Tombstoned: "Tombstoned",
+} as const;
+
+export const WorkspaceStatusDb = Type.KeyOf(Type.Const(WorkspaceStatusDbEnum));
 
 export type WorkspaceStatusDb = Static<typeof WorkspaceStatusDb>;
 
@@ -4281,11 +4296,13 @@ export const CreateWorkspaceError = Type.Union([
 
 export type CreateWorkspaceError = Static<typeof CreateWorkspaceError>;
 
-export const WorkspaceTypeApp = Type.Union([
-  Type.Literal("Root"),
-  Type.Literal("Child"),
-  Type.Literal("Parent"),
-]);
+export const WorkspaceTypeAppEnum = {
+  Root: "Root",
+  Child: "Child",
+  Parent: "Parent",
+} as const;
+
+export const WorkspaceTypeApp = Type.KeyOf(Type.Const(WorkspaceTypeAppEnum));
 
 export type WorkspaceTypeApp = Static<typeof WorkspaceTypeApp>;
 

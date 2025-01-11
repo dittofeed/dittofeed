@@ -1,10 +1,13 @@
+import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { validate } from "uuid";
 
 import { generateSecureKey } from "./crypto";
+import { db } from "./db";
+import { secret as dbSecret, writeKey as dbWriteKey } from "./db/schema";
 import logger from "./logger";
-import prisma from "./prisma";
 import { OpenIdProfile, WriteKeyResource } from "./types";
 
 const decoder = createDecoder();
@@ -52,10 +55,8 @@ export async function validateWriteKey({
     return null;
   }
 
-  const writeKeySecret = await prisma().secret.findUnique({
-    where: {
-      id: secretKeyId,
-    },
+  const writeKeySecret = await db().query.secret.findFirst({
+    where: eq(dbSecret.id, secretKeyId),
   });
 
   if (!writeKeySecret) {
@@ -84,67 +85,57 @@ export async function getOrCreateWriteKey({
     },
     "creating write key",
   );
-
-  const resource = await prisma().$transaction(async (tx) => {
-    const existingSecret = await tx.secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: writeKeyName,
-        },
-      },
-      include: {
-        WriteKey: true,
+  return db().transaction(async (tx) => {
+    const existingSecret = await tx.query.secret.findFirst({
+      where: and(
+        eq(dbSecret.workspaceId, workspaceId),
+        eq(dbSecret.name, writeKeyName),
+      ),
+      with: {
+        writeKeys: true,
       },
     });
-    const existingWriteKey = existingSecret?.WriteKey[0];
-    if (existingSecret?.value && existingWriteKey) {
+    const existingWriteKey = existingSecret?.writeKeys[0];
+
+    if (existingWriteKey && existingSecret.value) {
       return {
         workspaceId: existingSecret.workspaceId,
         writeKeyName: existingSecret.name,
         writeKeyValue: existingSecret.value,
         secretId: existingSecret.id,
-      };
+      } satisfies WriteKeyResource;
     }
+
     // Try to find the secret, create if it doesn't exist
-    const secret = await tx.secret.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: writeKeyName,
-        },
-      },
-      update: {},
-      create: {
+    const [secret] = await tx
+      .insert(dbSecret)
+      .values({
         workspaceId,
         name: writeKeyName,
         value: writeKeyValue,
-      },
-    });
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!secret) {
+      throw new Error("Failed to create secret");
+    }
 
     // Try to find the writeKey, create if it doesn't exist
-    await tx.writeKey.upsert({
-      where: {
-        workspaceId_secretId: {
-          workspaceId,
-          secretId: secret.id,
-        },
-      },
-      update: {},
-      create: {
-        workspaceId,
+    await tx
+      .insert(dbWriteKey)
+      .values({
+        id: randomUUID(),
         secretId: secret.id,
-      },
-    });
+        workspaceId,
+      })
+      .onConflictDoNothing();
     return {
       workspaceId,
       writeKeyName,
       writeKeyValue,
       secretId: secret.id,
-    };
+    } satisfies WriteKeyResource;
   });
-
-  return resource;
 }
 
 export async function getWriteKeys({
@@ -152,13 +143,11 @@ export async function getWriteKeys({
 }: {
   workspaceId: string;
 }): Promise<WriteKeyResource[]> {
-  const writeKeys = await prisma().writeKey.findMany({
-    where: {
-      workspaceId,
-    },
-    select: {
+  const writeKeys = await db().query.writeKey.findMany({
+    where: eq(dbWriteKey.workspaceId, workspaceId),
+    with: {
       secret: {
-        select: {
+        columns: {
           name: true,
           value: true,
           id: true,

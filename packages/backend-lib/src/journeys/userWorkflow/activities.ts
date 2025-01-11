@@ -1,15 +1,21 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { SegmentAssignment } from "@prisma/client";
+import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
+import { db } from "../../db";
+import {
+  journey as dbJourney,
+  segment as dbSegment,
+  userJourneyEvent as dbUserJourneyEvent,
+  workspace as dbWorkspace,
+} from "../../db/schema";
 import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
 import { withSpan } from "../../openTelemetry";
-import prisma from "../../prisma";
 import { calculateKeyedSegment, getSegmentAssignmentDb } from "../../segments";
 import {
   getSubscriptionGroupDetails,
@@ -25,6 +31,7 @@ import {
   MessageVariant,
   OptionalAllOrNothing,
   RenameKey,
+  SegmentAssignment,
   SegmentDefinition,
   SegmentNodeType,
   TrackData,
@@ -85,7 +92,7 @@ async function sendMessageInner({
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
-      prisma().journey.findUnique({ where: { id: journeyId } }),
+      db().query.journey.findFirst({ where: eq(dbJourney.id, journeyId) }),
       subscriptionGroupId
         ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
         : null,
@@ -222,24 +229,22 @@ export async function isRunnable({
   eventKeyName?: string;
 }): Promise<boolean> {
   const [previousExitEvent, journey, workspace] = await Promise.all([
-    prisma().userJourneyEvent.findFirst({
-      where: {
-        journeyId,
-        userId,
-        eventKey,
-        eventKeyName,
-        type: {
-          in: Array.from(ENTRY_TYPES),
-        },
-      },
+    db().query.userJourneyEvent.findFirst({
+      where: and(
+        eq(dbUserJourneyEvent.journeyId, journeyId),
+        eq(dbUserJourneyEvent.userId, userId),
+        eventKey ? eq(dbUserJourneyEvent.eventKey, eventKey) : undefined,
+        eventKeyName
+          ? eq(dbUserJourneyEvent.eventKeyName, eventKeyName)
+          : undefined,
+        inArray(dbUserJourneyEvent.type, Array.from(ENTRY_TYPES)),
+      ),
     }),
-    prisma().journey.findUnique({
-      where: {
-        id: journeyId,
-      },
-    }),
+    db().query.journey.findFirst({ where: eq(dbJourney.id, journeyId) }),
     workspaceId
-      ? prisma().workspace.findUnique({ where: { id: workspaceId } })
+      ? db().query.workspace.findFirst({
+          where: eq(dbWorkspace.id, workspaceId),
+        })
       : null,
   ]);
   if (!previousExitEvent) {
@@ -262,7 +267,7 @@ export async function isRunnable({
       "can run multiple is false, journey is not runnable",
     );
   }
-  if (workspace !== null && workspace.status !== "Active") {
+  if (workspace?.status !== "Active") {
     return false;
   }
   return canRunMultiple;
@@ -294,10 +299,8 @@ export async function getSegmentAssignment(
       userId: params.userId,
     });
     const { workspaceId, segmentId, userId } = params;
-    const segment = await prisma().segment.findUnique({
-      where: {
-        id: segmentId,
-      },
+    const segment = await db().query.segment.findFirst({
+      where: eq(dbSegment.id, segmentId),
     });
     if (!segment) {
       logger().error(
@@ -392,7 +395,9 @@ export async function getSegmentAssignment(
 }
 
 export function getWorkspace(workspaceId: string) {
-  return prisma().workspace.findUnique({ where: { id: workspaceId } });
+  return db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
+  });
 }
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
@@ -406,8 +411,11 @@ export async function shouldReEnter({
   userId: string;
   workspaceId: string;
 }): Promise<boolean> {
-  const journey = await prisma().journey.findUnique({
-    where: { id: journeyId, workspaceId },
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.id, journeyId),
+      eq(dbJourney.workspaceId, workspaceId),
+    ),
   });
   if (!journey) {
     return false;

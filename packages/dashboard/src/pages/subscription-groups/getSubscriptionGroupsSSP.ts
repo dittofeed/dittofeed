@@ -1,5 +1,8 @@
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { eq } from "drizzle-orm";
 import {
   ChannelType,
   CompletionStatus,
@@ -9,7 +12,6 @@ import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
@@ -31,12 +33,10 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
       name = `Subscription Group - ${id}`;
     }
     const workspaceId = dfContext.workspace.id;
-    const subscriptionGroup = await prisma().subscriptionGroup.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        Segment: true,
+    const subscriptionGroup = await db().query.subscriptionGroup.findFirst({
+      where: eq(schema.subscriptionGroup.id, id),
+      with: {
+        segments: true,
       },
     });
 
@@ -46,7 +46,7 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
       serverInitialState.subscriptionGroups = [resource];
       serverInitialState.editedSubscriptionGroup = resource;
 
-      const segment = subscriptionGroup.Segment[0];
+      const segment = subscriptionGroup.segments[0];
 
       const segmentResource = segment
         ? toSegmentResource(segment).unwrapOr(null)

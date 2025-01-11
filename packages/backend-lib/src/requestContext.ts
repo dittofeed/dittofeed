@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { Prisma, WorkspaceStatus } from "@prisma/client";
+import { and, eq, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -7,97 +7,93 @@ import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import { db } from "./db";
+import {
+  workspace as dbWorkspace,
+  workspaceMembeAccount as dbWorkspaceMembeAccount,
+  workspaceMember as dbWorkspaceMember,
+  workspaceMemberRole as dbWorkspaceMemberRole,
+} from "./db/schema";
+import logger from "./logger";
 import { withSpan } from "./openTelemetry";
-import prisma from "./prisma";
 import {
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
-  Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
-  WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
+  WorkspaceStatusDb,
+  WorkspaceStatusDbEnum,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
 
-type RoleWithWorkspace = WorkspaceMemberRole & { workspace: Workspace };
-
-type MemberWithRoles = WorkspaceMember & {
-  WorkspaceMemberRole: RoleWithWorkspace[];
-};
-
 interface RolesWithWorkspace {
   workspace:
     | (WorkspaceResource & {
-        status: WorkspaceStatus;
+        status: WorkspaceStatusDb;
       })
     | null;
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
 async function findAndCreateRoles(
-  member: MemberWithRoles,
+  member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
-  const or: Prisma.WorkspaceWhereInput[] = [
-    {
-      WorkspaceMemberRole: {
-        some: {
-          workspaceMemberId: member.id,
-        },
-      },
-    },
-  ];
-  if (domain) {
-    or.push({ domain });
-  }
 
-  const workspaces = await prisma().workspace.findMany({
-    where: {
-      OR: or,
-    },
-    include: {
-      WorkspaceMemberRole: {
-        where: {
-          workspaceMemberId: member.id,
-        },
-      },
-    },
-  });
+  const workspaces = await db()
+    .select()
+    .from(dbWorkspace)
+    .leftJoin(
+      dbWorkspaceMemberRole,
+      and(
+        eq(dbWorkspaceMemberRole.workspaceId, dbWorkspace.id),
+        eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
+      ),
+    )
+    .where(
+      or(
+        eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
+        domain ? eq(dbWorkspace.domain, domain) : undefined,
+      ),
+    );
 
   const domainWorkspacesWithoutRole = workspaces.filter(
-    (w) => w.WorkspaceMemberRole.length === 0,
+    (w) => w.WorkspaceMemberRole === null,
   );
-  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
+  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole ?? []);
   if (domainWorkspacesWithoutRole.length !== 0) {
-    const newRoles = await Promise.all(
-      domainWorkspacesWithoutRole.map((w) =>
-        prisma().workspaceMemberRole.upsert({
-          where: {
-            workspaceId_workspaceMemberId: {
-              workspaceId: w.id,
+    const newRoles = (
+      await Promise.all(
+        domainWorkspacesWithoutRole.map((w) =>
+          db()
+            .insert(dbWorkspaceMemberRole)
+            .values({
+              workspaceId: w.Workspace.id,
               workspaceMemberId: member.id,
-            },
-          },
-          update: {},
-          create: {
-            workspaceId: w.id,
-            workspaceMemberId: member.id,
-            role: "Admin",
-          },
-        }),
-      ),
+              role: "Admin",
+            })
+            .onConflictDoNothing()
+            .returning(),
+        ),
+      )
+    ).flat();
+    logger().debug(
+      {
+        newRoles,
+      },
+      "new roles",
     );
     for (const role of newRoles) {
       roles.push(role);
     }
   }
   const workspaceById = workspaces.reduce((acc, w) => {
-    acc.set(w.id, w);
+    acc.set(w.Workspace.id, w.Workspace);
     return acc;
   }, new Map<string, WorkspaceResource>());
 
@@ -119,7 +115,9 @@ async function findAndCreateRoles(
     const lastWorkspaceRole = roles.find(
       (r) => r.workspaceId === member.lastWorkspaceId,
     );
-    const workspace = workspaces.find((w) => w.id === member.lastWorkspaceId);
+    const workspace = workspaces.find(
+      (w) => w.Workspace.id === member.lastWorkspaceId,
+    )?.Workspace;
     if (lastWorkspaceRole && workspace) {
       return { memberRoles, workspace };
     }
@@ -128,13 +126,29 @@ async function findAndCreateRoles(
   roles = sortBy(roles, (r) => r.createdAt.getTime());
   const role = roles[0];
   if (!role) {
+    logger().debug(
+      {
+        roles,
+      },
+      "missing role",
+    );
     return {
       memberRoles,
       workspace: null,
     };
   }
-  const workspace = workspaces.find((w) => w.id === role.workspaceId);
+  const workspace = workspaces.find(
+    (w) => w.Workspace.id === role.workspaceId,
+  )?.Workspace;
+
   if (!workspace) {
+    logger().debug(
+      {
+        role,
+        workspaces,
+      },
+      "missing workspace no role found",
+    );
     return {
       memberRoles,
       workspace: null,
@@ -194,87 +208,91 @@ export async function getMultiTenantRequestContext({
   }
 
   // eslint-disable-next-line prefer-const
-  let [member, account] = await Promise.all([
-    prisma().workspaceMember.findUnique({
-      where: { email },
-      include: {
-        WorkspaceMemberRole: {
-          take: 1,
-          include: {
+  let [existingMember, account] = await Promise.all([
+    db().query.workspaceMember.findFirst({
+      where: eq(dbWorkspaceMember.email, email),
+      with: {
+        workspaceMemberRoles: {
+          limit: 1,
+          with: {
             workspace: true,
           },
         },
       },
     }),
-    prisma().workspaceMembeAccount.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: authProvider,
-          providerAccountId: sub,
-        },
-      },
+    db().query.workspaceMembeAccount.findFirst({
+      where: and(
+        eq(dbWorkspaceMembeAccount.provider, authProvider),
+        eq(dbWorkspaceMembeAccount.providerAccountId, sub),
+      ),
     }),
   ]);
 
-  let memberWithRole: MemberWithRoles;
+  let member: WorkspaceMember;
   if (
-    !member ||
-    member.emailVerified !== email_verified ||
-    member.image !== picture
+    !existingMember ||
+    existingMember.emailVerified !== email_verified ||
+    existingMember.image !== picture
   ) {
-    memberWithRole = await prisma().workspaceMember.upsert({
-      where: { email },
-      create: {
+    const [updatedMember] = await db()
+      .insert(dbWorkspaceMember)
+      .values({
+        id: existingMember?.id,
         email,
         emailVerified: email_verified,
         image: picture,
         name,
         nickname,
-      },
-      include: {
-        WorkspaceMemberRole: {
-          take: 1,
-          include: {
-            workspace: true,
-          },
+      })
+      .onConflictDoUpdate({
+        target: existingMember
+          ? [dbWorkspaceMember.id]
+          : [dbWorkspaceMember.email],
+        set: {
+          emailVerified: email_verified,
+          image: picture,
+          name,
+          nickname,
         },
-      },
-      update: {
-        emailVerified: email_verified,
-        image: picture,
+      })
+      .returning();
+    if (!updatedMember) {
+      logger().error("Failed to update member", {
+        email,
+        email_verified,
+        picture,
         name,
         nickname,
-      },
-    });
+      });
+      return err({
+        type: RequestContextErrorType.ApplicationError,
+        message: "Failed to update member",
+      });
+    }
+    member = updatedMember;
   } else {
-    memberWithRole = member;
+    member = existingMember;
   }
 
   if (!account) {
-    await prisma().workspaceMembeAccount.upsert({
-      where: {
-        provider_providerAccountId: {
-          provider: authProvider,
-          providerAccountId: sub,
-        },
-      },
-      create: {
+    await db()
+      .insert(dbWorkspaceMembeAccount)
+      .values({
         provider: authProvider,
         providerAccountId: sub,
-        workspaceMemberId: memberWithRole.id,
-      },
-      update: {},
-    });
+        workspaceMemberId: member.id,
+      })
+      .onConflictDoNothing();
   }
-  if (!memberWithRole.email) {
+  if (!member.email) {
     return err({
       type: RequestContextErrorType.ApplicationError,
       message: "User missing email",
     });
   }
 
-  const { workspace, memberRoles } = await findAndCreateRoles(memberWithRole);
-  if (workspace !== null && workspace.status !== WorkspaceStatus.Active) {
+  const { workspace, memberRoles } = await findAndCreateRoles(member);
+  if (workspace !== null && workspace.status !== WorkspaceStatusDbEnum.Active) {
     return err({
       type: RequestContextErrorType.WorkspaceInactive,
       message: "Workspace is not active",
@@ -282,13 +300,13 @@ export async function getMultiTenantRequestContext({
     });
   }
   const memberResouce: WorkspaceMemberResource = {
-    id: memberWithRole.id,
-    email: memberWithRole.email,
-    emailVerified: memberWithRole.emailVerified,
-    name: memberWithRole.name ?? undefined,
-    nickname: memberWithRole.nickname ?? undefined,
-    picture: memberWithRole.image ?? undefined,
-    createdAt: memberWithRole.createdAt.toISOString(),
+    id: member.id,
+    email: member.email,
+    emailVerified: member.emailVerified,
+    name: member.name ?? undefined,
+    nickname: member.nickname ?? undefined,
+    picture: member.image ?? undefined,
+    createdAt: member.createdAt.toISOString(),
   };
 
   if (!workspace) {
@@ -308,7 +326,7 @@ export async function getMultiTenantRequestContext({
 }
 
 async function getAnonymousRequestContext(): Promise<RequestContextResult> {
-  const workspace = await prisma().workspace.findFirst();
+  const workspace = await db().query.workspace.findFirst();
   if (!workspace) {
     return err({
       type: RequestContextErrorType.ApplicationError,

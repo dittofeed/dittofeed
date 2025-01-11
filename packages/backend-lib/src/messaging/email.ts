@@ -1,13 +1,17 @@
-import { EmailProvider } from "@prisma/client";
+import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { defaultEmailoContent } from "emailo";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   BadWorkspaceConfigurationType,
   ChannelType,
   DefaultEmailProviderResource,
   EmailContentsType,
   EmailProviderType,
+  EmailProviderTypeSchema,
   EmailTemplateResource,
   MessageTemplateRenderError,
   PersistedEmailProvider,
@@ -16,8 +20,13 @@ import {
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
+import { db, upsert } from "../db";
+import {
+  defaultEmailProvider as dbDefaultEmailProvider,
+  emailProvider as dbEmailProvider,
+  secret as dbSecret,
+} from "../db/schema";
 import logger from "../logger";
-import prisma from "../prisma";
 import { generateSubscriptionChangeUrl } from "../subscriptionGroups";
 
 const LIST_UNSUBSCRIBE_POST = "List-Unsubscribe=One-Click" as const;
@@ -73,49 +82,57 @@ export async function upsertEmailProvider({
   workspaceId,
   config,
   setDefault,
-}: UpsertEmailProviderRequest): Promise<EmailProvider | null> {
+}: UpsertEmailProviderRequest): Promise<PersistedEmailProvider | null> {
   const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
-  const secret = await prisma().secret.upsert({
-    where: {
-      workspaceId_name: {
+  const secret = unwrap(
+    await upsert({
+      table: dbSecret,
+      target: [dbSecret.workspaceId, dbSecret.name],
+      values: {
         workspaceId,
         name: secretName,
+        configValue: config,
       },
-    },
-    create: {
-      workspaceId,
-      name: secretName,
-      configValue: config,
-    },
-    update: {
-      configValue: config,
-    },
-  });
+      set: {
+        configValue: config,
+      },
+    }),
+  );
 
-  const ep = await prisma().emailProvider.upsert({
-    where: {
-      workspaceId_type: {
-        workspaceId,
-        type: config.type,
-      },
-    },
-    create: {
+  const [emailProvider] = await db()
+    .insert(dbEmailProvider)
+    .values({
+      id: randomUUID(),
       workspaceId,
       type: config.type,
       secretId: secret.id,
-    },
-    update: {},
-  });
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (!emailProvider) {
+    throw new Error("Failed to upsert email provider");
+  }
+  const type = unwrap(
+    schemaValidateWithErr(emailProvider.type, EmailProviderTypeSchema),
+  );
+
   if (setDefault) {
-    await prisma().defaultEmailProvider.upsert({
-      where: { workspaceId },
-      create: { workspaceId, emailProviderId: ep.id },
-      update: {
-        emailProviderId: ep.id,
+    await upsert({
+      table: dbDefaultEmailProvider,
+      target: [
+        dbDefaultEmailProvider.workspaceId,
+        dbDefaultEmailProvider.emailProviderId,
+      ],
+      values: {
+        workspaceId,
+        emailProviderId: emailProvider.id,
+      },
+      set: {
+        emailProviderId: emailProvider.id,
       },
     });
   }
-  return ep;
+  return { ...emailProvider, type };
 }
 
 export async function getOrCreateEmailProviders({
@@ -123,30 +140,14 @@ export async function getOrCreateEmailProviders({
 }: {
   workspaceId: string;
 }): Promise<PersistedEmailProvider[]> {
-  const emailProviders = await prisma().emailProvider.findMany({
-    where: { workspaceId },
-  });
-
-  const upsertPromises: Promise<unknown>[] = [];
-  for (const typeKey in EmailProviderType) {
-    const type = EmailProviderType[typeKey as keyof typeof EmailProviderType];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    const missing = emailProviders.find((ep) => ep.type === type) === undefined;
-    if (missing) {
-      upsertPromises.push(
-        upsertEmailProvider({
-          workspaceId,
-          config: { type },
-        }).then((ep) => {
-          if (ep) {
-            emailProviders.push(ep);
-          }
-        }),
-      );
-    }
-  }
-  await Promise.all(upsertPromises);
-  const val = emailProviders.flatMap((ep) => {
+  const emailProviders: PersistedEmailProvider[] = (
+    await db().query.emailProvider.findMany({
+      where: eq(dbEmailProvider.workspaceId, workspaceId),
+      with: {
+        secret: true,
+      },
+    })
+  ).flatMap((ep) => {
     let type: EmailProviderType;
     switch (ep.type) {
       case EmailProviderType.Test:
@@ -181,7 +182,27 @@ export async function getOrCreateEmailProviders({
       type,
     };
   });
-  return val;
+
+  const upsertPromises: Promise<unknown>[] = [];
+  for (const typeKey in EmailProviderType) {
+    const type = EmailProviderType[typeKey as keyof typeof EmailProviderType];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const missing = emailProviders.find((ep) => ep.type === type) === undefined;
+    if (missing) {
+      upsertPromises.push(
+        upsertEmailProvider({
+          workspaceId,
+          config: { type },
+        }).then((ep) => {
+          if (ep) {
+            emailProviders.push(ep);
+          }
+        }),
+      );
+    }
+  }
+  await Promise.all(upsertPromises);
+  return emailProviders;
 }
 
 export const defaultEmailBody = `<!DOCTYPE html>

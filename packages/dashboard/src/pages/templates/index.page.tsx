@@ -14,8 +14,10 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import * as schema from "backend-lib/src/db/schema";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messaging";
+import { and, eq } from "drizzle-orm";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import {
@@ -71,9 +73,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       findMessageTemplates({
         workspaceId,
       }),
-      findManyJourneyResourcesUnsafe({
-        where: { workspaceId, resourceType: "Declarative" },
-      }),
+      findManyJourneyResourcesUnsafe(
+        and(
+          eq(schema.journey.workspaceId, workspaceId),
+          eq(schema.journey.resourceType, "Declarative"),
+        ),
+      ),
     ]);
 
     const messages: AppState["messages"] = {

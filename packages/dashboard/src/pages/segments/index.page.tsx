@@ -2,9 +2,11 @@ import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { Tooltip } from "@mui/material";
 import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
+import * as schema from "backend-lib/src/db/schema";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findManyPartialSegments } from "backend-lib/src/segments";
 import { ComputedPropertyStep } from "backend-lib/src/types";
+import { and, eq } from "drizzle-orm";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { pick } from "remeda";
@@ -23,9 +25,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const workspaceId = dfContext.workspace.id;
     const [segmentResources, journeyResources] = await Promise.all([
       findManyPartialSegments({ workspaceId }),
-      findManyJourneyResourcesUnsafe({
-        where: { workspaceId, resourceType: "Declarative" },
-      }),
+      findManyJourneyResourcesUnsafe(
+        and(
+          eq(schema.journey.workspaceId, workspaceId),
+          eq(schema.journey.resourceType, "Declarative"),
+        ),
+      ),
     ]);
     const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
       workspaceId,

@@ -1,4 +1,4 @@
-import { Broadcast } from "@prisma/client";
+import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
@@ -18,14 +18,23 @@ import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
+import { db, insert } from "./db";
+import {
+  broadcast as dbBroadcast,
+  defaultEmailProvider as dbDefaultEmailProvider,
+  journey as dbJourney,
+  messageTemplate as dbMessageTemplate,
+  segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
 import { enrichMessageTemplate } from "./messaging";
 import { defaultEmailDefinition } from "./messaging/email";
-import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
+import { Broadcast } from "./types";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -86,37 +95,30 @@ export async function getBroadcast({
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
+
   const [broadcast, segment, messageTemplate] = await Promise.all([
-    prisma().broadcast.findUnique({
-      where: {
-        id,
-      },
+    db().query.broadcast.findFirst({
+      where: eq(dbBroadcast.id, id),
     }),
-    prisma().segment.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastSegmentName,
-        },
-      },
+    db().query.segment.findFirst({
+      where: and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.name, broadcastSegmentName),
+      ),
     }),
-    prisma().messageTemplate.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastTemplateName,
-        },
-      },
+    db().query.messageTemplate.findFirst({
+      where: and(
+        eq(dbMessageTemplate.workspaceId, workspaceId),
+        eq(dbMessageTemplate.name, broadcastTemplateName),
+      ),
     }),
   ]);
 
-  const journey = await prisma().journey.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: broadcastJourneyName,
-      },
-    },
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.workspaceId, workspaceId),
+      eq(dbJourney.name, broadcastJourneyName),
+    ),
   });
 
   if (!broadcast || !segment || !messageTemplate || !journey) {
@@ -179,13 +181,10 @@ export async function upsertBroadcast({
   if (mDefinition) {
     messageTemplateDefinition = mDefinition;
   } else {
-    const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique(
-      {
-        where: {
-          workspaceId,
-        },
-      },
-    );
+    const defaultEmailProvider =
+      await db().query.defaultEmailProvider.findFirst({
+        where: eq(dbDefaultEmailProvider.workspaceId, workspaceId),
+      });
     messageTemplateDefinition = defaultEmailDefinition({
       emailContentsType: EmailContentsType.LowCode,
       emailProvider: defaultEmailProvider ?? undefined,
@@ -196,51 +195,42 @@ export async function upsertBroadcast({
     "Broadcast definitions",
   );
   const [segment, messageTemplate, subscriptionGroup] = await Promise.all([
-    prisma().segment.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastSegmentName,
-        },
-      },
-      create: {
+    insert({
+      table: dbSegment,
+      doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.name, broadcastSegmentName),
+      )!,
+      values: {
         workspaceId,
         name: broadcastSegmentName,
         definition: segmentDefinition,
         resourceType: "Internal",
         status: "NotStarted",
       },
-      update: {},
-    }),
-    prisma().messageTemplate.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: broadcastTemplateName,
-        },
-      },
-      create: {
+    }).then(unwrap),
+    insert({
+      table: dbMessageTemplate,
+      doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbMessageTemplate.workspaceId, workspaceId),
+        eq(dbMessageTemplate.name, broadcastTemplateName),
+      )!,
+      values: {
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
         definition: messageTemplateDefinition,
       },
-      update: {},
+    }).then(unwrap),
+    db().query.subscriptionGroup.findFirst({
+      where: and(
+        eq(dbSubscriptionGroup.workspaceId, workspaceId),
+        eq(dbSubscriptionGroup.channel, mDefinition?.type ?? ChannelType.Email),
+      ),
+      orderBy: [asc(dbSubscriptionGroup.createdAt)],
     }),
-    sgId
-      ? null
-      : prisma().subscriptionGroup.findFirst({
-          where: {
-            workspaceId,
-            channel: mDefinition?.type ?? ChannelType.Email,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-          select: {
-            id: true,
-          },
-        }),
   ]);
 
   const journeyDefinition: JourneyDefinition = {
@@ -267,36 +257,41 @@ export async function upsertBroadcast({
     },
   };
 
-  const journey = await prisma().journey.upsert({
-    where: {
-      workspaceId_name: {
+  const journey = unwrap(
+    await insert({
+      table: dbJourney,
+      doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbJourney.workspaceId, workspaceId),
+        eq(dbJourney.name, broadcastJourneyName),
+      )!,
+      values: {
         workspaceId,
         name: broadcastJourneyName,
+        definition: journeyDefinition,
+        resourceType: "Internal",
+        status: "Broadcast",
       },
-    },
-    create: {
-      workspaceId,
-      name: broadcastJourneyName,
-      definition: journeyDefinition,
-      resourceType: "Internal",
-      status: "Broadcast",
-    },
-    update: {},
-  });
-  const broadcast = await prisma().broadcast.upsert({
-    where: {
-      id,
-    },
-    create: {
-      id,
-      workspaceId,
-      name,
-      segmentId: segment.id,
-      journeyId: journey.id,
-      messageTemplateId: messageTemplate.id,
-    },
-    update: {},
-  });
+    }),
+  );
+  const broadcast = unwrap(
+    await insert({
+      table: dbBroadcast,
+      doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbBroadcast.id, id),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      )!,
+      values: {
+        id,
+        workspaceId,
+        name,
+        segmentId: segment.id,
+        journeyId: journey.id,
+        messageTemplateId: messageTemplate.id,
+      },
+    }),
+  );
 
   const journeyResource = unwrap(toJourneyResource(journey));
   if (journeyResource.status !== "Broadcast") {
@@ -332,11 +327,23 @@ export async function triggerBroadcast({
   workspaceId: string;
 }): Promise<BroadcastResource> {
   const temporalClient = await connectWorkflowClient();
-  const broadcast = await prisma().broadcast.findUniqueOrThrow({
-    where: {
-      id: broadcastId,
-    },
+  const broadcast = await db().query.broadcast.findFirst({
+    where: and(
+      eq(dbBroadcast.id, broadcastId),
+      eq(dbBroadcast.workspaceId, workspaceId),
+    ),
   });
+  if (!broadcast) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast not found",
+    );
+    throw new Error("Broadcast not found");
+  }
+
   if (broadcast.status !== "NotStarted") {
     logger().error(
       {
@@ -368,13 +375,28 @@ export async function triggerBroadcast({
     }
   }
 
-  const updatedBroadcast = await prisma().broadcast.update({
-    where: {
-      id: broadcastId,
-    },
-    data: {
+  const [updatedBroadcast] = await db()
+    .update(dbBroadcast)
+    .set({
       status: "InProgress",
-    },
-  });
+    })
+    .where(
+      and(
+        eq(dbBroadcast.id, broadcastId),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      ),
+    )
+    .returning();
+
+  if (updatedBroadcast == null) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast not found",
+    );
+    throw new Error("Broadcast not found");
+  }
   return toBroadcastResource(updatedBroadcast);
 }

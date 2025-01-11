@@ -2,6 +2,8 @@ import {
   EMAIL_EVENTS_UP_NAME,
   HUBSPOT_INTEGRATION,
 } from "backend-lib/src/constants";
+import { upsert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
   getIntegrationEnabled,
   refreshToken,
@@ -9,9 +11,9 @@ import {
   updateHubspotLists,
 } from "backend-lib/src/integrations/hubspot/activities";
 import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
 import { insertUserPropertyAssignments } from "backend-lib/src/userProperties";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   IntegrationType,
   InternalEventType,
@@ -100,22 +102,21 @@ export async function hubspotSync({
     type: UserPropertyDefinitionType.Trait,
     path: "email",
   };
-  const emailUserProperty = await prisma().userProperty.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: "email",
-      },
-    },
-    create: {
+  const emailUserProperty = await upsert({
+    table: schema.userProperty,
+    values: {
+      id: randomUUID(),
       workspaceId,
       name: "email",
       definition,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
-    update: {
+    target: [schema.userProperty.workspaceId, schema.userProperty.name],
+    set: {
       definition,
     },
-  });
+  }).then(unwrap);
 
   const emailValue = JSON.stringify(email);
   await insertUserPropertyAssignments([
@@ -146,48 +147,45 @@ export async function hubspotSync({
     nodes: [],
   };
   const segmentName = "integrationExampleSegment-2";
-  const segment = await prisma().segment.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: segmentName,
-      },
-    },
-    create: {
+  const segment = await upsert({
+    table: schema.segment,
+    values: {
+      id: randomUUID(),
       workspaceId,
       name: segmentName,
       definition: segmentDefinition,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
-    update: {
+    target: [schema.segment.workspaceId, schema.segment.name],
+    set: {
       definition: segmentDefinition,
     },
-  });
+  }).then(unwrap);
+
   const integrationDefinition: SyncIntegration = {
     type: IntegrationType.Sync,
     subscribedSegments: [segment.name],
     subscribedUserProperties: [EMAIL_EVENTS_UP_NAME],
   };
 
-  await prisma().integration.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: HUBSPOT_INTEGRATION,
-      },
-    },
-    create: {
+  await upsert({
+    table: schema.integration,
+    values: {
+      id: randomUUID(),
       workspaceId,
       name: HUBSPOT_INTEGRATION,
       enabled: true,
       definition: integrationDefinition,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
-    update: {
-      workspaceId,
-      name: HUBSPOT_INTEGRATION,
+    target: [schema.integration.workspaceId, schema.integration.name],
+    set: {
       enabled: true,
       definition: integrationDefinition,
     },
-  });
+  }).then(unwrap);
 
   await updateHubspotLists({
     workspaceId,

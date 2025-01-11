@@ -1,7 +1,10 @@
+import { db, insert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
 import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -13,7 +16,6 @@ import SmsEditor from "../../../components/messages/smsEditor";
 import TemplatePageContent from "../../../components/messages/templatePageContent";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
 
@@ -33,29 +35,32 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const [smsTemplate, userProperties] = await Promise.all([
-      prisma().messageTemplate.findUnique({
-        where: {
-          id,
-        },
+      db().query.messageTemplate.findFirst({
+        where: and(
+          eq(schema.messageTemplate.id, id),
+          eq(schema.messageTemplate.workspaceId, dfContext.workspace.id),
+        ),
       }),
-      prisma().userProperty.findMany({
-        where: {
-          workspaceId: dfContext.workspace.id,
-        },
+      db().query.userProperty.findMany({
+        where: eq(schema.userProperty.workspaceId, dfContext.workspace.id),
       }),
     ]);
     let smsTemplateWithDefault: MessageTemplate;
     if (!smsTemplate) {
-      smsTemplateWithDefault = await prisma().messageTemplate.upsert({
-        where: { id },
-        create: {
+      smsTemplateWithDefault = await insert({
+        table: schema.messageTemplate,
+        values: {
           workspaceId: dfContext.workspace.id,
           name: name ?? `New SMS Message - ${id}`,
           id,
           definition: defaultSmsDefinition(),
         },
-        update: {},
-      });
+        lookupExisting: and(
+          eq(schema.messageTemplate.id, id),
+          eq(schema.messageTemplate.workspaceId, dfContext.workspace.id),
+        )!,
+        doNothingOnConflict: true,
+      }).then(unwrap);
     } else {
       smsTemplateWithDefault = smsTemplate;
     }

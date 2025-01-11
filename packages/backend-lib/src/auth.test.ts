@@ -1,22 +1,30 @@
-import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { toBase64 } from "isomorphic-lib/src/encode";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { getOrCreateWriteKey, validateWriteKey } from "./auth";
-import prisma from "./prisma";
+import { db } from "./db";
+import { secret as dbSecret } from "./db/schema";
+import { Workspace } from "./types";
+import { createWorkspace } from "./workspaces";
 
 describe("validateWriteKey", () => {
   let workspace: Workspace;
   let valid: string | null;
+  beforeEach(async () => {
+    workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: randomUUID(),
+        updatedAt: new Date(),
+      }),
+    );
+  });
 
   describe("when write key is valid", () => {
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
       const writeKey = await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",
@@ -51,22 +59,15 @@ describe("validateWriteKey", () => {
 
   describe("when write key has the wrong value", () => {
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
       await getOrCreateWriteKey({
         workspaceId: workspace.id,
         writeKeyName: "test",
       });
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            workspaceId: workspace.id,
-            name: "test",
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, "test"),
+        ),
       });
       const secretID = `${secret?.id ?? ""}:wrong`;
       valid = await validateWriteKey({

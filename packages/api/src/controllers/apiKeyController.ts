@@ -1,7 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
-import prisma from "backend-lib/src/prisma";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
+import { and, eq } from "drizzle-orm";
 import {
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
@@ -57,12 +59,14 @@ export default async function apiKeyController(
     },
     async (request, reply) => {
       const { id, workspaceId }: DeleteAdminApiKeyRequest = request.query;
-      await prisma().adminApiKey.delete({
-        where: {
-          workspaceId,
-          id,
-        },
-      });
+      await db()
+        .delete(schema.adminApiKey)
+        .where(
+          and(
+            eq(schema.adminApiKey.workspaceId, workspaceId),
+            eq(schema.adminApiKey.id, id),
+          ),
+        );
 
       return reply.status(200).send();
     },

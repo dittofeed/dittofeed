@@ -1,9 +1,10 @@
 import { List, ListItem, ListItemText, Stack } from "@mui/material";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
-// Import or define the toSegmentResource function
 import { toSegmentResource } from "backend-lib/src/segments";
 import { getUsers } from "backend-lib/src/users";
+import { eq } from "drizzle-orm";
 import {
   CompletionStatus,
   GetUsersResponse,
@@ -35,10 +36,8 @@ export const getServerSideProps: GetServerSideProps<
       workspaceId: dfContext.workspace.id,
       userIds: [userId],
     }),
-    prisma().segment.findMany({
-      where: {
-        workspaceId: dfContext.workspace.id,
-      },
+    db().query.segment.findMany({
+      where: eq(schema.segment.workspaceId, dfContext.workspace.id),
     }),
   ]);
 

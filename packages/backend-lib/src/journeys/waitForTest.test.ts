@@ -1,10 +1,13 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import prisma from "../prisma";
+import { insert } from "../db";
+import { journey as dbJourney, segment as dbSegment } from "../db/schema";
+import { insertSegmentAssignments } from "../segments";
 import {
   ChannelType,
   EmailProviderType,
@@ -19,13 +22,13 @@ import {
   TraitSegmentNode,
   Workspace,
 } from "../types";
+import { createWorkspace } from "../workspaces";
 import {
   segmentUpdateSignal,
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
-import { insertSegmentAssignments } from "../segments";
 
 jest.setTimeout(15000);
 
@@ -57,11 +60,11 @@ describe("journeys with wait-for nodes", () => {
   };
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
+    workspace = unwrap(
+      await createWorkspace({
         name: `event-entry-${randomUUID()}`,
-      },
-    });
+      }),
+    );
 
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
@@ -149,30 +152,37 @@ describe("journeys with wait-for nodes", () => {
       };
 
       [journey] = await Promise.all([
-        prisma().journey.create({
-          data: {
+        insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
             name: "wait-for-test",
             definition: journeyDefinition,
             workspaceId: workspace.id,
+            updatedAt: new Date(),
             status: "Running",
           },
-        }),
-        prisma().segment.create({
-          data: {
+        }).then(unwrap),
+        insert({
+          table: dbSegment,
+          values: {
             id: entrySegmentId,
             name: "entry-segment",
             definition: entrySegmentDefinition,
             workspaceId: workspace.id,
+            updatedAt: new Date(),
           },
         }),
-        prisma().segment.create({
-          data: {
+        insert({
+          table: dbSegment,
+          values: {
             id: waitForSegmentId,
             name: "wait-for-segment",
             definition: waitForSegmentDefinition,
             workspaceId: workspace.id,
+            updatedAt: new Date(),
           },
-        }),
+        }).then(unwrap),
       ]);
       await insertSegmentAssignments([
         {

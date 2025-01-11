@@ -1,8 +1,13 @@
-import { Segment, UserProperty, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { clickhouseClient } from "./clickhouse";
-import prisma from "./prisma";
+import { insert } from "./db";
+import {
+  segment as dbSegment,
+  userProperty as dbUserProperty,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import {
   buildSegmentsFile,
   findAllSegmentAssignments,
@@ -11,14 +16,15 @@ import {
   upsertSegment,
 } from "./segments";
 import {
-  IdUserPropertyDefinition,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
   TraitSegmentNode,
-  TraitUserPropertyDefinition,
   UpsertSegmentValidationErrorType,
+  UserProperty,
   UserPropertyDefinitionType,
+  Workspace,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 
@@ -26,12 +32,18 @@ describe("segments", () => {
   let workspace: Workspace;
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: {
-        name: `test-${randomUUID()}`,
-      },
-    });
+    workspace = unwrap(
+      await insert({
+        table: dbWorkspace,
+        values: {
+          id: randomUUID(),
+          name: `workspace-${randomUUID()}`,
+          updatedAt: new Date(),
+        },
+      }),
+    );
   });
+
   describe("buildSegmentsFile", () => {
     let userIdProperty: UserProperty;
     let emailProperty: UserProperty;
@@ -40,87 +52,102 @@ describe("segments", () => {
 
     beforeEach(async () => {
       userId = randomUUID();
-      const segment = await prisma().segment.create({
-        data: {
-          name: "test",
-          workspaceId: workspace.id,
-          definition: {
-            id: randomUUID(),
-            type: SegmentNodeType.Trait,
-            path: "name",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "test",
-            },
-          } satisfies TraitSegmentNode,
-        },
-      });
-      [userIdProperty, emailProperty, phoneProperty] = await Promise.all([
-        prisma().userProperty.create({
-          data: {
-            name: "id",
+      const segmentId = randomUUID();
+      await Promise.all([
+        insert({
+          table: dbSegment,
+          values: {
+            id: segmentId,
             workspaceId: workspace.id,
+            name: "test",
+            updatedAt: new Date(),
             definition: {
-              type: UserPropertyDefinitionType.Id,
-            } satisfies IdUserPropertyDefinition,
+              id: randomUUID(),
+              type: SegmentNodeType.Trait,
+              path: "name",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            } satisfies TraitSegmentNode,
           },
-        }),
-        prisma().userProperty.create({
-          data: {
-            name: "email",
-            workspaceId: workspace.id,
-            definition: {
-              type: UserPropertyDefinitionType.Trait,
-              path: "email",
-            } satisfies TraitUserPropertyDefinition,
-          },
-        }),
-        prisma().userProperty.create({
-          data: {
-            name: "phone",
-            workspaceId: workspace.id,
-            definition: {
-              type: UserPropertyDefinitionType.Trait,
-              path: "phone",
-            } satisfies TraitUserPropertyDefinition,
-          },
-        }),
+        }).then(unwrap),
         insertSegmentAssignments([
           {
             workspaceId: workspace.id,
             userId,
-            segmentId: segment.id,
+            segmentId,
             inSegment: true,
           },
         ]),
+      ]);
+
+      [userIdProperty, emailProperty, phoneProperty] = await Promise.all([
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "id",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
+          },
+        }).then(unwrap),
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "email",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "email",
+            },
+          },
+        }).then(unwrap),
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "phone",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "phone",
+            },
+          },
+        }).then(unwrap),
       ]);
     });
 
     describe("when the identifiers contain valid values", () => {
       beforeEach(async () => {
-        await Promise.all([
-          insertUserPropertyAssignments([
-            {
-              workspaceId: workspace.id,
-              userId,
-              userPropertyId: userIdProperty.id,
-              value: "123",
-            },
-            {
-              workspaceId: workspace.id,
-              userId,
-              userPropertyId: emailProperty.id,
-              value: "test@test.com",
-            },
-            {
-              userId,
-              userPropertyId: phoneProperty.id,
-              value: "1234567890",
-              workspaceId: workspace.id,
-            },
-          ]),
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: userIdProperty.id,
+            value: "123",
+          },
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: emailProperty.id,
+            value: "test@test.com",
+          },
+          {
+            userId,
+            userPropertyId: phoneProperty.id,
+            value: "1234567890",
+            workspaceId: workspace.id,
+          },
         ]);
       });
+
       it("generates a file name with its contents", async () => {
         const { fileName, fileContent } = await buildSegmentsFile({
           workspaceId: workspace.id,
@@ -131,45 +158,49 @@ describe("segments", () => {
       });
     });
   });
+
   describe("findAllSegmentAssignments", () => {
-    let segment: Segment;
     let userId: string;
+    let segment: Segment;
+
     beforeEach(async () => {
       userId = randomUUID();
       const segmentId = randomUUID();
-      [segment] = await Promise.all([
-        prisma().segment.create({
-          data: {
-            name: "test",
-            workspaceId: workspace.id,
-            id: segmentId,
-            definition: {
-              id: randomUUID(),
-              type: SegmentNodeType.Trait,
-              path: "name",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: "test",
-              },
+      segment = await insert({
+        table: dbSegment,
+        values: {
+          id: segmentId,
+          workspaceId: workspace.id,
+          name: "test",
+          updatedAt: new Date(),
+          definition: {
+            id: randomUUID(),
+            type: SegmentNodeType.Trait,
+            path: "name",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "test",
             },
           },
-        }),
-        insertSegmentAssignments([
-          {
-            workspaceId: workspace.id,
-            userId,
-            segmentId,
-            inSegment: true,
-          },
-          {
-            workspaceId: workspace.id,
-            userId: randomUUID(),
-            segmentId,
-            inSegment: false,
-          },
-        ]),
+        },
+      }).then(unwrap);
+
+      await insertSegmentAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          segmentId,
+          inSegment: true,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: randomUUID(),
+          segmentId,
+          inSegment: false,
+        },
       ]);
     });
+
     it("returns the segment assignments for the workspace", async () => {
       const assignments = await findAllSegmentAssignments({
         workspaceId: workspace.id,
@@ -236,6 +267,7 @@ describe("segments", () => {
         clickhouse_settings: { wait_end_of_query: 1 },
       });
     });
+
     it("returns the users that have been added to the segment recently", async () => {
       const users = await findRecentlyUpdatedUsersInSegment({
         workspaceId: workspace.id,
@@ -246,14 +278,23 @@ describe("segments", () => {
       expect(users).toEqual([{ userId: "1" }]);
     });
   });
+
   describe("upsertSegment", () => {
     describe("when a segment is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;
       beforeEach(async () => {
-        secondWorkspace = await prisma().workspace.create({
-          data: { name: randomUUID() },
-        });
+        secondWorkspace = unwrap(
+          await insert({
+            table: dbWorkspace,
+            values: {
+              id: randomUUID(),
+              name: randomUUID(),
+              updatedAt: new Date(),
+            },
+          }),
+        );
       });
+
       it("returns a unique constraint violation error", async () => {
         const id = randomUUID();
         const result = await upsertSegment({
@@ -292,11 +333,9 @@ describe("segments", () => {
             nodes: [],
           } satisfies SegmentDefinition,
         });
-        const errorType = secondResult.isErr() && secondResult.error.type;
-        expect(
-          errorType,
-          "second upsert should fail with unique constraint violation",
-        ).toEqual(UpsertSegmentValidationErrorType.UniqueConstraintViolation);
+        expect(secondResult.isErr() && secondResult.error.type).toEqual(
+          UpsertSegmentValidationErrorType.UniqueConstraintViolation,
+        );
       });
     });
   });

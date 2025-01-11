@@ -1,4 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
@@ -10,9 +12,9 @@ import {
 import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
 import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
-import prisma from "backend-lib/src/prisma";
-import { Prisma, Secret } from "backend-lib/src/types";
+import { Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
+import { and, eq, inArray } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -87,13 +89,11 @@ export default async function contentController(fastify: FastifyInstance) {
       }
 
       const secrets = (
-        await prisma().secret.findMany({
-          where: {
-            workspaceId,
-            name: {
-              in: secretNames,
-            },
-          },
+        await db().query.secret.findMany({
+          where: and(
+            eq(schema.secret.workspaceId, workspaceId),
+            inArray(schema.secret.name, secretNames),
+          ),
         })
       ).reduce((acc, secret) => {
         acc.set(secret.name, secret);
@@ -182,10 +182,11 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const templateModels = await prisma().messageTemplate.findMany({
-        where: {
-          workspaceId: request.query.workspaceId,
-        },
+      const templateModels = await db().query.messageTemplate.findMany({
+        where: eq(
+          schema.messageTemplate.workspaceId,
+          request.query.workspaceId,
+        ),
       });
       const templates = templateModels.map((t) =>
         unwrap(enrichMessageTemplate(t)),
@@ -235,10 +236,8 @@ export default async function contentController(fastify: FastifyInstance) {
       switch (request.body.type) {
         case ChannelType.Email: {
           const defaultEmailProvider =
-            (await prisma().defaultEmailProvider.findUnique({
-              where: {
-                workspaceId,
-              },
+            (await db().query.defaultEmailProvider.findFirst({
+              where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
             })) as DefaultEmailProviderResource | null;
 
           logger().debug(
@@ -274,11 +273,9 @@ export default async function contentController(fastify: FastifyInstance) {
       const { journeyMetadata } = request.body;
       if (journeyMetadata) {
         const { journeyId, nodeId } = journeyMetadata;
-        await prisma().$transaction(async (tx) => {
-          const journey = await tx.journey.findUnique({
-            where: {
-              id: journeyId,
-            },
+        await db().transaction(async (tx) => {
+          const journey = await tx.query.journey.findFirst({
+            where: eq(schema.journey.id, journeyId),
           });
           if (!journey) {
             return;
@@ -298,14 +295,12 @@ export default async function contentController(fastify: FastifyInstance) {
           }
           node.variant.type = request.body.type;
 
-          await tx.journey.update({
-            where: {
-              id: journeyId,
-            },
-            data: {
+          await tx
+            .update(schema.journey)
+            .set({
               definition: journeyDefinition,
-            },
-          });
+            })
+            .where(eq(schema.journey.id, journeyId));
         });
       }
       return reply.status(200).send(resource);
@@ -564,26 +559,21 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const { id, workspaceId } = request.body;
 
-      try {
-        await prisma().messageTemplate.delete({
-          where: {
-            id,
-          },
-        });
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          switch (e.code) {
-            case "P2025":
-              return reply.status(404).send();
-            case "P2023":
-              return reply.status(404).send();
-          }
-        }
-        throw e;
+      const result = await db()
+        .delete(schema.messageTemplate)
+        .where(
+          and(
+            eq(schema.messageTemplate.id, id),
+            eq(schema.messageTemplate.workspaceId, workspaceId),
+          ),
+        )
+        .returning();
+
+      if (result.length === 0) {
+        return reply.status(404).send();
       }
-
       return reply.status(204).send();
     },
   );

@@ -1,12 +1,18 @@
-import { SubscriptionGroup, WorkspaceType } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { bootstrapPostgres } from "./bootstrap";
-import prisma from "./prisma";
+import { db } from "./db";
+import * as schema from "./db/schema";
+import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
-import { SubscriptionChange } from "./types";
+import {
+  SubscriptionChange,
+  SubscriptionGroup,
+  WorkspaceTypeAppEnum,
+} from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 
 describe("subscriptionGroups", () => {
@@ -25,30 +31,29 @@ describe("subscriptionGroups", () => {
       const bootstrapResult = unwrap(
         await bootstrapPostgres({
           workspaceName,
-          workspaceType: WorkspaceType.Root,
+          workspaceType: WorkspaceTypeAppEnum.Root,
         }),
       );
       workspaceId = bootstrapResult.id;
 
       const results = await Promise.all([
-        prisma().userProperty.findUniqueOrThrow({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: "email",
-            },
-          },
+        db().query.userProperty.findFirst({
+          where: and(
+            eq(schema.userProperty.workspaceId, workspaceId),
+            eq(schema.userProperty.name, "email"),
+          ),
         }),
-        prisma().subscriptionGroup.findUniqueOrThrow({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: `${workspaceName} - Email`,
-            },
-          },
+        db().query.subscriptionGroup.findFirst({
+          where: and(
+            eq(schema.subscriptionGroup.workspaceId, workspaceId),
+            eq(schema.subscriptionGroup.name, `${workspaceName} - Email`),
+          ),
         }),
       ]);
       const [up] = results;
+      if (!up || !results[1]) {
+        throw new Error("No user property or subscription group found");
+      }
       // eslint-disable-next-line prefer-destructuring
       subscriptionGroup = results[1];
 
@@ -62,13 +67,11 @@ describe("subscriptionGroups", () => {
       ]);
     });
     it("should generate a valid URL", async () => {
-      const secret = await prisma().secret.findUnique({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: SecretNames.Subscription,
-          },
-        },
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Subscription),
+        ),
       });
       if (!secret?.value) {
         throw new Error("No secret found");

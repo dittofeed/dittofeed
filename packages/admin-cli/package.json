@@ -12,11 +12,15 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@prisma/client": "5.21.1",
     "@sinclair/typebox": "0.32.29",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "cross-spawn": "^7.0.3",
+    "drizzle-kit": "^0.30.1",
+    "drizzle-orm": "^0.38.3",
     "isomorphic-lib": "0.0.3",
+    "prisma": "5.21.1",
     "remeda": "^1.56.0",
     "ts-node": "10.9.1",
     "uuid": "^9.0.0",

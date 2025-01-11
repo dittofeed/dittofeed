@@ -1,26 +1,27 @@
-import {
-  MessageTemplate,
-  Segment,
-  UserProperty,
-  Workspace,
-} from "@prisma/client";
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import prisma from "./prisma";
+import { db, insert } from "./db";
+import * as schema from "./db/schema";
 import { transferResources } from "./transferResources";
 import {
   ChannelType,
+  MessageTemplate,
   PerformedSegmentNode,
   PerformedUserPropertyDefinition,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  UserProperty,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
   WebhookTemplateResource,
+  Workspace,
 } from "./types";
+import { createWorkspace } from "./workspaces";
 
 describe("transferResources", () => {
   describe("when the source workspace has multiple relevant resources", () => {
@@ -32,20 +33,24 @@ describe("transferResources", () => {
 
     beforeEach(async () => {
       [sourceWorkspace, destinationWorkspace] = await Promise.all([
-        prisma().workspace.create({
-          data: {
-            name: `source-workspace-${randomUUID()}`,
-          },
-        }),
-        prisma().workspace.create({
-          data: {
-            name: `destination-workspace-${randomUUID()}`,
-          },
-        }),
+        createWorkspace({
+          id: randomUUID(),
+          name: `source-workspace-${randomUUID()}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).then(unwrap),
+        createWorkspace({
+          id: randomUUID(),
+          name: `destination-workspace-${randomUUID()}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).then(unwrap),
       ]);
 
-      sourceTemplate = await prisma().messageTemplate.create({
-        data: {
+      sourceTemplate = await insert({
+        table: schema.messageTemplate,
+        values: {
+          id: randomUUID(),
           workspaceId: sourceWorkspace.id,
           name: "webhook",
           definition: {
@@ -53,10 +58,15 @@ describe("transferResources", () => {
             identifierKey: "id",
             body: "{}",
           } satisfies WebhookTemplateResource,
+          updatedAt: new Date(),
+          createdAt: new Date(),
         },
-      });
-      sourceUserProperty = await prisma().userProperty.create({
-        data: {
+      }).then(unwrap);
+
+      sourceUserProperty = await insert({
+        table: schema.userProperty,
+        values: {
+          id: randomUUID(),
           workspaceId: sourceWorkspace.id,
           name: "performed",
           definition: {
@@ -80,10 +90,14 @@ describe("transferResources", () => {
               },
             ],
           } satisfies PerformedUserPropertyDefinition,
+          updatedAt: new Date(),
+          createdAt: new Date(),
         },
-      });
-      sourceSegment = await prisma().segment.create({
-        data: {
+      }).then(unwrap);
+      sourceSegment = await insert({
+        table: schema.segment,
+        values: {
+          id: randomUUID(),
           workspaceId: sourceWorkspace.id,
           name: "source-segment",
           definition: {
@@ -103,8 +117,10 @@ describe("transferResources", () => {
             } satisfies PerformedSegmentNode,
             nodes: [],
           } satisfies SegmentDefinition,
+          updatedAt: new Date(),
+          createdAt: new Date(),
         },
-      });
+      }).then(unwrap);
     });
     it("should transfer resources", async () => {
       await transferResources({
@@ -113,31 +129,32 @@ describe("transferResources", () => {
       });
       const [destinationSegment, destinationUserProperty, destinationTemplate] =
         await Promise.all([
-          prisma().segment.findUniqueOrThrow({
-            where: {
-              workspaceId_name: {
-                workspaceId: destinationWorkspace.id,
-                name: sourceSegment.name,
-              },
-            },
+          db().query.segment.findFirst({
+            where: and(
+              eq(schema.segment.workspaceId, destinationWorkspace.id),
+              eq(schema.segment.name, sourceSegment.name),
+            ),
           }),
-          prisma().userProperty.findUniqueOrThrow({
-            where: {
-              workspaceId_name: {
-                workspaceId: destinationWorkspace.id,
-                name: sourceUserProperty.name,
-              },
-            },
+          db().query.userProperty.findFirst({
+            where: and(
+              eq(schema.userProperty.workspaceId, destinationWorkspace.id),
+              eq(schema.userProperty.name, sourceUserProperty.name),
+            ),
           }),
-          prisma().messageTemplate.findUniqueOrThrow({
-            where: {
-              workspaceId_name: {
-                workspaceId: destinationWorkspace.id,
-                name: sourceTemplate.name,
-              },
-            },
+          db().query.messageTemplate.findFirst({
+            where: and(
+              eq(schema.messageTemplate.workspaceId, destinationWorkspace.id),
+              eq(schema.messageTemplate.name, sourceTemplate.name),
+            ),
           }),
         ]);
+      if (
+        !destinationSegment ||
+        !destinationUserProperty ||
+        !destinationTemplate
+      ) {
+        throw new Error("No destination resources found");
+      }
       const destinationSegmentDefinition = unwrap(
         schemaValidateWithErr(destinationSegment.definition, SegmentDefinition),
       );

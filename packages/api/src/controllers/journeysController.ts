@@ -1,10 +1,11 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import {
   getJourneysStats,
   toJourneyResource,
   upsertJourney,
 } from "backend-lib/src/journeys";
-import prisma from "backend-lib/src/prisma";
 import {
   DeleteJourneyRequest,
   EmptyResponse,
@@ -13,10 +14,10 @@ import {
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
-  Prisma,
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -35,11 +36,10 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const journeyModels = await prisma().journey.findMany({
-        where: {
-          workspaceId: request.query.workspaceId,
-        },
-      });
+      const journeyModels = await db()
+        .select()
+        .from(schema.journey)
+        .where(eq(schema.journey.workspaceId, request.query.workspaceId));
       const journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
       return reply.status(200).send({ journeys });
     },
@@ -81,24 +81,20 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const { id, workspaceId } = request.body;
 
-      try {
-        await prisma().journey.delete({
-          where: {
-            id,
-          },
-        });
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          switch (e.code) {
-            case "P2025":
-              return reply.status(404).send();
-            case "P2023":
-              return reply.status(404).send();
-          }
-        }
-        throw e;
+      const result = await db()
+        .delete(schema.journey)
+        .where(
+          and(
+            eq(schema.journey.id, id),
+            eq(schema.journey.workspaceId, workspaceId),
+          ),
+        )
+        .returning();
+
+      if (result.length === 0) {
+        return reply.status(404).send();
       }
 
       return reply.status(204).send();

@@ -8,11 +8,12 @@ import {
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
-import prisma, { Prisma } from "backend-lib/src/prisma";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
@@ -20,6 +21,8 @@ import {
   activateTombstonedWorkspace,
   tombstoneWorkspace,
 } from "backend-lib/src/workspaces";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -214,19 +217,13 @@ export async function cli() {
           },
         }),
       async ({ workspaceId, all }) => {
-        let where: Prisma.WorkspaceWhereInput;
-        if (all) {
-          where = {};
-        } else {
-          const workspaceIds = workspaceId?.split(",");
-          where = {
-            id: {
-              in: workspaceIds,
-            },
-          };
+        let condition: SQL | undefined;
+        if (!all && workspaceId) {
+          const workspaceIds = workspaceId.split(",");
+          condition = inArray(schema.workspace.id, workspaceIds);
         }
-        const workspaces = await prisma().workspace.findMany({
-          where,
+        const workspaces = await db().query.workspace.findMany({
+          where: condition,
         });
         await Promise.all(
           workspaces.map(async (workspace) => {
@@ -275,38 +272,45 @@ export async function cli() {
       "Runs migrations, copying api keys on email providers to the secrets table.",
       () => {},
       async () => {
-        await prisma().$transaction(async (pTx) => {
-          const emailProviders = await pTx.emailProvider.findMany();
+        await db().transaction(async (pTx) => {
+          const emailProviders = await pTx.query.emailProvider.findMany();
           await Promise.all(
             emailProviders.map(async (emailProvider) => {
-              const webhookSecret = await pTx.secret.findUnique({
-                where: {
-                  workspaceId_name: {
-                    workspaceId: emailProvider.workspaceId,
-                    name: SecretNames.Sendgrid,
-                  },
-                },
+              const webhookSecret = await pTx.query.secret.findFirst({
+                where: and(
+                  eq(schema.secret.workspaceId, emailProvider.workspaceId),
+                  eq(schema.secret.name, SecretNames.Sendgrid),
+                ),
               });
               const sendgridSecretDefinition: SendgridSecret = {
                 apiKey: emailProvider.apiKey ?? undefined,
                 webhookKey: webhookSecret?.value ?? undefined,
                 type: EmailProviderType.Sendgrid,
               };
-              const secret = await pTx.secret.create({
-                data: {
+              const [secret] = await pTx
+                .insert(schema.secret)
+                .values({
+                  id: randomUUID(),
                   workspaceId: emailProvider.workspaceId,
                   name: SecretNames.Sendgrid,
                   configValue: sendgridSecretDefinition,
-                },
-              });
-              await pTx.emailProvider.update({
-                where: {
-                  id: emailProvider.id,
-                },
-                data: {
+                  updatedAt: new Date(),
+                  createdAt: new Date(),
+                })
+                .returning();
+              if (!secret) {
+                logger().error(
+                  { emailProvider },
+                  "Failed to create secret for email provider",
+                );
+                throw new Error("Failed to create secret for email provider");
+              }
+              await pTx
+                .update(schema.emailProvider)
+                .set({
                   secretId: secret.id,
-                },
-              });
+                })
+                .where(eq(schema.emailProvider.id, emailProvider.id));
             }),
           );
         });
@@ -395,14 +399,12 @@ export async function cli() {
         logger().info("Exporting templates...");
         const baseDir = findBaseDir();
         const tmpDir = path.join(baseDir, ".tmp", `templates-${Date.now()}`);
-        const workspaces = await prisma().workspace.findMany();
+        const workspaces = await db().query.workspace.findMany();
         const promises: Promise<string>[] = workspaces.map(
           async (workspace) => {
             const workspaceDir = path.join(tmpDir, workspace.name);
-            const templates = await prisma().messageTemplate.findMany({
-              where: {
-                workspaceId: workspace.id,
-              },
+            const templates = await db().query.messageTemplate.findMany({
+              where: eq(schema.messageTemplate.workspaceId, workspace.id),
             });
             const templatePromises = templates.flatMap(async (template) => {
               const definitionResult = schemaValidateWithErr(
@@ -588,10 +590,8 @@ export async function cli() {
           name: { type: "string", alias: "n", require: true },
         }),
       async ({ workspaceName, name }) => {
-        const workspace = await prisma().workspace.findUnique({
-          where: {
-            name: workspaceName,
-          },
+        const workspace = await db().query.workspace.findFirst({
+          where: eq(schema.workspace.name, workspaceName),
         });
         if (!workspace) {
           logger().error(

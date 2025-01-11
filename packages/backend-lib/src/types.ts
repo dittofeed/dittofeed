@@ -1,12 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import {
-  Integration,
-  Journey,
-  Prisma,
-  Segment,
-  UserProperty,
-} from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
+import { InferSelectModel } from "drizzle-orm";
 import {
   FastifyInstance,
   RawReplyDefaultExpression,
@@ -31,6 +25,28 @@ import { Result } from "neverthrow";
 import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
+import {
+  broadcast as dbBroadcast,
+  computedPropertyPeriod as dbComputedPropertyPeriod,
+  emailProvider as dbEmailProvider,
+  integration as dbIntegration,
+  journey as dbJourney,
+  journeyStatus as dbJourneyStatus,
+  messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
+  segment as dbSegment,
+  segmentAssignment as dbSegmentAssignment,
+  smsProvider as dbSmsProvider,
+  subscriptionGroup as dbSubscriptionGroup,
+  userJourneyEvent as dbUserJourneyEvent,
+  userProperty as dbUserProperty,
+  userPropertyAssignment as dbUserPropertyAssignment,
+  workspace as dbWorkspace,
+  workspaceMember as dbWorkspaceMember,
+  workspaceType as dbWorkspaceType,
+  writeKey as dbWriteKey,
+} from "./db/schema";
+
 export * from "isomorphic-lib/src/types";
 
 export enum NodeEnvEnum {
@@ -45,6 +61,47 @@ export enum KafkaMessageTypes {
   JSON = "0",
 }
 
+export type WorkspaceMember = InferSelectModel<typeof dbWorkspaceMember>;
+
+export type Segment = InferSelectModel<typeof dbSegment>;
+
+export type SegmentAssignment = InferSelectModel<typeof dbSegmentAssignment>;
+
+export type UserProperty = InferSelectModel<typeof dbUserProperty>;
+
+export type Workspace = InferSelectModel<typeof dbWorkspace>;
+
+export type UserPropertyAssignment = InferSelectModel<
+  typeof dbUserPropertyAssignment
+>;
+
+export type ComputedPropertyPeriod = InferSelectModel<
+  typeof dbComputedPropertyPeriod
+>;
+
+export type Journey = InferSelectModel<typeof dbJourney>;
+
+export type Integration = InferSelectModel<typeof dbIntegration>;
+
+export type EmailProvider = InferSelectModel<typeof dbEmailProvider>;
+
+export type SmsProvider = InferSelectModel<typeof dbSmsProvider>;
+
+export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
+
+export type Secret = InferSelectModel<typeof dbSecret>;
+
+export type WriteKey = InferSelectModel<typeof dbWriteKey>;
+
+export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
+
+export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
+
+export type JourneyInsert = typeof dbJourney.$inferInsert;
+
+export type Broadcast = InferSelectModel<typeof dbBroadcast>;
+
+export type UserJourneyEvent = InferSelectModel<typeof dbUserJourneyEvent>;
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
@@ -112,8 +169,6 @@ export const SegmentIOEvent = Type.Union([
 ]);
 
 export type SegmentIOEvent = Static<typeof SegmentIOEvent>;
-
-export * from "@prisma/client";
 
 export const KafkaSaslMechanism = Type.Union([
   Type.Literal("plain"),
@@ -606,12 +661,12 @@ export type PostMarkEvent = Static<typeof PostMarkEvent>;
 
 export type IntegrationCreateDefinition = Omit<
   Overwrite<
-    Prisma.IntegrationUncheckedCreateInput,
+    typeof dbIntegration.$inferInsert,
     {
       definition: IntegrationDefinition;
     }
   >,
-  "workspaceId"
+  "workspaceId" | "id" | "updatedAt" | "createdAt" | "updatedAt"
 >;
 
 export type EnrichedIntegration = Overwrite<

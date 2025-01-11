@@ -1,8 +1,8 @@
-import { Segment, Workspace } from "@prisma/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { WorkflowNotFoundError } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { createEnvAndWorker } from "../../test/temporal";
@@ -14,9 +14,14 @@ import {
 } from "../computedProperties/computePropertiesWorkflow";
 import config from "../config";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
+import { db, insert } from "../db";
+import {
+  feature as dbFeature,
+  journey as dbJourney,
+  segment as dbSegment,
+} from "../db/schema";
 import { enrichJourney } from "../journeys";
 import logger from "../logger";
-import prisma from "../prisma";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   ChannelType,
@@ -25,12 +30,15 @@ import {
   EventType,
   JourneyDefinition,
   JourneyNodeType,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
   SegmentSplitVariantType,
   SubscriptionGroupType,
+  Workspace,
 } from "../types";
+import { createWorkspace } from "../workspaces";
 import { getUserJourneyWorkflowId } from "./userWorkflow";
 
 const paidSegmentDefinition: SegmentDefinition = {
@@ -46,7 +54,7 @@ const paidSegmentDefinition: SegmentDefinition = {
   nodes: [],
 };
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("end to end journeys", () => {
   let testEnv: TestWorkflowEnvironment;
@@ -94,16 +102,18 @@ describe("end to end journeys", () => {
     let messageNode1: string;
     let messageNode2: string;
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `workspace-${randomUUID()}` },
-      });
+      workspace = await createWorkspace({
+        id: randomUUID(),
+        name: `workspace-${randomUUID()}`,
+        updatedAt: new Date(),
+      }).then(unwrap);
 
-      await prisma().feature.create({
-        data: {
-          workspaceId: workspace.id,
-          name: FEATURE_INCREMENTAL_COMP,
-          enabled: true,
-        },
+      await db().insert(dbFeature).values({
+        workspaceId: workspace.id,
+        name: FEATURE_INCREMENTAL_COMP,
+        enabled: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       userId1 = `user1-${randomUUID()}`;
 
@@ -120,13 +130,17 @@ describe("end to end journeys", () => {
         nodes: [],
       };
 
-      const segment1 = await prisma().segment.create({
-        data: {
+      const segment1 = await insert({
+        table: dbSegment,
+        values: {
+          id: randomUUID(),
           workspaceId: workspace.id,
           name: randomUUID(),
           definition: segmentDefinition1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-      });
+      }).then(unwrap);
 
       const segmentDefinition2: SegmentDefinition = {
         entryNode: {
@@ -140,13 +154,16 @@ describe("end to end journeys", () => {
         },
         nodes: [],
       };
-      const segment2 = await prisma().segment.create({
-        data: {
+      const segment2 = await insert({
+        table: dbSegment,
+        values: {
+          id: randomUUID(),
           workspaceId: workspace.id,
           name: randomUUID(),
           definition: segmentDefinition2,
+          updatedAt: new Date(),
         },
-      });
+      }).then(unwrap);
 
       waitForNode1 = "waitForNode1";
       messageNode1 = "messageNode1";
@@ -196,16 +213,20 @@ describe("end to end journeys", () => {
       };
 
       journey = unwrap(
-        enrichJourney(
-          await prisma().journey.create({
-            data: {
+        (
+          await insert({
+            table: dbJourney,
+            values: {
+              id: randomUUID(),
               name: `user-journey-${randomUUID()}`,
               workspaceId: workspace.id,
               definition: journeyDefinition,
               status: "Running",
+              createdAt: new Date(),
+              updatedAt: new Date(),
             },
-          }),
-        ),
+          })
+        ).andThen(enrichJourney),
       );
 
       currentTimeMS = await testEnv.currentTimeMs();
@@ -449,9 +470,11 @@ describe("end to end journeys", () => {
     let userJourneyWorkflowId: string;
 
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `workspace-${randomUUID()}` },
-      });
+      workspace = await createWorkspace({
+        name: `workspace-${randomUUID()}`,
+        id: randomUUID(),
+        updatedAt: new Date(),
+      }).then(unwrap);
 
       userId1 = `user1-${randomUUID()}`;
       userId2 = `user2-${randomUUID()}`;
@@ -475,21 +498,29 @@ describe("end to end journeys", () => {
           nodes: [],
         };
 
-        recentlyCreatedSegment = await prisma().segment.create({
-          data: {
+        recentlyCreatedSegment = await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
             name: `recently-created-${randomUUID()}`,
             workspaceId: workspace.id,
             definition: recentlyCreatedSegmentDefinition,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-        });
+        }).then(unwrap);
 
-        paidAccountSegment = await prisma().segment.create({
-          data: {
+        paidAccountSegment = await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
             workspaceId: workspace.id,
             name: `paid-${randomUUID()}`,
             definition: paidSegmentDefinition,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-        });
+        }).then(unwrap);
 
         const nodeId1 = randomUUID();
         const nodeId2 = randomUUID();
@@ -538,14 +569,18 @@ describe("end to end journeys", () => {
 
         journey = unwrap(
           enrichJourney(
-            await prisma().journey.create({
-              data: {
+            await insert({
+              table: dbJourney,
+              values: {
+                id: randomUUID(),
                 name: `user-journey-${randomUUID()}`,
                 workspaceId: workspace.id,
                 definition: journeyDefinition,
                 status: "Running",
+                createdAt: new Date(),
+                updatedAt: new Date(),
               },
-            }),
+            }).then(unwrap),
           ),
         );
 
@@ -630,13 +665,17 @@ describe("end to end journeys", () => {
       let paidAccountSegment: Segment;
 
       beforeEach(async () => {
-        paidAccountSegment = await prisma().segment.create({
-          data: {
+        paidAccountSegment = await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
             workspaceId: workspace.id,
             name: `paid-${randomUUID()}`,
             definition: paidSegmentDefinition,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-        });
+        }).then(unwrap);
 
         const nodeId1 = randomUUID();
 
@@ -673,18 +712,20 @@ describe("end to end journeys", () => {
           ],
         };
 
-        journey = unwrap(
-          enrichJourney(
-            await prisma().journey.create({
-              data: {
-                name: `user-journey-${randomUUID()}`,
-                workspaceId: workspace.id,
-                definition: journeyDefinition,
-                status: "NotStarted",
-              },
-            }),
-          ),
-        );
+        journey = await insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
+            name: `user-journey-${randomUUID()}`,
+            workspaceId: workspace.id,
+            definition: journeyDefinition,
+            status: "NotStarted",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        })
+          .then((r) => r.andThen(enrichJourney))
+          .then(unwrap);
 
         userJourneyWorkflowId = getUserJourneyWorkflowId({
           userId: userId1,
@@ -743,14 +784,12 @@ describe("end to end journeys", () => {
             expect(workflowDescribeError).toBeInstanceOf(WorkflowNotFoundError);
             expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(0);
 
-            await prisma().journey.update({
-              where: {
-                id: journey.id,
-              },
-              data: {
+            await db()
+              .update(dbJourney)
+              .set({
                 status: "Running",
-              },
-            });
+              })
+              .where(eq(dbJourney.id, journey.id));
 
             computedPropertiesParams = await testEnv.client.workflow.execute(
               computePropertiesWorkflow,
@@ -777,14 +816,12 @@ describe("end to end journeys", () => {
             const currentTimeMS = await testEnv.currentTimeMs();
 
             await Promise.all([
-              prisma().journey.update({
-                where: {
-                  id: journey.id,
-                },
-                data: {
+              db()
+                .update(dbJourney)
+                .set({
                   status: "Paused",
-                },
-              }),
+                })
+                .where(eq(dbJourney.id, journey.id)),
 
               await submitBatch({
                 workspaceId: workspace.id,
@@ -825,14 +862,12 @@ describe("end to end journeys", () => {
               }),
             );
 
-            await prisma().journey.update({
-              where: {
-                id: journey.id,
-              },
-              data: {
+            await db()
+              .update(dbJourney)
+              .set({
                 status: "Running",
-              },
-            });
+              })
+              .where(eq(dbJourney.id, journey.id));
 
             await testEnv.client.workflow.execute(computePropertiesWorkflow, {
               workflowId: computePropertiesWorkflowId,

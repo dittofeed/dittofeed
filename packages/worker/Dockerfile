@@ -28,7 +28,6 @@ COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/worker/ ./packages/worker
 
 RUN yarn workspace emailo build && \
-    yarn workspace backend-lib prisma generate && \
     yarn workspace worker build
 
 # Production image
@@ -45,7 +44,6 @@ RUN apt-get update -y && \
     apt-get install -y openssl
 
 COPY --from=builder /service/production_node_modules ./node_modules
-COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /service/package.json ./package.json
 COPY --from=builder /service/*.json /service/yarn.lock /service/.yarnrc.yml ./
 COPY --from=builder /service/.yarn .yarn

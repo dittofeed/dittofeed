@@ -1,7 +1,13 @@
-import { WorkspaceStatus } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import prisma from "./prisma";
+import { insert } from "./db";
+import {
+  computedPropertyPeriod as dbComputedPropertyPeriod,
+  segment as dbSegment,
+  workspace as dbWorkspace,
+  workspaceStatus,
+} from "./db/schema";
 import {
   findActiveWorkspaces,
   observeWorkspaceComputeLatency,
@@ -11,13 +17,19 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  WorkspaceStatusDb,
+  WorkspaceStatusDbEnum,
 } from "./types";
 
 describe("observeWorkspaceComputeLatency", () => {
   beforeEach(async () => {
-    await prisma().workspace.create({
-      data: {
+    await insert({
+      table: dbWorkspace,
+      values: {
+        id: randomUUID(),
         name: randomUUID(),
+        updatedAt: new Date(),
+        status: WorkspaceStatusDbEnum.Active,
       },
     });
   });
@@ -26,18 +38,22 @@ describe("observeWorkspaceComputeLatency", () => {
   });
 });
 
-async function createWorkspace(status: WorkspaceStatus): Promise<{
+async function createWorkspace(status: WorkspaceStatusDb): Promise<{
   workspaceId: string;
 }> {
-  const workspace = await prisma().workspace.create({
-    data: {
+  const workspace = await insert({
+    table: dbWorkspace,
+    values: {
       id: randomUUID(),
       name: randomUUID(),
       status,
+      updatedAt: new Date(),
     },
-  });
-  await prisma().segment.create({
-    data: {
+  }).then(unwrap);
+
+  await insert({
+    table: dbSegment,
+    values: {
       id: randomUUID(),
       workspaceId: workspace.id,
       name: randomUUID(),
@@ -53,10 +69,13 @@ async function createWorkspace(status: WorkspaceStatus): Promise<{
         },
         nodes: [],
       } satisfies SegmentDefinition,
+      updatedAt: new Date(),
     },
   });
-  await prisma().computedPropertyPeriod.create({
-    data: {
+
+  await insert({
+    table: dbComputedPropertyPeriod,
+    values: {
       id: randomUUID(),
       step: ComputedPropertyStep.ComputeAssignments,
       from: new Date(Date.now() - 1000 * 60),
@@ -67,6 +86,7 @@ async function createWorkspace(status: WorkspaceStatus): Promise<{
       workspaceId: workspace.id,
     },
   });
+
   return { workspaceId: workspace.id };
 }
 
@@ -76,8 +96,8 @@ describe("findActiveWorkspaces", () => {
 
   beforeEach(async () => {
     const [active, tombstoned] = await Promise.all([
-      createWorkspace(WorkspaceStatus.Active),
-      createWorkspace(WorkspaceStatus.Tombstoned),
+      createWorkspace(WorkspaceStatusDbEnum.Active),
+      createWorkspace(WorkspaceStatusDbEnum.Tombstoned),
     ]);
     activeWorkspace = active.workspaceId;
     tombstonedWorkspace = tombstoned.workspaceId;

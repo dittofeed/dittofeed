@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
 
 import { encodeMockJwt } from "../test/factories/jwt";
-import prisma from "./prisma";
+import { db } from "./db";
+import { workspace as dbWorkspace } from "./db/schema";
 import { getMultiTenantRequestContext } from "./requestContext";
 import { RequestContextErrorType, RoleEnum } from "./types";
 
@@ -20,10 +21,10 @@ describe("getMultiTenantRequestContext", () => {
 
     describe("without a domain", () => {
       beforeEach(async () => {
-        await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-          },
+        await db().insert(dbWorkspace).values({
+          name: randomUUID(),
+          domain: null,
+          updatedAt: new Date(),
         });
       });
       it("returns an error", async () => {
@@ -40,11 +41,9 @@ describe("getMultiTenantRequestContext", () => {
 
     describe("when workspace has a domain", () => {
       beforeEach(async () => {
-        await prisma().workspace.create({
-          data: {
-            name: randomUUID(),
-            domain: emailDomain,
-          },
+        await db().insert(dbWorkspace).values({
+          name: randomUUID(),
+          domain: emailDomain,
         });
       });
       it("succeeds and creates a role for the user", async () => {

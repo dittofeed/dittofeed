@@ -1,23 +1,26 @@
-import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "../test/testEvents";
-import prisma from "./prisma";
 import { segmentIdentifyEvent } from "./segmentIO";
-import { EventType } from "./types";
+import { EventType, Workspace } from "./types";
 import {
   findIdentifyTraits,
   findManyEventsWithCount,
   insertUserEvents,
 } from "./userEvents";
+import { createWorkspace } from "./workspaces";
 
 describe("userEvents", () => {
   let workspace: Workspace;
 
   beforeEach(async () => {
-    workspace = await prisma().workspace.create({
-      data: { name: `workspace-${randomUUID()}` },
-    });
+    workspace = await createWorkspace({
+      id: randomUUID(),
+      name: `workspace-${randomUUID()}`,
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    }).then(unwrap);
   });
 
   describe("findAllUserTraits", () => {

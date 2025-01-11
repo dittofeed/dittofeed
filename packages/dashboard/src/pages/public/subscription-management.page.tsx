@@ -1,5 +1,7 @@
 import { Stack } from "@mui/material";
 import axios from "axios";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import {
   getUserSubscriptions,
@@ -7,6 +9,7 @@ import {
   updateUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
+import { eq } from "drizzle-orm";
 import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -20,7 +23,6 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../../components/subscriptionManagement";
-import prisma from "../../lib/prisma";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
@@ -51,10 +53,8 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       identifierKey: ik,
       hash: h,
     }),
-    prisma().workspace.findUnique({
-      where: {
-        id: w,
-      },
+    db().query.workspace.findFirst({
+      where: eq(schema.workspace.id, w),
     }),
   ]);
 

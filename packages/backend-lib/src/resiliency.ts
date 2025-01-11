@@ -1,10 +1,20 @@
+import { aliasedTable, and, eq, max } from "drizzle-orm";
+
 import { query as chQuery } from "./clickhouse";
 import config from "./config";
 import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
+import { db } from "./db";
+import {
+  computedPropertyPeriod as dbComputedPropertyPeriod,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import logger, { publicLogger } from "./logger";
 import { getMeter } from "./openTelemetry";
-import prisma, { Prisma } from "./prisma";
-import { ComputedPropertyStep, Workspace, WorkspaceStatus } from "./types";
+import {
+  ComputedPropertyStep,
+  Workspace,
+  WorkspaceStatusDbEnum,
+} from "./types";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
 
@@ -70,27 +80,43 @@ function observeWorkspaceComputeLatencyInner({
  * Deprecated
  */
 export async function observeWorkspaceComputeLatency() {
-  const [periods, workspaces] = await Promise.all([
-    (async () => {
-      const periodsQuery = Prisma.sql`
-        SELECT
-          "workspaceId",
-          MAX("to") as to
-        FROM "ComputedPropertyPeriod"
-        WHERE
-          "step" = ${ComputedPropertyStep.ProcessAssignments}
-        GROUP BY "workspaceId";
-      `;
-      return prisma().$queryRaw<{ to: Date; workspaceId: string }[]>(
-        periodsQuery,
-      );
-    })(),
-    prisma().workspace.findMany({
-      where: {
-        status: WorkspaceStatus.Active,
-      },
-    }),
+  const periodsQuery = db()
+    .select({
+      workspaceId: dbComputedPropertyPeriod.workspaceId,
+      to: max(dbComputedPropertyPeriod.to),
+    })
+    .from(dbComputedPropertyPeriod)
+    .where(
+      eq(
+        dbComputedPropertyPeriod.step,
+        ComputedPropertyStep.ProcessAssignments,
+      ),
+    )
+    .groupBy(dbComputedPropertyPeriod.workspaceId);
+
+  const workspacesQuery = db()
+    .select()
+    .from(dbWorkspace)
+    .where(eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active));
+
+  const [rawPeriods, workspaces] = await Promise.all([
+    periodsQuery,
+    workspacesQuery,
   ]);
+
+  const periods = rawPeriods.flatMap((row) => {
+    if (!row.to) {
+      logger().error(
+        { workspaceId: row.workspaceId },
+        "Could not find maxTo for workspace",
+      );
+      return [];
+    }
+    return {
+      to: new Date(row.to),
+      workspaceId: row.workspaceId,
+    };
+  });
 
   observeWorkspaceComputeLatencyInner({
     workspaces,
@@ -163,29 +189,45 @@ export async function findActiveWorkspaces(): Promise<{
   workspaces: Workspace[];
   periods: { to: Date; workspaceId: string }[];
 }> {
-  const [periods, workspaces] = await Promise.all([
-    (async () => {
-      const periodsQuery = Prisma.sql`
-        SELECT
-          "workspaceId",
-          MAX("to") as to
-        FROM "ComputedPropertyPeriod"
-        JOIN "Workspace" ON "ComputedPropertyPeriod"."workspaceId" = "Workspace"."id"
-        WHERE
-          "step" = ${ComputedPropertyStep.ComputeAssignments}
-          AND "Workspace"."status" = ${WorkspaceStatus.Active}::text::\"WorkspaceStatus\"
-        GROUP BY "workspaceId";
-      `;
-      return prisma().$queryRaw<{ to: Date; workspaceId: string }[]>(
-        periodsQuery,
-      );
-    })(),
-    prisma().workspace.findMany({
-      where: {
-        status: WorkspaceStatus.Active,
-      },
-    }),
+  const w = aliasedTable(dbWorkspace, "w");
+  const cpp = aliasedTable(dbComputedPropertyPeriod, "cpp");
+  const periodsQuery = db()
+    .select({
+      workspaceId: cpp.workspaceId,
+      to: max(cpp.to),
+    })
+    .from(cpp)
+    .innerJoin(w, eq(cpp.workspaceId, w.id))
+    .where(
+      and(
+        eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
+        eq(w.status, WorkspaceStatusDbEnum.Active),
+      ),
+    )
+    .groupBy(cpp.workspaceId);
+  const workspacesQuery = db()
+    .select()
+    .from(w)
+    .where(eq(w.status, WorkspaceStatusDbEnum.Active));
+
+  const [periodsRaw, workspaces] = await Promise.all([
+    periodsQuery,
+    workspacesQuery,
   ]);
+
+  const periods = periodsRaw.flatMap((row) => {
+    if (!row.to) {
+      logger().error(
+        { workspaceId: row.workspaceId },
+        "Could not find maxTo for workspace",
+      );
+      return [];
+    }
+    return {
+      to: new Date(row.to),
+      workspaceId: row.workspaceId,
+    };
+  });
 
   return {
     workspaces,

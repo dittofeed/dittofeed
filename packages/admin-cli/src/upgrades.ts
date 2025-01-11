@@ -3,29 +3,31 @@ import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
+import { db, insert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
-import prisma from "backend-lib/src/prisma";
 import {
   EmailProviderSecret,
   EmailProviderType,
   Workspace,
 } from "backend-lib/src/types";
 import { createUserEventsTables } from "backend-lib/src/userEvents/clickhouse";
+import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { spawnWithEnv, spawnWithEnvSafe } from "./spawn";
 
 export async function disentangleResendSendgrid() {
   logger().info("Disentangling resend and sendgrid email providers.");
-  await prisma().$transaction(async (pTx) => {
-    const emailProviders = await pTx.emailProvider.findMany({
-      where: {
-        type: {
-          in: [EmailProviderType.Sendgrid, EmailProviderType.Resend],
-        },
-      },
-      include: {
+  await db().transaction(async (pTx) => {
+    const emailProviders = await pTx.query.emailProvider.findMany({
+      where: inArray(schema.emailProvider.type, [
+        EmailProviderType.Sendgrid,
+        EmailProviderType.Resend,
+      ]),
+      with: {
         secret: true,
       },
     });
@@ -88,21 +90,27 @@ export async function disentangleResendSendgrid() {
         logger().info("Correcting Resend email provider.");
         promises.push(
           (async () => {
-            const secret = await pTx.secret.create({
-              data: {
+            const secret = await insert({
+              table: schema.secret,
+              doNothingOnConflict: true,
+              lookupExisting: and(
+                eq(schema.secret.workspaceId, misnamed.workspaceId),
+                eq(schema.secret.name, SecretNames.Resend),
+              )!,
+              values: {
                 name: SecretNames.Resend,
                 workspaceId: misnamed.workspaceId,
                 configValue: { type: EmailProviderType.Resend },
               },
-            });
-            await pTx.emailProvider.update({
-              where: {
-                id: misnamed.emailProviderId,
-              },
-              data: {
+              tx: pTx,
+            }).then(unwrap);
+
+            await pTx
+              .update(schema.emailProvider)
+              .set({
                 secretId: secret.id,
-              },
-            });
+              })
+              .where(eq(schema.emailProvider.id, misnamed.emailProviderId));
           })(),
         );
       } else if (
@@ -113,35 +121,33 @@ export async function disentangleResendSendgrid() {
         logger().info("Correcting Sendgrid email provider.");
         promises.push(
           (async () => {
-            const secret = await pTx.secret.create({
-              data: {
+            const secret = await insert({
+              table: schema.secret,
+              doNothingOnConflict: true,
+              lookupExisting: and(
+                eq(schema.secret.workspaceId, misnamed.workspaceId),
+                eq(schema.secret.name, SecretNames.Resend),
+              )!,
+              values: {
                 name: SecretNames.Resend,
                 workspaceId: misnamed.workspaceId,
                 configValue: misnamed.secretValue,
               },
-            });
-            await pTx.emailProvider.update({
-              where: {
-                workspaceId_type: {
-                  type: EmailProviderType.Resend,
-                  workspaceId: misnamed.workspaceId,
-                },
-              },
-              data: {
+            }).then(unwrap);
+
+            await pTx
+              .update(schema.emailProvider)
+              .set({
                 secretId: secret.id,
-              },
-            });
-            await pTx.secret.update({
-              where: {
-                workspaceId_name: {
-                  workspaceId: misnamed.workspaceId,
-                  name: SecretNames.Sendgrid,
-                },
-              },
-              data: {
+              })
+              .where(eq(schema.emailProvider.id, misnamed.emailProviderId));
+
+            await pTx
+              .update(schema.secret)
+              .set({
                 configValue: { type: EmailProviderType.Sendgrid },
-              },
-            });
+              })
+              .where(eq(schema.secret.id, secret.id));
           })(),
         );
       }
@@ -177,7 +183,7 @@ export async function upgradeV010Pre() {
   // create new clickhouse tables and views
   await createUserEventsTables();
 
-  const workspaces = await prisma().workspace.findMany();
+  const workspaces = await db().select().from(schema.workspace);
   await Promise.all(workspaces.map(upgradeWorkspaceV010Pre));
   logger().info("Pre-upgrade steps for v0.10.0 completed.");
 }
@@ -194,8 +200,8 @@ async function upgradeWorkspaceV010Post(workspace: Workspace) {
 
 export async function upgradeV010Post() {
   logger().info("Performing post-upgrade steps for v0.10.0");
-  await prisma().computedPropertyPeriod.deleteMany({});
-  const workspaces = await prisma().workspace.findMany();
+  await db().delete(schema.computedPropertyPeriod);
+  const workspaces = await db().select().from(schema.workspace);
   await Promise.all(workspaces.map(upgradeWorkspaceV010Post));
   await command({
     query: "drop view if exists updated_computed_property_state_mv;",

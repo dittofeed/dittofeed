@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
+import { asc, eq } from "drizzle-orm";
 import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -14,9 +15,10 @@ import {
   clickhouseDateToIso,
   ClickHouseQueryBuilder,
 } from "../clickhouse";
+import { db, insert, upsert } from "../db";
+import * as schema from "../db/schema";
 import { toJourneyResource } from "../journeys";
 import logger from "../logger";
-import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   AppFileType,
@@ -74,15 +76,6 @@ jest.mock("../temporal/activity", () => ({
   }),
 }));
 
-async function getUserPropertyUserCount(workspaceId: string) {
-  const result = await prisma().$queryRaw<[{ user_count: bigint }]>`
-    SELECT COUNT(DISTINCT "userId") as user_count
-    FROM "UserPropertyAssignment"
-    WHERE "workspaceId" = ${workspaceId}::uuid;
-  `;
-  return Number(result[0].user_count);
-}
-
 async function getAssignmentUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
@@ -129,20 +122,14 @@ async function getEventsUserCount(workspaceId: string) {
 }
 
 async function getUserCounts(workspaceId: string) {
-  const [
-    userPropertyUserCount,
-    stateUserCount,
-    assignmentUserCount,
-    eventsUserCount,
-  ] = await Promise.all([
-    getUserPropertyUserCount(workspaceId),
-    getStateUserCount(workspaceId),
-    getAssignmentUserCount(workspaceId),
-    getEventsUserCount(workspaceId),
-  ]);
+  const [stateUserCount, assignmentUserCount, eventsUserCount] =
+    await Promise.all([
+      getStateUserCount(workspaceId),
+      getAssignmentUserCount(workspaceId),
+      getEventsUserCount(workspaceId),
+    ]);
   return {
     eventsUserCount,
-    userPropertyUserCount,
     stateUserCount,
     assignmentUserCount,
   };
@@ -571,59 +558,55 @@ async function upsertComputedProperties({
 }> {
   await Promise.all([
     ...userProperties.map((up) =>
-      prisma().userProperty.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: up.name,
-          },
-        },
-        create: {
+      upsert({
+        table: schema.userProperty,
+        target: [schema.userProperty.workspaceId, schema.userProperty.name],
+        values: {
+          id: randomUUID(),
           workspaceId,
           name: up.name,
           definition: up.definition,
           definitionUpdatedAt: new Date(now),
+          updatedAt: new Date(now),
           createdAt: new Date(now),
         },
-        update: {
+        set: {
           definition: up.definition,
+          updatedAt: new Date(now),
           definitionUpdatedAt: new Date(now),
         },
       }),
     ),
     ...segments.map((s) =>
-      prisma().segment.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: s.name,
-          },
-        },
-        create: {
+      upsert({
+        table: schema.segment,
+        target: [schema.segment.workspaceId, schema.segment.name],
+        values: {
+          id: randomUUID(),
           workspaceId,
           name: s.name,
           definition: s.definition,
           definitionUpdatedAt: new Date(now),
+          updatedAt: new Date(now),
           createdAt: new Date(now),
         },
-        update: {
+        set: {
           definition: s.definition,
+          updatedAt: new Date(now),
           definitionUpdatedAt: new Date(now),
         },
       }),
     ),
   ]);
   const [segmentModels, userPropertyModels] = await Promise.all([
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-    prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
+    db()
+      .select()
+      .from(schema.segment)
+      .where(eq(schema.segment.workspaceId, workspaceId)),
+    db()
+      .select()
+      .from(schema.userProperty)
+      .where(eq(schema.userProperty.workspaceId, workspaceId)),
   ]);
   const segmentResources = segmentModels.map((s) =>
     unwrap(toSegmentResource(s)),
@@ -6038,13 +6021,22 @@ describe("computeProperties", () => {
       return;
     }
 
-    const workspace = await prisma().workspace.create({
-      data: {
-        name: randomUUID(),
-      },
-    });
-    const workspaceId = workspace.id;
     let now = Date.now();
+
+    const [workspace] = await db()
+      .insert(schema.workspace)
+      .values({
+        id: randomUUID(),
+        name: randomUUID(),
+        updatedAt: new Date(now),
+        createdAt: new Date(now),
+      })
+      .returning();
+    if (!workspace) {
+      throw new Error("could not create workspace");
+    }
+
+    const workspaceId = workspace.id;
 
     let { userProperties, segments } = await upsertComputedProperties({
       workspaceId,
@@ -6072,21 +6064,18 @@ describe("computeProperties", () => {
             type: JourneyNodeType.ExitNode,
           },
         };
-        return prisma().journey.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.journey,
+          values: {
+            id: randomUUID(),
             workspaceId,
             name,
             definition,
             status: "Running",
+            updatedAt: new Date(now),
+            createdAt: new Date(now),
           },
-          update: {},
-        });
+        }).then(unwrap);
       }) ?? [],
     );
     const journeyResources: SavedHasStartedJourneyResource[] = journeys.map(
@@ -6251,8 +6240,6 @@ describe("computeProperties", () => {
                   eventsUserCount: step.userCount,
                   stateUserCount: step.userCount,
                   assignmentUserCount: step.userCount,
-                  userPropertyUserCount:
-                    step.userPropertyUserCount ?? step.userCount,
                 });
               })()
             : null;
@@ -6353,22 +6340,24 @@ describe("computeProperties", () => {
             : null;
           const periodsAssertions = step.periods
             ? (async () => {
-                const periods = await prisma().computedPropertyPeriod.findMany({
-                  where: {
-                    workspaceId,
-                  },
-                  orderBy: [
-                    {
-                      createdAt: "asc",
-                    },
-                  ],
-                });
+                const periods =
+                  await db().query.computedPropertyPeriod.findMany({
+                    where: eq(
+                      schema.computedPropertyPeriod.workspaceId,
+                      workspaceId,
+                    ),
+                    orderBy: [asc(schema.computedPropertyPeriod.createdAt)],
+                  });
+                logger().debug({ periods }, "periods loc8");
                 const simplifiedPeriods = periods.map((p) => {
                   const s: TestPeriod = {
                     to: p.to.getTime() - now,
                     step: p.step as ComputedPropertyStep,
                   };
-                  s.from = p.from ? p.from.getTime() - now : undefined;
+                  const from = p.from ? p.from.getTime() - now : undefined;
+                  if (from) {
+                    s.from = from;
+                  }
                   return s;
                 });
                 expect(simplifiedPeriods, step.description).toEqual(

@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -25,8 +26,9 @@ import {
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
+import { db, insert } from "./db";
+import * as schema from "./db/schema";
 import logger from "./logger";
-import prisma, { Prisma } from "./prisma";
 
 function newSubscriptionGroupName({
   name,
@@ -405,45 +407,44 @@ export async function transferResources({
   );
 
   const [workspace, destinationWorkspace] = await Promise.all([
-    prisma().workspace.findUniqueOrThrow({
-      where: {
-        id: workspaceId,
-      },
+    db().query.workspace.findFirst({
+      where: eq(schema.workspace.id, workspaceId),
     }),
-    prisma().workspace.findUniqueOrThrow({
-      where: {
-        id: destinationWorkspaceId,
-      },
+    db().query.workspace.findFirst({
+      where: eq(schema.workspace.id, destinationWorkspaceId),
     }),
   ]);
 
-  await prisma().$transaction(async (tx) => {
+  if (!workspace || !destinationWorkspace) {
+    logger().error(
+      {
+        workspace: workspace ? workspace.name : "not found",
+        destinationWorkspace: destinationWorkspace
+          ? destinationWorkspace.name
+          : "not found",
+      },
+      "Workspace not found",
+    );
+    throw new Error("Workspace not found");
+  }
+
+  await db().transaction(async (tx) => {
     const [userProperties, templates, subscriptionGroups, segments, journeys] =
       await Promise.all([
-        tx.userProperty.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.userProperty.findMany({
+          where: eq(schema.userProperty.workspaceId, workspaceId),
         }),
-        tx.messageTemplate.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.messageTemplate.findMany({
+          where: eq(schema.messageTemplate.workspaceId, workspaceId),
         }),
-        tx.subscriptionGroup.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.subscriptionGroup.findMany({
+          where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
         }),
-        tx.segment.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.segment.findMany({
+          where: eq(schema.segment.workspaceId, workspaceId),
         }),
-        tx.journey.findMany({
-          where: {
-            workspaceId,
-          },
+        tx.query.journey.findMany({
+          where: eq(schema.journey.workspaceId, workspaceId),
         }),
       ]);
 
@@ -484,21 +485,17 @@ export async function transferResources({
           templateMap,
           subscriptionGroupMap,
         });
-        return tx.userProperty.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: userProperty.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.userProperty,
+          values: {
             ...userProperty,
             definition: newUserPropertyDefinition,
             id: getUnsafe(userPropertyMap, userProperty.id),
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        });
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
 
@@ -511,22 +508,18 @@ export async function transferResources({
 
     await Promise.all(
       templates.map((template) =>
-        tx.messageTemplate.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: template.name,
-            },
-          },
-          create: {
+        insert({
+          table: schema.messageTemplate,
+          values: {
             ...template,
             id: getUnsafe(templateMap, template.id),
-            definition: template.definition ?? Prisma.DbNull,
-            draft: template.draft ?? Prisma.DbNull,
+            definition: template.definition ?? null,
+            draft: template.draft ?? null,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        }),
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap),
       ),
     );
 
@@ -550,16 +543,12 @@ export async function transferResources({
           workspaceId: destinationWorkspaceId,
           name: newName,
         };
-        return tx.subscriptionGroup.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: newName,
-            },
-          },
-          create: data,
-          update: data,
-        });
+        return insert({
+          table: schema.subscriptionGroup,
+          values: data,
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
 
@@ -594,21 +583,17 @@ export async function transferResources({
           ),
         };
 
-        return tx.segment.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: segment.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.segment,
+          values: {
             ...segment,
             id: getUnsafe(segmentMap, segment.id),
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        });
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
 
@@ -650,23 +635,19 @@ export async function transferResources({
           exitNode: definition.exitNode,
         } satisfies JourneyDefinition;
 
-        return tx.journey.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId: destinationWorkspaceId,
-              name: journey.name,
-            },
-          },
-          create: {
+        return insert({
+          table: schema.journey,
+          values: {
             ...journey,
             id: getUnsafe(journeyMap, journey.id),
             status: "Paused",
-            draft: Prisma.DbNull,
+            draft: null,
             definition: newDefinition,
             workspaceId: destinationWorkspaceId,
           },
-          update: {},
-        });
+          doNothingOnConflict: true,
+          tx,
+        }).then(unwrap);
       }),
     );
   });

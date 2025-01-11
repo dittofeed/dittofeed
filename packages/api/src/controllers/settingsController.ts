@@ -2,11 +2,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import { db, upsert } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import { upsertEmailProvider } from "backend-lib/src/messaging/email";
 import { upsertSmsProvider } from "backend-lib/src/messaging/sms";
-import prisma from "backend-lib/src/prisma";
-import { Prisma } from "backend-lib/src/types";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BadRequestResponse,
   DataSourceConfigurationResource,
@@ -55,18 +57,17 @@ export default async function settingsController(fastify: FastifyInstance) {
                 "Invalid payload. Segment variant musti included sharedSecret value.",
             });
           }
-          const { id } = await prisma().segmentIOConfiguration.upsert({
-            where: {
-              workspaceId,
-            },
-            create: {
+          const { id } = await upsert({
+            table: schema.segmentIoConfiguration,
+            values: {
               workspaceId,
               sharedSecret: variant.sharedSecret,
             },
-            update: {
+            target: [schema.segmentIoConfiguration.workspaceId],
+            set: {
               sharedSecret: variant.sharedSecret,
             },
-          });
+          }).then(unwrap);
 
           resource = {
             id,
@@ -98,15 +99,14 @@ export default async function settingsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const { workspaceId, smsProviderId } = request.body;
 
-      await prisma().defaultSmsProvider.upsert({
-        where: {
-          workspaceId,
-        },
-        create: {
+      await upsert({
+        table: schema.defaultSmsProvider,
+        values: {
           workspaceId,
           smsProviderId,
         },
-        update: {
+        target: [schema.defaultSmsProvider.workspaceId],
+        set: {
           smsProviderId,
         },
       });
@@ -172,13 +172,11 @@ export default async function settingsController(fastify: FastifyInstance) {
       if ("emailProviderId" in request.body) {
         resource = request.body;
       } else {
-        const emailProvider = await prisma().emailProvider.findUnique({
-          where: {
-            workspaceId_type: {
-              workspaceId,
-              type: request.body.emailProvider,
-            },
-          },
+        const emailProvider = await db().query.emailProvider.findFirst({
+          where: and(
+            eq(schema.emailProvider.workspaceId, workspaceId),
+            eq(schema.emailProvider.type, request.body.emailProvider),
+          ),
         });
         if (!emailProvider) {
           return reply.status(400).send({
@@ -192,12 +190,11 @@ export default async function settingsController(fastify: FastifyInstance) {
         };
       }
 
-      await prisma().defaultEmailProvider.upsert({
-        where: {
-          workspaceId,
-        },
-        create: resource,
-        update: resource,
+      await upsert({
+        table: schema.defaultEmailProvider,
+        values: resource,
+        target: [schema.defaultEmailProvider.workspaceId],
+        set: resource,
       });
 
       return reply.status(201).send();
@@ -260,25 +257,19 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      try {
-        await prisma().secret.delete({
-          where: {
-            workspaceId_name: {
-              workspaceId: request.body.workspaceId,
-              name: request.body.writeKeyName,
-            },
-          },
-        });
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          if (e.code === "P2025") {
-            return reply.status(204).send();
-          }
-        } else {
-          throw e;
-        }
+      const { workspaceId, writeKeyName } = request.body;
+      const result = await db()
+        .delete(schema.secret)
+        .where(
+          and(
+            eq(schema.secret.workspaceId, workspaceId),
+            eq(schema.secret.name, writeKeyName),
+          ),
+        )
+        .returning();
+      if (!result.length) {
+        return reply.status(404).send();
       }
-
       return reply.status(204).send();
     },
   );

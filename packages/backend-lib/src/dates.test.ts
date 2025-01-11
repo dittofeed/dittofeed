@@ -1,10 +1,13 @@
 import { randomUUID } from "crypto";
 import { differenceInHours } from "date-fns";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { findNextLocalizedTimeInner, getUserPropertyDelay } from "./dates";
-import prisma from "./prisma";
+import { insert } from "./db";
+import { userProperty as dbUserProperty } from "./db/schema";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
+import { createWorkspace } from "./workspaces";
 
 describe("findNextLocalizedTimeInner", () => {
   describe("when localizing to disneyland time at 8 pm it", () => {
@@ -73,22 +76,29 @@ describe("getUserPropertyDelay", () => {
 
   beforeEach(async () => {
     userId = randomUUID();
-    const workspace = await prisma().workspace.create({
-      data: {
+    const workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
         name: `test-workspace-${randomUUID()}`,
-      },
-    });
-    const userProperty = await prisma().userProperty.create({
-      data: {
-        name: "testDate",
-        definition: {
-          type: UserPropertyDefinitionType.Performed,
-          path: "testPath",
-          event: "*",
-        } satisfies UserPropertyDefinition,
-        workspaceId: workspace.id,
-      },
-    });
+        updatedAt: new Date(),
+      }),
+    );
+    const userProperty = unwrap(
+      await insert({
+        table: dbUserProperty,
+        values: {
+          id: randomUUID(),
+          name: "testDate",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            path: "testPath",
+            event: "*",
+          } satisfies UserPropertyDefinition,
+          workspaceId: workspace.id,
+          updatedAt: new Date(),
+        },
+      }),
+    );
     userPropertyId = userProperty.id;
     workspaceId = workspace.id;
   });

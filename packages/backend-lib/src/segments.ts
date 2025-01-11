@@ -2,6 +2,7 @@ import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
+import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -9,6 +10,7 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -16,9 +18,13 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { db, queryResult } from "./db";
+import {
+  segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
+} from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
-import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
@@ -26,7 +32,6 @@ import {
   KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
-  Prisma,
   RelationalOperators,
   SavedSegmentResource,
   Segment,
@@ -43,7 +48,7 @@ import {
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
 
 export function enrichSegment(
-  segment: Segment,
+  segment: InferSelectModel<typeof dbSegment>,
 ): Result<EnrichedSegment, Error> {
   const definitionResult = schemaValidateWithErr(
     segment.definition,
@@ -103,10 +108,8 @@ export async function findAllSegmentAssignments({
   userId: string;
   segmentIds?: string[];
 }): Promise<Record<string, boolean | null>> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-    },
+  const segments = await db().query.segment.findMany({
+    where: eq(dbSegment.workspaceId, workspaceId),
   });
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
@@ -156,12 +159,10 @@ export async function createSegment({
   workspaceId: string;
   definition: SegmentDefinition;
 }) {
-  await prisma().segment.create({
-    data: {
-      workspaceId,
-      name,
-      definition,
-    },
+  await db().insert(dbSegment).values({
+    workspaceId,
+    name,
+    definition,
   });
 }
 
@@ -189,9 +190,12 @@ export function toSegmentResource(
 export async function findEnrichedSegment(
   segmentId: string,
 ): Promise<Result<EnrichedSegment | null, Error>> {
-  const segment = await prisma().segment.findFirst({
-    where: { id: segmentId },
-  });
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(eq(dbSegment.id, segmentId));
+
+  const segment = segments[0];
   if (!segment) {
     return ok(null);
   }
@@ -206,17 +210,12 @@ export async function findEnrichedSegments({
   workspaceId: string;
   ids?: string[];
 }): Promise<Result<EnrichedSegment[], Error>> {
-  const where: Prisma.SegmentWhereInput = {
-    workspaceId,
-  };
-  if (ids) {
-    where.id = {
-      in: ids,
-    };
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (ids && ids.length > 0) {
+    conditions.push(inArray(dbSegment.id, ids));
   }
-  const segments = await prisma().segment.findMany({
-    where,
-  });
+  const where = and(...conditions);
+  const segments = await db().select().from(dbSegment).where(where);
 
   const enrichedSegments: EnrichedSegment[] = [];
   for (const segment of segments) {
@@ -240,13 +239,16 @@ export async function findSegmentResources({
 }: {
   workspaceId: string;
 }): Promise<SavedSegmentResource[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      status: "Running",
-      resourceType: "Declarative",
-    },
-  });
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(
+      and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.status, "Running"),
+        eq(dbSegment.resourceType, "Declarative"),
+      ),
+    );
   return segments.flatMap((segment) => {
     const result = toSegmentResource(segment);
     if (result.isErr()) {
@@ -272,23 +274,16 @@ export async function findManyEnrichedSegments({
   segmentIds?: string[];
   requireRunning?: boolean;
 }): Promise<Result<EnrichedSegment[], ValueError[]>> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      ...(segmentIds?.length
-        ? {
-            id: {
-              in: segmentIds,
-            },
-          }
-        : null),
-      ...(requireRunning && !segmentIds?.length
-        ? {
-            status: "Running",
-          }
-        : null),
-    },
-  });
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (segmentIds && segmentIds.length > 0) {
+    conditions.push(inArray(dbSegment.id, segmentIds));
+  } else if (requireRunning) {
+    conditions.push(eq(dbSegment.status, "Running"));
+  }
+  const segments = await db()
+    .select()
+    .from(dbSegment)
+    .where(and(...conditions));
 
   const enrichedSegments: EnrichedSegment[] = [];
   for (const segment of segments) {
@@ -316,23 +311,15 @@ export async function findManySegmentResourcesSafe({
   segmentIds?: string[];
   requireRunning?: boolean;
 }): Promise<Result<SavedSegmentResource, Error>[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      ...(segmentIds?.length
-        ? {
-            id: {
-              in: segmentIds,
-            },
-          }
-        : null),
-      ...(requireRunning && !segmentIds?.length
-        ? {
-            status: "Running",
-          }
-        : null),
-    },
-  });
+  const conditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (segmentIds && segmentIds.length > 0) {
+    conditions.push(inArray(dbSegment.id, segmentIds));
+  } else if (requireRunning) {
+    conditions.push(eq(dbSegment.status, "Running"));
+  }
+  const where = and(...conditions);
+  const segments = await db().select().from(dbSegment).where(where);
+
   const results: Result<SavedSegmentResource, Error>[] = segments.map(
     (segment) => toSegmentResource(segment),
   );
@@ -354,47 +341,31 @@ export async function upsertSegment(
     });
   }
 
-  const where: Prisma.SegmentWhereUniqueInput = params.id
-    ? {
-        workspaceId: params.workspaceId,
-        id: params.id,
-      }
-    : {
-        workspaceId_name: {
-          workspaceId: params.workspaceId,
-          name: params.name,
-        },
-      };
+  const value: typeof dbSegment.$inferInsert = {
+    id: params.id,
+    workspaceId: params.workspaceId,
+    name: params.name,
+    definition: params.definition,
+  };
 
-  let segment: Segment;
-  try {
-    if (params.definition) {
-      segment = await prisma().segment.upsert({
-        where,
-        update: {
+  const result = await queryResult(
+    db()
+      .insert(dbSegment)
+      .values(value)
+      .onConflictDoUpdate({
+        target: [dbSegment.workspaceId, dbSegment.name],
+        set: {
           definition: params.definition,
           name: params.name,
-          definitionUpdatedAt: new Date(),
+          definitionUpdatedAt: params.definition ? new Date() : undefined,
         },
-        create: {
-          workspaceId: params.workspaceId,
-          name: params.name,
-          definition: params.definition,
-          id: params.id,
-        },
-      });
-    } else {
-      segment = await prisma().segment.update({
-        where,
-        data: {
-          name: params.name,
-        },
-      });
-    }
-  } catch (e) {
+      })
+      .returning(),
+  );
+  if (result.isErr()) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      (e.code === "P2002" || e.code === "P2025")
+      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      result.error.code === PostgresError.UNIQUE_VIOLATION
     ) {
       return err({
         type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
@@ -402,16 +373,30 @@ export async function upsertSegment(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw e;
+    throw result.error;
   }
+
+  const insertedSegment = result.value[0];
+  if (!insertedSegment) {
+    logger().error(
+      {
+        result,
+        params,
+        workspaceId: params.workspaceId,
+      },
+      "No segment inserted",
+    );
+    throw new Error("No segment inserted");
+  }
+
   return ok({
-    id: segment.id,
-    workspaceId: segment.workspaceId,
-    name: segment.name,
-    definition: segment.definition as SegmentDefinition,
-    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
-    updatedAt: segment.updatedAt.getTime(),
-    createdAt: segment.createdAt.getTime(),
+    id: insertedSegment.id,
+    workspaceId: insertedSegment.workspaceId,
+    name: insertedSegment.name,
+    definition: insertedSegment.definition as SegmentDefinition,
+    definitionUpdatedAt: insertedSegment.definitionUpdatedAt.getTime(),
+    updatedAt: insertedSegment.updatedAt.getTime(),
+    createdAt: insertedSegment.createdAt.getTime(),
   });
 }
 
@@ -487,18 +472,14 @@ export async function buildSegmentsFile({
 }> {
   const identifiers = Object.values(CHANNEL_IDENTIFIERS);
   const [segments, userIdentifiers, segmentAssignments] = await Promise.all([
-    prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-      include: {
-        subscriptionGroup: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    }),
+    db()
+      .select()
+      .from(dbSegment)
+      .where(eq(dbSegment.workspaceId, workspaceId))
+      .leftJoin(
+        dbSubscriptionGroup,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      ),
     findAllUserPropertyAssignmentsForWorkspace({
       workspaceId,
     }),
@@ -506,7 +487,7 @@ export async function buildSegmentsFile({
   ]);
   const segmentMap = new Map<string, (typeof segments)[number]>();
   for (const segment of segments) {
-    segmentMap.set(segment.id, segment);
+    segmentMap.set(segment.Segment.id, segment);
   }
 
   const assignments: Record<string, string>[] = segmentAssignments.flatMap(
@@ -523,8 +504,8 @@ export async function buildSegmentsFile({
         return [];
       }
       const csvAssignment: Record<string, string> = {
-        segmentName: segment.name,
-        subscriptionGroupName: segment.subscriptionGroup?.name ?? "",
+        segmentName: segment.Segment.name,
+        subscriptionGroupName: segment.SubscriptionGroup?.name ?? "",
         segmentId: a.segmentId,
         userId: a.userId,
         inSegment: a.inSegment.toString(),
@@ -575,13 +556,11 @@ export async function findManyPartialSegments({
 }: {
   workspaceId: string;
 }): Promise<PartialSegmentResource[]> {
-  const segments = await prisma().segment.findMany({
-    where: {
-      workspaceId,
-      resourceType: {
-        not: "Internal",
-      },
-    },
+  const segments = await db().query.segment.findMany({
+    where: and(
+      eq(dbSegment.workspaceId, workspaceId),
+      not(eq(dbSegment.resourceType, "Internal")),
+    ),
   });
   return segments.flatMap((segment) => {
     const {

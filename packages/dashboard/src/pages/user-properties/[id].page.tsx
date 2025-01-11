@@ -15,6 +15,9 @@ import {
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
+import { and, eq } from "drizzle-orm";
 import { Draft } from "immer";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -46,7 +49,6 @@ import InfoTooltip from "../../components/infoTooltip";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import {
   GroupedOption,
@@ -233,10 +235,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const userProperty = await prisma().userProperty.findUnique({
-      where: {
-        id,
-      },
+    const userProperty = await db().query.userProperty.findFirst({
+      where: and(
+        eq(schema.userProperty.id, id),
+        eq(schema.userProperty.workspaceId, workspaceId),
+      ),
     });
 
     let userPropertyResource: UserPropertyResource;
