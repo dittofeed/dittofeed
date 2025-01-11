@@ -55,6 +55,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           id,
           definition: defaultSmsDefinition(),
         },
+        lookupExisting: and(
+          eq(schema.messageTemplate.id, id),
+          eq(schema.messageTemplate.workspaceId, dfContext.workspace.id),
+        )!,
         doNothingOnConflict: true,
       }).then(unwrap);
     } else {

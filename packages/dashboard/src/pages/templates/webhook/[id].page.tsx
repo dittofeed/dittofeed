@@ -49,6 +49,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     if (!template) {
       templateWithDefault = await insert({
         table: schema.messageTemplate,
+        lookupExisting: and(
+          eq(schema.messageTemplate.id, id),
+          eq(schema.messageTemplate.workspaceId, dfContext.workspace.id),
+        )!,
         values: {
           workspaceId: dfContext.workspace.id,
           name: name ?? `New Webhook Template - ${id}`,

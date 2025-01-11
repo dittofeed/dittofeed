@@ -6,7 +6,7 @@ import { findMessageTemplates } from "backend-lib/src/messaging";
 import { findSegmentResources } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -127,6 +127,10 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
       const newJourney = await insert({
         table: schema.journey,
+        lookupExisting: and(
+          eq(schema.journey.id, id),
+          eq(schema.journey.workspaceId, workspaceId),
+        )!,
         values: {
           id,
           workspaceId,

@@ -68,6 +68,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       emailTemplateWithDefault = await insert({
         table: schema.messageTemplate,
         doNothingOnConflict: true,
+        lookupExisting: and(
+          eq(schema.messageTemplate.id, templateId),
+          eq(schema.messageTemplate.workspaceId, workspaceId),
+        )!,
         values: {
           workspaceId,
           name: name ?? `New Email Message - ${templateId}`,
@@ -78,8 +82,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
               | DefaultEmailProviderResource
               | undefined,
           }) satisfies EmailTemplateResource,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       }).then(unwrap);
     } else {
