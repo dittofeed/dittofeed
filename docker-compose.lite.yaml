@@ -21,13 +21,13 @@ services:
   lite:
     image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.20.0}
     restart: always
-    command: node --max-old-space-size=${LITE_MEM_LIMIT:-412} ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME:-Default}
+    command: node --max-old-space-size=${LITE_MEM_LIMIT:-824} ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME:-Default}
     logging:
       driver: "local"
     deploy:
       resources:
         limits:
-          memory: ${LITE_CONTAINER_MEM_LIMIT:-512}m
+          memory: ${LITE_CONTAINER_MEM_LIMIT:-1024}m
     ports:
       - "3000:3000"
     depends_on:
@@ -36,8 +36,8 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
-      # uncomment after initial setup
-      # BOOTSTRAP: "false"
+      # comment out after initial setup
+      BOOTSTRAP: "true"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     # env_file:
     #   - .env
