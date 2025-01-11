@@ -38,10 +38,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Prisma generate
-        if: ${{ inputs.is_backend == 'true' }}
-        run: yarn workspace backend-lib prisma generate
-
       - name: Emailo Build
         run: yarn workspace emailo build
 
