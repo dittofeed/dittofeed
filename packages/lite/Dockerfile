@@ -37,7 +37,6 @@ COPY ./packages/admin-cli/ ./packages/admin-cli
 COPY ./packages/emailo/ ./packages/emailo
 
 RUN yarn workspace emailo build && \
-    yarn workspace backend-lib prisma generate && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
@@ -59,7 +58,6 @@ WORKDIR /service
 RUN yarn set version 4.1.1
 
 COPY --from=builder /service/production_node_modules ./node_modules
-COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /service/package.json ./package.json
 COPY --from=builder /service/*.json /service/yarn.lock /service/.yarnrc.yml ./
 COPY --from=builder /service/.yarn .yarn
@@ -81,7 +79,6 @@ COPY --from=builder /service/packages/admin-cli/package.json ./packages/admin-cl
 
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
 COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
-COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/prisma
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
