@@ -1,3 +1,4 @@
+import { migrate as kitMigrate } from "drizzle-kit/api";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import fs from "fs/promises";
 import path from "path";
