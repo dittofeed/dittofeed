@@ -34,6 +34,8 @@ export async function onboardUser({
     workspaceMember = unwrap(
       await insert({
         table: dbWorkspaceMember,
+        doNothingOnConflict: true,
+        lookupExisting: eq(dbWorkspaceMember.email, email),
         values: {
           email,
         },

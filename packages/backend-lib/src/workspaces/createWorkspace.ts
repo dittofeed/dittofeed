@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { Result } from "neverthrow";
 
 import { insert, QueryError } from "../db";
@@ -9,5 +10,7 @@ export async function createWorkspace(
   return insert({
     table: dbWorkspace,
     values,
+    doNothingOnConflict: true,
+    lookupExisting: eq(dbWorkspace.name, values.name),
   });
 }

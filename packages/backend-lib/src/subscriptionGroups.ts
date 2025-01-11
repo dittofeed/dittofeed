@@ -553,6 +553,11 @@ export async function upsertSubscriptionSecret({
 }) {
   return insert({
     table: dbSecret,
+    doNothingOnConflict: true,
+    lookupExisting: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      eq(dbSecret.name, SecretNames.Subscription),
+    )!,
     values: {
       workspaceId,
       name: SecretNames.Subscription,

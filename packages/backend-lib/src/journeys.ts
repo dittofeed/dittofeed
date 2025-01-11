@@ -848,6 +848,11 @@ export async function upsertJourney(
           await insert({
             table: dbJourney,
             tx,
+            doNothingOnConflict: true,
+            lookupExisting: and(
+              eq(dbJourney.name, name),
+              eq(dbJourney.workspaceId, workspaceId),
+            )!,
             values: {
               id,
               workspaceId,

@@ -1,5 +1,5 @@
 // eslint-disable-next-line filenames/no-index
-import { Table } from "drizzle-orm";
+import { SQL, Table } from "drizzle-orm";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   PgInsertBase,
@@ -110,21 +110,33 @@ export async function insert<TTable extends Table>(params: {
 }): Promise<Result<TTable["$inferSelect"] | null, QueryError>>;
 
 // Overload for when doNothingOnConflict is false or not provided
-export async function insert<TTable extends Table>(params: {
-  table: TTable;
-  values: TTable["$inferInsert"];
-  doNothingOnConflict?: false;
-  tx?: Db;
-}): Promise<Result<TTable["$inferSelect"], QueryError>>;
+export async function insert<TTable extends Table>(
+  params:
+    | {
+        table: TTable;
+        values: TTable["$inferInsert"];
+        doNothingOnConflict: false;
+        tx?: Db;
+      }
+    | {
+        table: TTable;
+        values: TTable["$inferInsert"];
+        doNothingOnConflict: true;
+        lookupExisting: SQL;
+        tx?: Db;
+      },
+): Promise<Result<TTable["$inferSelect"], QueryError>>;
 
 export async function insert<TTable extends Table>({
   table,
   values,
   tx = db(),
   doNothingOnConflict = false,
+  lookupExisting,
 }: {
   table: TTable;
   values: TTable["$inferInsert"];
+  lookupExisting?: SQL;
   doNothingOnConflict?: boolean;
   tx?: Db;
 }): Promise<Result<TTable["$inferSelect"] | null, QueryError>> {
@@ -138,6 +150,21 @@ export async function insert<TTable extends Table>({
   const result = results.value[0];
 
   if (doNothingOnConflict) {
+    if (lookupExisting) {
+      const [existing] = await db()
+        .select()
+        .from(table)
+        .where(lookupExisting)
+        .limit(1);
+      if (existing) {
+        return ok(existing);
+      }
+      logger().error(
+        { table, values, lookupExisting },
+        "No existing record found",
+      );
+      throw new Error("No existing record found");
+    }
     // In this branch, TypeScript knows result can be undefined
     return ok(result ?? null);
   }

@@ -198,6 +198,10 @@ export async function upsertBroadcast({
     insert({
       table: dbSegment,
       doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbSegment.workspaceId, workspaceId),
+        eq(dbSegment.name, broadcastSegmentName),
+      )!,
       values: {
         workspaceId,
         name: broadcastSegmentName,
@@ -209,6 +213,10 @@ export async function upsertBroadcast({
     insert({
       table: dbMessageTemplate,
       doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbMessageTemplate.workspaceId, workspaceId),
+        eq(dbMessageTemplate.name, broadcastTemplateName),
+      )!,
       values: {
         workspaceId,
         resourceType: "Internal",
@@ -253,6 +261,10 @@ export async function upsertBroadcast({
     await insert({
       table: dbJourney,
       doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbJourney.workspaceId, workspaceId),
+        eq(dbJourney.name, broadcastJourneyName),
+      )!,
       values: {
         workspaceId,
         name: broadcastJourneyName,
@@ -266,6 +278,10 @@ export async function upsertBroadcast({
     await insert({
       table: dbBroadcast,
       doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(dbBroadcast.id, id),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      )!,
       values: {
         id,
         workspaceId,
