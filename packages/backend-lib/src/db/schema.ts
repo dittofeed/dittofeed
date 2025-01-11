@@ -1,4 +1,3 @@
-import { sql } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
@@ -11,7 +10,6 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
-  varchar,
 } from "drizzle-orm/pg-core";
 
 export const computedPropertyType = pgEnum("ComputedPropertyType", [
