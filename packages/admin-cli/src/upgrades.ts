@@ -12,8 +12,7 @@ import {
   Workspace,
 } from "backend-lib/src/types";
 import { createUserEventsTables } from "backend-lib/src/userEvents/clickhouse";
-import { randomUUID } from "crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -93,13 +92,15 @@ export async function disentangleResendSendgrid() {
           (async () => {
             const secret = await insert({
               table: schema.secret,
+              doNothingOnConflict: true,
+              lookupExisting: and(
+                eq(schema.secret.workspaceId, misnamed.workspaceId),
+                eq(schema.secret.name, SecretNames.Resend),
+              )!,
               values: {
-                id: randomUUID(),
                 name: SecretNames.Resend,
                 workspaceId: misnamed.workspaceId,
                 configValue: { type: EmailProviderType.Resend },
-                createdAt: new Date(),
-                updatedAt: new Date(),
               },
               tx: pTx,
             }).then(unwrap);
@@ -122,13 +123,15 @@ export async function disentangleResendSendgrid() {
           (async () => {
             const secret = await insert({
               table: schema.secret,
+              doNothingOnConflict: true,
+              lookupExisting: and(
+                eq(schema.secret.workspaceId, misnamed.workspaceId),
+                eq(schema.secret.name, SecretNames.Resend),
+              )!,
               values: {
-                id: randomUUID(),
                 name: SecretNames.Resend,
                 workspaceId: misnamed.workspaceId,
                 configValue: misnamed.secretValue,
-                createdAt: new Date(),
-                updatedAt: new Date(),
               },
             }).then(unwrap);
 
