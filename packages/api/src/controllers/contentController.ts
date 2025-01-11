@@ -1,5 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { db, queryResult } from "backend-lib/src/db";
+import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";

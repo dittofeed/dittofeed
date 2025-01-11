@@ -2,7 +2,7 @@ import {
   EMAIL_EVENTS_UP_NAME,
   HUBSPOT_INTEGRATION,
 } from "backend-lib/src/constants";
-import { db, upsert } from "backend-lib/src/db";
+import { upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
   getIntegrationEnabled,
