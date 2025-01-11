@@ -150,30 +150,26 @@ export async function insert<TTable extends Table>({
     return results;
   }
   const result = results.value[0];
-
-  if (doNothingOnConflict) {
-    if (lookupExisting) {
-      const [existing] = await db()
-        .select()
-        .from(table)
-        .where(lookupExisting)
-        .limit(1);
-      if (existing) {
-        return ok(existing);
-      }
-      logger().error(
-        { table, values, lookupExisting },
-        "No existing record found",
-      );
-      throw new Error("No existing record found");
-    }
-    // In this branch, TypeScript knows result can be undefined
-    return ok(result ?? null);
+  if (result) {
+    return ok(result);
   }
 
-  if (!result) {
-    logger().error({ table, values }, "No result returned from insert");
+  if (!doNothingOnConflict) {
     throw new Error("No result returned from insert");
   }
-  return ok(result);
+  if (!lookupExisting) {
+    return ok(null);
+  }
+
+  const [existing] = await db()
+    .select()
+    .from(table)
+    .where(lookupExisting)
+    .limit(1);
+  if (existing) {
+    return ok(existing);
+  }
+
+  logger().error({ table, values, lookupExisting }, "No existing record found");
+  throw new Error("No existing record found");
 }

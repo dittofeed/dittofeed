@@ -849,10 +849,6 @@ export async function upsertJourney(
             table: dbJourney,
             tx,
             doNothingOnConflict: true,
-            lookupExisting: and(
-              eq(dbJourney.name, name),
-              eq(dbJourney.workspaceId, workspaceId),
-            )!,
             values: {
               id,
               workspaceId,
@@ -864,7 +860,15 @@ export async function upsertJourney(
             },
           })
         ).mapErr(mapUpsertValidationError);
-        return created;
+        return created.andThen((c) => {
+          if (!c) {
+            return err({
+              type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+              message: "Journey with this name already exists",
+            } satisfies JourneyUpsertValidationError);
+          }
+          return ok(c);
+        });
       }
       if (
         status === JourneyResourceStatusEnum.Paused &&

@@ -80,8 +80,6 @@ describe("journeys", () => {
         definition: journeyDefinition,
         name: randomUUID(),
         status: "Running",
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
     });
 
@@ -326,8 +324,6 @@ describe("journeys", () => {
           definition: journeyDefinition,
           name: randomUUID(),
           status: JourneyResourceStatusEnum.Running,
-          createdAt: new Date(),
-          updatedAt: new Date(),
           canRunMultiple: false,
           resourceType: "Declarative",
           draft: null,
@@ -341,8 +337,6 @@ describe("journeys", () => {
             definition: journeyDefinition,
             name: randomUUID(),
             status: "Running",
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
         });
 
