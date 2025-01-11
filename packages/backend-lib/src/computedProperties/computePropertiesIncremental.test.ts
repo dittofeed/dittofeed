@@ -6065,7 +6065,6 @@ describe("computeProperties", () => {
           },
         };
         return insert({
-          doNothingOnConflict: true,
           table: schema.journey,
           values: {
             id: randomUUID(),

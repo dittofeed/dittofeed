@@ -62,9 +62,7 @@ describe("journeys with wait-for nodes", () => {
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
-        id: randomUUID(),
         name: `event-entry-${randomUUID()}`,
-        updatedAt: new Date(),
       }),
     );
 

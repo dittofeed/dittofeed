@@ -116,7 +116,7 @@ export async function insert<TTable extends Table>(
     | {
         table: TTable;
         values: TTable["$inferInsert"];
-        doNothingOnConflict: false;
+        doNothingOnConflict?: false;
         lookupExisting?: undefined;
         tx?: Db;
       }
