@@ -13,6 +13,7 @@ import { PostgresError } from "pg-error-enum";
 import config from "./config";
 import * as relations from "./db/relations";
 import * as schema from "./db/schema";
+import logger from "./logger";
 
 export { PostgresError };
 
@@ -100,6 +101,22 @@ export async function upsert<
   return ok(result);
 }
 
+// Overload for when doNothingOnConflict is true
+export async function insert<TTable extends Table>(params: {
+  table: TTable;
+  values: TTable["$inferInsert"];
+  doNothingOnConflict: true;
+  tx?: Db;
+}): Promise<Result<TTable["$inferSelect"] | null, QueryError>>;
+
+// Overload for when doNothingOnConflict is false or not provided
+export async function insert<TTable extends Table>(params: {
+  table: TTable;
+  values: TTable["$inferInsert"];
+  doNothingOnConflict?: false;
+  tx?: Db;
+}): Promise<Result<TTable["$inferSelect"], QueryError>>;
+
 export async function insert<TTable extends Table>({
   table,
   values,
@@ -110,7 +127,7 @@ export async function insert<TTable extends Table>({
   values: TTable["$inferInsert"];
   doNothingOnConflict?: boolean;
   tx?: Db;
-}): Promise<Result<TTable["$inferSelect"], QueryError>> {
+}): Promise<Result<TTable["$inferSelect"] | null, QueryError>> {
   const query = tx.insert(table).values(values).returning();
   const results = await queryResult(
     doNothingOnConflict ? query.onConflictDoNothing() : query,
@@ -119,7 +136,14 @@ export async function insert<TTable extends Table>({
     return results;
   }
   const result = results.value[0];
+
+  if (doNothingOnConflict) {
+    // In this branch, TypeScript knows result can be undefined
+    return ok(result ?? null);
+  }
+
   if (!result) {
+    logger().error({ table, values }, "No result returned from insert");
     throw new Error("No result returned from insert");
   }
   return ok(result);
