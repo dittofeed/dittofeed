@@ -34,7 +34,6 @@ COPY ./packages/admin-cli/ ./packages/admin-cli
 COPY ./packages/emailo/ ./packages/emailo
 
 RUN yarn workspace emailo build && \
-    yarn workspace backend-lib prisma generate && \
     yarn workspace backend-lib build && \
     yarn workspace admin-cli build
 
