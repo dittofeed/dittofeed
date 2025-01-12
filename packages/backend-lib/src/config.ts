@@ -109,6 +109,7 @@ const BaseRawConfigProps = {
   onboardingUrl: Type.Optional(Type.String()),
   globalCronTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
+  assignmentSequentialConsistency: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -223,6 +224,7 @@ export type Config = Overwrite<
     writeMode: WriteMode;
     globalCronTaskQueue: string;
     computedPropertiesTaskQueue: string;
+    assignmentSequentialConsistency: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -514,6 +516,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
     computedPropertiesTaskQueue:
       rawConfig.computedPropertiesTaskQueue ?? "default",
+    assignmentSequentialConsistency:
+      rawConfig.assignmentSequentialConsistency !== "false",
   };
 
   return parsedConfig;
@@ -539,4 +543,8 @@ export function databaseUrlWithoutName() {
   const url = new URL(databaseUrl);
   url.pathname = "";
   return url.toString();
+}
+
+export function assignmentSequentialConsistency(): "1" | "0" {
+  return config().assignmentSequentialConsistency ? "1" : "0";
 }

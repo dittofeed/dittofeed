@@ -18,6 +18,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { assignmentSequentialConsistency } from "./config";
 import { db, queryResult } from "./db";
 import {
   segment as dbSegment,
@@ -88,7 +89,13 @@ export async function findAllSegmentAssignmentsByIds({
     GROUP BY computed_property_id
   `;
 
-  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
   const rows = await result.json<{
     computed_property_id: string;
     latest_segment_value: boolean;
@@ -130,7 +137,13 @@ export async function findAllSegmentAssignments({
     GROUP BY computed_property_id
     HAVING latest_segment_value = true
   `;
-  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
   const rows = await result.json<{
     computed_property_id: string;
     latest_segment_value: boolean;
@@ -448,7 +461,13 @@ async function getWorkspaceSegmentAssignments({
       AND type = 'segment'
     GROUP BY computed_property_id, user_id
   `;
-  const result = await chQuery({ query, query_params: qb.getQueries() });
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
   const rows = await result.json<{
     computed_property_id: string;
     latest_segment_value: boolean;
@@ -795,6 +814,9 @@ export async function findRecentlyUpdatedUsersInSegment({
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
   const rows = await result.json<{ userId: string }>();
   return rows;
@@ -846,6 +868,9 @@ export async function getSegmentAssignmentDb({
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
   const rows = await result.json<{ latest_segment_value: boolean }>();
   return rows[0]?.latest_segment_value ?? null;

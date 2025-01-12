@@ -19,6 +19,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { assignmentSequentialConsistency } from "./config";
 import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
@@ -395,6 +396,9 @@ async function findAllUserPropertyAssignmentsComponents({
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
   const rows = await result.json<ClickhouseUserPropertyAssignment>();
   const chAssignmentMap = new Map<string, string>();
@@ -495,6 +499,9 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
   const rows = await result.json<{
     computed_property_id: string;
@@ -835,6 +842,9 @@ export async function findUserIdsByUserPropertyValue({
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
   const rows = await result.json<{ user_id: string }>();
   return rows.map((row) => row.user_id);
