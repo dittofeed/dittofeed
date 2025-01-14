@@ -28,7 +28,7 @@ import {
   messageTemplate as dbMessageTemplate,
   secret as dbSecret,
   smsProvider as dbSmsProvider,
-  workspaceRelation as dbWorkspaceRelation,
+  workspace as dbWorkspace,
 } from "./db/schema";
 import {
   sendMail as sendMailAmazonSes,
@@ -490,15 +490,15 @@ async function getSmsProvider({
   if (provider) {
     return provider;
   }
-  const relation = await db().query.workspaceRelation.findFirst({
-    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
+  const workspace = await db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
   });
-  logger().debug({ relation }, "workspace relation");
-  if (!relation) {
+  const parentWorkspaceId = workspace?.parentWorkspaceId;
+  if (!parentWorkspaceId) {
     return null;
   }
   return getSmsProviderForWorkspace({
-    workspaceId: relation.parentWorkspaceId,
+    workspaceId: parentWorkspaceId,
     providerOverride,
   });
 }
@@ -576,15 +576,15 @@ async function getEmailProvider({
   if (provider) {
     return provider;
   }
-  const relation = await db().query.workspaceRelation.findFirst({
-    where: eq(dbWorkspaceRelation.childWorkspaceId, workspaceId),
+  const workspace = await db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
   });
-  logger().debug({ relation }, "workspace relation");
-  if (!relation) {
+  const parentWorkspaceId = workspace?.parentWorkspaceId;
+  if (!parentWorkspaceId) {
     return null;
   }
   return getEmailProviderForWorkspace({
-    workspaceId: relation.parentWorkspaceId,
+    workspaceId: parentWorkspaceId,
     providerOverride,
   });
 }
