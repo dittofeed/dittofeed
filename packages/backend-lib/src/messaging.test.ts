@@ -7,7 +7,6 @@ import {
   messageTemplate as dbMessageTemplate,
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
-  workspaceRelation as dbWorkspaceRelation,
 } from "./db/schema";
 import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
@@ -97,11 +96,12 @@ describe("messaging", () => {
       let subscriptionGroup: SubscriptionGroup;
 
       beforeEach(async () => {
+        const parentWorkspaceId = randomUUID();
         [parentWorkspace, childWorkspace] = await Promise.all([
           insert({
             table: dbWorkspace,
             values: {
-              id: randomUUID(),
+              id: parentWorkspaceId,
               name: `parent-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Parent,
               updatedAt: new Date(),
@@ -112,6 +112,7 @@ describe("messaging", () => {
             table: dbWorkspace,
             values: {
               id: randomUUID(),
+              parentWorkspaceId,
               name: `child-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Child,
               updatedAt: new Date(),
@@ -119,13 +120,6 @@ describe("messaging", () => {
             },
           }).then(unwrap),
         ]);
-        await insert({
-          table: dbWorkspaceRelation,
-          values: {
-            parentWorkspaceId: parentWorkspace.id,
-            childWorkspaceId: childWorkspace.id,
-          },
-        });
         [template, subscriptionGroup] = await Promise.all([
           insert({
             table: dbMessageTemplate,
@@ -257,11 +251,12 @@ describe("messaging", () => {
       let subscriptionGroup: SubscriptionGroup;
 
       beforeEach(async () => {
+        const parentWorkspaceId = randomUUID();
         [parentWorkspace, childWorkspace] = await Promise.all([
           insert({
             table: dbWorkspace,
             values: {
-              id: randomUUID(),
+              id: parentWorkspaceId,
               name: `parent-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Parent,
               updatedAt: new Date(),
@@ -272,6 +267,7 @@ describe("messaging", () => {
             table: dbWorkspace,
             values: {
               id: randomUUID(),
+              parentWorkspaceId,
               name: `child-workspace-${randomUUID()}`,
               type: WorkspaceTypeAppEnum.Child,
               updatedAt: new Date(),
@@ -279,13 +275,6 @@ describe("messaging", () => {
             },
           }).then(unwrap),
         ]);
-        await insert({
-          table: dbWorkspaceRelation,
-          values: {
-            parentWorkspaceId: parentWorkspace.id,
-            childWorkspaceId: childWorkspace.id,
-          },
-        });
         [template, subscriptionGroup] = await Promise.all([
           insert({
             table: dbMessageTemplate,
