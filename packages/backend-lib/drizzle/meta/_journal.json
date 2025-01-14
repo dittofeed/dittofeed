@@ -15,6 +15,13 @@
       "when": 1736555146970,
       "tag": "0001_brave_randall",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1736883565040,
+      "tag": "0002_spicy_inertia",
+      "breakpoints": true
     }
   ]
 }

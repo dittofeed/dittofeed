@@ -81,15 +81,18 @@ export const workspace = pgTable(
     domain: text(),
     type: workspaceType().default("Root").notNull(),
     externalId: text(),
+    parentWorkspaceId: uuid(),
     status: workspaceStatus().default("Active").notNull(),
   },
   (table) => [
-    uniqueIndex("Workspace_externalId_key").using(
+    uniqueIndex("Workspace_parentWorkspaceId_externalId_key").using(
       "btree",
+      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
       table.externalId.asc().nullsLast().op("text_ops"),
     ),
-    uniqueIndex("Workspace_name_key").using(
+    uniqueIndex("Workspace_parentWorkspaceId_name_key").using(
       "btree",
+      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
       table.name.asc().nullsLast().op("text_ops"),
     ),
   ],
@@ -943,6 +946,7 @@ export const feature = pgTable(
   ],
 );
 
+// deprecated
 export const workspaceRelation = pgTable(
   "WorkspaceRelation",
   {
