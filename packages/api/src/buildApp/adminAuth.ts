@@ -2,7 +2,7 @@ import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import { WorkspaceStatusDbEnum } from "backend-lib/src/types";
-import { and, eq, exists, inArray, or } from "drizzle-orm";
+import { and, eq, exists, or } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
