@@ -152,7 +152,8 @@ export async function upsertSubscriptionGroup({
         channel,
         workspaceId,
       },
-      target: [dbSubscriptionGroup.workspaceId, dbSubscriptionGroup.name],
+      target: [dbSubscriptionGroup.id],
+      setWhere: eq(dbSubscriptionGroup.workspaceId, workspaceId),
       tx,
       set: {
         name,
