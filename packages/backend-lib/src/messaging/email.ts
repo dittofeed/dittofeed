@@ -1,17 +1,14 @@
-import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { defaultEmailoContent } from "emailo";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   BadWorkspaceConfigurationType,
   ChannelType,
   DefaultEmailProviderResource,
   EmailContentsType,
   EmailProviderType,
-  EmailProviderTypeSchema,
   EmailTemplateResource,
   MessageTemplateRenderError,
   PersistedEmailProvider,
@@ -28,6 +25,7 @@ import {
 } from "../db/schema";
 import logger from "../logger";
 import { generateSubscriptionChangeUrl } from "../subscriptionGroups";
+import { EmailProvider } from "../types";
 
 const LIST_UNSUBSCRIBE_POST = "List-Unsubscribe=One-Click" as const;
 
@@ -82,11 +80,12 @@ export async function upsertEmailProvider({
   workspaceId,
   config,
   setDefault,
-}: UpsertEmailProviderRequest): Promise<PersistedEmailProvider | null> {
+}: UpsertEmailProviderRequest): Promise<PersistedEmailProvider> {
   const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
-  const secret = unwrap(
-    await upsert({
+  return db().transaction(async (tx) => {
+    const secret = await upsert({
       table: dbSecret,
+      tx,
       target: [dbSecret.workspaceId, dbSecret.name],
       values: {
         workspaceId,
@@ -96,43 +95,54 @@ export async function upsertEmailProvider({
       set: {
         configValue: config,
       },
-    }),
-  );
+    }).then(unwrap);
 
-  const [emailProvider] = await db()
-    .insert(dbEmailProvider)
-    .values({
-      id: randomUUID(),
-      workspaceId,
-      type: config.type,
-      secretId: secret.id,
-    })
-    .onConflictDoNothing()
-    .returning();
-  if (!emailProvider) {
-    throw new Error("Failed to upsert email provider");
-  }
-  const type = unwrap(
-    schemaValidateWithErr(emailProvider.type, EmailProviderTypeSchema),
-  );
-
-  if (setDefault) {
-    await upsert({
-      table: dbDefaultEmailProvider,
-      target: [
-        dbDefaultEmailProvider.workspaceId,
-        dbDefaultEmailProvider.emailProviderId,
-      ],
-      values: {
-        workspaceId,
-        emailProviderId: emailProvider.id,
-      },
-      set: {
-        emailProviderId: emailProvider.id,
-      },
+    const existingEmailProvider = await tx.query.emailProvider.findFirst({
+      where: and(
+        eq(dbEmailProvider.workspaceId, workspaceId),
+        eq(dbEmailProvider.type, config.type),
+      ),
     });
-  }
-  return { ...emailProvider, type };
+
+    let emailProvider: EmailProvider;
+    if (existingEmailProvider) {
+      emailProvider = existingEmailProvider;
+    } else {
+      const [newEmailProvider] = await tx
+        .insert(dbEmailProvider)
+        .values({
+          workspaceId,
+          type: config.type,
+          secretId: secret.id,
+        })
+        .returning();
+
+      if (!newEmailProvider) {
+        throw new Error("Failed to upsert email provider");
+      }
+      emailProvider = newEmailProvider;
+    }
+
+    if (setDefault) {
+      await upsert({
+        table: dbDefaultEmailProvider,
+        tx,
+        target: [dbDefaultEmailProvider.workspaceId],
+        values: {
+          workspaceId,
+          emailProviderId: emailProvider.id,
+        },
+        set: {
+          emailProviderId: emailProvider.id,
+        },
+      }).then(unwrap);
+    }
+    return {
+      workspaceId: emailProvider.workspaceId,
+      id: emailProvider.id,
+      type: config.type,
+    };
+  });
 }
 
 export async function getOrCreateEmailProviders({

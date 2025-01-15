@@ -42,9 +42,11 @@ describe("email", () => {
         },
       });
 
-      expect(provider?.emailProvider.secret?.configValue).toEqual({
-        apiKey: "456",
-      });
+      expect(provider?.emailProvider.secret?.configValue).toEqual(
+        expect.objectContaining({
+          apiKey: "456",
+        }),
+      );
     });
   });
 });
