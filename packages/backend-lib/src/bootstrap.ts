@@ -6,7 +6,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok, Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 import { v5 as uuidv5 } from "uuid";
 
@@ -22,7 +22,7 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { insert, QueryError, upsert } from "./db";
+import { insert, upsert } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -75,23 +75,16 @@ export async function bootstrapPostgres({
   workspaceDomain,
   workspaceType,
   workspaceExternalId,
-  upsertWorkspace = true,
   features,
+  existingWorkspace,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
   workspaceType?: WorkspaceTypeApp;
   workspaceExternalId?: string;
-  upsertWorkspace?: boolean;
   features?: Features;
+  existingWorkspace?: Workspace;
 }): Promise<CreateWorkspaceResult> {
-  if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
-    return err({
-      type: CreateWorkspaceErrorType.WorkspaceNameViolation,
-      message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
-    });
-  }
-
   logger().info(
     {
       workspaceName,
@@ -106,9 +99,17 @@ export async function bootstrapPostgres({
       type: CreateWorkspaceErrorType.InvalidDomain,
     });
   }
-  let workspaceResult: Result<Workspace, QueryError>;
-  if (upsertWorkspace) {
-    workspaceResult = await upsert({
+  let workspace: Workspace;
+  if (existingWorkspace) {
+    workspace = existingWorkspace;
+  } else {
+    if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
+      return err({
+        type: CreateWorkspaceErrorType.WorkspaceNameViolation,
+        message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
+      });
+    }
+    const workspaceResult = await upsert({
       table: dbWorkspace,
       values: {
         name: workspaceName,
@@ -123,30 +124,23 @@ export async function bootstrapPostgres({
         externalId: workspaceExternalId,
       },
     });
-  } else {
-    workspaceResult = await createWorkspace({
-      name: workspaceName,
-      domain: workspaceDomain,
-      type: workspaceType,
-      externalId: workspaceExternalId,
-    });
-  }
-  if (workspaceResult.isErr()) {
-    if (
-      workspaceResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
-      workspaceResult.error.code === PostgresError.UNIQUE_VIOLATION
-    ) {
-      return err({
-        type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
-      });
+    if (workspaceResult.isErr()) {
+      if (
+        workspaceResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+        workspaceResult.error.code === PostgresError.UNIQUE_VIOLATION
+      ) {
+        return err({
+          type: CreateWorkspaceErrorType.WorkspaceAlreadyExists,
+        });
+      }
+      logger().error(
+        { err: workspaceResult.error },
+        "Failed to upsert workspace.",
+      );
+      throw workspaceResult.error;
     }
-    logger().error(
-      { err: workspaceResult.error },
-      "Failed to upsert workspace.",
-    );
-    throw workspaceResult.error;
+    workspace = workspaceResult.value;
   }
-  const workspace = workspaceResult.value;
   const workspaceId = workspace.id;
 
   if (features) {
