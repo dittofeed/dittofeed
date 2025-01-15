@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -13,6 +13,7 @@ import logger from "../logger";
 import {
   ChannelType,
   PersistedSmsProvider,
+  SmsProvider,
   SmsProviderType,
   SmsTemplateResource,
   UpsertSmsProviderRequest,
@@ -29,58 +30,71 @@ export async function upsertSmsProvider({
   workspaceId,
   config,
   setDefault,
-}: UpsertSmsProviderRequest): Promise<PersistedSmsProvider | null> {
+}: UpsertSmsProviderRequest): Promise<PersistedSmsProvider> {
   const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
-  const secret = unwrap(
-    await upsert({
-      table: dbSecret,
-      target: [dbSecret.workspaceId, dbSecret.name],
-      values: {
-        workspaceId,
-        name: secretName,
-        configValue: config,
-      },
-      set: {
-        configValue: config,
-      },
-    }),
-  );
-
-  const [smsProvider] = await db()
-    .insert(dbSmsProvider)
-    .values({
-      id: randomUUID(),
-      workspaceId,
-      type: config.type,
-      secretId: secret.id,
-    })
-    .onConflictDoNothing()
-    .returning();
-
-  if (!smsProvider) {
-    throw new Error("Failed to upsert SMS provider");
-  }
-  if (setDefault) {
-    await upsert({
-      table: dbDefaultSmsProvider,
-      target: [
-        dbDefaultSmsProvider.workspaceId,
-        dbDefaultSmsProvider.smsProviderId,
-      ],
-      values: {
-        workspaceId,
-        smsProviderId: smsProvider.id,
-      },
-      set: {
-        smsProviderId: smsProvider.id,
-      },
+  return db().transaction(async (tx) => {
+    const secret = unwrap(
+      await upsert({
+        table: dbSecret,
+        tx,
+        target: [dbSecret.workspaceId, dbSecret.name],
+        values: {
+          workspaceId,
+          name: secretName,
+          configValue: config,
+        },
+        set: {
+          configValue: config,
+        },
+      }),
+    );
+    const existingSmsProvider = await tx.query.smsProvider.findFirst({
+      where: and(
+        eq(dbSmsProvider.workspaceId, workspaceId),
+        eq(dbSmsProvider.type, config.type),
+      ),
     });
-  }
-  return {
-    workspaceId: smsProvider.workspaceId,
-    id: smsProvider.id,
-    type: config.type,
-  };
+    let smsProvider: SmsProvider;
+    if (existingSmsProvider) {
+      smsProvider = existingSmsProvider;
+    } else {
+      const [newSmsProvider] = await tx
+        .insert(dbSmsProvider)
+        .values({
+          workspaceId,
+          type: config.type,
+          secretId: secret.id,
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (!newSmsProvider) {
+        throw new Error("Failed to upsert SMS provider");
+      }
+      smsProvider = newSmsProvider;
+    }
+    if (setDefault) {
+      await upsert({
+        table: dbDefaultSmsProvider,
+        target: [
+          dbDefaultSmsProvider.workspaceId,
+          dbDefaultSmsProvider.smsProviderId,
+        ],
+        values: {
+          workspaceId,
+          smsProviderId: smsProvider.id,
+        },
+        set: {
+          smsProviderId: smsProvider.id,
+        },
+      });
+    }
+    return {
+      workspaceId: smsProvider.workspaceId,
+      id: smsProvider.id,
+      type: config.type,
+    };
+  });
 }
 
 export async function getOrCreateSmsProviders({
