@@ -77,7 +77,6 @@ export async function bootstrapPostgres({
   workspaceExternalId,
   features,
   existingWorkspace,
-  tx,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
@@ -86,13 +85,6 @@ export async function bootstrapPostgres({
   features?: Features;
   existingWorkspace?: Workspace;
 }): Promise<CreateWorkspaceResult> {
-  if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
-    return err({
-      type: CreateWorkspaceErrorType.WorkspaceNameViolation,
-      message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
-    });
-  }
-
   logger().info(
     {
       workspaceName,
@@ -111,6 +103,12 @@ export async function bootstrapPostgres({
   if (existingWorkspace) {
     workspace = existingWorkspace;
   } else {
+    if (workspaceName.startsWith(WORKSPACE_TOMBSTONE_PREFIX)) {
+      return err({
+        type: CreateWorkspaceErrorType.WorkspaceNameViolation,
+        message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
+      });
+    }
     const workspaceResult = await upsert({
       table: dbWorkspace,
       values: {
