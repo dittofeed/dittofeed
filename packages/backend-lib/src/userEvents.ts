@@ -13,7 +13,6 @@ import { db } from "./db";
 import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
-  workspaceRelation as dbWorkspaceRelation,
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
 import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
