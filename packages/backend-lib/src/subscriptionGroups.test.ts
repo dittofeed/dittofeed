@@ -6,7 +6,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { bootstrapPostgres } from "./bootstrap";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import {
   SubscriptionChange,

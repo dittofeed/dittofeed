@@ -12,7 +12,7 @@ import config from "./config";
 import { db } from "./db";
 import {
   userProperty as dbUserProperty,
-  workspaceRelation as dbWorkspaceRelation,
+  workspace as dbWorkspace,
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
 import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
@@ -293,12 +293,14 @@ export async function findManyEventsWithCount({
   searchTerm?: string;
 }): Promise<{ events: UserEventsWithTraits[]; count: number }> {
   const qb = new ClickHouseQueryBuilder();
-  const workspaceRelations = await db()
-    .select()
-    .from(dbWorkspaceRelation)
-    .where(eq(dbWorkspaceRelation.parentWorkspaceId, workspaceId));
 
-  const childWorkspaceIds = workspaceRelations.map((o) => o.childWorkspaceId);
+  const childWorkspaceIds = (
+    await db()
+      .select({ id: dbWorkspace.id })
+      .from(dbWorkspace)
+      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+  ).map((o) => o.id);
+
   const workspaceIdClause = childWorkspaceIds.length
     ? `workspace_id IN ${qb.addQueryValue(workspaceId, "Array(String)")}`
     : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;

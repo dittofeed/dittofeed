@@ -6,7 +6,6 @@ import {
   computedPropertyPeriod as dbComputedPropertyPeriod,
   segment as dbSegment,
   workspace as dbWorkspace,
-  workspaceStatus,
 } from "./db/schema";
 import {
   findActiveWorkspaces,

@@ -120,6 +120,7 @@ describe("authenticateAdminApiKey", () => {
         id: uuidv4(),
         name: `Workspace ${uuidv4()}`,
         type: WorkspaceTypeAppEnum.Parent,
+        status: WorkspaceStatusDbEnum.Active,
         updatedAt: new Date(),
         createdAt: new Date(),
       }).then(unwrap);
@@ -127,13 +128,11 @@ describe("authenticateAdminApiKey", () => {
         id: uuidv4(),
         name: `Child Workspace ${uuidv4()}`,
         type: WorkspaceTypeAppEnum.Child,
+        status: WorkspaceStatusDbEnum.Active,
+        parentWorkspaceId: workspace.id,
         updatedAt: new Date(),
         createdAt: new Date(),
       }).then(unwrap);
-      await db().insert(schema.workspaceRelation).values({
-        parentWorkspaceId: workspace.id,
-        childWorkspaceId: childWorkspace.id,
-      });
       adminApiKey = unwrap(
         await createAdminApiKey({
           workspaceId: workspace.id,
@@ -164,18 +163,15 @@ describe("authenticateAdminApiKey", () => {
         createdAt: new Date(),
       }).then(unwrap);
       childWorkspaceExternalId = `child-workspace-external-id-${uuidv4()}`;
-      const childWorkspace = await createWorkspace({
+      await createWorkspace({
         id: uuidv4(),
         name: `Child Workspace ${uuidv4()}`,
         type: WorkspaceTypeAppEnum.Child,
         externalId: childWorkspaceExternalId,
+        parentWorkspaceId: workspace.id,
         updatedAt: new Date(),
         createdAt: new Date(),
       }).then(unwrap);
-      await db().insert(schema.workspaceRelation).values({
-        parentWorkspaceId: workspace.id,
-        childWorkspaceId: childWorkspace.id,
-      });
 
       adminApiKey = unwrap(
         await createAdminApiKey({
