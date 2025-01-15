@@ -31,18 +31,6 @@ export async function authenticateAdminApiKeyFull({
   }[];
   if ("workspaceId" in identifier) {
     const { workspaceId } = identifier;
-    const parentWorkspaceQuery = db()
-      .select({
-        parentWorkspaceId: schema.workspace.parentWorkspaceId,
-      })
-      .from(schema.workspace)
-      .where(
-        and(
-          eq(schema.workspace.parentWorkspaceId, workspaceId),
-          eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
-        ),
-      );
-
     apiKeys = await db()
       .select({
         id: schema.adminApiKey.id,
@@ -54,16 +42,35 @@ export async function authenticateAdminApiKeyFull({
         schema.secret,
         eq(schema.adminApiKey.secretId, schema.secret.id),
       )
-      .innerJoin(
-        schema.workspace,
-        eq(schema.adminApiKey.workspaceId, schema.workspace.id),
-      )
       .where(
-        and(
-          eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
-          or(
-            eq(schema.adminApiKey.workspaceId, workspaceId),
-            inArray(schema.adminApiKey.workspaceId, parentWorkspaceQuery),
+        or(
+          // Condition 1: API key belongs to workspace
+          exists(
+            db()
+              .select({ id: schema.workspace.id })
+              .from(schema.workspace)
+              .where(
+                and(
+                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
+                  eq(schema.workspace.id, workspaceId),
+                ),
+              ),
+          ),
+          // Condition 2: API key belongs to parent workspace
+          exists(
+            db()
+              .select({ id: schema.workspace.id })
+              .from(schema.workspace)
+              .where(
+                and(
+                  eq(
+                    schema.workspace.parentWorkspaceId,
+                    schema.adminApiKey.workspaceId,
+                  ),
+                  eq(schema.workspace.parentWorkspaceId, workspaceId),
+                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
+                ),
+              ),
           ),
         ),
       );

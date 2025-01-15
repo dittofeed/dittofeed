@@ -120,6 +120,7 @@ describe("authenticateAdminApiKey", () => {
         id: uuidv4(),
         name: `Workspace ${uuidv4()}`,
         type: WorkspaceTypeAppEnum.Parent,
+        status: WorkspaceStatusDbEnum.Active,
         updatedAt: new Date(),
         createdAt: new Date(),
       }).then(unwrap);
@@ -127,6 +128,7 @@ describe("authenticateAdminApiKey", () => {
         id: uuidv4(),
         name: `Child Workspace ${uuidv4()}`,
         type: WorkspaceTypeAppEnum.Child,
+        status: WorkspaceStatusDbEnum.Active,
         parentWorkspaceId: workspace.id,
         updatedAt: new Date(),
         createdAt: new Date(),
