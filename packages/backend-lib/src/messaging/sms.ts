@@ -33,21 +33,19 @@ export async function upsertSmsProvider({
 }: UpsertSmsProviderRequest): Promise<PersistedSmsProvider> {
   const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[config.type];
   return db().transaction(async (tx) => {
-    const secret = unwrap(
-      await upsert({
-        table: dbSecret,
-        tx,
-        target: [dbSecret.workspaceId, dbSecret.name],
-        values: {
-          workspaceId,
-          name: secretName,
-          configValue: config,
-        },
-        set: {
-          configValue: config,
-        },
-      }),
-    );
+    const secret = await upsert({
+      table: dbSecret,
+      tx,
+      target: [dbSecret.workspaceId, dbSecret.name],
+      values: {
+        workspaceId,
+        name: secretName,
+        configValue: config,
+      },
+      set: {
+        configValue: config,
+      },
+    }).then(unwrap);
     const existingSmsProvider = await tx.query.smsProvider.findFirst({
       where: and(
         eq(dbSmsProvider.workspaceId, workspaceId),
@@ -65,7 +63,6 @@ export async function upsertSmsProvider({
           type: config.type,
           secretId: secret.id,
         })
-        .onConflictDoNothing()
         .returning();
 
       if (!newSmsProvider) {
@@ -76,10 +73,8 @@ export async function upsertSmsProvider({
     if (setDefault) {
       await upsert({
         table: dbDefaultSmsProvider,
-        target: [
-          dbDefaultSmsProvider.workspaceId,
-          dbDefaultSmsProvider.smsProviderId,
-        ],
+        tx,
+        target: [dbDefaultSmsProvider.workspaceId],
         values: {
           workspaceId,
           smsProviderId: smsProvider.id,
@@ -87,7 +82,7 @@ export async function upsertSmsProvider({
         set: {
           smsProviderId: smsProvider.id,
         },
-      });
+      }).then(unwrap);
     }
     return {
       workspaceId: smsProvider.workspaceId,

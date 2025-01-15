@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { SmsProviderType } from "isomorphic-lib/src/types";
 
+import { db } from "../db";
 import { createWorkspace } from "../workspaces";
 import { upsertSmsProvider } from "./sms";
 
@@ -31,6 +32,23 @@ describe("sms", () => {
           authToken: "789",
         },
       });
+
+      const provider = await db().query.defaultSmsProvider.findFirst({
+        where: (table, { eq }) => eq(table.workspaceId, workspace.id),
+        with: {
+          smsProvider: {
+            with: {
+              secret: true,
+            },
+          },
+        },
+      });
+      expect(provider?.smsProvider.secret.configValue).toEqual(
+        expect.objectContaining({
+          accountSid: "123",
+          authToken: "789",
+        }),
+      );
     });
   });
 });
