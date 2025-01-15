@@ -76,12 +76,16 @@ export async function authenticateAdminApiKeyFull({
         configValue: schema.secret.configValue,
       })
       .from(schema.adminApiKey)
+      .innerJoin(
+        schema.secret,
+        eq(schema.adminApiKey.secretId, schema.secret.id),
+      )
       .where(
         or(
           // Condition 1: API key belongs to workspace with external ID
           exists(
             db()
-              .select()
+              .select({ id: schema.workspace.id })
               .from(schema.workspace)
               .where(
                 and(
@@ -94,7 +98,7 @@ export async function authenticateAdminApiKeyFull({
           // Condition 2: API key belongs to parent of workspace with external ID
           exists(
             db()
-              .select()
+              .select({ id: schema.workspace.id })
               .from(schema.workspace)
               .where(
                 and(
