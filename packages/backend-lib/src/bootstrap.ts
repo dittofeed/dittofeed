@@ -116,7 +116,7 @@ export async function bootstrapPostgres({
         type: workspaceType,
         externalId: workspaceExternalId,
       },
-      target: [dbWorkspace.name],
+      target: [dbWorkspace.parentWorkspaceId, dbWorkspace.name],
       set: {
         domain: workspaceDomain,
         type: workspaceType,
