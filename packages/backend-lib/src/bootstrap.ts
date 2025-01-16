@@ -57,7 +57,6 @@ import {
   WorkspaceTypeAppEnum,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
-import { createWorkspace } from "./workspaces/createWorkspace";
 
 const DOMAIN_REGEX =
   /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
@@ -77,6 +76,7 @@ export async function bootstrapPostgres({
   workspaceExternalId,
   features,
   existingWorkspace,
+  userPropertyAllowList,
 }: {
   workspaceName: string;
   workspaceDomain?: string;
@@ -84,6 +84,7 @@ export async function bootstrapPostgres({
   workspaceExternalId?: string;
   features?: Features;
   existingWorkspace?: Workspace;
+  userPropertyAllowList?: Set<string>;
 }): Promise<CreateWorkspaceResult> {
   logger().info(
     {
@@ -147,7 +148,7 @@ export async function bootstrapPostgres({
     await addFeatures({ workspaceId, features });
   }
 
-  const userProperties: Omit<
+  let userProperties: Omit<
     typeof dbUserProperty.$inferInsert,
     "id" | "createdAt" | "updatedAt" | "definitionUpdatedAt"
   >[] = [
@@ -241,7 +242,11 @@ export async function bootstrapPostgres({
       exampleValue: "33.812511,-117.9189762",
     },
   ];
-
+  if (userPropertyAllowList) {
+    userProperties = userProperties.filter((up) =>
+      userPropertyAllowList.has(up.name),
+    );
+  }
   const [writeKeyResource, smsProviders, emailProviders] = await Promise.all([
     getOrCreateWriteKey({
       workspaceId,
