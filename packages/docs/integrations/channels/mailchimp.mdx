@@ -1,0 +1,49 @@
+---
+title: Mailchimp Integration via Mandrill
+---
+
+Dittofeed can integrate with Mailchimp using the Mandrill API to send emails.
+
+## Integration Instructions
+
+Visit the Mailchimp API Keys page [https://mandrillapp.com/settings/index](https://mandrillapp.com/settings/index).
+
+Click "+New API Key", then click "Create API Key". Grant "Full Access" in the following categories.
+
+Use this API key in Dittofeed's settings page in the "API Key" field within the "Mailchimp" section [/dashboard/settings#email-channel](https://app.dittofeed.com/dashboard/settings#email-channel).
+
+## Tracking
+
+In order to receive Mailchimp tracking data, you have to create a webhook in Mailchimp.
+
+Go to the Webhook settings page. [https://mandrillapp.com/settings/webhooks](https://mandrillapp.com/settings/webhooks)
+
+Click "+ Add a Webhook".
+
+Create a new webhook with the following actions to be posted.
+
+- Opened
+- Clicked
+- Spam Reports
+- Dropped
+- Bounced
+- Delivered
+
+With the Post URL `https://app.dittofeed.com/api/public/webhooks/mailchimp` or your own custom domain if you're self-hosting.
+
+Then copy the webhook key and paste it into Dittofeed's settings page in the "Webhook Key" field within the "Mailchimp" section [/dashboard/settings#email-channel](https://app.dittofeed.com/dashboard/settings#email-channel).
+
+### Custom Metadata
+
+Then, you will neeed to enable Custom Metadata in the Mailchimp account settings [https://mandrillapp.com/settings/custom-metadata](https://mandrillapp.com/settings/custom-metadata).
+
+Click "+ Add Metadata", and create the following metadata fields.
+
+- `workspaceId`
+- `messageId`
+- `nodeId`
+- `templateId`
+- `runId`
+- `journeyId`
+
+That's it! You should now be able to receive Mailchimp tracking data in Dittofeed.

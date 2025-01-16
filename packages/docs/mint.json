@@ -124,7 +124,8 @@
             "integrations/channels/amazonses",
             "integrations/channels/sms",
             "integrations/channels/twilio",
-            "integrations/channels/webhooks"
+            "integrations/channels/webhooks",
+            "integrations/channels/mailchimp"
           ]
         },
         "integrations/sdks",
