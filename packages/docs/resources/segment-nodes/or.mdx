@@ -1,6 +1,6 @@
 ---
 title: "Or - Segment Node"
-description: "Allow any users to join the segment if they satisfy one condition \"Or\" another condition."
+description: 'Allow any users to join the segment if they satisfy one condition "Or" another condition.'
 ---
 
 "Or" segment nodes allow any users to join the segment if they satisfy one condition "Or" another condition.
@@ -9,30 +9,37 @@ description: "Allow any users to join the segment if they satisfy one condition 
 
 Let's say you have a SAAS business, and you have a complex onboarding process that your users typically need help with. You may want to email your users with a link to book a call with your team to assist them in onboarding.
 
-You may want to then send them a followup reminder email if they haven't booked a call within 7 days *or* achieved the original goal of onboarding. This will guarantee that your users will not receive irrelevant emails, if they have already onboarded.
+You may want to then send them a followup reminder email if they haven't booked a call within 7 days _or_ achieved the original goal of onboarding. This will guarantee that your users will not receive irrelevant emails, if they have already onboarded.
 
 You could model this logic with the following segments, and journey.
 
 You'll use an Or segment, to represent users who have booked a call or onboarded.
 
-<Frame>
-![Or Segment Example](/images/or-segment.png)
-</Frame>
+<Frame>![Or Segment Example](/images/or-segment.png)</Frame>
 
 A segment for users who have onboarded,
 
-<Frame>
-![Onboarded Segment Example](/images/onboarded-segment.png)
-</Frame>
+<Frame>![Onboarded Segment Example](/images/onboarded-segment.png)</Frame>
 
 A segment for new users,
 
-<Frame>
-![New Users Segment Example](/images/new-users-segment.png)
-</Frame>
+<Frame>![New Users Segment Example](/images/new-users-segment.png)</Frame>
 
 And finally, putting it all together, your journey.
 
 <Frame>
-![Onboarding Call Journey Example](/images/onboarding-call-journey.png)
+  ![Onboarding Call Journey Example](/images/onboarding-call-journey.png)
 </Frame>
+
+---
+
+## Walkthrough Video
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/8F-c81prhtg?si=KvhM-kKVFzQZ2Cyp"
+  title="Logical OR Operator | Segmenting Users Who Satisfy One Condition Or Another"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
