@@ -255,6 +255,7 @@ export async function searchDeliveries({
   channels,
   userId,
   to,
+  from,
   statuses,
   templateIds,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
@@ -291,6 +292,12 @@ export async function searchDeliveries({
   const toClause = to
     ? `AND JSON_VALUE(properties, '$.variant.to') IN ${queryBuilder.addQueryValue(
         to,
+        "Array(String)",
+      )}`
+    : "";
+  const fromClause = from
+    ? `AND JSON_VALUE(properties, '$.variant.from') IN ${queryBuilder.addQueryValue(
+        from,
         "Array(String)",
       )}`
     : "";
@@ -336,6 +343,7 @@ export async function searchDeliveries({
         AND workspace_id = ${workspaceIdParam}
         ${channelClause}
         ${toClause}
+        ${fromClause}
         ${templateIdClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
