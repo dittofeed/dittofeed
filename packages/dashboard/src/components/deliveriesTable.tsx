@@ -312,12 +312,14 @@ export function DeliveriesTable({
           | undefined;
         const to = getFilterValues(deliveriesFilterState, "to");
         const statuses = getFilterValues(deliveriesFilterState, "status");
+        const from = getFilterValues(deliveriesFilterState, "from");
 
         const params: SearchDeliveriesRequest = {
           workspaceId,
           cursor: currentCursor,
           limit: pageSize,
           journeyId,
+          from,
           userId,
           templateIds,
           channels,

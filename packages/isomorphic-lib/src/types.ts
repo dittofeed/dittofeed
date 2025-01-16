@@ -3834,6 +3834,7 @@ export const SearchDeliveriesRequest = Type.Object({
   channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
   limit: Type.Optional(Type.Number()),
   cursor: Type.Optional(Type.String()),
+  from: Type.Optional(Type.Array(Type.String())),
   to: Type.Optional(Type.Array(Type.String())),
   statuses: Type.Optional(Type.Array(Type.String())),
   templateIds: Type.Optional(Type.Array(Type.String())),
