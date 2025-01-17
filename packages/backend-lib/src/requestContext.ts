@@ -56,9 +56,12 @@ async function findAndCreateRoles(
       ),
     )
     .where(
-      or(
-        eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
-        domain ? eq(dbWorkspace.domain, domain) : undefined,
+      and(
+        eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
+        or(
+          eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
+          domain ? eq(dbWorkspace.domain, domain) : undefined,
+        ),
       ),
     );
 
