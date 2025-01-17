@@ -122,6 +122,27 @@ export async function terminateComputePropertiesWorkflow({
   }
 }
 
+export async function stopComputePropertiesWorkflow({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    await client
+      .getHandle(generateComputePropertiesId(workspaceId))
+      .terminate();
+  } catch (e) {
+    logger().info(
+      {
+        err: e,
+        workspaceId,
+      },
+      "Failed to stop compute properties workflow.",
+    );
+  }
+}
+
 export async function resetComputePropertiesWorkflow({
   workspaceId,
 }: {
