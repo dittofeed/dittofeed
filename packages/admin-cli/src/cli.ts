@@ -5,6 +5,7 @@ import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
   startComputePropertiesWorkflow,
+  stopComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
@@ -232,6 +233,37 @@ export async function cli() {
             });
             logger().info(
               `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`,
+            );
+          }),
+        );
+        logger().info("Done.");
+      },
+    )
+    .command(
+      "stop-compute-properties",
+      "Stops compute properties workflow.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            array: true,
+            alias: "w",
+            require: true,
+            describe:
+              "The workspace id of computed property workflows to stop. Can provide multiple comma separated ids. If not provided will apply to all workspaces.",
+          },
+        }),
+      async ({ workspaceId }) => {
+        const workspaces = await db().query.workspace.findMany({
+          where: inArray(schema.workspace.id, workspaceId),
+        });
+        await Promise.all(
+          workspaces.map(async (workspace) => {
+            await stopComputePropertiesWorkflow({
+              workspaceId: workspace.id,
+            });
+            logger().info(
+              `Stopped compute properties workflow for workspace ${workspace.name} ${workspace.id}.`,
             );
           }),
         );
