@@ -1,4 +1,4 @@
-import { aliasedTable, and, eq, max } from "drizzle-orm";
+import { aliasedTable, and, eq, max, not } from "drizzle-orm";
 
 import { query as chQuery } from "./clickhouse";
 import config from "./config";
@@ -14,6 +14,7 @@ import {
   ComputedPropertyStep,
   Workspace,
   WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "./types";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
@@ -202,13 +203,19 @@ export async function findActiveWorkspaces(): Promise<{
       and(
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
         eq(w.status, WorkspaceStatusDbEnum.Active),
+        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
       ),
     )
     .groupBy(cpp.workspaceId);
   const workspacesQuery = db()
     .select()
     .from(w)
-    .where(eq(w.status, WorkspaceStatusDbEnum.Active));
+    .where(
+      and(
+        eq(w.status, WorkspaceStatusDbEnum.Active),
+        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
+      ),
+    );
 
   const [periodsRaw, workspaces] = await Promise.all([
     periodsQuery,
