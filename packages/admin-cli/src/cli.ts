@@ -21,6 +21,7 @@ import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
   activateTombstonedWorkspace,
   pauseWorkspace,
+  resumeWorkspace,
   tombstoneWorkspace,
 } from "backend-lib/src/workspaces";
 import { randomUUID } from "crypto";
@@ -704,6 +705,15 @@ export async function cli() {
           "Paused workspaces.",
         );
       },
+    )
+    .command(
+      "resume-workspace",
+      "Resumes a paused workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", require: true },
+        }),
+      ({ workspaceId }) => resumeWorkspace({ workspaceId }),
     )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()

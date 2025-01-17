@@ -5,6 +5,7 @@ import { validate as validateUuid } from "uuid";
 
 import { bootstrapComputeProperties } from "./bootstrap";
 import {
+  startComputePropertiesWorkflow,
   stopComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
@@ -107,4 +108,19 @@ export async function pauseWorkspace({ workspaceId }: { workspaceId: string }) {
     })
     .where(eq(dbWorkspace.id, workspaceId));
   await stopComputePropertiesWorkflow({ workspaceId });
+}
+
+export async function resumeWorkspace({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  await db()
+    .update(dbWorkspace)
+    .set({
+      status: WorkspaceStatusDbEnum.Active,
+    })
+    .where(eq(dbWorkspace.id, workspaceId));
+
+  await startComputePropertiesWorkflow({ workspaceId });
 }
