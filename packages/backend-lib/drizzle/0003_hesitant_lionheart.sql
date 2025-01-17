@@ -1,0 +1,1 @@
+ALTER TYPE "public"."WorkspaceStatus" ADD VALUE 'Paused';

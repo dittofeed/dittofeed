@@ -61,6 +61,7 @@ export const segmentStatus = pgEnum("SegmentStatus", [
 export const workspaceStatus = pgEnum("WorkspaceStatus", [
   "Active",
   "Tombstoned",
+  "Paused",
 ]);
 export const workspaceType = pgEnum("WorkspaceType", [
   "Root",
