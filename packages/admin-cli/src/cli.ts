@@ -20,6 +20,7 @@ import { transferResources } from "backend-lib/src/transferResources";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
   activateTombstonedWorkspace,
+  pauseWorkspace,
   tombstoneWorkspace,
 } from "backend-lib/src/workspaces";
 import { randomUUID } from "crypto";
@@ -678,6 +679,30 @@ export async function cli() {
           return;
         }
         await removeFeatures({ workspaceId, names: features.value });
+      },
+    )
+    .command(
+      "pause-workspace",
+      "Pauses a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            array: true,
+          },
+        }),
+      async ({ workspaceId: workspaceIds }) => {
+        await Promise.all(
+          workspaceIds.map((workspaceId) => pauseWorkspace({ workspaceId })),
+        );
+        logger().info(
+          {
+            workspaceIds,
+          },
+          "Paused workspaces.",
+        );
       },
     )
     .demandCommand(1, "# Please provide a valid command")

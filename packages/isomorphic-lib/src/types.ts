@@ -1867,6 +1867,7 @@ export type DeepPartial<T> = T extends object
 export const WorkspaceStatusDbEnum = {
   Active: "Active",
   Tombstoned: "Tombstoned",
+  Paused: "Paused",
 } as const;
 
 export const WorkspaceStatusDb = Type.KeyOf(Type.Const(WorkspaceStatusDbEnum));

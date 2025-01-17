@@ -1,9 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import { stopComputePropertiesWorkflow } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
-import * as schema from "backend-lib/src/db/schema";
-import { eq } from "drizzle-orm";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -147,14 +144,4 @@ export async function getWorkspaceIdentifier(
     throw new Error("No workspace found, ensure application is bootstrapped");
   }
   return ok({ workspaceId: workspace.id });
-}
-
-export async function pauseWorkspace({ workspaceId }: { workspaceId: string }) {
-  await db()
-    .update(schema.workspace)
-    .set({
-      status: "Paused",
-    })
-    .where(eq(schema.workspace.id, workspaceId));
-  await stopComputePropertiesWorkflow({ workspaceId });
 }

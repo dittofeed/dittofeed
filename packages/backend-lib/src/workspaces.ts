@@ -1,10 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import { bootstrapComputeProperties } from "./bootstrap";
-import { terminateComputePropertiesWorkflow } from "./computedProperties/computePropertiesWorkflow/lifecycle";
+import {
+  stopComputePropertiesWorkflow,
+  terminateComputePropertiesWorkflow,
+} from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import { db } from "./db";
 import { workspace as dbWorkspace } from "./db/schema";
 import { WorkspaceStatusDbEnum } from "./types";
@@ -95,3 +98,13 @@ export async function activateTombstonedWorkspace(
 }
 
 export { createWorkspace } from "./workspaces/createWorkspace";
+
+export async function pauseWorkspace({ workspaceId }: { workspaceId: string }) {
+  await db()
+    .update(dbWorkspace)
+    .set({
+      status: WorkspaceStatusDbEnum.Paused,
+    })
+    .where(eq(dbWorkspace.id, workspaceId));
+  await stopComputePropertiesWorkflow({ workspaceId });
+}
