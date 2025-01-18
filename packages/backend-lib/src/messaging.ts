@@ -1144,7 +1144,6 @@ export async function sendEmail({
           name: emailName,
           provider: {
             type: EmailProviderType.AmazonSes,
-            messageId: result.value.MessageId,
           },
         },
       });
@@ -1367,8 +1366,7 @@ export async function sendEmail({
         from_email: from,
         metadata: {
           website,
-          messageId: messageTags?.messageId,
-          workspaceId,
+          ...messageTags,
         },
       };
 

@@ -97,14 +97,25 @@ export async function submitMailChimpEvents({
       { email: e.msg.email },
       R.pick(e.msg.metadata, MESSAGE_METADATA_FIELDS),
     );
+    const { userId } = e.msg.metadata;
+    if (!userId) {
+      logger().info(
+        {
+          workspaceId,
+          event: e,
+        },
+        "Missing userId in mailchimp event",
+      );
+      return [];
+    }
     return {
       type: EventType.Track,
       event,
+      userId,
       messageId,
       timestamp: new Date(e.ts * 1000).toISOString(),
       properties,
-      anonymousId: e.msg.email,
-    };
+    } satisfies BatchItem;
   });
 
   await submitBatch({
