@@ -12,9 +12,9 @@ import { submitBatch } from "../apps/batch";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
-  BatchItem,
   EventType,
   InternalEventType,
+  KnownBatchTrackData,
   MailChimpEvent,
 } from "../types";
 
@@ -63,7 +63,7 @@ export async function submitMailChimpEvents({
   workspaceId: string;
   events: MailChimpEvent[];
 }): Promise<void> {
-  const batch: BatchItem[] = events.flatMap((e) => {
+  const batch: KnownBatchTrackData[] = events.flatMap((e) => {
     // eslint-disable-next-line no-underscore-dangle
     const messageId = uuidv5(e.msg._id, workspaceId);
     let event: InternalEventType;
@@ -115,7 +115,7 @@ export async function submitMailChimpEvents({
       messageId,
       timestamp: new Date(e.ts * 1000).toISOString(),
       properties,
-    } satisfies BatchItem;
+    } satisfies KnownBatchTrackData;
   });
 
   await submitBatch({
