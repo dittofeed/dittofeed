@@ -14,7 +14,7 @@ import {
   handleSesNotification,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
-import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
@@ -115,7 +115,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         .unwrapOr(null);
 
       if (!webhookKey) {
-        logger().error(
+        logger().info(
           {
             workspaceId,
           },
@@ -455,8 +455,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       const signature = request.headers["x-mandrill-signature"];
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      const url = `https://${request.headers.host}${request.originalUrl}`;
+      const url = `${backendConfig().dashboardUrl}${request.url}`;
       const params = request.body;
 
       const signedData = Object.keys(params)
@@ -473,8 +472,8 @@ export default async function webhookController(fastify: FastifyInstance) {
         .digest("base64");
 
       if (signature !== expectedSignature) {
-        logger().error(
-          { workspaceId },
+        logger().info(
+          { workspaceId, signature, expectedSignature },
           "Invalid signature for Mailchimp webhook.",
         );
         return reply.status(401).send({
@@ -482,11 +481,10 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      await Promise.all(
-        events.map((e) =>
-          submitMailChimpEvent({ workspaceId, mailChimpEvent: e }),
-        ),
-      );
+      await submitMailChimpEvents({
+        workspaceId,
+        events,
+      });
 
       return reply.status(200).send();
     },

@@ -4,14 +4,15 @@ import mailchimp, {
   MessagesSendSuccessResponse,
 } from "@mailchimp/mailchimp_transactional";
 import { AxiosError } from "axios";
-import { err, ok, Result, ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
+import * as R from "remeda";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
-import { getMessageFromInternalMessageSent } from "../deliveries";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   BatchItem,
-  BatchTrackData,
   EventType,
   InternalEventType,
   MailChimpEvent,
@@ -55,73 +56,61 @@ export async function sendMail({
   }
 }
 
-export async function submitMailChimpEvent({
+export async function submitMailChimpEvents({
   workspaceId,
-  mailChimpEvent,
+  events,
 }: {
   workspaceId: string;
-  mailChimpEvent: MailChimpEvent;
-}): Promise<Result<BatchItem, Error>> {
-  const { event, msg, ts } = mailChimpEvent;
-
-  const { messageId } = msg.metadata as {
-    messageId: string;
-  };
-
-  if (!messageId) {
-    return err(new Error("Missing message_id"));
-  }
-
-  const message = await getMessageFromInternalMessageSent({
-    workspaceId,
-    messageId,
+  events: MailChimpEvent[];
+}): Promise<void> {
+  const batch: BatchItem[] = events.flatMap((e) => {
+    // eslint-disable-next-line no-underscore-dangle
+    const messageId = uuidv5(e.msg._id, workspaceId);
+    let event: InternalEventType;
+    switch (e.event) {
+      case "open":
+        event = InternalEventType.EmailOpened;
+        break;
+      case "click":
+        event = InternalEventType.EmailClicked;
+        break;
+      case "hard_bounce":
+        event = InternalEventType.EmailBounced;
+        break;
+      case "spam":
+        event = InternalEventType.EmailMarkedSpam;
+        break;
+      case "delivered":
+        event = InternalEventType.EmailDelivered;
+        break;
+      default:
+        logger().error(
+          {
+            workspaceId,
+            event: e,
+          },
+          "Unhandled mailchimp event",
+        );
+        return [];
+    }
+    const properties = R.merge(
+      { email: e.msg.email },
+      R.pick(e.msg.metadata, MESSAGE_METADATA_FIELDS),
+    );
+    return {
+      type: EventType.Track,
+      event,
+      messageId,
+      timestamp: new Date(e.ts * 1000).toISOString(),
+      properties,
+      anonymousId: e.msg.email,
+    };
   });
-
-  if (!message) {
-    return err(new Error("Message not found"));
-  }
-
-  const { userId, properties } = message;
-
-  let eventName: InternalEventType;
-
-  switch (event) {
-    case "open":
-      eventName = InternalEventType.EmailOpened;
-      break;
-    case "click":
-      eventName = InternalEventType.EmailClicked;
-      break;
-    case "hard_bounce":
-      eventName = InternalEventType.EmailBounced;
-      break;
-    case "spam":
-      eventName = InternalEventType.EmailMarkedSpam;
-      break;
-    case "delivered":
-      eventName = InternalEventType.EmailDelivered;
-      break;
-    default:
-      return err(new Error(`Unhandled event type: ${event}`));
-  }
-
-  const timestamp = new Date(ts * 1000).toISOString();
-
-  const item: BatchTrackData = {
-    type: EventType.Track,
-    event: eventName,
-    messageId,
-    timestamp,
-    properties,
-    anonymousId: userId,
-  };
 
   await submitBatch({
     workspaceId,
     data: {
-      batch: [item],
+      batch,
     },
   });
-
-  return ok(item);
 }
