@@ -978,3 +978,32 @@ export const workspaceRelation = pgTable(
       .onDelete("cascade"),
   ],
 );
+
+export const componentConfiguration = pgTable(
+  "ComponentConfiguration",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    definition: jsonb().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("ComponentConfiguration_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "ComponentConfiguration_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
