@@ -37,6 +37,7 @@
     "@mui/x-data-grid": "^6.19.11",
     "@mui/x-date-pickers": "^6.19.9",
     "@sinclair/typebox": "0.32.29",
+    "@tanstack/react-query": "^5.64.1",
     "@tanstack/react-table": "^8.20.6",
     "@uiw/react-codemirror": "^4.19.5",
     "@xyflow/react": "^12.3.4",
@@ -74,6 +75,7 @@
     "zustand": "^4.1.4"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.62.16",
     "@types/dagre": "^0.7.49",
     "@types/escape-html": "^1.0.2",
     "@types/file-saver": "^2.0.5",

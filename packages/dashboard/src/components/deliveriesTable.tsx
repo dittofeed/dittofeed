@@ -221,7 +221,7 @@ export type GetDeliveriesRequest = (
   params: GetDeliveriesRequestParams,
 ) => Promise<AxiosResponse<unknown, unknown>>;
 
-const defaultGetDeliveriesRequest: GetDeliveriesRequest =
+export const defaultGetDeliveriesRequest: GetDeliveriesRequest =
   function getDeliveriesRequest({ params, apiBase }) {
     return axios.get(`${apiBase}/api/deliveries`, {
       params,
