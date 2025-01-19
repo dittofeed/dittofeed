@@ -1353,10 +1353,13 @@ export async function sendEmail({
         website,
       };
       if (messageTags) {
-        R.merge(
-          metadata,
-          R.pick(messageTags, ["workspaceId", "userId", "messageId"]),
-        );
+        if (messageTags.workspaceId) {
+          metadata.workspaceId = messageTags.workspaceId;
+        }
+        if (messageTags.userId) {
+          metadata.userId = messageTags.userId;
+        }
+        metadata.messageId = messageTags.messageId;
       }
 
       const mailData: MailChimpMessage = {
@@ -1375,13 +1378,6 @@ export async function sendEmail({
         from_email: from,
         metadata,
       };
-      logger().debug(
-        {
-          workspaceId,
-          mailData,
-        },
-        "Sending mailchimp message",
-      );
 
       if (secretConfig.type !== EmailProviderType.MailChimp) {
         return err({

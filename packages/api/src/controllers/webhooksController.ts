@@ -437,6 +437,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             workspaceId,
+            events,
           },
           "Missing workspaceId in Mailchimp webhook metadata",
         );
