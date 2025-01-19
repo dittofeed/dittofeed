@@ -40,6 +40,8 @@ import {
   Features,
   MessageTemplateResourceDefinition,
   SendgridSecret,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
 import path from "path";
 import { hideBin } from "yargs/helpers";
@@ -228,14 +230,42 @@ export async function cli() {
         const workspaces = await db().query.workspace.findMany({
           where: condition,
         });
+        logger().info(
+          {
+            queue: backendConfig().computedPropertiesTaskQueue,
+          },
+          "Resetting computed properties workflows",
+        );
         await Promise.all(
           workspaces.map(async (workspace) => {
-            await resetComputePropertiesWorkflow({
-              workspaceId: workspace.id,
-            });
-            logger().info(
-              `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`,
-            );
+            if (
+              workspace.status !== WorkspaceStatusDbEnum.Active ||
+              workspace.type === WorkspaceTypeAppEnum.Parent
+            ) {
+              await terminateComputePropertiesWorkflow({
+                workspaceId: workspace.id,
+              });
+              logger().info(
+                {
+                  workspaceId: workspace.id,
+                  type: workspace.type,
+                  status: workspace.status,
+                },
+                "Terminated computed properties workflow",
+              );
+            } else {
+              await resetComputePropertiesWorkflow({
+                workspaceId: workspace.id,
+              });
+              logger().info(
+                {
+                  workspaceId: workspace.id,
+                  type: workspace.type,
+                  status: workspace.status,
+                },
+                "Reset computed properties workflow",
+              );
+            }
           }),
         );
         logger().info("Done.");
