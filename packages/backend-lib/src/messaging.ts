@@ -1349,6 +1349,15 @@ export async function sendEmail({
       if (replyTo) {
         headers["Reply-To"] = replyTo;
       }
+      const metadata: { website: string } & Record<string, string> = {
+        website,
+      };
+      if (messageTags) {
+        R.merge(
+          metadata,
+          R.pick(messageTags, ["workspaceId", "userId", "messageId"]),
+        );
+      }
 
       const mailData: MailChimpMessage = {
         html: body,
@@ -1364,11 +1373,15 @@ export async function sendEmail({
           content: data,
         })),
         from_email: from,
-        metadata: {
-          website,
-          ...messageTags,
-        },
+        metadata,
       };
+      logger().debug(
+        {
+          workspaceId,
+          mailData,
+        },
+        "Sending mailchimp message",
+      );
 
       if (secretConfig.type !== EmailProviderType.MailChimp) {
         return err({

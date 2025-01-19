@@ -403,12 +403,29 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const events = schemaValidateWithErr(
+      const parsedEvents = schemaValidateWithErr(
         eventsResult.value,
         Type.Array(MailChimpEvent),
-      ).unwrapOr([]);
+      );
+      if (parsedEvents.isErr()) {
+        logger().error(
+          {
+            err: parsedEvents.error,
+          },
+          "Failed to parse Mailchimp webhook payload",
+        );
+        throw new Error("Failed to parse Mailchimp webhook payload");
+      }
+
+      const events = parsedEvents.value;
 
       if (events.length === 0) {
+        logger().debug(
+          {
+            rawBody: request.rawBody,
+          },
+          "No events in Mailchimp webhook",
+        );
         return reply.status(200).send();
       }
 

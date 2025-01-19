@@ -117,6 +117,13 @@ export async function submitMailChimpEvents({
       properties,
     } satisfies KnownBatchTrackData;
   });
+  logger().debug(
+    {
+      workspaceId,
+      batch,
+    },
+    "Submitting mailchimp events",
+  );
 
   await submitBatch({
     workspaceId,
