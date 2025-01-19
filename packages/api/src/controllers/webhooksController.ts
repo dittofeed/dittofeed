@@ -14,7 +14,7 @@ import {
   handleSesNotification,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
-import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
@@ -115,7 +115,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         .unwrapOr(null);
 
       if (!webhookKey) {
-        logger().error(
+        logger().info(
           {
             workspaceId,
           },
@@ -403,23 +403,46 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const events = schemaValidateWithErr(
+      const parsedEvents = schemaValidateWithErr(
         eventsResult.value,
         Type.Array(MailChimpEvent),
-      ).unwrapOr([]);
+      );
+      if (parsedEvents.isErr()) {
+        logger().error(
+          {
+            err: parsedEvents.error,
+          },
+          "Failed to parse Mailchimp webhook payload",
+        );
+        throw new Error("Failed to parse Mailchimp webhook payload");
+      }
+
+      const events = parsedEvents.value;
 
       if (events.length === 0) {
+        logger().debug(
+          {
+            rawBody: request.rawBody,
+          },
+          "No events in Mailchimp webhook",
+        );
         return reply.status(200).send();
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const workspaceId = events[0]?.msg.metadata.workspaceId;
+      let workspaceId: string | null = null;
+      for (const event of events) {
+        if (event.msg.metadata.workspaceId) {
+          workspaceId = event.msg.metadata.workspaceId;
+          break;
+        }
+      }
 
       if (!workspaceId || typeof workspaceId !== "string") {
         logger().error(
           {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             workspaceId,
+            events,
           },
           "Missing workspaceId in Mailchimp webhook metadata",
         );
@@ -455,8 +478,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       const signature = request.headers["x-mandrill-signature"];
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      const url = `https://${request.headers.host}${request.originalUrl}`;
+      const url = `${backendConfig().dashboardUrl}${request.url}`;
       const params = request.body;
 
       const signedData = Object.keys(params)
@@ -473,8 +495,8 @@ export default async function webhookController(fastify: FastifyInstance) {
         .digest("base64");
 
       if (signature !== expectedSignature) {
-        logger().error(
-          { workspaceId },
+        logger().info(
+          { workspaceId, signature, expectedSignature },
           "Invalid signature for Mailchimp webhook.",
         );
         return reply.status(401).send({
@@ -482,11 +504,10 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      await Promise.all(
-        events.map((e) =>
-          submitMailChimpEvent({ workspaceId, mailChimpEvent: e }),
-        ),
-      );
+      await submitMailChimpEvents({
+        workspaceId,
+        events,
+      });
 
       return reply.status(200).send();
     },

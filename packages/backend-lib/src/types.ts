@@ -643,7 +643,7 @@ export enum MailChimpEventType {
 export const MailChimpEvent = Type.Object({
   event: Type.Enum(MailChimpEventType),
   msg: Type.Object({
-    metadata: Type.Record(Type.String(), Type.Any()),
+    metadata: Type.Record(Type.String(), Type.String()),
     email: Type.String(),
     _id: Type.String(),
   }),

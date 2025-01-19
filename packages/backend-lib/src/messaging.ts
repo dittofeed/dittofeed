@@ -1144,7 +1144,6 @@ export async function sendEmail({
           name: emailName,
           provider: {
             type: EmailProviderType.AmazonSes,
-            messageId: result.value.MessageId,
           },
         },
       });
@@ -1350,6 +1349,18 @@ export async function sendEmail({
       if (replyTo) {
         headers["Reply-To"] = replyTo;
       }
+      const metadata: { website: string } & Record<string, string> = {
+        website,
+      };
+      if (messageTags) {
+        if (messageTags.workspaceId) {
+          metadata.workspaceId = messageTags.workspaceId;
+        }
+        if (messageTags.userId) {
+          metadata.userId = messageTags.userId;
+        }
+        metadata.messageId = messageTags.messageId;
+      }
 
       const mailData: MailChimpMessage = {
         html: body,
@@ -1365,11 +1376,7 @@ export async function sendEmail({
           content: data,
         })),
         from_email: from,
-        metadata: {
-          website,
-          messageId: messageTags?.messageId,
-          workspaceId,
-        },
+        metadata,
       };
 
       if (secretConfig.type !== EmailProviderType.MailChimp) {
