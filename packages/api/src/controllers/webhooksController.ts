@@ -429,8 +429,13 @@ export default async function webhookController(fastify: FastifyInstance) {
         return reply.status(200).send();
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const workspaceId = events[0]?.msg.metadata.workspaceId;
+      let workspaceId: string | null = null;
+      for (const event of events) {
+        if (event.msg.metadata.workspaceId) {
+          workspaceId = event.msg.metadata.workspaceId;
+          break;
+        }
+      }
 
       if (!workspaceId || typeof workspaceId !== "string") {
         logger().error(
