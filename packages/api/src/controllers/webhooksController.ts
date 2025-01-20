@@ -1,6 +1,7 @@
 import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { SpanStatusCode } from "@opentelemetry/api";
+import * as R from "remeda";
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
 import {
@@ -386,9 +387,14 @@ export default async function webhookController(fastify: FastifyInstance) {
       schema: {
         description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
         tags: ["Webhooks"],
-        body: Type.Object({
-          mandrill_events: Type.String(),
-        }),
+        body: Type.Object(
+          {
+            mandrill_events: Type.String(),
+          },
+          {
+            additionalProperties: true,
+          },
+        ),
         headers: Type.Object({
           "x-mandrill-signature": Type.String(),
         }),
@@ -497,14 +503,11 @@ export default async function webhookController(fastify: FastifyInstance) {
       const url = `${backendConfig().dashboardUrl}${request.url}`;
       const params = request.body;
 
-      const signedData = Object.keys(params)
-        .sort()
-        .reduce((acc, key) => {
-          if (key === "mandrill_events") {
-            return acc + key + params.mandrill_events;
-          }
-          return acc;
-        }, url);
+      const signedData =
+        url +
+        R.sortBy(R.entries(params), ([key]) => key)
+          .map(([key, value]) => `${key}${value}`)
+          .join("");
 
       const expectedSignature = createHmac("sha1", webhookKey)
         .update(signedData)
@@ -512,7 +515,14 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       if (signature !== expectedSignature) {
         logger().info(
-          { workspaceId, signature, expectedSignature },
+          {
+            workspaceId,
+            signature,
+            expectedSignature,
+            url,
+            signedData,
+            rawBody: request.rawBody,
+          },
           "Invalid signature for Mailchimp webhook.",
         );
         return reply.status(401).send({
