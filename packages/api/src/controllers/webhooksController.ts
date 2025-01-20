@@ -397,29 +397,45 @@ export default async function webhookController(fastify: FastifyInstance) {
     async (request, reply) => {
       const eventsResult = jsonParseSafe(request.body.mandrill_events);
       if (eventsResult.isErr()) {
-        logger().error("Failed to parse Mailchimp webhook payload");
+        logger().error(
+          {
+            err: eventsResult.error,
+          },
+          "Failed to parse Mailchimp webhook payload",
+        );
         return reply.status(400).send({
           error: "Invalid JSON in mandrill_events",
         });
       }
 
-      const parsedEvents = schemaValidateWithErr(
-        eventsResult.value,
-        Type.Array(MailChimpEvent),
-      );
-      if (parsedEvents.isErr()) {
+      const events = eventsResult.value;
+      if (!Array.isArray(events)) {
         logger().error(
           {
-            err: parsedEvents.error,
+            events,
           },
-          "Failed to parse Mailchimp webhook payload",
+          "Invalid Mailchimp webhook payload",
         );
-        throw new Error("Failed to parse Mailchimp webhook payload");
+        return reply.status(400).send({
+          error: "Invalid Mailchimp webhook payload",
+        });
+      }
+      const parsedEvents: MailChimpEvent[] = [];
+      for (const event of events) {
+        const parsedEvent = schemaValidateWithErr(event, MailChimpEvent);
+        if (parsedEvent.isErr()) {
+          logger().error(
+            {
+              err: parsedEvent.error,
+            },
+            "Failed to parse Mailchimp webhook payload",
+          );
+          continue;
+        }
+        parsedEvents.push(parsedEvent.value);
       }
 
-      const events = parsedEvents.value;
-
-      if (events.length === 0) {
+      if (parsedEvents.length === 0) {
         logger().debug(
           {
             rawBody: request.rawBody,
@@ -430,7 +446,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       let workspaceId: string | null = null;
-      for (const event of events) {
+      for (const event of parsedEvents) {
         if (event.msg.metadata.workspaceId) {
           workspaceId = event.msg.metadata.workspaceId;
           break;
@@ -442,7 +458,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             workspaceId,
-            events,
+            parsedEvents,
           },
           "Missing workspaceId in Mailchimp webhook metadata",
         );
@@ -506,7 +522,7 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       await submitMailChimpEvents({
         workspaceId,
-        events,
+        events: parsedEvents,
       });
 
       return reply.status(200).send();
