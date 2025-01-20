@@ -1,7 +1,6 @@
 import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { SpanStatusCode } from "@opentelemetry/api";
-import * as R from "remeda";
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
 import {
@@ -50,6 +49,7 @@ import {
   TwilioWebhookRequest,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
+import * as R from "remeda";
 import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
