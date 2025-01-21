@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Column,
   ColumnDef,
+  createColumnHelper,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -105,6 +106,8 @@ function getOrigin({
   return null;
 }
 
+const columnHelper = createColumnHelper<Delivery>();
+
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
 }: {
@@ -148,7 +151,19 @@ export function DeliveriesTableV2({
     placeholderData: keepPreviousData,
   });
 
-  const columns = useMemo<ColumnDef<Delivery>[]>(() => [], []);
+  const columns = useMemo<ColumnDef<Delivery>[]>(
+    () => [
+      {
+        header: "From",
+        accessorKey: "from",
+      },
+      {
+        header: "To",
+        accessorKey: "to",
+      },
+    ],
+    [],
+  );
   const data = useMemo<Delivery[] | null>(() => {
     if (
       query.isPending ||
