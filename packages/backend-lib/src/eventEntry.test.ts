@@ -56,7 +56,7 @@ describe("eventEntry journeys", () => {
     await testEnv.teardown();
   });
 
-  describe.only("testing calls to the inner send message", () => {
+  describe("testing calls to the inner send message", () => {
     const senderMock = jest.fn().mockReturnValue(
       ok({
         type: InternalEventType.MessageSent,
@@ -169,7 +169,9 @@ describe("eventEntry journeys", () => {
                   messageId: randomUUID(),
                   timestamp: new Date().toISOString(),
                   properties: {
-                    carrier: "UPS",
+                    data: {
+                      carrier: "UPS",
+                    },
                   },
                 },
               },
