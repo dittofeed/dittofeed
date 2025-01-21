@@ -148,6 +148,7 @@ describe("eventEntry journeys", () => {
           name: "test-journey",
           workspaceId: workspace.id,
           definition: journeyDefinition,
+          status: "Running",
         });
       });
       it("should call the inner send message", async () => {
