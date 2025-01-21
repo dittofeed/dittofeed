@@ -13,10 +13,17 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  BroadcastResource,
   ChannelType,
   CompletionStatus,
+  SavedJourneyResource,
   SearchDeliveriesRequest,
+  SearchDeliveriesResponse,
+  SearchDeliveriesResponseItem,
+  WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { useMemo } from "react";
 import { useImmer } from "use-immer";
@@ -28,24 +35,20 @@ import {
 } from "./deliveriesTable";
 
 type SortBy =
-  | "sentAt"
-  | "updatedAt"
   | "from"
   | "to"
   | "status"
-  | "originType"
-  | "templateName";
+  | "originName"
+  | "templateName"
+  | "sentAt";
 
 type SortDirection = "asc" | "desc";
 
-interface Sort {
-  by: SortBy;
-  direction: SortDirection;
-}
-
 interface State {
   cursor: string | null;
-  sort: Sort[];
+  pageSize: number;
+  sortBy: SortBy;
+  sortDirection: SortDirection;
 }
 
 interface EmailDelivery {
@@ -85,6 +88,38 @@ type Delivery = {
   updatedAt: number;
 } & ChannelDelivery;
 
+function getOrigin({
+  workspace,
+  journeys,
+  broadcasts,
+  item,
+}: {
+  workspace: WorkspaceResource;
+  item: SearchDeliveriesResponseItem;
+  journeys: SavedJourneyResource[];
+  broadcasts: BroadcastResource[];
+}): Pick<Delivery, "originId" | "originType" | "originName"> | null {
+  for (const broadcast of broadcasts) {
+    if (broadcast.journeyId === item.journeyId) {
+      return {
+        originId: broadcast.id,
+        originType: "broadcast",
+        originName: broadcast.name,
+      };
+    }
+  }
+  for (const journey of journeys) {
+    if (journey.id === item.journeyId) {
+      return {
+        originId: journey.id,
+        originType: "journey",
+        originName: journey.name,
+      };
+    }
+  }
+  return null;
+}
+
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
 }: {
@@ -98,37 +133,67 @@ export function DeliveriesTableV2({
       "journeys",
       "broadcasts",
     ]);
-  const query = useQuery({
+  const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: ["deliveries"],
     queryFn: async () => {
       if (workspace.type !== CompletionStatus.Successful) {
-        return [];
+        return null;
       }
       const params: SearchDeliveriesRequest = {
         workspaceId: workspace.value.id,
       };
-      // FIXME remaining filter params
       const response = await getDeliveriesRequest({
         params,
         apiBase,
       });
-      return response.data;
+      const result = unwrap(
+        schemaValidateWithErr(response.data, SearchDeliveriesResponse),
+      );
+      return result;
     },
   });
   const [state, setState] = useImmer<State>({
-    pagination: {
-      pageIndex: 0,
-      pageSize: 10,
-      cursor: null,
-    },
+    pageSize: 10,
+    cursor: null,
+    sortBy: "sentAt",
+    sortDirection: "desc",
   });
   const columns = useMemo<ColumnDef<Delivery>[]>(() => [], []);
-  const data = useMemo<Delivery[]>(() => [], []);
+  const data = useMemo<Delivery[] | null>(() => {
+    if (
+      query.isPending ||
+      query.data === null ||
+      workspace.type !== CompletionStatus.Successful ||
+      journeys.type !== CompletionStatus.Successful
+    ) {
+      return null;
+    }
+    return query.data.items.flatMap((item) => {
+      const origin = getOrigin({
+        workspace: workspace.value,
+        journeys: journeys.value,
+        broadcasts,
+        item,
+      });
+      if (origin === null) {
+        return [];
+      }
+
+      return {
+        ...item,
+        sentAt: new Date(item.sentAt).getTime(),
+        updatedAt: new Date(item.updatedAt).getTime(),
+      };
+    }) satisfies Delivery[];
+  }, [query]);
   const table = useReactTable({
     columns: [],
     data: [],
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
   });
+  if (query.isPending || data === null) {
+    return <div>Loading...</div>;
+  }
   return <div>DeliveriesTableV2</div>;
 }
