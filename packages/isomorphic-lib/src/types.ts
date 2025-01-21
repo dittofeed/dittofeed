@@ -3839,6 +3839,14 @@ export const SearchDeliveriesRequest = Type.Object({
   to: Type.Optional(Type.Array(Type.String())),
   statuses: Type.Optional(Type.Array(Type.String())),
   templateIds: Type.Optional(Type.Array(Type.String())),
+  sortBy: Type.Optional(
+    Type.Union([
+      Type.Literal("journeyName"),
+      Type.Literal("templateName"),
+      Type.Literal("sentAt"),
+      Type.Literal("updatedAt"),
+    ]),
+  ),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
@@ -3871,18 +3879,19 @@ export const SearchDeliveriesResponseItem = Type.Union([
   ]),
   Type.Composite([
     Type.Object({
+      status: Type.String(),
+      variant: MessageWebhookSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
+  // Deprecated
+  Type.Composite([
+    Type.Object({
       status: EmailEvent,
       to: Type.String(),
       channel: Type.Literal(ChannelType.Email),
     }),
     Type.Partial(CodeEmailContents),
-    BaseDeliveryItem,
-  ]),
-  Type.Composite([
-    Type.Object({
-      status: Type.String(),
-      variant: MessageWebhookSuccess,
-    }),
     BaseDeliveryItem,
   ]),
 ]);

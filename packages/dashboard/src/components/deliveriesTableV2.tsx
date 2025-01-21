@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Column,
   ColumnDef,
@@ -15,6 +15,7 @@ import {
 import axios from "axios";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BroadcastResource,
   ChannelType,
@@ -45,40 +46,23 @@ type SortBy =
 type SortDirection = "asc" | "desc";
 
 interface State {
-  cursor: string | null;
-  pageSize: number;
-  sortBy: SortBy;
-  sortDirection: SortDirection;
+  query: {
+    cursor: string | null;
+    limit: number;
+    sortBy: SortBy;
+    sortDirection: SortDirection;
+  };
 }
 
-interface EmailDelivery {
-  channel: typeof ChannelType.Email;
-  from: string;
-  to: string;
+interface Delivery {
+  userId: string;
   body: string;
+  from?: string;
+  to?: string;
   subject?: string;
   replyTo?: string;
-}
-
-interface SmsDelivery {
-  channel: typeof ChannelType.Sms;
-  from: string;
-  to: string;
-  body: string;
-}
-
-interface WebhookDelivery {
-  channel: typeof ChannelType.Webhook;
-  body: string;
-}
-
-type ChannelDelivery = EmailDelivery | SmsDelivery | WebhookDelivery;
-
-type Delivery = {
-  userId: string;
-  to: string;
   status: string;
-  snippet: string;
+  snippet?: string;
   originId: string;
   originType: "broadcast" | "journey";
   originName: string;
@@ -86,7 +70,8 @@ type Delivery = {
   templateName: string;
   sentAt: number;
   updatedAt: number;
-} & ChannelDelivery;
+  channel: ChannelType;
+}
 
 function getOrigin({
   workspace,
@@ -133,8 +118,17 @@ export function DeliveriesTableV2({
       "journeys",
       "broadcasts",
     ]);
+
+  const [state, setState] = useImmer<State>({
+    query: {
+      cursor: null,
+      limit: 10,
+      sortBy: "sentAt",
+      sortDirection: "desc",
+    },
+  });
   const query = useQuery<SearchDeliveriesResponse | null>({
-    queryKey: ["deliveries"],
+    queryKey: ["deliveries", state],
     queryFn: async () => {
       if (workspace.type !== CompletionStatus.Successful) {
         return null;
@@ -151,20 +145,17 @@ export function DeliveriesTableV2({
       );
       return result;
     },
+    placeholderData: keepPreviousData,
   });
-  const [state, setState] = useImmer<State>({
-    pageSize: 10,
-    cursor: null,
-    sortBy: "sentAt",
-    sortDirection: "desc",
-  });
+
   const columns = useMemo<ColumnDef<Delivery>[]>(() => [], []);
   const data = useMemo<Delivery[] | null>(() => {
     if (
       query.isPending ||
-      query.data === null ||
+      !query.data ||
       workspace.type !== CompletionStatus.Successful ||
-      journeys.type !== CompletionStatus.Successful
+      journeys.type !== CompletionStatus.Successful ||
+      messages.type !== CompletionStatus.Successful
     ) {
       return null;
     }
@@ -178,9 +169,65 @@ export function DeliveriesTableV2({
       if (origin === null) {
         return [];
       }
+      const template = messages.value.find(
+        (message) => message.id === item.templateId,
+      );
+      if (template === undefined) {
+        return [];
+      }
+      if (!("variant" in item)) {
+        return [];
+      }
+      const { variant } = item;
+
+      let snippet: string | undefined;
+      let to: string | undefined;
+      let from: string | undefined;
+      let subject: string | undefined;
+      let replyTo: string | undefined;
+      let body: string;
+
+      switch (variant.type) {
+        case ChannelType.Email:
+          snippet = variant.subject;
+          to = variant.to;
+          from = variant.from;
+          subject = variant.subject;
+          replyTo = variant.replyTo;
+          body = variant.body;
+          break;
+        case ChannelType.Sms:
+          snippet = variant.body;
+          to = variant.to;
+          body = variant.body;
+          break;
+        case ChannelType.Webhook:
+          to = variant.to;
+          body = JSON.stringify(
+            { request: variant.request, response: variant.response },
+            null,
+            2,
+          );
+          break;
+        default:
+          assertUnreachable(variant);
+      }
 
       return {
-        ...item,
+        userId: item.userId,
+        to,
+        from,
+        subject,
+        replyTo,
+        status: item.status,
+        snippet,
+        channel: variant.type,
+        body,
+        originId: origin.originId,
+        originType: origin.originType,
+        originName: origin.originName,
+        templateId: template.id,
+        templateName: template.name,
         sentAt: new Date(item.sentAt).getTime(),
         updatedAt: new Date(item.updatedAt).getTime(),
       };
