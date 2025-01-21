@@ -613,7 +613,7 @@ export async function userJourneyWorkflow(
         }
 
         const shouldContinue = await sendMessageV2({
-          // FIXME not using keyedEvents
+          events: keyedEvents,
           context: entryEventProperties,
           ...messagePayload,
           ...variant,
