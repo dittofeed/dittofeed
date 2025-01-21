@@ -23701,6 +23701,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "type": "object",
                 "properties": {
                   "mandrill_events": {
@@ -26310,6 +26311,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "type": "object",
                 "properties": {
                   "mandrill_events": {
