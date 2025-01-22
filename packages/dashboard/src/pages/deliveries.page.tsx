@@ -7,6 +7,7 @@ import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
 import { getDeliveriesData } from "./deliveries/getDeliveriesData";
+import { Box } from "@mui/material";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -24,7 +25,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 export default function DeliveriesPage() {
   return (
     <DashboardContent>
-      <DeliveriesTableV2 />
+      <Box sx={{ width: "100%", p: 4 }}>
+        <DeliveriesTableV2 />
+      </Box>
     </DashboardContent>
   );
 }

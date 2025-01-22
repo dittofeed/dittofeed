@@ -1,3 +1,13 @@
+import {
+  Box,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+} from "@mui/material";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Column,
@@ -9,7 +19,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   PaginationState,
-  Table,
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
@@ -277,13 +286,201 @@ export function DeliveriesTableV2({
   }, [query, workspace, journeys, broadcasts, messages]);
 
   const table = useReactTable({
-    columns: [],
-    data: [],
+    columns,
+    data: data ?? [],
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
   });
   if (query.isPending || data === null) {
     return <div>Loading...</div>;
   }
-  return <div>DeliveriesTableV2</div>;
+  console.log("headers", table.getHeaderGroups());
+  return (
+    <Stack sx={{ width: "100%" }}>
+      <Table component={Paper}>
+        <TableHead>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableCell key={header.id} colSpan={header.colSpan}>
+                  {header.isPlaceholder ? null : (
+                    <Box>
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </Box>
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableHead>
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Stack>
+  );
 }
+
+// import {
+//   Box,
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableRow,
+//   Button,
+//   Typography,
+//   TextField,
+//   Select,
+//   MenuItem,
+//   Stack,
+//   Paper
+// } from '@mui/material';
+// import {
+//   KeyboardDoubleArrowLeft,
+//   KeyboardDoubleArrowRight,
+//   KeyboardArrowLeft,
+//   KeyboardArrowRight
+// } from '@mui/icons-material';
+
+// <Box sx={{ p: 2 }}>
+//   <Box sx={{ height: 16 }} />
+//   <Table component={Paper}>
+//     <TableHead>
+//       {table.getHeaderGroups().map(headerGroup => (
+//         <TableRow key={headerGroup.id}>
+//           {headerGroup.headers.map(header => (
+//             <TableCell key={header.id} colSpan={header.colSpan}>
+//               {header.isPlaceholder ? null : (
+//                 <Box>
+//                   {flexRender(
+//                     header.column.columnDef.header,
+//                     header.getContext()
+//                   )}
+//                 </Box>
+//               )}
+//             </TableCell>
+//           ))}
+//         </TableRow>
+//       ))}
+//     </TableHead>
+//     <TableBody>
+//       {table.getRowModel().rows.map(row => (
+//         <TableRow key={row.id}>
+//           {row.getVisibleCells().map(cell => (
+//             <TableCell key={cell.id}>
+//               {flexRender(
+//                 cell.column.columnDef.cell,
+//                 cell.getContext()
+//               )}
+//             </TableCell>
+//           ))}
+//         </TableRow>
+//       ))}
+//     </TableBody>
+//   </Table>
+//   <Box sx={{ height: 16 }} />
+
+//   <Stack direction="row" spacing={2} alignItems="center">
+//     <Button
+//       variant="outlined"
+//       size="small"
+//       onClick={() => table.firstPage()}
+//       disabled={!table.getCanPreviousPage()}
+//     >
+//       <KeyboardDoubleArrowLeft />
+//     </Button>
+//     <Button
+//       variant="outlined"
+//       size="small"
+//       onClick={() => table.previousPage()}
+//       disabled={!table.getCanPreviousPage()}
+//     >
+//       <KeyboardArrowLeft />
+//     </Button>
+//     <Button
+//       variant="outlined"
+//       size="small"
+//       onClick={() => table.nextPage()}
+//       disabled={!table.getCanNextPage()}
+//     >
+//       <KeyboardArrowRight />
+//     </Button>
+//     <Button
+//       variant="outlined"
+//       size="small"
+//       onClick={() => table.lastPage()}
+//       disabled={!table.getCanNextPage()}
+//     >
+//       <KeyboardDoubleArrowRight />
+//     </Button>
+
+//     <Stack direction="row" spacing={1} alignItems="center">
+//       <Typography>Page</Typography>
+//       <Typography fontWeight="bold">
+//         {table.getState().pagination.pageIndex + 1} of{' '}
+//         {table.getPageCount().toLocaleString()}
+//       </Typography>
+//     </Stack>
+
+//     <Stack direction="row" spacing={1} alignItems="center">
+//       <Typography>Go to page:</Typography>
+//       <TextField
+//         type="number"
+//         size="small"
+//         inputProps={{
+//           min: 1,
+//           max: table.getPageCount()
+//         }}
+//         sx={{ width: 100 }}
+//         defaultValue={table.getState().pagination.pageIndex + 1}
+//         onChange={e => {
+//           const page = e.target.value ? Number(e.target.value) - 1 : 0
+//           table.setPageIndex(page)
+//         }}
+//       />
+//     </Stack>
+
+//     <Select
+//       size="small"
+//       value={table.getState().pagination.pageSize}
+//       onChange={e => {
+//         table.setPageSize(Number(e.target.value))
+//       }}
+//     >
+//       {[10, 20, 30, 40, 50].map(pageSize => (
+//         <MenuItem key={pageSize} value={pageSize}>
+//           Show {pageSize}
+//         </MenuItem>
+//       ))}
+//     </Select>
+
+//     {dataQuery.isFetching && <Typography>Loading...</Typography>}
+//   </Stack>
+
+//   <Typography sx={{ mt: 2 }}>
+//     Showing {table.getRowModel().rows.length.toLocaleString()} of{' '}
+//     {dataQuery.data?.rowCount.toLocaleString()} Rows
+//   </Typography>
+
+//   <Box sx={{ mt: 2 }}>
+//     <Button variant="contained" onClick={() => rerender()}>
+//       Force Rerender
+//     </Button>
+//   </Box>
+
+//   <Box component="pre" sx={{ mt: 2 }}>
+//     {JSON.stringify(pagination, null, 2)}
+//   </Box>
+// </Box>
