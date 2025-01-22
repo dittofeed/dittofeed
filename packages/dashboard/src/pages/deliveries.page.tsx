@@ -24,7 +24,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 export default function DeliveriesPage() {
   return (
     <DashboardContent>
-      <Box sx={{ width: "100%", p: 4 }}>
+      <Box sx={{ width: "100%", p: 4, height: "100%" }}>
         <DeliveriesTableV2 />
       </Box>
     </DashboardContent>
