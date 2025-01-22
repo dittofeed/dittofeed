@@ -43,6 +43,7 @@ type MessageProperties = Static<typeof MessageProperties>;
 
 const OffsetKey = "o" as const;
 
+// FIXME use token / curor
 const Cursor = Type.Object({
   [OffsetKey]: Type.Number(),
 });

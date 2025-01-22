@@ -1,3 +1,4 @@
+import { Computer, Home } from "@mui/icons-material";
 import {
   Box,
   Paper,
@@ -9,6 +10,8 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
@@ -21,9 +24,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   PaginationState,
+  Row,
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
+import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -45,6 +50,65 @@ import {
   defaultGetDeliveriesRequest,
   GetDeliveriesRequest,
 } from "./deliveriesTable";
+
+function TimeCell({ row }: { row: Row<Delivery> }) {
+  const timestamp = row.original.sentAt;
+
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(timestamp)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(timestamp)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography>
+        {formatDistanceToNow(timestamp, { addSuffix: true })}
+      </Typography>
+    </Tooltip>
+  );
+}
 
 type SortBy =
   | "from"
@@ -198,6 +262,27 @@ export function DeliveriesTableV2({
         header: "To",
         accessorKey: "to",
       },
+      {
+        header: "Status",
+        accessorKey: "status",
+      },
+      {
+        header: "Origin",
+        accessorKey: "originName",
+      },
+      {
+        header: "Template",
+        accessorKey: "templateName",
+      },
+      {
+        header: "Sent At",
+        accessorKey: "sentAt",
+        cell: TimeCell,
+      },
+      {
+        header: "Updated At",
+        accessorKey: "updatedAt",
+      },
     ],
     [],
   );
@@ -326,11 +411,16 @@ export function DeliveriesTableV2({
           <TableBody>
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  return (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>
