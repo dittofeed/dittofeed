@@ -9,7 +9,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   PaginationState,
-  PaginationState,
   Table,
   useReactTable,
 } from "@tanstack/react-table";
@@ -54,16 +53,10 @@ interface State {
     sortDirection: SortDirection;
   };
 }
-
-interface Delivery {
+interface BaseDelivery {
   userId: string;
   body: string;
-  from?: string;
-  to?: string;
-  subject?: string;
-  replyTo?: string;
   status: string;
-  snippet?: string;
   originId: string;
   originType: "broadcast" | "journey";
   originName: string;
@@ -71,8 +64,41 @@ interface Delivery {
   templateName: string;
   sentAt: number;
   updatedAt: number;
-  channel: ChannelType;
+  from?: string;
+  to?: string;
+  subject?: string;
+  replyTo?: string;
+  snippet?: string;
 }
+
+interface EmailDelivery extends BaseDelivery {
+  channel: typeof ChannelType.Email;
+  from: string;
+  to: string;
+  subject: string;
+  replyTo?: string;
+  snippet: string;
+}
+
+interface SmsDelivery extends BaseDelivery {
+  channel: typeof ChannelType.Sms;
+  from?: undefined;
+  to: string;
+  subject?: undefined;
+  replyTo?: undefined;
+  snippet: string;
+}
+
+interface WebhookDelivery extends BaseDelivery {
+  channel: typeof ChannelType.Webhook;
+  from?: undefined;
+  to?: undefined;
+  subject?: undefined;
+  replyTo?: undefined;
+  snippet?: undefined;
+}
+
+type Delivery = EmailDelivery | SmsDelivery | WebhookDelivery;
 
 function getOrigin({
   workspace,
@@ -194,50 +220,12 @@ export function DeliveriesTableV2({
         return [];
       }
       const { variant } = item;
-
-      let snippet: string | undefined;
-      let to: string | undefined;
-      let from: string | undefined;
-      let subject: string | undefined;
-      let replyTo: string | undefined;
-      let body: string;
-
-      switch (variant.type) {
-        case ChannelType.Email:
-          snippet = variant.subject;
-          to = variant.to;
-          from = variant.from;
-          subject = variant.subject;
-          replyTo = variant.replyTo;
-          body = variant.body;
-          break;
-        case ChannelType.Sms:
-          snippet = variant.body;
-          to = variant.to;
-          body = variant.body;
-          break;
-        case ChannelType.Webhook:
-          to = variant.to;
-          body = JSON.stringify(
-            { request: variant.request, response: variant.response },
-            null,
-            2,
-          );
-          break;
-        default:
-          assertUnreachable(variant);
-      }
-
-      return {
+      const baseDelivery: Omit<
+        Delivery,
+        "channel" | "body" | "snippet" | "subject" | "to" | "from" | "replyTo"
+      > = {
         userId: item.userId,
-        to,
-        from,
-        subject,
-        replyTo,
         status: item.status,
-        snippet,
-        channel: variant.type,
-        body,
         originId: origin.originId,
         originType: origin.originType,
         originName: origin.originName,
@@ -246,8 +234,48 @@ export function DeliveriesTableV2({
         sentAt: new Date(item.sentAt).getTime(),
         updatedAt: new Date(item.updatedAt).getTime(),
       };
-    }) satisfies Delivery[];
-  }, [query]);
+
+      let delivery: Delivery;
+      switch (variant.type) {
+        case ChannelType.Email:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Email,
+            body: variant.body,
+            snippet: variant.subject,
+            subject: variant.subject,
+            to: variant.to,
+            from: variant.from,
+            replyTo: variant.replyTo,
+          };
+          break;
+        case ChannelType.Sms:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Sms,
+            body: variant.body,
+            snippet: variant.body,
+            to: variant.to,
+          };
+          break;
+        case ChannelType.Webhook:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Webhook,
+            body: JSON.stringify(
+              { request: variant.request, response: variant.response },
+              null,
+              2,
+            ),
+          };
+          break;
+        default:
+          assertUnreachable(variant);
+      }
+      return delivery;
+    });
+  }, [query, workspace, journeys, broadcasts, messages]);
+
   const table = useReactTable({
     columns: [],
     data: [],
