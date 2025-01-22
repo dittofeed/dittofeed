@@ -302,17 +302,8 @@ export function DeliveriesTableV2({
         height: "100%",
       }}
     >
-      <TableContainer
-        component={Paper}
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Table
-          sx={{ display: "flex", flexDirection: "column", height: "100%" }}
-        >
+      <TableContainer component={Paper} sx={{ maxHeight: "100%" }}>
+        <Table stickyHeader>
           <TableHead>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -331,7 +322,7 @@ export function DeliveriesTableV2({
               </TableRow>
             ))}
           </TableHead>
-          <TableBody sx={{ overflow: "auto", flexGrow: 1 }}>
+          <TableBody>
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
