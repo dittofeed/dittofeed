@@ -56,6 +56,10 @@
 
 For the full dashboard experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).
 
+## Docker Deployment
+
+Check out our [walkthrough video](https://youtu.be/kZbDvVCylVg?si=Gt7xbcQ-_hk6fqKt) for an end-to-end tutorial on deploying with docker compose and automating your first message. Accompanying documentation can be found [here](https://docs.dittofeed.com/deployment/self-hosted/docker-compose).  
+
 ## Quick Deployment
 
 Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://docs.dittofeed.com/deployment/self-hosted/render).
