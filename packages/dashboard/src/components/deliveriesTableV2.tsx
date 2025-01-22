@@ -1,6 +1,12 @@
-import { Computer, Home } from "@mui/icons-material";
+import {
+  Computer,
+  Home,
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+} from "@mui/icons-material";
 import {
   Box,
+  Button,
   Paper,
   Stack,
   Table,
@@ -23,11 +29,11 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  OnChangeFn,
   PaginationState,
   Row,
   useReactTable,
 } from "@tanstack/react-table";
-import axios from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -42,7 +48,7 @@ import {
   SearchDeliveriesResponseItem,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -208,8 +214,6 @@ function getOrigin({
   return null;
 }
 
-const columnHelper = createColumnHelper<Delivery>();
-
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
 }: {
@@ -232,26 +236,35 @@ export function DeliveriesTableV2({
       sortDirection: "desc",
     },
   });
-  const query = useQuery<SearchDeliveriesResponse | null>({
-    queryKey: ["deliveries", state],
-    queryFn: async () => {
-      if (workspace.type !== CompletionStatus.Successful) {
-        return null;
-      }
-      const params: SearchDeliveriesRequest = {
-        workspaceId: workspace.value.id,
-      };
-      const response = await getDeliveriesRequest({
-        params,
-        apiBase,
-      });
-      const result = unwrap(
-        schemaValidateWithErr(response.data, SearchDeliveriesResponse),
-      );
-      return result;
+  const query = useQuery<SearchDeliveriesResponse | null>(
+    {
+      queryKey: ["deliveries", state],
+      queryFn: async () => {
+        if (workspace.type !== CompletionStatus.Successful) {
+          return null;
+        }
+        const params: SearchDeliveriesRequest = {
+          workspaceId: workspace.value.id,
+          cursor: state.query.cursor ?? undefined,
+          limit: state.query.limit,
+        };
+        const response = await getDeliveriesRequest({
+          params,
+          apiBase,
+        });
+        const result = unwrap(
+          schemaValidateWithErr(response.data, SearchDeliveriesResponse),
+        );
+        return result;
+      },
+      placeholderData: keepPreviousData,
     },
-    placeholderData: keepPreviousData,
-  });
+    // {
+    //   onSuccess: (data) => {
+    //     return data;
+    //   },
+    // },
+  );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(
     () => [
@@ -375,12 +388,38 @@ export function DeliveriesTableV2({
     });
   }, [query, workspace, journeys, broadcasts, messages]);
 
+  // order of operations
+  // page initialized with empty cursors and null page index
+  // first request is triggered
+  // request returns
+  // next cursor is set in state
+  // user clicks next
+  // page index is updated in state
+  // request is triggered
+  // request returns
+  const onNextPage = useCallback(() => {
+    setState((draft) => {
+      if (query.data?.cursor) {
+        draft.query.cursor = query.data.cursor;
+      }
+    });
+  }, [setState, query.data]);
+
+  const onPreviousPage = useCallback(() => {
+    setState((draft) => {
+      if (query.data?.previousCursor) {
+        draft.query.cursor = query.data.previousCursor;
+      }
+    });
+  }, [setState, query.data]);
+
   const table = useReactTable({
     columns,
     data: data ?? [],
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
   });
+
   if (query.isPending || data === null) {
     return <div>Loading...</div>;
   }
@@ -432,7 +471,56 @@ export function DeliveriesTableV2({
           >
             <TableRow>
               <TableCell colSpan={table.getAllColumns().length}>
-                Footer content
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  justifyContent="flex-end"
+                  alignItems="center"
+                >
+                  <Button
+                    color="inherit"
+                    onClick={onPreviousPage}
+                    disabled={query.data?.previousCursor === undefined}
+                    startIcon={<KeyboardArrowLeft />}
+                    sx={{
+                      bgcolor: "grey.200",
+                      color: "grey.700",
+                      "&:hover": {
+                        bgcolor: "grey.300",
+                      },
+                      "&:active": {
+                        bgcolor: "grey.400",
+                      },
+                      "&.Mui-disabled": {
+                        bgcolor: "grey.100",
+                        color: "grey.400",
+                      },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={onNextPage}
+                    disabled={query.data?.cursor === undefined}
+                    endIcon={<KeyboardArrowRight />}
+                    sx={{
+                      bgcolor: "grey.200",
+                      color: "grey.700",
+                      "&:hover": {
+                        bgcolor: "grey.300",
+                      },
+                      "&:active": {
+                        bgcolor: "grey.400",
+                      },
+                      "&.Mui-disabled": {
+                        bgcolor: "grey.100",
+                        color: "grey.400",
+                      },
+                    }}
+                  >
+                    Next
+                  </Button>
+                </Stack>
               </TableCell>
             </TableRow>
           </TableFooter>
