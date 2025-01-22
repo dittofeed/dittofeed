@@ -6,6 +6,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TableRow,
 } from "@mui/material";
@@ -302,7 +303,7 @@ export function DeliveriesTableV2({
         height: "100%",
       }}
     >
-      <TableContainer component={Paper} sx={{ maxHeight: "100%" }}>
+      <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -333,6 +334,15 @@ export function DeliveriesTableV2({
               </TableRow>
             ))}
           </TableBody>
+          <TableFooter
+            sx={{ position: "sticky", bottom: 0, bgcolor: "background.paper" }}
+          >
+            <TableRow>
+              <TableCell colSpan={table.getAllColumns().length}>
+                Footer content
+              </TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableContainer>
     </Stack>
