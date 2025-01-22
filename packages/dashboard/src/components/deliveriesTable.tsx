@@ -95,7 +95,7 @@ const initPreviewObject = () => {
   };
 };
 
-function humanizeStatus(status: string) {
+export function humanizeStatus(status: string) {
   switch (status) {
     case InternalEventType.MessageSent:
       return "Sent";

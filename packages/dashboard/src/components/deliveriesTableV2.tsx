@@ -49,6 +49,7 @@ import { useAppStorePick } from "../lib/appStore";
 import {
   defaultGetDeliveriesRequest,
   GetDeliveriesRequest,
+  humanizeStatus,
 } from "./deliveriesTable";
 
 function TimeCell({ row }: { row: Row<Delivery> }) {
@@ -265,6 +266,7 @@ export function DeliveriesTableV2({
       {
         header: "Status",
         accessorKey: "status",
+        cell: ({ row }) => humanizeStatus(row.original.status),
       },
       {
         header: "Origin",
@@ -282,6 +284,7 @@ export function DeliveriesTableV2({
       {
         header: "Updated At",
         accessorKey: "updatedAt",
+        cell: TimeCell,
       },
     ],
     [],
