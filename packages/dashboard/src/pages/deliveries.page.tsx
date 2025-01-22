@@ -1,13 +1,12 @@
+import { Box } from "@mui/material";
 import { GetServerSideProps } from "next";
 
 import DashboardContent from "../components/dashboardContent";
-import { DeliveriesTable } from "../components/deliveriesTable";
 import { DeliveriesTableV2 } from "../components/deliveriesTableV2";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
 import { getDeliveriesData } from "./deliveries/getDeliveriesData";
-import { Box } from "@mui/material";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
