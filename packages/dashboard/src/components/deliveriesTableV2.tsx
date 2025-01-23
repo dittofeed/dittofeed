@@ -311,16 +311,18 @@ function PreviewCell({
         height: "100%",
       }}
     >
-      <IconButton
-        size="small"
-        onClick={() => {
-          setState((draft) => {
-            draft.previewMessageId = row.original.messageId;
-          });
-        }}
-      >
-        <VisibilityIcon sx={{ color: "#262626", cursor: "pointer" }} />
-      </IconButton>
+      <Tooltip title="View Delivery Contents">
+        <IconButton
+          size="small"
+          onClick={() => {
+            setState((draft) => {
+              draft.previewMessageId = row.original.messageId;
+            });
+          }}
+        >
+          <VisibilityIcon sx={{ color: "#262626", cursor: "pointer" }} />
+        </IconButton>
+      </Tooltip>
     </Stack>
   );
 }
@@ -873,6 +875,7 @@ export function DeliveriesTableV2({
             setState={setDeliveriesFilterState}
             greyScale
             buttonProps={{
+              disableRipple: true,
               sx: {
                 ...greyButtonStyle,
                 fontWeight: "bold",
