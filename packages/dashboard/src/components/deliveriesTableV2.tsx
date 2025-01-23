@@ -27,6 +27,13 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import {
+  LocalizationProvider,
+  StaticDatePicker,
+  StaticDateTimePicker,
+} from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
@@ -135,10 +142,10 @@ type SortDirection = "asc" | "desc";
 interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
-  referenceTime: number;
+  referenceDate: Date;
   customTimeRange: {
-    start: number;
-    end: number;
+    start: Date | null;
+    end: Date | null;
   } | null;
   query: {
     cursor: string | null;
@@ -317,7 +324,7 @@ export function DeliveriesTableV2({
   const [state, setState] = useImmer<State>({
     previewMessageId: null,
     selectedTimeOption: defaultTimeOption,
-    referenceTime: Date.now(),
+    referenceDate: new Date(),
     customTimeRange: null,
     query: {
       cursor: null,
@@ -407,7 +414,6 @@ export function DeliveriesTableV2({
     }
     return query.data.items.flatMap((item) => {
       const origin = getOrigin({
-        workspace: workspace.value,
         journeys: journeys.value,
         broadcasts,
         item,
@@ -619,6 +625,13 @@ export function DeliveriesTableV2({
               }}
               onChange={(e) =>
                 setState((draft) => {
+                  if (e.target.value === "custom") {
+                    draft.customTimeRange = {
+                      start: null,
+                      end: draft.referenceDate,
+                    };
+                    return;
+                  }
                   const option = timeOptions.find(
                     (o) => o.id === e.target.value,
                   );
@@ -637,6 +650,52 @@ export function DeliveriesTableV2({
               ))}
             </Select>
           </FormControl>
+          {state.customTimeRange !== null && (
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Stack direction="row" spacing={1}>
+                <StaticDatePicker
+                  value={state.customTimeRange.start}
+                  onChange={(newValue) => {
+                    setState((draft) => {
+                      if (!draft.customTimeRange) {
+                        draft.customTimeRange = {
+                          start: newValue,
+                          end: draft.referenceDate,
+                        };
+                      } else {
+                        draft.customTimeRange.start = newValue;
+                      }
+                    });
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderColor: "grey.400",
+                    },
+                  }}
+                />
+                <StaticDatePicker
+                  value={state.customTimeRange.end}
+                  onChange={(newValue) => {
+                    setState((draft) => {
+                      if (!draft.customTimeRange) {
+                        draft.customTimeRange = {
+                          start: null,
+                          end: newValue,
+                        };
+                      } else {
+                        draft.customTimeRange.end = newValue;
+                      }
+                    });
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderColor: "grey.400",
+                    },
+                  }}
+                />
+              </Stack>
+            </LocalizationProvider>
+          )}
         </Box>
 
         <TableContainer component={Paper}>
