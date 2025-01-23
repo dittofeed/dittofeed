@@ -683,6 +683,11 @@ export function DeliveriesTableV2({
                   draft.customTimeRange = newValue;
                 });
               }}
+              footer={
+                <Stack direction="row">
+                  <Button>Apply</Button>
+                </Stack>
+              }
             />
           </Popover>
         </Box>
