@@ -1,3 +1,6 @@
+import { ChevronRight } from "@mui/icons-material";
+import { ChevronLeft } from "@mui/icons-material";
+import { Box, Divider, IconButton, Stack } from "@mui/material";
 import {
   Button,
   CalendarCell,
@@ -19,16 +22,30 @@ export function RangeCalendar<T extends DateValue>({
   ...props
 }: RangeCalendarProps<T>) {
   return (
-    <span className="react-aria">
-      <AriaRangeCalendar {...props}>
+    <Box className="react-aria" sx={{ p: 1 }}>
+      <AriaRangeCalendar {...props} visibleDuration={{ months: 2 }}>
         <header>
-          <Button slot="previous">◀</Button>
+          <IconButton slot="previous">
+            <ChevronLeft />
+          </IconButton>
           <Heading />
-          <Button slot="next">▶</Button>
+          <IconButton slot="next">
+            <ChevronRight />
+          </IconButton>
         </header>
-        <CalendarGrid>{(date) => <CalendarCell date={date} />}</CalendarGrid>
+        <Stack direction="row">
+          <CalendarGrid>{(date) => <CalendarCell date={date} />}</CalendarGrid>
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ borderColor: "grey.300" }}
+          />
+          <CalendarGrid offset={{ months: 1 }}>
+            {(date) => <CalendarCell date={date} />}
+          </CalendarGrid>
+        </Stack>
         {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
       </AriaRangeCalendar>
-    </span>
+    </Box>
   );
 }

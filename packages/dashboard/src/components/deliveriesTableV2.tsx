@@ -675,61 +675,15 @@ export function DeliveriesTableV2({
               horizontal: "left",
             }}
           >
-            {state.customTimeRange !== null && (
-              <RangeCalendar
-                value={state.customTimeRange}
-                onChange={(newValue) => {
-                  setState((draft) => {
-                    draft.customTimeRange = newValue;
-                  });
-                }}
-              />
-              // <LocalizationProvider dateAdapter={AdapterDateFns}>
-              //   <Stack direction="row" spacing={1}>
-              //     <StaticDatePicker
-              //       displayStaticWrapperAs="desktop"
-              //       value={state.customTimeRange}
-              //       onChange={(newValue) => {
-              //         setState((draft) => {
-              //           if (!draft.customTimeRange) {
-              //             draft.customTimeRange = {
-              //               start: newValue,
-              //               end: draft.referenceDate,
-              //             };
-              //           } else {
-              //             draft.customTimeRange.start = newValue;
-              //           }
-              //         });
-              //       }}
-              //       sx={{
-              //         "& .MuiOutlinedInput-root": {
-              //           borderColor: "grey.400",
-              //         },
-              //       }}
-              //     />
-              //     {/* <StaticDatePicker
-              //       value={state.customTimeRange.end}
-              //       onChange={(newValue) => {
-              //         setState((draft) => {
-              //           if (!draft.customTimeRange) {
-              //             draft.customTimeRange = {
-              //               start: null,
-              //               end: newValue,
-              //             };
-              //           } else {
-              //             draft.customTimeRange.end = newValue;
-              //           }
-              //         });
-              //       }}
-              //       sx={{
-              //         "& .MuiOutlinedInput-root": {
-              //           borderColor: "grey.400",
-              //         },
-              //       }}
-              //     /> */}
-              //   </Stack>
-              // </LocalizationProvider>
-            )}
+            <RangeCalendar
+              value={state.customTimeRange}
+              visibleDuration={{ months: 2 }}
+              onChange={(newValue) => {
+                setState((draft) => {
+                  draft.customTimeRange = newValue;
+                });
+              }}
+            />
           </Popover>
         </Box>
 
