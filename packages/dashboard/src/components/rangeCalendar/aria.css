@@ -1,9 +1,10 @@
+/* FIXME calendarCell style is not applied */
 .react-aria-RangeCalendar {
   width: fit-content;
   max-width: 100%;
   color: var(--text-color);
 
-  :global(header) {
+  & header {
     display: flex;
     align-items: center;
     margin: 0 4px 0.5rem 4px;
@@ -22,15 +23,15 @@
     padding: 0;
   }
 
-  :global(table) {
+  & table {
     border-collapse: collapse;
 
-    :global(td) {
+    & td {
       padding: 2px 0;
     }
   }
 
-  :global(.react-aria-CalendarCell) {
+  .react-aria-CalendarCell {
     width: 2.286rem;
     line-height: 2.286rem;
     text-align: center;
@@ -171,34 +172,6 @@
   --red-600: #731200;
   --highlight-hover: rgb(0 0 0 / 0.07);
   --highlight-pressed: rgb(0 0 0 / 0.15);
-}
-
-/* Dark: https://leonardocolor.io/theme.html?name=Dark&config=%7B%22baseScale%22%3A%22Gray%22%2C%22colorScales%22%3A%5B%7B%22name%22%3A%22Gray%22%2C%22colorKeys%22%3A%5B%22%23000000%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Purple%22%2C%22colorKeys%22%3A%5B%22%235e30eb%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Red%22%2C%22colorKeys%22%3A%5B%22%23e32400%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%5D%2C%22lightness%22%3A11%2C%22contrast%22%3A1%2C%22saturation%22%3A100%2C%22formula%22%3A%22wcag2%22%7D */
-@media (prefers-color-scheme: dark) {
-  .react-aria {
-    --background-color: #1d1d1d;
-    --gray-50: #101010;
-    --gray-100: #393939;
-    --gray-200: #4f4f4f;
-    --gray-300: #686868;
-    --gray-400: #848484;
-    --gray-500: #a7a7a7;
-    --gray-600: #cfcfcf;
-    --purple-100: #3c1e95;
-    --purple-200: #522acd;
-    --purple-300: #6f46ed;
-    --purple-400: #8e6ef1;
-    --purple-500: #b099f5;
-    --purple-600: #d5c8fa;
-    --red-100: #721200;
-    --red-200: #9c1900;
-    --red-300: #cc2000;
-    --red-400: #e95034;
-    --red-500: #f08c79;
-    --red-600: #f7c3ba;
-    --highlight-hover: rgb(255 255 255 / 0.1);
-    --highlight-pressed: rgb(255 255 255 / 0.2);
-  }
 }
 
 /* Semantic colors */

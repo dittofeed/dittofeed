@@ -1,3 +1,4 @@
+import { CalendarDate } from "@internationalized/date";
 import {
   Computer,
   Home,
@@ -6,7 +7,6 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
-import { StaticDateRangePicker } from "@mui/lab";
 import {
   Box,
   Button,
@@ -62,6 +62,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
+import { toCalendarDate } from "../lib/dates";
 import {
   defaultGetDeliveriesRequest,
   GetDeliveriesRequest,
@@ -70,6 +71,7 @@ import {
 import EmailPreviewHeader from "./emailPreviewHeader";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
+import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
 
@@ -146,7 +148,10 @@ interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
   referenceDate: Date;
-  customTimeRange: [Date | null, Date | null] | null;
+  customTimeRange: {
+    start: CalendarDate;
+    end: CalendarDate;
+  } | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -629,7 +634,10 @@ export function DeliveriesTableV2({
                 setState((draft) => {
                   if (e.target.value === "custom") {
                     const dayBefore = subDays(draft.referenceDate, 1);
-                    draft.customTimeRange = [dayBefore, draft.referenceDate];
+                    draft.customTimeRange = {
+                      start: toCalendarDate(dayBefore),
+                      end: toCalendarDate(draft.referenceDate),
+                    };
                     return;
                   }
                   const option = timeOptions.find(
@@ -668,51 +676,59 @@ export function DeliveriesTableV2({
             }}
           >
             {state.customTimeRange !== null && (
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <Stack direction="row" spacing={1}>
-                  <StaticDateRangePicker
-                    displayStaticWrapperAs="desktop"
-                    value={state.customTimeRange ?? [null, null]}
-                    onChange={(newValue) => {
-                      setState((draft) => {
-                        if (!draft.customTimeRange) {
-                          draft.customTimeRange = [
-                            newValue,
-                            draft.referenceDate,
-                          ];
-                        } else {
-                          draft.customTimeRange[0] = newValue;
-                        }
-                      });
-                    }}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        borderColor: "grey.400",
-                      },
-                    }}
-                  />
-                  {/* <StaticDatePicker
-                    value={state.customTimeRange.end}
-                    onChange={(newValue) => {
-                      setState((draft) => {
-                        if (!draft.customTimeRange) {
-                          draft.customTimeRange = {
-                            start: null,
-                            end: newValue,
-                          };
-                        } else {
-                          draft.customTimeRange.end = newValue;
-                        }
-                      });
-                    }}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        borderColor: "grey.400",
-                      },
-                    }}
-                  /> */}
-                </Stack>
-              </LocalizationProvider>
+              <RangeCalendar
+                value={state.customTimeRange}
+                onChange={(newValue) => {
+                  setState((draft) => {
+                    draft.customTimeRange = newValue;
+                  });
+                }}
+              />
+              // <LocalizationProvider dateAdapter={AdapterDateFns}>
+              //   <Stack direction="row" spacing={1}>
+              //     <StaticDatePicker
+              //       displayStaticWrapperAs="desktop"
+              //       value={state.customTimeRange}
+              //       onChange={(newValue) => {
+              //         setState((draft) => {
+              //           if (!draft.customTimeRange) {
+              //             draft.customTimeRange = {
+              //               start: newValue,
+              //               end: draft.referenceDate,
+              //             };
+              //           } else {
+              //             draft.customTimeRange.start = newValue;
+              //           }
+              //         });
+              //       }}
+              //       sx={{
+              //         "& .MuiOutlinedInput-root": {
+              //           borderColor: "grey.400",
+              //         },
+              //       }}
+              //     />
+              //     {/* <StaticDatePicker
+              //       value={state.customTimeRange.end}
+              //       onChange={(newValue) => {
+              //         setState((draft) => {
+              //           if (!draft.customTimeRange) {
+              //             draft.customTimeRange = {
+              //               start: null,
+              //               end: newValue,
+              //             };
+              //           } else {
+              //             draft.customTimeRange.end = newValue;
+              //           }
+              //         });
+              //       }}
+              //       sx={{
+              //         "& .MuiOutlinedInput-root": {
+              //           borderColor: "grey.400",
+              //         },
+              //       }}
+              //     /> */}
+              //   </Stack>
+              // </LocalizationProvider>
             )}
           </Popover>
         </Box>
