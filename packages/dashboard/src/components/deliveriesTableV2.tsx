@@ -135,7 +135,12 @@ type SortDirection = "asc" | "desc";
 
 interface State {
   previewMessageId: string | null;
-  timeOption: TimeOption;
+  selectedTimeOption: string;
+  referenceTime: number;
+  customTimeRange: {
+    start: number;
+    end: number;
+  } | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -273,12 +278,7 @@ interface CustomTimeOption {
 
 type TimeOption = MinuteTimeOption | CustomTimeOption;
 
-const defaultTimeOption: TimeOption = {
-  type: "minutes",
-  id: "last-7-days",
-  minutes: 10080,
-  label: "Last 7 days",
-};
+const defaultTimeOption = "last-7-days";
 
 const timeOptions: TimeOption[] = [
   { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
@@ -288,7 +288,12 @@ const timeOptions: TimeOption[] = [
     minutes: 1440,
     label: "Last 24 hours",
   },
-  defaultTimeOption,
+  {
+    type: "minutes",
+    id: defaultTimeOption,
+    minutes: 10080,
+    label: "Last 7 days",
+  },
   {
     type: "minutes",
     id: "last-30-days",
@@ -314,7 +319,9 @@ export function DeliveriesTableV2({
 
   const [state, setState] = useImmer<State>({
     previewMessageId: null,
-    timeOption: defaultTimeOption,
+    selectedTimeOption: defaultTimeOption,
+    referenceTime: Date.now(),
+    customTimeRange: null,
     query: {
       cursor: null,
       limit: 10,
