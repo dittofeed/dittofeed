@@ -587,6 +587,28 @@ export function DeliveriesTableV2({
                   vertical: "top",
                   horizontal: "left",
                 },
+                sx: {
+                  "& .MuiMenuItem-root": {
+                    color: "grey.700",
+                    fontWeight: "bold",
+                    "&:hover": { bgcolor: "grey.300" },
+                    "&:active": { bgcolor: "grey.300" },
+                  },
+                  "&& .Mui-selected": {
+                    bgcolor: "grey.300",
+                  },
+                },
+              }}
+              sx={{
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "grey.400",
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "grey.400",
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "grey.400",
+                },
               }}
               onChange={(e) =>
                 setState((draft) => {
@@ -600,15 +622,6 @@ export function DeliveriesTableV2({
                 })
               }
               size="small"
-              sx={{
-                "& .MuiSelect-select": {
-                  padding: "8px 14px",
-                },
-                backgroundColor: "white",
-                "& fieldset": {
-                  borderColor: "#e0e0e0",
-                },
-              }}
             >
               {timeOptions.map((option) => (
                 <MenuItem key={option.id} value={option.id}>
