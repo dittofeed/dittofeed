@@ -15,9 +15,11 @@ import {
   FormControl,
   IconButton,
   MenuItem,
+  MenuItemProps,
   Paper,
   Popover,
   Select,
+  SelectChangeEvent,
   Stack,
   Table,
   TableBody,
@@ -59,7 +61,7 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -627,6 +629,16 @@ export function DeliveriesTableV2({
       />
     );
   }
+  const customOnClickHandler = useCallback(() => {
+    setState((draft) => {
+      if (draft.selectedTimeOption === "custom") {
+        draft.customDateRange = {
+          start: toCalendarDate(draft.referenceDate),
+          end: toCalendarDate(draft.referenceDate),
+        };
+      }
+    });
+  }, [setState]);
 
   if (query.isPending || data === null) {
     return null;
@@ -713,7 +725,13 @@ export function DeliveriesTableV2({
               size="small"
             >
               {timeOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
+                <MenuItem
+                  key={option.id}
+                  value={option.id}
+                  onClick={
+                    option.id === "custom" ? customOnClickHandler : undefined
+                  }
+                >
                   {option.label}
                 </MenuItem>
               ))}
@@ -742,10 +760,6 @@ export function DeliveriesTableV2({
               onChange={(newValue) => {
                 setState((draft) => {
                   draft.customDateRange = newValue;
-                  console.log("date", {
-                    start: draft.customDateRange?.start.toString(),
-                    end: draft.customDateRange?.end.toString(),
-                  });
                 });
               }}
               footer={
