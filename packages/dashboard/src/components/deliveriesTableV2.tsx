@@ -3,10 +3,14 @@ import {
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 import {
   Box,
   Button,
+  Drawer,
+  IconButton,
   Paper,
   Stack,
   Table,
@@ -18,19 +22,13 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
-  Column,
   ColumnDef,
-  createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  OnChangeFn,
-  PaginationState,
   Row,
   useReactTable,
 } from "@tanstack/react-table";
@@ -49,7 +47,7 @@ import {
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
-import { useImmer } from "use-immer";
+import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import {
@@ -57,6 +55,11 @@ import {
   GetDeliveriesRequest,
   humanizeStatus,
 } from "./deliveriesTable";
+import EmailPreviewHeader from "./emailPreviewHeader";
+import EmailPreviewBody from "./messages/emailPreview";
+import { WebhookPreviewBody } from "./messages/webhookPreview";
+import SmsPreviewBody from "./smsPreviewBody";
+import TemplatePreview from "./templatePreview";
 
 function TimeCell({ row }: { row: Row<Delivery> }) {
   const timestamp = row.original.sentAt;
@@ -128,6 +131,7 @@ type SortBy =
 type SortDirection = "asc" | "desc";
 
 interface State {
+  previewMessageId: string | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -136,6 +140,7 @@ interface State {
   };
 }
 interface BaseDelivery {
+  messageId: string;
   userId: string;
   body: string;
   status: string;
@@ -213,6 +218,41 @@ function getOrigin({
   }
   return null;
 }
+type SetState = Updater<State>;
+
+function PreviewCell({
+  row,
+  setState,
+}: {
+  row: Row<Delivery>;
+  setState: SetState;
+}) {
+  return (
+    <Stack
+      alignItems="center"
+      sx={{
+        height: "100%",
+      }}
+    >
+      <IconButton
+        size="small"
+        onClick={() => {
+          setState((draft) => {
+            draft.previewMessageId = row.original.messageId;
+          });
+        }}
+      >
+        <VisibilityIcon sx={{ color: "#262626", cursor: "pointer" }} />
+      </IconButton>
+    </Stack>
+  );
+}
+
+function renderPreviewCellFactory(setState: SetState) {
+  return function renderPreviewCell({ row }: { row: Row<Delivery> }) {
+    return <PreviewCell row={row} setState={setState} />;
+  };
+}
 
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
@@ -229,6 +269,7 @@ export function DeliveriesTableV2({
     ]);
 
   const [state, setState] = useImmer<State>({
+    previewMessageId: null,
     query: {
       cursor: null,
       limit: 10,
@@ -236,38 +277,41 @@ export function DeliveriesTableV2({
       sortDirection: "desc",
     },
   });
-  const query = useQuery<SearchDeliveriesResponse | null>(
-    {
-      queryKey: ["deliveries", state],
-      queryFn: async () => {
-        if (workspace.type !== CompletionStatus.Successful) {
-          return null;
-        }
-        const params: SearchDeliveriesRequest = {
-          workspaceId: workspace.value.id,
-          cursor: state.query.cursor ?? undefined,
-          limit: state.query.limit,
-        };
-        const response = await getDeliveriesRequest({
-          params,
-          apiBase,
-        });
-        const result = unwrap(
-          schemaValidateWithErr(response.data, SearchDeliveriesResponse),
-        );
-        return result;
-      },
-      placeholderData: keepPreviousData,
+  const theme = useTheme();
+  const query = useQuery<SearchDeliveriesResponse | null>({
+    queryKey: ["deliveries", state],
+    queryFn: async () => {
+      if (workspace.type !== CompletionStatus.Successful) {
+        return null;
+      }
+      const params: SearchDeliveriesRequest = {
+        workspaceId: workspace.value.id,
+        cursor: state.query.cursor ?? undefined,
+        limit: state.query.limit,
+      };
+      const response = await getDeliveriesRequest({
+        params,
+        apiBase,
+      });
+      const result = unwrap(
+        schemaValidateWithErr(response.data, SearchDeliveriesResponse),
+      );
+      return result;
     },
-    // {
-    //   onSuccess: (data) => {
-    //     return data;
-    //   },
-    // },
+    placeholderData: keepPreviousData,
+  });
+
+  const renderPreviewCell = useMemo(
+    () => renderPreviewCellFactory(setState),
+    [setState],
   );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(
     () => [
+      {
+        id: "preview",
+        cell: renderPreviewCell,
+      },
       {
         header: "From",
         accessorKey: "from",
@@ -300,7 +344,7 @@ export function DeliveriesTableV2({
         cell: TimeCell,
       },
     ],
-    [],
+    [renderPreviewCell],
   );
   const data = useMemo<Delivery[] | null>(() => {
     if (
@@ -336,6 +380,7 @@ export function DeliveriesTableV2({
         Delivery,
         "channel" | "body" | "snippet" | "subject" | "to" | "from" | "replyTo"
       > = {
+        messageId: item.originMessageId,
         userId: item.userId,
         status: item.status,
         originId: origin.originId,
@@ -388,15 +433,6 @@ export function DeliveriesTableV2({
     });
   }, [query, workspace, journeys, broadcasts, messages]);
 
-  // order of operations
-  // page initialized with empty cursors and null page index
-  // first request is triggered
-  // request returns
-  // next cursor is set in state
-  // user clicks next
-  // page index is updated in state
-  // request is triggered
-  // request returns
   const onNextPage = useCallback(() => {
     setState((draft) => {
       if (query.data?.cursor) {
@@ -420,112 +456,197 @@ export function DeliveriesTableV2({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const previewObject = useMemo(() => {
+    if (state.previewMessageId === null) {
+      return null;
+    }
+    return (
+      data?.find((delivery) => delivery.messageId === state.previewMessageId) ??
+      null
+    );
+  }, [state.previewMessageId, data]);
+
+  let preview: React.ReactNode = null;
+  if (previewObject !== null) {
+    let previewHeader: React.ReactNode;
+    let previewBody: React.ReactNode;
+    switch (previewObject.channel) {
+      case ChannelType.Email:
+        previewHeader = (
+          <EmailPreviewHeader
+            email={previewObject.to}
+            from={previewObject.from}
+            subject={previewObject.subject}
+          />
+        );
+        previewBody = (
+          <Box sx={{ padding: theme.spacing(1), height: "100%" }}>
+            <EmailPreviewBody body={previewObject.body} />
+          </Box>
+        );
+        break;
+      case ChannelType.Sms:
+        previewHeader = null;
+        previewBody = <SmsPreviewBody body={previewObject.body} />;
+        break;
+      case ChannelType.Webhook:
+        previewHeader = null;
+        previewBody = <WebhookPreviewBody body={previewObject.body} />;
+        break;
+      default:
+        assertUnreachable(previewObject);
+    }
+    preview = (
+      <TemplatePreview
+        previewHeader={previewHeader}
+        previewBody={previewBody}
+        visibilityHandler={
+          <IconButton
+            size="medium"
+            onClick={() =>
+              setState((draft) => {
+                draft.previewMessageId = null;
+              })
+            }
+          >
+            <VisibilityOffIcon />
+          </IconButton>
+        }
+        bodyPreviewHeading="Delivery Preview"
+      />
+    );
+  }
+
   if (query.isPending || data === null) {
-    return <div>Loading...</div>;
+    return null;
   }
   return (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
-      }}
-    >
-      <TableContainer component={Paper}>
-        <Table stickyHeader>
-          <TableHead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableCell key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder ? null : (
-                      <Box>
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                      </Box>
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableHead>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => {
-                  return (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
+    <>
+      <Stack
+        sx={{
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <TableContainer component={Paper}>
+          <Table stickyHeader>
+            <TableHead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableCell key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder ? null : (
+                        <Box>
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                        </Box>
                       )}
                     </TableCell>
-                  );
-                })}
+                  ))}
+                </TableRow>
+              ))}
+            </TableHead>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => {
+                    return (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                bgcolor: "background.paper",
+              }}
+            >
+              <TableRow>
+                <TableCell colSpan={table.getAllColumns().length}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    justifyContent="flex-end"
+                    alignItems="center"
+                  >
+                    <Button
+                      color="inherit"
+                      onClick={onPreviousPage}
+                      disabled={query.data?.previousCursor === undefined}
+                      startIcon={<KeyboardArrowLeft />}
+                      sx={{
+                        bgcolor: "grey.200",
+                        color: "grey.700",
+                        "&:hover": {
+                          bgcolor: "grey.300",
+                        },
+                        "&:active": {
+                          bgcolor: "grey.400",
+                        },
+                        "&.Mui-disabled": {
+                          bgcolor: "grey.100",
+                          color: "grey.400",
+                        },
+                      }}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      onClick={onNextPage}
+                      disabled={query.data?.cursor === undefined}
+                      endIcon={<KeyboardArrowRight />}
+                      sx={{
+                        bgcolor: "grey.200",
+                        color: "grey.700",
+                        "&:hover": {
+                          bgcolor: "grey.300",
+                        },
+                        "&:active": {
+                          bgcolor: "grey.400",
+                        },
+                        "&.Mui-disabled": {
+                          bgcolor: "grey.100",
+                          color: "grey.400",
+                        },
+                      }}
+                    >
+                      Next
+                    </Button>
+                  </Stack>
+                </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter
-            sx={{ position: "sticky", bottom: 0, bgcolor: "background.paper" }}
-          >
-            <TableRow>
-              <TableCell colSpan={table.getAllColumns().length}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  justifyContent="flex-end"
-                  alignItems="center"
-                >
-                  <Button
-                    color="inherit"
-                    onClick={onPreviousPage}
-                    disabled={query.data?.previousCursor === undefined}
-                    startIcon={<KeyboardArrowLeft />}
-                    sx={{
-                      bgcolor: "grey.200",
-                      color: "grey.700",
-                      "&:hover": {
-                        bgcolor: "grey.300",
-                      },
-                      "&:active": {
-                        bgcolor: "grey.400",
-                      },
-                      "&.Mui-disabled": {
-                        bgcolor: "grey.100",
-                        color: "grey.400",
-                      },
-                    }}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    onClick={onNextPage}
-                    disabled={query.data?.cursor === undefined}
-                    endIcon={<KeyboardArrowRight />}
-                    sx={{
-                      bgcolor: "grey.200",
-                      color: "grey.700",
-                      "&:hover": {
-                        bgcolor: "grey.300",
-                      },
-                      "&:active": {
-                        bgcolor: "grey.400",
-                      },
-                      "&.Mui-disabled": {
-                        bgcolor: "grey.100",
-                        color: "grey.400",
-                      },
-                    }}
-                  >
-                    Next
-                  </Button>
-                </Stack>
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </TableContainer>
-    </Stack>
+            </TableFooter>
+          </Table>
+        </TableContainer>
+      </Stack>
+      <Drawer
+        open={state.previewMessageId !== null}
+        onClose={() => {
+          setState((draft) => {
+            draft.previewMessageId = null;
+          });
+        }}
+        anchor="bottom"
+        sx={{
+          zIndex: "2000",
+          "& .MuiDrawer-paper": {
+            height: "100vh",
+            width: "100vw",
+          },
+        }}
+      >
+        {preview}
+      </Drawer>
+    </>
   );
 }
