@@ -4,6 +4,7 @@ import {
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
+  KeyboardDoubleArrowLeft,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
@@ -562,6 +563,12 @@ export function DeliveriesTableV2({
     });
   }, [setState, query.data]);
 
+  const onFirstPage = useCallback(() => {
+    setState((draft) => {
+      draft.query.cursor = null;
+    });
+  }, [setState]);
+
   const table = useReactTable({
     columns,
     data: data ?? [],
@@ -868,6 +875,13 @@ export function DeliveriesTableV2({
                     justifyContent="flex-end"
                     alignItems="center"
                   >
+                    <GreyButton
+                      onClick={onFirstPage}
+                      disabled={query.data?.previousCursor === undefined}
+                      startIcon={<KeyboardDoubleArrowLeft />}
+                    >
+                      First
+                    </GreyButton>
                     <GreyButton
                       onClick={onPreviousPage}
                       disabled={query.data?.previousCursor === undefined}
