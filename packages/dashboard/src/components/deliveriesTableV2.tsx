@@ -340,14 +340,14 @@ const timeOptions: TimeOption[] = [
   {
     type: "minutes",
     id: "last-24-hours",
-    minutes: 1440,
+    minutes: 24 * 60,
     label: "Last 24 hours",
   },
   defaultTimeOption,
   {
     type: "minutes",
     id: "last-30-days",
-    minutes: 43200,
+    minutes: 30 * 24 * 60,
     label: "Last 30 days",
   },
   { type: "custom", id: "custom", label: "Custom Date Range" },
@@ -366,10 +366,10 @@ export function DeliveriesTableV2({
       "journeys",
       "broadcasts",
     ]);
-  const initialStartDate = useMemo(() => new Date(), []);
-  const initialEndDate = useMemo(
-    () => subMinutes(initialStartDate, defaultTimeOption.minutes),
-    [initialStartDate],
+  const initialEndDate = useMemo(() => new Date(), []);
+  const initialStartDate = useMemo(
+    () => subMinutes(initialEndDate, defaultTimeOption.minutes),
+    [initialEndDate],
   );
 
   const [state, setState] = useImmer<State>({
@@ -700,10 +700,14 @@ export function DeliveriesTableV2({
                   const option = timeOptions.find(
                     (o) => o.id === e.target.value,
                   );
-                  if (option === undefined) {
+                  if (option === undefined || option.type !== "minutes") {
                     return;
                   }
                   draft.selectedTimeOption = option.id;
+                  draft.query.startDate = subMinutes(
+                    draft.referenceDate,
+                    option.minutes,
+                  );
                 })
               }
               size="small"
@@ -738,6 +742,10 @@ export function DeliveriesTableV2({
               onChange={(newValue) => {
                 setState((draft) => {
                   draft.customDateRange = newValue;
+                  console.log("date", {
+                    start: draft.customDateRange?.start.toString(),
+                    end: draft.customDateRange?.end.toString(),
+                  });
                 });
               }}
               footer={

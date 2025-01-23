@@ -259,6 +259,8 @@ export async function searchDeliveries({
   from,
   statuses,
   templateIds,
+  startDate,
+  endDate,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -314,6 +316,12 @@ export async function searchDeliveries({
         "Array(String)",
       )}`
     : "";
+  const startDateClause = startDate
+    ? `AND processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`
+    : "";
+  const endDateClause = endDate
+    ? `AND processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`
+    : "";
 
   const query = `
     SELECT 
@@ -346,6 +354,8 @@ export async function searchDeliveries({
         ${toClause}
         ${fromClause}
         ${templateIdClause}
+        ${startDateClause}
+        ${endDateClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING
