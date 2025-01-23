@@ -10,8 +10,11 @@ import {
   Box,
   Button,
   Drawer,
+  FormControl,
   IconButton,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -132,6 +135,7 @@ type SortDirection = "asc" | "desc";
 
 interface State {
   previewMessageId: string | null;
+  timeOption: TimeOption;
   query: {
     cursor: string | null;
     limit: number;
@@ -254,6 +258,46 @@ function renderPreviewCellFactory(setState: SetState) {
   };
 }
 
+interface MinuteTimeOption {
+  type: "minutes";
+  id: string;
+  minutes: number;
+  label: string;
+}
+
+interface CustomTimeOption {
+  type: "custom";
+  id: string;
+  label: string;
+}
+
+type TimeOption = MinuteTimeOption | CustomTimeOption;
+
+const defaultTimeOption: TimeOption = {
+  type: "minutes",
+  id: "last-24-hours",
+  minutes: 1440,
+  label: "Last 24 hours",
+};
+
+const timeOptions: TimeOption[] = [
+  { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
+  defaultTimeOption,
+  {
+    type: "minutes",
+    id: "last-7-days",
+    minutes: 10080,
+    label: "Last 7 days",
+  },
+  {
+    type: "minutes",
+    id: "last-30-days",
+    minutes: 43200,
+    label: "Last 30 days",
+  },
+  { type: "custom", id: "custom", label: "Custom Date Range" },
+];
+
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
 }: {
@@ -270,6 +314,7 @@ export function DeliveriesTableV2({
 
   const [state, setState] = useImmer<State>({
     previewMessageId: null,
+    timeOption: defaultTimeOption,
     query: {
       cursor: null,
       limit: 10,
@@ -523,11 +568,57 @@ export function DeliveriesTableV2({
   return (
     <>
       <Stack
+        spacing={1}
         sx={{
           width: "100%",
           height: "100%",
         }}
       >
+        <Box>
+          <FormControl>
+            <Select
+              value={state.timeOption.id}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+                transformOrigin: {
+                  vertical: "top",
+                  horizontal: "left",
+                },
+              }}
+              onChange={(e) =>
+                setState((draft) => {
+                  const option = timeOptions.find(
+                    (o) => o.id === e.target.value,
+                  );
+                  if (option === undefined) {
+                    return;
+                  }
+                  draft.timeOption = option;
+                })
+              }
+              size="small"
+              sx={{
+                "& .MuiSelect-select": {
+                  padding: "8px 14px",
+                },
+                backgroundColor: "white",
+                "& fieldset": {
+                  borderColor: "#e0e0e0",
+                },
+              }}
+            >
+              {timeOptions.map((option) => (
+                <MenuItem key={option.id} value={option.id}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
         <TableContainer component={Paper}>
           <Table stickyHeader>
             <TableHead>
