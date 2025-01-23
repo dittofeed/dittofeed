@@ -2,6 +2,7 @@ import { AddCircleOutline } from "@mui/icons-material";
 import {
   Autocomplete,
   AutocompleteProps,
+  Box,
   Button,
   ButtonProps,
   Chip,
@@ -27,8 +28,34 @@ import { Updater, useImmer } from "use-immer";
 import { useAppStorePick } from "../../lib/appStore";
 
 function SquarePaper(props: PaperProps) {
-  return <Paper {...props} square />;
+  return <Paper {...props} square elevation={4} />;
 }
+
+const greyTextFieldStyles = {
+  "& .MuiFilledInput-root": {
+    // Changes the bottom border color in its default state
+    backgroundColor: "white",
+    "&:before": {
+      borderBottomColor: "grey.400",
+    },
+    // Changes the bottom border color when hovered
+    "&:hover:before": {
+      borderBottomColor: "grey.400",
+    },
+    // Changes the bottom border color when focused
+    "&:after": {
+      borderBottomColor: "grey.400",
+    },
+  },
+  // Changes the label color when focused
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: "grey.600",
+  },
+  // Changes the ripple effect color
+  "& .MuiTouchRipple-root": {
+    color: "grey.600",
+  },
+} as const;
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -178,10 +205,12 @@ export function NewDeliveriesFilterButton({
   state,
   setState,
   buttonProps,
+  greyScale,
 }: {
   buttonProps?: ButtonProps;
   state: DeliveriesState;
   setState: SetDeliveriesState;
+  greyScale?: boolean;
 }) {
   const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
@@ -422,6 +451,12 @@ export function NewDeliveriesFilterButton({
       <TextField
         autoFocus
         variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={greyScale ? greyTextFieldStyles : undefined}
         label={state.stage.label}
         value={state.stage.value.value}
         onChange={(event) =>
@@ -488,6 +523,7 @@ export function NewDeliveriesFilterButton({
             autoFocus
             label="Settings"
             variant="filled"
+            sx={greyScale ? greyTextFieldStyles : undefined}
             inputRef={inputRef}
           />
         )}
@@ -510,7 +546,10 @@ export function NewDeliveriesFilterButton({
             >
               <Typography
                 variant="body2"
-                style={{ display: "flex", alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                }}
               >
                 {option.icon}
                 <span style={{ marginLeft: "8px" }}>{option.label}</span>

@@ -871,6 +871,7 @@ export function DeliveriesTableV2({
           <NewDeliveriesFilterButton
             state={deliveriesFilterState}
             setState={setDeliveriesFilterState}
+            greyScale
             buttonProps={{
               sx: {
                 ...greyButtonStyle,
