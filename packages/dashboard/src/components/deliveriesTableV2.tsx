@@ -10,6 +10,7 @@ import {
 import {
   Box,
   Button,
+  ButtonProps,
   Drawer,
   FormControl,
   IconButton,
@@ -74,6 +75,30 @@ import { WebhookPreviewBody } from "./messages/webhookPreview";
 import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
+
+function GreyButton(props: ButtonProps) {
+  const { sx, ...rest } = props;
+  return (
+    <Button
+      {...rest}
+      sx={{
+        bgcolor: "grey.200",
+        color: "grey.700",
+        "&:hover": {
+          bgcolor: "grey.300",
+        },
+        "&:active": {
+          bgcolor: "grey.400",
+        },
+        "&.Mui-disabled": {
+          bgcolor: "grey.100",
+          color: "grey.400",
+        },
+        ...sx,
+      }}
+    />
+  );
+}
 
 function TimeCell({ row }: { row: Row<Delivery> }) {
   const timestamp = row.original.sentAt;
@@ -684,8 +709,43 @@ export function DeliveriesTableV2({
                 });
               }}
               footer={
-                <Stack direction="row">
-                  <Button>Apply</Button>
+                <Stack direction="row" justifyContent="space-between">
+                  <Stack justifyContent="center" alignItems="center" flex={1}>
+                    {state.customTimeRange?.start &&
+                      new Intl.DateTimeFormat("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      }).format(
+                        state.customTimeRange.start.toDate(
+                          Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        ),
+                      )}
+                    {" - "}
+                    {state.customTimeRange?.end &&
+                      new Intl.DateTimeFormat("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      }).format(
+                        state.customTimeRange.end.toDate(
+                          Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        ),
+                      )}
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <GreyButton>Cancel</GreyButton>
+                    <GreyButton
+                      sx={{
+                        borderColor: "grey.400",
+                        borderWidth: "1px",
+                        borderStyle: "solid",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Apply
+                    </GreyButton>
+                  </Stack>
                 </Stack>
               }
             />
@@ -743,49 +803,20 @@ export function DeliveriesTableV2({
                     justifyContent="flex-end"
                     alignItems="center"
                   >
-                    <Button
-                      color="inherit"
+                    <GreyButton
                       onClick={onPreviousPage}
                       disabled={query.data?.previousCursor === undefined}
                       startIcon={<KeyboardArrowLeft />}
-                      sx={{
-                        bgcolor: "grey.200",
-                        color: "grey.700",
-                        "&:hover": {
-                          bgcolor: "grey.300",
-                        },
-                        "&:active": {
-                          bgcolor: "grey.400",
-                        },
-                        "&.Mui-disabled": {
-                          bgcolor: "grey.100",
-                          color: "grey.400",
-                        },
-                      }}
                     >
                       Previous
-                    </Button>
-                    <Button
+                    </GreyButton>
+                    <GreyButton
                       onClick={onNextPage}
                       disabled={query.data?.cursor === undefined}
                       endIcon={<KeyboardArrowRight />}
-                      sx={{
-                        bgcolor: "grey.200",
-                        color: "grey.700",
-                        "&:hover": {
-                          bgcolor: "grey.300",
-                        },
-                        "&:active": {
-                          bgcolor: "grey.400",
-                        },
-                        "&.Mui-disabled": {
-                          bgcolor: "grey.100",
-                          color: "grey.400",
-                        },
-                      }}
                     >
                       Next
-                    </Button>
+                    </GreyButton>
                   </Stack>
                 </TableCell>
               </TableRow>
