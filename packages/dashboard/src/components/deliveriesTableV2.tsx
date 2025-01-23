@@ -6,6 +6,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
+import { StaticDateRangePicker } from "@mui/lab";
 import {
   Box,
   Button,
@@ -34,7 +35,7 @@ import {
   StaticDateTimePicker,
 } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { DateRange } from "@mui/x-date-pickers/models";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
@@ -43,6 +44,7 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
+import { subDays } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -144,10 +146,7 @@ interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
   referenceDate: Date;
-  customTimeRange: {
-    start: Date | null;
-    end: Date | null;
-  } | null;
+  customTimeRange: [Date | null, Date | null] | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -629,10 +628,8 @@ export function DeliveriesTableV2({
               onChange={(e) =>
                 setState((draft) => {
                   if (e.target.value === "custom") {
-                    draft.customTimeRange = {
-                      start: null,
-                      end: draft.referenceDate,
-                    };
+                    const dayBefore = subDays(draft.referenceDate, 1);
+                    draft.customTimeRange = [dayBefore, draft.referenceDate];
                     return;
                   }
                   const option = timeOptions.find(
@@ -673,17 +670,18 @@ export function DeliveriesTableV2({
             {state.customTimeRange !== null && (
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <Stack direction="row" spacing={1}>
-                  <StaticDatePicker
-                    value={state.customTimeRange.start}
+                  <StaticDateRangePicker
+                    displayStaticWrapperAs="desktop"
+                    value={state.customTimeRange ?? [null, null]}
                     onChange={(newValue) => {
                       setState((draft) => {
                         if (!draft.customTimeRange) {
-                          draft.customTimeRange = {
-                            start: newValue,
-                            end: draft.referenceDate,
-                          };
+                          draft.customTimeRange = [
+                            newValue,
+                            draft.referenceDate,
+                          ];
                         } else {
-                          draft.customTimeRange.start = newValue;
+                          draft.customTimeRange[0] = newValue;
                         }
                       });
                     }}
@@ -693,7 +691,7 @@ export function DeliveriesTableV2({
                       },
                     }}
                   />
-                  <StaticDatePicker
+                  {/* <StaticDatePicker
                     value={state.customTimeRange.end}
                     onChange={(newValue) => {
                       setState((draft) => {
@@ -712,7 +710,7 @@ export function DeliveriesTableV2({
                         borderColor: "grey.400",
                       },
                     }}
-                  />
+                  /> */}
                 </Stack>
               </LocalizationProvider>
             )}
