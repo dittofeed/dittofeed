@@ -6,6 +6,7 @@ import {
   ButtonProps,
   Chip,
   Paper,
+  PaperProps,
   SxProps,
   TextField,
   Theme,
@@ -24,6 +25,10 @@ import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
+
+function SquarePaper(props: PaperProps) {
+  return <Paper {...props} square />;
+}
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -462,10 +467,9 @@ export function NewDeliveriesFilterButton({
         ListboxProps={{
           sx: {
             padding: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
           },
         }}
+        PaperComponent={SquarePaper}
         value={null}
         inputValue={state.inputValue}
         onInputChange={(event, newInputValue) =>
@@ -494,6 +498,7 @@ export function NewDeliveriesFilterButton({
           return (
             <Paper
               component="li"
+              square
               key={option.label}
               {...omit(propsWithKey, ["key"])}
               sx={{
@@ -514,7 +519,11 @@ export function NewDeliveriesFilterButton({
           );
         }}
         getOptionDisabled={(option) => option.disabled ?? false}
-        sx={{ width: 300, padding: 0, height: "100%" }}
+        sx={{
+          width: 300,
+          padding: 0,
+          height: "100%",
+        }}
       />
     );
   } else {

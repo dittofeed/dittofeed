@@ -868,13 +868,6 @@ export function DeliveriesTableV2({
             flexItem
             sx={{ borderColor: "grey.300" }}
           />
-          <SelectedDeliveriesFilters
-            state={deliveriesFilterState}
-            setState={setDeliveriesFilterState}
-            sx={{
-              height: "100%",
-            }}
-          />
           <NewDeliveriesFilterButton
             state={deliveriesFilterState}
             setState={setDeliveriesFilterState}
@@ -883,6 +876,13 @@ export function DeliveriesTableV2({
                 ...greyButtonStyle,
                 fontWeight: "bold",
               },
+            }}
+          />
+          <SelectedDeliveriesFilters
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+            sx={{
+              height: "100%",
             }}
           />
         </Stack>
