@@ -35,7 +35,7 @@
     "@mui/lab": "^5.0.0-alpha.170",
     "@mui/material": "^5.15.5",
     "@mui/x-data-grid": "^6.19.11",
-    "@mui/x-date-pickers": "^6.19.9",
+    "@mui/x-date-pickers": "^7.24.0",
     "@sinclair/typebox": "0.32.29",
     "@tanstack/react-query": "^5.64.1",
     "@tanstack/react-table": "^8.20.6",
