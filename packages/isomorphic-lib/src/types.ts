@@ -3839,6 +3839,8 @@ export const SearchDeliveriesRequest = Type.Object({
   to: Type.Optional(Type.Array(Type.String())),
   statuses: Type.Optional(Type.Array(Type.String())),
   templateIds: Type.Optional(Type.Array(Type.String())),
+  startDate: Type.Optional(Type.String()),
+  endDate: Type.Optional(Type.String()),
   sortBy: Type.Optional(
     Type.Union([
       Type.Literal("journeyName"),

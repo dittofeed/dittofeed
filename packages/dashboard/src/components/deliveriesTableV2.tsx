@@ -45,7 +45,7 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
-import { subDays } from "date-fns";
+import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -75,6 +75,20 @@ import { WebhookPreviewBody } from "./messages/webhookPreview";
 import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatCalendarDate(date: CalendarDate) {
+  return formatDate(
+    date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
+  );
+}
 
 function GreyButton(props: ButtonProps) {
   const { sx, ...rest } = props;
@@ -173,7 +187,7 @@ interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
   referenceDate: Date;
-  customTimeRange: {
+  customDateRange: {
     start: CalendarDate;
     end: CalendarDate;
   } | null;
@@ -182,6 +196,8 @@ interface State {
     limit: number;
     sortBy: SortBy;
     sortDirection: SortDirection;
+    startDate: Date;
+    endDate: Date;
   };
 }
 interface BaseDelivery {
@@ -306,13 +322,18 @@ interface MinuteTimeOption {
 
 interface CustomTimeOption {
   type: "custom";
-  id: string;
+  id: "custom";
   label: string;
 }
 
 type TimeOption = MinuteTimeOption | CustomTimeOption;
 
-const defaultTimeOption = "last-7-days";
+const defaultTimeOption = {
+  type: "minutes",
+  id: "last-7-days",
+  minutes: 10080,
+  label: "Last 7 days",
+} as const;
 
 const timeOptions: TimeOption[] = [
   { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
@@ -322,12 +343,7 @@ const timeOptions: TimeOption[] = [
     minutes: 1440,
     label: "Last 24 hours",
   },
-  {
-    type: "minutes",
-    id: defaultTimeOption,
-    minutes: 10080,
-    label: "Last 7 days",
-  },
+  defaultTimeOption,
   {
     type: "minutes",
     id: "last-30-days",
@@ -350,17 +366,24 @@ export function DeliveriesTableV2({
       "journeys",
       "broadcasts",
     ]);
+  const initialStartDate = useMemo(() => new Date(), []);
+  const initialEndDate = useMemo(
+    () => subMinutes(initialStartDate, defaultTimeOption.minutes),
+    [initialStartDate],
+  );
 
   const [state, setState] = useImmer<State>({
     previewMessageId: null,
-    selectedTimeOption: defaultTimeOption,
+    selectedTimeOption: defaultTimeOption.id,
     referenceDate: new Date(),
-    customTimeRange: null,
+    customDateRange: null,
     query: {
       cursor: null,
       limit: 10,
       sortBy: "sentAt",
       sortDirection: "desc",
+      startDate: initialStartDate,
+      endDate: initialEndDate,
     },
   });
   const theme = useTheme();
@@ -374,6 +397,8 @@ export function DeliveriesTableV2({
         workspaceId: workspace.value.id,
         cursor: state.query.cursor ?? undefined,
         limit: state.query.limit,
+        startDate: state.query.startDate.toISOString(),
+        endDate: state.query.endDate.toISOString(),
       };
       const response = await getDeliveriesRequest({
         params,
@@ -619,6 +644,13 @@ export function DeliveriesTableV2({
           <FormControl>
             <Select
               value={state.selectedTimeOption}
+              renderValue={(value) => {
+                const option = timeOptions.find((o) => o.id === value);
+                if (option?.type === "custom") {
+                  return `${formatDate(state.query.startDate)} - ${formatDate(state.query.endDate)}`;
+                }
+                return option?.label;
+              }}
               ref={customDateRef}
               MenuProps={{
                 anchorOrigin: {
@@ -659,7 +691,7 @@ export function DeliveriesTableV2({
                 setState((draft) => {
                   if (e.target.value === "custom") {
                     const dayBefore = subDays(draft.referenceDate, 1);
-                    draft.customTimeRange = {
+                    draft.customDateRange = {
                       start: toCalendarDate(dayBefore),
                       end: toCalendarDate(draft.referenceDate),
                     };
@@ -684,11 +716,11 @@ export function DeliveriesTableV2({
             </Select>
           </FormControl>
           <Popover
-            open={Boolean(state.customTimeRange)}
+            open={Boolean(state.customDateRange)}
             anchorEl={customDateRef.current}
             onClose={() => {
               setState((draft) => {
-                draft.customTimeRange = null;
+                draft.customDateRange = null;
               });
             }}
             anchorOrigin={{
@@ -701,41 +733,52 @@ export function DeliveriesTableV2({
             }}
           >
             <RangeCalendar
-              value={state.customTimeRange}
+              value={state.customDateRange}
               visibleDuration={{ months: 2 }}
               onChange={(newValue) => {
                 setState((draft) => {
-                  draft.customTimeRange = newValue;
+                  draft.customDateRange = newValue;
                 });
               }}
               footer={
                 <Stack direction="row" justifyContent="space-between">
                   <Stack justifyContent="center" alignItems="center" flex={1}>
-                    {state.customTimeRange?.start &&
-                      new Intl.DateTimeFormat("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      }).format(
-                        state.customTimeRange.start.toDate(
-                          Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        ),
-                      )}
+                    {state.customDateRange?.start &&
+                      formatCalendarDate(state.customDateRange.start)}
                     {" - "}
-                    {state.customTimeRange?.end &&
-                      new Intl.DateTimeFormat("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      }).format(
-                        state.customTimeRange.end.toDate(
-                          Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        ),
-                      )}
+                    {state.customDateRange?.end &&
+                      formatCalendarDate(state.customDateRange.end)}
                   </Stack>
                   <Stack direction="row" spacing={1}>
-                    <GreyButton>Cancel</GreyButton>
                     <GreyButton
+                      onClick={() => {
+                        setState((draft) => {
+                          draft.customDateRange = null;
+                        });
+                      }}
+                    >
+                      Cancel
+                    </GreyButton>
+                    <GreyButton
+                      onClick={() => {
+                        setState((draft) => {
+                          if (draft.customDateRange) {
+                            draft.query.startDate =
+                              draft.customDateRange.start.toDate(
+                                Intl.DateTimeFormat().resolvedOptions()
+                                  .timeZone,
+                              );
+                            draft.query.endDate =
+                              draft.customDateRange.end.toDate(
+                                Intl.DateTimeFormat().resolvedOptions()
+                                  .timeZone,
+                              );
+
+                            draft.customDateRange = null;
+                            draft.selectedTimeOption = "custom";
+                          }
+                        });
+                      }}
                       sx={{
                         borderColor: "grey.400",
                         borderWidth: "1px",
