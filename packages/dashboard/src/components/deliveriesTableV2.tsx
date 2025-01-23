@@ -1,6 +1,4 @@
-// FIXME filters
 // FIXME sort
-// FIXME refresh
 // FIXME column allow list
 import { CalendarDate } from "@internationalized/date";
 import {
@@ -9,6 +7,7 @@ import {
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
+  Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
@@ -870,25 +869,52 @@ export function DeliveriesTableV2({
             flexItem
             sx={{ borderColor: "grey.300" }}
           />
-          <NewDeliveriesFilterButton
-            state={deliveriesFilterState}
-            setState={setDeliveriesFilterState}
-            greyScale
-            buttonProps={{
-              disableRipple: true,
-              sx: {
-                ...greyButtonStyle,
-                fontWeight: "bold",
-              },
-            }}
-          />
-          <SelectedDeliveriesFilters
-            state={deliveriesFilterState}
-            setState={setDeliveriesFilterState}
-            sx={{
-              height: "100%",
-            }}
-          />
+          <Stack direction="row" spacing={1} flex={1} sx={{ height: "100%" }}>
+            <NewDeliveriesFilterButton
+              state={deliveriesFilterState}
+              setState={setDeliveriesFilterState}
+              greyScale
+              buttonProps={{
+                disableRipple: true,
+                sx: {
+                  ...greyButtonStyle,
+                  fontWeight: "bold",
+                },
+              }}
+            />
+            <SelectedDeliveriesFilters
+              state={deliveriesFilterState}
+              setState={setDeliveriesFilterState}
+              sx={{
+                height: "100%",
+              }}
+            />
+          </Stack>
+          <Tooltip title="Refresh Results" placement="bottom-start">
+            <IconButton
+              disabled={state.selectedTimeOption === "custom"}
+              onClick={() => {
+                setState((draft) => {
+                  const option = timeOptions.find(
+                    (o) => o.id === draft.selectedTimeOption,
+                  );
+                  if (option === undefined || option.type !== "minutes") {
+                    return;
+                  }
+                  draft.query.cursor = null;
+                  const endDate = new Date();
+                  draft.query.endDate = endDate;
+                  draft.query.startDate = subMinutes(endDate, option.minutes);
+                });
+              }}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.400",
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
         </Stack>
 
         <TableContainer component={Paper}>
