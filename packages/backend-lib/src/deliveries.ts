@@ -397,7 +397,7 @@ export async function searchDeliveries({
 
   const previousOffset = Math.max(offset - limit, 0);
   const responsePreviousCursor =
-    previousOffset > 0 ? serializeCursorOffset(previousOffset) : undefined;
+    offset > 0 ? serializeCursorOffset(previousOffset) : undefined;
 
   return {
     workspaceId,
