@@ -1,0 +1,266 @@
+.react-aria-RangeCalendar {
+  width: fit-content;
+  max-width: 100%;
+  color: var(--text-color);
+
+  :global(header) {
+    display: flex;
+    align-items: center;
+    margin: 0 4px 0.5rem 4px;
+
+    .react-aria-Heading {
+      flex: 1;
+      margin: 0;
+      text-align: center;
+      font-size: 1.375rem;
+    }
+  }
+
+  .react-aria-Button {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+  }
+
+  :global(table) {
+    border-collapse: collapse;
+
+    :global(td) {
+      padding: 2px 0;
+    }
+  }
+
+  :global(.react-aria-CalendarCell) {
+    width: 2.286rem;
+    line-height: 2.286rem;
+    text-align: center;
+    border-radius: 6px;
+    cursor: default;
+    outline: none;
+    forced-color-adjust: none;
+
+    &[data-outside-month] {
+      display: none;
+    }
+
+    &[data-pressed] {
+      background: var(--gray-100);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--highlight-background);
+      outline-offset: -2px;
+    }
+
+    &[data-selected] {
+      background: var(--highlight-background);
+      color: var(--highlight-foreground);
+      border-radius: 0;
+
+      &[data-focus-visible] {
+        outline-color: var(--highlight-foreground);
+        outline-offset: -3px;
+      }
+    }
+
+    &[data-selection-start] {
+      border-start-start-radius: 6px;
+      border-end-start-radius: 6px;
+    }
+
+    &[data-selection-end] {
+      border-start-end-radius: 6px;
+      border-end-end-radius: 6px;
+    }
+  }
+
+  .react-aria-CalendarCell {
+    &[data-disabled] {
+      color: var(--text-color-disabled);
+    }
+  }
+
+  .react-aria-CalendarCell {
+    &[data-unavailable] {
+      text-decoration: line-through;
+      color: var(--invalid-color);
+    }
+
+    &[data-invalid] {
+      background: var(--invalid-color);
+      color: var(--highlight-foreground);
+    }
+  }
+
+  [slot="errorMessage"] {
+    font-size: 12px;
+    color: var(--invalid-color);
+  }
+}
+
+.react-aria-Button {
+  color: var(--text-color);
+  background: var(--button-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  appearance: none;
+  vertical-align: middle;
+  font-size: 1rem;
+  text-align: center;
+  margin: 0;
+  outline: none;
+  padding: 6px 10px;
+  text-decoration: none;
+
+  &[data-pressed] {
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.1);
+    background: var(--button-background-pressed);
+    border-color: var(--border-color-pressed);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+
+  &[data-disabled] {
+    border-color: var(--border-color-disabled);
+    color: var(--text-color-disabled);
+  }
+}
+
+@keyframes toggle {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.react-aria {
+  font-family: system-ui;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--background-color);
+}
+
+/* color themes for dark and light modes, generated with Leonardo.
+ * Light: https://leonardocolor.io/theme.html?name=Light&config=%7B%22baseScale%22%3A%22Gray%22%2C%22colorScales%22%3A%5B%7B%22name%22%3A%22Gray%22%2C%22colorKeys%22%3A%5B%22%23000000%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Purple%22%2C%22colorKeys%22%3A%5B%22%235e30eb%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Red%22%2C%22colorKeys%22%3A%5B%22%23e32400%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%5D%2C%22lightness%22%3A98%2C%22contrast%22%3A1%2C%22saturation%22%3A100%2C%22formula%22%3A%22wcag2%22%7D */
+.react-aria {
+  --background-color: #f8f8f8;
+  --gray-50: #ffffff;
+  --gray-100: #d0d0d0;
+  --gray-200: #afafaf;
+  --gray-300: #8f8f8f;
+  --gray-400: #717171;
+  --gray-500: #555555;
+  --gray-600: #393939;
+  --purple-100: #d5c9fa;
+  --purple-200: #b8a3f6;
+  --purple-300: #997cf2;
+  --purple-400: #7a54ef;
+  --purple-500: #582ddc;
+  --purple-600: #3c1e95;
+  --red-100: #f7c4ba;
+  --red-200: #f29887;
+  --red-300: #eb664d;
+  --red-400: #de2300;
+  --red-500: #a81b00;
+  --red-600: #731200;
+  --highlight-hover: rgb(0 0 0 / 0.07);
+  --highlight-pressed: rgb(0 0 0 / 0.15);
+}
+
+/* Dark: https://leonardocolor.io/theme.html?name=Dark&config=%7B%22baseScale%22%3A%22Gray%22%2C%22colorScales%22%3A%5B%7B%22name%22%3A%22Gray%22%2C%22colorKeys%22%3A%5B%22%23000000%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Purple%22%2C%22colorKeys%22%3A%5B%22%235e30eb%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%2C%7B%22name%22%3A%22Red%22%2C%22colorKeys%22%3A%5B%22%23e32400%22%5D%2C%22colorspace%22%3A%22RGB%22%2C%22ratios%22%3A%5B%22-1.12%22%2C%221.45%22%2C%222.05%22%2C%223.02%22%2C%224.54%22%2C%227%22%2C%2210.86%22%5D%2C%22smooth%22%3Afalse%7D%5D%2C%22lightness%22%3A11%2C%22contrast%22%3A1%2C%22saturation%22%3A100%2C%22formula%22%3A%22wcag2%22%7D */
+@media (prefers-color-scheme: dark) {
+  .react-aria {
+    --background-color: #1d1d1d;
+    --gray-50: #101010;
+    --gray-100: #393939;
+    --gray-200: #4f4f4f;
+    --gray-300: #686868;
+    --gray-400: #848484;
+    --gray-500: #a7a7a7;
+    --gray-600: #cfcfcf;
+    --purple-100: #3c1e95;
+    --purple-200: #522acd;
+    --purple-300: #6f46ed;
+    --purple-400: #8e6ef1;
+    --purple-500: #b099f5;
+    --purple-600: #d5c8fa;
+    --red-100: #721200;
+    --red-200: #9c1900;
+    --red-300: #cc2000;
+    --red-400: #e95034;
+    --red-500: #f08c79;
+    --red-600: #f7c3ba;
+    --highlight-hover: rgb(255 255 255 / 0.1);
+    --highlight-pressed: rgb(255 255 255 / 0.2);
+  }
+}
+
+/* Semantic colors */
+.react-aria {
+  --focus-ring-color: var(--purple-400);
+  --text-color: var(--gray-600);
+  --text-color-base: var(--gray-500);
+  --text-color-hover: var(--gray-600);
+  --text-color-disabled: var(--gray-200);
+  --text-color-placeholder: var(--gray-400);
+  --link-color: var(--purple-500);
+  --link-color-secondary: var(--gray-500);
+  --link-color-pressed: var(--purple-600);
+  --border-color: var(--gray-300);
+  --border-color-hover: var(--gray-400);
+  --border-color-pressed: var(--gray-400);
+  --border-color-disabled: var(--gray-100);
+  --field-background: var(--gray-50);
+  --field-text-color: var(--gray-600);
+  --overlay-background: var(--gray-50);
+  --button-background: var(--gray-50);
+  --button-background-pressed: var(--background-color);
+  /* these colors are the same between light and dark themes
+   * to ensure contrast with the foreground color */
+  --highlight-background: #6f46ed; /* purple-300 from dark theme, 3.03:1 against background-color */
+  --highlight-background-pressed: #522acd; /* purple-200 from dark theme */
+  --highlight-background-invalid: #cc2000; /* red-300 from dark theme */
+  --highlight-foreground: white; /* 5.56:1 against highlight-background */
+  --highlight-foreground-pressed: #ddd;
+  --highlight-overlay: rgb(from #6f46ed r g b / 15%);
+  --invalid-color: var(--red-400);
+  --invalid-color-pressed: var(--red-500);
+}
+
+/* Windows high contrast mode overrides */
+@media (forced-colors: active) {
+  .react-aria {
+    --background-color: Canvas;
+    --focus-ring-color: Highlight;
+    --text-color: ButtonText;
+    --text-color-base: ButtonText;
+    --text-color-hover: ButtonText;
+    --text-color-disabled: GrayText;
+    --text-color-placeholder: ButtonText;
+    --link-color: LinkText;
+    --link-color-secondary: LinkText;
+    --link-color-pressed: LinkText;
+    --border-color: ButtonBorder;
+    --border-color-hover: ButtonBorder;
+    --border-color-pressed: ButtonBorder;
+    --border-color-disabled: GrayText;
+    --field-background: Field;
+    --field-text-color: FieldText;
+    --overlay-background: Canvas;
+    --button-background: ButtonFace;
+    --button-background-pressed: ButtonFace;
+    --highlight-background: Highlight;
+    --highlight-background-pressed: Highlight;
+    --highlight-background-invalid: LinkText;
+    --highlight-foreground: HighlightText;
+    --highlight-foreground-pressed: HighlightText;
+    --invalid-color: LinkText;
+    --invalid-color-pressed: LinkText;
+  }
+}
