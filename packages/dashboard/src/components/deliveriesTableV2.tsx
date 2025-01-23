@@ -609,6 +609,9 @@ export function DeliveriesTableV2({
                 "&:hover .MuiOutlinedInput-notchedOutline": {
                   borderColor: "grey.400",
                 },
+                "& .MuiSelect-select": {
+                  fontWeight: "bold",
+                },
               }}
               onChange={(e) =>
                 setState((draft) => {
