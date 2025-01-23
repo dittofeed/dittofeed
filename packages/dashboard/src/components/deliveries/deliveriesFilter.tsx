@@ -3,9 +3,12 @@ import {
   Autocomplete,
   AutocompleteProps,
   Button,
+  ButtonProps,
   Chip,
   Paper,
+  SxProps,
   TextField,
+  Theme,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
@@ -130,7 +133,9 @@ export function useDeliveriesFilterState(): [
 export function SelectedDeliveriesFilters({
   state,
   setState,
+  sx,
 }: {
+  sx?: SxProps<Theme>;
   state: DeliveriesState;
   setState: SetDeliveriesState;
 }) {
@@ -150,6 +155,7 @@ export function SelectedDeliveriesFilters({
       return (
         <Chip
           key={key}
+          sx={sx}
           label={`${key} = ${label}`}
           onDelete={() =>
             setState((draft) => {
@@ -166,7 +172,9 @@ export function SelectedDeliveriesFilters({
 export function NewDeliveriesFilterButton({
   state,
   setState,
+  buttonProps,
 }: {
+  buttonProps?: ButtonProps;
   state: DeliveriesState;
   setState: SetDeliveriesState;
 }) {
@@ -516,10 +524,11 @@ export function NewDeliveriesFilterButton({
   return (
     <>
       <Button
-        onClick={handleClick}
         startIcon={<AddCircleOutline />}
         variant="contained"
         color="info"
+        {...buttonProps}
+        onClick={handleClick}
       >
         Add Filter
       </Button>

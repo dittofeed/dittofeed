@@ -1,3 +1,7 @@
+// FIXME filters
+// FIXME sort
+// FIXME refresh
+// FIXME column allow list
 import { CalendarDate } from "@internationalized/date";
 import {
   Computer,
@@ -12,6 +16,7 @@ import {
   Box,
   Button,
   ButtonProps,
+  Divider,
   Drawer,
   FormControl,
   IconButton,
@@ -68,6 +73,11 @@ import { Updater, useImmer } from "use-immer";
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
 import {
+  NewDeliveriesFilterButton,
+  SelectedDeliveriesFilters,
+  useDeliveriesFilterState,
+} from "./deliveries/deliveriesFilter";
+import {
   defaultGetDeliveriesRequest,
   GetDeliveriesRequest,
   humanizeStatus,
@@ -93,24 +103,28 @@ function formatCalendarDate(date: CalendarDate) {
   );
 }
 
+export const greyButtonStyle = {
+  bgcolor: "grey.200",
+  color: "grey.700",
+  "&:hover": {
+    bgcolor: "grey.300",
+  },
+  "&:active": {
+    bgcolor: "grey.400",
+  },
+  "&.Mui-disabled": {
+    bgcolor: "grey.100",
+    color: "grey.400",
+  },
+} as const;
+
 function GreyButton(props: ButtonProps) {
   const { sx, ...rest } = props;
   return (
     <Button
       {...rest}
       sx={{
-        bgcolor: "grey.200",
-        color: "grey.700",
-        "&:hover": {
-          bgcolor: "grey.300",
-        },
-        "&:active": {
-          bgcolor: "grey.400",
-        },
-        "&.Mui-disabled": {
-          bgcolor: "grey.100",
-          color: "grey.400",
-        },
+        ...greyButtonStyle,
         ...sx,
       }}
     />
@@ -369,6 +383,9 @@ export function DeliveriesTableV2({
       "journeys",
       "broadcasts",
     ]);
+
+  const [deliveriesFilterState, setDeliveriesFilterState] =
+    useDeliveriesFilterState();
   const initialEndDate = useMemo(() => new Date(), []);
   const initialStartDate = useMemo(
     () => subMinutes(initialEndDate, defaultTimeOption.minutes),
@@ -659,7 +676,12 @@ export function DeliveriesTableV2({
           height: "100%",
         }}
       >
-        <Box>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ width: "100%" }}
+        >
           <FormControl>
             <Select
               value={state.selectedTimeOption}
@@ -822,7 +844,29 @@ export function DeliveriesTableV2({
               }
             />
           </Popover>
-        </Box>
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ borderColor: "grey.300" }}
+          />
+          <SelectedDeliveriesFilters
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+            sx={{
+              height: "100%",
+            }}
+          />
+          <NewDeliveriesFilterButton
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+            buttonProps={{
+              sx: {
+                ...greyButtonStyle,
+                fontWeight: "bold",
+              },
+            }}
+          />
+        </Stack>
 
         <TableContainer component={Paper}>
           <Table stickyHeader>
