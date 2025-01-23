@@ -456,7 +456,10 @@ export function NewDeliveriesFilterButton({
             borderRadius: 0,
           },
         }}
-        sx={greyScale ? greyTextFieldStyles : undefined}
+        sx={{
+          ...(greyScale ? greyTextFieldStyles : {}),
+          width: 300,
+        }}
         label={state.stage.label}
         value={state.stage.value.value}
         onChange={(event) =>
@@ -603,7 +606,7 @@ export function NewDeliveriesFilterButton({
           },
         }}
       >
-        {popoverBody}
+        <Box sx={{ opacity: state.open ? 1 : 0 }}>{popoverBody}</Box>
       </Popover>
     </>
   );
