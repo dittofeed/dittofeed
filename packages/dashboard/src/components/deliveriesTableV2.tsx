@@ -14,6 +14,7 @@ import {
   IconButton,
   MenuItem,
   Paper,
+  Popover,
   Select,
   Stack,
   Table,
@@ -55,7 +56,7 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -487,6 +488,7 @@ export function DeliveriesTableV2({
       return delivery;
     });
   }, [query, workspace, journeys, broadcasts, messages]);
+  const customDateRef = useRef<HTMLInputElement | null>(null);
 
   const onNextPage = useCallback(() => {
     setState((draft) => {
@@ -588,6 +590,7 @@ export function DeliveriesTableV2({
           <FormControl>
             <Select
               value={state.selectedTimeOption}
+              ref={customDateRef}
               MenuProps={{
                 anchorOrigin: {
                   vertical: "bottom",
@@ -650,52 +653,70 @@ export function DeliveriesTableV2({
               ))}
             </Select>
           </FormControl>
-          {state.customTimeRange !== null && (
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Stack direction="row" spacing={1}>
-                <StaticDatePicker
-                  value={state.customTimeRange.start}
-                  onChange={(newValue) => {
-                    setState((draft) => {
-                      if (!draft.customTimeRange) {
-                        draft.customTimeRange = {
-                          start: newValue,
-                          end: draft.referenceDate,
-                        };
-                      } else {
-                        draft.customTimeRange.start = newValue;
-                      }
-                    });
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderColor: "grey.400",
-                    },
-                  }}
-                />
-                <StaticDatePicker
-                  value={state.customTimeRange.end}
-                  onChange={(newValue) => {
-                    setState((draft) => {
-                      if (!draft.customTimeRange) {
-                        draft.customTimeRange = {
-                          start: null,
-                          end: newValue,
-                        };
-                      } else {
-                        draft.customTimeRange.end = newValue;
-                      }
-                    });
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderColor: "grey.400",
-                    },
-                  }}
-                />
-              </Stack>
-            </LocalizationProvider>
-          )}
+          <Popover
+            open={Boolean(state.customTimeRange)}
+            anchorEl={customDateRef.current}
+            onClose={() => {
+              setState((draft) => {
+                draft.customTimeRange = null;
+              });
+            }}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+          >
+            {state.customTimeRange !== null && (
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Stack direction="row" spacing={1}>
+                  <StaticDatePicker
+                    value={state.customTimeRange.start}
+                    onChange={(newValue) => {
+                      setState((draft) => {
+                        if (!draft.customTimeRange) {
+                          draft.customTimeRange = {
+                            start: newValue,
+                            end: draft.referenceDate,
+                          };
+                        } else {
+                          draft.customTimeRange.start = newValue;
+                        }
+                      });
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderColor: "grey.400",
+                      },
+                    }}
+                  />
+                  <StaticDatePicker
+                    value={state.customTimeRange.end}
+                    onChange={(newValue) => {
+                      setState((draft) => {
+                        if (!draft.customTimeRange) {
+                          draft.customTimeRange = {
+                            start: null,
+                            end: newValue,
+                          };
+                        } else {
+                          draft.customTimeRange.end = newValue;
+                        }
+                      });
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderColor: "grey.400",
+                      },
+                    }}
+                  />
+                </Stack>
+              </LocalizationProvider>
+            )}
+          </Popover>
         </Box>
 
         <TableContainer component={Paper}>
