@@ -47,7 +47,6 @@ import {
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
-  WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 import { Updater, useImmer } from "use-immer";
@@ -197,12 +196,10 @@ interface WebhookDelivery extends BaseDelivery {
 type Delivery = EmailDelivery | SmsDelivery | WebhookDelivery;
 
 function getOrigin({
-  workspace,
   journeys,
   broadcasts,
   item,
 }: {
-  workspace: WorkspaceResource;
   item: SearchDeliveriesResponseItem;
   journeys: SavedJourneyResource[];
   broadcasts: BroadcastResource[];
@@ -584,7 +581,7 @@ export function DeliveriesTableV2({
         <Box>
           <FormControl>
             <Select
-              value={state.timeOption.id}
+              value={state.selectedTimeOption}
               MenuProps={{
                 anchorOrigin: {
                   vertical: "bottom",
@@ -628,7 +625,7 @@ export function DeliveriesTableV2({
                   if (option === undefined) {
                     return;
                   }
-                  draft.timeOption = option;
+                  draft.selectedTimeOption = option.id;
                 })
               }
               size="small"
