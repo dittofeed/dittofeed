@@ -67,12 +67,13 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "isomorphic-lib/src/types";
-import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
 import {
+  getFilterValues,
   NewDeliveriesFilterButton,
   SelectedDeliveriesFilters,
   useDeliveriesFilterState,
@@ -407,18 +408,36 @@ export function DeliveriesTableV2({
     },
   });
   const theme = useTheme();
+  const filtersHash = useMemo(
+    () => JSON.stringify(Array.from(deliveriesFilterState.filters.entries())),
+    [deliveriesFilterState.filters],
+  );
   const query = useQuery<SearchDeliveriesResponse | null>({
-    queryKey: ["deliveries", state],
+    queryKey: ["deliveries", state, filtersHash],
     queryFn: async () => {
       if (workspace.type !== CompletionStatus.Successful) {
         return null;
       }
+
+      const templateIds = getFilterValues(deliveriesFilterState, "template");
+      const channels = getFilterValues(deliveriesFilterState, "channel") as
+        | ChannelType[]
+        | undefined;
+      const to = getFilterValues(deliveriesFilterState, "to");
+      const statuses = getFilterValues(deliveriesFilterState, "status");
+      const from = getFilterValues(deliveriesFilterState, "from");
+
       const params: SearchDeliveriesRequest = {
         workspaceId: workspace.value.id,
         cursor: state.query.cursor ?? undefined,
         limit: state.query.limit,
         startDate: state.query.startDate.toISOString(),
         endDate: state.query.endDate.toISOString(),
+        templateIds,
+        channels,
+        to,
+        statuses,
+        from,
       };
       const response = await getDeliveriesRequest({
         params,
