@@ -29,6 +29,15 @@ export default function DeliveriesPage() {
           userUriTemplate="/users/{userId}"
           templateUriTemplate="/templates/{channel}/{templateId}"
           originUriTemplate="/{originType}s/{originId}"
+          columnAllowList={[
+            "from",
+            "to",
+            "channel",
+            "status",
+            "origin",
+            "sentAt",
+            "template",
+          ]}
         />
       </Box>
     </DashboardContent>

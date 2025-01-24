@@ -460,7 +460,7 @@ type TimeOption = MinuteTimeOption | CustomTimeOption;
 const defaultTimeOption = {
   type: "minutes",
   id: "last-7-days",
-  minutes: 10080,
+  minutes: 7 * 24 * 60,
   label: "Last 7 days",
 } as const;
 
@@ -487,11 +487,13 @@ export function DeliveriesTableV2({
   userUriTemplate,
   templateUriTemplate,
   originUriTemplate,
+  columnAllowList,
 }: {
   getDeliveriesRequest?: GetDeliveriesRequest;
   userUriTemplate?: string;
   templateUriTemplate?: string;
   originUriTemplate?: string;
+  columnAllowList?: string[];
 }) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -587,54 +589,82 @@ export function DeliveriesTableV2({
     [originUriTemplate],
   );
 
-  const columns = useMemo<ColumnDef<Delivery>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<Delivery>[]>(() => {
+    let tableColumns: ColumnDef<Delivery>[] = [
       {
         id: "preview",
         cell: renderPreviewCell,
       },
       {
+        id: "from",
         header: "From",
         accessorKey: "from",
       },
       {
+        id: "to",
         header: "To",
         accessorKey: "to",
         cell: userLinkCell,
       },
       {
+        id: "snippet",
         header: "Snippet",
         accessorKey: "snippet",
         cell: SnippetCell,
       },
       {
+        id: "channel",
         header: "Channel",
         accessorKey: "channel",
         cell: ({ row }) => humanizeChannel(row.original.channel),
       },
       {
+        id: "status",
         header: "Status",
         accessorKey: "status",
         cell: ({ row }) => humanizeStatus(row.original.status),
       },
       {
+        id: "origin",
         header: "Origin",
         accessorKey: "originName",
         cell: originLinkCell,
       },
       {
+        id: "template",
         header: "Template",
         accessorKey: "templateName",
         cell: templateLinkCell,
       },
       {
+        id: "sentAt",
         header: "Sent At",
         accessorKey: "sentAt",
         cell: TimeCell,
       },
-    ],
-    [renderPreviewCell, userLinkCell, templateLinkCell],
-  );
+      {
+        id: "updatedAt",
+        header: "Updated At",
+        accessorKey: "updatedAt",
+        cell: TimeCell,
+      },
+    ];
+
+    if (columnAllowList) {
+      const allowList = new Set(columnAllowList);
+      tableColumns = tableColumns.filter((column) =>
+        column.id ? allowList.has(column.id) : false,
+      );
+    }
+
+    return tableColumns;
+  }, [
+    renderPreviewCell,
+    userLinkCell,
+    templateLinkCell,
+    originLinkCell,
+    columnAllowList,
+  ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
       query.isPending ||
