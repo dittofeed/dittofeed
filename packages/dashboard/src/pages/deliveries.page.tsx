@@ -25,7 +25,7 @@ export default function DeliveriesPage() {
   return (
     <DashboardContent>
       <Box sx={{ width: "100%", p: 4, height: "100%" }}>
-        <DeliveriesTableV2 />
+        <DeliveriesTableV2 userUriTemplate="/users/{userId}" />
       </Box>
     </DashboardContent>
   );

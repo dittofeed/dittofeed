@@ -1,5 +1,7 @@
 // FIXME column allow list
 // FIXME show loader
+// FIXME show retry
+// FIXME optional user to link to user page from to column
 // FIXME show something to clear filters when no results
 import { CalendarDate } from "@internationalized/date";
 import {
@@ -11,6 +13,8 @@ import {
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
+  Link as LinkIcon,
+  OpenInNew,
   Refresh as RefreshIcon,
   SwapVert as SwapVertIcon,
   Visibility as VisibilityIcon,
@@ -40,13 +44,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import {
-  LocalizationProvider,
-  StaticDatePicker,
-  StaticDateTimePicker,
-} from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { DateRange } from "@mui/x-date-pickers/models";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
@@ -67,12 +64,14 @@ import {
   SavedJourneyResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
+  SearchDeliveriesRequestSortByEnum,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useRef, useState } from "react";
+import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -95,21 +94,31 @@ import { WebhookPreviewBody } from "./messages/webhookPreview";
 import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
+import Link from "next/link";
 
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
-    case "sentAt":
+    case SearchDeliveriesRequestSortByEnum.sentAt:
       return "Sent At";
-    case "from":
+    case SearchDeliveriesRequestSortByEnum.from:
       return "From";
-    case "to":
+    case SearchDeliveriesRequestSortByEnum.to:
       return "To";
-    case "status":
+    case SearchDeliveriesRequestSortByEnum.status:
       return "Status";
-    case "originName":
-      return "Origin Name";
-    case "templateName":
-      return "Template Name";
+  }
+}
+
+function humanizeChannel(channel: ChannelType): string {
+  switch (channel) {
+    case ChannelType.Email:
+      return "Email";
+    case ChannelType.Sms:
+      return "SMS";
+    case ChannelType.Webhook:
+      return "Webhook";
+    case ChannelType.MobilePush:
+      return "Mobile Push";
   }
 }
 
@@ -214,6 +223,75 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   );
 }
 
+function LinkCell({
+  row,
+  column,
+  uriTemplate,
+}: {
+  row: Row<Delivery>;
+  column: ColumnDef<Delivery>;
+  uriTemplate?: string;
+}) {
+  const value = column.id ? (row.getValue(column.id) as string) : null;
+  const uri = useMemo(() => {
+    if (!uriTemplate) {
+      return null;
+    }
+    const template = uriTemplates(uriTemplate);
+    return template.fillFromObject({
+      userId: row.original.userId,
+      messageId: row.original.messageId,
+      originId: row.original.originId,
+      originType: row.original.originType,
+      templateId: row.original.templateId,
+    });
+  }, [
+    uriTemplate,
+    row.original.userId,
+    row.original.messageId,
+    row.original.originId,
+    row.original.originType,
+    row.original.templateId,
+  ]);
+
+  if (!value) {
+    return null;
+  }
+  return (
+    <Tooltip title={value} placement="bottom-start">
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Box
+          sx={{
+            maxWidth: "400px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {value}
+        </Box>
+        {uri && (
+          <IconButton LinkComponent={Link} href={uri} target="_blank">
+            <OpenInNew />
+          </IconButton>
+        )}
+      </Stack>
+    </Tooltip>
+  );
+}
+
+function linkCellFactory(uriTemplate?: string) {
+  return function linkCell({
+    row,
+    column,
+  }: {
+    row: Row<Delivery>;
+    column: ColumnDef<Delivery>;
+  }) {
+    return <LinkCell row={row} column={column} uriTemplate={uriTemplate} />;
+  };
+}
+
 interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
@@ -231,6 +309,7 @@ interface State {
     endDate: Date;
   };
 }
+
 interface BaseDelivery {
   messageId: string;
   userId: string;
@@ -310,6 +389,25 @@ function getOrigin({
 }
 type SetState = Updater<State>;
 
+function SnippetCell({ row }: { row: Row<Delivery> }) {
+  return (
+    <Tooltip title={row.original.snippet} placement="bottom-start">
+      <Typography
+        variant="subtitle2"
+        color="text.secondary"
+        sx={{
+          maxWidth: "480px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {row.original.snippet}
+      </Typography>
+    </Tooltip>
+  );
+}
+
 function PreviewCell({
   row,
   setState,
@@ -388,8 +486,10 @@ const timeOptions: TimeOption[] = [
 
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
+  userUriTemplate,
 }: {
   getDeliveriesRequest?: GetDeliveriesRequest;
+  userUriTemplate?: string;
 }) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -472,6 +572,10 @@ export function DeliveriesTableV2({
     () => renderPreviewCellFactory(setState),
     [setState],
   );
+  const linkCell = useMemo(
+    () => linkCellFactory(userUriTemplate),
+    [userUriTemplate],
+  );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(
     () => [
@@ -486,11 +590,22 @@ export function DeliveriesTableV2({
       {
         header: "To",
         accessorKey: "to",
+        cell: linkCell,
       },
       {
         header: "Status",
         accessorKey: "status",
         cell: ({ row }) => humanizeStatus(row.original.status),
+      },
+      {
+        header: "Snippet",
+        accessorKey: "snippet",
+        cell: SnippetCell,
+      },
+      {
+        header: "Channel",
+        accessorKey: "channel",
+        cell: ({ row }) => humanizeChannel(row.original.channel),
       },
       {
         header: "Origin",
@@ -505,13 +620,8 @@ export function DeliveriesTableV2({
         accessorKey: "sentAt",
         cell: TimeCell,
       },
-      {
-        header: "Updated At",
-        accessorKey: "updatedAt",
-        cell: TimeCell,
-      },
     ],
-    [renderPreviewCell],
+    [renderPreviewCell, linkCell],
   );
   const data = useMemo<Delivery[] | null>(() => {
     if (
@@ -917,6 +1027,7 @@ export function DeliveriesTableV2({
                   setState((draft) => {
                     draft.query.sortBy = "sentAt";
                     draft.query.sortDirection = SortDirectionEnum.Desc;
+                    draft.query.cursor = null;
                   });
                 }}
               >
@@ -976,6 +1087,7 @@ export function DeliveriesTableV2({
                   setState((draft) => {
                     draft.query.sortBy = e.target
                       .value as SearchDeliveriesRequestSortBy;
+                    draft.query.cursor = null;
                   });
                 }}
                 MenuProps={{
@@ -990,12 +1102,18 @@ export function DeliveriesTableV2({
                   },
                 }}
               >
-                <MenuItem value="sentAt">Sent At</MenuItem>
-                <MenuItem value="from">From</MenuItem>
-                <MenuItem value="to">To</MenuItem>
-                <MenuItem value="status">Status</MenuItem>
-                <MenuItem value="originName">Origin Name</MenuItem>
-                <MenuItem value="templateName">Template Name</MenuItem>
+                <MenuItem value={SearchDeliveriesRequestSortByEnum.sentAt}>
+                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.sentAt)}
+                </MenuItem>
+                <MenuItem value={SearchDeliveriesRequestSortByEnum.from}>
+                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.from)}
+                </MenuItem>
+                <MenuItem value={SearchDeliveriesRequestSortByEnum.to}>
+                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.to)}
+                </MenuItem>
+                <MenuItem value={SearchDeliveriesRequestSortByEnum.status}>
+                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.status)}
+                </MenuItem>
               </Select>
               <Select
                 value={state.query.sortDirection}
@@ -1003,6 +1121,7 @@ export function DeliveriesTableV2({
                 onChange={(e) => {
                   setState((draft) => {
                     draft.query.sortDirection = e.target.value as SortDirection;
+                    draft.query.cursor = null;
                   });
                 }}
                 MenuProps={{

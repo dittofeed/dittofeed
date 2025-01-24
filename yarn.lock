@@ -11422,6 +11422,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/uri-templates@npm:^0":
+  version: 0.1.34
+  resolution: "@types/uri-templates@npm:0.1.34"
+  checksum: 10/4067dac3238c5cb7f26366764576f099350cb15916fc17a0dbb50813bea732d825caf39caea5dc6feaf10939a26ec48d25f4f5ca6b625e5edd7c7f28ad275e57
+  languageName: node
+  linkType: hard
+
 "@types/use-sync-external-store@npm:^0.0.6":
   version: 0.0.6
   resolution: "@types/use-sync-external-store@npm:0.0.6"
@@ -14287,6 +14294,7 @@ __metadata:
     "@types/node": "npm:18.11.18"
     "@types/react": "npm:18.3.1"
     "@types/react-dom": "npm:18.3.0"
+    "@types/uri-templates": "npm:^0"
     "@types/uuid": "npm:^9.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
@@ -14338,6 +14346,7 @@ __metadata:
     ts-jest: "npm:^29.2.5"
     typescript: "npm:5.6.3"
     unidiff: "npm:^1.0.2"
+    uri-templates: "npm:^0.2.0"
     use-debounce: "npm:^9.0.2"
     use-immer: "npm:0.9.0"
     utility-types: "npm:^3.10.0"
@@ -27522,6 +27531,13 @@ __metadata:
   dependencies:
     punycode: "npm:^2.1.0"
   checksum: 10/b271ca7e3d46b7160222e3afa3e531505161c9a4e097febae9664e4b59912f4cbe94861361a4175edac3a03fee99d91e44b6a58c17a634bc5a664b19fc76fbcb
+  languageName: node
+  linkType: hard
+
+"uri-templates@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "uri-templates@npm:0.2.0"
+  checksum: 10/b4e6337303697ac5adcfd8556776deec7d693c431ee939c65e653605b2171010ed0312d2b3c9d19f8885c1cb233373582b35acc9bccefa27c004a63871173465
   languageName: node
   linkType: hard
 

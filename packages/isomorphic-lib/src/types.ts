@@ -3835,12 +3835,16 @@ export const GetPropertiesResponse = Type.Object({
 
 export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 
-export const SearchDeliveriesRequestSortBy = Type.Union([
-  Type.Literal("from"),
-  Type.Literal("to"),
-  Type.Literal("status"),
-  Type.Literal("sentAt"),
-]);
+export const SearchDeliveriesRequestSortByEnum = {
+  from: "from",
+  to: "to",
+  status: "status",
+  sentAt: "sentAt",
+} as const;
+
+export const SearchDeliveriesRequestSortBy = Type.KeyOf(
+  Type.Const(SearchDeliveriesRequestSortByEnum),
+);
 
 export type SearchDeliveriesRequestSortBy = Static<
   typeof SearchDeliveriesRequestSortBy
