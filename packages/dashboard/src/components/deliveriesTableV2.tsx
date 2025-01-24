@@ -1,8 +1,4 @@
 // FIXME column allow list
-// FIXME show loader
-// FIXME show retry
-// FIXME optional user to link to user page from to column
-// FIXME show something to clear filters when no results
 import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
@@ -244,6 +240,7 @@ function LinkCell({
       originId: row.original.originId,
       originType: row.original.originType,
       templateId: row.original.templateId,
+      channel: row.original.channel.toLowerCase(),
     });
   }, [
     uriTemplate,
@@ -252,6 +249,7 @@ function LinkCell({
     row.original.originId,
     row.original.originType,
     row.original.templateId,
+    row.original.channel,
   ]);
 
   if (!value) {
@@ -487,9 +485,13 @@ const timeOptions: TimeOption[] = [
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
   userUriTemplate,
+  templateUriTemplate,
+  originUriTemplate,
 }: {
   getDeliveriesRequest?: GetDeliveriesRequest;
   userUriTemplate?: string;
+  templateUriTemplate?: string;
+  originUriTemplate?: string;
 }) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -572,9 +574,17 @@ export function DeliveriesTableV2({
     () => renderPreviewCellFactory(setState),
     [setState],
   );
-  const linkCell = useMemo(
+  const userLinkCell = useMemo(
     () => linkCellFactory(userUriTemplate),
     [userUriTemplate],
+  );
+  const templateLinkCell = useMemo(
+    () => linkCellFactory(templateUriTemplate),
+    [templateUriTemplate],
+  );
+  const originLinkCell = useMemo(
+    () => linkCellFactory(originUriTemplate),
+    [originUriTemplate],
   );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(
@@ -590,12 +600,7 @@ export function DeliveriesTableV2({
       {
         header: "To",
         accessorKey: "to",
-        cell: linkCell,
-      },
-      {
-        header: "Status",
-        accessorKey: "status",
-        cell: ({ row }) => humanizeStatus(row.original.status),
+        cell: userLinkCell,
       },
       {
         header: "Snippet",
@@ -608,12 +613,19 @@ export function DeliveriesTableV2({
         cell: ({ row }) => humanizeChannel(row.original.channel),
       },
       {
+        header: "Status",
+        accessorKey: "status",
+        cell: ({ row }) => humanizeStatus(row.original.status),
+      },
+      {
         header: "Origin",
         accessorKey: "originName",
+        cell: originLinkCell,
       },
       {
         header: "Template",
         accessorKey: "templateName",
+        cell: templateLinkCell,
       },
       {
         header: "Sent At",
@@ -621,7 +633,7 @@ export function DeliveriesTableV2({
         cell: TimeCell,
       },
     ],
-    [renderPreviewCell, linkCell],
+    [renderPreviewCell, userLinkCell, templateLinkCell],
   );
   const data = useMemo<Delivery[] | null>(() => {
     if (
