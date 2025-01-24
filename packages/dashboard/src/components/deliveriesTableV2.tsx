@@ -1,4 +1,3 @@
-// FIXME column allow list
 import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
@@ -57,6 +56,7 @@ import {
   BroadcastResource,
   ChannelType,
   CompletionStatus,
+  DeliveriesAllowedColumn,
   SavedJourneyResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
@@ -493,7 +493,7 @@ export function DeliveriesTableV2({
   userUriTemplate?: string;
   templateUriTemplate?: string;
   originUriTemplate?: string;
-  columnAllowList?: string[];
+  columnAllowList?: DeliveriesAllowedColumn[];
 }) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([

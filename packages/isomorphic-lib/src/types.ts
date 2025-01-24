@@ -4542,3 +4542,43 @@ export const UpsertUserPropertyError = Type.Union([
 ]);
 
 export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
+
+export const ComponentConfigurationEnum = {
+  DeliveriesTable: "DeliveriesTable",
+};
+
+export const DeliveriesAllowedColumnEnum = {
+  preview: "preview",
+  from: "from",
+  to: "to",
+  snippet: "snippet",
+  channel: "channel",
+  status: "status",
+  origin: "origin",
+  sentAt: "sentAt",
+  template: "template",
+  updatedAt: "updatedAt",
+};
+
+export const DeliveriesAllowedColumn = Type.KeyOf(
+  Type.Const(DeliveriesAllowedColumnEnum),
+);
+
+export type DeliveriesAllowedColumn = Static<typeof DeliveriesAllowedColumn>;
+
+export const DeliveriesTableConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.DeliveriesTable),
+  columnAllowList: Type.Optional(Type.Array(DeliveriesAllowedColumn)),
+});
+
+export type DeliveriesTableConfiguration = Static<
+  typeof DeliveriesTableConfiguration
+>;
+
+export const ComponentConfigurationValue = Type.Union([
+  DeliveriesTableConfiguration,
+]);
+
+export type ComponentConfigurationValue = Static<
+  typeof ComponentConfigurationValue
+>;
