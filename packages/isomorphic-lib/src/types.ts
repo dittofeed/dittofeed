@@ -4575,10 +4575,64 @@ export type DeliveriesTableConfiguration = Static<
   typeof DeliveriesTableConfiguration
 >;
 
-export const ComponentConfigurationValue = Type.Union([
+export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
 ]);
 
-export type ComponentConfigurationValue = Static<
-  typeof ComponentConfigurationValue
+export type ComponentConfigurationDefinition = Static<
+  typeof ComponentConfigurationDefinition
+>;
+
+export const ComponentConfigurationResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  definition: ComponentConfigurationDefinition,
+});
+
+export type ComponentConfigurationResource = Static<
+  typeof ComponentConfigurationResource
+>;
+
+export const UpsertComponentConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+  id: Type.Optional(Type.String()),
+  definition: Type.Optional(ComponentConfigurationDefinition),
+});
+
+export type UpsertComponentConfigurationRequest = Static<
+  typeof UpsertComponentConfigurationRequest
+>;
+
+export enum UpsertComponentConfigurationValidationErrorType {
+  UniqueConstraintViolation = "UniqueConstraintViolation",
+}
+
+export const UpsertComponentConfigurationUniqueConstraintViolationError =
+  Type.Object({
+    type: Type.Literal(
+      UpsertComponentConfigurationValidationErrorType.UniqueConstraintViolation,
+    ),
+    message: Type.String(),
+  });
+
+export type UpsertComponentConfigurationUniqueConstraintViolationError = Static<
+  typeof UpsertComponentConfigurationUniqueConstraintViolationError
+>;
+
+export const UpsertComponentConfigurationValidationError = Type.Union([
+  UpsertComponentConfigurationUniqueConstraintViolationError,
+]);
+
+export type UpsertComponentConfigurationValidationError = Static<
+  typeof UpsertComponentConfigurationValidationError
+>;
+
+export const DeleteComponentConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type DeleteComponentConfigurationRequest = Static<
+  typeof DeleteComponentConfigurationRequest
 >;
