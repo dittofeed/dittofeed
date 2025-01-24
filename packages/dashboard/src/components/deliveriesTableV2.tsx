@@ -453,6 +453,8 @@ export function DeliveriesTableV2({
         to,
         statuses,
         from,
+        sortBy: state.query.sortBy,
+        sortDirection: state.query.sortDirection,
       };
       const response = await getDeliveriesRequest({
         params,

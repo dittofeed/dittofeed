@@ -22,6 +22,7 @@ import {
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
+  SortDirectionEnum,
 } from "./types";
 
 export const SearchDeliveryRow = Type.Object({
@@ -253,6 +254,8 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
+  sortBy = "sentAt",
+  sortDirection = SortDirectionEnum.Desc,
   channels,
   userId,
   to,
@@ -323,7 +326,40 @@ export async function searchDeliveries({
     ? `AND processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`
     : "";
 
+  let sortByClause: string;
+
+  const withClauses: string[] = [];
+  const direction = sortDirection === SortDirectionEnum.Desc ? "DESC" : "ASC";
+  switch (sortBy) {
+    case "sentAt": {
+      sortByClause = `sent_at ${direction}, origin_message_id ASC`;
+      break;
+    }
+    case "status": {
+      sortByClause = `last_event ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "from": {
+      sortByClause = `JSON_VALUE(properties, '$.variant.from') ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "to": {
+      withClauses.push(`
+          JSON_VALUE(properties, '$.variant.to') as to
+      `);
+      sortByClause = `to ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    // FIXME
+    default: {
+      throw new Error("Invalid sortBy");
+    }
+  }
+  const withClause =
+    withClauses.length > 0 ? `WITH ${withClauses.join(", ")}` : "";
+
   const query = `
+    ${withClause}
     SELECT 
       argMax(event, event_time) last_event,
       any(if(properties = '', NULL, properties)) properties,
@@ -363,7 +399,7 @@ export async function searchDeliveries({
       ${journeyIdClause}
       ${userIdClause}
       ${statusClause}
-    ORDER BY sent_at DESC, origin_message_id ASC
+    ORDER BY ${sortByClause}
     LIMIT ${queryBuilder.addQueryValue(
       offset,
       "UInt64",
