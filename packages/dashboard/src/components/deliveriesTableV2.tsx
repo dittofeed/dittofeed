@@ -13,7 +13,6 @@ import {
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
-  Link as LinkIcon,
   OpenInNew,
   Refresh as RefreshIcon,
   SwapVert as SwapVertIcon,
@@ -24,6 +23,7 @@ import {
   Box,
   Button,
   ButtonProps,
+  CircularProgress,
   Divider,
   Drawer,
   FormControl,
@@ -70,6 +70,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
@@ -94,7 +95,6 @@ import { WebhookPreviewBody } from "./messages/webhookPreview";
 import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
-import Link from "next/link";
 
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
@@ -811,9 +811,6 @@ export function DeliveriesTableV2({
     });
   }, [setState]);
 
-  if (query.isPending || data === null) {
-    return null;
-  }
   return (
     <>
       <Stack
@@ -1216,30 +1213,43 @@ export function DeliveriesTableV2({
                   <Stack
                     direction="row"
                     spacing={2}
-                    justifyContent="flex-end"
+                    justifyContent="space-between"
                     alignItems="center"
                   >
-                    <GreyButton
-                      onClick={onFirstPage}
-                      disabled={query.data?.previousCursor === undefined}
-                      startIcon={<KeyboardDoubleArrowLeft />}
+                    <Box
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
                     >
-                      First
-                    </GreyButton>
-                    <GreyButton
-                      onClick={onPreviousPage}
-                      disabled={query.data?.previousCursor === undefined}
-                      startIcon={<KeyboardArrowLeft />}
-                    >
-                      Previous
-                    </GreyButton>
-                    <GreyButton
-                      onClick={onNextPage}
-                      disabled={query.data?.cursor === undefined}
-                      endIcon={<KeyboardArrowRight />}
-                    >
-                      Next
-                    </GreyButton>
+                      {query.isFetching && (
+                        <CircularProgress color="inherit" size={20} />
+                      )}
+                    </Box>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <GreyButton
+                        onClick={onFirstPage}
+                        disabled={query.data?.previousCursor === undefined}
+                        startIcon={<KeyboardDoubleArrowLeft />}
+                      >
+                        First
+                      </GreyButton>
+                      <GreyButton
+                        onClick={onPreviousPage}
+                        disabled={query.data?.previousCursor === undefined}
+                        startIcon={<KeyboardArrowLeft />}
+                      >
+                        Previous
+                      </GreyButton>
+                      <GreyButton
+                        onClick={onNextPage}
+                        disabled={query.data?.cursor === undefined}
+                        endIcon={<KeyboardArrowRight />}
+                      >
+                        Next
+                      </GreyButton>
+                    </Stack>
                   </Stack>
                 </TableCell>
               </TableRow>
