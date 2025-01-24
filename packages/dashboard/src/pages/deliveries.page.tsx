@@ -30,6 +30,7 @@ export default function DeliveriesPage() {
           templateUriTemplate="/templates/{channel}/{templateId}"
           originUriTemplate="/{originType}s/{originId}"
           columnAllowList={[
+            "preview",
             "from",
             "to",
             "channel",
