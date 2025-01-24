@@ -26,36 +26,11 @@ import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { greyTextFieldStyles } from "../greyScaleStyles";
 
 function SquarePaper(props: PaperProps) {
   return <Paper {...props} square elevation={4} />;
 }
-
-const greyTextFieldStyles = {
-  "& .MuiFilledInput-root": {
-    // Changes the bottom border color in its default state
-    backgroundColor: "white",
-    "&:before": {
-      borderBottomColor: "grey.400",
-    },
-    // Changes the bottom border color when hovered
-    "&:hover:before": {
-      borderBottomColor: "grey.400",
-    },
-    // Changes the bottom border color when focused
-    "&:after": {
-      borderBottomColor: "grey.400",
-    },
-  },
-  // Changes the label color when focused
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "grey.600",
-  },
-  // Changes the ripple effect color
-  "& .MuiTouchRipple-root": {
-    color: "grey.600",
-  },
-} as const;
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -510,7 +485,7 @@ export function NewDeliveriesFilterButton({
         PaperComponent={SquarePaper}
         value={null}
         inputValue={state.inputValue}
-        onInputChange={(event, newInputValue) =>
+        onInputChange={(_event, newInputValue) =>
           setState((draft) => {
             draft.inputValue = newInputValue;
           })

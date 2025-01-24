@@ -1,13 +1,18 @@
-// FIXME sort
 // FIXME column allow list
+// FIXME show loader
+// FIXME show something to clear filters when no results
 import { CalendarDate } from "@internationalized/date";
 import {
+  ArrowDownward as ArrowDownwardIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  Clear as ClearIcon,
   Computer,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
   Refresh as RefreshIcon,
+  SwapVert as SwapVertIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
@@ -20,11 +25,9 @@ import {
   FormControl,
   IconButton,
   MenuItem,
-  MenuItemProps,
   Paper,
   Popover,
   Select,
-  SelectChangeEvent,
   Stack,
   Table,
   TableBody,
@@ -63,10 +66,13 @@ import {
   CompletionStatus,
   SavedJourneyResource,
   SearchDeliveriesRequest,
+  SearchDeliveriesRequestSortBy,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
+  SortDirection,
+  SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -83,11 +89,29 @@ import {
   humanizeStatus,
 } from "./deliveriesTable";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
 import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
+
+function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
+  switch (sortBy) {
+    case "sentAt":
+      return "Sent At";
+    case "from":
+      return "From";
+    case "to":
+      return "To";
+    case "status":
+      return "Status";
+    case "originName":
+      return "Origin Name";
+    case "templateName":
+      return "Template Name";
+  }
+}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
@@ -190,16 +214,6 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   );
 }
 
-type SortBy =
-  | "from"
-  | "to"
-  | "status"
-  | "originName"
-  | "templateName"
-  | "sentAt";
-
-type SortDirection = "asc" | "desc";
-
 interface State {
   previewMessageId: string | null;
   selectedTimeOption: string;
@@ -211,7 +225,7 @@ interface State {
   query: {
     cursor: string | null;
     limit: number;
-    sortBy: SortBy;
+    sortBy: SearchDeliveriesRequestSortBy;
     sortDirection: SortDirection;
     startDate: Date;
     endDate: Date;
@@ -402,10 +416,10 @@ export function DeliveriesTableV2({
     query: {
       cursor: null,
       limit: 10,
-      sortBy: "sentAt",
-      sortDirection: "desc",
       startDate: initialStartDate,
       endDate: initialEndDate,
+      sortBy: "sentAt",
+      sortDirection: SortDirectionEnum.Desc,
     },
   });
   const theme = useTheme();
@@ -583,6 +597,7 @@ export function DeliveriesTableV2({
     });
   }, [query, workspace, journeys, broadcasts, messages]);
   const customDateRef = useRef<HTMLInputElement | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const onNextPage = useCallback(() => {
     setState((draft) => {
@@ -700,7 +715,7 @@ export function DeliveriesTableV2({
           direction="row"
           alignItems="center"
           spacing={1}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", height: "40px" }}
         >
           <FormControl>
             <Select
@@ -722,32 +737,9 @@ export function DeliveriesTableV2({
                   vertical: "top",
                   horizontal: "left",
                 },
-                sx: {
-                  "& .MuiMenuItem-root": {
-                    color: "grey.700",
-                    fontWeight: "bold",
-                    "&:hover": { bgcolor: "grey.300" },
-                    "&:active": { bgcolor: "grey.300" },
-                  },
-                  "&& .Mui-selected": {
-                    bgcolor: "grey.300",
-                  },
-                },
+                sx: greyMenuItemStyles,
               }}
-              sx={{
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "grey.400",
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "grey.400",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "grey.400",
-                },
-                "& .MuiSelect-select": {
-                  fontWeight: "bold",
-                },
-              }}
+              sx={greySelectStyles}
               onChange={(e) =>
                 setState((draft) => {
                   if (e.target.value === "custom") {
@@ -890,6 +882,144 @@ export function DeliveriesTableV2({
               }}
             />
           </Stack>
+          {(state.query.sortBy !== "sentAt" ||
+            state.query.sortDirection !== SortDirectionEnum.Desc) && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.400",
+                borderRadius: 1,
+                pl: 1,
+                pr: 1,
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{ pt: 1, pb: 1 }}
+              >
+                {getSortByLabel(state.query.sortBy)}
+                {state.query.sortDirection === SortDirectionEnum.Asc ? (
+                  <ArrowUpwardIcon fontSize="small" />
+                ) : (
+                  <ArrowDownwardIcon fontSize="small" />
+                )}
+              </Stack>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setState((draft) => {
+                    draft.query.sortBy = "sentAt";
+                    draft.query.sortDirection = SortDirectionEnum.Desc;
+                  });
+                }}
+              >
+                <ClearIcon />
+              </IconButton>
+            </Stack>
+          )}
+          <GreyButton
+            startIcon={<SwapVertIcon />}
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+              backgroundColor: "white",
+            }}
+            onClick={(e) => {
+              setAnchorEl(e.currentTarget);
+            }}
+          >
+            Sort
+          </GreyButton>
+          <Popover
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            slotProps={{
+              paper: {
+                elevation: 3,
+                sx: {
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "grey.400",
+                  p: 2,
+                },
+              },
+            }}
+            onClose={() => {
+              setAnchorEl(null);
+            }}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="center"
+              spacing={1}
+            >
+              <Select
+                value={state.query.sortBy}
+                sx={greySelectStyles}
+                onChange={(e) => {
+                  setState((draft) => {
+                    draft.query.sortBy = e.target
+                      .value as SearchDeliveriesRequestSortBy;
+                  });
+                }}
+                MenuProps={{
+                  sx: greyMenuItemStyles,
+                  anchorOrigin: {
+                    vertical: "bottom",
+                    horizontal: "right",
+                  },
+                  transformOrigin: {
+                    vertical: "top",
+                    horizontal: "right",
+                  },
+                }}
+              >
+                <MenuItem value="sentAt">Sent At</MenuItem>
+                <MenuItem value="from">From</MenuItem>
+                <MenuItem value="to">To</MenuItem>
+                <MenuItem value="status">Status</MenuItem>
+                <MenuItem value="originName">Origin Name</MenuItem>
+                <MenuItem value="templateName">Template Name</MenuItem>
+              </Select>
+              <Select
+                value={state.query.sortDirection}
+                sx={greySelectStyles}
+                onChange={(e) => {
+                  setState((draft) => {
+                    draft.query.sortDirection = e.target.value as SortDirection;
+                  });
+                }}
+                MenuProps={{
+                  sx: greyMenuItemStyles,
+                  anchorOrigin: {
+                    vertical: "bottom",
+                    horizontal: "right",
+                  },
+                  transformOrigin: {
+                    vertical: "top",
+                    horizontal: "right",
+                  },
+                }}
+              >
+                <MenuItem value={SortDirectionEnum.Asc}>Asc</MenuItem>
+                <MenuItem value={SortDirectionEnum.Desc}>Desc</MenuItem>
+              </Select>
+            </Stack>
+          </Popover>
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
               disabled={state.selectedTimeOption === "custom"}

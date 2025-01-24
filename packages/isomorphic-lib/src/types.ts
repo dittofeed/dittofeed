@@ -842,6 +842,15 @@ export const WaitForNode = Type.Object(
 
 export type WaitForNode = Static<typeof WaitForNode>;
 
+export const SortDirectionEnum = {
+  Asc: "Asc",
+  Desc: "Desc",
+} as const;
+
+export const SortDirection = Type.KeyOf(Type.Const(SortDirectionEnum));
+
+export type SortDirection = Static<typeof SortDirection>;
+
 export enum CursorDirectionEnum {
   After = "after",
   Before = "before",
@@ -3826,6 +3835,19 @@ export const GetPropertiesResponse = Type.Object({
 
 export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 
+export const SearchDeliveriesRequestSortBy = Type.Union([
+  Type.Literal("from"),
+  Type.Literal("to"),
+  Type.Literal("status"),
+  Type.Literal("originName"),
+  Type.Literal("templateName"),
+  Type.Literal("sentAt"),
+]);
+
+export type SearchDeliveriesRequestSortBy = Static<
+  typeof SearchDeliveriesRequestSortBy
+>;
+
 export const SearchDeliveriesRequest = Type.Object({
   workspaceId: Type.String(),
   fromIdentifier: Type.Optional(Type.String()),
@@ -3841,14 +3863,8 @@ export const SearchDeliveriesRequest = Type.Object({
   templateIds: Type.Optional(Type.Array(Type.String())),
   startDate: Type.Optional(Type.String()),
   endDate: Type.Optional(Type.String()),
-  sortBy: Type.Optional(
-    Type.Union([
-      Type.Literal("journeyName"),
-      Type.Literal("templateName"),
-      Type.Literal("sentAt"),
-      Type.Literal("updatedAt"),
-    ]),
-  ),
+  sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
+  sortDirection: Type.Optional(SortDirection),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
