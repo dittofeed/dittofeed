@@ -3839,8 +3839,6 @@ export const SearchDeliveriesRequestSortBy = Type.Union([
   Type.Literal("from"),
   Type.Literal("to"),
   Type.Literal("status"),
-  Type.Literal("originName"),
-  Type.Literal("templateName"),
   Type.Literal("sentAt"),
 ]);
 

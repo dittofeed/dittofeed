@@ -3,6 +3,7 @@ import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { omit } from "remeda";
 
 import {
@@ -350,9 +351,8 @@ export async function searchDeliveries({
       sortByClause = `to ${direction}, sent_at DESC, origin_message_id ASC`;
       break;
     }
-    // FIXME
     default: {
-      throw new Error("Invalid sortBy");
+      assertUnreachable(sortBy);
     }
   }
   const withClause =
