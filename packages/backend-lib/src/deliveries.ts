@@ -46,7 +46,7 @@ type MessageProperties = Static<typeof MessageProperties>;
 
 const OffsetKey = "o" as const;
 
-// FIXME use token / curor
+// TODO use real token / cursor, not just encoded offset
 const Cursor = Type.Object({
   [OffsetKey]: Type.Number(),
 });
