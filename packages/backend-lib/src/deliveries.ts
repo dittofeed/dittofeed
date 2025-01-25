@@ -3,6 +3,7 @@ import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { omit } from "remeda";
 
 import {
@@ -20,8 +21,10 @@ import {
   MessageSendSuccessContents,
   MessageSendSuccessVariant,
   SearchDeliveriesRequest,
+  SearchDeliveriesRequestSortByEnum,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
+  SortDirectionEnum,
 } from "./types";
 
 export const SearchDeliveryRow = Type.Object({
@@ -43,6 +46,7 @@ type MessageProperties = Static<typeof MessageProperties>;
 
 const OffsetKey = "o" as const;
 
+// TODO use real token / cursor, not just encoded offset
 const Cursor = Type.Object({
   [OffsetKey]: Type.Number(),
 });
@@ -198,12 +202,16 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
+  sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
+  sortDirection = SortDirectionEnum.Desc,
   channels,
   userId,
   to,
   from,
   statuses,
   templateIds,
+  startDate,
+  endDate,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -259,8 +267,46 @@ export async function searchDeliveries({
         "Array(String)",
       )}`
     : "";
+  const startDateClause = startDate
+    ? `AND processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`
+    : "";
+  const endDateClause = endDate
+    ? `AND processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`
+    : "";
+
+  let sortByClause: string;
+
+  const withClauses: string[] = [];
+  const direction = sortDirection === SortDirectionEnum.Desc ? "DESC" : "ASC";
+  switch (sortBy) {
+    case "sentAt": {
+      sortByClause = `sent_at ${direction}, origin_message_id ASC`;
+      break;
+    }
+    case "status": {
+      sortByClause = `last_event ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "from": {
+      sortByClause = `JSON_VALUE(properties, '$.variant.from') ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "to": {
+      withClauses.push(`
+          JSON_VALUE(properties, '$.variant.to') as to
+      `);
+      sortByClause = `to ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    default: {
+      assertUnreachable(sortBy);
+    }
+  }
+  const withClause =
+    withClauses.length > 0 ? `WITH ${withClauses.join(", ")}` : "";
 
   const query = `
+    ${withClause}
     SELECT 
       argMax(event, event_time) last_event,
       any(if(properties = '', NULL, properties)) properties,
@@ -291,6 +337,8 @@ export async function searchDeliveries({
         ${toClause}
         ${fromClause}
         ${templateIdClause}
+        ${startDateClause}
+        ${endDateClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING
@@ -298,7 +346,7 @@ export async function searchDeliveries({
       ${journeyIdClause}
       ${userIdClause}
       ${statusClause}
-    ORDER BY sent_at DESC, origin_message_id ASC
+    ORDER BY ${sortByClause}
     LIMIT ${queryBuilder.addQueryValue(
       offset,
       "UInt64",
@@ -342,7 +390,7 @@ export async function searchDeliveries({
 
   const previousOffset = Math.max(offset - limit, 0);
   const responsePreviousCursor =
-    previousOffset > 0 ? serializeCursorOffset(previousOffset) : undefined;
+    offset > 0 ? serializeCursorOffset(previousOffset) : undefined;
 
   return {
     workspaceId,

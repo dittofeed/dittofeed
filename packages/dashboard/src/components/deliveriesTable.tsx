@@ -95,7 +95,7 @@ const initPreviewObject = () => {
   };
 };
 
-function humanizeStatus(status: string) {
+export function humanizeStatus(status: string) {
   switch (status) {
     case InternalEventType.MessageSent:
       return "Sent";
@@ -221,7 +221,7 @@ export type GetDeliveriesRequest = (
   params: GetDeliveriesRequestParams,
 ) => Promise<AxiosResponse<unknown, unknown>>;
 
-const defaultGetDeliveriesRequest: GetDeliveriesRequest =
+export const defaultGetDeliveriesRequest: GetDeliveriesRequest =
   function getDeliveriesRequest({ params, apiBase }) {
     return axios.get(`${apiBase}/api/deliveries`, {
       params,

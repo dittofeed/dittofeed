@@ -27,6 +27,7 @@ import { Overwrite } from "utility-types";
 
 import {
   broadcast as dbBroadcast,
+  componentConfiguration as dbComponentConfiguration,
   computedPropertyPeriod as dbComputedPropertyPeriod,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
@@ -92,6 +93,10 @@ export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
 export type Secret = InferSelectModel<typeof dbSecret>;
 
 export type WriteKey = InferSelectModel<typeof dbWriteKey>;
+
+export type ComponentConfiguration = InferSelectModel<
+  typeof dbComponentConfiguration
+>;
 
 export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
 

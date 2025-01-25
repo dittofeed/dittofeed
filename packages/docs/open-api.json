@@ -21927,6 +21927,76 @@
             "in": "query",
             "name": "templateIds",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "startDate",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "endDate",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "from"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "to"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "status"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "sentAt"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "sortBy",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Asc"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Desc"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "sortDirection",
+            "required": false
           }
         ],
         "responses": {
@@ -22323,6 +22393,124 @@
                             "type": "object",
                             "properties": {
                               "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Webhook"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "url": {
+                                        "type": "string"
+                                      },
+                                      "method": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "params": {},
+                                      "data": {},
+                                      "responseType": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "json"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "text"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "response": {
+                                    "type": "object",
+                                    "properties": {
+                                      "status": {
+                                        "type": "number"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "body": {}
+                                    },
+                                    "required": [
+                                      "body"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "to",
+                                  "request",
+                                  "response"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -22455,124 +22643,6 @@
                               "status",
                               "to",
                               "channel",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Webhook"
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "request": {
-                                    "type": "object",
-                                    "properties": {
-                                      "url": {
-                                        "type": "string"
-                                      },
-                                      "method": {
-                                        "type": "string"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "params": {},
-                                      "data": {},
-                                      "responseType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "json"
-                                            ]
-                                          },
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "text"
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "response": {
-                                    "type": "object",
-                                    "properties": {
-                                      "status": {
-                                        "type": "number"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "body": {}
-                                    },
-                                    "required": [
-                                      "body"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "to",
-                                  "request",
-                                  "response"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
                               "sentAt",
                               "updatedAt",
                               "journeyId",
@@ -48286,6 +48356,76 @@
             "in": "query",
             "name": "templateIds",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "startDate",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "endDate",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "from"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "to"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "status"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "sentAt"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "sortBy",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Asc"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Desc"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "sortDirection",
+            "required": false
           }
         ],
         "responses": {
@@ -48682,6 +48822,124 @@
                             "type": "object",
                             "properties": {
                               "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Webhook"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "url": {
+                                        "type": "string"
+                                      },
+                                      "method": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "params": {},
+                                      "data": {},
+                                      "responseType": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "json"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "text"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "response": {
+                                    "type": "object",
+                                    "properties": {
+                                      "status": {
+                                        "type": "number"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "body": {}
+                                    },
+                                    "required": [
+                                      "body"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "to",
+                                  "request",
+                                  "response"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -48821,124 +49079,6 @@
                               "originMessageId",
                               "templateId"
                             ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Webhook"
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "request": {
-                                    "type": "object",
-                                    "properties": {
-                                      "url": {
-                                        "type": "string"
-                                      },
-                                      "method": {
-                                        "type": "string"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "params": {},
-                                      "data": {},
-                                      "responseType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "json"
-                                            ]
-                                          },
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "text"
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "response": {
-                                    "type": "object",
-                                    "properties": {
-                                      "status": {
-                                        "type": "number"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "body": {}
-                                    },
-                                    "required": [
-                                      "body"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "to",
-                                  "request",
-                                  "response"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
                           }
                         ]
                       }
@@ -48954,6 +49094,443 @@
                     "workspaceId",
                     "items"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-configurations/": {
+      "get": {
+        "tags": [
+          "ComponentConfigurations"
+        ],
+        "description": "Get all component configurations.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "componentConfigurations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "definition": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "DeliveriesTable"
+                                ]
+                              },
+                              "columnAllowList": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "preview"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "from"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "to"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "snippet"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "channel"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "status"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "origin"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "sentAt"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "template"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "updatedAt"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "workspaceId",
+                          "definition"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "componentConfigurations"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ComponentConfigurations"
+        ],
+        "description": "Create or update a component configuration.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "DeliveriesTable"
+                        ]
+                      },
+                      "columnAllowList": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "preview"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "from"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "to"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "snippet"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "channel"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "status"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "origin"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "sentAt"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "template"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "updatedAt"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "definition": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "DeliveriesTable"
+                          ]
+                        },
+                        "columnAllowList": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "preview"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "from"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "to"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "snippet"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "channel"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "status"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "origin"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "sentAt"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "template"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "updatedAt"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "definition"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "UniqueConstraintViolation"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "NotFound"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ComponentConfigurations"
+        ],
+        "description": "Delete a component configuration.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }

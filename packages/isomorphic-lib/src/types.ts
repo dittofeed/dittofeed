@@ -842,6 +842,15 @@ export const WaitForNode = Type.Object(
 
 export type WaitForNode = Static<typeof WaitForNode>;
 
+export const SortDirectionEnum = {
+  Asc: "Asc",
+  Desc: "Desc",
+} as const;
+
+export const SortDirection = Type.KeyOf(Type.Const(SortDirectionEnum));
+
+export type SortDirection = Static<typeof SortDirection>;
+
 export enum CursorDirectionEnum {
   After = "after",
   Before = "before",
@@ -3826,6 +3835,21 @@ export const GetPropertiesResponse = Type.Object({
 
 export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 
+export const SearchDeliveriesRequestSortByEnum = {
+  from: "from",
+  to: "to",
+  status: "status",
+  sentAt: "sentAt",
+} as const;
+
+export const SearchDeliveriesRequestSortBy = Type.KeyOf(
+  Type.Const(SearchDeliveriesRequestSortByEnum),
+);
+
+export type SearchDeliveriesRequestSortBy = Static<
+  typeof SearchDeliveriesRequestSortBy
+>;
+
 export const SearchDeliveriesRequest = Type.Object({
   workspaceId: Type.String(),
   fromIdentifier: Type.Optional(Type.String()),
@@ -3839,6 +3863,10 @@ export const SearchDeliveriesRequest = Type.Object({
   to: Type.Optional(Type.Array(Type.String())),
   statuses: Type.Optional(Type.Array(Type.String())),
   templateIds: Type.Optional(Type.Array(Type.String())),
+  startDate: Type.Optional(Type.String()),
+  endDate: Type.Optional(Type.String()),
+  sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
+  sortDirection: Type.Optional(SortDirection),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
@@ -3871,18 +3899,19 @@ export const SearchDeliveriesResponseItem = Type.Union([
   ]),
   Type.Composite([
     Type.Object({
+      status: Type.String(),
+      variant: MessageWebhookSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
+  // Deprecated
+  Type.Composite([
+    Type.Object({
       status: EmailEvent,
       to: Type.String(),
       channel: Type.Literal(ChannelType.Email),
     }),
     Type.Partial(CodeEmailContents),
-    BaseDeliveryItem,
-  ]),
-  Type.Composite([
-    Type.Object({
-      status: Type.String(),
-      variant: MessageWebhookSuccess,
-    }),
     BaseDeliveryItem,
   ]),
 ]);
@@ -4513,3 +4542,124 @@ export const UpsertUserPropertyError = Type.Union([
 ]);
 
 export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
+
+export const ComponentConfigurationEnum = {
+  DeliveriesTable: "DeliveriesTable",
+} as const;
+
+export const DeliveriesAllowedColumnEnum = {
+  preview: "preview",
+  from: "from",
+  to: "to",
+  snippet: "snippet",
+  channel: "channel",
+  status: "status",
+  origin: "origin",
+  sentAt: "sentAt",
+  template: "template",
+  updatedAt: "updatedAt",
+};
+
+export const DeliveriesAllowedColumn = Type.KeyOf(
+  Type.Const(DeliveriesAllowedColumnEnum),
+);
+
+export type DeliveriesAllowedColumn = Static<typeof DeliveriesAllowedColumn>;
+
+export const DeliveriesTableConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.DeliveriesTable),
+  columnAllowList: Type.Optional(Type.Array(DeliveriesAllowedColumn)),
+});
+
+export type DeliveriesTableConfiguration = Static<
+  typeof DeliveriesTableConfiguration
+>;
+
+export const ComponentConfigurationDefinition = Type.Union([
+  DeliveriesTableConfiguration,
+]);
+
+export type ComponentConfigurationDefinition = Static<
+  typeof ComponentConfigurationDefinition
+>;
+
+export const ComponentConfigurationResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  definition: ComponentConfigurationDefinition,
+});
+
+export type ComponentConfigurationResource = Static<
+  typeof ComponentConfigurationResource
+>;
+
+export const UpsertComponentConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+  id: Type.Optional(Type.String()),
+  definition: Type.Optional(ComponentConfigurationDefinition),
+});
+
+export type UpsertComponentConfigurationRequest = Static<
+  typeof UpsertComponentConfigurationRequest
+>;
+
+export enum UpsertComponentConfigurationValidationErrorType {
+  UniqueConstraintViolation = "UniqueConstraintViolation",
+  NotFound = "NotFound",
+}
+
+export const UpsertComponentConfigurationUniqueConstraintViolationError =
+  Type.Object({
+    type: Type.Literal(
+      UpsertComponentConfigurationValidationErrorType.UniqueConstraintViolation,
+    ),
+    message: Type.String(),
+  });
+
+export type UpsertComponentConfigurationUniqueConstraintViolationError = Static<
+  typeof UpsertComponentConfigurationUniqueConstraintViolationError
+>;
+
+export const UpsertComponentConfigurationNotFoundError = Type.Object({
+  type: Type.Literal(UpsertComponentConfigurationValidationErrorType.NotFound),
+  message: Type.String(),
+});
+
+export type UpsertComponentConfigurationNotFoundError = Static<
+  typeof UpsertComponentConfigurationNotFoundError
+>;
+
+export const UpsertComponentConfigurationValidationError = Type.Union([
+  UpsertComponentConfigurationUniqueConstraintViolationError,
+  UpsertComponentConfigurationNotFoundError,
+]);
+
+export type UpsertComponentConfigurationValidationError = Static<
+  typeof UpsertComponentConfigurationValidationError
+>;
+
+export const DeleteComponentConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type DeleteComponentConfigurationRequest = Static<
+  typeof DeleteComponentConfigurationRequest
+>;
+
+export const GetComponentConfigurationsRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetComponentConfigurationsRequest = Static<
+  typeof GetComponentConfigurationsRequest
+>;
+
+export const GetComponentConfigurationsResponse = Type.Object({
+  componentConfigurations: Type.Array(ComponentConfigurationResource),
+});
+
+export type GetComponentConfigurationsResponse = Static<
+  typeof GetComponentConfigurationsResponse
+>;

@@ -12,7 +12,7 @@ import {
 } from "backend-lib/src/segments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   DataSources,
@@ -108,10 +108,15 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const { id, workspaceId } = request.body;
       const result = await db()
         .delete(schema.segment)
-        .where(eq(schema.segment.id, id))
+        .where(
+          and(
+            eq(schema.segment.id, id),
+            eq(schema.segment.workspaceId, workspaceId),
+          ),
+        )
         .returning();
       if (!result.length) {
         return reply.status(404).send();

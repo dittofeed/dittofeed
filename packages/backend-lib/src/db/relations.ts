@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm/relations";
 import {
   adminApiKey,
   broadcast,
+  componentConfiguration,
   computedPropertyPeriod,
   defaultEmailProvider,
   defaultSmsProvider,
@@ -69,6 +70,7 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
   workspaceRelations_childWorkspaceId: many(workspaceRelation, {
     relationName: "workspaceRelation_childWorkspaceId_workspace_id",
   }),
+  componentConfigurations: many(componentConfiguration),
 }));
 
 export const userPropertyRelations = relations(
