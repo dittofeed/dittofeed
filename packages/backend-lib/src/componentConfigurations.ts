@@ -24,10 +24,9 @@ export async function upsertComponentConfiguration(
 > {
   const { id, name, workspaceId, definition } = params;
   let result: Result<ComponentConfiguration[], QueryError>;
-  let didUpsert = false;
+  const shouldUpsert = !!definition;
   // if definition is provided we have enough information to create or update
-  if (definition) {
-    didUpsert = true;
+  if (shouldUpsert) {
     logger().debug(
       {
         id,
@@ -99,7 +98,7 @@ export async function upsertComponentConfiguration(
         },
         "component configuration not found",
       );
-      if (didUpsert) {
+      if (shouldUpsert) {
         return err({
           type: UpsertComponentConfigurationValidationErrorType.UniqueConstraintViolation,
           message:

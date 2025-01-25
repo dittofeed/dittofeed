@@ -5,7 +5,11 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { upsertComponentConfiguration } from "./componentConfigurations";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { ComponentConfigurationDefinition, Workspace } from "./types";
+import {
+  ComponentConfigurationDefinition,
+  UpsertComponentConfigurationValidationErrorType,
+  Workspace,
+} from "./types";
 import { createWorkspace } from "./workspaces";
 
 describe("componentConfigurations", () => {
@@ -73,17 +77,63 @@ describe("componentConfigurations", () => {
       });
     });
     describe("when the name exists under a different id in the same workspace", () => {
-      it("should return a unique constraint violation error", () => {
-        expect(true).toBe(true);
+      beforeEach(async () => {
+        await upsertComponentConfiguration({
+          workspaceId: workspace.id,
+          id: randomUUID(),
+          name: "same-name",
+          definition: {
+            type: "DeliveriesTable",
+          } satisfies ComponentConfigurationDefinition,
+        }).then(unwrap);
+      });
+      it("should return a unique constraint violation error", async () => {
+        const result = await upsertComponentConfiguration({
+          workspaceId: workspace.id,
+          id: randomUUID(),
+          name: "same-name",
+          definition: {
+            type: "DeliveriesTable",
+          } satisfies ComponentConfigurationDefinition,
+        });
+        if (result.isOk()) {
+          throw new Error("Expected an error");
+        }
+        expect(result.error.type).toBe(
+          UpsertComponentConfigurationValidationErrorType.UniqueConstraintViolation,
+        );
       });
     });
     describe("id exists in another workspace", () => {
       let otherWorkspace: Workspace;
+      let sameId: string;
       beforeEach(async () => {
         otherWorkspace = unwrap(await createWorkspace({ name: randomUUID() }));
+        sameId = randomUUID();
+        await upsertComponentConfiguration({
+          workspaceId: otherWorkspace.id,
+          id: sameId,
+          name: randomUUID(),
+          definition: {
+            type: "DeliveriesTable",
+          } satisfies ComponentConfigurationDefinition,
+        }).then(unwrap);
       });
-      it("should return a unique constraint violation error", () => {
-        expect(true).toBe(true);
+      it("should return a unique constraint violation error", async () => {
+        const result = await upsertComponentConfiguration({
+          workspaceId: workspace.id,
+          id: sameId,
+          name: randomUUID(),
+          definition: {
+            type: "DeliveriesTable",
+          } satisfies ComponentConfigurationDefinition,
+        });
+        if (result.isOk()) {
+          throw new Error("Expected an error");
+        }
+        expect(result.error.type).toBe(
+          UpsertComponentConfigurationValidationErrorType.UniqueConstraintViolation,
+        );
       });
     });
   });
