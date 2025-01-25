@@ -1,8 +1,6 @@
-import { ChevronRight } from "@mui/icons-material";
-import { ChevronLeft } from "@mui/icons-material";
+import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 import { Box, Divider, IconButton, Stack } from "@mui/material";
 import {
-  Button,
   CalendarCell,
   CalendarGrid,
   DateValue,

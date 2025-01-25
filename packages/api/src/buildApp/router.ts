@@ -6,6 +6,7 @@ import { FastifyInstance } from "fastify";
 import adminBroadcastsController from "../controllers/adminBroadcastsController";
 import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
+import componentConfigurationsController from "../controllers/componentConfigurationsController";
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import deliveriesController from "../controllers/deliveriesController";
@@ -106,6 +107,9 @@ export default async function router(
         }),
         f.register(settingsController, { prefix: "/settings" }),
         f.register(deliveriesController, { prefix: "/deliveries" }),
+        f.register(componentConfigurationsController, {
+          prefix: "/component-configurations",
+        }),
         f.register(adminBroadcastsController, {
           prefix: "/broadcasts",
         }),
