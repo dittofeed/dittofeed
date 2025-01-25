@@ -1,3 +1,5 @@
+// FIXME calendar date range next previous month buttons not working
+// FIXME pagination not working in prod
 import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
