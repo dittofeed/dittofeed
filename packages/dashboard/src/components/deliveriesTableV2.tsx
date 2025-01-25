@@ -653,7 +653,7 @@ export function DeliveriesTableV2({
     if (columnAllowList) {
       const allowList = new Set(columnAllowList);
       tableColumns = tableColumns.filter((column) =>
-        column.id ? allowList.has(column.id) : false,
+        column.id ? allowList.has(column.id as DeliveriesAllowedColumn) : false,
       );
     }
 
