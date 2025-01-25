@@ -9,6 +9,7 @@ import {
   ComponentConfigurationDefinition,
   ComponentConfigurationResource,
   DeleteComponentConfigurationRequest,
+  GetComponentConfigurationsRequest,
   UpsertComponentConfigurationRequest,
   UpsertComponentConfigurationValidationError,
   UpsertComponentConfigurationValidationErrorType,
@@ -140,7 +141,32 @@ export async function upsertComponentConfiguration(
 }
 
 export async function deleteComponentConfiguration(
-  _deleteComponentConfigurationRequest: DeleteComponentConfigurationRequest,
+  deleteComponentConfigurationRequest: DeleteComponentConfigurationRequest,
 ): Promise<void> {
-  throw new Error("Not implemented");
+  const { id, workspaceId } = deleteComponentConfigurationRequest;
+  await db()
+    .delete(dbComponentConfiguration)
+    .where(
+      and(
+        eq(dbComponentConfiguration.id, id),
+        eq(dbComponentConfiguration.workspaceId, workspaceId),
+      ),
+    );
+}
+
+export async function getComponentConfigurations(
+  getComponentConfigurationsRequest: GetComponentConfigurationsRequest,
+): Promise<ComponentConfigurationResource[]> {
+  const { workspaceId } = getComponentConfigurationsRequest;
+  const componentConfigurations =
+    await db().query.componentConfiguration.findMany({
+      where: eq(dbComponentConfiguration.workspaceId, workspaceId),
+    });
+  return componentConfigurations.map((componentConfiguration) => ({
+    id: componentConfiguration.id,
+    name: componentConfiguration.name,
+    workspaceId: componentConfiguration.workspaceId,
+    definition:
+      componentConfiguration.definition as ComponentConfigurationDefinition,
+  }));
 }

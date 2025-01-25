@@ -4647,3 +4647,19 @@ export const DeleteComponentConfigurationRequest = Type.Object({
 export type DeleteComponentConfigurationRequest = Static<
   typeof DeleteComponentConfigurationRequest
 >;
+
+export const GetComponentConfigurationsRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetComponentConfigurationsRequest = Static<
+  typeof GetComponentConfigurationsRequest
+>;
+
+export const GetComponentConfigurationsResponse = Type.Object({
+  componentConfigurations: Type.Array(ComponentConfigurationResource),
+});
+
+export type GetComponentConfigurationsResponse = Static<
+  typeof GetComponentConfigurationsResponse
+>;
