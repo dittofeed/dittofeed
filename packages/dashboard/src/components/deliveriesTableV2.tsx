@@ -1,3 +1,4 @@
+// FIXME dates in the future
 import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
@@ -210,11 +211,11 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
     </Stack>
   );
 
+  const formatted = formatDistanceToNow(timestamp, { addSuffix: true });
+  console.log("loc1", formatted, timestamp, new Date(timestamp).toString());
   return (
     <Tooltip title={tooltipContent} placement="bottom-start" arrow>
-      <Typography>
-        {formatDistanceToNow(timestamp, { addSuffix: true })}
-      </Typography>
+      <Typography>{formatted}</Typography>
     </Tooltip>
   );
 }
@@ -234,22 +235,35 @@ function LinkCell({
       return null;
     }
     const template = uriTemplates(uriTemplate);
-    return template.fillFromObject({
+    const values: Record<string, string> = {
       userId: row.original.userId,
       messageId: row.original.messageId,
-      originId: row.original.originId,
-      originType: row.original.originType,
       templateId: row.original.templateId,
       channel: row.original.channel.toLowerCase(),
-    });
+    };
+    if (row.original.originId) {
+      values.originId = row.original.originId;
+    }
+    if (row.original.originType) {
+      values.originType = row.original.originType;
+    }
+    if (row.original.originName) {
+      values.originName = row.original.originName;
+    }
+    if (row.original.templateName) {
+      values.templateName = row.original.templateName;
+    }
+    return template.fillFromObject(values);
   }, [
     uriTemplate,
     row.original.userId,
     row.original.messageId,
     row.original.originId,
-    row.original.originType,
     row.original.templateId,
     row.original.channel,
+    row.original.originType,
+    row.original.originName,
+    row.original.templateName,
   ]);
 
   if (!value) {
@@ -257,13 +271,20 @@ function LinkCell({
   }
   return (
     <Tooltip title={value} placement="bottom-start">
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{
+          maxWidth: "280px",
+        }}
+      >
         <Box
           sx={{
-            maxWidth: "400px",
-            overflow: "hidden",
+            maxWidth: "calc(100% - 32px);",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            overflow: "hidden",
           }}
         >
           {value}
@@ -313,11 +334,11 @@ interface BaseDelivery {
   userId: string;
   body: string;
   status: string;
-  originId: string;
-  originType: "broadcast" | "journey";
-  originName: string;
+  originId?: string;
+  originType?: "broadcast" | "journey";
+  originName?: string;
   templateId: string;
-  templateName: string;
+  templateName?: string;
   sentAt: number;
   updatedAt: number;
   from?: string;
@@ -365,25 +386,30 @@ function getOrigin({
   journeys: SavedJourneyResource[];
   broadcasts: BroadcastResource[];
 }): Pick<Delivery, "originId" | "originType" | "originName"> | null {
-  for (const broadcast of broadcasts) {
-    if (broadcast.journeyId === item.journeyId) {
-      return {
-        originId: broadcast.id,
-        originType: "broadcast",
-        originName: broadcast.name,
-      };
-    }
-  }
-  for (const journey of journeys) {
-    if (journey.id === item.journeyId) {
-      return {
-        originId: journey.id,
-        originType: "journey",
-        originName: journey.name,
-      };
-    }
-  }
-  return null;
+  return {
+    originId: "123",
+    originType: "broadcast",
+    originName: "First Time Visitor - Welcome Series",
+  };
+  // for (const broadcast of broadcasts) {
+  //   if (broadcast.journeyId === item.journeyId) {
+  //     return {
+  //       originId: broadcast.id,
+  //       originType: "broadcast",
+  //       originName: broadcast.name,
+  //     };
+  //   }
+  // }
+  // for (const journey of journeys) {
+  //   if (journey.id === item.journeyId) {
+  //     return {
+  //       originId: journey.id,
+  //       originType: "journey",
+  //       originName: journey.name,
+  //     };
+  //   }
+  // }
+  // return null;
 }
 type SetState = Updater<State>;
 
@@ -681,15 +707,9 @@ export function DeliveriesTableV2({
         broadcasts,
         item,
       });
-      if (origin === null) {
-        return [];
-      }
       const template = messages.value.find(
         (message) => message.id === item.templateId,
       );
-      if (template === undefined) {
-        return [];
-      }
       if (!("variant" in item)) {
         return [];
       }
@@ -701,11 +721,13 @@ export function DeliveriesTableV2({
         messageId: item.originMessageId,
         userId: item.userId,
         status: item.status,
-        originId: origin.originId,
-        originType: origin.originType,
-        originName: origin.originName,
-        templateId: template.id,
-        templateName: template.name,
+        originId: origin?.originId,
+        originType: origin?.originType,
+        originName: origin?.originName,
+        templateId: item.templateId,
+        // templateName: template?.name,
+        templateName:
+          "What They Say - Email #5 - Presale asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf",
         sentAt: new Date(item.sentAt).getTime(),
         updatedAt: new Date(item.updatedAt).getTime(),
       };
@@ -855,18 +877,21 @@ export function DeliveriesTableV2({
 
   return (
     <>
+      {/* <Box */}
       <Stack
         spacing={1}
         sx={{
           width: "100%",
           height: "100%",
+          minWidth: 0,
+          alignItems: "stretch",
         }}
       >
         <Stack
           direction="row"
           alignItems="center"
           spacing={1}
-          sx={{ width: "100%", height: "40px" }}
+          sx={{ width: "100%", height: "48px" }}
         >
           <FormControl>
             <Select
@@ -1206,7 +1231,6 @@ export function DeliveriesTableV2({
             </IconButton>
           </Tooltip>
         </Stack>
-
         <TableContainer component={Paper}>
           <Table stickyHeader>
             <TableHead>
@@ -1247,28 +1271,23 @@ export function DeliveriesTableV2({
               sx={{
                 position: "sticky",
                 bottom: 0,
-                bgcolor: "background.paper",
               }}
             >
               <TableRow>
-                <TableCell colSpan={table.getAllColumns().length}>
+                <TableCell
+                  colSpan={table.getAllColumns().length}
+                  sx={{
+                    bgcolor: "background.paper",
+                    borderTop: "1px solid",
+                    borderColor: "grey.100",
+                  }}
+                >
                   <Stack
                     direction="row"
                     spacing={2}
                     justifyContent="space-between"
                     alignItems="center"
                   >
-                    <Box
-                      sx={{
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {query.isFetching && (
-                        <CircularProgress color="inherit" size={20} />
-                      )}
-                    </Box>
                     <Stack direction="row" alignItems="center" spacing={2}>
                       <GreyButton
                         onClick={onFirstPage}
@@ -1292,6 +1311,17 @@ export function DeliveriesTableV2({
                         Next
                       </GreyButton>
                     </Stack>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {query.isFetching && (
+                        <CircularProgress color="inherit" size={20} />
+                      )}
+                    </Box>
                   </Stack>
                 </TableCell>
               </TableRow>
