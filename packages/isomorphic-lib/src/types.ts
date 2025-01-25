@@ -4545,7 +4545,7 @@ export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
 
 export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
-};
+} as const;
 
 export const DeliveriesAllowedColumnEnum = {
   preview: "preview",
@@ -4606,6 +4606,7 @@ export type UpsertComponentConfigurationRequest = Static<
 
 export enum UpsertComponentConfigurationValidationErrorType {
   UniqueConstraintViolation = "UniqueConstraintViolation",
+  NotFound = "NotFound",
 }
 
 export const UpsertComponentConfigurationUniqueConstraintViolationError =
@@ -4620,8 +4621,18 @@ export type UpsertComponentConfigurationUniqueConstraintViolationError = Static<
   typeof UpsertComponentConfigurationUniqueConstraintViolationError
 >;
 
+export const UpsertComponentConfigurationNotFoundError = Type.Object({
+  type: Type.Literal(UpsertComponentConfigurationValidationErrorType.NotFound),
+  message: Type.String(),
+});
+
+export type UpsertComponentConfigurationNotFoundError = Static<
+  typeof UpsertComponentConfigurationNotFoundError
+>;
+
 export const UpsertComponentConfigurationValidationError = Type.Union([
   UpsertComponentConfigurationUniqueConstraintViolationError,
+  UpsertComponentConfigurationNotFoundError,
 ]);
 
 export type UpsertComponentConfigurationValidationError = Static<
