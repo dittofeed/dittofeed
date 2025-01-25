@@ -9,6 +9,7 @@ import { omit } from "remeda";
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
+  query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
 import logger from "./logger";
@@ -307,7 +308,7 @@ export async function searchDeliveries({
 
   const query = `
     ${withClause}
-    SELECT 
+    SELECT
       argMax(event, event_time) last_event,
       any(if(properties = '', NULL, properties)) properties,
       max(event_time) updated_at,
@@ -353,10 +354,13 @@ export async function searchDeliveries({
     )},${queryBuilder.addQueryValue(limit, "UInt64")}
   `;
 
-  const result = await clickhouseClient().query({
+  const result = await chQuery({
     query,
     query_params: queryBuilder.getQueries(),
     format: "JSONEachRow",
+    clickhouse_settings: {
+      date_time_output_format: "iso",
+    },
   });
 
   const items: SearchDeliveriesResponseItem[] = [];
