@@ -927,6 +927,7 @@ export function DeliveriesTableV2({
                     draft.referenceDate,
                     option.minutes,
                   );
+                  draft.query.endDate = draft.referenceDate;
                 })
               }
               size="small"
