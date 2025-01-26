@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 import { Box, Divider, IconButton, Stack } from "@mui/material";
+import React from "react";
 import {
+  Button,
   CalendarCell,
   CalendarGrid,
   DateValue,
@@ -24,13 +26,13 @@ export function RangeCalendar<T extends DateValue>({
     <Stack className="react-aria" sx={{ p: 1 }}>
       <AriaRangeCalendar {...props} visibleDuration={{ months: 2 }}>
         <header>
-          <IconButton slot="previous">
+          <Button slot="previous">
             <ChevronLeft />
-          </IconButton>
+          </Button>
           <Heading />
-          <IconButton slot="next">
+          <Button slot="next">
             <ChevronRight />
-          </IconButton>
+          </Button>
         </header>
         <Divider sx={{ borderColor: "grey.300", mt: 1, mb: 1 }} />
         <Stack direction="row">
