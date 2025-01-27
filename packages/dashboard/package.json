@@ -16,7 +16,8 @@
       "./dist/*.jsx"
     ],
     ".": "./next.config.js",
-    "./src/styles/*.css": "./src/styles/*.css"
+    "./src/styles/*.css": "./src/styles/*.css",
+    "./src/components/*.css": "./src/components/*.css"
   },
   "license": "LicenseRef-LICENSE",
   "dependencies": {
