@@ -531,7 +531,6 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       await submitMailChimpEvents({
-        workspaceId,
         events: parsedEvents,
       });
 
