@@ -57,71 +57,92 @@ export async function sendMail({
 }
 
 export async function submitMailChimpEvents({
-  workspaceId,
   events,
 }: {
-  workspaceId: string;
   events: MailChimpEvent[];
 }): Promise<void> {
-  const batch: KnownBatchTrackData[] = events.flatMap((e) => {
-    // eslint-disable-next-line no-underscore-dangle
-    const messageId = uuidv5(e.msg._id, workspaceId);
-    let event: InternalEventType;
-    switch (e.event) {
-      case "open":
-        event = InternalEventType.EmailOpened;
-        break;
-      case "click":
-        event = InternalEventType.EmailClicked;
-        break;
-      case "hard_bounce":
-        event = InternalEventType.EmailBounced;
-        break;
-      case "spam":
-        event = InternalEventType.EmailMarkedSpam;
-        break;
-      case "delivered":
-        event = InternalEventType.EmailDelivered;
-        break;
-      default:
-        logger().error(
+  const items: { workspaceId: string; item: KnownBatchTrackData }[] =
+    events.flatMap((e) => {
+      const { workspaceId } = e.msg.metadata;
+      if (!workspaceId) {
+        logger().info(
+          {
+            event: e,
+          },
+          "Missing workspaceId in mailchimp event",
+        );
+        return [];
+      }
+      // eslint-disable-next-line no-underscore-dangle
+      const messageId = uuidv5(e.msg._id, workspaceId);
+      let event: InternalEventType;
+      switch (e.event) {
+        case "open":
+          event = InternalEventType.EmailOpened;
+          break;
+        case "click":
+          event = InternalEventType.EmailClicked;
+          break;
+        case "hard_bounce":
+          event = InternalEventType.EmailBounced;
+          break;
+        case "spam":
+          event = InternalEventType.EmailMarkedSpam;
+          break;
+        case "delivered":
+          event = InternalEventType.EmailDelivered;
+          break;
+        default:
+          logger().error(
+            {
+              workspaceId,
+              event: e,
+            },
+            "Unhandled mailchimp event",
+          );
+          return [];
+      }
+      const properties = R.merge(
+        { email: e.msg.email },
+        R.pick(e.msg.metadata, MESSAGE_METADATA_FIELDS),
+      );
+      const { userId } = e.msg.metadata;
+      if (!userId) {
+        logger().info(
           {
             workspaceId,
             event: e,
           },
-          "Unhandled mailchimp event",
+          "Missing userId in mailchimp event",
         );
         return [];
-    }
-    const properties = R.merge(
-      { email: e.msg.email },
-      R.pick(e.msg.metadata, MESSAGE_METADATA_FIELDS),
-    );
-    const { userId } = e.msg.metadata;
-    if (!userId) {
-      logger().info(
-        {
-          workspaceId,
-          event: e,
-        },
-        "Missing userId in mailchimp event",
-      );
-      return [];
-    }
-    return {
-      type: EventType.Track,
-      event,
-      userId,
-      messageId,
-      timestamp: new Date(e.ts * 1000).toISOString(),
-      properties,
-    } satisfies KnownBatchTrackData;
+      }
+      const batchData = {
+        type: EventType.Track,
+        event,
+        userId,
+        messageId,
+        timestamp: new Date(e.ts * 1000).toISOString(),
+        properties,
+      } satisfies KnownBatchTrackData;
+
+      return {
+        workspaceId,
+        item: batchData,
+      };
+    });
+
+  const workspaceGroups = R.groupBy(items, (i) => i.workspaceId);
+
+  const submissions = R.mapValues(workspaceGroups, (values, workspaceId) => {
+    const batch = values.map((v) => v.item) satisfies KnownBatchTrackData[];
+    return submitBatch({
+      workspaceId,
+      data: {
+        batch,
+      },
+    });
   });
 
-  await submitBatch({
-    workspaceId,
-    data: {
-      batch,
-    },
-  });
+  await Promise.all(R.values(submissions));
 }
