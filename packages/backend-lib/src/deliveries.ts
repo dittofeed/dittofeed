@@ -310,7 +310,7 @@ export async function searchDeliveries({
     ${withClause}
     SELECT
       argMax(event, event_time) last_event,
-      any(if(properties = '', NULL, properties)) properties,
+      anyIf(properties, properties != '') properties,
       max(event_time) updated_at,
       min(event_time) sent_at,
       user_or_anonymous_id,
@@ -345,7 +345,6 @@ export async function searchDeliveries({
     HAVING
       origin_message_id != ''
       AND properties != ''
-      AND properties != NULL
       ${journeyIdClause}
       ${userIdClause}
       ${statusClause}
