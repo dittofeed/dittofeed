@@ -62,6 +62,7 @@ export async function computePropertiesWorkflow({
     logger.info("segmentsNotificationWorkflow polling attempt", {
       i,
       currentTime,
+      workspaceId,
     });
 
     const { computePropertiesInterval, computePropertiesAttempts } =
@@ -78,6 +79,7 @@ export async function computePropertiesWorkflow({
     } catch (e) {
       logger.error("computePropertiesWorkflow failed to re-compute", {
         err: e,
+        workspaceId,
       });
     }
 
@@ -100,6 +102,7 @@ export async function computePropertiesWorkflow({
       period,
       i,
       maxPollingAttempts,
+      workspaceId,
     });
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
     await sleep(period);
@@ -109,6 +112,7 @@ export async function computePropertiesWorkflow({
       logger.debug("segmentsNotificationWorkflow polling ended", {
         i,
         maxPollingAttempts,
+        workspaceId,
       });
       break;
     }
