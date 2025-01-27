@@ -344,6 +344,8 @@ export async function searchDeliveries({
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING
       origin_message_id != ''
+      AND properties != ''
+      AND properties != NULL
       ${journeyIdClause}
       ${userIdClause}
       ${statusClause}
