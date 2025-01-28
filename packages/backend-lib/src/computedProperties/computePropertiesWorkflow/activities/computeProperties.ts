@@ -7,6 +7,7 @@ import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
+import { ComputedPropertyStep } from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import {
   computeAssignments,
@@ -76,7 +77,10 @@ export async function computePropertiesIncremental({
   journeys,
   integrations,
   now,
-}: ComputePropertiesIncrementalArgs) {
+  steps,
+}: ComputePropertiesIncrementalArgs & {
+  steps?: ComputedPropertyStep[];
+}) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     span.setAttributes({
       workspaceId,
@@ -85,27 +89,36 @@ export async function computePropertiesIncremental({
       journeys: journeys.map((j) => j.id),
       integrations: integrations.map((i) => i.id),
       now: new Date(now).toISOString(),
+      steps,
     });
+    const stepsSet =
+      steps !== undefined ? new Set<ComputedPropertyStep>(steps) : null;
 
-    await computeState({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-    });
-    await computeAssignments({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-    });
-    await processAssignments({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-      journeys,
-      integrations,
-    });
+    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ComputeState)) {
+      await computeState({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+      });
+    }
+    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ComputeAssignments)) {
+      await computeAssignments({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+      });
+    }
+    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ProcessAssignments)) {
+      await processAssignments({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+        journeys,
+        integrations,
+      });
+    }
   });
 }
