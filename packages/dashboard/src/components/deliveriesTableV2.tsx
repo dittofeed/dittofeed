@@ -92,6 +92,17 @@ import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
 
+export const DEFAULT_ALLOWED_COLUMNS: DeliveriesAllowedColumn[] = [
+  "preview",
+  "from",
+  "to",
+  "channel",
+  "status",
+  "origin",
+  "template",
+  "sentAt",
+];
+
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
     case SearchDeliveriesRequestSortByEnum.sentAt:
@@ -501,19 +512,30 @@ const timeOptions: TimeOption[] = [
   { type: "custom", id: "custom", label: "Custom Date Range" },
 ];
 
-export function DeliveriesTableV2({
-  getDeliveriesRequest = defaultGetDeliveriesRequest,
-  userUriTemplate,
-  templateUriTemplate,
-  originUriTemplate,
-  columnAllowList,
-}: {
+export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
+  userUriTemplate: "/users/{userId}",
+  templateUriTemplate: "/templates/{channel}/{templateId}",
+  originUriTemplate: "/{originType}s/{originId}",
+  columnAllowList: DEFAULT_ALLOWED_COLUMNS,
+};
+
+interface DeliveriesTableV2Props {
   getDeliveriesRequest?: GetDeliveriesRequest;
   userUriTemplate?: string;
   templateUriTemplate?: string;
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
-}) {
+  userId?: string[] | string;
+}
+
+export function DeliveriesTableV2({
+  getDeliveriesRequest = defaultGetDeliveriesRequest,
+  userUriTemplate,
+  templateUriTemplate,
+  originUriTemplate,
+  userId,
+  columnAllowList,
+}: DeliveriesTableV2Props) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
       "workspace",
@@ -578,6 +600,7 @@ export function DeliveriesTableV2({
         from,
         sortBy: state.query.sortBy,
         sortDirection: state.query.sortDirection,
+        userId,
       };
       const response = await getDeliveriesRequest({
         params,
