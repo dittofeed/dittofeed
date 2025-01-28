@@ -174,7 +174,6 @@ export default function BroadcastReview() {
         </Tooltip>
         {!notStarted && (
           <Stack sx={{ flex: 1 }} spacing={1}>
-            <SubtleHeader>Deliveries</SubtleHeader>
             <DeliveriesTable journeyId={persistedBroadcast?.journeyId} />
           </Stack>
         )}
