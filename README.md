@@ -19,7 +19,7 @@
 
 - 1️⃣ Connect user data via Segment, Reverse ETL, or the Dittofeed API ⛓️
 - 2️⃣ Create highly customizable user segments with multiple operators 🧍🏽‍♀️🧍🏻‍♂️🧍🏾
-- 3️⃣ Design messaging templates using HTML, MJML, or Markdown 👨🏻‍🎨
+- 3️⃣ Design messaging templates using HTML/MJML, or our low-code editor 👨🏻‍🎨
 - 4️⃣ Automate user journeys with a powerful, easy-to-use GUI interface 🛩️
 - 5️⃣ Integrate with major ESPs like Sendgrid and Amazon SES 🏰
 - 6️⃣ Track and analyze message performance from the dashboard 🎯
