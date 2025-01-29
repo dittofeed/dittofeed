@@ -526,6 +526,7 @@ interface DeliveriesTableV2Props {
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
   userId?: string[] | string;
+  journeyId?: string;
 }
 
 export function DeliveriesTableV2({
@@ -535,6 +536,7 @@ export function DeliveriesTableV2({
   originUriTemplate,
   userId,
   columnAllowList,
+  journeyId,
 }: DeliveriesTableV2Props) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -601,6 +603,7 @@ export function DeliveriesTableV2({
         sortBy: state.query.sortBy,
         sortDirection: state.query.sortDirection,
         userId,
+        journeyId,
       };
       const response = await getDeliveriesRequest({
         params,
