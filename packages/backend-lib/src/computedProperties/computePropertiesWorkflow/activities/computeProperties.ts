@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
-import { aliasedTable, and, eq, max, not, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, max, sql } from "drizzle-orm";
 
+import config from "../../../config";
 import { db } from "../../../db";
 import { journey as dbJourney } from "../../../db/schema";
 import * as schema from "../../../db/schema";
@@ -9,11 +10,7 @@ import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
-import {
-  ComputedPropertyStep,
-  WorkspaceStatusDbEnum,
-  WorkspaceTypeAppEnum,
-} from "../../../types";
+import { ComputedPropertyStep } from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 import {
@@ -38,7 +35,6 @@ export async function computePropertiesIncrementalArgs({
     findAllUserPropertyResources({
       workspaceId,
     }),
-    // FIXME require running?
     findManySegmentResourcesSafe({
       workspaceId,
       requireRunning: true,
@@ -137,6 +133,7 @@ export async function findDueWorkspaces({
   // unix timestamp in ms
   now: number;
 }): Promise<{ workspaceIds: string[] }> {
+  const { computePropertiesInterval } = config();
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
   const periodsQuery = await db()
@@ -155,10 +152,21 @@ export async function findDueWorkspaces({
     )
     .groupBy(cpp.workspaceId)
     .having(
-      ({ timeDifference }) => sql`${timeDifference} > interval '2 minutes'`,
+      ({ timeDifference }) =>
+        sql`${timeDifference} > interval '${computePropertiesInterval / 1000} seconds'`,
     );
 
   return {
     workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
   };
+}
+
+export async function processAssignmentsBatch({
+  workspaceIds,
+  now,
+}: {
+  workspaceIds: string[];
+  now: number;
+}) {
+  throw new Error("Not implemented");
 }
