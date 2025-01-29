@@ -4569,6 +4569,9 @@ export type DeliveriesAllowedColumn = Static<typeof DeliveriesAllowedColumn>;
 export const DeliveriesTableConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.DeliveriesTable),
   columnAllowList: Type.Optional(Type.Array(DeliveriesAllowedColumn)),
+  userUriTemplate: Type.Optional(Type.String()),
+  templateUriTemplate: Type.Optional(Type.String()),
+  originUriTemplate: Type.Optional(Type.String()),
 });
 
 export type DeliveriesTableConfiguration = Static<
