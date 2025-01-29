@@ -49211,6 +49211,15 @@
                                     }
                                   ]
                                 }
+                              },
+                              "userUriTemplate": {
+                                "type": "string"
+                              },
+                              "templateUriTemplate": {
+                                "type": "string"
+                              },
+                              "originUriTemplate": {
+                                "type": "string"
                               }
                             },
                             "required": [
@@ -49330,6 +49339,15 @@
                             }
                           ]
                         }
+                      },
+                      "userUriTemplate": {
+                        "type": "string"
+                      },
+                      "templateUriTemplate": {
+                        "type": "string"
+                      },
+                      "originUriTemplate": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -49435,6 +49453,15 @@
                               }
                             ]
                           }
+                        },
+                        "userUriTemplate": {
+                          "type": "string"
+                        },
+                        "templateUriTemplate": {
+                          "type": "string"
+                        },
+                        "originUriTemplate": {
+                          "type": "string"
                         }
                       },
                       "required": [
