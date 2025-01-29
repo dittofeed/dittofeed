@@ -3,7 +3,6 @@ import { GetServerSideProps } from "next";
 
 import DashboardContent from "../components/dashboardContent";
 import {
-  DEFAULT_ALLOWED_COLUMNS,
   DEFAULT_DELIVERIES_TABLE_V2_PROPS,
   DeliveriesTableV2,
 } from "../components/deliveriesTableV2";
