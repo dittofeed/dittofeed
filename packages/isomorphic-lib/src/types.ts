@@ -4666,3 +4666,18 @@ export const GetComponentConfigurationsResponse = Type.Object({
 export type GetComponentConfigurationsResponse = Static<
   typeof GetComponentConfigurationsResponse
 >;
+
+export const UpsertSubscriptionGroupAssignmentsRequest = Type.Object({
+  workspaceId: Type.String(),
+  subscriptionGroupId: Type.String(),
+  assignments: Type.Array(
+    Type.Object({
+      userId: Type.String(),
+      subscribed: Type.Boolean(),
+    }),
+  ),
+});
+
+export type UpsertSubscriptionGroupAssignmentsRequest = Static<
+  typeof UpsertSubscriptionGroupAssignmentsRequest
+>;

@@ -14,6 +14,7 @@ import {
   EmptyResponse,
   SavedSubscriptionGroupResource,
   SubscriptionChange,
+  UpsertSubscriptionGroupAssignmentsRequest,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
   UserUploadRowErrors,
@@ -70,6 +71,21 @@ export default async function subscriptionGroupsController(
       const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
     },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/assignments",
+    {
+      schema: {
+        description: "Create or update user subscription group assignments.",
+        tags: ["Subscription Groups"],
+        body: UpsertSubscriptionGroupAssignmentsRequest,
+        response: {
+          200: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {},
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
