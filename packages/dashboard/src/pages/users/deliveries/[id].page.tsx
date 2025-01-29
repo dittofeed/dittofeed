@@ -10,8 +10,10 @@ import { eq } from "drizzle-orm";
 import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import { DeliveriesTable } from "../../../components/deliveriesTable";
-import { SubtleHeader } from "../../../components/headers";
+import {
+  DEFAULT_DELIVERIES_TABLE_V2_PROPS,
+  DeliveriesTableV2,
+} from "../../../components/deliveriesTableV2";
 import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
@@ -85,8 +87,10 @@ const UserDeliveries: NextPage<UserDeliveriesPageProps> =
     return (
       <UserLayout userId={user.id}>
         <Stack spacing={2} sx={{ padding: 2, width: "100%", height: "100%" }}>
-          <SubtleHeader>Deliveries</SubtleHeader>
-          <DeliveriesTable userId={user.id} />
+          <DeliveriesTableV2
+            {...DEFAULT_DELIVERIES_TABLE_V2_PROPS}
+            userId={user.id}
+          />
         </Stack>
       </UserLayout>
     );

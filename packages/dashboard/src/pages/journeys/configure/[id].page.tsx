@@ -18,7 +18,11 @@ import {
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
-import { DeliveriesTable } from "../../../components/deliveriesTable";
+import {
+  DEFAULT_ALLOWED_COLUMNS,
+  DEFAULT_DELIVERIES_TABLE_V2_PROPS,
+  DeliveriesTableV2,
+} from "../../../components/deliveriesTableV2";
 import EditableName from "../../../components/editableName";
 import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
@@ -330,7 +334,13 @@ function JourneyConfigure() {
         {journey.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
-            <DeliveriesTable journeyId={id} />
+            <DeliveriesTableV2
+              {...DEFAULT_DELIVERIES_TABLE_V2_PROPS}
+              columnAllowList={DEFAULT_ALLOWED_COLUMNS.filter(
+                (c) => c !== "origin",
+              )}
+              journeyId={id}
+            />
           </Stack>
         )}
       </Stack>

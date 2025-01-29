@@ -15,8 +15,11 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { validate } from "uuid";
 
-import { DeliveriesTable } from "../../../components/deliveriesTable";
-import { SubtleHeader } from "../../../components/headers";
+import {
+  DEFAULT_ALLOWED_COLUMNS,
+  DEFAULT_DELIVERIES_TABLE_V2_PROPS,
+  DeliveriesTableV2,
+} from "../../../components/deliveriesTableV2";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
@@ -174,8 +177,13 @@ export default function BroadcastReview() {
         </Tooltip>
         {!notStarted && (
           <Stack sx={{ flex: 1 }} spacing={1}>
-            <SubtleHeader>Deliveries</SubtleHeader>
-            <DeliveriesTable journeyId={persistedBroadcast?.journeyId} />
+            <DeliveriesTableV2
+              {...DEFAULT_DELIVERIES_TABLE_V2_PROPS}
+              columnAllowList={DEFAULT_ALLOWED_COLUMNS.filter(
+                (c) => c !== "origin",
+              )}
+              journeyId={persistedBroadcast?.journeyId}
+            />
           </Stack>
         )}
       </Stack>
