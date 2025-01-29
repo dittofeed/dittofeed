@@ -31,6 +31,7 @@ export async function computePropertiesIncrementalArgs({
     findAllUserPropertyResources({
       workspaceId,
     }),
+    // FIXME require running?
     findManySegmentResourcesSafe({
       workspaceId,
       requireRunning: true,
@@ -121,4 +122,12 @@ export async function computePropertiesIncremental({
       });
     }
   });
+}
+
+export async function findDueWorkspaces({
+  now,
+}: {
+  now: number;
+}): Promise<{ workspaceIds: string[] }> {
+  throw new Error("not implemented");
 }
