@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
-import { Box, Divider, IconButton, Stack } from "@mui/material";
+import { Box, Divider, Stack } from "@mui/material";
 import React from "react";
 import {
   Button,

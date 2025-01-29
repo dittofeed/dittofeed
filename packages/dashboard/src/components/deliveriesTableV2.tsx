@@ -635,74 +635,74 @@ export function DeliveriesTableV2({
   );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(() => {
-    let tableColumns: ColumnDef<Delivery>[] = [
-      {
+    const columnDefinitions: Record<
+      DeliveriesAllowedColumn,
+      ColumnDef<Delivery>
+    > = {
+      preview: {
         id: "preview",
         cell: renderPreviewCell,
       },
-      {
+      from: {
         id: "from",
         header: "From",
         accessorKey: "from",
       },
-      {
+      to: {
         id: "to",
         header: "To",
         accessorKey: "to",
         cell: userLinkCell,
       },
-      {
+      snippet: {
         id: "snippet",
         header: "Snippet",
         accessorKey: "snippet",
         cell: SnippetCell,
       },
-      {
+      channel: {
         id: "channel",
         header: "Channel",
         accessorKey: "channel",
         cell: ({ row }) => humanizeChannel(row.original.channel),
       },
-      {
+      status: {
         id: "status",
         header: "Status",
         accessorKey: "status",
         cell: ({ row }) => humanizeStatus(row.original.status),
       },
-      {
+      origin: {
         id: "origin",
         header: "Origin",
         accessorKey: "originName",
         cell: originLinkCell,
       },
-      {
+      template: {
         id: "template",
         header: "Template",
         accessorKey: "templateName",
         cell: templateLinkCell,
       },
-      {
+      sentAt: {
         id: "sentAt",
         header: "Sent At",
         accessorKey: "sentAt",
         cell: TimeCell,
       },
-      {
+      updatedAt: {
         id: "updatedAt",
         header: "Updated At",
         accessorKey: "updatedAt",
         cell: TimeCell,
       },
-    ];
+    };
 
-    if (columnAllowList) {
-      const allowList = new Set(columnAllowList);
-      tableColumns = tableColumns.filter((column) =>
-        column.id ? allowList.has(column.id as DeliveriesAllowedColumn) : false,
-      );
+    if (!columnAllowList) {
+      return Object.values(columnDefinitions);
     }
 
-    return tableColumns;
+    return columnAllowList.map((columnId) => columnDefinitions[columnId]);
   }, [
     renderPreviewCell,
     userLinkCell,
