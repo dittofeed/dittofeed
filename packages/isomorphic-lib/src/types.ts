@@ -4669,11 +4669,13 @@ export type GetComponentConfigurationsResponse = Static<
 
 export const UpsertSubscriptionGroupAssignmentsRequest = Type.Object({
   workspaceId: Type.String(),
-  subscriptionGroupId: Type.String(),
-  assignments: Type.Array(
+  userUpdates: Type.Array(
     Type.Object({
       userId: Type.String(),
-      subscribed: Type.Boolean(),
+      changes: Type.Record(Type.String(), Type.Boolean(), {
+        description:
+          "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
+      }),
     }),
   ),
 });

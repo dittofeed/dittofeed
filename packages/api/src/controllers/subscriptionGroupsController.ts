@@ -6,6 +6,7 @@ import logger from "backend-lib/src/logger";
 import {
   buildSubscriptionChangeEvent,
   subscriptionGroupToResource,
+  updateUserSubscriptions,
   upsertSubscriptionGroup,
 } from "backend-lib/src/subscriptionGroups";
 import {
@@ -77,7 +78,8 @@ export default async function subscriptionGroupsController(
     "/assignments",
     {
       schema: {
-        description: "Create or update user subscription group assignments.",
+        description:
+          "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
         tags: ["Subscription Groups"],
         body: UpsertSubscriptionGroupAssignmentsRequest,
         response: {
@@ -85,7 +87,10 @@ export default async function subscriptionGroupsController(
         },
       },
     },
-    async (request, reply) => {},
+    async (request, reply) => {
+      await updateUserSubscriptions(request.body);
+      return reply.status(200).send();
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(

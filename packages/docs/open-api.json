@@ -19724,6 +19724,68 @@
         }
       }
     },
+    "/api/subscription-groups/assignments": {
+      "put": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "userUpdates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "changes": {
+                          "description": "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "changes"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "userUpdates"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/subscription-groups/upload-csv": {
       "post": {
         "tags": [
@@ -47397,6 +47459,68 @@
                   "required": [
                     "message"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/subscription-groups/assignments": {
+      "put": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "userUpdates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "changes": {
+                          "description": "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "changes"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "userUpdates"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
