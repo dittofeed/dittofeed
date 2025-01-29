@@ -1,13 +1,19 @@
 /* eslint-disable no-await-in-loop */
-import { and, eq } from "drizzle-orm";
+import { aliasedTable, and, eq, max, not } from "drizzle-orm";
 
+import { db } from "../../../db";
 import { journey as dbJourney } from "../../../db/schema";
+import * as schema from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
-import { ComputedPropertyStep } from "../../../types";
+import {
+  ComputedPropertyStep,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
+} from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import {
   computeAssignments,
@@ -15,6 +21,7 @@ import {
   computeState,
   processAssignments,
 } from "../../computePropertiesIncremental";
+import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
@@ -129,5 +136,20 @@ export async function findDueWorkspaces({
 }: {
   now: number;
 }): Promise<{ workspaceIds: string[] }> {
-  throw new Error("not implemented");
+  const w = aliasedTable(schema.workspace, "w");
+  const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
+  const periodsQuery = db()
+    .select({
+      workspaceId: cpp.workspaceId,
+      to: max(cpp.to),
+    })
+    .from(cpp)
+    .innerJoin(w, eq(cpp.workspaceId, w.id))
+    .where(
+      and(
+        eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
+        RECOMPUTABLE_WORKSPACES_QUERY,
+      ),
+    )
+    .groupBy(cpp.workspaceId);
 }
