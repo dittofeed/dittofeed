@@ -32,6 +32,7 @@ export async function computePropertiesIncrementalArgs({
     }),
     findManySegmentResourcesSafe({
       workspaceId,
+      requireRunning: true,
     }),
     findAllIntegrationResources({
       workspaceId,
