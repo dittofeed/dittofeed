@@ -105,10 +105,14 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
     await updateUserSubscriptions({
       workspaceId: w,
-      userId,
-      changes: {
-        [s]: sub === "1",
-      },
+      userUpdates: [
+        {
+          userId,
+          changes: {
+            [s]: sub === "1",
+          },
+        },
+      ],
     });
   }
 
