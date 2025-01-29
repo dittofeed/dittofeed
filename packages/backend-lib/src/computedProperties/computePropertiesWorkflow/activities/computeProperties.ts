@@ -15,13 +15,13 @@ import {
   WorkspaceTypeAppEnum,
 } from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
+import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 import {
   computeAssignments,
   ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
   computeState,
   processAssignments,
 } from "../../computePropertiesIncremental";
-import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
