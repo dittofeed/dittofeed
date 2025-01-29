@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { aliasedTable, and, eq, max, not } from "drizzle-orm";
+import { aliasedTable, and, eq, max, not, sql } from "drizzle-orm";
 
 import { db } from "../../../db";
 import { journey as dbJourney } from "../../../db/schema";
@@ -134,14 +134,16 @@ export async function computePropertiesIncremental({
 export async function findDueWorkspaces({
   now,
 }: {
+  // unix timestamp in ms
   now: number;
 }): Promise<{ workspaceIds: string[] }> {
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
-  const periodsQuery = db()
+  const periodsQuery = await db()
     .select({
       workspaceId: cpp.workspaceId,
       to: max(cpp.to),
+      timeDifference: sql<number>`to_timestamp(${now} / 1000) - ${max(cpp.to)}`,
     })
     .from(cpp)
     .innerJoin(w, eq(cpp.workspaceId, w.id))
@@ -151,5 +153,12 @@ export async function findDueWorkspaces({
         RECOMPUTABLE_WORKSPACES_QUERY,
       ),
     )
-    .groupBy(cpp.workspaceId);
+    .groupBy(cpp.workspaceId)
+    .having(
+      ({ timeDifference }) => sql`${timeDifference} > interval '2 minutes'`,
+    );
+
+  return {
+    workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
+  };
 }
