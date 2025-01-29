@@ -196,10 +196,14 @@ describe("subscriptionManagementEndToEnd", () => {
 
       await updateUserSubscriptions({
         workspaceId: params.w,
-        userId: userLookupResult.userId,
-        changes: {
-          [params.s]: params.sub === "1",
-        },
+        userUpdates: [
+          {
+            userId: userLookupResult.userId,
+            changes: {
+              [params.s]: params.sub === "1",
+            },
+          },
+        ],
       });
 
       // looking up subscription details again

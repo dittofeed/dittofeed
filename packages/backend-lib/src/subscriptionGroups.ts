@@ -23,6 +23,7 @@ import {
   findAllSegmentAssignments,
   findAllSegmentAssignmentsByIds,
   insertSegmentAssignments,
+  SegmentBulkUpsertItem,
 } from "./segments";
 import {
   EventType,
@@ -463,24 +464,28 @@ export async function lookupUserForSubscriptions({
 
 /**
  *
- * @param param0.userId id of the user to update
+ * @param param0.userId id of the user to update, or array of user ids to update
  * @param param0.changes changes to apply to the user's subscriptions. Record of
  * subscription group id -> isSubscribed
  * @returns
  */
 export async function updateUserSubscriptions({
   workspaceId,
-  userId,
-  changes,
+  userUpdates,
 }: {
   workspaceId: string;
-  userId: string;
-  changes: UserSubscriptionsUpdate["changes"];
+  userUpdates: {
+    userId: string;
+    changes: UserSubscriptionsUpdate["changes"];
+  }[];
 }) {
+  const subscriptionGroupIds = userUpdates.flatMap((u) =>
+    Object.keys(u.changes),
+  );
   const segments = await db().query.segment.findMany({
     where: and(
       eq(dbSegment.workspaceId, workspaceId),
-      inArray(dbSegment.subscriptionGroupId, Object.keys(changes)),
+      inArray(dbSegment.subscriptionGroupId, subscriptionGroupIds),
     ),
   });
 
@@ -497,50 +502,45 @@ export async function updateUserSubscriptions({
     {},
   );
 
-  const changePairs = R.toPairs(changes);
-  const userEvents = changePairs.flatMap(
-    ([subscriptionGroupId, isSubscribed]) =>
-      buildSubscriptionChangeEvent({
-        action: isSubscribed
-          ? SubscriptionChange.Subscribe
-          : SubscriptionChange.Unsubscribe,
-        subscriptionGroupId,
-        userId,
-      }),
-  );
-
-  const segmentAssignmentUpdates = changePairs.flatMap(
-    ([subscriptionGroupId, isSubscribed]) => {
-      const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
-      if (!segment) {
-        logger().error(
-          {
-            segmentBySubscriptionGroupId,
-            subscriptionGroupId,
-            segments,
-            changes,
-            changesKeys: Object.keys(changes),
-          },
-          "Segment not found for subscription group id",
-        );
-        return [];
-      }
-      return insertSegmentAssignments([
-        {
-          workspaceId,
+  const allUserEvents = userUpdates.flatMap(({ userId, changes }) => {
+    const userChangePairs = R.entries(changes);
+    const userEvents = userChangePairs.flatMap(
+      ([subscriptionGroupId, isSubscribed]) =>
+        buildSubscriptionChangeEvent({
+          action: isSubscribed
+            ? SubscriptionChange.Subscribe
+            : SubscriptionChange.Unsubscribe,
+          subscriptionGroupId,
           userId,
-          segmentId: segment.id,
-          inSegment: isSubscribed,
-        },
-      ]);
+        }),
+    );
+    return userEvents;
+  });
+  const segmentAssignmentUpdates: SegmentBulkUpsertItem[] = userUpdates.flatMap(
+    ({ userId, changes }) => {
+      const changePairs = R.entries(changes);
+      return changePairs.flatMap(([subscriptionGroupId, isSubscribed]) => {
+        const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
+        if (!segment) {
+          return [];
+        }
+        return [
+          {
+            workspaceId,
+            userId,
+            segmentId: segment.id,
+            inSegment: isSubscribed,
+          },
+        ];
+      });
     },
   );
 
   await Promise.all([
-    ...segmentAssignmentUpdates,
+    insertSegmentAssignments(segmentAssignmentUpdates),
     insertUserEvents({
       workspaceId,
-      userEvents,
+      userEvents: allUserEvents,
     }),
   ]);
 }
