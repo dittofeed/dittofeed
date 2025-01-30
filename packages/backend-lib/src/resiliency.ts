@@ -16,10 +16,7 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "./types";
-import {
-  getRecomputableWorkspaces,
-  RECOMPUTABLE_WORKSPACES_QUERY,
-} from "./workspaces";
+import { getRecomputableWorkspaces } from "./workspaces";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
 
@@ -163,7 +160,8 @@ export async function findActiveWorkspaces(): Promise<{
     .where(
       and(
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
-        RECOMPUTABLE_WORKSPACES_QUERY,
+        eq(w.status, WorkspaceStatusDbEnum.Active),
+        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
       ),
     )
     .groupBy(cpp.workspaceId);

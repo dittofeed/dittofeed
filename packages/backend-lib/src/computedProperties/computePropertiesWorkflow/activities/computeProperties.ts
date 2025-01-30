@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { aliasedTable, and, eq, max, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, max, not, sql } from "drizzle-orm";
 
 import config from "../../../config";
 import { db } from "../../../db";
@@ -10,7 +10,11 @@ import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
-import { ComputedPropertyStep } from "../../../types";
+import {
+  ComputedPropertyStep,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
+} from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 import {
@@ -129,33 +133,43 @@ export async function computePropertiesIncremental({
 
 export async function findDueWorkspaces({
   now,
+  interval = config().computePropertiesInterval,
 }: {
   // unix timestamp in ms
   now: number;
+  interval?: number;
 }): Promise<{ workspaceIds: string[] }> {
-  const { computePropertiesInterval } = config();
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
-  const periodsQuery = await db()
+  const aggregatedMax = max(cpp.to);
+
+  const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
+  const timestampNow = Math.floor(now / 1000);
+  const query = db()
     .select({
       workspaceId: cpp.workspaceId,
-      to: max(cpp.to),
-      timeDifference: sql<number>`to_timestamp(${now} / 1000) - ${max(cpp.to)}`,
     })
     .from(cpp)
     .innerJoin(w, eq(cpp.workspaceId, w.id))
     .where(
       and(
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
-        RECOMPUTABLE_WORKSPACES_QUERY,
+        eq(w.status, WorkspaceStatusDbEnum.Active),
+        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
       ),
     )
     .groupBy(cpp.workspaceId)
     .having(
-      ({ timeDifference }) =>
-        sql`${timeDifference} > interval '${computePropertiesInterval / 1000} seconds'`,
+      sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
     );
+  logger().debug(
+    {
+      sql: query.toSQL(),
+    },
+    "loc1 sql",
+  );
 
+  const periodsQuery = await query;
   return {
     workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
   };
