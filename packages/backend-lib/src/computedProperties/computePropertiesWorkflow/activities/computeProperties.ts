@@ -145,7 +145,7 @@ export async function findDueWorkspaces({
 
   const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
   const timestampNow = Math.floor(now / 1000);
-  const query = db()
+  const periodsQuery = await db()
     .select({
       workspaceId: cpp.workspaceId,
     })
@@ -162,14 +162,7 @@ export async function findDueWorkspaces({
     .having(
       sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
     );
-  logger().debug(
-    {
-      sql: query.toSQL(),
-    },
-    "loc1 sql",
-  );
 
-  const periodsQuery = await query;
   return {
     workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
   };
