@@ -246,6 +246,7 @@
         "api-reference/auto/journeys/get-apiadminjourneys",
         "api-reference/auto/journeys/put-apiadminjourneys",
         "api-reference/auto/journeys/delete-apiadminjourneys",
+        "api-reference/auto/subscription-groups/get-apiadminsubscription-groups",
         "api-reference/auto/subscription-groups/put-apiadminsubscription-groupsassignments",
         "api-reference/endpoints/subscription-management/user-subscriptions",
         "api-reference/auto/users/get-apiadminuserssubscriptions",
