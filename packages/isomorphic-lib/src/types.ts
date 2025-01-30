@@ -4666,3 +4666,20 @@ export const GetComponentConfigurationsResponse = Type.Object({
 export type GetComponentConfigurationsResponse = Static<
   typeof GetComponentConfigurationsResponse
 >;
+
+export const UpsertSubscriptionGroupAssignmentsRequest = Type.Object({
+  workspaceId: Type.String(),
+  userUpdates: Type.Array(
+    Type.Object({
+      userId: Type.String(),
+      changes: Type.Record(Type.String(), Type.Boolean(), {
+        description:
+          "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
+      }),
+    }),
+  ),
+});
+
+export type UpsertSubscriptionGroupAssignmentsRequest = Static<
+  typeof UpsertSubscriptionGroupAssignmentsRequest
+>;

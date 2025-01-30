@@ -46,8 +46,12 @@ export default async function subscriptionManagementController(
 
       await updateUserSubscriptions({
         workspaceId,
-        userId,
-        changes,
+        userUpdates: [
+          {
+            userId,
+            changes,
+          },
+        ],
       });
 
       return reply.status(204).send();
