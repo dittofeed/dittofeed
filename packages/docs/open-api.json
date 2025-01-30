@@ -18552,8 +18552,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": true
           },
           {
             "schema": {
@@ -19722,6 +19721,99 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Get a subscription groups",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Email"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MobilePush"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Sms"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Webhook"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "OptIn"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "OptOut"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "workspaceId",
+                      "name",
+                      "channel",
+                      "type"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/subscription-groups/assignments": {
@@ -19798,8 +19890,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": true
           },
           {
             "schema": {
@@ -24124,8 +24215,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": false,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": false
           }
         ],
         "responses": {
@@ -26734,8 +26824,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": false,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": false
           }
         ],
         "responses": {
@@ -36451,8 +36540,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": true
           },
           {
             "schema": {
@@ -47464,6 +47552,99 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Subscription Groups"
+        ],
+        "description": "Get a subscription groups",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Email"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MobilePush"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Sms"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Webhook"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "OptIn"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "OptOut"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "workspaceId",
+                      "name",
+                      "channel",
+                      "type"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/subscription-groups/assignments": {
@@ -47540,8 +47721,7 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+            "required": true
           },
           {
             "schema": {

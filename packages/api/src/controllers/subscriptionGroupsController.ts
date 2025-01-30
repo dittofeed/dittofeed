@@ -15,6 +15,7 @@ import {
   EmptyResponse,
   SavedSubscriptionGroupResource,
   SubscriptionChange,
+  SubscriptionGroupResource,
   UpsertSubscriptionGroupAssignmentsRequest,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
@@ -280,6 +281,33 @@ export default async function subscriptionGroupsController(
         return reply.status(404).send();
       }
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get a subscription groups",
+        tags: ["Subscription Groups"],
+        querystring: Type.Object({
+          workspaceId: WorkspaceId,
+        }),
+        response: {
+          200: Type.Array(SubscriptionGroupResource),
+        },
+      },
+    },
+    async (request, reply) => {
+      const subscriptionGroups = await db()
+        .select()
+        .from(schema.subscriptionGroup)
+        .where(
+          eq(schema.subscriptionGroup.workspaceId, request.query.workspaceId),
+        );
+
+      const resources = subscriptionGroups.map(subscriptionGroupToResource);
+      return reply.status(200).send(resources);
     },
   );
 }

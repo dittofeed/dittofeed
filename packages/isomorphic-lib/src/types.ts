@@ -2432,10 +2432,7 @@ export enum SourceControlProviderEnum {
 
 export const SourceControlProvider = Type.Enum(SourceControlProviderEnum);
 
-export const WorkspaceId = Type.String({
-  description:
-    "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems",
-});
+export const WorkspaceId = Type.String();
 
 export type WorkspaceId = Static<typeof WorkspaceId>;
 
