@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { aliasedTable, and, eq, max, not, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, eq, max, not, sql } from "drizzle-orm";
 
 import config from "../../../config";
 import { db } from "../../../db";
@@ -133,10 +133,12 @@ export async function computePropertiesIncremental({
 export async function findDueWorkspaces({
   now,
   interval = config().computePropertiesInterval,
+  limit = 100,
 }: {
   // unix timestamp in ms
   now: number;
   interval?: number;
+  limit?: number;
 }): Promise<{ workspaceIds: string[] }> {
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
@@ -147,6 +149,7 @@ export async function findDueWorkspaces({
   const periodsQuery = await db()
     .select({
       workspaceId: cpp.workspaceId,
+      max: aggregatedMax,
     })
     .from(cpp)
     .innerJoin(w, eq(cpp.workspaceId, w.id))
@@ -160,7 +163,9 @@ export async function findDueWorkspaces({
     .groupBy(cpp.workspaceId)
     .having(
       sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
-    );
+    )
+    .orderBy(sql`${aggregatedMax} ASC`)
+    .limit(limit);
 
   return {
     workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
@@ -174,8 +179,5 @@ export async function processAssignmentsBatch({
   workspaceIds: string[];
   now: number;
 }) {
-  const promises = workspaceIds.map(async (workspaceId) => {
-    const args = await computePropertiesIncrementalArgs({ workspaceId });
-  });
-  await Promise.all(promises);
+  throw new Error("Not implemented");
 }
