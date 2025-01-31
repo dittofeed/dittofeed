@@ -16,7 +16,6 @@ import {
   WorkspaceTypeAppEnum,
 } from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
-import { RECOMPUTABLE_WORKSPACES_QUERY } from "../../../workspaces";
 import {
   computeAssignments,
   ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
@@ -175,5 +174,8 @@ export async function processAssignmentsBatch({
   workspaceIds: string[];
   now: number;
 }) {
-  throw new Error("Not implemented");
+  const promises = workspaceIds.map(async (workspaceId) => {
+    const args = await computePropertiesIncrementalArgs({ workspaceId });
+  });
+  await Promise.all(promises);
 }
