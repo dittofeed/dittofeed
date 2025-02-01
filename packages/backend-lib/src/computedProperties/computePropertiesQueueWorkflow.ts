@@ -4,12 +4,16 @@ import {
   continueAsNew,
   defineQuery,
   defineSignal,
+  LoggerSinks,
   proxyActivities,
+  proxySinks,
   setHandler,
 } from "@temporalio/workflow";
 
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
+
+const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 export const addWorkspacesSignal = defineSignal<[string[]]>(
   "addWorkspacesSignal",
@@ -67,7 +71,7 @@ export async function computePropertiesQueueWorkflow(
 
       // Start an async function that does the work and releases the semaphore
       // eslint-disable-next-line @typescript-eslint/no-loop-func
-      const task = (async () => {
+      const task = (async function processWorkpsace() {
         try {
           // 1) Call the activity
           await computePropertiesContained({ workspaceId, now: Date.now() });
@@ -78,7 +82,10 @@ export async function computePropertiesQueueWorkflow(
         } catch (err) {
           // If you want to handle the error or retry logic here, do so.
           // In many cases you rely on the activity's built-in retry policies.
-          console.error("Error processing workspace", err);
+          logger.error("Error processing workspace from queue", {
+            workspaceId,
+            err,
+          });
         } finally {
           // Always release the semaphore, whether success or error
           semaphore.release();
