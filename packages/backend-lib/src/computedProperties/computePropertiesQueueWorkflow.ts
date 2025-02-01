@@ -17,7 +17,6 @@ export const QUEUE_WORKFLOW_ID = "compute-properties-queue";
 //
 const { computePropertiesContained } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
-  retry: { maximumAttempts: 3 },
 });
 
 //

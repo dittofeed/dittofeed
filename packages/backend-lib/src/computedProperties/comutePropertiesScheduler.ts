@@ -16,11 +16,8 @@ import {
 //
 // Activities proxy
 //
-const { findDueWorkspaces } = proxyActivities<typeof activities>({
+const { findDueWorkspaces, getQueueSize } = proxyActivities<typeof activities>({
   startToCloseTimeout: "1 minute",
-  retry: {
-    maximumAttempts: 3,
-  },
 });
 
 /**
@@ -36,12 +33,11 @@ export async function computePropertiesSchedulerWorkflow(
   N: number,
 ) {
   // Get a handle to the external queue workflow
-  const queueWf =
-    getExternalWorkflowHandle<typeof WorkQueueWorkflow>(queueWorkflowId);
+  const queueWf = getExternalWorkflowHandle(queueWorkflowId);
 
   while (true) {
     // 1. Check how many items are in the queue
-    const size = await queueWf.queryWorkflow(getQueueSizeQuery);
+    const size = await getQueueSize();
 
     // 2. Only poll for new items if there's space
     if (size < N) {
