@@ -9,76 +9,40 @@ import {
 } from "@temporalio/workflow";
 
 import type * as activities from "../temporal/activities";
+import { Semaphore } from "../temporal/semaphore";
 
-export const QUEUE_WORKFLOW_ID = "compute-properties-queue";
-
-//
-// Activities proxy
-//
-const { computePropertiesContained } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "5 minutes",
-});
-
-//
-// SIGNAL & QUERY DEFINITIONS
-//
 export const addWorkspacesSignal = defineSignal<[string[]]>(
   "addWorkspacesSignal",
 );
 export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 
-//
-// PARAMS INTERFACE
-//
+const { computePropertiesContained } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "5 minutes",
+});
+
+/** Parameters for the workflow */
 export interface ComputePropertiesQueueWorkflowParams {
-  /**
-   * Max number of items that the queue can hold at once (backpressure).
-   */
-  capacity: number;
-
-  /**
-   * Number of items to process in parallel per batch.
-   */
-  concurrency: number;
-
-  /**
-   * After how many batches of processing do we call `continueAsNew`?
-   */
-  maxLoopIterations: number;
-
-  /**
-   * (Optional) Current items in the queue (FIFO).
-   * If `undefined`, we start with an empty queue.
-   */
+  capacity: number; // max items in queue
+  concurrency: number; // max concurrency
+  maxLoopIterations: number; // how many items processed before continueAsNew
   queueState?: string[];
-
-  /**
-   * (Optional) Current membership set for deduplication.
-   * If `undefined`, we start with an empty set.
-   */
   membershipState?: string[];
 }
 
-/**
- * ComputePropertiesQueueWorkflow:
- * - Maintains a queue, with dedup, up to `capacity`.
- * - Processes items in batches of size `concurrency`.
- * - After `maxLoopIterations` batches, calls `continueAsNew`, passing along
- *   the current queue/membership so the next instance resumes where we left off.
- */
 export async function computePropertiesQueueWorkflow(
   params: ComputePropertiesQueueWorkflowParams,
 ) {
-  // 1) Rehydrate queue and membership from params (if provided).
+  // Rehydrate queue + membership
   const queue: string[] = params.queueState ?? [];
   const membership = new Set<string>(params.membershipState ?? []);
 
-  // 2) Start from a processedBatchCount or default to 0.
-  let iterationCount = 0;
+  let totalProcessed = 0;
+  const inFlight: Promise<void>[] = [];
 
-  //
-  // SIGNAL HANDLER: Add new items, respecting capacity + dedup
-  //
+  // Create our semaphore for concurrency
+  const semaphore = new Semaphore(params.concurrency);
+
+  // Signal handler: add items to queue (deduplicated, up to capacity)
   setHandler(addWorkspacesSignal, (workspaceIds: string[]) => {
     for (const w of workspaceIds) {
       if (queue.length < params.capacity && !membership.has(w)) {
@@ -88,45 +52,50 @@ export async function computePropertiesQueueWorkflow(
     }
   });
 
-  //
-  // QUERY HANDLER: Return current queue size
-  //
+  // Query handler: return how many items are currently in the queue
   setHandler(getQueueSizeQuery, () => queue.length);
 
-  //
-  // MAIN LOOP
-  //
   while (true) {
-    // Process while we have items
+    // While there are items in the queue...
     while (queue.length > 0) {
-      // Take up to `concurrency` items
-      const batch = queue.splice(0, params.concurrency);
+      // Dequeue the next item
+      const workspaceId = queue.shift()!;
+      membership.delete(workspaceId);
 
-      // Remove them from membership
-      for (const item of batch) {
-        membership.delete(item);
-      }
+      // Acquire the semaphore slot
+      await semaphore.acquire();
 
-      // Process them in parallel
-      await Promise.all(
-        batch.map((id) =>
-          computePropertiesContained({
-            workspaceId: id,
-            now: Date.now(),
-          }),
-        ),
-      );
+      // Start an async function that does the work and releases the semaphore
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
+      const task = (async () => {
+        try {
+          // 1) Call the activity
+          await computePropertiesContained({ workspaceId, now: Date.now() });
 
-      // Increment iteration count
-      iterationCount += 1;
+          // 2) Increment total processed
+          // eslint-disable-next-line no-plusplus
+          totalProcessed++;
+        } catch (err) {
+          // If you want to handle the error or retry logic here, do so.
+          // In many cases you rely on the activity's built-in retry policies.
+          console.error("Error processing workspace", err);
+        } finally {
+          // Always release the semaphore, whether success or error
+          semaphore.release();
+        }
+      })();
 
-      // If we’ve reached maxLoopIterations, continue as new
-      if (iterationCount >= params.maxLoopIterations) {
-        // Prepare updated parameters for the next run
+      // Save the Promise so we can await later
+      inFlight.push(task);
+
+      // If we've processed enough items, continueAsNew
+      if (totalProcessed >= params.maxLoopIterations) {
+        // Wait for all currently in-flight tasks to finish or fail
+        await Promise.allSettled(inFlight);
+
         const nextParams: ComputePropertiesQueueWorkflowParams = {
           ...params,
-          // Keep same capacity, concurrency, etc.
-          // Pass the up-to-date queue/membership
+          // Carry forward what's left in the queue
           queueState: queue,
           membershipState: [...membership],
         };
@@ -135,7 +104,7 @@ export async function computePropertiesQueueWorkflow(
       }
     }
 
-    // If queue empty, wait until we get new items via signal
+    // If queue is empty, wait until queue has new items
     if (queue.length === 0) {
       await condition(() => queue.length > 0);
     }
