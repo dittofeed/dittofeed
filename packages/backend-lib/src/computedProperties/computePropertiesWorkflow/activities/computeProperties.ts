@@ -1,33 +1,20 @@
 /* eslint-disable no-await-in-loop */
-import { aliasedTable, and, asc, eq, max, not, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
-import config from "../../../config";
-import { db } from "../../../db";
 import { journey as dbJourney } from "../../../db/schema";
-import * as schema from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
-import {
-  ComputedPropertyStep,
-  WorkspaceStatusDbEnum,
-  WorkspaceTypeAppEnum,
-} from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
-import {
-  computeAssignments,
-  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
-  computeState,
-  processAssignments,
-} from "../../computePropertiesIncremental";
+import * as computePropertiesIncremental from "../../computePropertiesIncremental";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<Omit<ComputePropertiesIncrementalArgs, "now">> {
+}): Promise<Omit<computePropertiesIncremental.ComputePropertiesArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findManyJourneyResourcesSafe(
       and(
@@ -84,7 +71,7 @@ export async function computePropertiesIncremental({
   journeys,
   integrations,
   now,
-}: ComputePropertiesIncrementalArgs) {
+}: computePropertiesIncremental.ComputePropertiesArgs) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     span.setAttributes({
       workspaceId,
@@ -95,19 +82,19 @@ export async function computePropertiesIncremental({
       now: new Date(now).toISOString(),
     });
 
-    await computeState({
+    await computePropertiesIncremental.computeState({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    await computeAssignments({
+    await computePropertiesIncremental.computeAssignments({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    await processAssignments({
+    await computePropertiesIncremental.processAssignments({
       workspaceId,
       segments,
       userProperties,
@@ -132,46 +119,4 @@ export async function computePropertiesContained({
     ...args,
     now,
   });
-}
-
-export async function findDueWorkspaces({
-  now,
-  interval = config().computePropertiesInterval,
-  limit = 100,
-}: {
-  // unix timestamp in ms
-  now: number;
-  interval?: number;
-  limit?: number;
-}): Promise<{ workspaceIds: string[] }> {
-  const w = aliasedTable(schema.workspace, "w");
-  const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
-  const aggregatedMax = max(cpp.to);
-
-  const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
-  const timestampNow = Math.floor(now / 1000);
-  const periodsQuery = await db()
-    .select({
-      workspaceId: cpp.workspaceId,
-      max: aggregatedMax,
-    })
-    .from(cpp)
-    .innerJoin(w, eq(cpp.workspaceId, w.id))
-    .where(
-      and(
-        eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
-        eq(w.status, WorkspaceStatusDbEnum.Active),
-        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
-      ),
-    )
-    .groupBy(cpp.workspaceId)
-    .having(
-      sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
-    )
-    .orderBy(sql`${aggregatedMax} ASC`)
-    .limit(limit);
-
-  return {
-    workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
-  };
 }

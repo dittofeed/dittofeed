@@ -13,7 +13,7 @@ import { createWorkspace } from "../../../workspaces";
 import { createPeriods } from "../../periods";
 import { findDueWorkspaces } from "../activities";
 
-describe("computeProperties activities", () => {
+describe("computePropertiesScheduler activities", () => {
   let workspace: Workspace;
 
   beforeEach(async () => {

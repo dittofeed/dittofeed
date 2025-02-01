@@ -20,6 +20,7 @@ export const COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID =
 
 export interface ComputePropertiesWorkflowGlobalParams {}
 
+// FIXME delete
 export async function computePropertiesWorkflowGlobal({}: ComputePropertiesWorkflowGlobalParams) {
   logger.info("computePropertiesGlobal started", {});
 }

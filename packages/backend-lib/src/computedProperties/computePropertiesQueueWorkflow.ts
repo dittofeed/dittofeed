@@ -10,6 +10,8 @@ import {
 
 import type * as activities from "../temporal/activities";
 
+export const QUEUE_WORKFLOW_ID = "compute-properties-queue";
+
 //
 // Activities proxy
 //
@@ -29,7 +31,7 @@ export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 //
 // PARAMS INTERFACE
 //
-export interface WorkQueueWorkflowParams {
+export interface ComputePropertiesQueueWorkflowParams {
   /**
    * Max number of items that the queue can hold at once (backpressure).
    */
@@ -65,13 +67,15 @@ export interface WorkQueueWorkflowParams {
 }
 
 /**
- * WorkQueueWorkflow:
+ * ComputePropertiesQueueWorkflow:
  * - Maintains a queue, with dedup, up to `capacity`.
  * - Processes items in batches of size `concurrency`.
  * - After `maxLoopIterations` batches, calls `continueAsNew`, passing along
  *   the current queue/membership so the next instance resumes where we left off.
  */
-export async function WorkQueueWorkflow(params: WorkQueueWorkflowParams) {
+export async function computePropertiesQueueWorkflow(
+  params: ComputePropertiesQueueWorkflowParams,
+) {
   // 1) Rehydrate queue and membership from params (if provided).
   const queue: string[] = params.queueState ?? [];
   const membership = new Set<string>(params.membershipState ?? []);
@@ -126,7 +130,7 @@ export async function WorkQueueWorkflow(params: WorkQueueWorkflowParams) {
       // If we’ve reached maxLoopIterations, continue as new
       if (iterationCount >= params.maxLoopIterations) {
         // Prepare updated parameters for the next run
-        const nextParams: WorkQueueWorkflowParams = {
+        const nextParams: ComputePropertiesQueueWorkflowParams = {
           ...params,
           // Keep same capacity, concurrency, etc.
           // Pass the up-to-date queue/membership
@@ -136,7 +140,7 @@ export async function WorkQueueWorkflow(params: WorkQueueWorkflowParams) {
           processedBatchCount: 0,
         };
 
-        await continueAsNew<typeof WorkQueueWorkflow>(nextParams);
+        await continueAsNew<typeof computePropertiesQueueWorkflow>(nextParams);
       }
     }
 
