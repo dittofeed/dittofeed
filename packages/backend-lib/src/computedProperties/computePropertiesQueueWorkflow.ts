@@ -20,33 +20,57 @@ export const addWorkspacesSignal = defineSignal<[string[]]>(
 );
 export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 
+/**
+ * Activities
+ */
+const { config } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "1 minutes",
+});
+
 const { computePropertiesContained } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
-/** Parameters for the workflow */
+/**
+ * Parameters for the workflow
+ */
 export interface ComputePropertiesQueueWorkflowParams {
-  capacity: number; // max items in queue
-  concurrency: number; // max concurrency
-  maxLoopIterations: number; // how many items processed before continueAsNew
+  capacity: number; // max items allowed in the queue
+  concurrency: number; // max concurrency (max in-flight tasks)
+  maxLoopIterations: number; // after how many processed items do we continueAsNew?
+
+  /**
+   * The current queue of workspace IDs (FIFO) carried across continueAsNew.
+   * We'll infer membership from this queue at startup.
+   */
   queueState?: string[];
-  membershipState?: string[];
 }
 
+/**
+ * A workflow that:
+ * - Maintains a queue (up to `capacity`).
+ * - Uses a semaphore to allow up to `concurrency` tasks in flight.
+ * - Avoids duplicates by also maintaining a `membership` set derived from the queue.
+ * - Calls `continueAsNew` after `maxLoopIterations` processed items.
+ */
 export async function computePropertiesQueueWorkflow(
   params: ComputePropertiesQueueWorkflowParams,
 ) {
-  // Rehydrate queue + membership
+  // Rehydrate the queue from params or start fresh
   const queue: string[] = params.queueState ?? [];
-  const membership = new Set<string>(params.membershipState ?? []);
+
+  // Initialize a Set for membership deduplication, derived from the queue
+  const membership = new Set<string>(queue);
 
   let totalProcessed = 0;
   const inFlight: Promise<void>[] = [];
 
-  // Create our semaphore for concurrency
+  // Create a semaphore for concurrency control
   const semaphore = new Semaphore(params.concurrency);
 
-  // Signal handler: add items to queue (deduplicated, up to capacity)
+  //
+  // SIGNAL HANDLER: Add new workspaces
+  //
   setHandler(addWorkspacesSignal, (workspaceIds: string[]) => {
     for (const w of workspaceIds) {
       if (queue.length < params.capacity && !membership.has(w)) {
@@ -56,62 +80,61 @@ export async function computePropertiesQueueWorkflow(
     }
   });
 
-  // Query handler: return how many items are currently in the queue
+  //
+  // QUERY HANDLER: Return how many items are in the queue
+  //
   setHandler(getQueueSizeQuery, () => queue.length);
 
+  //
+  // MAIN LOOP
+  //
   while (true) {
-    // While there are items in the queue...
+    // If we have items in the queue, process them
     while (queue.length > 0) {
-      // Dequeue the next item
+      // Dequeue one item
       const workspaceId = queue.shift()!;
       membership.delete(workspaceId);
 
-      // Acquire the semaphore slot
+      // Acquire a semaphore slot
       await semaphore.acquire();
 
-      // Start an async function that does the work and releases the semaphore
+      // Fire-and-forget task (but track it in `inFlight`)
       // eslint-disable-next-line @typescript-eslint/no-loop-func
-      const task = (async function processWorkpsace() {
+      const task = (async () => {
         try {
-          // 1) Call the activity
+          // Call the activity
           await computePropertiesContained({ workspaceId, now: Date.now() });
-
-          // 2) Increment total processed
-          // eslint-disable-next-line no-plusplus
-          totalProcessed++;
+          totalProcessed += 1;
         } catch (err) {
-          // If you want to handle the error or retry logic here, do so.
-          // In many cases you rely on the activity's built-in retry policies.
           logger.error("Error processing workspace from queue", {
             workspaceId,
             err,
           });
         } finally {
-          // Always release the semaphore, whether success or error
+          // Release the semaphore
           semaphore.release();
         }
       })();
 
-      // Save the Promise so we can await later
       inFlight.push(task);
 
-      // If we've processed enough items, continueAsNew
+      // Check if we should continueAsNew
       if (totalProcessed >= params.maxLoopIterations) {
-        // Wait for all currently in-flight tasks to finish or fail
+        // Wait for in-flight tasks to finish
         await Promise.allSettled(inFlight);
 
+        // Prepare the next run
         const nextParams: ComputePropertiesQueueWorkflowParams = {
           ...params,
-          // Carry forward what's left in the queue
+          // carry forward the remaining queue
           queueState: queue,
-          membershipState: [...membership],
         };
 
         await continueAsNew<typeof computePropertiesQueueWorkflow>(nextParams);
       }
     }
 
-    // If queue is empty, wait until queue has new items
+    // If queue is empty, wait for more items
     if (queue.length === 0) {
       await condition(() => queue.length > 0);
     }

@@ -110,6 +110,12 @@ const BaseRawConfigProps = {
   globalCronTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
   assignmentSequentialConsistency: Type.Optional(BoolStr),
+  computePropertiesQueueConcurrency: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  computePropertiesQueueCapacity: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -225,6 +231,8 @@ export type Config = Overwrite<
     globalCronTaskQueue: string;
     computedPropertiesTaskQueue: string;
     assignmentSequentialConsistency: boolean;
+    computePropertiesQueueConcurrency: number;
+    computePropertiesQueueCapacity: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -518,6 +526,13 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computedPropertiesTaskQueue ?? "default",
     assignmentSequentialConsistency:
       rawConfig.assignmentSequentialConsistency !== "false",
+    computePropertiesQueueConcurrency:
+      rawConfig.computePropertiesQueueConcurrency
+        ? parseInt(rawConfig.computePropertiesQueueConcurrency)
+        : 30,
+    computePropertiesQueueCapacity: rawConfig.computePropertiesQueueCapacity
+      ? parseInt(rawConfig.computePropertiesQueueCapacity)
+      : 500,
   };
 
   return parsedConfig;
