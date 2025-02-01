@@ -84,10 +84,7 @@ export async function computePropertiesIncremental({
   journeys,
   integrations,
   now,
-  steps,
-}: ComputePropertiesIncrementalArgs & {
-  steps?: ComputedPropertyStep[];
-}) {
+}: ComputePropertiesIncrementalArgs) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     span.setAttributes({
       workspaceId,
@@ -96,37 +93,44 @@ export async function computePropertiesIncremental({
       journeys: journeys.map((j) => j.id),
       integrations: integrations.map((i) => i.id),
       now: new Date(now).toISOString(),
-      steps,
     });
-    const stepsSet =
-      steps !== undefined ? new Set<ComputedPropertyStep>(steps) : null;
 
-    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ComputeState)) {
-      await computeState({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-      });
-    }
-    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ComputeAssignments)) {
-      await computeAssignments({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-      });
-    }
-    if (!stepsSet || stepsSet.has(ComputedPropertyStep.ProcessAssignments)) {
-      await processAssignments({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-        journeys,
-        integrations,
-      });
-    }
+    await computeState({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+    });
+    await computeAssignments({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+    });
+    await processAssignments({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+      journeys,
+      integrations,
+    });
+  });
+}
+
+export async function computePropertiesContained({
+  workspaceId,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+}) {
+  const args = await computePropertiesIncrementalArgs({
+    workspaceId,
+  });
+  await computePropertiesIncremental({
+    ...args,
+    now,
   });
 }
 
@@ -170,14 +174,4 @@ export async function findDueWorkspaces({
   return {
     workspaceIds: periodsQuery.map(({ workspaceId }) => workspaceId),
   };
-}
-
-export async function processAssignmentsBatch({
-  workspaceIds,
-  now,
-}: {
-  workspaceIds: string[];
-  now: number;
-}) {
-  throw new Error("Not implemented");
 }
