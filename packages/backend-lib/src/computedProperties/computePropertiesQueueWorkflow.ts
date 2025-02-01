@@ -57,12 +57,6 @@ export interface ComputePropertiesQueueWorkflowParams {
    * If `undefined`, we start with an empty set.
    */
   membershipState?: string[];
-
-  /**
-   * (Optional) How many batches we’ve already processed in this run.
-   * Defaults to 0 if not provided.
-   */
-  processedBatchCount?: number;
 }
 
 /**
@@ -80,7 +74,7 @@ export async function computePropertiesQueueWorkflow(
   const membership = new Set<string>(params.membershipState ?? []);
 
   // 2) Start from a processedBatchCount or default to 0.
-  let iterationCount = params.processedBatchCount ?? 0;
+  let iterationCount = 0;
 
   //
   // SIGNAL HANDLER: Add new items, respecting capacity + dedup
@@ -135,8 +129,6 @@ export async function computePropertiesQueueWorkflow(
           // Pass the up-to-date queue/membership
           queueState: queue,
           membershipState: [...membership],
-          // Reset the iteration count or pass it if you want an absolute total
-          processedBatchCount: 0,
         };
 
         await continueAsNew<typeof computePropertiesQueueWorkflow>(nextParams);
