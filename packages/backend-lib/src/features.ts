@@ -105,29 +105,35 @@ export async function getFeatures({
 }
 
 export async function addFeatures({
-  workspaceId,
+  workspaceId: workspaceIdInput,
   features,
 }: {
-  workspaceId: string;
+  workspaceId: string | string[];
   features: Features;
 }) {
+  const workspaceIds = Array.isArray(workspaceIdInput)
+    ? workspaceIdInput
+    : [workspaceIdInput];
+
   await Promise.all(
-    features.map((feature) =>
-      db()
-        .insert(dbFeature)
-        .values({
-          workspaceId,
-          name: feature.type,
-          enabled: true,
-          config: feature,
-        })
-        .onConflictDoUpdate({
-          target: [dbFeature.workspaceId, dbFeature.name],
-          set: {
+    workspaceIds.flatMap((workspaceId) =>
+      features.map((feature) =>
+        db()
+          .insert(dbFeature)
+          .values({
+            workspaceId,
+            name: feature.type,
             enabled: true,
             config: feature,
-          },
-        }),
+          })
+          .onConflictDoUpdate({
+            target: [dbFeature.workspaceId, dbFeature.name],
+            set: {
+              enabled: true,
+              config: feature,
+            },
+          }),
+      ),
     ),
   );
 
@@ -143,28 +149,33 @@ export async function addFeatures({
 }
 
 export async function removeFeatures({
-  workspaceId,
+  workspaceId: workspaceIdInput,
   names,
 }: {
-  workspaceId: string;
+  workspaceId: string | string[];
   names: FeatureNamesEnum[];
 }) {
+  const workspaceIds = Array.isArray(workspaceIdInput)
+    ? workspaceIdInput
+    : [workspaceIdInput];
   await db()
     .delete(dbFeature)
     .where(
       and(
-        eq(dbFeature.workspaceId, workspaceId),
+        inArray(dbFeature.workspaceId, workspaceIds),
         inArray(dbFeature.name, names),
       ),
     );
 
-  const effects = names.flatMap((name) => {
-    switch (name) {
-      case FeatureNamesEnum.ComputePropertiesGlobal:
-        return startComputePropertiesWorkflow({ workspaceId });
-      default:
-        return [];
-    }
-  });
+  const effects = workspaceIds.flatMap((workspaceId) =>
+    names.flatMap((name) => {
+      switch (name) {
+        case FeatureNamesEnum.ComputePropertiesGlobal:
+          return startComputePropertiesWorkflow({ workspaceId });
+        default:
+          return [];
+      }
+    }),
+  );
   await Promise.all(effects);
 }

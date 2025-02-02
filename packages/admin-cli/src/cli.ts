@@ -680,7 +680,12 @@ export async function cli() {
       "Adds features to a workspace.",
       (cmd) =>
         cmd.options({
-          "workspace-id": { type: "string", alias: "w", require: true },
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            array: true,
+          },
           features: { type: "string", alias: "f", require: true },
         }),
       async ({ workspaceId, features: featuresString }) => {
@@ -697,7 +702,12 @@ export async function cli() {
       "Removes features from a workspace.",
       (cmd) =>
         cmd.options({
-          "workspace-id": { type: "string", alias: "w", require: true },
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            array: true,
+          },
           features: { type: "string", alias: "f", require: true, array: true },
         }),
       async ({ workspaceId, features: unvalidatedFeatures }) => {
