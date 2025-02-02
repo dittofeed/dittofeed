@@ -8,13 +8,18 @@ import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import { findAllUserPropertyResources } from "../../../userProperties";
-import * as computePropertiesIncremental from "../../computePropertiesIncremental";
+import {
+  computeAssignments,
+  ComputePropertiesArgs,
+  computeState,
+  processAssignments,
+} from "../../computePropertiesIncremental";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<Omit<computePropertiesIncremental.ComputePropertiesArgs, "now">> {
+}): Promise<Omit<ComputePropertiesArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findManyJourneyResourcesSafe(
       and(
@@ -71,7 +76,7 @@ export async function computePropertiesIncremental({
   journeys,
   integrations,
   now,
-}: computePropertiesIncremental.ComputePropertiesArgs) {
+}: ComputePropertiesArgs) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     span.setAttributes({
       workspaceId,
@@ -82,19 +87,19 @@ export async function computePropertiesIncremental({
       now: new Date(now).toISOString(),
     });
 
-    await computePropertiesIncremental.computeState({
+    await computeState({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    await computePropertiesIncremental.computeAssignments({
+    await computeAssignments({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    await computePropertiesIncremental.processAssignments({
+    await processAssignments({
       workspaceId,
       segments,
       userProperties,

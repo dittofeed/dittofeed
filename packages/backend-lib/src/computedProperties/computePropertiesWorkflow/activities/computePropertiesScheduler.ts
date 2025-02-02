@@ -6,6 +6,7 @@ import * as schema from "../../../db/schema";
 import connectClient from "../../../temporal/client";
 import {
   ComputedPropertyStep,
+  FeatureNamesEnum,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "../../../types";
@@ -38,11 +39,14 @@ export async function findDueWorkspaces({
     })
     .from(cpp)
     .innerJoin(w, eq(cpp.workspaceId, w.id))
+    .innerJoin(schema.feature, eq(schema.feature.workspaceId, w.id))
     .where(
       and(
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
         eq(w.status, WorkspaceStatusDbEnum.Active),
         not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
+        eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
+        eq(schema.feature.enabled, true),
       ),
     )
     .groupBy(cpp.workspaceId)

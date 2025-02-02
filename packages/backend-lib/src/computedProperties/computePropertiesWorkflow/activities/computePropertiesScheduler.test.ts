@@ -1,8 +1,11 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { db } from "../../../db";
+import * as schema from "../../../db/schema";
 import {
   ComputedPropertyStep,
+  FeatureNamesEnum,
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
@@ -95,6 +98,16 @@ describe("computePropertiesScheduler activities", () => {
             segments: segments2,
             now,
             step: ComputedPropertyStep.ComputeAssignments,
+          }),
+          db().insert(schema.feature).values({
+            workspaceId: workspace.id,
+            name: FeatureNamesEnum.ComputePropertiesGlobal,
+            enabled: true,
+          }),
+          db().insert(schema.feature).values({
+            workspaceId: workspace2.id,
+            name: FeatureNamesEnum.ComputePropertiesGlobal,
+            enabled: true,
           }),
         ]);
 
