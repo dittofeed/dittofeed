@@ -767,6 +767,18 @@ export async function cli() {
         }),
       ({ workspaceId }) => resumeWorkspace({ workspaceId }),
     )
+    .command(
+      "start-compute-properties-global",
+      "Starts the global compute properties workflow.",
+      () => {},
+      async () => {},
+    )
+    .command(
+      "stop-compute-properties-global",
+      "Stops the global compute properties workflow.",
+      () => {},
+      async () => {},
+    )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()
     .help()
