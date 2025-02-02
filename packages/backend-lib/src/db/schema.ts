@@ -87,9 +87,10 @@ export const workspace = pgTable(
     status: workspaceStatus().default("Active").notNull(),
   },
   (table) => [
-    unique("Workspace_parentWorkspaceId_externalId_key")
-      .on(table.parentWorkspaceId, table.externalId)
-      .nullsNotDistinct(),
+    unique("Workspace_parentWorkspaceId_externalId_key").on(
+      table.parentWorkspaceId,
+      table.externalId,
+    ),
     unique("Workspace_parentWorkspaceId_name_key")
       .on(table.parentWorkspaceId, table.name)
       .nullsNotDistinct(),
