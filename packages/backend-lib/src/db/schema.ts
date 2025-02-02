@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -86,16 +87,12 @@ export const workspace = pgTable(
     status: workspaceStatus().default("Active").notNull(),
   },
   (table) => [
-    uniqueIndex("Workspace_parentWorkspaceId_externalId_key").using(
-      "btree",
-      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
-      table.externalId.asc().nullsLast().op("text_ops"),
-    ),
-    uniqueIndex("Workspace_parentWorkspaceId_name_key").using(
-      "btree",
-      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
-      table.name.asc().nullsLast().op("text_ops"),
-    ),
+    unique("Workspace_parentWorkspaceId_externalId_key")
+      .on(table.parentWorkspaceId, table.externalId)
+      .nullsNotDistinct(),
+    unique("Workspace_parentWorkspaceId_name_key")
+      .on(table.parentWorkspaceId, table.name)
+      .nullsNotDistinct(),
   ],
 );
 
