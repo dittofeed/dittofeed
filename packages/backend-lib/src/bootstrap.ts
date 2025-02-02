@@ -22,12 +22,11 @@ import {
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "./config";
 import { DEFAULT_WRITE_KEY_NAME } from "./constants";
-import { insert, upsert } from "./db";
+import { insert } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
   userProperty as dbUserProperty,
-  workspace as dbWorkspace,
 } from "./db/schema";
 import { addFeatures, getFeature } from "./features";
 import { kafkaAdmin } from "./kafka";
@@ -57,6 +56,7 @@ import {
   WorkspaceTypeAppEnum,
 } from "./types";
 import { createUserEventsTables } from "./userEvents/clickhouse";
+import { upsertWorkspace } from "./workspaces/createWorkspace";
 
 const DOMAIN_REGEX =
   /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
@@ -110,20 +110,11 @@ export async function bootstrapPostgres({
         message: `Workspace name cannot start with ${WORKSPACE_TOMBSTONE_PREFIX}`,
       });
     }
-    const workspaceResult = await upsert({
-      table: dbWorkspace,
-      values: {
-        name: workspaceName,
-        domain: workspaceDomain,
-        type: workspaceType,
-        externalId: workspaceExternalId,
-      },
-      target: [dbWorkspace.parentWorkspaceId, dbWorkspace.name],
-      set: {
-        domain: workspaceDomain,
-        type: workspaceType,
-        externalId: workspaceExternalId,
-      },
+    const workspaceResult = await upsertWorkspace({
+      name: workspaceName,
+      domain: workspaceDomain,
+      type: workspaceType,
+      externalId: workspaceExternalId,
     });
     if (workspaceResult.isErr()) {
       if (
