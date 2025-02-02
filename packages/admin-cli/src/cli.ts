@@ -37,6 +37,7 @@ import {
   ChannelType,
   EmailProviderType,
   FeatureNames,
+  FeatureNamesEnum,
   Features,
   MessageTemplateResourceDefinition,
   SendgridSecret,
@@ -229,6 +230,9 @@ export async function cli() {
         }
         const workspaces = await db().query.workspace.findMany({
           where: condition,
+          with: {
+            features: true,
+          },
         });
         logger().info(
           {
@@ -238,9 +242,16 @@ export async function cli() {
         );
         await Promise.all(
           workspaces.map(async (workspace) => {
+            const isGlobal = workspace.features.some(
+              (f) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+                f.name === FeatureNamesEnum.ComputePropertiesGlobal &&
+                f.enabled,
+            );
             if (
               workspace.status !== WorkspaceStatusDbEnum.Active ||
-              workspace.type === WorkspaceTypeAppEnum.Parent
+              workspace.type === WorkspaceTypeAppEnum.Parent ||
+              isGlobal
             ) {
               await terminateComputePropertiesWorkflow({
                 workspaceId: workspace.id,
@@ -250,6 +261,7 @@ export async function cli() {
                   workspaceId: workspace.id,
                   type: workspace.type,
                   status: workspace.status,
+                  isGlobal,
                 },
                 "Terminated computed properties workflow",
               );
