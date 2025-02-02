@@ -9,6 +9,9 @@ import {
 import type * as activities from "../temporal/activities";
 import { addWorkspacesSignal } from "./computePropertiesQueueWorkflow";
 
+export const COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID =
+  "compute-properties-scheduler-workflow";
+
 //
 // Activities proxy
 //
@@ -21,23 +24,6 @@ export interface ComputePropertiesSchedulerWorkflowParams {
    * The Workflow ID of the running queue workflow we want to signal.
    */
   queueWorkflowId: string;
-
-  /**
-   * How often (in ms) to poll for due work.
-   * e.g. 60_000 ms for 1 minute.
-   */
-  pollIntervalMs: number;
-
-  /**
-   * The maximum queue size for backpressure.
-   * If the queue has `maxQueueSize` items or more, we won't poll for new work.
-   */
-  maxQueueSize: number;
-
-  /**
-   * After how many polling loops do we call `continueAsNew`?
-   */
-  maxPollIterations: number;
 }
 
 /**

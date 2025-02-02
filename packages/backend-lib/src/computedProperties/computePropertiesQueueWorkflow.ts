@@ -14,13 +14,15 @@ import {
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
 
-export const QUEUE_WORKFLOW_ID = "compute-properties-queue";
+export const COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID =
+  "compute-properties-queue-workflow";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 export const addWorkspacesSignal = defineSignal<[string[]]>(
   "addWorkspacesSignal",
 );
+
 export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 
 /**

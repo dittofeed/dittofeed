@@ -5,14 +5,15 @@ import config from "../../config";
 import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
+import { COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID } from "../computePropertiesQueueWorkflow";
 import {
   computePropertiesWorkflow,
   generateComputePropertiesId,
 } from "../computePropertiesWorkflow";
 import {
-  COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
-  computePropertiesWorkflowGlobal,
-} from "../computePropertiesWorkflowGlobal";
+  COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID,
+  computePropertiesSchedulerWorkflow,
+} from "../comutePropertiesScheduler";
 
 export async function startComputePropertiesWorkflow({
   workspaceId,
@@ -177,24 +178,54 @@ export async function resetComputePropertiesWorkflow({
   }
 }
 
+export async function stopComputePropertiesWorkflowGlobal() {
+  const client = await connectWorkflowClient();
+  try {
+    await client
+      .getHandle(COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID)
+      .terminate();
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to stop compute properties global workflow.",
+    );
+  }
+  try {
+    await client.getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID).terminate();
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to stop compute properties global workflow.",
+    );
+  }
+}
+
 export async function startComputePropertiesWorkflowGlobal() {
   const client = await connectWorkflowClient();
   try {
-    await client.start(computePropertiesWorkflowGlobal, {
+    await client.start(computePropertiesSchedulerWorkflow, {
       taskQueue: config().computedPropertiesTaskQueue,
-      workflowId: COMPUTE_PROPERTIES_WORKFLOW_GLOBAL_ID,
-      args: [{}],
+      workflowId: COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID,
+      args: [
+        {
+          queueWorkflowId: COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+        },
+      ],
     });
   } catch (e) {
-    if (e instanceof WorkflowExecutionAlreadyStartedError) {
-      logger().info("Compute properties global workflow already started.");
-    } else {
+    if (!(e instanceof WorkflowExecutionAlreadyStartedError)) {
       logger().error(
         {
           err: e,
         },
         "Failed to start compute properties global workflow.",
       );
+      throw e;
     }
+    logger().info("Compute properties global workflow already started.");
   }
 }
