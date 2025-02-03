@@ -123,13 +123,13 @@ export async function addFeatures({
             workspaceId,
             name: feature.type,
             enabled: true,
-            config: sql`${feature}::jsonb`,
+            config: feature,
           })
           .onConflictDoUpdate({
             target: [dbFeature.workspaceId, dbFeature.name],
             set: {
               enabled: true,
-              config: sql`${feature}::jsonb`,
+              config: feature,
             },
           }),
       ),
