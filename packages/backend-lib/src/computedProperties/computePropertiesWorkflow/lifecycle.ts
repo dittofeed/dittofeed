@@ -1,5 +1,8 @@
 import { WorkflowClient } from "@temporalio/client";
-import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
+import {
+  WorkflowExecutionAlreadyStartedError,
+  WorkflowNotFoundError,
+} from "@temporalio/common";
 
 import config from "../../config";
 import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
@@ -16,7 +19,7 @@ import {
 import {
   COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID,
   computePropertiesSchedulerWorkflow,
-} from "../comutePropertiesScheduler";
+} from "../comutePropertiesSchedulerWorkflow";
 
 export async function startComputePropertiesWorkflow({
   workspaceId,
@@ -188,22 +191,30 @@ export async function stopComputePropertiesWorkflowGlobal() {
       .getHandle(COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID)
       .terminate();
   } catch (e) {
-    logger().error(
-      {
-        err: e,
-      },
-      "Failed to stop compute properties global workflow.",
-    );
+    if (!(e instanceof WorkflowNotFoundError)) {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to stop compute properties global workflow.",
+      );
+      throw e;
+    }
+    logger().info("Compute properties global scheduler workflow not found.");
   }
   try {
     await client.getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID).terminate();
   } catch (e) {
-    logger().error(
-      {
-        err: e,
-      },
-      "Failed to stop compute properties global workflow.",
-    );
+    if (!(e instanceof WorkflowNotFoundError)) {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to stop compute properties global workflow.",
+      );
+      throw e;
+    }
+    logger().info("Compute properties queue workflow not found.");
   }
 }
 

@@ -98,6 +98,9 @@ export async function computePropertiesQueueWorkflow(
   // SIGNAL HANDLER: Add new workspaces (up to capacity, no duplicates)
   //
   setHandler(addWorkspacesSignal, (workspaceIds: string[]) => {
+    logger.info("Queue: Adding new workspaces", {
+      workspaceIdsCount: workspaceIds.length,
+    });
     for (const w of workspaceIds) {
       if (queue.length < capacity && !membership.has(w)) {
         queue.push(w);
@@ -125,14 +128,26 @@ export async function computePropertiesQueueWorkflow(
     const workspaceId = queue.shift()!;
     membership.delete(workspaceId);
 
+    logger.info("Queue: Dequeued workspace", {
+      workspaceId,
+      queueSize: queue.length,
+    });
+
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
+
+    logger.info("Queue: Acquired semaphore slot", {
+      workspaceId,
+    });
 
     // D) Launch the activity in a background task
     const task = (async () => {
       try {
         await computePropertiesContained({ workspaceId, now: Date.now() });
         totalProcessed += 1;
+        logger.info("Queue: Processed workspace", {
+          workspaceId,
+        });
       } catch (err) {
         logger.error("Error processing workspace from queue", {
           workspaceId,

@@ -130,5 +130,22 @@ describe("computePropertiesScheduler activities", () => {
         expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
       });
     });
+    describe("when a workspace has never been computed", () => {
+      beforeEach(async () => {
+        await db().insert(schema.feature).values({
+          workspaceId: workspace.id,
+          name: FeatureNamesEnum.ComputePropertiesGlobal,
+          enabled: true,
+        });
+      });
+      it("should return the workspace", async () => {
+        const dueWorkspaces = await findDueWorkspaces({
+          now: new Date().getTime(),
+          interval: 2 * 60 * 1000,
+        });
+
+        expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
+      });
+    });
   });
 });

@@ -117,6 +117,9 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   computedPropertiesActivityTaskQueue: Type.Optional(Type.String()),
+  computePropertiesSchedulerInterval: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -235,6 +238,7 @@ export type Config = Overwrite<
     assignmentSequentialConsistency: boolean;
     computePropertiesQueueConcurrency: number;
     computePropertiesQueueCapacity: number;
+    computePropertiesSchedulerInterval: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -540,6 +544,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesQueueCapacity: rawConfig.computePropertiesQueueCapacity
       ? parseInt(rawConfig.computePropertiesQueueCapacity)
       : 500,
+    computePropertiesSchedulerInterval:
+      rawConfig.computePropertiesSchedulerInterval
+        ? parseInt(rawConfig.computePropertiesSchedulerInterval)
+        : 10 * 1000,
   };
 
   return parsedConfig;
