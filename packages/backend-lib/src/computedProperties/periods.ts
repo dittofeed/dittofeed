@@ -166,7 +166,6 @@ export async function createPeriods({
     });
   }
 
-  logger().debug({ newPeriods }, "Creating computed property periods");
   await db().transaction(async (tx) => {
     await tx
       .insert(dbComputedPropertyPeriod)
