@@ -81,6 +81,7 @@ function observeWorkspaceComputeLatencyInner({
 /**
  * Deprecated keeping around so doesn't cause temporal errors
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export async function observeWorkspaceComputeLatency() {}
 
 async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {

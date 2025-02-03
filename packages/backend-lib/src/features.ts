@@ -1,5 +1,5 @@
 import { Static } from "@sinclair/typebox";
-import { and, eq, inArray, SQL, sql } from "drizzle-orm";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import {
   schemaValidate,
   schemaValidateWithErr,
