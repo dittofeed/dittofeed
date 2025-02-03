@@ -15,7 +15,7 @@ import logger from "./logger";
 import {
   FeatureConfigByType,
   FeatureMap,
-  FeatureNames,
+  FeatureName,
   FeatureNamesEnum,
   Features,
 } from "./types";
@@ -25,7 +25,7 @@ export async function getFeature({
   workspaceId,
 }: {
   workspaceId: string;
-  name: FeatureNamesEnum;
+  name: FeatureName;
 }): Promise<boolean> {
   const feature = await db().query.feature.findFirst({
     where: and(
@@ -36,7 +36,7 @@ export async function getFeature({
   return feature?.enabled ?? false;
 }
 
-export async function getFeatureConfig<T extends FeatureNamesEnum>({
+export async function getFeatureConfig<T extends FeatureName>({
   name,
   workspaceId,
 }: {
@@ -76,7 +76,7 @@ export async function getFeatures({
   workspaceId,
 }: {
   workspaceId: string;
-  names?: FeatureNamesEnum[];
+  names?: FeatureName[];
 }): Promise<FeatureMap> {
   const conditions: SQL[] = [eq(dbFeature.workspaceId, workspaceId)];
   if (names) {
@@ -86,7 +86,7 @@ export async function getFeatures({
     where: and(...conditions),
   });
   return features.reduce<FeatureMap>((acc, feature) => {
-    const validated = schemaValidate(feature.name, FeatureNames);
+    const validated = schemaValidate(feature.name, FeatureName);
     if (validated.isErr()) {
       return acc;
     }
@@ -114,11 +114,12 @@ export async function addFeatures({
   const workspaceIds = Array.isArray(workspaceIdInput)
     ? workspaceIdInput
     : [workspaceIdInput];
-
+  logger().debug({ workspaceIds, features }, "Adding features");
   await Promise.all(
     workspaceIds.flatMap((workspaceId) =>
-      features.map((feature) =>
-        db()
+      features.map((feature) => {
+        logger().debug({ workspaceId, feature }, "Adding feature");
+        return db()
           .insert(dbFeature)
           .values({
             workspaceId,
@@ -132,8 +133,8 @@ export async function addFeatures({
               enabled: true,
               config: feature,
             },
-          }),
-      ),
+          });
+      }),
     ),
   );
 
@@ -155,7 +156,7 @@ export async function removeFeatures({
   names,
 }: {
   workspaceId: string | string[];
-  names: FeatureNamesEnum[];
+  names: FeatureName[];
 }) {
   const workspaceIds = Array.isArray(workspaceIdInput)
     ? workspaceIdInput

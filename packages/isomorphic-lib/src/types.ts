@@ -4190,17 +4190,18 @@ export type RelatedResourceProperties = Static<
   typeof RelatedResourceProperties
 >;
 
-export enum FeatureNamesEnum {
-  // TODO deprecate this
-  DisplayJourneyPercentages = "DisplayJourneyPercentages",
-  WhiteLabel = "WhiteLabel",
-  ComputePropertiesGlobal = "ComputePropertiesGlobal",
-}
+export const FeatureNamesEnum = {
+  DisplayJourneyPercentages: "DisplayJourneyPercentages",
+  WhiteLabel: "WhiteLabel",
+  ComputePropertiesGlobal: "ComputePropertiesGlobal",
+} as const;
 
-export const FeatureNames = Type.Enum(FeatureNamesEnum);
+export const FeatureName = Type.KeyOf(Type.Const(FeatureNamesEnum));
+
+export type FeatureName = Static<typeof FeatureName>;
 
 export type FeatureMap = {
-  [K in FeatureNamesEnum]?: object | boolean;
+  [K in FeatureName]?: object | boolean;
 };
 
 export const WhiteLabelFeatureConfig = Type.Object({
