@@ -11,9 +11,9 @@ import {
   WorkspaceTypeAppEnum,
 } from "../../../types";
 import {
+  COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
   computePropertiesQueueWorkflow,
   getQueueSizeQuery,
-  QUEUE_WORKFLOW_ID,
 } from "../../computePropertiesQueueWorkflow";
 
 export async function findDueWorkspaces({
@@ -63,9 +63,8 @@ export async function findDueWorkspaces({
 
 export async function getQueueSize(): Promise<number> {
   const client = await connectClient();
-  const handle =
-    client.workflow.getHandle<typeof computePropertiesQueueWorkflow>(
-      QUEUE_WORKFLOW_ID,
-    );
+  const handle = client.workflow.getHandle<
+    typeof computePropertiesQueueWorkflow
+  >(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID);
   return handle.query(getQueueSizeQuery);
 }

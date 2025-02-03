@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-await-in-loop */
 import {
   continueAsNew,
@@ -15,7 +16,9 @@ export const COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID =
 //
 // Activities proxy
 //
-const { findDueWorkspaces, getQueueSize } = proxyActivities<typeof activities>({
+const { findDueWorkspaces, getQueueSize, config } = proxyActivities<
+  typeof activities
+>({
   startToCloseTimeout: "1 minute",
 });
 
@@ -42,13 +45,23 @@ export async function computePropertiesSchedulerWorkflow(
   // 2. Rehydrate iteration count or default to 0
   let iterationCount = 0;
 
+  const {
+    computePropertiesQueueCapacity,
+    computePropertiesAttempts,
+    computePropertiesInterval,
+  } = await config([
+    "computePropertiesQueueCapacity",
+    "computePropertiesAttempts",
+    "computePropertiesInterval",
+  ]);
+
   // 3. Main poll loop
   while (true) {
     // (A) Query how many items are in the queue
     const size = await getQueueSize();
 
     // (B) If there's room, poll for new items
-    if (size < params.maxQueueSize) {
+    if (size < computePropertiesQueueCapacity) {
       const dueWorkspaces = await findDueWorkspaces({
         now: Date.now(),
       });
@@ -63,7 +76,7 @@ export async function computePropertiesSchedulerWorkflow(
     iterationCount += 1;
 
     // (E) Check if we should continueAsNew
-    if (iterationCount >= params.maxPollIterations) {
+    if (iterationCount >= computePropertiesAttempts) {
       // Prepare for the next "generation" of this workflow
       // Reset currentIterationCount or carry it forward as you prefer:
       await continueAsNew<typeof computePropertiesSchedulerWorkflow>({
@@ -72,6 +85,6 @@ export async function computePropertiesSchedulerWorkflow(
     }
 
     // (F) Sleep until the next poll
-    await sleep(params.pollIntervalMs);
+    await sleep(computePropertiesInterval);
   }
 }

@@ -31,9 +31,6 @@ export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 const { config } = proxyActivities<typeof activities>({
   startToCloseTimeout: "1 minutes",
 });
-const { computePropertiesContained } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "5 minutes",
-});
 
 /**
  * The workflow parameters now only include `queueState`.
@@ -71,15 +68,22 @@ export async function computePropertiesQueueWorkflow(
     "computePropertiesQueueConcurrency",
     "computePropertiesQueueCapacity",
     "computePropertiesAttempts",
+    "computedPropertiesActivityTaskQueue",
   ]);
   const concurrency = initialConfig.computePropertiesQueueConcurrency;
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
+  const { computePropertiesContained } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "5 minutes",
+    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+  });
+
   logger.info("Loaded config values", {
     concurrency,
     capacity,
     maxLoopIterations,
+    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
   });
 
   // 4) Create a semaphore for concurrency

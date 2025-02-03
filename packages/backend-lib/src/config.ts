@@ -116,6 +116,7 @@ const BaseRawConfigProps = {
   computePropertiesQueueCapacity: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computedPropertiesActivityTaskQueue: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -230,6 +231,7 @@ export type Config = Overwrite<
     writeMode: WriteMode;
     globalCronTaskQueue: string;
     computedPropertiesTaskQueue: string;
+    computedPropertiesActivityTaskQueue: string;
     assignmentSequentialConsistency: boolean;
     computePropertiesQueueConcurrency: number;
     computePropertiesQueueCapacity: number;
@@ -416,6 +418,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     dashboardUrl: rawConfig.dashboardUrl,
     dashboardUrlName: rawConfig.dashboardUrlName,
   });
+  const computedPropertiesTaskQueue =
+    rawConfig.computedPropertiesTaskQueue ?? "default";
+  const computedPropertiesActivityTaskQueue =
+    rawConfig.computedPropertiesActivityTaskQueue ??
+    computedPropertiesTaskQueue;
 
   const parsedConfig: Config = {
     ...rawConfig,
@@ -522,8 +529,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       nodeEnv === NodeEnvEnum.Development,
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
     globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
-    computedPropertiesTaskQueue:
-      rawConfig.computedPropertiesTaskQueue ?? "default",
+    computedPropertiesTaskQueue,
+    computedPropertiesActivityTaskQueue,
     assignmentSequentialConsistency:
       rawConfig.assignmentSequentialConsistency !== "false",
     computePropertiesQueueConcurrency:

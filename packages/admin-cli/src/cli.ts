@@ -5,7 +5,9 @@ import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
   startComputePropertiesWorkflow,
+  startComputePropertiesWorkflowGlobal,
   stopComputePropertiesWorkflow,
+  stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import backendConfig from "backend-lib/src/config";
@@ -771,13 +773,17 @@ export async function cli() {
       "start-compute-properties-global",
       "Starts the global compute properties workflow.",
       () => {},
-      async () => {},
+      async () => {
+        await startComputePropertiesWorkflowGlobal();
+      },
     )
     .command(
       "stop-compute-properties-global",
       "Stops the global compute properties workflow.",
       () => {},
-      async () => {},
+      async () => {
+        await stopComputePropertiesWorkflowGlobal();
+      },
     )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()

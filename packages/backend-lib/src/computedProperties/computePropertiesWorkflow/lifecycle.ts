@@ -5,7 +5,10 @@ import config from "../../config";
 import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
-import { COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID } from "../computePropertiesQueueWorkflow";
+import {
+  COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+  computePropertiesQueueWorkflow,
+} from "../computePropertiesQueueWorkflow";
 import {
   computePropertiesWorkflow,
   generateComputePropertiesId,
@@ -227,5 +230,23 @@ export async function startComputePropertiesWorkflowGlobal() {
       throw e;
     }
     logger().info("Compute properties global workflow already started.");
+  }
+  try {
+    await client.start(computePropertiesQueueWorkflow, {
+      taskQueue: config().computedPropertiesTaskQueue,
+      workflowId: COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+      args: [{}],
+    });
+  } catch (e) {
+    if (!(e instanceof WorkflowExecutionAlreadyStartedError)) {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to start compute properties queue workflow.",
+      );
+      throw e;
+    }
+    logger().info("Compute properties queue workflow already started.");
   }
 }

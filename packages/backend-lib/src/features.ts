@@ -137,14 +137,16 @@ export async function addFeatures({
     ),
   );
 
-  const effects = features.flatMap((feature) => {
-    switch (feature.type) {
-      case FeatureNamesEnum.ComputePropertiesGlobal:
-        return terminateComputePropertiesWorkflow({ workspaceId });
-      default:
-        return [];
-    }
-  });
+  const effects = workspaceIds.flatMap((workspaceId) =>
+    features.flatMap((feature) => {
+      switch (feature.type) {
+        case FeatureNamesEnum.ComputePropertiesGlobal:
+          return terminateComputePropertiesWorkflow({ workspaceId });
+        default:
+          return [];
+      }
+    }),
+  );
   await Promise.all(effects);
 }
 
