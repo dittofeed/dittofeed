@@ -38,7 +38,7 @@ import {
 import {
   ChannelType,
   EmailProviderType,
-  FeatureNames,
+  FeatureName,
   FeatureNamesEnum,
   Features,
   MessageTemplateResourceDefinition,
@@ -703,7 +703,9 @@ export async function cli() {
           features: { type: "string", alias: "f", require: true },
         }),
       async ({ workspaceId, features: featuresString }) => {
-        const features = jsonParseSafeWithSchema(featuresString, Features);
+        const features = jsonParseSafeWithSchema(featuresString, Features, {
+          method: "standard",
+        });
         if (features.isErr()) {
           logger().error(features.error, "Failed to parse features");
           return;
@@ -727,7 +729,7 @@ export async function cli() {
       async ({ workspaceId, features: unvalidatedFeatures }) => {
         const features = schemaValidateWithErr(
           unvalidatedFeatures,
-          Type.Array(FeatureNames),
+          Type.Array(FeatureName),
         );
         if (features.isErr()) {
           logger().error(features.error, "Failed to parse features");

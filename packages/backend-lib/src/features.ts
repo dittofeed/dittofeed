@@ -1,5 +1,5 @@
 import { Static } from "@sinclair/typebox";
-import { and, eq, inArray, SQL } from "drizzle-orm";
+import { and, eq, inArray, SQL, sql } from "drizzle-orm";
 import {
   schemaValidate,
   schemaValidateWithErr,
@@ -114,27 +114,25 @@ export async function addFeatures({
   const workspaceIds = Array.isArray(workspaceIdInput)
     ? workspaceIdInput
     : [workspaceIdInput];
-  logger().debug({ workspaceIds, features }, "Adding features");
   await Promise.all(
     workspaceIds.flatMap((workspaceId) =>
-      features.map((feature) => {
-        logger().debug({ workspaceId, feature }, "Adding feature");
-        return db()
+      features.map((feature) =>
+        db()
           .insert(dbFeature)
           .values({
             workspaceId,
             name: feature.type,
             enabled: true,
-            config: feature,
+            config: sql`${feature}::jsonb`,
           })
           .onConflictDoUpdate({
             target: [dbFeature.workspaceId, dbFeature.name],
             set: {
               enabled: true,
-              config: feature,
+              config: sql`${feature}::jsonb`,
             },
-          });
-      }),
+          }),
+      ),
     ),
   );
 
