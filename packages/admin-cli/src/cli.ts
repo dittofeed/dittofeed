@@ -1,6 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
+import { findDueWorkspaces } from "backend-lib/src/computedProperties/computePropertiesWorkflow/activities/computePropertiesScheduler";
 import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
@@ -710,7 +711,12 @@ export async function cli() {
           logger().error(features.error, "Failed to parse features");
           return;
         }
+        logger().info(
+          { features, workspaceId },
+          "Adding features to workspace.",
+        );
         await addFeatures({ workspaceId, features: features.value });
+        logger().info("Added features to workspace.");
       },
     )
     .command(
@@ -731,11 +737,16 @@ export async function cli() {
           unvalidatedFeatures,
           Type.Array(FeatureName),
         );
+        logger().info(
+          { features, workspaceId },
+          "Removing features from workspace.",
+        );
         if (features.isErr()) {
           logger().error(features.error, "Failed to parse features");
           return;
         }
         await removeFeatures({ workspaceId, names: features.value });
+        logger().info("Removed features from workspace.");
       },
     )
     .command(
@@ -751,6 +762,7 @@ export async function cli() {
           },
         }),
       async ({ workspaceId: workspaceIds }) => {
+        logger().info({ workspaceIds }, "Pausing workspaces.");
         await Promise.all(
           workspaceIds.map((workspaceId) => pauseWorkspace({ workspaceId })),
         );
@@ -769,14 +781,20 @@ export async function cli() {
         cmd.options({
           "workspace-id": { type: "string", alias: "w", require: true },
         }),
-      ({ workspaceId }) => resumeWorkspace({ workspaceId }),
+      ({ workspaceId }) => {
+        logger().info({ workspaceId }, "Resuming workspace.");
+        resumeWorkspace({ workspaceId });
+        logger().info({ workspaceId }, "Resumed workspace.");
+      },
     )
     .command(
       "start-compute-properties-global",
       "Starts the global compute properties workflow.",
       () => {},
       async () => {
+        logger().info("Starting global compute properties workflow.");
         await startComputePropertiesWorkflowGlobal();
+        logger().info("Started global compute properties workflow.");
       },
     )
     .command(
@@ -784,7 +802,38 @@ export async function cli() {
       "Stops the global compute properties workflow.",
       () => {},
       async () => {
+        logger().info("Stopping global compute properties workflow.");
         await stopComputePropertiesWorkflowGlobal();
+        logger().info("Stopped global compute properties workflow.");
+      },
+    )
+    .command(
+      "find-due-workspaces",
+      "Find due workspaces.",
+      (cmd) =>
+        cmd.options({
+          interval: { type: "number", alias: "i" },
+          limit: { type: "number", alias: "l" },
+        }),
+      async ({ interval, limit }) => {
+        logger().info(
+          {
+            interval,
+            limit,
+          },
+          "Finding due workspaces.",
+        );
+        const workspaces = await findDueWorkspaces({
+          now: new Date().getTime(),
+          interval,
+          limit,
+        });
+        logger().info(
+          {
+            workspaces,
+          },
+          "Found due workspaces.",
+        );
       },
     )
     .demandCommand(1, "# Please provide a valid command")
