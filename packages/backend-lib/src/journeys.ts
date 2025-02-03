@@ -1,6 +1,5 @@
 import { Row } from "@clickhouse/client";
 import { Type } from "@sinclair/typebox";
-import { randomUUID } from "crypto";
 import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {

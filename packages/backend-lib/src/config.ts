@@ -110,6 +110,16 @@ const BaseRawConfigProps = {
   globalCronTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
   assignmentSequentialConsistency: Type.Optional(BoolStr),
+  computePropertiesQueueConcurrency: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  computePropertiesQueueCapacity: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  computedPropertiesActivityTaskQueue: Type.Optional(Type.String()),
+  computePropertiesSchedulerInterval: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -224,7 +234,11 @@ export type Config = Overwrite<
     writeMode: WriteMode;
     globalCronTaskQueue: string;
     computedPropertiesTaskQueue: string;
+    computedPropertiesActivityTaskQueue: string;
     assignmentSequentialConsistency: boolean;
+    computePropertiesQueueConcurrency: number;
+    computePropertiesQueueCapacity: number;
+    computePropertiesSchedulerInterval: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -408,6 +422,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     dashboardUrl: rawConfig.dashboardUrl,
     dashboardUrlName: rawConfig.dashboardUrlName,
   });
+  const computedPropertiesTaskQueue =
+    rawConfig.computedPropertiesTaskQueue ?? "default";
+  const computedPropertiesActivityTaskQueue =
+    rawConfig.computedPropertiesActivityTaskQueue ??
+    computedPropertiesTaskQueue;
 
   const parsedConfig: Config = {
     ...rawConfig,
@@ -514,10 +533,21 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       nodeEnv === NodeEnvEnum.Development,
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
     globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
-    computedPropertiesTaskQueue:
-      rawConfig.computedPropertiesTaskQueue ?? "default",
+    computedPropertiesTaskQueue,
+    computedPropertiesActivityTaskQueue,
     assignmentSequentialConsistency:
       rawConfig.assignmentSequentialConsistency !== "false",
+    computePropertiesQueueConcurrency:
+      rawConfig.computePropertiesQueueConcurrency
+        ? parseInt(rawConfig.computePropertiesQueueConcurrency)
+        : 30,
+    computePropertiesQueueCapacity: rawConfig.computePropertiesQueueCapacity
+      ? parseInt(rawConfig.computePropertiesQueueCapacity)
+      : 500,
+    computePropertiesSchedulerInterval:
+      rawConfig.computePropertiesSchedulerInterval
+        ? parseInt(rawConfig.computePropertiesSchedulerInterval)
+        : 10 * 1000,
   };
 
   return parsedConfig;

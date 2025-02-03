@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";

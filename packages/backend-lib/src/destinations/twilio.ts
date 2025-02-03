@@ -1,7 +1,7 @@
 import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import qs from "querystring";
-import { omit, omitBy } from "remeda";
+import { omitBy } from "remeda";
 import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
 

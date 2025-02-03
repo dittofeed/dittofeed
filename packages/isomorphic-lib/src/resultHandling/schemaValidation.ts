@@ -37,9 +37,20 @@ export function schemaValidateWithErr<S extends TSchema>(
   );
 }
 
-export function jsonParseSafe(s: string): Result<JSONValue, Error> {
+export function jsonParseSafe(
+  s: string,
+  opts?: {
+    method?: "bigint" | "standard";
+  },
+): Result<JSONValue, Error> {
+  const method = opts?.method ?? "bigint";
   try {
-    return ok(JSON_BIG_INT.parse(s));
+    switch (method) {
+      case "bigint":
+        return ok(JSON_BIG_INT.parse(s));
+      case "standard":
+        return ok(JSON.parse(s));
+    }
   } catch (e) {
     const error = new Error(`Failed to parse JSON: ${s}`);
     error.cause = e;
@@ -50,8 +61,13 @@ export function jsonParseSafe(s: string): Result<JSONValue, Error> {
 export function jsonParseSafeWithSchema<S extends TSchema>(
   s: string,
   schema: S,
+  opts?: {
+    method?: "bigint" | "standard";
+  },
 ): Result<Static<S>, Error> {
-  return jsonParseSafe(s).andThen((v) => schemaValidateWithErr(v, schema));
+  return jsonParseSafe(s, opts).andThen((v) =>
+    schemaValidateWithErr(v, schema),
+  );
 }
 
 export function unwrapJsonObject(s?: string): Record<string, unknown> {

@@ -16,6 +16,7 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "./types";
+import { getRecomputableWorkspaces } from "./workspaces";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
 
@@ -78,52 +79,10 @@ function observeWorkspaceComputeLatencyInner({
 }
 
 /**
- * Deprecated
+ * Deprecated keeping around so doesn't cause temporal errors
  */
-export async function observeWorkspaceComputeLatency() {
-  const periodsQuery = db()
-    .select({
-      workspaceId: dbComputedPropertyPeriod.workspaceId,
-      to: max(dbComputedPropertyPeriod.to),
-    })
-    .from(dbComputedPropertyPeriod)
-    .where(
-      eq(
-        dbComputedPropertyPeriod.step,
-        ComputedPropertyStep.ProcessAssignments,
-      ),
-    )
-    .groupBy(dbComputedPropertyPeriod.workspaceId);
-
-  const workspacesQuery = db()
-    .select()
-    .from(dbWorkspace)
-    .where(eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active));
-
-  const [rawPeriods, workspaces] = await Promise.all([
-    periodsQuery,
-    workspacesQuery,
-  ]);
-
-  const periods = rawPeriods.flatMap((row) => {
-    if (!row.to) {
-      logger().error(
-        { workspaceId: row.workspaceId },
-        "Could not find maxTo for workspace",
-      );
-      return [];
-    }
-    return {
-      to: new Date(row.to),
-      workspaceId: row.workspaceId,
-    };
-  });
-
-  observeWorkspaceComputeLatencyInner({
-    workspaces,
-    periods,
-  });
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export async function observeWorkspaceComputeLatency() {}
 
 async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   const [userCountsRes, messageCountsRes] = await Promise.all([
@@ -207,19 +166,10 @@ export async function findActiveWorkspaces(): Promise<{
       ),
     )
     .groupBy(cpp.workspaceId);
-  const workspacesQuery = db()
-    .select()
-    .from(w)
-    .where(
-      and(
-        eq(w.status, WorkspaceStatusDbEnum.Active),
-        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
-      ),
-    );
 
   const [periodsRaw, workspaces] = await Promise.all([
     periodsQuery,
-    workspacesQuery,
+    getRecomputableWorkspaces(),
   ]);
 
   const periods = periodsRaw.flatMap((row) => {
