@@ -328,7 +328,6 @@ export async function findManySegmentResourcesSafe({
   if (segmentIds && segmentIds.length > 0) {
     conditions.push(inArray(dbSegment.id, segmentIds));
   } else if (requireRunning) {
-    // FIXME require running?
     conditions.push(eq(dbSegment.status, "Running"));
   }
   const where = and(...conditions);
