@@ -1,5 +1,16 @@
 import { randomUUID } from "crypto";
-import { aliasedTable, and, eq, lt, max, min, not, or, sql } from "drizzle-orm";
+import {
+  aliasedTable,
+  and,
+  eq,
+  inArray,
+  lt,
+  max,
+  min,
+  not,
+  or,
+  sql,
+} from "drizzle-orm";
 import { Overwrite } from "utility-types";
 
 import config from "../config";
@@ -319,6 +330,18 @@ export async function findDueWorkspaceMaxTos({
         not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
         eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
         eq(schema.feature.enabled, true),
+        or(
+          inArray(
+            w.id,
+            db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+          ),
+          inArray(
+            w.id,
+            db()
+              .select({ id: dbUserProperty.workspaceId })
+              .from(dbUserProperty),
+          ),
+        ),
       ),
     )
     .groupBy(w.id)
