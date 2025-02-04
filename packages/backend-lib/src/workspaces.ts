@@ -1,4 +1,4 @@
-import { and, eq, not } from "drizzle-orm";
+import { and, eq, inArray, not, or } from "drizzle-orm";
 import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
@@ -10,7 +10,11 @@ import {
   terminateComputePropertiesWorkflow,
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import { db } from "./db";
-import { workspace as dbWorkspace } from "./db/schema";
+import {
+  segment as dbSegment,
+  userProperty as dbUserProperty,
+  workspace as dbWorkspace,
+} from "./db/schema";
 import {
   Workspace,
   WorkspaceStatusDbEnum,
@@ -132,6 +136,16 @@ export async function resumeWorkspace({
 export const RECOMPUTABLE_WORKSPACES_QUERY = and(
   eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
   not(eq(dbWorkspace.type, WorkspaceTypeAppEnum.Parent)),
+  or(
+    inArray(
+      dbWorkspace.id,
+      db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+    ),
+    inArray(
+      dbWorkspace.id,
+      db().select({ id: dbUserProperty.workspaceId }).from(dbUserProperty),
+    ),
+  ),
 );
 
 export async function getRecomputableWorkspaces(): Promise<Workspace[]> {

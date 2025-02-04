@@ -158,12 +158,14 @@ describe("resiliency", () => {
           },
         });
       });
-      test.only("returns active workspaces and their latest compute period but excludes the child workspace with old compute periods and no computed properties", async () => {
-        const { workspaces } = await findActiveWorkspaces();
+      test("returns active workspaces and their latest compute period but excludes the child workspace with old compute periods and no computed properties", async () => {
+        const { periods } = await findActiveWorkspaces();
         expect(
-          workspaces.find((w) => w.id === activeWorkspace),
+          periods.find((w) => w.workspaceId === activeWorkspace),
         ).not.toBeUndefined();
-        expect(workspaces.find((w) => w.id === childWorkspace)).toBeUndefined();
+        expect(
+          periods.find((w) => w.workspaceId === childWorkspace),
+        ).toBeUndefined();
       });
     });
   });

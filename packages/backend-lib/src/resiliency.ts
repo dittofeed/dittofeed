@@ -1,4 +1,4 @@
-import { aliasedTable, and, eq, max, not } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray, max, not, or } from "drizzle-orm";
 
 import { query as chQuery } from "./clickhouse";
 import config from "./config";
@@ -6,6 +6,8 @@ import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
 import { db } from "./db";
 import {
   computedPropertyPeriod as dbComputedPropertyPeriod,
+  segment as dbSegment,
+  userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
 import logger, { publicLogger } from "./logger";
@@ -163,6 +165,18 @@ export async function findActiveWorkspaces(): Promise<{
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
         eq(w.status, WorkspaceStatusDbEnum.Active),
         not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
+        or(
+          inArray(
+            w.id,
+            db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+          ),
+          inArray(
+            w.id,
+            db()
+              .select({ id: dbUserProperty.workspaceId })
+              .from(dbUserProperty),
+          ),
+        ),
       ),
     )
     .groupBy(cpp.workspaceId);
