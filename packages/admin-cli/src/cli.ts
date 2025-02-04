@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
-import { findDueWorkspaces } from "backend-lib/src/computedProperties/computePropertiesWorkflow/activities/computePropertiesScheduler";
 import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
@@ -11,6 +10,7 @@ import {
   stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
+import { findDueWorkspaceMaxTos } from "backend-lib/src/computedProperties/periods";
 import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
@@ -823,7 +823,7 @@ export async function cli() {
           },
           "Finding due workspaces.",
         );
-        const workspaces = await findDueWorkspaces({
+        const workspaces = await findDueWorkspaceMaxTos({
           now: new Date().getTime(),
           interval,
           limit,
