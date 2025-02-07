@@ -84,7 +84,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 | Feature                      | Purpose                                                                                                         | Status  |
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
-| Replace Prisma with Drizzle  | Enhance memory efficiency and stability.                                                                        | - ☑️  |
+| Replace Prisma with Drizzle  | Enhance memory efficiency and stability.                                                                        | - ✅  |
 | Identity resolution          | Enable joining of users based on traits or behavior. Important for identifying anonymous users post sign-up/sign-in. | - ☑️  |
 | Embedded components (public release)  | Implement internal dashboard for embedded low code components. Write great docs. Create demo projects. | - ☑️  |
 | Expand Emailo functionality  | Add more commands to the low code email editor command palette to improve email editing experience.             | - \[ ]  |
