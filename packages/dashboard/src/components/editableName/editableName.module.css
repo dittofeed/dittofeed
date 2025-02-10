@@ -1,0 +1,41 @@
+/* Styles for the editor container */
+.editor {
+  white-space: pre-wrap;
+  cursor: text;
+  color: #1a1a1a;               /* concrete dark gray */
+  font-variation-settings: "opsz" 32;
+  font-feature-settings: "calt";
+  font-weight: 600;             /* semibold */
+  font-size: 1.5rem;
+  letter-spacing: -0.00625rem;
+  /* text-wrap is non-standard but included per spec */
+  text-wrap: pretty;
+}
+
+/* When focused, remove outlines and box-shadow */
+.focused {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Styles for the paragraph representing the title text */
+.textNode {
+  letter-spacing: 0.02rem;
+  font-weight: 400;             /* normal weight */
+}
+
+/* Reset margins for common block elements inside the editor */
+.editor p,
+.editor dl,
+.editor ol,
+.editor ul,
+.editor pre,
+.editor blockquote {
+  margin: 0;
+}
+
+/* Additional paragraph style */
+.editor p {
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
