@@ -4,7 +4,7 @@ import {
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
 import { keymap } from "prosemirror-keymap";
-import { Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model"; // Only importing Schema now.
 import { schema as basicSchema } from "prosemirror-schema-basic";
 import { EditorState } from "prosemirror-state";
 import React, { useState } from "react";
@@ -18,20 +18,13 @@ interface EditableNameProps {
   onChange?: (newText: string) => void;
 }
 
-// Create a custom schema by updating the paragraph node so that it renders a <p>
-// element with the CSS module class for our text node.
-const customNodes = basicSchema.spec.nodes.update("paragraph", () => {
-  const paragraphSpec = basicSchema.spec.nodes.get("paragraph");
-  return {
-    ...paragraphSpec,
-    toDOM() {
-      return ["p", { class: styles.textNode }, 0];
-    },
-  };
-});
-
+// Build our custom schema using the modified nodes.
 const customSchema = new Schema({
-  nodes: customNodes,
+  nodes: basicSchema.spec.nodes.update("paragraph", {
+    ...basicSchema.spec.nodes.get("paragraph"),
+    toDOM: () => ["p", { class: styles.textNode }, 0],
+  }),
+
   marks: basicSchema.spec.marks,
 });
 
@@ -41,15 +34,21 @@ const singleLineKeymap = keymap({
 });
 
 /**
- * EditableName renders an editable title field using ProseMirror.
+ * EditableNameV2 renders an editable title field using ProseMirror.
  * It initializes with a provided text and calls the onChange callback with the new text
  * whenever the document changes.
  */
-function EditableName({ text, onChange }: EditableNameProps) {
+export function EditableNameV2({ text, onChange }: EditableNameProps) {
   // Create an initial document with one paragraph containing the provided text.
-  const initialDoc = customSchema.node("doc", null, [
-    customSchema.node("paragraph", null, customSchema.text(text)),
-  ]);
+  // Use createAndFill to ensure the paragraph content is valid.
+  const initialParagraph = customSchema.nodes.paragraph?.createAndFill(
+    null,
+    customSchema.text(text),
+  );
+  if (!initialParagraph) {
+    throw new Error("Failed to create an initial paragraph node.");
+  }
+  const initialDoc = customSchema.node("doc", null, [initialParagraph]);
 
   // Create an EditorState with our custom schema, initial document, and plugins.
   const [editorState, setEditorState] = useState(() =>
@@ -78,12 +77,10 @@ function EditableName({ text, onChange }: EditableNameProps) {
         "aria-multiline": "false",
         "aria-label": "Issue title",
         translate: "no",
-        class: styles.editor,
+        class: styles.editor!,
       }}
     >
       <ProseMirrorDoc />
     </ProseMirror>
   );
 }
-
-export default EditableName;
