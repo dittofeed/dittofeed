@@ -2,14 +2,19 @@
 .editor {
   white-space: pre-wrap;
   cursor: text;
-  color: #1a1a1a;               /* concrete dark gray */
+  color: #1a1a1a; /* concrete dark gray */
   font-variation-settings: "opsz" 32;
   font-feature-settings: "calt";
-  font-weight: 600;             /* semibold */
+  font-weight: 600; /* semibold */
   font-size: 1.5rem;
   letter-spacing: -0.00625rem;
-  /* text-wrap is non-standard but included per spec */
   text-wrap: pretty;
+
+  /* prevent the title from wrapping */
+  max-width: 100%;
+  overflow-x: hidden;
+  word-wrap: break-word; /* Allows long words to break and wrap */
+  word-break: break-word; /* Ensures words break properly */
 }
 
 /* When focused, remove outlines and box-shadow */
@@ -21,7 +26,7 @@
 /* Styles for the paragraph representing the title text */
 .textNode {
   letter-spacing: 0.02rem;
-  font-weight: 400;             /* normal weight */
+  font-weight: 400; /* normal weight */
 }
 
 /* Reset margins for common block elements inside the editor */

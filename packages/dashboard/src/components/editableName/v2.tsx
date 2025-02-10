@@ -41,9 +41,11 @@ const singleLineKeymap = keymap({
 export function EditableNameV2({ text, onChange }: EditableNameProps) {
   // Create an initial document with one paragraph containing the provided text.
   // Use createAndFill to ensure the paragraph content is valid.
+  const safeText = text.trim().length ? text : "\u200b";
+
   const initialParagraph = customSchema.nodes.paragraph?.createAndFill(
     null,
-    customSchema.text(text),
+    customSchema.text(safeText),
   );
   if (!initialParagraph) {
     throw new Error("Failed to create an initial paragraph node.");
