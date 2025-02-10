@@ -4,9 +4,9 @@ import {
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
 import { keymap } from "prosemirror-keymap";
-import { Schema } from "prosemirror-model"; // Only importing Schema now.
+import { Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
-import { EditorState } from "prosemirror-state";
+import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { useState } from "react";
 
 import styles from "./editableName.module.css";
@@ -14,35 +14,71 @@ import styles from "./editableName.module.css";
 interface EditableNameProps {
   /** The initial text for the title */
   text: string;
-  /** Optional callback that is called when the text changes */
-  onChange?: (newText: string) => void;
+  /** Called when editing is finished (on blur) */
+  onSubmit?: (finalText: string) => void;
 }
 
-// Build our custom schema using the modified nodes.
+/**
+ * 1) Build a custom schema, modifying the paragraph node to attach custom CSS.
+ */
 const customSchema = new Schema({
   nodes: basicSchema.spec.nodes.update("paragraph", {
     ...basicSchema.spec.nodes.get("paragraph"),
     toDOM: () => ["p", { class: styles.textNode }, 0],
   }),
-
   marks: basicSchema.spec.marks,
 });
 
-// Create a keymap plugin to intercept the Enter key so that the title remains a single line.
+/**
+ * 2) Create a single-line keymap, so Enter/Escape blur the editor
+ *    rather than adding new lines or continuing editing.
+ */
 const singleLineKeymap = keymap({
-  Enter: () => true,
+  Enter: (_state, _dispatch, view) => {
+    // Force blur on Enter
+    view?.dom.blur();
+    return true;
+  },
+  Escape: (_state, _dispatch, view) => {
+    // Force blur on Escape
+    view?.dom.blur();
+    return true;
+  },
 });
 
 /**
- * EditableNameV2 renders an editable title field using ProseMirror.
- * It initializes with a provided text and calls the onChange callback with the new text
- * whenever the document changes.
+ * 3) Create a focus plugin to intercept DOM focus/blur events
+ *    and call onSubmit when the editor loses focus.
  */
-export function EditableNameV2({ text, onChange }: EditableNameProps) {
-  // Create an initial document with one paragraph containing the provided text.
-  // Use createAndFill to ensure the paragraph content is valid.
-  const safeText = text.trim().length ? text : "\u200b";
+const focusPluginKey = new PluginKey("focusPlugin");
 
+function createFocusPlugin(onSubmit?: (finalText: string) => void) {
+  return new Plugin({
+    key: focusPluginKey,
+    props: {
+      handleDOMEvents: {
+        blur: (view) => {
+          if (onSubmit) {
+            onSubmit(view.state.doc.textContent);
+          }
+          // Return false so ProseMirror continues default handling,
+          // but we've already invoked onSubmit.
+          return false;
+        },
+      },
+    },
+  });
+}
+
+/**
+ * 4) EditableNameV2: A single-line ProseMirror editor that
+ *    calls onSubmit when it loses focus.
+ */
+export function EditableNameV2({ text, onSubmit }: EditableNameProps) {
+  // Prevent empty doc by using a zero-width space if `text` is empty
+  const safeText = text.trim().length ? text : "\u200B";
+
+  // Create an initial ProseMirror doc with one paragraph
   const initialParagraph = customSchema.nodes.paragraph?.createAndFill(
     null,
     customSchema.text(safeText),
@@ -52,12 +88,16 @@ export function EditableNameV2({ text, onChange }: EditableNameProps) {
   }
   const initialDoc = customSchema.node("doc", null, [initialParagraph]);
 
-  // Create an EditorState with our custom schema, initial document, and plugins.
+  // Create an EditorState with our schema, doc, and plugins
   const [editorState, setEditorState] = useState(() =>
     EditorState.create({
       schema: customSchema,
       doc: initialDoc,
-      plugins: [reactKeys(), singleLineKeymap],
+      plugins: [
+        reactKeys(),
+        singleLineKeymap,
+        createFocusPlugin(onSubmit), // the focus plugin triggers onSubmit on blur
+      ],
     }),
   );
 
@@ -67,11 +107,7 @@ export function EditableNameV2({ text, onChange }: EditableNameProps) {
       dispatchTransaction={(tr) => {
         const newState = editorState.apply(tr);
         setEditorState(newState);
-        if (onChange) {
-          onChange(newState.doc.textContent);
-        }
       }}
-      // Pass attributes to the editor container using our CSS module class.
       attributes={{
         spellCheck: "true",
         role: "textbox",

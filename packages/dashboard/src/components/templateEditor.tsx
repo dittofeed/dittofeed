@@ -1205,17 +1205,19 @@ export default function TemplateEditor({
             {editedTemplate !== null &&
               !hideTitle &&
               !isUserPropertiesMinimised && (
-                <EditableNameV2
-                  text={editedTemplate.title}
-                  onChange={(val) =>
-                    setState((draft) => {
-                      if (!draft.editedTemplate) {
-                        return;
-                      }
-                      draft.editedTemplate.title = val;
-                    })
-                  }
-                />
+                <Box sx={{ fontSize: "1rem", fontWeight: "bold" }}>
+                  <EditableNameV2
+                    text={editedTemplate.title}
+                    onSubmit={(val) =>
+                      setState((draft) => {
+                        if (!draft.editedTemplate) {
+                          return;
+                        }
+                        draft.editedTemplate.title = val;
+                      })
+                    }
+                  />
+                </Box>
               )}
             <Tooltip
               title={

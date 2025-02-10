@@ -1,35 +1,45 @@
-/* Styles for the editor container */
+/* Editor container */
 .editor {
   white-space: pre-wrap;
   cursor: text;
-  color: #1a1a1a; /* concrete dark gray */
+  color: #1a1a1a;
   font-variation-settings: "opsz" 32;
   font-feature-settings: "calt";
-  font-weight: 600; /* semibold */
-  font-size: 1.5rem;
   letter-spacing: -0.00625rem;
   text-wrap: pretty;
 
-  /* prevent the title from wrapping */
   max-width: 100%;
   overflow-x: hidden;
-  word-wrap: break-word; /* Allows long words to break and wrap */
-  word-break: break-word; /* Ensures words break properly */
+  word-wrap: break-word;
+  word-break: break-word;
+
+  /* Hide caret when not focused */
+  caret-color: transparent;
 }
 
-/* When focused, remove outlines and box-shadow */
-.focused {
+/* On focus: remove the default outline, show a blinking caret */
+.editor:focus {
   outline: none;
   box-shadow: none;
+  border: none;
+
+  caret-color: black;
+  animation: blink-caret 1s step-start infinite;
 }
 
-/* Styles for the paragraph representing the title text */
+/* A simple keyframe to blink the caret */
+@keyframes blink-caret {
+  50% {
+    caret-color: transparent;
+  }
+}
+
+/* Paragraph node styling */
 .textNode {
   letter-spacing: 0.02rem;
-  font-weight: 400; /* normal weight */
 }
 
-/* Reset margins for common block elements inside the editor */
+/* Common block element resets */
 .editor p,
 .editor dl,
 .editor ol,
