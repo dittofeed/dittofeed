@@ -3301,6 +3301,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@handlewithcare/react-prosemirror@npm:^2.2.1":
+  version: 2.2.1
+  resolution: "@handlewithcare/react-prosemirror@npm:2.2.1"
+  dependencies:
+    classnames: "npm:^2.3.2"
+    react-reconciler: "npm:0.31.0"
+  peerDependencies:
+    prosemirror-model: ^1.0.0
+    prosemirror-state: ^1.0.0
+    prosemirror-view: 1.37.1
+    react: ">=17 <=19.0.0"
+    react-dom: ">=17 <=19.0.0"
+  checksum: 10/78b124f45803116af72f2e7695b5f6aa336145f54c18e2c7da4d4333c56d51c037e4a27c82cbafbfefedfd211e2ff317b2aa3efdd06102c1ec7f146933360dcc
+  languageName: node
+  linkType: hard
+
 "@hapi/b64@npm:5.x.x":
   version: 5.0.0
   resolution: "@hapi/b64@npm:5.0.0"
@@ -14274,6 +14290,7 @@ __metadata:
     "@emotion/react": "npm:^11.10.5"
     "@emotion/server": "npm:^11.10.0"
     "@emotion/styled": "npm:^11.10.5"
+    "@handlewithcare/react-prosemirror": "npm:^2.2.1"
     "@internationalized/date": "npm:^3.7.0"
     "@mui/icons-material": "npm:^5.15.15"
     "@mui/lab": "npm:^5.0.0-alpha.170"
@@ -23808,7 +23825,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-changeset@npm:^2.2.1":
+"prosemirror-changeset@npm:2.2.1":
   version: 2.2.1
   resolution: "prosemirror-changeset@npm:2.2.1"
   dependencies:
@@ -23817,7 +23834,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-collab@npm:^1.3.1":
+"prosemirror-collab@npm:1.3.1":
   version: 1.3.1
   resolution: "prosemirror-collab@npm:1.3.1"
   dependencies:
@@ -23826,7 +23843,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-commands@npm:^1.0.0, prosemirror-commands@npm:^1.6.0":
+"prosemirror-commands@npm:1.6.0":
   version: 1.6.0
   resolution: "prosemirror-commands@npm:1.6.0"
   dependencies:
@@ -23848,7 +23865,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-gapcursor@npm:^1.3.2":
+"prosemirror-gapcursor@npm:1.3.2":
   version: 1.3.2
   resolution: "prosemirror-gapcursor@npm:1.3.2"
   dependencies:
@@ -23860,7 +23877,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-history@npm:^1.0.0, prosemirror-history@npm:^1.4.1":
+"prosemirror-history@npm:1.4.1":
   version: 1.4.1
   resolution: "prosemirror-history@npm:1.4.1"
   dependencies:
@@ -23872,7 +23889,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-inputrules@npm:^1.4.0":
+"prosemirror-inputrules@npm:1.4.0":
   version: 1.4.0
   resolution: "prosemirror-inputrules@npm:1.4.0"
   dependencies:
@@ -23882,7 +23899,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-keymap@npm:^1.0.0, prosemirror-keymap@npm:^1.1.2, prosemirror-keymap@npm:^1.2.2":
+"prosemirror-keymap@npm:1.2.2":
   version: 1.2.2
   resolution: "prosemirror-keymap@npm:1.2.2"
   dependencies:
@@ -23892,7 +23909,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-markdown@npm:^1.13.0":
+"prosemirror-markdown@npm:1.13.0":
   version: 1.13.0
   resolution: "prosemirror-markdown@npm:1.13.0"
   dependencies:
@@ -23902,7 +23919,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-menu@npm:^1.2.4":
+"prosemirror-menu@npm:1.2.4":
   version: 1.2.4
   resolution: "prosemirror-menu@npm:1.2.4"
   dependencies:
@@ -23914,7 +23931,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-model@npm:^1.0.0, prosemirror-model@npm:^1.19.0, prosemirror-model@npm:^1.20.0, prosemirror-model@npm:^1.21.0, prosemirror-model@npm:^1.22.3, prosemirror-model@npm:^1.8.1":
+"prosemirror-model@npm:1.22.3":
   version: 1.22.3
   resolution: "prosemirror-model@npm:1.22.3"
   dependencies:
@@ -23923,7 +23940,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-schema-basic@npm:^1.2.3":
+"prosemirror-schema-basic@npm:1.2.3":
   version: 1.2.3
   resolution: "prosemirror-schema-basic@npm:1.2.3"
   dependencies:
@@ -23932,7 +23949,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-schema-list@npm:^1.4.1":
+"prosemirror-schema-list@npm:1.4.1":
   version: 1.4.1
   resolution: "prosemirror-schema-list@npm:1.4.1"
   dependencies:
@@ -23943,7 +23960,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-state@npm:^1.0.0, prosemirror-state@npm:^1.2.2, prosemirror-state@npm:^1.3.1, prosemirror-state@npm:^1.4.3":
+"prosemirror-state@npm:1.4.3":
   version: 1.4.3
   resolution: "prosemirror-state@npm:1.4.3"
   dependencies:
@@ -23954,7 +23971,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-tables@npm:^1.4.0":
+"prosemirror-tables@npm:1.5.0":
   version: 1.5.0
   resolution: "prosemirror-tables@npm:1.5.0"
   dependencies:
@@ -23967,7 +23984,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-trailing-node@npm:^3.0.0":
+"prosemirror-trailing-node@npm:3.0.0":
   version: 3.0.0
   resolution: "prosemirror-trailing-node@npm:3.0.0"
   dependencies:
@@ -23981,7 +23998,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-transform@npm:^1.0.0, prosemirror-transform@npm:^1.1.0, prosemirror-transform@npm:^1.10.0, prosemirror-transform@npm:^1.2.1, prosemirror-transform@npm:^1.7.3":
+"prosemirror-transform@npm:1.10.0":
   version: 1.10.0
   resolution: "prosemirror-transform@npm:1.10.0"
   dependencies:
@@ -23990,14 +24007,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-view@npm:^1.0.0, prosemirror-view@npm:^1.1.0, prosemirror-view@npm:^1.13.3, prosemirror-view@npm:^1.27.0, prosemirror-view@npm:^1.31.0, prosemirror-view@npm:^1.33.10":
-  version: 1.34.2
-  resolution: "prosemirror-view@npm:1.34.2"
+"prosemirror-view@npm:1.37.1":
+  version: 1.37.1
+  resolution: "prosemirror-view@npm:1.37.1"
   dependencies:
     prosemirror-model: "npm:^1.20.0"
     prosemirror-state: "npm:^1.0.0"
     prosemirror-transform: "npm:^1.1.0"
-  checksum: 10/bea0a8c07c6d122ed199d2bdd0438373f2059495179e0014298b6a3ed560fef0a37dd5334f379345a0d746ea907d3f93f18b33931362cf11eec7189c79f751da
+  checksum: 10/410aa4b75895fffe85bd547920b38d51ea00feefd0f61f52278c3a2c84cb16e3d3f9bdf7076a23d643d3f53e2a36c8ee72e520140e15f7d8fe546358a389a580
   languageName: node
   linkType: hard
 
@@ -24448,6 +24465,17 @@ __metadata:
   version: 18.3.1
   resolution: "react-is@npm:18.3.1"
   checksum: 10/d5f60c87d285af24b1e1e7eaeb123ec256c3c8bdea7061ab3932e3e14685708221bf234ec50b21e10dd07f008f1b966a2730a0ce4ff67905b3872ff2042aec22
+  languageName: node
+  linkType: hard
+
+"react-reconciler@npm:0.31.0":
+  version: 0.31.0
+  resolution: "react-reconciler@npm:0.31.0"
+  dependencies:
+    scheduler: "npm:^0.25.0"
+  peerDependencies:
+    react: ^19.0.0
+  checksum: 10/e7235fa08947296c2084a89dc264651fd7cb9dc3a26c3b132b84ecf2a30c46b9b98cd004c30adfe2a24741cd1e49a618858a48080008ce2b4e964a2c4233041e
   languageName: node
   linkType: hard
 
@@ -25314,6 +25342,13 @@ __metadata:
   dependencies:
     loose-envify: "npm:^1.1.0"
   checksum: 10/e8d68b89d18d5b028223edf090092846868a765a591944760942b77ea1f69b17235f7e956696efbb62c8130ab90af7e0949bfb8eba7896335507317236966bc9
+  languageName: node
+  linkType: hard
+
+"scheduler@npm:^0.25.0":
+  version: 0.25.0
+  resolution: "scheduler@npm:0.25.0"
+  checksum: 10/e661e38503ab29a153429a99203fefa764f28b35c079719eb5efdd2c1c1086522f6653d8ffce388209682c23891a6d1d32fa6badf53c35fb5b9cd0c55ace42de
   languageName: node
   linkType: hard
 
