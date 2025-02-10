@@ -78,7 +78,7 @@ import {
   noticeAnchorOrigin,
 } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
-import EditableName from "./editableName";
+import { EditableNameV2 } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
@@ -1205,15 +1205,14 @@ export default function TemplateEditor({
             {editedTemplate !== null &&
               !hideTitle &&
               !isUserPropertiesMinimised && (
-                <EditableName
-                  name={editedTemplate.title}
-                  variant="h4"
-                  onChange={(e) =>
+                <EditableNameV2
+                  text={editedTemplate.title}
+                  onChange={(val) =>
                     setState((draft) => {
                       if (!draft.editedTemplate) {
                         return;
                       }
-                      draft.editedTemplate.title = e.target.value;
+                      draft.editedTemplate.title = val;
                     })
                   }
                 />
