@@ -7,7 +7,7 @@ import {
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
-import EditableName from "../../components/editableName";
+import { EditableTitle } from "../../components/editableName/v2";
 import SegmentEditor from "../../components/segmentEditor";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -128,10 +128,7 @@ export default function NewSegment() {
           justifyContent="space-between"
           alignContent="center"
         >
-          <EditableName
-            name={name}
-            onChange={(event) => setName(event.target.value)}
-          />
+          <EditableTitle text={name} onSubmit={(val) => setName(val)} />
           <Stack direction="row" spacing={1}>
             <Button variant="contained" onClick={handleSave}>
               Save

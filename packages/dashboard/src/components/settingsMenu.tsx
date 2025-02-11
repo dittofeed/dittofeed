@@ -58,6 +58,7 @@ export function SettingsMenu({ commands }: { commands: SettingsCommand[] }) {
           fontSize: 18,
         }}
       >
+        {/* TODO: vertically center this. */}
         ...
       </Button>
       <Popover
