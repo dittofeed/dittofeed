@@ -13,7 +13,7 @@ import { sortBy, toPairs } from "remeda";
 import { useDebounce } from "use-debounce";
 
 import DashboardContent from "../../components/dashboardContent";
-import EditableName from "../../components/editableName";
+import { EditableTitle } from "../../components/editableName/v2";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
@@ -230,18 +230,19 @@ export function BroadcastLayout({
               </Step>
             ))}
           </Stepper>
-          <Box sx={{ flexGrow: 1 }} />
           {editedBroadcast ? (
-            <EditableName
-              variant="h6"
+            <EditableTitle
               sx={{
-                minWidth: theme.spacing(52),
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
               }}
-              name={editedBroadcast.name}
+              text={editedBroadcast.name}
               disabled={!editable}
-              onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
+              onSubmit={(val) => updateEditedBroadcast({ name: val })}
             />
           ) : null}
+          <Box sx={{ flexGrow: 1 }} />
           <SettingsMenu commands={commands} />
         </Stack>
         {children}
