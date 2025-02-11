@@ -239,6 +239,13 @@ export type SetDraft = (
   setter: (draft: MessageTemplateResourceDraft) => MessageTemplateResourceDraft,
 ) => void;
 
+export const ModeEnum = {
+  Full: "Full",
+  EditorPreview: "EditorPreview",
+} as const;
+
+export type TemplateEditorMode = (typeof ModeEnum)[keyof typeof ModeEnum];
+
 export interface RenderEditorParams {
   setDraft: SetDraft;
   draft: MessageTemplateResourceDraft;
@@ -312,6 +319,23 @@ function buildTags({
   };
 }
 
+export interface TemplateEditorProps {
+  channel: ChannelType;
+  templateId: string;
+  disabled?: boolean;
+  hideTitle?: boolean;
+  hidePublisher?: boolean;
+  member?: WorkspaceMemberResource;
+  renderPreviewHeader: RenderPreviewSection;
+  renderPreviewBody: RenderPreviewSection;
+  renderEditorHeader: RenderEditorSection;
+  renderEditorBody: RenderEditorSection;
+  renderEditorOptions?: RenderEditorSection;
+  draftToPreview: DraftToPreview;
+  fieldToReadable: (field: string) => string | null;
+  mode?: TemplateEditorMode;
+}
+
 export default function TemplateEditor({
   templateId,
   channel,
@@ -326,21 +350,8 @@ export default function TemplateEditor({
   fieldToReadable,
   draftToPreview,
   renderEditorOptions,
-}: {
-  channel: ChannelType;
-  templateId: string;
-  disabled?: boolean;
-  hideTitle?: boolean;
-  hidePublisher?: boolean;
-  member?: WorkspaceMemberResource;
-  renderPreviewHeader: RenderPreviewSection;
-  renderPreviewBody: RenderPreviewSection;
-  renderEditorHeader: RenderEditorSection;
-  renderEditorBody: RenderEditorSection;
-  renderEditorOptions?: RenderEditorSection;
-  draftToPreview: DraftToPreview;
-  fieldToReadable: (field: string) => string | null;
-}) {
+  mode = ModeEnum.Full,
+}: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
   const {
@@ -1102,7 +1113,24 @@ export default function TemplateEditor({
           height: "36px",
         }}
       >
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
+        {mode === ModeEnum.Full ? (
+          <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
+        ) : (
+          editedTemplate?.title && (
+            <EditableTitle
+              text={editedTemplate.title}
+              disabled={disabled}
+              onSubmit={(val) =>
+                setState((draft) => {
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.editedTemplate.title = val;
+                })
+              }
+            />
+          )
+        )}
         <Stack direction="row" spacing={1}>
           {renderEditorOptions && renderEditorOptions(renderEditorParams)}
           <SettingsMenu commands={commands} />
@@ -1173,6 +1201,145 @@ export default function TemplateEditor({
       bodyPreviewHeading="Body Preview"
     />
   ) : null;
+  const userPropertiesPanel = mode === ModeEnum.Full && (
+    <Stack
+      direction="column"
+      spacing={2}
+      sx={{
+        borderTopRightRadius: 1,
+        width: isUserPropertiesMinimised ? "fit-content" : "25%",
+        padding: 1,
+        border: `1px solid ${theme.palette.grey[200]}`,
+        boxShadow: theme.shadows[2],
+        minHeight: 0,
+      }}
+    >
+      <Stack
+        direction="row"
+        justifyContent={isUserPropertiesMinimised ? "center" : "space-between"}
+        spacing={2}
+      >
+        {editedTemplate !== null &&
+          !hideTitle &&
+          !isUserPropertiesMinimised && (
+            <EditableTitle
+              text={editedTemplate.title}
+              disabled={disabled}
+              onSubmit={(val) =>
+                setState((draft) => {
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.editedTemplate.title = val;
+                })
+              }
+            />
+          )}
+        <Tooltip
+          title={
+            isUserPropertiesMinimised
+              ? "Maximize user properties pane"
+              : "Minimize user properties pane"
+          }
+        >
+          <IconButton
+            onClick={() => handleUserPropertiesToggle()}
+            disabled={disabled}
+          >
+            {!isUserPropertiesMinimised && (
+              <KeyboardDoubleArrowLeftOutlined
+                sx={{
+                  border: `2px solid ${theme.palette.grey[600]}`,
+                  borderRadius: "50%",
+                }}
+              />
+            )}
+            {isUserPropertiesMinimised && (
+              <KeyboardDoubleArrowRightOutlined
+                sx={{
+                  border: `2px solid ${theme.palette.grey[600]}`,
+                  borderRadius: "50%",
+                }}
+              />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {publisherStatuses && (
+        <>
+          <PublisherDraftToggle
+            status={publisherStatuses.draftToggle}
+            isMinimised={isUserPropertiesMinimised}
+          />
+          <Publisher
+            status={publisherStatuses.publisher}
+            title={template.name}
+            isMinimised={isUserPropertiesMinimised}
+          />
+        </>
+      )}
+
+      <LoadingModal
+        isMinimised={isUserPropertiesMinimised}
+        openTitle="Send Test Message"
+        onSubmit={submitTest}
+        onClose={() =>
+          setState((draft) => {
+            draft.testResponse = null;
+          })
+        }
+      >
+        {testModalContents}
+      </LoadingModal>
+      {!isUserPropertiesMinimised && (
+        <>
+          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
+            <Typography variant="h5">User Properties</Typography>
+          </InfoTooltip>
+
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              minHeight: 0,
+            }}
+          >
+            <ReactCodeMirror
+              value={userPropertiesJSON}
+              height="100%"
+              onChange={(json) =>
+                setState((draft) => {
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.userPropertiesJSON = json;
+                  const result = jsonParseSafe(json).andThen((p) =>
+                    schemaValidateWithErr(p, UserPropertyAssignments),
+                  );
+                  if (result.isErr()) {
+                    return;
+                  }
+                  draft.userProperties = result.value;
+                })
+              }
+              extensions={[
+                codeMirrorJson(),
+                linter(jsonParseLinter()),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  "&": {
+                    fontFamily: theme.typography.fontFamily,
+                  },
+                }),
+                lintGutter(),
+              ]}
+            />
+          </Box>
+        </>
+      )}
+    </Stack>
+  );
   return (
     <>
       <Stack
@@ -1183,145 +1350,7 @@ export default function TemplateEditor({
         }}
         spacing={1}
       >
-        <Stack
-          direction="column"
-          spacing={2}
-          sx={{
-            borderTopRightRadius: 1,
-            width: isUserPropertiesMinimised ? "fit-content" : "25%",
-            padding: 1,
-            border: `1px solid ${theme.palette.grey[200]}`,
-            boxShadow: theme.shadows[2],
-            minHeight: 0,
-          }}
-        >
-          <Stack
-            direction="row"
-            justifyContent={
-              isUserPropertiesMinimised ? "center" : "space-between"
-            }
-            spacing={2}
-          >
-            {editedTemplate !== null &&
-              !hideTitle &&
-              !isUserPropertiesMinimised && (
-                <EditableTitle
-                  text={editedTemplate.title}
-                  disabled={disabled}
-                  onSubmit={(val) =>
-                    setState((draft) => {
-                      if (!draft.editedTemplate) {
-                        return;
-                      }
-                      draft.editedTemplate.title = val;
-                    })
-                  }
-                />
-              )}
-            <Tooltip
-              title={
-                isUserPropertiesMinimised
-                  ? "Maximize user properties pane"
-                  : "Minimize user properties pane"
-              }
-            >
-              <IconButton
-                onClick={() => handleUserPropertiesToggle()}
-                disabled={disabled}
-              >
-                {!isUserPropertiesMinimised && (
-                  <KeyboardDoubleArrowLeftOutlined
-                    sx={{
-                      border: `2px solid ${theme.palette.grey[600]}`,
-                      borderRadius: "50%",
-                    }}
-                  />
-                )}
-                {isUserPropertiesMinimised && (
-                  <KeyboardDoubleArrowRightOutlined
-                    sx={{
-                      border: `2px solid ${theme.palette.grey[600]}`,
-                      borderRadius: "50%",
-                    }}
-                  />
-                )}
-              </IconButton>
-            </Tooltip>
-          </Stack>
-
-          {publisherStatuses && (
-            <>
-              <PublisherDraftToggle
-                status={publisherStatuses.draftToggle}
-                isMinimised={isUserPropertiesMinimised}
-              />
-              <Publisher
-                status={publisherStatuses.publisher}
-                title={template.name}
-                isMinimised={isUserPropertiesMinimised}
-              />
-            </>
-          )}
-
-          <LoadingModal
-            isMinimised={isUserPropertiesMinimised}
-            openTitle="Send Test Message"
-            onSubmit={submitTest}
-            onClose={() =>
-              setState((draft) => {
-                draft.testResponse = null;
-              })
-            }
-          >
-            {testModalContents}
-          </LoadingModal>
-          {!isUserPropertiesMinimised && (
-            <>
-              <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-                <Typography variant="h5">User Properties</Typography>
-              </InfoTooltip>
-
-              <Box
-                sx={{
-                  flex: 1,
-                  display: "flex",
-                  minHeight: 0,
-                }}
-              >
-                <ReactCodeMirror
-                  value={userPropertiesJSON}
-                  height="100%"
-                  onChange={(json) =>
-                    setState((draft) => {
-                      if (!draft.editedTemplate) {
-                        return;
-                      }
-                      draft.userPropertiesJSON = json;
-                      const result = jsonParseSafe(json).andThen((p) =>
-                        schemaValidateWithErr(p, UserPropertyAssignments),
-                      );
-                      if (result.isErr()) {
-                        return;
-                      }
-                      draft.userProperties = result.value;
-                    })
-                  }
-                  extensions={[
-                    codeMirrorJson(),
-                    linter(jsonParseLinter()),
-                    EditorView.lineWrapping,
-                    EditorView.theme({
-                      "&": {
-                        fontFamily: theme.typography.fontFamily,
-                      },
-                    }),
-                    lintGutter(),
-                  ]}
-                />
-              </Box>
-            </>
-          )}
-        </Stack>
+        {userPropertiesPanel}
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
             sx={{
