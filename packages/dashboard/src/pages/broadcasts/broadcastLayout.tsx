@@ -1,5 +1,5 @@
 import { ContentCopyTwoTone } from "@mui/icons-material";
-import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { Box, Stack, Step, StepButton, Stepper } from "@mui/material";
 import {
   BroadcastResource,
   CompletionStatus,
@@ -75,7 +75,6 @@ export function BroadcastLayout({
   children: React.ReactNode;
   id: string;
 }) {
-  const theme = useTheme();
   const {
     editedBroadcast,
     updateEditedBroadcast,
