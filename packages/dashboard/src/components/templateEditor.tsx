@@ -1207,6 +1207,7 @@ export default function TemplateEditor({
               !isUserPropertiesMinimised && (
                 <EditableTitle
                   text={editedTemplate.title}
+                  disabled={disabled}
                   onSubmit={(val) =>
                     setState((draft) => {
                       if (!draft.editedTemplate) {

@@ -10,7 +10,7 @@ import { Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import styles from "./editableName.module.css";
 
@@ -22,6 +22,8 @@ interface EditableNameProps {
   text: string;
   /** Called when editing is finished (on blur) */
   onSubmit?: (finalText: string) => void;
+  /** Whether the editor is disabled */
+  disabled?: boolean;
 }
 
 // ============================================
@@ -156,7 +158,11 @@ function createStoreViewRefPlugin(
 // ============================================
 // 7) EditableNameV2 component
 // ============================================
-export function EditableNameV2({ text, onSubmit }: EditableNameProps) {
+export function EditableNameV2({
+  text,
+  onSubmit,
+  disabled,
+}: EditableNameProps) {
   // ---------------------------------------------------
   // 7a) React state for memorizedText
   // ---------------------------------------------------
@@ -253,6 +259,8 @@ export function EditableNameV2({ text, onSubmit }: EditableNameProps) {
     }
   };
 
+  const editable = useCallback(() => !disabled, [disabled]);
+
   // ---------------------------------------------------
   // 7i) Render
   // ---------------------------------------------------
@@ -261,13 +269,14 @@ export function EditableNameV2({ text, onSubmit }: EditableNameProps) {
       <span>
         <ProseMirror
           state={editorState}
+          editable={editable}
           dispatchTransaction={dispatchTransaction}
           attributes={{
-            spellCheck: "true",
+            spellCheck: "false",
             role: "textbox",
             "aria-readonly": "false",
             "aria-multiline": "false",
-            "aria-label": "Issue title",
+            "aria-label": "name",
             translate: "no",
             class: styles.editor!, // Keep "!"
           }}
