@@ -3,6 +3,7 @@ import {
   ProseMirrorDoc,
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
+import { Box, SxProps } from "@mui/material";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
@@ -275,5 +276,14 @@ export function EditableNameV2({ text, onSubmit }: EditableNameProps) {
         </ProseMirror>
       </span>
     </ClickAwayListener>
+  );
+}
+
+export function EditableTitle(props: EditableNameProps & { sx?: SxProps }) {
+  const { sx, ...rest } = props;
+  return (
+    <Box sx={{ ...sx, fontSize: "1rem", fontWeight: "bold" }}>
+      <EditableNameV2 {...rest} />
+    </Box>
   );
 }

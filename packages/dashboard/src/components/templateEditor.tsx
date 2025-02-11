@@ -78,7 +78,7 @@ import {
   noticeAnchorOrigin,
 } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
-import { EditableNameV2 } from "./editableName/v2";
+import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
@@ -1205,19 +1205,17 @@ export default function TemplateEditor({
             {editedTemplate !== null &&
               !hideTitle &&
               !isUserPropertiesMinimised && (
-                <Box sx={{ fontSize: "1rem", fontWeight: "bold" }}>
-                  <EditableNameV2
-                    text={editedTemplate.title}
-                    onSubmit={(val) =>
-                      setState((draft) => {
-                        if (!draft.editedTemplate) {
-                          return;
-                        }
-                        draft.editedTemplate.title = val;
-                      })
-                    }
-                  />
-                </Box>
+                <EditableTitle
+                  text={editedTemplate.title}
+                  onSubmit={(val) =>
+                    setState((draft) => {
+                      if (!draft.editedTemplate) {
+                        return;
+                      }
+                      draft.editedTemplate.title = val;
+                    })
+                  }
+                />
               )}
             <Tooltip
               title={
