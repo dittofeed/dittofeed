@@ -11,7 +11,10 @@ import {
 import React from "react";
 
 import SmsPreviewBody from "../smsPreviewBody";
-import TemplateEditor, { DraftToPreview } from "../templateEditor";
+import TemplateEditor, {
+  DraftToPreview,
+  TemplateEditorMode,
+} from "../templateEditor";
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -41,12 +44,14 @@ export default function SmsEditor({
   hidePublisher,
   disabled,
   member,
+  mode,
 }: {
   templateId: string;
   hideTitle?: boolean;
   hidePublisher?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
+  mode?: TemplateEditorMode;
 }) {
   const theme = useTheme();
 
@@ -95,6 +100,7 @@ export default function SmsEditor({
       }}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
+      mode={mode}
     />
   );
 }
