@@ -23,7 +23,7 @@ import {
   DEFAULT_DELIVERIES_TABLE_V2_PROPS,
   DeliveriesTableV2,
 } from "../../../components/deliveriesTableV2";
-import EditableName from "../../../components/editableName";
+import { EditableTitle } from "../../../components/editableName/v2";
 import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
@@ -272,9 +272,9 @@ function JourneyConfigure() {
         id="journey-configure"
         spacing={3}
       >
-        <EditableName
-          name={journeyName}
-          onEscape={() => {
+        <EditableTitle
+          text={journeyName}
+          onSubmit={(val) => {
             apiRequestHandlerFactory({
               request: journeyUpdateRequest,
               setRequest: setJourneyUpdateRequest,
@@ -289,15 +289,15 @@ function JourneyConfigure() {
                 data: {
                   id,
                   workspaceId: workspace.value.id,
-                  name: journeyName,
+                  name: val,
                 } satisfies UpsertJourneyResource,
                 headers: {
                   "Content-Type": "application/json",
                 },
               },
             })();
+            setJourneyName(val);
           }}
-          onChange={(e) => setJourneyName(e.target.value)}
         />
         <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
         <Box>

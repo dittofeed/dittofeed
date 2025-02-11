@@ -43,7 +43,7 @@ import React, { useCallback } from "react";
 import { v4 as uuidv4, validate } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
-import EditableName from "../../components/editableName";
+import { EditableTitle } from "../../components/editableName/v2";
 import { SubtleHeader } from "../../components/headers";
 import InfoTooltip from "../../components/infoTooltip";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
@@ -1150,11 +1150,11 @@ export default function NewUserProperty() {
           justifyContent="space-between"
           alignContent="center"
         >
-          <EditableName
-            name={name}
-            onChange={(event) =>
+          <EditableTitle
+            text={name}
+            onSubmit={(val) =>
               updateEditedUserProperty({
-                name: event.target.value,
+                name: val,
               })
             }
           />
