@@ -1,33 +1,30 @@
 ---
-title: Updating Dittofeed's API docs
+title: Updating Dittofeed's API Docs
 ---
 
-Updating Dittofeed's API docs requires running Dittofeed's API server locally, and copying the OpenAPI / Swagger spec to the docs package.
+We maintain a copy of the OpenAPI spec for the production API in the docs package - `packages/docs/open-api.json`. The following page describes how to update this file.
 
-<Steps>
+This schema is used to generate the API reference docs.
 
-  <Step title="Start API Server" stepNumber="1" titleSize="h3">
-  Start the API server by running the following command:
+## Updating `packages/docs/open-api.json`
+
+Run the following command to copy the OpenAPI / Swagger spec to the docs package:
+
 ```bash
-yarn workspace api dev
+curl "https://app.dittofeed.com/documentation/json" | jq "." > packages/docs/open-api.json
 ```
-  </Step>
 
-   <Step title="Sync Open API" stepNumber="2" titleSize="h3">
-    In a separate terminal, run the following command to copy the OpenAPI / Swagger spec to the docs package:
-```bash
-curl "http://localhost:3001/documentation/json" | jq "." > packages/docs/open-api.json
-```
-    Note this command assumes you have [jq](https://stedolan.github.io/jq/) installed, which formats the JSON output from the API server.
-  </Step>
+Note this command assumes you have [jq](https://stedolan.github.io/jq/) installed, which formats the JSON output from the API server.
 
-   <Step title="Add new endpoints to docs (optional)" stepNumber="4" titleSize="h3">
-    Run the following command to add new endpoints to the docs:
+## Adding New Endpoints to the Docs
+
+Run the following command to add new endpoints to the docs:
+
 ```bash
 npx @mintlify/scraping@latest openapi-file packages/docs/open-api.json --outDir packages/docs/api-reference/auto
 ```
 
-    Then add the new endpoints to the [mint.json](https://github.com/dittofeed/dittofeed/blob/main/packages/docs/mint.json) file.
+Then add the new endpoints to the [mint.json](https://github.com/dittofeed/dittofeed/blob/main/packages/docs/mint.json) file.
 
 ```json mint.json
 {
@@ -37,12 +34,10 @@ npx @mintlify/scraping@latest openapi-file packages/docs/open-api.json --outDir 
     ...
   ]
 }
-
 ```
-  </Step>
 
-   <Step title="Run Docs" stepNumber="4" titleSize="h3">
-    Run Dittofeed's docs in local machine:
+
+## Running the Docs Locally
 
 cd into docs directory
 
@@ -55,11 +50,3 @@ Run the mintlify dev server.
 ```bash
 mintlify dev
 ```
-  </Step>
-</Steps>
-
-
-
-
-
-
