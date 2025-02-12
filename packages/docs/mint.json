@@ -251,7 +251,10 @@
         "api-reference/auto/users/post-apiadminusers",
         "api-reference/auto/users/delete-apiadminusers",
         "api-reference/auto/events/get-apiadminevents",
-        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute"
+        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute",
+        "api-reference/auto/workspace/put-api-ladminworkspaceschild",
+        "api-reference/auto/workspace/delete-api-ladminworkspaces",
+        "api-reference/auto/workspace/get-api-ladminworkspaces"
       ]
     },
     {
