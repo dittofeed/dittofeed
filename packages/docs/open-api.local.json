@@ -58,1975 +58,6 @@
     }
   },
   "paths": {
-    "/api-l/sessions/": {
-      "post": {
-        "tags": [
-          "Sessions"
-        ],
-        "description": "Create a session.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "memberId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "workspaceId"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "token"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api-l/embedded/deliveries/": {
-      "get": {
-        "tags": [
-          "Deliveries"
-        ],
-        "description": "Search through deliveries.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "fromIdentifier",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "toIdentifier",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "journeyId",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                  "examples": [
-                    "1043",
-                    "user-123",
-                    "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                    "examples": [
-                      "1043",
-                      "user-123",
-                      "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                    ],
-                    "type": "string"
-                  }
-                }
-              ]
-            },
-            "in": "query",
-            "name": "userId",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Email"
-                    ]
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "MobilePush"
-                    ]
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Sms"
-                    ]
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Webhook"
-                    ]
-                  }
-                ]
-              }
-            },
-            "in": "query",
-            "name": "channels",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "number"
-            },
-            "in": "query",
-            "name": "limit",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "cursor",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "in": "query",
-            "name": "from",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "in": "query",
-            "name": "to",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "in": "query",
-            "name": "statuses",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "in": "query",
-            "name": "templateIds",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "startDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "endDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "from"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "to"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "status"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "sentAt"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortBy",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "Asc"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Desc"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortDirection",
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "workspaceId": {
-                      "type": "string"
-                    },
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Sms"
-                                    ]
-                                  },
-                                  "provider": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Twilio"
-                                            ]
-                                          },
-                                          "sid": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "sid"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Test"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "provider",
-                                  "to",
-                                  "body"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFInternalMessageSent"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailDropped"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailDelivered"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailOpened"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailClicked"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailBounced"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailMarkedSpam"
-                                    ]
-                                  }
-                                ]
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Email"
-                                    ]
-                                  },
-                                  "provider": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "MailChimp"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "SendGrid"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "AmazonSes"
-                                            ]
-                                          },
-                                          "messageId": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "PostMark"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Resend"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Smtp"
-                                            ]
-                                          },
-                                          "messageId": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "messageId"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Test"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "type"
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "attachments": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "mimeType": {
-                                          "type": "string"
-                                        },
-                                        "name": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "mimeType",
-                                        "name"
-                                      ]
-                                    }
-                                  },
-                                  "from": {
-                                    "type": "string"
-                                  },
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "replyTo": {
-                                    "type": "string"
-                                  },
-                                  "cc": {
-                                    "type": "string"
-                                  },
-                                  "bcc": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "attachmentUserProperties": {
-                                    "description": "Names of user properties to attach to the email as attachments.",
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "body": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "provider",
-                                  "to",
-                                  "from",
-                                  "subject",
-                                  "body"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Webhook"
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "request": {
-                                    "type": "object",
-                                    "properties": {
-                                      "url": {
-                                        "type": "string"
-                                      },
-                                      "method": {
-                                        "type": "string"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "params": {},
-                                      "data": {},
-                                      "responseType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "json"
-                                            ]
-                                          },
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "text"
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "response": {
-                                    "type": "object",
-                                    "properties": {
-                                      "status": {
-                                        "type": "number"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "body": {}
-                                    },
-                                    "required": [
-                                      "body"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "to",
-                                  "request",
-                                  "response"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFInternalMessageSent"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailDropped"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailDelivered"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailOpened"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailClicked"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailBounced"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DFEmailMarkedSpam"
-                                    ]
-                                  }
-                                ]
-                              },
-                              "to": {
-                                "type": "string"
-                              },
-                              "channel": {
-                                "type": "string",
-                                "enum": [
-                                  "Email"
-                                ]
-                              },
-                              "from": {
-                                "type": "string"
-                              },
-                              "subject": {
-                                "type": "string"
-                              },
-                              "replyTo": {
-                                "type": "string"
-                              },
-                              "cc": {
-                                "type": "string"
-                              },
-                              "bcc": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "name": {
-                                      "type": "string"
-                                    },
-                                    "value": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "name",
-                                    "value"
-                                  ]
-                                }
-                              },
-                              "attachmentUserProperties": {
-                                "description": "Names of user properties to attach to the email as attachments.",
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "body": {
-                                "type": "string"
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "to",
-                              "channel",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "cursor": {
-                      "type": "string"
-                    },
-                    "previousCursor": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "workspaceId",
-                    "items"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api-l/admin/workspaces/child": {
-      "put": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Create a child workspace.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "workspaceId": {
-                    "description": "The id of the parent workspace.",
-                    "type": "string"
-                  },
-                  "externalId": {
-                    "type": "string"
-                  },
-                  "domain": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "workspaceId",
-                  "externalId"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "externalId": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Root"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Child"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Parent"
-                          ]
-                        }
-                      ]
-                    },
-                    "writeKey": {
-                      "type": "string"
-                    },
-                    "domain": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Active"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Tombstoned"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Paused"
-                          ]
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "type",
-                    "writeKey",
-                    "status"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceAlreadyExists"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "InvalidDomain"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceNameViolation"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api-l/admin/workspaces/": {
-      "delete": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Delete / tombstone a workspace.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "externalId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "An empty String",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "An empty String",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Get a workspace.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "externalId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "externalId": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Root"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Child"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Parent"
-                              ]
-                            }
-                          ]
-                        },
-                        "writeKey": {
-                          "type": "string"
-                        },
-                        "domain": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Active"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Tombstoned"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Paused"
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "type",
-                        "writeKey",
-                        "status"
-                      ]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api-l/workspaces/onboard": {
-      "post": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Create a root workspace.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "domain": {
-                    "type": "string"
-                  },
-                  "externalId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "externalId": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Root"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Child"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Parent"
-                              ]
-                            }
-                          ]
-                        },
-                        "writeKey": {
-                          "type": "string"
-                        },
-                        "domain": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Active"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Tombstoned"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Paused"
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "type",
-                        "writeKey",
-                        "status"
-                      ]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceAlreadyExists"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "InvalidDomain"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceNameViolation"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/internal-api-l/workspaces/": {
-      "put": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Create a root workspace.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "domain": {
-                    "type": "string"
-                  },
-                  "externalId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "externalId": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Root"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Child"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Parent"
-                          ]
-                        }
-                      ]
-                    },
-                    "writeKey": {
-                      "type": "string"
-                    },
-                    "domain": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Active"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Tombstoned"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Paused"
-                          ]
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "type",
-                    "writeKey",
-                    "status"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceAlreadyExists"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "InvalidDomain"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceNameViolation"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Delete / tombstone a workspace.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "externalId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "An empty String",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "An empty String",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Get a workspace.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "externalId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "externalId": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Root"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Child"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Parent"
-                              ]
-                            }
-                          ]
-                        },
-                        "writeKey": {
-                          "type": "string"
-                        },
-                        "domain": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Active"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Tombstoned"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "Paused"
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "type",
-                        "writeKey",
-                        "status"
-                      ]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/internal-api-l/workspaces/child": {
-      "put": {
-        "tags": [
-          "Workspace"
-        ],
-        "description": "Create a child workspace.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "workspaceId": {
-                    "description": "The id of the parent workspace.",
-                    "type": "string"
-                  },
-                  "externalId": {
-                    "type": "string"
-                  },
-                  "domain": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "workspaceId",
-                  "externalId"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "externalId": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Root"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Child"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Parent"
-                          ]
-                        }
-                      ]
-                    },
-                    "writeKey": {
-                      "type": "string"
-                    },
-                    "domain": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Active"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Tombstoned"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Paused"
-                          ]
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "type",
-                    "writeKey",
-                    "status"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceAlreadyExists"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "InvalidDomain"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "WorkspaceNameViolation"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/": {
       "get": {
         "description": "Application health check endpoint.",
@@ -5939,10 +3970,8 @@
                                                                       "items": {
                                                                         "anyOf": [
                                                                           {
-                                                                            "type": "number",
-                                                                            "enum": [
-                                                                              0
-                                                                            ]
+                                                                            "const": 0,
+                                                                            "type": "number"
                                                                           },
                                                                           {
                                                                             "type": "number",
@@ -6379,10 +4408,8 @@
                                                       "items": {
                                                         "anyOf": [
                                                           {
-                                                            "type": "number",
-                                                            "enum": [
-                                                              0
-                                                            ]
+                                                            "const": 0,
+                                                            "type": "number"
                                                           },
                                                           {
                                                             "type": "number",
@@ -7340,10 +5367,8 @@
                                                                       "items": {
                                                                         "anyOf": [
                                                                           {
-                                                                            "type": "number",
-                                                                            "enum": [
-                                                                              0
-                                                                            ]
+                                                                            "const": 0,
+                                                                            "type": "number"
                                                                           },
                                                                           {
                                                                             "type": "number",
@@ -7796,10 +5821,8 @@
                                                       "items": {
                                                         "anyOf": [
                                                           {
-                                                            "type": "number",
-                                                            "enum": [
-                                                              0
-                                                            ]
+                                                            "const": 0,
+                                                            "type": "number"
                                                           },
                                                           {
                                                             "type": "number",
@@ -8520,10 +6543,8 @@
                                           "items": {
                                             "anyOf": [
                                               {
-                                                "type": "number",
-                                                "enum": [
-                                                  0
-                                                ]
+                                                "const": 0,
+                                                "type": "number"
                                               },
                                               {
                                                 "type": "number",
@@ -9473,10 +7494,8 @@
                                                               "items": {
                                                                 "anyOf": [
                                                                   {
-                                                                    "type": "number",
-                                                                    "enum": [
-                                                                      0
-                                                                    ]
+                                                                    "const": 0,
+                                                                    "type": "number"
                                                                   },
                                                                   {
                                                                     "type": "number",
@@ -10220,10 +8239,8 @@
                                                                 "items": {
                                                                   "anyOf": [
                                                                     {
-                                                                      "type": "number",
-                                                                      "enum": [
-                                                                        0
-                                                                      ]
+                                                                      "const": 0,
+                                                                      "type": "number"
                                                                     },
                                                                     {
                                                                       "type": "number",
@@ -10660,10 +8677,8 @@
                                                 "items": {
                                                   "anyOf": [
                                                     {
-                                                      "type": "number",
-                                                      "enum": [
-                                                        0
-                                                      ]
+                                                      "const": 0,
+                                                      "type": "number"
                                                     },
                                                     {
                                                       "type": "number",
@@ -11621,10 +9636,8 @@
                                                                 "items": {
                                                                   "anyOf": [
                                                                     {
-                                                                      "type": "number",
-                                                                      "enum": [
-                                                                        0
-                                                                      ]
+                                                                      "const": 0,
+                                                                      "type": "number"
                                                                     },
                                                                     {
                                                                       "type": "number",
@@ -12077,10 +10090,8 @@
                                                 "items": {
                                                   "anyOf": [
                                                     {
-                                                      "type": "number",
-                                                      "enum": [
-                                                        0
-                                                      ]
+                                                      "const": 0,
+                                                      "type": "number"
                                                     },
                                                     {
                                                       "type": "number",
@@ -20541,7 +18552,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           },
           {
             "schema": {
@@ -21710,161 +19722,6 @@
             }
           }
         }
-      },
-      "get": {
-        "tags": [
-          "Subscription Groups"
-        ],
-        "description": "Get a subscription groups",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "channel": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Email"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "MobilePush"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Sms"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Webhook"
-                            ]
-                          }
-                        ]
-                      },
-                      "type": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "OptIn"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "OptOut"
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "workspaceId",
-                      "name",
-                      "channel",
-                      "type"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/subscription-groups/assignments": {
-      "put": {
-        "tags": [
-          "Subscription Groups"
-        ],
-        "description": "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "userUpdates": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string"
-                        },
-                        "changes": {
-                          "description": "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "boolean"
-                          }
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "changes"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "workspaceId",
-                  "userUpdates"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "An empty String",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "An empty String",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/subscription-groups/upload-csv": {
@@ -21879,7 +19736,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           },
           {
             "schema": {
@@ -24069,76 +21927,6 @@
             "in": "query",
             "name": "templateIds",
             "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "startDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "endDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "from"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "to"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "status"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "sentAt"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortBy",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "Asc"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Desc"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortDirection",
-            "required": false
           }
         ],
         "responses": {
@@ -24535,124 +22323,6 @@
                             "type": "object",
                             "properties": {
                               "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Webhook"
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "request": {
-                                    "type": "object",
-                                    "properties": {
-                                      "url": {
-                                        "type": "string"
-                                      },
-                                      "method": {
-                                        "type": "string"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "params": {},
-                                      "data": {},
-                                      "responseType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "json"
-                                            ]
-                                          },
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "text"
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "response": {
-                                    "type": "object",
-                                    "properties": {
-                                      "status": {
-                                        "type": "number"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "body": {}
-                                    },
-                                    "required": [
-                                      "body"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "to",
-                                  "request",
-                                  "response"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -24785,6 +22455,124 @@
                               "status",
                               "to",
                               "channel",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Webhook"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "url": {
+                                        "type": "string"
+                                      },
+                                      "method": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "params": {},
+                                      "data": {},
+                                      "responseType": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "json"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "text"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "response": {
+                                    "type": "object",
+                                    "properties": {
+                                      "status": {
+                                        "type": "number"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "body": {}
+                                    },
+                                    "required": [
+                                      "body"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "to",
+                                  "request",
+                                  "response"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
                               "sentAt",
                               "updatedAt",
                               "journeyId",
@@ -24974,8 +22762,12 @@
                     "type": "array",
                     "items": {
                       "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                      "type": "string",
-                      "example": "1043"
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
+                      "type": "string"
                     }
                   },
                   "userPropertyFilter": {
@@ -25125,8 +22917,12 @@
                     "type": "array",
                     "items": {
                       "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                      "type": "string",
-                      "example": "1043"
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
+                      "type": "string"
                     }
                   }
                 },
@@ -25905,7 +23701,6 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
                 "type": "object",
                 "properties": {
                   "mandrill_events": {
@@ -26196,7 +23991,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": false
+            "required": false,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           }
         ],
         "responses": {
@@ -27748,11 +25544,13 @@
                   },
                   "context": {
                     "description": "Provides metadata about the user submitting the event and the context in which the event occurred.",
+                    "examples": [
+                      {
+                        "ip": "192.0.2.1"
+                      }
+                    ],
                     "type": "object",
-                    "additionalProperties": {},
-                    "example": {
-                      "ip": "192.0.2.1"
-                    }
+                    "additionalProperties": {}
                   }
                 },
                 "required": [
@@ -28512,7 +26310,6 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
                 "type": "object",
                 "properties": {
                   "mandrill_events": {
@@ -28803,7 +26600,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": false
+            "required": false,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           }
         ],
         "responses": {
@@ -28857,8 +26655,12 @@
                     "type": "array",
                     "items": {
                       "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                      "type": "string",
-                      "example": "1043"
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
+                      "type": "string"
                     }
                   },
                   "userPropertyFilter": {
@@ -29008,8 +26810,12 @@
                     "type": "array",
                     "items": {
                       "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                      "type": "string",
-                      "example": "1043"
+                      "examples": [
+                        "1043",
+                        "user-123",
+                        "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                      ],
+                      "type": "string"
                     }
                   }
                 },
@@ -38511,7 +36317,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           },
           {
             "schema": {
@@ -39004,10 +36811,8 @@
                                                                       "items": {
                                                                         "anyOf": [
                                                                           {
-                                                                            "type": "number",
-                                                                            "enum": [
-                                                                              0
-                                                                            ]
+                                                                            "const": 0,
+                                                                            "type": "number"
                                                                           },
                                                                           {
                                                                             "type": "number",
@@ -39444,10 +37249,8 @@
                                                       "items": {
                                                         "anyOf": [
                                                           {
-                                                            "type": "number",
-                                                            "enum": [
-                                                              0
-                                                            ]
+                                                            "const": 0,
+                                                            "type": "number"
                                                           },
                                                           {
                                                             "type": "number",
@@ -40405,10 +38208,8 @@
                                                                       "items": {
                                                                         "anyOf": [
                                                                           {
-                                                                            "type": "number",
-                                                                            "enum": [
-                                                                              0
-                                                                            ]
+                                                                            "const": 0,
+                                                                            "type": "number"
                                                                           },
                                                                           {
                                                                             "type": "number",
@@ -40861,10 +38662,8 @@
                                                       "items": {
                                                         "anyOf": [
                                                           {
-                                                            "type": "number",
-                                                            "enum": [
-                                                              0
-                                                            ]
+                                                            "const": 0,
+                                                            "type": "number"
                                                           },
                                                           {
                                                             "type": "number",
@@ -41585,10 +39384,8 @@
                                           "items": {
                                             "anyOf": [
                                               {
-                                                "type": "number",
-                                                "enum": [
-                                                  0
-                                                ]
+                                                "const": 0,
+                                                "type": "number"
                                               },
                                               {
                                                 "type": "number",
@@ -42538,10 +40335,8 @@
                                                               "items": {
                                                                 "anyOf": [
                                                                   {
-                                                                    "type": "number",
-                                                                    "enum": [
-                                                                      0
-                                                                    ]
+                                                                    "const": 0,
+                                                                    "type": "number"
                                                                   },
                                                                   {
                                                                     "type": "number",
@@ -43285,10 +41080,8 @@
                                                                 "items": {
                                                                   "anyOf": [
                                                                     {
-                                                                      "type": "number",
-                                                                      "enum": [
-                                                                        0
-                                                                      ]
+                                                                      "const": 0,
+                                                                      "type": "number"
                                                                     },
                                                                     {
                                                                       "type": "number",
@@ -43725,10 +41518,8 @@
                                                 "items": {
                                                   "anyOf": [
                                                     {
-                                                      "type": "number",
-                                                      "enum": [
-                                                        0
-                                                      ]
+                                                      "const": 0,
+                                                      "type": "number"
                                                     },
                                                     {
                                                       "type": "number",
@@ -44686,10 +42477,8 @@
                                                                 "items": {
                                                                   "anyOf": [
                                                                     {
-                                                                      "type": "number",
-                                                                      "enum": [
-                                                                        0
-                                                                      ]
+                                                                      "const": 0,
+                                                                      "type": "number"
                                                                     },
                                                                     {
                                                                       "type": "number",
@@ -45142,10 +42931,8 @@
                                                 "items": {
                                                   "anyOf": [
                                                     {
-                                                      "type": "number",
-                                                      "enum": [
-                                                        0
-                                                      ]
+                                                      "const": 0,
+                                                      "type": "number"
                                                     },
                                                     {
                                                       "type": "number",
@@ -49543,161 +47330,6 @@
             }
           }
         }
-      },
-      "get": {
-        "tags": [
-          "Subscription Groups"
-        ],
-        "description": "Get a subscription groups",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "workspaceId": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "channel": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Email"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "MobilePush"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Sms"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "Webhook"
-                            ]
-                          }
-                        ]
-                      },
-                      "type": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "OptIn"
-                            ]
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "OptOut"
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "workspaceId",
-                      "name",
-                      "channel",
-                      "type"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/subscription-groups/assignments": {
-      "put": {
-        "tags": [
-          "Subscription Groups"
-        ],
-        "description": "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "userUpdates": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string"
-                        },
-                        "changes": {
-                          "description": "A map from subscription group ids to a boolean indicating whether the user is subscribed to the subscription group.",
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "boolean"
-                          }
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "changes"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "workspaceId",
-                  "userUpdates"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "An empty String",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "An empty String",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/admin/subscription-groups/upload-csv": {
@@ -49712,7 +47344,8 @@
             },
             "in": "header",
             "name": "df-workspace-id",
-            "required": true
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           },
           {
             "schema": {
@@ -50651,76 +48284,6 @@
             "in": "query",
             "name": "templateIds",
             "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "startDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "endDate",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "from"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "to"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "status"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "sentAt"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortBy",
-            "required": false
-          },
-          {
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "Asc"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Desc"
-                  ]
-                }
-              ]
-            },
-            "in": "query",
-            "name": "sortDirection",
-            "required": false
           }
         ],
         "responses": {
@@ -51117,124 +48680,6 @@
                             "type": "object",
                             "properties": {
                               "status": {
-                                "type": "string"
-                              },
-                              "variant": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "Webhook"
-                                    ]
-                                  },
-                                  "to": {
-                                    "type": "string"
-                                  },
-                                  "request": {
-                                    "type": "object",
-                                    "properties": {
-                                      "url": {
-                                        "type": "string"
-                                      },
-                                      "method": {
-                                        "type": "string"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "params": {},
-                                      "data": {},
-                                      "responseType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "json"
-                                            ]
-                                          },
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "text"
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "response": {
-                                    "type": "object",
-                                    "properties": {
-                                      "status": {
-                                        "type": "number"
-                                      },
-                                      "headers": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "body": {}
-                                    },
-                                    "required": [
-                                      "body"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "to",
-                                  "request",
-                                  "response"
-                                ]
-                              },
-                              "sentAt": {
-                                "type": "string"
-                              },
-                              "updatedAt": {
-                                "type": "string"
-                              },
-                              "journeyId": {
-                                "type": "string"
-                              },
-                              "userId": {
-                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
-                                "examples": [
-                                  "1043",
-                                  "user-123",
-                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
-                                ],
-                                "type": "string"
-                              },
-                              "originMessageId": {
-                                "type": "string"
-                              },
-                              "triggeringMessageId": {
-                                "type": "string"
-                              },
-                              "templateId": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "status",
-                              "variant",
-                              "sentAt",
-                              "updatedAt",
-                              "journeyId",
-                              "userId",
-                              "originMessageId",
-                              "templateId"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "status": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -51374,6 +48819,124 @@
                               "originMessageId",
                               "templateId"
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string"
+                              },
+                              "variant": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Webhook"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "url": {
+                                        "type": "string"
+                                      },
+                                      "method": {
+                                        "type": "string"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "params": {},
+                                      "data": {},
+                                      "responseType": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "json"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "text"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "response": {
+                                    "type": "object",
+                                    "properties": {
+                                      "status": {
+                                        "type": "number"
+                                      },
+                                      "headers": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "body": {}
+                                    },
+                                    "required": [
+                                      "body"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "to",
+                                  "request",
+                                  "response"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "journeyId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "description": "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
+                                "examples": [
+                                  "1043",
+                                  "user-123",
+                                  "0a58e5e4-c753-477e-a6c4-f9b0e3396b9b"
+                                ],
+                                "type": "string"
+                              },
+                              "originMessageId": {
+                                "type": "string"
+                              },
+                              "triggeringMessageId": {
+                                "type": "string"
+                              },
+                              "templateId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "variant",
+                              "sentAt",
+                              "updatedAt",
+                              "journeyId",
+                              "userId",
+                              "originMessageId",
+                              "templateId"
+                            ]
                           }
                         ]
                       }
@@ -51389,470 +48952,6 @@
                     "workspaceId",
                     "items"
                   ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/component-configurations/": {
-      "get": {
-        "tags": [
-          "ComponentConfigurations"
-        ],
-        "description": "Get all component configurations.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "componentConfigurations": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "workspaceId": {
-                            "type": "string"
-                          },
-                          "definition": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "DeliveriesTable"
-                                ]
-                              },
-                              "columnAllowList": {
-                                "type": "array",
-                                "items": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "preview"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "from"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "to"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "snippet"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "channel"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "status"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "origin"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "sentAt"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "template"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "updatedAt"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              },
-                              "userUriTemplate": {
-                                "type": "string"
-                              },
-                              "templateUriTemplate": {
-                                "type": "string"
-                              },
-                              "originUriTemplate": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "type"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "workspaceId",
-                          "definition"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "componentConfigurations"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "ComponentConfigurations"
-        ],
-        "description": "Create or update a component configuration.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "definition": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "DeliveriesTable"
-                        ]
-                      },
-                      "columnAllowList": {
-                        "type": "array",
-                        "items": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "preview"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "from"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "to"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "snippet"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "channel"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "status"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "origin"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "sentAt"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "template"
-                              ]
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                "updatedAt"
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "userUriTemplate": {
-                        "type": "string"
-                      },
-                      "templateUriTemplate": {
-                        "type": "string"
-                      },
-                      "originUriTemplate": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  }
-                },
-                "required": [
-                  "workspaceId",
-                  "name"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "workspaceId": {
-                      "type": "string"
-                    },
-                    "definition": {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "DeliveriesTable"
-                          ]
-                        },
-                        "columnAllowList": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "preview"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "from"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "to"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "snippet"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "channel"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "status"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "origin"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "sentAt"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "template"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "updatedAt"
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        "userUriTemplate": {
-                          "type": "string"
-                        },
-                        "templateUriTemplate": {
-                          "type": "string"
-                        },
-                        "originUriTemplate": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "workspaceId",
-                    "definition"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "UniqueConstraintViolation"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "NotFound"
-                          ]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "ComponentConfigurations"
-        ],
-        "description": "Delete a component configuration.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "workspaceId",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "id",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "An empty String",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "An empty String",
-                  "type": "string"
                 }
               }
             }
@@ -54527,5 +51626,9 @@
       }
     }
   },
-  "servers": []
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ]
 }

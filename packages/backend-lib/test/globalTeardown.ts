@@ -2,8 +2,7 @@ import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
 import { clickhouseClient } from "../src/clickhouse";
-import config, { databaseUrlWithoutName } from "../src/config";
-import { pool } from "../src/db";
+import config from "../src/config";
 import logger from "../src/logger";
 
 async function dropClickhouse() {
@@ -17,8 +16,15 @@ async function dropClickhouse() {
 }
 
 async function dropPostgres() {
-  await pool().end();
-  const client = new Client(databaseUrlWithoutName());
+  const { databaseUser, databasePassword, databaseHost, databasePort } =
+    config();
+  const client = new Client({
+    user: databaseUser,
+    password: databasePassword,
+    host: databaseHost,
+    database: "postgres",
+    port: parseInt(databasePort ?? "5432", 10),
+  });
   const { database } = config();
   try {
     await client.connect();

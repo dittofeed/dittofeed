@@ -15,6 +15,22 @@ import * as relations from "./db/relations";
 import * as schema from "./db/schema";
 import logger from "./logger";
 
+// declaring as global because singletons are wacky in jest
+
+declare global {
+  // eslint-disable-next-line vars-on-top, no-var
+  var POOL: Pool | null;
+  // eslint-disable-next-line vars-on-top, no-var
+  var DB: Db | null;
+  // eslint-disable-next-line vars-on-top, no-var
+  var POOL_ENDED: boolean;
+}
+
+// Initialize if not already set
+if (typeof globalThis.POOL === "undefined") globalThis.POOL = null;
+if (typeof globalThis.DB === "undefined") globalThis.DB = null;
+if (typeof globalThis.POOL_ENDED === "undefined") globalThis.POOL_ENDED = false;
+
 export { PostgresError };
 
 export type QueryError = Error & { code: PostgresError };
@@ -41,19 +57,32 @@ export type Schema = typeof schema & typeof relations;
 
 export type Db = NodePgDatabase<Schema>;
 
-let DB: Db | null = null;
-let POOL: Pool | null = null;
-
 export function pool(): Pool {
+  if (POOL_ENDED) {
+    throw new Error("Pool already ended");
+  }
   if (!POOL) {
     POOL = new Pool({
       connectionString: config().databaseUrl,
     });
   }
+
   return POOL;
 }
 
+export async function endPool() {
+  if (POOL_ENDED) {
+    return;
+  }
+  POOL_ENDED = true;
+  await POOL?.end();
+  POOL = null;
+}
+
 export function db(): Db {
+  if (POOL_ENDED) {
+    throw new Error("Database already ended");
+  }
   if (!DB) {
     const dbSchema = {
       ...schema,
@@ -79,7 +108,7 @@ export async function upsert<
 >({
   table,
   values,
-  tx = db(),
+  tx: txArg,
   ...onConflict
 }: {
   table: TTable;
@@ -88,6 +117,7 @@ export async function upsert<
 } & PgInsertOnConflictDoUpdateConfig<TInsert>): Promise<
   Result<TTable["$inferSelect"], QueryError>
 > {
+  const tx = txArg ?? db();
   const results = await queryResult(
     tx.insert(table).values(values).onConflictDoUpdate(onConflict).returning(),
   );
@@ -132,7 +162,7 @@ export async function insert<TTable extends Table>(
 export async function insert<TTable extends Table>({
   table,
   values,
-  tx = db(),
+  tx: txArg,
   doNothingOnConflict = false,
   lookupExisting,
 }: {
@@ -142,6 +172,7 @@ export async function insert<TTable extends Table>({
   doNothingOnConflict?: boolean;
   tx?: Db;
 }): Promise<Result<TTable["$inferSelect"] | null, QueryError>> {
+  const tx = txArg ?? db();
   const query = tx.insert(table).values(values).returning();
   const results = await queryResult(
     doNothingOnConflict ? query.onConflictDoNothing() : query,
@@ -161,7 +192,7 @@ export async function insert<TTable extends Table>({
     return ok(null);
   }
 
-  const [existing] = await db()
+  const [existing] = await tx
     .select()
     .from(table)
     .where(lookupExisting)

@@ -1,5 +1,5 @@
-import { pool } from "../src/db";
+import { endPool } from "../src/db";
 
 afterAll(async () => {
-  await pool().end();
+  await endPool();
 });

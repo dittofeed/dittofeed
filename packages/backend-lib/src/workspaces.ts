@@ -133,24 +133,26 @@ export async function resumeWorkspace({
   await startComputePropertiesWorkflow({ workspaceId });
 }
 
-export const RECOMPUTABLE_WORKSPACES_QUERY = and(
-  eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
-  not(eq(dbWorkspace.type, WorkspaceTypeAppEnum.Parent)),
-  or(
-    inArray(
-      dbWorkspace.id,
-      db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+export function recomputableWorkspacesQuery() {
+  return and(
+    eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
+    not(eq(dbWorkspace.type, WorkspaceTypeAppEnum.Parent)),
+    or(
+      inArray(
+        dbWorkspace.id,
+        db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+      ),
+      inArray(
+        dbWorkspace.id,
+        db().select({ id: dbUserProperty.workspaceId }).from(dbUserProperty),
+      ),
     ),
-    inArray(
-      dbWorkspace.id,
-      db().select({ id: dbUserProperty.workspaceId }).from(dbUserProperty),
-    ),
-  ),
-);
+  );
+}
 
 export async function getRecomputableWorkspaces(): Promise<Workspace[]> {
   const workspaces = await db().query.workspace.findMany({
-    where: RECOMPUTABLE_WORKSPACES_QUERY,
+    where: recomputableWorkspacesQuery(),
   });
   return workspaces;
 }

@@ -1,0 +1,85 @@
+---
+title: "Getting Started"
+description: "Learn how to embed Dittofeed in your application."
+---
+
+In this guide, we'll walk you through the steps to embed Dittofeed in your application.
+
+## 1. Obtain an Parent Admin API Key
+
+Reach out to the Dittofeed team to obtain a Parent Admin API Key for your parent workspace. This key will be used to authenticate your requests to the Dittofeed API.
+
+- Email: [support@dittofeed.com](mailto:support@dittofeed.com)
+- Discord: [Discord Server](https://discord.gg/HajPkCG4Mm)
+
+
+## 2. Create a Child Workspace
+
+Create a child workspace. You can optionally associate this with an `externalId` if you have a business entity or customer in your own system that you want to associate with the workspace. This will make accessing the workspace more convenient.
+
+Use the [PUT /api-l/admin/workspaces/child](/api-reference/auto/workspace/put-api-ladminworkspaceschild) endpoint to create a child workspace.
+
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer <parent-admin-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Customer Business", "externalId": "1234567890", "workspaceId": "<parent-workspace-id>"}' \
+  https://app.dittofeed.com/api-l/admin/workspaces/child
+```
+
+This will respond with the child workspace id and write key.
+
+```json
+{
+  "id": "6eed2156-606a-4666-925e-7f89adddd743",
+  "name": "My Customer Business",
+  "externalId": "1234567890",
+  "writeKey": "Basic OTQ0MjNkNzctMzA0Ni00MDBhLTgxMDYtMTM2ZTIzZmQyMzE2OjQ3YjRlYzExOTM3NDE3MjU=",
+  "type": "Child",
+  "status": "Active"
+}
+```
+
+Make sure to store the write key, which will be used to submit events to the child workspace.
+
+{/* ## 3. Create Resources in the Child Workspace
+
+Create a journey, a email template, and segment.
+
+## 4. Submit Events to the Child Workspace */}
+
+## 3. Create a Session Token
+
+Use the [POST /api-l/sessions](/api-reference/auto/sessions/post-api-lsessions) endpoint on your backend to create a session token.
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <write-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"workspaceId": "<child-workspace-id>"}' \
+  https://app.dittofeed.com/api-l/sessions
+```
+
+This will respond with a session token.
+
+```json
+{
+  "token": "1234567890"
+}
+```
+
+This token can then be passed to your frontend, and used to embed Dittofeed components until it expires. By default, the session token expires in 1 hour.
+
+## 4. Embed Dittofeed Components
+
+Take your session token and pass it to the Dittofeed components which can be loaded via an iframe.
+
+### Deliveries Table
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/deliveries?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
