@@ -15,6 +15,8 @@ import * as relations from "./db/relations";
 import * as schema from "./db/schema";
 import logger from "./logger";
 
+// declaring as global because singletons are wacky in jest
+
 declare global {
   // eslint-disable-next-line vars-on-top, no-var
   var POOL: Pool | null;
@@ -55,39 +57,23 @@ export type Schema = typeof schema & typeof relations;
 
 export type Db = NodePgDatabase<Schema>;
 
-// let DB: Db | null = null;
-// let POOL: Pool | null = null;
-// let ended = false;
-
-const poolUsers = new Set<string>();
-
 export function pool(): Pool {
   if (POOL_ENDED) {
     throw new Error("Pool already ended");
   }
   if (!POOL) {
-    console.log("creating pool", new Error().stack);
     POOL = new Pool({
       connectionString: config().databaseUrl,
     });
-
-    POOL.on("error", (err1) => {
-      console.log("Pool error:", err1);
-      console.log("Current pool users:", [...poolUsers]);
-    });
   }
-  const stack = new Error().stack;
-  poolUsers.add(stack ?? "unknown");
 
   return POOL;
 }
 
 export async function endPool() {
   if (POOL_ENDED) {
-    console.log("pool already ended", process.pid, new Error().stack);
     return;
   }
-  console.log("ending pool", process.pid, new Error().stack);
   POOL_ENDED = true;
   await POOL?.end();
   POOL = null;
@@ -98,7 +84,6 @@ export function db(): Db {
     throw new Error("Database already ended");
   }
   if (!DB) {
-    console.log("creating db", new Error().stack);
     const dbSchema = {
       ...schema,
       ...relations,
