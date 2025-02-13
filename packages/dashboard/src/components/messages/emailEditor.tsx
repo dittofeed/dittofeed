@@ -83,7 +83,7 @@ function PreviewIframe({ body }: { body?: string }) {
   );
 }
 
-function EmailOptions({ draft, setDraft, disabled, mode }: RenderEditorParams) {
+function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   const [open, setOpen] = React.useState(false);
   const { userProperties } = useAppStorePick(["userProperties"]);
   const options = useMemo(() => {
