@@ -2,8 +2,7 @@ import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
 import { clickhouseClient } from "../src/clickhouse";
-import config, { databaseUrlWithoutName } from "../src/config";
-import { endPool, pool } from "../src/db";
+import config from "../src/config";
 import logger from "../src/logger";
 
 async function dropClickhouse() {
@@ -17,8 +16,6 @@ async function dropClickhouse() {
 }
 
 async function dropPostgres() {
-  // await endPool();
-  console.log("main pool ended");
   const { databaseUser, databasePassword, databaseHost, databasePort } =
     config();
   const client = new Client({
@@ -29,29 +26,8 @@ async function dropPostgres() {
     port: parseInt(databasePort ?? "5432", 10),
   });
   const { database } = config();
-  console.log("dropping postgres database", database, databaseUrlWithoutName());
   try {
     await client.connect();
-    console.log("client connected", {
-      database: client.database,
-      user: client.user,
-      host: client.host,
-      port: client.port,
-    });
-    const activeConns = await client.query(`
-  SELECT datname, pid, application_name, usename, state
-  FROM pg_stat_activity 
-  WHERE datname = '${database}'
-`);
-    console.log("Active connections:", activeConns.rows);
-    console.log("loc0");
-    await client.query(`
-      SELECT pg_terminate_backend(pid)
-      FROM pg_stat_activity
-      WHERE datname = '${database}'
-      AND pid <> pg_backend_pid()
-    `);
-    console.log("loc1");
     await client.query(`
       DROP DATABASE ${database}
     `);
@@ -69,7 +45,6 @@ async function dropPostgres() {
     }
   } finally {
     await client.end();
-    console.log("postgres client ended");
   }
 }
 
