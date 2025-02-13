@@ -235,6 +235,13 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Embedded Components",
+        "pages": [
+          "embedded/introduction",
+          "embedded/getting-started"
+        ]
       }
     ],
     "global": {
