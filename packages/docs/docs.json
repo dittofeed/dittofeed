@@ -231,7 +231,8 @@
               "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute",
               "api-reference/auto/workspace/put-api-ladminworkspaceschild",
               "api-reference/auto/workspace/delete-api-ladminworkspaces",
-              "api-reference/auto/workspace/get-api-ladminworkspaces"
+              "api-reference/auto/workspace/get-api-ladminworkspaces",
+              "api-reference/auto/sessions/post-api-lsessions"
             ]
           }
         ]
@@ -239,8 +240,8 @@
       {
         "tab": "Embedded Components",
         "pages": [
-          "embedded/introduction",
-          "embedded/getting-started"
+          "embedded/getting-started",
+          "embedded/introduction"
         ]
       }
     ],

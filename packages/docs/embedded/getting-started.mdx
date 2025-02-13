@@ -17,23 +17,69 @@ Reach out to the Dittofeed team to obtain a Parent Admin API Key for your parent
 
 Create a child workspace. You can optionally associate this with an `externalId` if you have a business entity or customer in your own system that you want to associate with the workspace. This will make accessing the workspace more convenient.
 
+Use the [PUT /api-l/admin/workspaces/child](/api-reference/auto/workspace/put-api-ladminworkspaceschild) endpoint to create a child workspace.
+
 ```bash
+curl -X PUT \
+  -H "Authorization: Bearer <parent-admin-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Customer Business", "externalId": "1234567890", "workspaceId": "<parent-workspace-id>"}' \
+  https://app.dittofeed.com/api-l/admin/workspaces/child
 ```
 
-Make sure to save the write key.
+This will respond with the child workspace id and write key.
 
-## 3. Create Resources in the Child Workspace
+```json
+{
+  "id": "6eed2156-606a-4666-925e-7f89adddd743",
+  "name": "My Customer Business",
+  "externalId": "1234567890",
+  "writeKey": "Basic OTQ0MjNkNzctMzA0Ni00MDBhLTgxMDYtMTM2ZTIzZmQyMzE2OjQ3YjRlYzExOTM3NDE3MjU=",
+  "type": "Child",
+  "status": "Active"
+}
+```
+
+Make sure to store the write key, which will be used to submit events to the child workspace.
+
+{/* ## 3. Create Resources in the Child Workspace
 
 Create a journey, a email template, and segment.
 
-## 4. Submit Events to the Child Workspace
+## 4. Submit Events to the Child Workspace */}
 
-## 5. Create a Session Token
+## 3. Create a Session Token
 
-## 6. Embed Dittofeed Components
+Use the [POST /api-l/sessions](/api-reference/auto/sessions/post-api-lsessions) endpoint on your backend to create a session token.
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <write-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"workspaceId": "<child-workspace-id>"}' \
+  https://app.dittofeed.com/api-l/sessions
+```
+
+This will respond with a session token.
+
+```json
+{
+  "token": "1234567890"
+}
+```
+
+This token can then be passed to your frontend, and used to embed Dittofeed components until it expires. By default, the session token expires in 1 hour.
+
+## 4. Embed Dittofeed Components
+
+Take your session token and pass it to the Dittofeed components which can be loaded via an iframe.
 
 ### Deliveries Table
 
-<Frame>
-![Embedded Deliveries Table](/images/embedded-deliveries-table.png)
-</Frame>
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/deliveries?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
