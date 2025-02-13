@@ -97,6 +97,24 @@ export function initOpenTelemetry({
     views: meterProviderViews,
   });
 
+  const meter = getMeter();
+  const rssGauge = meter.createObservableGauge("process.memory.rss", {
+    description: "Process RSS memory usage",
+    unit: "bytes",
+  });
+  const heapGauge = meter.createObservableGauge("process.memory.heap_used", {
+    description: "Process heap memory usage",
+    unit: "bytes",
+  });
+  meter.addBatchObservableCallback(
+    (observer) => {
+      const memoryUsage = process.memoryUsage();
+      observer.observe(rssGauge, memoryUsage.rss);
+      observer.observe(heapGauge, memoryUsage.heapUsed);
+    },
+    [rssGauge, heapGauge],
+  );
+
   const start = function start() {
     if (!startOtel) {
       return;

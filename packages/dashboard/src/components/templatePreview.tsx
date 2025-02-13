@@ -58,6 +58,7 @@ function TemplatePreview({
         sx={{
           height: "36px",
           width: "100%",
+          pr: 1,
         }}
       >
         <FormLabel sx={{ paddingLeft: 1 }}>{bodyPreviewHeading}</FormLabel>

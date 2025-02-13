@@ -1,4 +1,4 @@
-import { aliasedTable, and, eq, max, not } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray, max, not, or } from "drizzle-orm";
 
 import { query as chQuery } from "./clickhouse";
 import config from "./config";
@@ -6,6 +6,8 @@ import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
 import { db } from "./db";
 import {
   computedPropertyPeriod as dbComputedPropertyPeriod,
+  segment as dbSegment,
+  userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
 import logger, { publicLogger } from "./logger";
@@ -16,6 +18,7 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "./types";
+import { getRecomputableWorkspaces } from "./workspaces";
 
 const PUBLIC_PREFIX = "DF_PUBLIC";
 
@@ -78,52 +81,10 @@ function observeWorkspaceComputeLatencyInner({
 }
 
 /**
- * Deprecated
+ * Deprecated keeping around so doesn't cause temporal errors
  */
-export async function observeWorkspaceComputeLatency() {
-  const periodsQuery = db()
-    .select({
-      workspaceId: dbComputedPropertyPeriod.workspaceId,
-      to: max(dbComputedPropertyPeriod.to),
-    })
-    .from(dbComputedPropertyPeriod)
-    .where(
-      eq(
-        dbComputedPropertyPeriod.step,
-        ComputedPropertyStep.ProcessAssignments,
-      ),
-    )
-    .groupBy(dbComputedPropertyPeriod.workspaceId);
-
-  const workspacesQuery = db()
-    .select()
-    .from(dbWorkspace)
-    .where(eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active));
-
-  const [rawPeriods, workspaces] = await Promise.all([
-    periodsQuery,
-    workspacesQuery,
-  ]);
-
-  const periods = rawPeriods.flatMap((row) => {
-    if (!row.to) {
-      logger().error(
-        { workspaceId: row.workspaceId },
-        "Could not find maxTo for workspace",
-      );
-      return [];
-    }
-    return {
-      to: new Date(row.to),
-      workspaceId: row.workspaceId,
-    };
-  });
-
-  observeWorkspaceComputeLatencyInner({
-    workspaces,
-    periods,
-  });
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export async function observeWorkspaceComputeLatency() {}
 
 async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
   const [userCountsRes, messageCountsRes] = await Promise.all([
@@ -204,22 +165,25 @@ export async function findActiveWorkspaces(): Promise<{
         eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
         eq(w.status, WorkspaceStatusDbEnum.Active),
         not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
+        or(
+          inArray(
+            w.id,
+            db().select({ id: dbSegment.workspaceId }).from(dbSegment),
+          ),
+          inArray(
+            w.id,
+            db()
+              .select({ id: dbUserProperty.workspaceId })
+              .from(dbUserProperty),
+          ),
+        ),
       ),
     )
     .groupBy(cpp.workspaceId);
-  const workspacesQuery = db()
-    .select()
-    .from(w)
-    .where(
-      and(
-        eq(w.status, WorkspaceStatusDbEnum.Active),
-        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
-      ),
-    );
 
   const [periodsRaw, workspaces] = await Promise.all([
     periodsQuery,
-    workspacesQuery,
+    getRecomputableWorkspaces(),
   ]);
 
   const periods = periodsRaw.flatMap((row) => {

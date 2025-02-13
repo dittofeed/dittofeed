@@ -24,7 +24,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import { BulletList, BulletListItem } from "../../components/bulletList";
-import EditableName from "../../components/editableName";
+import { EditableTitle } from "../../components/editableName/v2";
 import InfoBox from "../../components/infoBox";
 import InfoTooltip from "../../components/infoTooltip";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -150,13 +150,10 @@ export default function SubscriptionGroupConfig() {
           spacing={2}
         >
           <Typography variant="h4">Create a Subscription Group</Typography>
-          <EditableName
-            variant="h6"
+          <EditableTitle
             sx={{ minWidth: theme.spacing(52) }}
-            name={editedSubscriptionGroup.name}
-            onChange={(e) =>
-              updateEditedSubscriptionGroup({ name: e.target.value })
-            }
+            text={editedSubscriptionGroup.name}
+            onSubmit={(val) => updateEditedSubscriptionGroup({ name: val })}
           />
         </Stack>
 

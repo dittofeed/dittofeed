@@ -42,6 +42,7 @@ function Layout({
             width: "100%",
             flexGrow: 1,
             height: "100%",
+            minWidth: 0,
           }}
         >
           <Toolbar />

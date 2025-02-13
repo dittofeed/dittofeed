@@ -24,7 +24,6 @@ import {
   insertUserPropertyAssignments,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
-import { createWorkspace } from "./workspaces";
 
 describe("userProperties", () => {
   let workspace: Workspace;

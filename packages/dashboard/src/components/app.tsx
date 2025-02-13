@@ -4,6 +4,7 @@ import {
 } from "@emotion/react";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { enableMapSet } from "immer";
 import type { AppProps } from "next/app";
 import Head from "next/head";
@@ -24,6 +25,8 @@ export interface DittofeedAppProps
 }
 
 enableMapSet();
+
+const queryClient = new QueryClient();
 
 declare module "@mui/material/styles" {
   interface Theme {
@@ -231,7 +234,9 @@ export default function App({
           <ThemeCustomization>
             <SnackbarProvider preventDuplicate>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <Component {...pageProps} />
+                <QueryClientProvider client={queryClient}>
+                  <Component {...pageProps} />
+                </QueryClientProvider>
               </LocalizationProvider>
             </SnackbarProvider>
           </ThemeCustomization>

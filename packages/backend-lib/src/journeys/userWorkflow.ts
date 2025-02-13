@@ -613,6 +613,7 @@ export async function userJourneyWorkflow(
         }
 
         const shouldContinue = await sendMessageV2({
+          events: keyedEvents,
           context: entryEventProperties,
           ...messagePayload,
           ...variant,

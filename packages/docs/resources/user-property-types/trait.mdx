@@ -54,13 +54,29 @@ Let's say you're running an online store, and you want to show recommendations t
 }
 ```
 
-
 ```html
 {% for product in user.recommendations | default: empty %}
-  <mj-text><a>href="https://example.com/product/{{ product.id }}">{{ product.name }}</a></mj-text>
+<mj-text
+  ><a
+    >href="https://example.com/product/{{ product.id }}">{{ product.name }}</a
+  ></mj-text
+>
 {% endfor %}
 ```
 
 This is a demonstration of how `Trait` user properties can be used to render arrays and objects in addition to strings.
 
 <Snippet file="path-syntax.mdx" />
+
+---
+
+## Walkthrough Video
+
+<iframe
+  className="w-full aspect-video"
+  src="https://www.youtube.com/embed/hD8nDTn-63o?si=k2yoBCIns2RUh_EW"
+  title="User Properties | Rendering Trait Properties in Email Templates"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>

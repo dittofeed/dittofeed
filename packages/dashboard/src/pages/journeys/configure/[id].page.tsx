@@ -18,8 +18,12 @@ import {
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
-import { DeliveriesTable } from "../../../components/deliveriesTable";
-import EditableName from "../../../components/editableName";
+import {
+  DEFAULT_ALLOWED_COLUMNS,
+  DEFAULT_DELIVERIES_TABLE_V2_PROPS,
+  DeliveriesTableV2,
+} from "../../../components/deliveriesTableV2";
+import { EditableTitle } from "../../../components/editableName/v2";
 import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
@@ -268,9 +272,9 @@ function JourneyConfigure() {
         id="journey-configure"
         spacing={3}
       >
-        <EditableName
-          name={journeyName}
-          onEscape={() => {
+        <EditableTitle
+          text={journeyName}
+          onSubmit={(val) => {
             apiRequestHandlerFactory({
               request: journeyUpdateRequest,
               setRequest: setJourneyUpdateRequest,
@@ -285,15 +289,15 @@ function JourneyConfigure() {
                 data: {
                   id,
                   workspaceId: workspace.value.id,
-                  name: journeyName,
+                  name: val,
                 } satisfies UpsertJourneyResource,
                 headers: {
                   "Content-Type": "application/json",
                 },
               },
             })();
+            setJourneyName(val);
           }}
-          onChange={(e) => setJourneyName(e.target.value)}
         />
         <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
         <Box>
@@ -330,7 +334,13 @@ function JourneyConfigure() {
         {journey.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
-            <DeliveriesTable journeyId={id} />
+            <DeliveriesTableV2
+              {...DEFAULT_DELIVERIES_TABLE_V2_PROPS}
+              columnAllowList={DEFAULT_ALLOWED_COLUMNS.filter(
+                (c) => c !== "origin",
+              )}
+              journeyId={id}
+            />
           </Stack>
         )}
       </Stack>

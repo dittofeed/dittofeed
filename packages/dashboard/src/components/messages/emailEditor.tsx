@@ -33,6 +33,7 @@ import EmailPreviewHeader from "../emailPreviewHeader";
 import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
+  TemplateEditorMode,
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
@@ -82,7 +83,7 @@ function PreviewIframe({ body }: { body?: string }) {
   );
 }
 
-function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
+function EmailOptions({ draft, setDraft, disabled, mode }: RenderEditorParams) {
   const [open, setOpen] = React.useState(false);
   const { userProperties } = useAppStorePick(["userProperties"]);
   const options = useMemo(() => {
@@ -357,12 +358,14 @@ export default function EmailEditor({
   hidePublisher,
   disabled,
   member,
+  mode,
 }: {
   templateId: string;
   hidePublisher?: boolean;
   hideTitle?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
+  mode?: TemplateEditorMode;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -383,6 +386,7 @@ export default function EmailEditor({
       disabled={disabled}
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
+      mode={mode}
       renderEditorOptions={(params) => <EmailOptions {...params} />}
       renderEditorHeader={({ draft, setDraft }) => {
         if (draft.type !== ChannelType.Email) {

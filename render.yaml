@@ -78,6 +78,9 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
+      # comment out bootstrap env var after initial setup
+      - key: BOOTSTRAP
+        value: "true"
   - type: pserv
     name: dittofeed-ch
     env: docker

@@ -1,0 +1,278 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Dittofeed",
+  "logo": {
+    "dark": "/logo/dark.png",
+    "light": "/logo/light.png",
+    "href": "https://dittofeed.com"
+  },
+  "api": {
+    "baseUrl": "http://localhost:3001",
+    "auth": {
+      "method": "key",
+      "name": "Authorization",
+      "inputPrefix": "ApiKey"
+    },
+    "playground": {
+      "mode": "show"
+    }
+  },
+  "favicon": "/favicon_1.png",
+  "colors": {
+    "primary": "#FF8101",
+    "light": "#FFDA71",
+    "dark": "#FF8101"
+  },
+  "topbarLinks": [
+    {
+      "name": "Community",
+      "url": "https://discord.gg/HajPkCG4Mm"
+    }
+  ],
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/dittofeed/dittofeed"
+  },
+  "anchors": [
+    {
+      "name": "Get Instant Help",
+      "icon": "discord",
+      "url": "https://discord.gg/HajPkCG4Mm"
+    },
+    {
+      "name": "Tutorial Videos",
+      "icon": "youtube",
+      "url": "https://www.youtube.com/@Dittofeed"
+    },
+    {
+      "name": "Demo App",
+      "icon": "bullseye-pointer",
+      "url": "https://demo.dittofeed.com/dashboard/journeys"
+    }
+  ],
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+
+      "pages": ["introduction", "quick-start", "video-walkthrough", "glossary"]
+    },
+    {
+      "group": "Deployment",
+      "pages": [
+        "deployment/self-hosted",
+        {
+          "group": "Self-Hosting Options",
+          "pages": [
+            "deployment/self-hosted/render",
+            "deployment/self-hosted/docker-compose",
+            "deployment/self-hosted/kubernetes",
+            "deployment/self-hosted/cloudformation",
+            "deployment/self-hosted/auth-modes",
+            {
+              "group": "Upgrade Guide",
+              "pages": [
+                "deployment/self-hosted/upgrade-guide/v0-20-0",
+                "deployment/self-hosted/upgrade-guide/v0-19-0",
+                "deployment/self-hosted/upgrade-guide/v0-18-0",
+                "deployment/self-hosted/upgrade-guide/v0-17-0",
+                "deployment/self-hosted/upgrade-guide/v0-16-0",
+                "deployment/self-hosted/upgrade-guide/v0-15-0",
+                "deployment/self-hosted/upgrade-guide/v0-14-0",
+                "deployment/self-hosted/upgrade-guide/v0-13-0",
+                "deployment/self-hosted/upgrade-guide/v0-12-0",
+                "deployment/self-hosted/upgrade-guide/v0-11-0",
+                "deployment/self-hosted/upgrade-guide/v0-10-0"
+              ]
+            },
+            "deployment/self-hosted/write-modes",
+            {
+              "group": "Write Modes",
+              "pages": ["deployment/self-hosted/write-modes/kafka"]
+            }
+          ]
+        },
+        "deployment/cloud"
+      ]
+    },
+    {
+      "group": "Integrations",
+      "pages": [
+        "integrations/sources",
+        {
+          "group": "Data Source Types",
+          "pages": [
+            "integrations/sources/segment",
+            "integrations/sources/api",
+            "integrations/sources/polytomic"
+          ]
+        },
+        "integrations/channels",
+        {
+          "group": "Message Channel Types",
+          "pages": [
+            "integrations/channels/email",
+            "integrations/channels/sendgrid",
+            "integrations/channels/postmark",
+            "integrations/channels/resend",
+            "integrations/channels/smtp",
+            "integrations/channels/amazonses",
+            "integrations/channels/sms",
+            "integrations/channels/twilio",
+            "integrations/channels/webhooks",
+            "integrations/channels/mailchimp"
+          ]
+        },
+        "integrations/sdks",
+        {
+          "group": "Available SDK's",
+          "pages": [
+            "integrations/sdks/web",
+            "integrations/sdks/node",
+            "integrations/sdks/react-native"
+          ]
+        },
+        "integrations/destinations",
+        {
+          "group": "Data Destination Types",
+          "pages": [
+            "integrations/destinations/hubspot",
+            "integrations/destinations/csv"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Workspace Resources",
+      "pages": [
+        "resources/introduction",
+        "resources/journeys",
+        {
+          "group": "Journey Nodes",
+          "pages": [
+            "resources/journey-nodes/entry",
+            "resources/journey-nodes/message",
+            "resources/journey-nodes/wait-for",
+            "resources/journey-nodes/delay",
+            "resources/journey-nodes/segment-split",
+            "resources/journey-nodes/exit"
+          ]
+        },
+        "resources/segments",
+        {
+          "group": "Segment Nodes",
+          "pages": [
+            "resources/segment-nodes/trait",
+            "resources/segment-nodes/performed",
+            "resources/segment-nodes/and",
+            "resources/segment-nodes/or",
+            "resources/segment-nodes/manual",
+            "resources/segment-nodes/subscription-group",
+            "resources/segment-nodes/email",
+            "resources/segment-nodes/random-bucket",
+            "resources/segment-nodes/keyed-performed"
+          ]
+        },
+        "resources/templates",
+        {
+          "group": "Template Types",
+          "pages": [
+            "resources/templates/email-editor",
+            "resources/templates/mjml",
+            "resources/templates/liquid-presets",
+            "resources/templates/free-mjml-email-templates",
+            "resources/templates/sms-editor",
+            "resources/templates/webhook-editor"
+          ]
+        },
+        "resources/workspaces",
+        "resources/subscription-groups",
+        "resources/user-properties",
+        {
+          "group": "User Property Types",
+          "pages": [
+            "resources/user-property-types/trait",
+            "resources/user-property-types/performed",
+            "resources/user-property-types/any-of",
+            "resources/user-property-types/file",
+            "resources/user-property-types/id",
+            "resources/user-property-types/anonymous-id",
+            "resources/user-property-types/keyed-performed"
+          ]
+        },
+        "resources/broadcasts"
+      ]
+    },
+    {
+      "group": "User Guides",
+      "pages": [
+        "guide/submitting-user-events",
+        "guide/roadmap",
+        "guide/faq",
+        "guide/creating-journeys",
+        {
+          "group": "Sample Journeys",
+          "pages": ["guide/sample-journeys/appointment-reminders"]
+        },
+        "guide/accessing-admin-api",
+        "guide/submitting-broadcasts-api",
+        "guide/git-workflows",
+        "guide/license"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/endpoints/apps/identify",
+        "api-reference/endpoints/apps/track",
+        "api-reference/endpoints/apps/page",
+        "api-reference/endpoints/apps/screen",
+        "api-reference/endpoints/apps/batch",
+        "api-reference/endpoints/webhooks/segment",
+        "api-reference/auto/content/get-apiadmincontenttemplates",
+        "api-reference/auto/content/put-apiadmincontenttemplates",
+        "api-reference/auto/content/delete-apiadmincontenttemplates",
+        "api-reference/auto/segments/get-apiadminsegments",
+        "api-reference/auto/segments/put-apiadminsegments",
+        "api-reference/auto/segments/delete-apiadminsegments",
+        "api-reference/auto/user-properties/get-apiadminuser-properties",
+        "api-reference/auto/user-properties/put-apiadminuser-properties",
+        "api-reference/auto/user-properties/delete-apiadminuser-properties",
+        "api-reference/auto/journeys/get-apiadminjourneys",
+        "api-reference/auto/journeys/put-apiadminjourneys",
+        "api-reference/auto/journeys/delete-apiadminjourneys",
+        "api-reference/auto/subscription-groups/get-apiadminsubscription-groups",
+        "api-reference/auto/subscription-groups/put-apiadminsubscription-groupsassignments",
+        "api-reference/endpoints/subscription-management/user-subscriptions",
+        "api-reference/auto/users/get-apiadminuserssubscriptions",
+        "api-reference/auto/users/post-apiadminusers",
+        "api-reference/auto/users/delete-apiadminusers",
+        "api-reference/auto/events/get-apiadminevents",
+        "api-reference/auto/broadcasts/post-apiadminbroadcastsexecute"
+      ]
+    },
+    {
+      "group": "Contributing",
+      "pages": [
+        "contributing/running-locally",
+        "contributing/architecture",
+        "contributing/updating-api-docs"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/dittofeed",
+    "github": "https://github.com/dittofeed/dittofeed",
+    "linkedin": "https://www.linkedin.com/company/dittofeed"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_nAONMdL3n31UGZLr5QmIpPlyHqHV327DgxPCRjMusrG"
+    }
+  }
+}

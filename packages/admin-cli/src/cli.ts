@@ -5,9 +5,12 @@ import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
   startComputePropertiesWorkflow,
+  startComputePropertiesWorkflowGlobal,
   stopComputePropertiesWorkflow,
+  stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
+import { findDueWorkspaceMaxTos } from "backend-lib/src/computedProperties/periods";
 import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
@@ -36,10 +39,13 @@ import {
 import {
   ChannelType,
   EmailProviderType,
-  FeatureNames,
+  FeatureName,
+  FeatureNamesEnum,
   Features,
   MessageTemplateResourceDefinition,
   SendgridSecret,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
 import path from "path";
 import { hideBin } from "yargs/helpers";
@@ -227,15 +233,54 @@ export async function cli() {
         }
         const workspaces = await db().query.workspace.findMany({
           where: condition,
+          with: {
+            features: true,
+          },
         });
+        logger().info(
+          {
+            queue: backendConfig().computedPropertiesTaskQueue,
+          },
+          "Resetting computed properties workflows",
+        );
         await Promise.all(
           workspaces.map(async (workspace) => {
-            await resetComputePropertiesWorkflow({
-              workspaceId: workspace.id,
-            });
-            logger().info(
-              `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`,
+            const isGlobal = workspace.features.some(
+              (f) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+                f.name === FeatureNamesEnum.ComputePropertiesGlobal &&
+                f.enabled,
             );
+            if (
+              workspace.status !== WorkspaceStatusDbEnum.Active ||
+              workspace.type === WorkspaceTypeAppEnum.Parent ||
+              isGlobal
+            ) {
+              await terminateComputePropertiesWorkflow({
+                workspaceId: workspace.id,
+              });
+              logger().info(
+                {
+                  workspaceId: workspace.id,
+                  type: workspace.type,
+                  status: workspace.status,
+                  isGlobal,
+                },
+                "Terminated computed properties workflow",
+              );
+            } else {
+              await resetComputePropertiesWorkflow({
+                workspaceId: workspace.id,
+              });
+              logger().info(
+                {
+                  workspaceId: workspace.id,
+                  type: workspace.type,
+                  status: workspace.status,
+                },
+                "Reset computed properties workflow",
+              );
+            }
           }),
         );
         logger().info("Done.");
@@ -650,16 +695,28 @@ export async function cli() {
       "Adds features to a workspace.",
       (cmd) =>
         cmd.options({
-          "workspace-id": { type: "string", alias: "w", require: true },
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            array: true,
+          },
           features: { type: "string", alias: "f", require: true },
         }),
       async ({ workspaceId, features: featuresString }) => {
-        const features = jsonParseSafeWithSchema(featuresString, Features);
+        const features = jsonParseSafeWithSchema(featuresString, Features, {
+          method: "standard",
+        });
         if (features.isErr()) {
           logger().error(features.error, "Failed to parse features");
           return;
         }
+        logger().info(
+          { features, workspaceId },
+          "Adding features to workspace.",
+        );
         await addFeatures({ workspaceId, features: features.value });
+        logger().info("Added features to workspace.");
       },
     )
     .command(
@@ -667,19 +724,29 @@ export async function cli() {
       "Removes features from a workspace.",
       (cmd) =>
         cmd.options({
-          "workspace-id": { type: "string", alias: "w", require: true },
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            array: true,
+          },
           features: { type: "string", alias: "f", require: true, array: true },
         }),
       async ({ workspaceId, features: unvalidatedFeatures }) => {
         const features = schemaValidateWithErr(
           unvalidatedFeatures,
-          Type.Array(FeatureNames),
+          Type.Array(FeatureName),
+        );
+        logger().info(
+          { features, workspaceId },
+          "Removing features from workspace.",
         );
         if (features.isErr()) {
           logger().error(features.error, "Failed to parse features");
           return;
         }
         await removeFeatures({ workspaceId, names: features.value });
+        logger().info("Removed features from workspace.");
       },
     )
     .command(
@@ -695,6 +762,7 @@ export async function cli() {
           },
         }),
       async ({ workspaceId: workspaceIds }) => {
+        logger().info({ workspaceIds }, "Pausing workspaces.");
         await Promise.all(
           workspaceIds.map((workspaceId) => pauseWorkspace({ workspaceId })),
         );
@@ -713,7 +781,60 @@ export async function cli() {
         cmd.options({
           "workspace-id": { type: "string", alias: "w", require: true },
         }),
-      ({ workspaceId }) => resumeWorkspace({ workspaceId }),
+      ({ workspaceId }) => {
+        logger().info({ workspaceId }, "Resuming workspace.");
+        resumeWorkspace({ workspaceId });
+        logger().info({ workspaceId }, "Resumed workspace.");
+      },
+    )
+    .command(
+      "start-compute-properties-global",
+      "Starts the global compute properties workflow.",
+      () => {},
+      async () => {
+        logger().info("Starting global compute properties workflow.");
+        await startComputePropertiesWorkflowGlobal();
+        logger().info("Started global compute properties workflow.");
+      },
+    )
+    .command(
+      "stop-compute-properties-global",
+      "Stops the global compute properties workflow.",
+      () => {},
+      async () => {
+        logger().info("Stopping global compute properties workflow.");
+        await stopComputePropertiesWorkflowGlobal();
+        logger().info("Stopped global compute properties workflow.");
+      },
+    )
+    .command(
+      "find-due-workspaces",
+      "Find due workspaces.",
+      (cmd) =>
+        cmd.options({
+          interval: { type: "number", alias: "i" },
+          limit: { type: "number", alias: "l" },
+        }),
+      async ({ interval, limit }) => {
+        logger().info(
+          {
+            interval,
+            limit,
+          },
+          "Finding due workspaces.",
+        );
+        const workspaces = await findDueWorkspaceMaxTos({
+          now: new Date().getTime(),
+          interval,
+          limit,
+        });
+        logger().info(
+          {
+            workspaces,
+          },
+          "Found due workspaces.",
+        );
+      },
     )
     .demandCommand(1, "# Please provide a valid command")
     .recommendCommands()

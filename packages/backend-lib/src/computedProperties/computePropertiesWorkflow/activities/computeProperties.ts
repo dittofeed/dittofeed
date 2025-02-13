@@ -10,7 +10,7 @@ import { findManySegmentResourcesSafe } from "../../../segments";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import {
   computeAssignments,
-  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
+  ComputePropertiesArgs,
   computeState,
   processAssignments,
 } from "../../computePropertiesIncremental";
@@ -19,7 +19,7 @@ export async function computePropertiesIncrementalArgs({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<Omit<ComputePropertiesIncrementalArgs, "now">> {
+}): Promise<Omit<ComputePropertiesArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findManyJourneyResourcesSafe(
       and(
@@ -32,6 +32,7 @@ export async function computePropertiesIncrementalArgs({
     }),
     findManySegmentResourcesSafe({
       workspaceId,
+      requireRunning: true,
     }),
     findAllIntegrationResources({
       workspaceId,
@@ -75,7 +76,7 @@ export async function computePropertiesIncremental({
   journeys,
   integrations,
   now,
-}: ComputePropertiesIncrementalArgs) {
+}: ComputePropertiesArgs) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     span.setAttributes({
       workspaceId,
@@ -106,5 +107,21 @@ export async function computePropertiesIncremental({
       journeys,
       integrations,
     });
+  });
+}
+
+export async function computePropertiesContained({
+  workspaceId,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+}) {
+  const args = await computePropertiesIncrementalArgs({
+    workspaceId,
+  });
+  await computePropertiesIncremental({
+    ...args,
+    now,
   });
 }

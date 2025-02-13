@@ -6,6 +6,7 @@ import logger from "backend-lib/src/logger";
 import {
   buildSubscriptionChangeEvent,
   subscriptionGroupToResource,
+  updateUserSubscriptions,
   upsertSubscriptionGroup,
 } from "backend-lib/src/subscriptionGroups";
 import {
@@ -14,6 +15,8 @@ import {
   EmptyResponse,
   SavedSubscriptionGroupResource,
   SubscriptionChange,
+  SubscriptionGroupResource,
+  UpsertSubscriptionGroupAssignmentsRequest,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
   UserUploadRowErrors,
@@ -69,6 +72,25 @@ export default async function subscriptionGroupsController(
       }
       const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/assignments",
+    {
+      schema: {
+        description:
+          "Create or update user subscription group assignments. This performs a patch update on the user's subscription group assignments.",
+        tags: ["Subscription Groups"],
+        body: UpsertSubscriptionGroupAssignmentsRequest,
+        response: {
+          200: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await updateUserSubscriptions(request.body);
+      return reply.status(200).send();
     },
   );
 
@@ -259,6 +281,33 @@ export default async function subscriptionGroupsController(
         return reply.status(404).send();
       }
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get a subscription groups",
+        tags: ["Subscription Groups"],
+        querystring: Type.Object({
+          workspaceId: WorkspaceId,
+        }),
+        response: {
+          200: Type.Array(SubscriptionGroupResource),
+        },
+      },
+    },
+    async (request, reply) => {
+      const subscriptionGroups = await db()
+        .select()
+        .from(schema.subscriptionGroup)
+        .where(
+          eq(schema.subscriptionGroup.workspaceId, request.query.workspaceId),
+        );
+
+      const resources = subscriptionGroups.map(subscriptionGroupToResource);
+      return reply.status(200).send(resources);
     },
   );
 }

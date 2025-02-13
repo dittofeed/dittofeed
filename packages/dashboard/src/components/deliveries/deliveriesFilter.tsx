@@ -2,10 +2,15 @@ import { AddCircleOutline } from "@mui/icons-material";
 import {
   Autocomplete,
   AutocompleteProps,
+  Box,
   Button,
+  ButtonProps,
   Chip,
   Paper,
+  PaperProps,
+  SxProps,
   TextField,
+  Theme,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
@@ -21,6 +26,11 @@ import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { greyTextFieldStyles } from "../greyScaleStyles";
+
+function SquarePaper(props: PaperProps) {
+  return <Paper {...props} square elevation={4} />;
+}
 
 export interface BaseDeliveriesFilterCommand {
   label: string;
@@ -130,7 +140,9 @@ export function useDeliveriesFilterState(): [
 export function SelectedDeliveriesFilters({
   state,
   setState,
+  sx,
 }: {
+  sx?: SxProps<Theme>;
   state: DeliveriesState;
   setState: SetDeliveriesState;
 }) {
@@ -150,6 +162,7 @@ export function SelectedDeliveriesFilters({
       return (
         <Chip
           key={key}
+          sx={sx}
           label={`${key} = ${label}`}
           onDelete={() =>
             setState((draft) => {
@@ -166,9 +179,13 @@ export function SelectedDeliveriesFilters({
 export function NewDeliveriesFilterButton({
   state,
   setState,
+  buttonProps,
+  greyScale,
 }: {
+  buttonProps?: ButtonProps;
   state: DeliveriesState;
   setState: SetDeliveriesState;
+  greyScale?: boolean;
 }) {
   const { messages } = useAppStorePick(["messages"]);
   const { stage } = state;
@@ -409,6 +426,15 @@ export function NewDeliveriesFilterButton({
       <TextField
         autoFocus
         variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={{
+          ...(greyScale ? greyTextFieldStyles : {}),
+          width: 300,
+        }}
         label={state.stage.label}
         value={state.stage.value.value}
         onChange={(event) =>
@@ -454,13 +480,12 @@ export function NewDeliveriesFilterButton({
         ListboxProps={{
           sx: {
             padding: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
           },
         }}
+        PaperComponent={SquarePaper}
         value={null}
         inputValue={state.inputValue}
-        onInputChange={(event, newInputValue) =>
+        onInputChange={(_event, newInputValue) =>
           setState((draft) => {
             draft.inputValue = newInputValue;
           })
@@ -476,6 +501,7 @@ export function NewDeliveriesFilterButton({
             autoFocus
             label="Settings"
             variant="filled"
+            sx={greyScale ? greyTextFieldStyles : undefined}
             inputRef={inputRef}
           />
         )}
@@ -486,6 +512,7 @@ export function NewDeliveriesFilterButton({
           return (
             <Paper
               component="li"
+              square
               key={option.label}
               {...omit(propsWithKey, ["key"])}
               sx={{
@@ -497,7 +524,10 @@ export function NewDeliveriesFilterButton({
             >
               <Typography
                 variant="body2"
-                style={{ display: "flex", alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                }}
               >
                 {option.icon}
                 <span style={{ marginLeft: "8px" }}>{option.label}</span>
@@ -506,7 +536,11 @@ export function NewDeliveriesFilterButton({
           );
         }}
         getOptionDisabled={(option) => option.disabled ?? false}
-        sx={{ width: 300, padding: 0, height: "100%" }}
+        sx={{
+          width: 300,
+          padding: 0,
+          height: "100%",
+        }}
       />
     );
   } else {
@@ -516,10 +550,11 @@ export function NewDeliveriesFilterButton({
   return (
     <>
       <Button
-        onClick={handleClick}
         startIcon={<AddCircleOutline />}
         variant="contained"
         color="info"
+        {...buttonProps}
+        onClick={handleClick}
       >
         Add Filter
       </Button>
@@ -546,7 +581,7 @@ export function NewDeliveriesFilterButton({
           },
         }}
       >
-        {popoverBody}
+        <Box sx={{ opacity: state.open ? 1 : 0 }}>{popoverBody}</Box>
       </Popover>
     </>
   );

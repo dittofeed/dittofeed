@@ -55,7 +55,7 @@ b8c5cd71-214d-4d62-92a4-85e9e4d4efbe,bob@example.com,Bob,Smith
 7b73a62c-bfd2-4a8a-ba9f-bfcbfd234c89,charlie@example.com,Charlie,Brown
 ```
 
-Either the `id` or `email` field must be present. If both are present, the `id` field will be used to identify the user. If neither are present, the upload will fail.
+The `id` field must be present to identify the user, otherwise the upload will fail.
 
 Non-identifying fields such as `firstName` and `lastName` are optional and will map to and update user traits. Users will be created if they do not already exist.
 

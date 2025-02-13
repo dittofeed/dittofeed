@@ -14,7 +14,7 @@ import {
   handleSesNotification,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
-import { submitMailChimpEvent } from "backend-lib/src/destinations/mailchimp";
+import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
@@ -49,6 +49,7 @@ import {
   TwilioWebhookRequest,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
+import * as R from "remeda";
 import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
@@ -115,7 +116,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         .unwrapOr(null);
 
       if (!webhookKey) {
-        logger().error(
+        logger().info(
           {
             workspaceId,
           },
@@ -386,9 +387,14 @@ export default async function webhookController(fastify: FastifyInstance) {
       schema: {
         description: "Used to consume Mailchimp (Mandrill) webhook payloads.",
         tags: ["Webhooks"],
-        body: Type.Object({
-          mandrill_events: Type.String(),
-        }),
+        body: Type.Object(
+          {
+            mandrill_events: Type.String(),
+          },
+          {
+            additionalProperties: true,
+          },
+        ),
         headers: Type.Object({
           "x-mandrill-signature": Type.String(),
         }),
@@ -397,29 +403,68 @@ export default async function webhookController(fastify: FastifyInstance) {
     async (request, reply) => {
       const eventsResult = jsonParseSafe(request.body.mandrill_events);
       if (eventsResult.isErr()) {
-        logger().error("Failed to parse Mailchimp webhook payload");
+        logger().error(
+          {
+            err: eventsResult.error,
+          },
+          "Failed to parse Mailchimp webhook payload",
+        );
         return reply.status(400).send({
           error: "Invalid JSON in mandrill_events",
         });
       }
 
-      const events = schemaValidateWithErr(
-        eventsResult.value,
-        Type.Array(MailChimpEvent),
-      ).unwrapOr([]);
+      const events = eventsResult.value;
+      if (!Array.isArray(events)) {
+        logger().error(
+          {
+            events,
+          },
+          "Invalid Mailchimp webhook payload",
+        );
+        return reply.status(400).send({
+          error: "Invalid Mailchimp webhook payload",
+        });
+      }
+      const parsedEvents: MailChimpEvent[] = [];
+      for (const event of events) {
+        const parsedEvent = schemaValidateWithErr(event, MailChimpEvent);
+        if (parsedEvent.isErr()) {
+          logger().error(
+            {
+              err: parsedEvent.error,
+            },
+            "Failed to parse Mailchimp webhook payload",
+          );
+          continue;
+        }
+        parsedEvents.push(parsedEvent.value);
+      }
 
-      if (events.length === 0) {
+      if (parsedEvents.length === 0) {
+        logger().debug(
+          {
+            rawBody: request.rawBody,
+          },
+          "No events in Mailchimp webhook",
+        );
         return reply.status(200).send();
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const workspaceId = events[0]?.msg.metadata.workspaceId;
+      let workspaceId: string | null = null;
+      for (const event of parsedEvents) {
+        if (event.msg.metadata.workspaceId) {
+          workspaceId = event.msg.metadata.workspaceId;
+          break;
+        }
+      }
 
       if (!workspaceId || typeof workspaceId !== "string") {
         logger().error(
           {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             workspaceId,
+            parsedEvents,
           },
           "Missing workspaceId in Mailchimp webhook metadata",
         );
@@ -455,26 +500,29 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       const signature = request.headers["x-mandrill-signature"];
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      const url = `https://${request.headers.host}${request.originalUrl}`;
+      const url = `${backendConfig().dashboardUrl}${request.url}`;
       const params = request.body;
 
-      const signedData = Object.keys(params)
-        .sort()
-        .reduce((acc, key) => {
-          if (key === "mandrill_events") {
-            return acc + key + params.mandrill_events;
-          }
-          return acc;
-        }, url);
+      const signedData =
+        url +
+        R.sortBy(R.entries(params), ([key]) => key)
+          .map(([key, value]) => `${key}${value}`)
+          .join("");
 
       const expectedSignature = createHmac("sha1", webhookKey)
         .update(signedData)
         .digest("base64");
 
       if (signature !== expectedSignature) {
-        logger().error(
-          { workspaceId },
+        logger().info(
+          {
+            workspaceId,
+            signature,
+            expectedSignature,
+            url,
+            signedData,
+            rawBody: request.rawBody,
+          },
           "Invalid signature for Mailchimp webhook.",
         );
         return reply.status(401).send({
@@ -482,11 +530,9 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      await Promise.all(
-        events.map((e) =>
-          submitMailChimpEvent({ workspaceId, mailChimpEvent: e }),
-        ),
-      );
+      await submitMailChimpEvents({
+        events: parsedEvents,
+      });
 
       return reply.status(200).send();
     },

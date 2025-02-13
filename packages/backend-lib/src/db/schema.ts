@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -86,16 +87,13 @@ export const workspace = pgTable(
     status: workspaceStatus().default("Active").notNull(),
   },
   (table) => [
-    uniqueIndex("Workspace_parentWorkspaceId_externalId_key").using(
-      "btree",
-      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
-      table.externalId.asc().nullsLast().op("text_ops"),
+    unique("Workspace_parentWorkspaceId_externalId_key").on(
+      table.parentWorkspaceId,
+      table.externalId,
     ),
-    uniqueIndex("Workspace_parentWorkspaceId_name_key").using(
-      "btree",
-      table.parentWorkspaceId.asc().nullsFirst().op("uuid_ops"),
-      table.name.asc().nullsLast().op("text_ops"),
-    ),
+    unique("Workspace_parentWorkspaceId_name_key")
+      .on(table.parentWorkspaceId, table.name)
+      .nullsNotDistinct(),
   ],
 );
 
@@ -973,6 +971,35 @@ export const workspaceRelation = pgTable(
       columns: [table.childWorkspaceId],
       foreignColumns: [workspace.id],
       name: "WorkspaceRelation_childWorkspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const componentConfiguration = pgTable(
+  "ComponentConfiguration",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    definition: jsonb().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("ComponentConfiguration_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "ComponentConfiguration_workspaceId_fkey",
     })
       .onUpdate("cascade")
       .onDelete("cascade"),

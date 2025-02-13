@@ -6,7 +6,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { getStringBeforeAsterisk } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
-import pLimit, { Limit } from "p-limit";
+import pLimit from "p-limit";
 import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import {
