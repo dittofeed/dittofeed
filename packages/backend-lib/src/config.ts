@@ -571,7 +571,7 @@ export default function config(): Config {
 export function databaseUrlWithoutName() {
   const { databaseUrl } = config();
   const url = new URL(databaseUrl);
-  url.pathname = "";
+  url.pathname = "postgres";
   return url.toString();
 }
 

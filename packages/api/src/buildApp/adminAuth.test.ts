@@ -1,5 +1,5 @@
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
-import { db } from "backend-lib/src/db";
+import { db, endPool } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
   Workspace,
@@ -197,3 +197,9 @@ describe("authenticateAdminApiKey", () => {
     });
   });
 });
+
+// afterAll(async () => {
+//   console.log("test afterAll PID:", process.pid);
+//   await endPool();
+//   return null;
+// });

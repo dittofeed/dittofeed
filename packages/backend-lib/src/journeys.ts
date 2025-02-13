@@ -757,12 +757,13 @@ export function triggerEventEntryJourneysFactory({
 export async function updateJourney({
   set,
   where,
-  tx = db(),
+  tx: txArg,
 }: {
   set: Partial<Journey>;
   where?: SQL;
   tx?: Db;
 }): Promise<Result<Journey, QueryError>> {
+  const tx = txArg ?? db();
   const results = await queryResult(
     tx.update(dbJourney).set(set).where(where).returning(),
   );

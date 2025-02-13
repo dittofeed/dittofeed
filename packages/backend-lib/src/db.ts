@@ -15,6 +15,20 @@ import * as relations from "./db/relations";
 import * as schema from "./db/schema";
 import logger from "./logger";
 
+declare global {
+  // eslint-disable-next-line vars-on-top, no-var
+  var POOL: Pool | null;
+  // eslint-disable-next-line vars-on-top, no-var
+  var DB: Db | null;
+  // eslint-disable-next-line vars-on-top, no-var
+  var POOL_ENDED: boolean;
+}
+
+// Initialize if not already set
+if (typeof globalThis.POOL === "undefined") globalThis.POOL = null;
+if (typeof globalThis.DB === "undefined") globalThis.DB = null;
+if (typeof globalThis.POOL_ENDED === "undefined") globalThis.POOL_ENDED = false;
+
 export { PostgresError };
 
 export type QueryError = Error & { code: PostgresError };
@@ -41,20 +55,50 @@ export type Schema = typeof schema & typeof relations;
 
 export type Db = NodePgDatabase<Schema>;
 
-let DB: Db | null = null;
-let POOL: Pool | null = null;
+// let DB: Db | null = null;
+// let POOL: Pool | null = null;
+// let ended = false;
+
+const poolUsers = new Set<string>();
 
 export function pool(): Pool {
+  if (POOL_ENDED) {
+    throw new Error("Pool already ended");
+  }
   if (!POOL) {
+    console.log("creating pool", new Error().stack);
     POOL = new Pool({
       connectionString: config().databaseUrl,
     });
+
+    POOL.on("error", (err1) => {
+      console.log("Pool error:", err1);
+      console.log("Current pool users:", [...poolUsers]);
+    });
   }
+  const stack = new Error().stack;
+  poolUsers.add(stack ?? "unknown");
+
   return POOL;
 }
 
+export async function endPool() {
+  if (POOL_ENDED) {
+    console.log("pool already ended", process.pid, new Error().stack);
+    return;
+  }
+  console.log("ending pool", process.pid, new Error().stack);
+  POOL_ENDED = true;
+  await POOL?.end();
+  POOL = null;
+}
+
 export function db(): Db {
+  if (POOL_ENDED) {
+    throw new Error("Database already ended");
+  }
   if (!DB) {
+    console.log("creating db", new Error().stack);
     const dbSchema = {
       ...schema,
       ...relations,
@@ -79,7 +123,7 @@ export async function upsert<
 >({
   table,
   values,
-  tx = db(),
+  tx: txArg,
   ...onConflict
 }: {
   table: TTable;
@@ -88,6 +132,7 @@ export async function upsert<
 } & PgInsertOnConflictDoUpdateConfig<TInsert>): Promise<
   Result<TTable["$inferSelect"], QueryError>
 > {
+  const tx = txArg ?? db();
   const results = await queryResult(
     tx.insert(table).values(values).onConflictDoUpdate(onConflict).returning(),
   );
@@ -132,7 +177,7 @@ export async function insert<TTable extends Table>(
 export async function insert<TTable extends Table>({
   table,
   values,
-  tx = db(),
+  tx: txArg,
   doNothingOnConflict = false,
   lookupExisting,
 }: {
@@ -142,6 +187,7 @@ export async function insert<TTable extends Table>({
   doNothingOnConflict?: boolean;
   tx?: Db;
 }): Promise<Result<TTable["$inferSelect"] | null, QueryError>> {
+  const tx = txArg ?? db();
   const query = tx.insert(table).values(values).returning();
   const results = await queryResult(
     doNothingOnConflict ? query.onConflictDoNothing() : query,
@@ -161,7 +207,7 @@ export async function insert<TTable extends Table>({
     return ok(null);
   }
 
-  const [existing] = await db()
+  const [existing] = await tx
     .select()
     .from(table)
     .where(lookupExisting)
