@@ -28,7 +28,7 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
@@ -319,6 +319,17 @@ function buildTags({
   };
 }
 
+// FIXME render not update
+export interface RenderTemplateRequestParams {
+  params: RenderMessageTemplateRequest;
+  apiBase: string;
+}
+
+export type RenderTemplateRequest = ({
+  apiBase,
+  params,
+}: RenderTemplateRequestParams) => Promise<AxiosResponse<unknown, unknown>>;
+
 export interface TemplateEditorProps {
   channel: ChannelType;
   templateId: string;
@@ -334,7 +345,15 @@ export interface TemplateEditorProps {
   draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
+  renderTemplateRequest?: RenderTemplateRequest;
 }
+
+export const defaultRenderTemplateRequest: RenderTemplateRequest = ({
+  apiBase,
+  params,
+}) => {
+  return axios.post(`${apiBase}/api/content/templates/render`, params);
+};
 
 export default function TemplateEditor({
   templateId,
@@ -351,6 +370,7 @@ export default function TemplateEditor({
   draftToPreview,
   renderEditorOptions,
   mode = ModeEnum.Full,
+  renderTemplateRequest = defaultRenderTemplateRequest,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -666,10 +686,9 @@ export default function TemplateEditor({
       };
 
       try {
-        const response = await axios({
-          method: "POST",
-          url: `${apiBase}/api/content/templates/render`,
-          data,
+        const response = await renderTemplateRequest({
+          apiBase,
+          params: data,
         });
 
         const { contents } = response.data as RenderMessageTemplateResponse;
