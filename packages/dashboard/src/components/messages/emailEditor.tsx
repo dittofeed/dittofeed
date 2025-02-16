@@ -33,6 +33,7 @@ import EmailPreviewHeader from "../emailPreviewHeader";
 import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
+  RenderTemplateRequest,
   TemplateEditorMode,
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
@@ -359,6 +360,7 @@ export default function EmailEditor({
   disabled,
   member,
   mode,
+  renderTemplateRequest,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -366,6 +368,7 @@ export default function EmailEditor({
   disabled?: boolean;
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
+  renderTemplateRequest?: RenderTemplateRequest;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -495,6 +498,7 @@ export default function EmailEditor({
       )}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
+      renderTemplateRequest={renderTemplateRequest}
     />
   );
 }

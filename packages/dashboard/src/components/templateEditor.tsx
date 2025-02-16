@@ -319,7 +319,6 @@ function buildTags({
   };
 }
 
-// FIXME render not update
 export interface RenderTemplateRequestParams {
   params: RenderMessageTemplateRequest;
   apiBase: string;

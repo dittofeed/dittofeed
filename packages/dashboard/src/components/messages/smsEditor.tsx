@@ -13,6 +13,7 @@ import React from "react";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplateEditor, {
   DraftToPreview,
+  RenderTemplateRequest,
   TemplateEditorMode,
 } from "../templateEditor";
 
@@ -45,6 +46,7 @@ export default function SmsEditor({
   disabled,
   member,
   mode,
+  renderTemplateRequest,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -52,6 +54,7 @@ export default function SmsEditor({
   disabled?: boolean;
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
+  renderTemplateRequest?: RenderTemplateRequest;
 }) {
   const theme = useTheme();
 
@@ -101,6 +104,7 @@ export default function SmsEditor({
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
       mode={mode}
+      renderTemplateRequest={renderTemplateRequest}
     />
   );
 }
