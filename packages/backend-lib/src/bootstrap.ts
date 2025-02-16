@@ -515,7 +515,9 @@ export function getBootstrapDefaultParams({
   }
   let features: Features | undefined;
   if (featuresString) {
-    const featuresResult = jsonParseSafeWithSchema(featuresString, Features);
+    const featuresResult = jsonParseSafeWithSchema(featuresString, Features, {
+      method: "standard",
+    });
     if (featuresResult.isErr()) {
       logger().error({ err: featuresResult.error }, "Failed to parse features");
       throw new Error("Failed to parse features");
