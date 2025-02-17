@@ -1,8 +1,15 @@
 import { db, insert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { enrichMessageTemplate } from "backend-lib/src/messaging";
+import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
 import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
-import { CompletionStatus, MessageTemplate } from "backend-lib/src/types";
+import {
+  CompletionStatus,
+  DefaultEmailProviderResource,
+  EmailContentsType,
+  EmailTemplateResource,
+  MessageTemplate,
+} from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -54,6 +61,69 @@ export async function serveSmsTemplate({
     messages: {
       type: CompletionStatus.Successful,
       value: [unwrap(enrichMessageTemplate(smsTemplateWithDefault))],
+    },
+    userProperties: {
+      type: CompletionStatus.Successful,
+      value: userProperties.flatMap((p) => unwrap(toUserPropertyResource(p))),
+    },
+  };
+}
+
+export async function serveEmailTemplate({
+  workspaceId,
+  messageTemplateId,
+  emailContentsType,
+  defaultName,
+}: {
+  workspaceId: string;
+  messageTemplateId: string;
+  emailContentsType: EmailContentsType;
+  defaultName?: string;
+}): Promise<Pick<AppState, "messages" | "userProperties">> {
+  const [emailTemplate, userProperties, defaultEmailProvider] =
+    await Promise.all([
+      db().query.messageTemplate.findFirst({
+        where: and(
+          eq(schema.messageTemplate.id, messageTemplateId),
+          eq(schema.messageTemplate.workspaceId, workspaceId),
+        ),
+      }),
+      db().query.userProperty.findMany({
+        where: eq(schema.userProperty.workspaceId, workspaceId),
+      }),
+      db().query.defaultEmailProvider.findFirst({
+        where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
+      }),
+    ]);
+
+  let emailTemplateWithDefault: MessageTemplate;
+  if (!emailTemplate) {
+    emailTemplateWithDefault = await insert({
+      table: schema.messageTemplate,
+      doNothingOnConflict: true,
+      lookupExisting: and(
+        eq(schema.messageTemplate.id, messageTemplateId),
+        eq(schema.messageTemplate.workspaceId, workspaceId),
+      )!,
+      values: {
+        workspaceId,
+        name: defaultName ?? `New Email Message - ${messageTemplateId}`,
+        id: messageTemplateId,
+        definition: defaultEmailDefinition({
+          emailContentsType,
+          emailProvider: defaultEmailProvider as
+            | DefaultEmailProviderResource
+            | undefined,
+        }) satisfies EmailTemplateResource,
+      },
+    }).then(unwrap);
+  } else {
+    emailTemplateWithDefault = emailTemplate;
+  }
+  return {
+    messages: {
+      type: CompletionStatus.Successful,
+      value: [unwrap(enrichMessageTemplate(emailTemplateWithDefault))],
     },
     userProperties: {
       type: CompletionStatus.Successful,
