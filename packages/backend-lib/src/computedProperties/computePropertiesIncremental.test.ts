@@ -3081,30 +3081,14 @@ describe("computeProperties", () => {
               userId: "user-2",
               event: "test",
             },
-            {
-              type: EventType.Track,
-              offsetMs: -100,
-              userId: "user-3",
-              event: "test",
-            },
-            {
-              type: EventType.Track,
-              offsetMs: -100,
-              userId: "user-3",
-              event: "test",
-            },
           ],
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 5000,
         },
         {
           type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Assert,
-          description: "excludes user who performed event twice",
+          description: "excludes user who performed event once",
           users: [
             {
               id: "user-1",
@@ -3115,16 +3099,14 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                performed: true,
-              },
-            },
-            {
-              id: "user-3",
-              segments: {
                 performed: null,
               },
             },
           ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
         },
         {
           type: EventsStepType.ComputeProperties,
@@ -3143,13 +3125,33 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000 * 500,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "now includes user who performed event once once outside of time window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
                 performed: true,
               },
             },
             {
-              id: "user-3",
+              id: "user-2",
               segments: {
-                performed: null,
+                performed: true,
               },
             },
           ],
