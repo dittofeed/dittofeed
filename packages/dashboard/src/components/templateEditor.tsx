@@ -28,7 +28,7 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
@@ -329,6 +329,16 @@ export type RenderTemplateRequest = ({
   params,
 }: RenderTemplateRequestParams) => Promise<AxiosResponse<unknown, unknown>>;
 
+export interface TestTemplateRequestParams {
+  params: MessageTemplateTestRequest;
+  apiBase: string;
+}
+
+export type TestTemplateRequest = ({
+  apiBase,
+  params,
+}: TestTemplateRequestParams) => AxiosRequestConfig<MessageTemplateTestRequest>;
+
 export interface TemplateEditorProps {
   channel: ChannelType;
   templateId: string;
@@ -345,6 +355,7 @@ export interface TemplateEditorProps {
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
   renderTemplateRequest?: RenderTemplateRequest;
+  testTemplateRequest?: TestTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
 }
 
@@ -353,6 +364,20 @@ export const defaultRenderTemplateRequest: RenderTemplateRequest = ({
   params,
 }) => {
   return axios.post(`${apiBase}/api/content/templates/render`, params);
+};
+
+export const defaultTestTemplateRequest: TestTemplateRequest = ({
+  apiBase,
+  params,
+}) => {
+  return {
+    method: "POST",
+    url: `${apiBase}/api/content/templates/test`,
+    data: params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
 };
 
 export default function TemplateEditor({
@@ -371,6 +396,7 @@ export default function TemplateEditor({
   renderEditorOptions,
   mode = ModeEnum.Full,
   renderTemplateRequest = defaultRenderTemplateRequest,
+  testTemplateRequest = defaultTestTemplateRequest,
   defaultIsUserPropertiesMinimised = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
@@ -924,14 +950,10 @@ export default function TemplateEditor({
       }),
     onSuccessNotice: `Attempted test message.`,
     onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
-    requestConfig: {
-      method: "POST",
-      url: `${apiBase}/api/content/templates/test`,
-      data: submitTestData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
+    requestConfig: testTemplateRequest({
+      apiBase,
+      params: submitTestData,
+    }),
   });
 
   let testModalContents: React.ReactNode = null;

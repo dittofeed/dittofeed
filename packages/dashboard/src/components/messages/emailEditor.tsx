@@ -35,6 +35,7 @@ import TemplateEditor, {
   RenderEditorParams,
   RenderTemplateRequest,
   TemplateEditorMode,
+  TestTemplateRequest,
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
@@ -362,6 +363,7 @@ export default function EmailEditor({
   mode,
   renderTemplateRequest,
   defaultIsUserPropertiesMinimised,
+  testTemplateRequest,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -371,6 +373,7 @@ export default function EmailEditor({
   mode?: TemplateEditorMode;
   renderTemplateRequest?: RenderTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
+  testTemplateRequest?: TestTemplateRequest;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -502,6 +505,7 @@ export default function EmailEditor({
       fieldToReadable={fieldToReadable}
       renderTemplateRequest={renderTemplateRequest}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      testTemplateRequest={testTemplateRequest}
     />
   );
 }

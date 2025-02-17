@@ -18,6 +18,7 @@ import TemplateEditor, {
   getDisabledInputStyles,
   RenderTemplateRequest,
   TemplateEditorMode,
+  TestTemplateRequest,
 } from "../templateEditor";
 import { WebhookPreviewBody } from "./webhookPreview";
 
@@ -54,6 +55,7 @@ export default function WebhookEditor({
   mode,
   renderTemplateRequest,
   defaultIsUserPropertiesMinimised,
+  testTemplateRequest,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -63,6 +65,7 @@ export default function WebhookEditor({
   mode?: TemplateEditorMode;
   renderTemplateRequest?: RenderTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
+  testTemplateRequest?: TestTemplateRequest;
 }) {
   const theme = useTheme();
   const { messages: templates, userProperties } = useAppStorePick([
@@ -195,6 +198,7 @@ export default function WebhookEditor({
       mode={mode}
       renderTemplateRequest={renderTemplateRequest}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      testTemplateRequest={testTemplateRequest}
     />
   );
 }
