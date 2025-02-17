@@ -47,6 +47,7 @@ export default function SmsEditor({
   member,
   mode,
   renderTemplateRequest,
+  defaultIsUserPropertiesMinimised,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -55,6 +56,7 @@ export default function SmsEditor({
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
   renderTemplateRequest?: RenderTemplateRequest;
+  defaultIsUserPropertiesMinimised?: boolean;
 }) {
   const theme = useTheme();
 
@@ -105,6 +107,7 @@ export default function SmsEditor({
       fieldToReadable={fieldToReadable}
       mode={mode}
       renderTemplateRequest={renderTemplateRequest}
+      defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
     />
   );
 }

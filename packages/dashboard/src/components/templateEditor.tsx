@@ -345,6 +345,7 @@ export interface TemplateEditorProps {
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
   renderTemplateRequest?: RenderTemplateRequest;
+  defaultIsUserPropertiesMinimised?: boolean;
 }
 
 export const defaultRenderTemplateRequest: RenderTemplateRequest = ({
@@ -370,6 +371,7 @@ export default function TemplateEditor({
   renderEditorOptions,
   mode = ModeEnum.Full,
   renderTemplateRequest = defaultRenderTemplateRequest,
+  defaultIsUserPropertiesMinimised = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -430,7 +432,7 @@ export default function TemplateEditor({
     providerOverride: null,
     channel,
     rendered: {},
-    isUserPropertiesMinimised: false,
+    isUserPropertiesMinimised: defaultIsUserPropertiesMinimised,
   });
   const {
     fullscreen,
