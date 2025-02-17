@@ -553,10 +553,10 @@ function segmentToResolvedState({
         userIdPropertyIdParam;
 
       const checkGreaterThanZeroValue = !(
-        operator === RelationalOperators.Equals && times === 0
+        (operator === RelationalOperators.Equals && times === 0) ||
+        (operator === RelationalOperators.LessThan && times === 1)
       );
 
-      // FIXME
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
@@ -615,8 +615,7 @@ function segmentToResolvedState({
                   segment_state_value = True
               )
           `;
-          // FIXME this is the issue
-          // queries.push(expiredQuery);
+          queries.push(expiredQuery);
 
           // set to true all users who satisfy the condition in the latest window
           const greaterThanZeroQuery = `
