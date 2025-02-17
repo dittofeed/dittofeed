@@ -3106,7 +3106,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 1000,
+          timeMs: 100,
         },
         {
           type: EventsStepType.ComputeProperties,
@@ -3119,6 +3119,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
+                // FIXME getting null
                 performed: true,
               },
             },

@@ -556,6 +556,7 @@ function segmentToResolvedState({
         operator === RelationalOperators.Equals && times === 0
       );
 
+      // FIXME
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
@@ -614,7 +615,8 @@ function segmentToResolvedState({
                   segment_state_value = True
               )
           `;
-          queries.push(expiredQuery);
+          // FIXME this is the issue
+          // queries.push(expiredQuery);
 
           // set to true all users who satisfy the condition in the latest window
           const greaterThanZeroQuery = `
