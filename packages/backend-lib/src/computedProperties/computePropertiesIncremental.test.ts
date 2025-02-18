@@ -1468,6 +1468,114 @@ describe("computeProperties", () => {
     },
     {
       description:
+        "computes an AND segment with a mixture of trait and performed nodes",
+      userProperties: [],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Performed,
+                id: "3",
+                event: "test",
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "invalid",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is in the segment because they have the trait and performed event",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "assigments remain the same after computed properties are re-run",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
         "computes an AND segment correctly when one node is updated from false to true",
       userProperties: [],
       segments: [
@@ -3031,6 +3139,338 @@ describe("computeProperties", () => {
               id: "user-3",
               segments: {
                 performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment checks less than 1 times in a time window",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.LessThan,
+              times: 1,
+              withinSeconds: 500,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "excludes user who performed event once",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 100,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "continues to show the same results after second compute properties",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                // FIXME getting null
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000 * 500,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "now includes user who performed event once once outside of time window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "when a performed segment checks less than 2",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.LessThan,
+              times: 2,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -150,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "excludes user who performed event twice",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment checks less than 2 times in a time window",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.LessThan,
+              times: 2,
+              withinSeconds: 500,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -150,
+              userId: "user-2",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "excludes user who performed event twice",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 100,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "continues to show the same results after second compute properties",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                // FIXME getting null
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000 * 500,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "now includes user who performed event once once outside of time window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
               },
             },
           ],
