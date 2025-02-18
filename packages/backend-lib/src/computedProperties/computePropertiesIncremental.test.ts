@@ -3246,7 +3246,6 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment checks less than 2 times in a time window",
-      only: true,
       userProperties: [
         {
           name: "id",
