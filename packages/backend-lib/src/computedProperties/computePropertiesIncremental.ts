@@ -546,16 +546,49 @@ function segmentToResolvedState({
         ? qb.addQueryValue(idUserProperty.id, "String")
         : null;
 
+      // FIXME delete
       const checkZeroValue =
         ((operator === RelationalOperators.Equals && times === 0) ||
           operator === RelationalOperators.LessThan) &&
         userIdStateParam &&
         userIdPropertyIdParam;
 
+      // FIXME delete
       const checkGreaterThanZeroValue = !(
         (operator === RelationalOperators.Equals && times === 0) ||
         (operator === RelationalOperators.LessThan && times === 1)
       );
+      if (times < 0) {
+        logger().info(
+          {
+            segmentId: segment.id,
+            workspaceId,
+          },
+          "Times is less than 0, skipping",
+        );
+        return [];
+      }
+      if (times === 0 && operator === RelationalOperators.LessThan) {
+        logger().info(
+          {
+            segmentId: segment.id,
+            workspaceId,
+          },
+          "Times is 0 and operator is LessThan, skipping",
+        );
+        return [];
+      }
+      if (times === 0 && operator === RelationalOperators.GreaterThanOrEqual) {
+        logger().info(
+          {
+            segmentId: segment.id,
+            workspaceId,
+          },
+          "Times is 0 and operator is GreaterThanOrEqual, skipping",
+        );
+        return [];
+      }
+      const queries: string[] = [];
 
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
@@ -567,8 +600,83 @@ function segmentToResolvedState({
             Math.max(nowSeconds - node.withinSeconds, 0),
           )}, 3)
         `;
+        let reversed: boolean;
+        let mappedOperator: RelationalOperators;
+        let mappedTimes: number;
 
-        const queries: string[] = [];
+        switch (operator) {
+          case RelationalOperators.Equals:
+            if (times === 0) {
+              reversed = true;
+              mappedOperator = RelationalOperators.GreaterThanOrEqual;
+              mappedTimes = 1;
+            } else {
+              reversed = false;
+              mappedOperator = RelationalOperators.Equals;
+              mappedTimes = times;
+            }
+            break;
+          case RelationalOperators.LessThan:
+            if (times === 1) {
+              reversed = true;
+              mappedOperator = RelationalOperators.GreaterThanOrEqual;
+              mappedTimes = 1;
+            } else {
+              reversed = true;
+              mappedOperator = RelationalOperators.GreaterThanOrEqual;
+              mappedTimes = times;
+            }
+            break;
+          case RelationalOperators.GreaterThanOrEqual:
+            reversed = false;
+            mappedOperator = RelationalOperators.GreaterThanOrEqual;
+            mappedTimes = times;
+            break;
+          default:
+            assertUnreachable(operator);
+        }
+
+        const expiredQuery2 = `
+          insert into resolved_segment_state
+          select
+            workspace_id,
+            segment_id,
+            state_id,
+            user_id,
+            False,
+            max_event_time,
+            toDateTime64(${nowSeconds}, 3)
+          from resolved_segment_state as rss
+          where
+            rss.workspace_id = ${workspaceIdParam}
+            and rss.segment_id = ${segmentIdParam}
+            and rss.state_id = ${stateIdParam}
+            and rss.segment_state_value = True
+            and (
+              workspace_id,
+              segment_id,
+              state_id,
+              user_id,
+              True
+            ) not in (
+              select
+                workspace_id,
+                computed_property_id,
+                state_id,
+                user_id,
+                uniqMerge(cps_performed.unique_count) ${operator} ${times} as segment_state_value
+              from computed_property_state_v2 cps_performed
+              where
+                ${withinRangeWhereClause}
+              group by
+                workspace_id,
+                computed_property_id,
+                state_id,
+                user_id
+              having
+                segment_state_value = True
+            )
+        `;
 
         if (checkGreaterThanZeroValue) {
           // insert False into resolved_segment_state for all users who are in
@@ -699,7 +807,6 @@ function segmentToResolvedState({
 
         return queries;
       }
-      const queries: string[] = [];
       if (checkGreaterThanZeroValue) {
         queries.push(
           buildRecentUpdateSegmentQuery({
