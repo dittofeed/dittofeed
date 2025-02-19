@@ -3092,7 +3092,7 @@ export async function computeAssignments({
             False as segment_value,
             '',
             max_event_time,
-            toDateTime64(${nowSeconds}, 3) as assigned_at
+            toDateTime64(${nowSeconds}, 3)
           from computed_property_assignments_v2
           where
             workspace_id = ${workspaceIdParam}
