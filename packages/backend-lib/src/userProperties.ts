@@ -390,8 +390,8 @@ async function findAllUserPropertyAssignmentsComponents({
         userProperties.map((up) => up.id),
         "Array(String)",
       )})
-      and user_property_value != ''
     group by computed_property_id
+    having last_value != ''
   `;
   const result = await chQuery({
     query,
@@ -493,8 +493,8 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
         userProperties.map((up) => up.id),
         "Array(String)",
       )})
-      and user_property_value != ''
     group by computed_property_id, user_id
+    having last_value != ''
   `;
   const result = await chQuery({
     query,

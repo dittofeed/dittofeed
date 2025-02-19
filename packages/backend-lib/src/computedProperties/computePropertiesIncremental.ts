@@ -546,14 +546,12 @@ function segmentToResolvedState({
         ? qb.addQueryValue(idUserProperty.id, "String")
         : null;
 
-      // FIXME delete
       const checkZeroValue =
         ((operator === RelationalOperators.Equals && times === 0) ||
           operator === RelationalOperators.LessThan) &&
         userIdStateParam &&
         userIdPropertyIdParam;
 
-      // FIXME delete
       const checkGreaterThanZeroValue = !(
         (operator === RelationalOperators.Equals && times === 0) ||
         (operator === RelationalOperators.LessThan && times === 1)
@@ -3100,6 +3098,7 @@ export async function computeAssignments({
             workspace_id = ${workspaceIdParam}
             and type = 'segment'
             and computed_property_id = ${segmentIdParam}
+            and assigned_at < toDateTime64(${nowSeconds}, 3)
         `;
 
           assignmentQueries.unshift(resetQuery);
@@ -3209,12 +3208,13 @@ export async function computeAssignments({
             False,
             '',
             max_event_time,
-            toDateTime64(${nowSeconds}, 3) as assigned_at
+            toDateTime64(${nowSeconds}, 3)
           from computed_property_assignments_v2
           where
             workspace_id = ${workspaceIdParam}
             and type = 'user_property'
             and computed_property_id = ${userPropertyIdParam}
+            and assigned_at < toDateTime64(${nowSeconds}, 3)
         `;
           queries.push(resetQuery);
         }
