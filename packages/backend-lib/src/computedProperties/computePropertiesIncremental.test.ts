@@ -2975,6 +2975,7 @@ describe("computeProperties", () => {
       description:
         "when a performed segment conditions on an event being performed 0 times",
       only: true,
+      // FIXME
       userProperties: [
         {
           name: "id",

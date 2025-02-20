@@ -751,6 +751,7 @@ function segmentToResolvedState({
 
         return queries;
       }
+      // FIXME
       if (checkGreaterThanZeroValue) {
         queries.push(
           buildRecentUpdateSegmentQuery({
