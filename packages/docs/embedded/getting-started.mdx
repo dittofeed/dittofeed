@@ -74,7 +74,45 @@ This token can then be passed to your frontend, and used to embed Dittofeed comp
 
 Take your session token and pass it to the Dittofeed components which can be loaded via an iframe.
 
+### Template Editor
+
+The template editor allows you to create and edit message templates.
+
+#### SMS Editor
+
+The SMS editor allows you to create and edit SMS templates.
+
+<Frame>
+![Embedded SMS Editor](/images/embedded-sms-editor.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/templates/sms?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=9fb712c3-8b65-4908-a9f7-68f1b8b99075"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
+#### Email Editor
+
+The email editor allows you to create and edit email templates.
+
+<Frame>
+![Embedded Email Editor](/images/embedded-email-editor.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/templates/email?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=c3d28959-dda0-4b75-ba27-0d73ba939ef1"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
 ### Deliveries Table
+
+The deliveries table displays all of the message deliveries for the child workspace e.g. for sent emails, and SMS.
 
 ```html
 <iframe
