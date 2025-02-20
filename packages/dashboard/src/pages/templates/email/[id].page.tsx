@@ -1,18 +1,7 @@
-import { db, insert } from "backend-lib/src/db";
-import * as schema from "backend-lib/src/db/schema";
-import { enrichMessageTemplate } from "backend-lib/src/messaging";
-import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
-import { MessageTemplate } from "backend-lib/src/types";
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { and, eq } from "drizzle-orm";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
-  CompletionStatus,
-  DefaultEmailProviderResource,
   EmailContentsType,
   EmailContentsTypeEnum,
-  EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -23,81 +12,33 @@ import EmailEditor from "../../../components/messages/emailEditor";
 import TemplatePageContent from "../../../components/messages/templatePageContent";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
+import { serveEmailTemplate } from "../../../lib/messaging";
 import { requestContext } from "../../../lib/requestContext";
-import { AppState, PropsWithInitialState } from "../../../lib/types";
+import { PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
     const templateId = ctx.params?.id;
-    let name: string | null = null;
-
     if (typeof templateId !== "string" || !validate(templateId)) {
       return {
         notFound: true,
       };
     }
-
+    let defaultName: string | undefined;
     if (typeof ctx.query.name === "string") {
-      name = ctx.query.name;
+      defaultName = ctx.query.name;
     }
     const emailContentsType = schemaValidateWithErr(
       ctx.query.emailContentType,
       EmailContentsTypeEnum,
     ).unwrapOr(EmailContentsType.Code);
 
-    const workspaceId = dfContext.workspace.id;
-
-    const [emailTemplate, userProperties, defaultEmailProvider] =
-      await Promise.all([
-        db().query.messageTemplate.findFirst({
-          where: and(
-            eq(schema.messageTemplate.id, templateId),
-            eq(schema.messageTemplate.workspaceId, workspaceId),
-          ),
-        }),
-        db().query.userProperty.findMany({
-          where: eq(schema.userProperty.workspaceId, workspaceId),
-        }),
-        db().query.defaultEmailProvider.findFirst({
-          where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
-        }),
-      ]);
-
-    let emailTemplateWithDefault: MessageTemplate;
-    if (!emailTemplate) {
-      emailTemplateWithDefault = await insert({
-        table: schema.messageTemplate,
-        doNothingOnConflict: true,
-        lookupExisting: and(
-          eq(schema.messageTemplate.id, templateId),
-          eq(schema.messageTemplate.workspaceId, workspaceId),
-        )!,
-        values: {
-          workspaceId,
-          name: name ?? `New Email Message - ${templateId}`,
-          id: templateId,
-          definition: defaultEmailDefinition({
-            emailContentsType,
-            emailProvider: defaultEmailProvider as
-              | DefaultEmailProviderResource
-              | undefined,
-          }) satisfies EmailTemplateResource,
-        },
-      }).then(unwrap);
-    } else {
-      emailTemplateWithDefault = emailTemplate;
-    }
-
-    const serverInitialState: Partial<AppState> = {
-      messages: {
-        type: CompletionStatus.Successful,
-        value: [unwrap(enrichMessageTemplate(emailTemplateWithDefault))],
-      },
-      userProperties: {
-        type: CompletionStatus.Successful,
-        value: userProperties.flatMap((p) => unwrap(toUserPropertyResource(p))),
-      },
-    };
+    const serverInitialState = await serveEmailTemplate({
+      workspaceId: dfContext.workspace.id,
+      messageTemplateId: templateId,
+      emailContentsType,
+      defaultName,
+    });
 
     // for some reason, new messages are not being merged into existing
     return {

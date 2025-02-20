@@ -16,7 +16,9 @@ import { useAppStorePick } from "../../lib/appStore";
 import TemplateEditor, {
   DraftToPreview,
   getDisabledInputStyles,
+  RenderTemplateRequest,
   TemplateEditorMode,
+  TestTemplateRequest,
 } from "../templateEditor";
 import { WebhookPreviewBody } from "./webhookPreview";
 
@@ -51,6 +53,9 @@ export default function WebhookEditor({
   disabled,
   member,
   mode,
+  renderTemplateRequest,
+  defaultIsUserPropertiesMinimised,
+  testTemplateRequest,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -58,6 +63,9 @@ export default function WebhookEditor({
   disabled?: boolean;
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
+  renderTemplateRequest?: RenderTemplateRequest;
+  defaultIsUserPropertiesMinimised?: boolean;
+  testTemplateRequest?: TestTemplateRequest;
 }) {
   const theme = useTheme();
   const { messages: templates, userProperties } = useAppStorePick([
@@ -188,6 +196,9 @@ export default function WebhookEditor({
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
       mode={mode}
+      renderTemplateRequest={renderTemplateRequest}
+      defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      testTemplateRequest={testTemplateRequest}
     />
   );
 }

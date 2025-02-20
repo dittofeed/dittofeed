@@ -28,7 +28,7 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
@@ -319,6 +319,26 @@ function buildTags({
   };
 }
 
+export interface RenderTemplateRequestParams {
+  params: RenderMessageTemplateRequest;
+  apiBase: string;
+}
+
+export type RenderTemplateRequest = ({
+  apiBase,
+  params,
+}: RenderTemplateRequestParams) => Promise<AxiosResponse<unknown, unknown>>;
+
+export interface TestTemplateRequestParams {
+  params: MessageTemplateTestRequest;
+  apiBase: string;
+}
+
+export type TestTemplateRequest = ({
+  apiBase,
+  params,
+}: TestTemplateRequestParams) => AxiosRequestConfig<MessageTemplateTestRequest>;
+
 export interface TemplateEditorProps {
   channel: ChannelType;
   templateId: string;
@@ -334,7 +354,31 @@ export interface TemplateEditorProps {
   draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
+  renderTemplateRequest?: RenderTemplateRequest;
+  testTemplateRequest?: TestTemplateRequest;
+  defaultIsUserPropertiesMinimised?: boolean;
 }
+
+export const defaultRenderTemplateRequest: RenderTemplateRequest = ({
+  apiBase,
+  params,
+}) => {
+  return axios.post(`${apiBase}/api/content/templates/render`, params);
+};
+
+export const defaultTestTemplateRequest: TestTemplateRequest = ({
+  apiBase,
+  params,
+}) => {
+  return {
+    method: "POST",
+    url: `${apiBase}/api/content/templates/test`,
+    data: params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+};
 
 export default function TemplateEditor({
   templateId,
@@ -351,6 +395,9 @@ export default function TemplateEditor({
   draftToPreview,
   renderEditorOptions,
   mode = ModeEnum.Full,
+  renderTemplateRequest = defaultRenderTemplateRequest,
+  testTemplateRequest = defaultTestTemplateRequest,
+  defaultIsUserPropertiesMinimised = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -411,7 +458,7 @@ export default function TemplateEditor({
     providerOverride: null,
     channel,
     rendered: {},
-    isUserPropertiesMinimised: false,
+    isUserPropertiesMinimised: defaultIsUserPropertiesMinimised,
   });
   const {
     fullscreen,
@@ -666,10 +713,9 @@ export default function TemplateEditor({
       };
 
       try {
-        const response = await axios({
-          method: "POST",
-          url: `${apiBase}/api/content/templates/render`,
-          data,
+        const response = await renderTemplateRequest({
+          apiBase,
+          params: data,
         });
 
         const { contents } = response.data as RenderMessageTemplateResponse;
@@ -904,14 +950,10 @@ export default function TemplateEditor({
       }),
     onSuccessNotice: `Attempted test message.`,
     onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
-    requestConfig: {
-      method: "POST",
-      url: `${apiBase}/api/content/templates/test`,
-      data: submitTestData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
+    requestConfig: testTemplateRequest({
+      apiBase,
+      params: submitTestData,
+    }),
   });
 
   let testModalContents: React.ReactNode = null;
