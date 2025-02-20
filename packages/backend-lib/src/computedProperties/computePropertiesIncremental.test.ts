@@ -2973,6 +2973,124 @@ describe("computeProperties", () => {
     },
     {
       description:
+        "when a performed segment conditions on an event being performed 0 times",
+      only: true,
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.Equals,
+              times: 0,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user who performed unrelated event is not in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "the same users are in the segment on second compute",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "the same users are in the segment on third compute",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
       userProperties: [
         {
