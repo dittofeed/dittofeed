@@ -753,7 +753,6 @@ function segmentToResolvedState({
         return queries;
       }
 
-      const lowerBoundClause = getLowerBoundClause(periodBound);
       const expiredQuery = `
         insert into resolved_segment_state
         select
@@ -785,21 +784,10 @@ function segmentToResolvedState({
               uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
             from computed_property_state_v2 cps_performed
             where
-              (workspace_id, computed_property_id, state_id, user_id) in (
-                select
-                  workspace_id,
-                  computed_property_id,
-                  state_id,
-                  user_id
-                from updated_computed_property_state
-                where
-                  workspace_id = ${workspaceIdParam}
-                  and type = 'segment'
-                  and computed_property_id = ${segmentIdParam}
-                  and state_id = ${stateIdParam}
-                  and computed_at <= toDateTime64(${nowSeconds}, 3)
-                  ${lowerBoundClause}
-              )
+              cps_performed.workspace_id = ${workspaceIdParam}
+              and cps_performed.type = 'segment'
+              and cps_performed.computed_property_id = ${segmentIdParam}
+              and cps_performed.state_id = ${stateIdParam}
             group by
               workspace_id,
               computed_property_id,
@@ -845,21 +833,10 @@ function segmentToResolvedState({
                   uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
                 from computed_property_state_v2 as cps_performed
                 where
-                  (workspace_id, computed_property_id, state_id, user_id) in (
-                    select
-                      workspace_id,
-                      computed_property_id,
-                      state_id,
-                      user_id
-                    from updated_computed_property_state
-                    where
-                      workspace_id = ${workspaceIdParam}
-                      and type = 'segment'
-                      and computed_property_id = ${segmentIdParam}
-                      and state_id = ${stateIdParam}
-                      and computed_at <= toDateTime64(${nowSeconds}, 3)
-                      ${lowerBoundClause}
-                  )
+                  cps_performed.workspace_id = ${workspaceIdParam}
+                  and cps_performed.type = 'segment'
+                  and cps_performed.computed_property_id = ${segmentIdParam}
+                  and cps_performed.state_id = ${stateIdParam}
                 group by
                   workspace_id,
                   computed_property_id,
@@ -884,6 +861,24 @@ function segmentToResolvedState({
             user_id
         ) as np`;
       queries.push(newEntrantsQuery);
+      logger().debug({ newEntrantsQuery }, "loc1 newEntrantsQuery");
+
+      // where
+      //   (workspace_id, computed_property_id, state_id, user_id) in (
+      //     select
+      //       workspace_id,
+      //       computed_property_id,
+      //       state_id,
+      //       user_id
+      //     from updated_computed_property_state
+      //     where
+      //       workspace_id = ${workspaceIdParam}
+      //       and type = 'segment'
+      //       and computed_property_id = ${segmentIdParam}
+      //       and state_id = ${stateIdParam}
+      //       and computed_at <= toDateTime64(${nowSeconds}, 3)
+      //       ${lowerBoundClause}
+      //   )
 
       // if (checkGreaterThanZeroValue) {
       //   queries.push(

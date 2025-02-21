@@ -3022,6 +3022,9 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          type: EventsStepType.DebugAssignments,
+        },
+        {
           type: EventsStepType.Assert,
           description: "user who performed unrelated event is not in segment",
           users: [
@@ -3047,6 +3050,9 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          type: EventsStepType.DebugAssignments,
+        },
+        {
           type: EventsStepType.Assert,
           description: "the same users are in the segment on second compute",
           users: [
@@ -3070,6 +3076,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
