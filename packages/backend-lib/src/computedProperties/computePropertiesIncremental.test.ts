@@ -3402,7 +3402,6 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                // FIXME getting null
                 performed: true,
               },
             },
@@ -3613,7 +3612,6 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                // FIXME getting null
                 performed: true,
               },
             },
@@ -6023,7 +6021,9 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME
       description: "when a performed segment has a within condition",
+      only: true,
       userProperties: [
         {
           name: "id",
@@ -6073,6 +6073,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
@@ -6173,6 +6176,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,

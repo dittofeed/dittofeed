@@ -635,6 +635,7 @@ function segmentToResolvedState({
       }
 
       if (node.withinSeconds && node.withinSeconds > 0) {
+        logger().debug("loc1");
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'
@@ -737,12 +738,24 @@ function segmentToResolvedState({
               and (
                 cps.user_id
               ) not in (
-                select user_id from resolved_segment_state as rss
-                where
-                  rss.workspace_id = ${workspaceIdParam}
-                  and rss.segment_id = ${segmentIdParam}
-                  and rss.state_id = ${stateIdParam}
-                  and rss.segment_state_value = True
+                select user_id
+                from (
+                  select
+                    user_id,
+                    argMax(segment_state_value, computed_at) latest_segment_value
+                  from resolved_segment_state as rss
+                  where
+                    rss.workspace_id = ${workspaceIdParam}
+                    and rss.segment_id = ${segmentIdParam}
+                    and rss.state_id = ${stateIdParam}
+                  group by
+                    workspace_id,
+                    segment_id,
+                    state_id,
+                    user_id
+                  having
+                    latest_segment_value = True
+                )
               )
             group by
               workspace_id,
