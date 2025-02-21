@@ -3022,9 +3022,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description: "user who performed unrelated event is not in segment",
           users: [
@@ -3078,9 +3075,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description: "the same users are in the segment on third compute",
           users: [
@@ -3088,6 +3082,42 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user who performed event once is in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
               },
             },
             {
