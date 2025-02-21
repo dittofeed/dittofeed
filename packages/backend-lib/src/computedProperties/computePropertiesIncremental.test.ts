@@ -1469,7 +1469,14 @@ describe("computeProperties", () => {
     {
       description:
         "computes an AND segment with a mixture of trait and performed nodes",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "andSegment",
@@ -2751,6 +2758,12 @@ describe("computeProperties", () => {
       description: "performed segment",
       userProperties: [
         {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+        {
           name: "email",
           definition: {
             type: UserPropertyDefinitionType.Trait,
@@ -2875,7 +2888,14 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segments with numeric operators",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "performed",
@@ -2965,6 +2985,162 @@ describe("computeProperties", () => {
               segments: {
                 performed: true,
                 performed2: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment conditions on an event being performed 0 times",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.Equals,
+              times: 0,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "unrelated",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user who performed unrelated event is not in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "the same users are in the segment on second compute",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "the same users are in the segment on third compute",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user who performed event once is in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
               },
             },
           ],
@@ -3226,7 +3402,6 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                // FIXME getting null
                 performed: true,
               },
             },
@@ -3437,7 +3612,6 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                // FIXME getting null
                 performed: true,
               },
             },
@@ -3485,6 +3659,12 @@ describe("computeProperties", () => {
           definition: {
             type: UserPropertyDefinitionType.Trait,
             path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
@@ -3611,6 +3791,12 @@ describe("computeProperties", () => {
           definition: {
             type: UserPropertyDefinitionType.Trait,
             path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
@@ -3759,6 +3945,12 @@ describe("computeProperties", () => {
           definition: {
             type: UserPropertyDefinitionType.Trait,
             path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
@@ -3982,7 +4174,14 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with nested properties",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "performed",
@@ -5333,6 +5532,14 @@ describe("computeProperties", () => {
     },
     {
       description: "when segmenting on email opens",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "emailOpened",
@@ -5500,7 +5707,14 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment is updated with a new performed count threshold",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "updatedPerformed",
@@ -5859,6 +6073,9 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          type: EventsStepType.DebugAssignments,
+        },
+        {
           type: EventsStepType.Assert,
           description:
             "when the tracked event occurred outside of the required window, does not set segment",
@@ -5957,6 +6174,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,

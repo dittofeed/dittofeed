@@ -587,18 +587,55 @@ function segmentToResolvedState({
         return [];
       }
       const queries: string[] = [];
+      let reversed: boolean;
+      let mappedOperator: RelationalOperators;
+      let mappedTimes: number;
+
+      switch (operator) {
+        case RelationalOperators.Equals:
+          if (times === 0) {
+            reversed = true;
+            mappedOperator = RelationalOperators.GreaterThanOrEqual;
+            mappedTimes = 1;
+          } else {
+            reversed = false;
+            mappedOperator = RelationalOperators.Equals;
+            mappedTimes = times;
+          }
+          break;
+        case RelationalOperators.LessThan:
+          if (times === 1) {
+            reversed = true;
+            mappedOperator = RelationalOperators.GreaterThanOrEqual;
+            mappedTimes = 1;
+          } else {
+            reversed = true;
+            mappedOperator = RelationalOperators.GreaterThanOrEqual;
+            mappedTimes = times;
+          }
+          break;
+        case RelationalOperators.GreaterThanOrEqual:
+          reversed = false;
+          mappedOperator = RelationalOperators.GreaterThanOrEqual;
+          mappedTimes = times;
+          break;
+        default:
+          assertUnreachable(operator);
+      }
+
+      if (!userIdStateParam || !userIdPropertyIdParam) {
+        logger().info(
+          {
+            segmentId: segment.id,
+            workspaceId,
+          },
+          "No user state id or user property id, skipping",
+        );
+        return [];
+      }
 
       if (node.withinSeconds && node.withinSeconds > 0) {
-        if (!userIdStateParam || !userIdPropertyIdParam) {
-          logger().info(
-            {
-              segmentId: segment.id,
-              workspaceId,
-            },
-            "No user state id or user property id, skipping",
-          );
-          return [];
-        }
+        logger().debug("loc1");
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'
@@ -609,41 +646,6 @@ function segmentToResolvedState({
             Math.max(nowSeconds - node.withinSeconds, 0),
           )}, 3)
         `;
-        let reversed: boolean;
-        let mappedOperator: RelationalOperators;
-        let mappedTimes: number;
-
-        switch (operator) {
-          case RelationalOperators.Equals:
-            if (times === 0) {
-              reversed = true;
-              mappedOperator = RelationalOperators.GreaterThanOrEqual;
-              mappedTimes = 1;
-            } else {
-              reversed = false;
-              mappedOperator = RelationalOperators.Equals;
-              mappedTimes = times;
-            }
-            break;
-          case RelationalOperators.LessThan:
-            if (times === 1) {
-              reversed = true;
-              mappedOperator = RelationalOperators.GreaterThanOrEqual;
-              mappedTimes = 1;
-            } else {
-              reversed = true;
-              mappedOperator = RelationalOperators.GreaterThanOrEqual;
-              mappedTimes = times;
-            }
-            break;
-          case RelationalOperators.GreaterThanOrEqual:
-            reversed = false;
-            mappedOperator = RelationalOperators.GreaterThanOrEqual;
-            mappedTimes = times;
-            break;
-          default:
-            assertUnreachable(operator);
-        }
 
         const expiredQuery = `
           insert into resolved_segment_state
@@ -736,12 +738,24 @@ function segmentToResolvedState({
               and (
                 cps.user_id
               ) not in (
-                select user_id from resolved_segment_state as rss
-                where
-                  rss.workspace_id = ${workspaceIdParam}
-                  and rss.segment_id = ${segmentIdParam}
-                  and rss.state_id = ${stateIdParam}
-                  and rss.segment_state_value = True
+                select user_id
+                from (
+                  select
+                    user_id,
+                    argMax(segment_state_value, computed_at) latest_segment_value
+                  from resolved_segment_state as rss
+                  where
+                    rss.workspace_id = ${workspaceIdParam}
+                    and rss.segment_id = ${segmentIdParam}
+                    and rss.state_id = ${stateIdParam}
+                  group by
+                    workspace_id,
+                    segment_id,
+                    state_id,
+                    user_id
+                  having
+                    latest_segment_value = True
+                )
               )
             group by
               workspace_id,
@@ -751,85 +765,127 @@ function segmentToResolvedState({
 
         return queries;
       }
-      if (checkGreaterThanZeroValue) {
-        queries.push(
-          buildRecentUpdateSegmentQuery({
-            segmentId: segment.id,
-            periodBound,
-            now,
-            workspaceId,
-            stateId,
-            expression: `uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value`,
-            qb,
-          }),
-        );
-      }
-      if (checkZeroValue) {
-        const lowerBoundClause = getLowerBoundClause(periodBound);
 
-        const zeroTimesQuery = `
-          insert into resolved_segment_state
-          select
-            np.workspace_id,
-            ${segmentIdParam},
-            ${stateIdParam},
-            np.user_id,
-            True,
-            np.max_event_time,
-            toDateTime64(${nowSeconds}, 3)
-          from (
+      const expiredQuery = `
+        insert into resolved_segment_state
+        select
+          workspace_id,
+          segment_id,
+          state_id,
+          user_id,
+          False,
+          max_event_time,
+          toDateTime64(${nowSeconds}, 3)
+        from resolved_segment_state as rss
+        where
+          rss.workspace_id = ${workspaceIdParam}
+          and rss.segment_id = ${segmentIdParam}
+          and rss.state_id = ${stateIdParam}
+          and rss.segment_state_value = True
+          and (
+            workspace_id,
+            segment_id,
+            state_id,
+            user_id,
+            True
+          ) ${reversed ? "in" : "not in"} (
             select
               workspace_id,
+              computed_property_id,
+              state_id,
               user_id,
-              argMaxMerge(last_value) last_id,
-              max(cps.event_time) as max_event_time
-            from computed_property_state_v2 cps
+              uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
+            from computed_property_state_v2 cps_performed
             where
-              cps.workspace_id = ${workspaceIdParam}
-              and cps.type = 'user_property'
-              and cps.computed_property_id = ${userIdPropertyIdParam}
-              and cps.state_id = ${userIdStateParam}
-              and (
-                cps.user_id
-              ) not in (
-                select user_id
-                from (
-                  select
-                    workspace_id,
-                    computed_property_id,
-                    state_id,
-                    user_id
-                  from computed_property_state_v2 as cps_performed
-                  where
-                    workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                    and type = 'segment'
-                    and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-                    and state_id = ${qb.addQueryValue(stateId, "String")}
-                    and computed_at <= toDateTime64(${nowSeconds}, 3)
-                    ${lowerBoundClause}
-                  group by
-                    workspace_id,
-                    computed_property_id,
-                    state_id,
-                    user_id
-                )
+              cps_performed.workspace_id = ${workspaceIdParam}
+              and cps_performed.type = 'segment'
+              and cps_performed.computed_property_id = ${segmentIdParam}
+              and cps_performed.state_id = ${stateIdParam}
+            group by
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
+            having
+              segment_state_value = True
+          )
+      `;
+      queries.push(expiredQuery);
+      const newEntrantsQuery = `
+        insert into resolved_segment_state
+        select
+          np.workspace_id,
+          ${segmentIdParam},
+          ${stateIdParam},
+          np.user_id,
+          True,
+          np.max_event_time,
+          toDateTime64(${nowSeconds}, 3)
+        from (
+          select
+            workspace_id,
+            user_id,
+            argMaxMerge(last_value) last_id,
+            max(cps.event_time) as max_event_time
+          from computed_property_state_v2 cps
+          where
+            cps.workspace_id = ${workspaceIdParam}
+            and cps.type = 'user_property'
+            and cps.computed_property_id = ${userIdPropertyIdParam}
+            and cps.state_id = ${userIdStateParam}
+            and (
+              cps.user_id
+            ) ${reversed ? "not in" : "in"} (
+              select user_id
+              from (
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
+                from computed_property_state_v2 as cps_performed
+                where
+                  cps_performed.workspace_id = ${workspaceIdParam}
+                  and cps_performed.type = 'segment'
+                  and cps_performed.computed_property_id = ${segmentIdParam}
+                  and cps_performed.state_id = ${stateIdParam}
+                group by
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id
+                having
+                  segment_state_value = True
               )
-              and (
-                cps.user_id
-              ) not in (
-                select user_id from resolved_segment_state as rss
+            )
+            and (
+              cps.user_id
+            ) not in (
+              select user_id
+              from (
+                select
+                  user_id,
+                  argMax(segment_state_value, computed_at) latest_segment_value
+                from resolved_segment_state as rss
                 where
                   rss.workspace_id = ${workspaceIdParam}
                   and rss.segment_id = ${segmentIdParam}
                   and rss.state_id = ${stateIdParam}
-                  and rss.segment_state_value = True
+                group by
+                  workspace_id,
+                  segment_id,
+                  state_id,
+                  user_id
+                having
+                  latest_segment_value = True
               )
-            group by
-              workspace_id,
-              user_id
-          ) as np`;
-        queries.push(zeroTimesQuery);
-      }
+            )
+          group by
+            workspace_id,
+            user_id
+        ) as np`;
+      queries.push(newEntrantsQuery);
       return queries;
     }
     case SegmentNodeType.Trait: {
