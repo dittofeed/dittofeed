@@ -6021,9 +6021,7 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description: "when a performed segment has a within condition",
-      only: true,
       userProperties: [
         {
           name: "id",
