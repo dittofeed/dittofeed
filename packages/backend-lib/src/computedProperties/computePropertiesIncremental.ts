@@ -1775,7 +1775,6 @@ export function segmentNodeToStateSubQuery({
             return [];
         }
       });
-      // FIXME, this looks right
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
