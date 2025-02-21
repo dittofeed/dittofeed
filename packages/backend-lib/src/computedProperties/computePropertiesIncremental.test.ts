@@ -1469,7 +1469,14 @@ describe("computeProperties", () => {
     {
       description:
         "computes an AND segment with a mixture of trait and performed nodes",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "andSegment",
@@ -2751,6 +2758,12 @@ describe("computeProperties", () => {
       description: "performed segment",
       userProperties: [
         {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+        {
           name: "email",
           definition: {
             type: UserPropertyDefinitionType.Trait,
@@ -2875,7 +2888,14 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segments with numeric operators",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "performed",
@@ -2971,12 +2991,9 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // FIXME less than 1 non-windowed test
     {
       description:
         "when a performed segment conditions on an event being performed 0 times",
-      only: true,
-      // FIXME
       userProperties: [
         {
           name: "id",
@@ -3646,6 +3663,12 @@ describe("computeProperties", () => {
             path: "email",
           },
         },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
       ],
       segments: [
         {
@@ -3770,6 +3793,12 @@ describe("computeProperties", () => {
           definition: {
             type: UserPropertyDefinitionType.Trait,
             path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
@@ -3918,6 +3947,12 @@ describe("computeProperties", () => {
           definition: {
             type: UserPropertyDefinitionType.Trait,
             path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
           },
         },
       ],
@@ -4141,7 +4176,14 @@ describe("computeProperties", () => {
     },
     {
       description: "performed segment with nested properties",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "performed",
@@ -5492,6 +5534,14 @@ describe("computeProperties", () => {
     },
     {
       description: "when segmenting on email opens",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "emailOpened",
@@ -5659,7 +5709,14 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment is updated with a new performed count threshold",
-      userProperties: [],
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
       segments: [
         {
           name: "updatedPerformed",
