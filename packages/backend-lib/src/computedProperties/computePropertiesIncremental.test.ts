@@ -2971,6 +2971,7 @@ describe("computeProperties", () => {
         },
       ],
     },
+    // FIXME less than 1 non-windowed test
     {
       description:
         "when a performed segment conditions on an event being performed 0 times",
