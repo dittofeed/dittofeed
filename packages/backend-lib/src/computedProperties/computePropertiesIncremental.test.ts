@@ -1583,6 +1583,150 @@ describe("computeProperties", () => {
     },
     {
       description:
+        "computes an AND segment with a mixture of trait and windowed performed nodes",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Performed,
+                id: "3",
+                event: "test",
+                timesOperator: RelationalOperators.GreaterThanOrEqual,
+                times: 1,
+                withinSeconds: 5,
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "invalid",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is in the segment because they have the trait and performed event",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "assigments remain the same after computed properties are re-run",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 6000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is no longer in the segment because the performed event is no longer within the window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
         "computes an AND segment correctly when one node is updated from false to true",
       userProperties: [],
       segments: [
