@@ -546,26 +546,6 @@ function segmentToResolvedState({
         ? qb.addQueryValue(idUserProperty.id, "String")
         : null;
 
-      const checkZeroValue =
-        ((operator === RelationalOperators.Equals && times === 0) ||
-          operator === RelationalOperators.LessThan) &&
-        userIdStateParam &&
-        userIdPropertyIdParam;
-
-      const checkGreaterThanZeroValue = !(
-        (operator === RelationalOperators.Equals && times === 0) ||
-        (operator === RelationalOperators.LessThan && times === 1)
-      );
-      if (times < 0) {
-        logger().info(
-          {
-            segmentId: segment.id,
-            workspaceId,
-          },
-          "Times is less than 0, skipping",
-        );
-        return [];
-      }
       if (times === 0 && operator === RelationalOperators.LessThan) {
         logger().info(
           {

@@ -1728,7 +1728,7 @@ describe("computeProperties", () => {
     {
       description:
         "computes an AND segment with a mixture of trait and zero-times windowed performed nodes",
-      only: true,
+      // only: true,
       // FIXME
       userProperties: [
         {
@@ -3442,6 +3442,8 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
+      only: true,
+      // FIXME
       userProperties: [
         {
           name: "id",
@@ -3459,7 +3461,7 @@ describe("computeProperties", () => {
               id: "1",
               event: "test",
               timesOperator: RelationalOperators.Equals,
-              withinSeconds: 500,
+              withinSeconds: 5,
               times: 0,
             },
             nodes: [],
@@ -3490,6 +3492,45 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 performed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is still in segment after time window has passed",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 10000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in segment after time window has passed",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: null,
               },
             },
           ],
