@@ -1766,7 +1766,7 @@ describe("computeProperties", () => {
     {
       description:
         "computes an AND segment with a mixture of trait and zero-times windowed performed nodes",
-      // only: true,
+      only: true,
       // FIXME
       userProperties: [
         {
@@ -3480,8 +3480,6 @@ describe("computeProperties", () => {
     {
       description:
         "when a performed segment conditions on an event being performed 0 times within a time window",
-      only: true,
-      // FIXME
       userProperties: [
         {
           name: "id",
@@ -3516,6 +3514,12 @@ describe("computeProperties", () => {
               userId: "user-1",
               event: "unrelated",
             },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
           ],
         },
         {
@@ -3532,6 +3536,12 @@ describe("computeProperties", () => {
                 performed: true,
               },
             },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
           ],
         },
         {
@@ -3543,12 +3553,18 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "user is still in segment after time window has passed",
+          description: "user is still in segment on recompute",
           users: [
             {
               id: "user-1",
               segments: {
                 performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
               },
             },
           ],
@@ -3561,17 +3577,20 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-        },
-        {
           type: EventsStepType.Assert,
           description:
-            "user is no longer in segment after time window has passed",
+            "user with specified event is in segment after window has passed",
           users: [
             {
               id: "user-1",
               segments: {
-                performed: null,
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: true,
               },
             },
           ],
@@ -6447,9 +6466,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "when the tracked event occurred outside of the required window, does not set segment",
@@ -7179,19 +7195,21 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.Debug: {
-          const [assignments, states] = await Promise.all([
-            readAssignments({ workspaceId }),
-            readDisaggregatedStates({ workspaceId }),
-            readResolvedSegmentStates({
-              workspaceId,
-            }),
-          ]);
+          const [assignments, states, resolvedSegmentStates] =
+            await Promise.all([
+              readAssignments({ workspaceId }),
+              readDisaggregatedStates({ workspaceId }),
+              readResolvedSegmentStates({
+                workspaceId,
+              }),
+            ]);
           logger().warn(
             {
               assignments,
               states,
+              resolvedSegmentStates,
             },
-            "debug assignments",
+            "debug clickhouse values",
           );
           break;
         }
