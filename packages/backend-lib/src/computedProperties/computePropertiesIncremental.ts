@@ -615,18 +615,27 @@ function segmentToResolvedState({
       }
 
       if (node.withinSeconds && node.withinSeconds > 0) {
-        logger().debug("loc1");
+        const lowerBound = Math.round(
+          Math.max(nowSeconds - node.withinSeconds, 0),
+        );
+        logger().debug(
+          {
+            now: new Date(now).toISOString(),
+            withinSeconds: node.withinSeconds,
+            lowerBound: new Date(lowerBound * 1000).toISOString(),
+          },
+          "loc1",
+        );
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'
           and cps_performed.computed_property_id = ${segmentIdParam}
           and cps_performed.state_id = ${stateIdParam}
           and cps_performed.event_time <= toDateTime64(${nowSeconds}, 3)
-          and cps_performed.event_time >= toDateTime64(${Math.round(
-            Math.max(nowSeconds - node.withinSeconds, 0),
-          )}, 3)
+          and cps_performed.event_time >= toDateTime64(${lowerBound}, 3)
         `;
 
+        // FIXME
         const expiredQuery = `
           insert into resolved_segment_state
           select

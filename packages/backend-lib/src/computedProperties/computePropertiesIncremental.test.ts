@@ -155,6 +155,66 @@ async function readAssignments({
   return values.data;
 }
 
+interface ComputedPropertyState {
+  workspace_id: string;
+  user_id: string;
+  type: "user_property" | "segment";
+  computed_property_id: string;
+  state_id: string;
+  last_value: string;
+  unique_count: string;
+  grouped_message_ids: string[];
+  event_time: string;
+  computed_at: string;
+}
+
+// workspace_id LowCardinality(String),
+// type Enum('user_property' = 1, 'segment' = 2),
+// computed_property_id LowCardinality(String),
+// state_id LowCardinality(String),
+// user_id String,
+// last_value AggregateFunction(argMax, String, DateTime64(3)),
+// unique_count AggregateFunction(uniq, String),
+// event_time DateTime64(3),
+// grouped_message_ids AggregateFunction(groupArray, String),
+// computed_at DateTime64(3)
+
+async function readState({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ComputedPropertyState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      argMaxMerge(last_value) as last_value,
+      uniqMerge(unique_count) as unique_count,
+      groupArrayMerge(grouped_message_ids) as grouped_message_ids,
+      computed_at
+    from computed_property_state_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+    group by
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      computed_at
+    order by computed_at desc
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: ComputedPropertyState[] } = await response.json();
+  return values.data;
+}
+
 interface State {
   type: "segment" | "user_property";
   computed_property_id: string;
@@ -3521,6 +3581,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
