@@ -160,17 +160,6 @@ export async function findAllSegmentAssignments({
     {},
   );
 
-  logger().debug(
-    {
-      userId,
-      workspaceId,
-      rows,
-      assignmentMap: Object.fromEntries(assignmentMap),
-      segmentAssignment,
-      segments,
-    },
-    "assignment map",
-  );
   return segmentAssignment;
 }
 
