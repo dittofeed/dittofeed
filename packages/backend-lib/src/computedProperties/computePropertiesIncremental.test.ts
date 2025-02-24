@@ -1926,12 +1926,14 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Debug,
+          userId: "user-1",
         },
         {
           type: EventsStepType.Assert,
           description:
             "user-2 is in the segment because their event has fallen out of the window",
           users: [
+            // FIXME
             {
               id: "user-1",
               segments: {
