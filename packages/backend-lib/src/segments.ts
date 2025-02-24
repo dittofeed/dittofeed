@@ -152,7 +152,6 @@ export async function findAllSegmentAssignments({
   for (const row of rows) {
     assignmentMap.set(row.computed_property_id, row.latest_segment_value);
   }
-  logger().debug({ rows, assignmentMap, segments }, "assignment map");
   const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
     (memo, curr) => {
       memo[curr.name] = assignmentMap.get(curr.id) ?? null;
@@ -160,6 +159,7 @@ export async function findAllSegmentAssignments({
     },
     {},
   );
+
   return segmentAssignment;
 }
 

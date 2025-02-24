@@ -167,6 +167,57 @@ interface State {
   grouped_message_ids: string[];
 }
 
+interface DisaggregatedState {
+  workspace_id: string;
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  state_id: string;
+  user_id: string;
+  last_value: string;
+  unique_count: string;
+  grouped_message_ids: string[];
+  computed_at: string;
+  event_time: string;
+}
+
+async function readDisaggregatedStates({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<DisaggregatedState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      argMaxMerge(last_value) as last_value,
+      uniqMerge(unique_count) as unique_count,
+      groupArrayMerge(grouped_message_ids) as grouped_message_ids,
+      computed_at,
+      event_time
+    from computed_property_state_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+    group by
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      computed_at,
+      event_time
+    order by computed_at desc
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values: { data: DisaggregatedState[] } = await response.json();
+  return values.data;
+}
+
 async function readStates({
   workspaceId,
 }: {
@@ -447,7 +498,7 @@ enum EventsStepType {
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
-  DebugAssignments = "DebugAssignments",
+  Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
 }
 
@@ -475,7 +526,8 @@ interface ComputePropertiesStep {
 }
 
 interface DebugAssignmentsStep {
-  type: EventsStepType.DebugAssignments;
+  type: EventsStepType.Debug;
+  userId?: string;
 }
 
 interface SleepStep {
@@ -1573,6 +1625,322 @@ describe("computeProperties", () => {
             },
             {
               id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "computes an AND segment with a mixture of trait and windowed performed nodes",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Performed,
+                id: "3",
+                event: "test",
+                timesOperator: RelationalOperators.GreaterThanOrEqual,
+                times: 1,
+                withinSeconds: 5,
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "invalid",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is in the segment because they have the trait and performed event",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "assigments remain the same after computed properties are re-run",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 6000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is no longer in the segment because the performed event is no longer within the window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "computes an AND segment with a mixture of trait and zero-times windowed performed nodes",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Performed,
+                id: "3",
+                event: "test",
+                timesOperator: RelationalOperators.Equals,
+                times: 0,
+                withinSeconds: 5,
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                env: "test",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                env: "prod",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-1 is in the segment because they have the trait and have performed the event 0 times",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "assigments remain the same after computed properties are re-run",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                andSegment: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 6000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user-2 is in the segment because their event has fallen out of the window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                andSegment: true,
+              },
+            },
+            {
+              id: "user-3",
               segments: {
                 andSegment: null,
               },
@@ -3064,9 +3432,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description: "the same users are in the segment on second compute",
           users: [
@@ -3167,7 +3532,7 @@ describe("computeProperties", () => {
               id: "1",
               event: "test",
               timesOperator: RelationalOperators.Equals,
-              withinSeconds: 500,
+              withinSeconds: 5,
               times: 0,
             },
             nodes: [],
@@ -3184,6 +3549,12 @@ describe("computeProperties", () => {
               userId: "user-1",
               event: "unrelated",
             },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
           ],
         },
         {
@@ -3196,6 +3567,63 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is still in segment on recompute",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                performed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 10000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user with specified event is in segment after window has passed",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+            {
+              id: "user-2",
               segments: {
                 performed: true,
               },
@@ -6073,9 +6501,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "when the tracked event occurred outside of the required window, does not set segment",
@@ -6174,9 +6599,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
@@ -6330,9 +6752,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
@@ -6804,13 +7223,28 @@ describe("computeProperties", () => {
           }
           break;
         }
-        case EventsStepType.DebugAssignments: {
-          const assignments = await readAssignments({ workspaceId });
+        case EventsStepType.Debug: {
+          const [assignments, states, resolvedSegmentStates] =
+            await Promise.all([
+              readAssignments({ workspaceId }),
+              readDisaggregatedStates({ workspaceId }),
+              readResolvedSegmentStates({
+                workspaceId,
+              }),
+            ]);
           logger().warn(
             {
-              assignments,
+              assignments: assignments.filter((a) =>
+                step.userId ? a.user_id === step.userId : true,
+              ),
+              states: states.filter((s) =>
+                step.userId ? s.user_id === step.userId : true,
+              ),
+              resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
+                step.userId ? s.user_id === step.userId : true,
+              ),
             },
-            "debug assignments",
+            "debug clickhouse values",
           );
           break;
         }

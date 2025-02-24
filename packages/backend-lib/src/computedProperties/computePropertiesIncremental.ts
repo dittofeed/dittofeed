@@ -546,26 +546,6 @@ function segmentToResolvedState({
         ? qb.addQueryValue(idUserProperty.id, "String")
         : null;
 
-      const checkZeroValue =
-        ((operator === RelationalOperators.Equals && times === 0) ||
-          operator === RelationalOperators.LessThan) &&
-        userIdStateParam &&
-        userIdPropertyIdParam;
-
-      const checkGreaterThanZeroValue = !(
-        (operator === RelationalOperators.Equals && times === 0) ||
-        (operator === RelationalOperators.LessThan && times === 1)
-      );
-      if (times < 0) {
-        logger().info(
-          {
-            segmentId: segment.id,
-            workspaceId,
-          },
-          "Times is less than 0, skipping",
-        );
-        return [];
-      }
       if (times === 0 && operator === RelationalOperators.LessThan) {
         logger().info(
           {
@@ -3081,6 +3061,10 @@ export async function computeAssignments({
         const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
         const segmentIdParam = qb.addQueryValue(segment.id, "String");
+        const stateIdsParam = qb.addQueryValue(
+          assignmentConfig.stateIds,
+          "Array(String)",
+        );
         const assignmentQueries = [
           `
         insert into computed_property_assignments_v2
@@ -3110,14 +3094,23 @@ export async function computeAssignments({
               max(max_event_time) as max_state_event_time
             from resolved_segment_state
             where
-              workspace_id = ${workspaceIdParam}
-              and segment_id = ${segmentIdParam}
-              and computed_at <= toDateTime64(${nowSeconds}, 3)
-              and state_id in ${qb.addQueryValue(
-                assignmentConfig.stateIds,
-                "Array(String)",
-              )}
-              ${lowerBoundClause}
+              (
+                workspace_id,
+                segment_id,
+                user_id
+              ) in (
+                select
+                  workspace_id,
+                  segment_id,
+                  user_id
+                from resolved_segment_state
+                where
+                  workspace_id = ${workspaceIdParam}
+                  and segment_id = ${segmentIdParam}
+                  and computed_at <= toDateTime64(${nowSeconds}, 3)
+                  and state_id in ${stateIdsParam}
+                  ${lowerBoundClause}
+              )
             group by
               workspace_id,
               segment_id,

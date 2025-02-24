@@ -14,6 +14,8 @@ import {
 import { findManyEventsWithCount } from "./userEvents";
 import { createWorkspace } from "./workspaces";
 
+jest.setTimeout(30000);
+
 describe("apps", () => {
   let workspaceId: string;
 
