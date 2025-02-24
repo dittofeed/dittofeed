@@ -574,6 +574,7 @@ function segmentToResolvedState({
       switch (operator) {
         case RelationalOperators.Equals:
           if (times === 0) {
+            // FIXME
             reversed = true;
             mappedOperator = RelationalOperators.GreaterThanOrEqual;
             mappedTimes = 1;
@@ -623,6 +624,11 @@ function segmentToResolvedState({
             now: new Date(now).toISOString(),
             withinSeconds: node.withinSeconds,
             lowerBound: new Date(lowerBound * 1000).toISOString(),
+            operator,
+            mappedOperator,
+            times,
+            mappedTimes,
+            reversed,
           },
           "loc1",
         );
@@ -635,7 +641,7 @@ function segmentToResolvedState({
           and cps_performed.event_time >= toDateTime64(${lowerBound}, 3)
         `;
 
-        // FIXME
+        // FIXME reversed
         const expiredQuery = `
           insert into resolved_segment_state
           select

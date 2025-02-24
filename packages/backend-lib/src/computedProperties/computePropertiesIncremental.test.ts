@@ -167,11 +167,24 @@ interface State {
   grouped_message_ids: string[];
 }
 
+interface DisaggregatedState {
+  workspace_id: string;
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  state_id: string;
+  user_id: string;
+  last_value: string;
+  unique_count: string;
+  grouped_message_ids: string[];
+  computed_at: string;
+  event_time: string;
+}
+
 async function readDisaggregatedStates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<unknown[]> {
+}): Promise<DisaggregatedState[]> {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
@@ -201,7 +214,7 @@ async function readDisaggregatedStates({
     query,
     query_params: qb.getQueries(),
   });
-  const values: { data: unknown[] } = await response.json();
+  const values: { data: DisaggregatedState[] } = await response.json();
   return values.data;
 }
 
@@ -1909,6 +1922,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
