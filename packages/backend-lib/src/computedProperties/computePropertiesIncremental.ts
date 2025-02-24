@@ -574,7 +574,6 @@ function segmentToResolvedState({
       switch (operator) {
         case RelationalOperators.Equals:
           if (times === 0) {
-            // FIXME
             reversed = true;
             mappedOperator = RelationalOperators.GreaterThanOrEqual;
             mappedTimes = 1;
@@ -616,42 +615,18 @@ function segmentToResolvedState({
       }
 
       if (node.withinSeconds && node.withinSeconds > 0) {
-        const lowerBound = Math.round(
-          Math.max(nowSeconds - node.withinSeconds, 0),
-        );
-        logger().debug(
-          {
-            now: new Date(now).toISOString(),
-            withinSeconds: node.withinSeconds,
-            lowerBound: new Date(lowerBound * 1000).toISOString(),
-            operator,
-            mappedOperator,
-            times,
-            mappedTimes,
-            reversed,
-          },
-          "loc1",
-        );
+        logger().debug("loc1");
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'
           and cps_performed.computed_property_id = ${segmentIdParam}
           and cps_performed.state_id = ${stateIdParam}
           and cps_performed.event_time <= toDateTime64(${nowSeconds}, 3)
-          and cps_performed.event_time >= toDateTime64(${lowerBound}, 3)
+          and cps_performed.event_time >= toDateTime64(${Math.round(
+            Math.max(nowSeconds - node.withinSeconds, 0),
+          )}, 3)
         `;
 
-        // FIXME reversed
-        // knowns
-        // for user 2
-        // state outside of range
-        // segment node has 2 resolved true states
-        // equals 0 times in last 5 seconds
-        // latest assignment for segment is correct
-        // actual issue is with user-1
-        // all resolved states are true
-        // but last assignment is false
-        // resolved map only finding state id for performed node not trait node
         const expiredQuery = `
           insert into resolved_segment_state
           select
@@ -3049,7 +3024,7 @@ export async function computeAssignments({
     );
 
     for (const segment of segments) {
-      await withSpan({ name: "compute-segment-assignments" }, async (spanS) => {
+      withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
         spanS.setAttribute("workspaceId", workspaceId);
         spanS.setAttribute("segmentId", segment.id);
 
@@ -3149,68 +3124,6 @@ export async function computeAssignments({
         )
       `,
         ];
-
-        // FIXME date range is wrong. need to lookup all resolved state but only for updated
-        const debug = await (
-          await chQuery({
-            query_params: qb.getQueries(),
-            query: `
- 
-          select
-            workspace_id,
-            segment_id,
-            user_id,
-            CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
-            max(max_state_event_time) as max_state_event_time
-          from  (
-            select
-              workspace_id,
-              segment_id,
-              state_id,
-              user_id,
-              argMax(segment_state_value, computed_at) segment_state_value,
-              max(max_event_time) as max_state_event_time
-            from resolved_segment_state
-            where
-              (
-                workspace_id,
-                segment_id,
-                user_id
-              ) in (
-                select
-                  workspace_id,
-                  segment_id,
-                  user_id
-                from resolved_segment_state
-                where
-                  workspace_id = ${workspaceIdParam}
-                  and segment_id = ${segmentIdParam}
-                  and computed_at <= toDateTime64(${nowSeconds}, 3)
-                  and state_id in ${stateIdsParam}
-                  ${lowerBoundClause}
-              )
-            group by
-              workspace_id,
-              segment_id,
-              user_id,
-              state_id
-          )
-          group by
-            workspace_id,
-            segment_id,
-            user_id
-
-          `,
-          })
-        ).json();
-        // FIXME
-        logger().debug(
-          {
-            assignmentConfig,
-            debug,
-          },
-          "loc2 assignment config",
-        );
 
         if (
           segment.definitionUpdatedAt &&
