@@ -155,35 +155,23 @@ async function readAssignments({
   return values.data;
 }
 
-interface ComputedPropertyState {
-  workspace_id: string;
-  user_id: string;
-  type: "user_property" | "segment";
+interface State {
+  type: "segment" | "user_property";
   computed_property_id: string;
   state_id: string;
+  user_id: string;
+  max_event_time: string;
+  computed_at: string;
   last_value: string;
   unique_count: string;
   grouped_message_ids: string[];
-  event_time: string;
-  computed_at: string;
 }
 
-// workspace_id LowCardinality(String),
-// type Enum('user_property' = 1, 'segment' = 2),
-// computed_property_id LowCardinality(String),
-// state_id LowCardinality(String),
-// user_id String,
-// last_value AggregateFunction(argMax, String, DateTime64(3)),
-// unique_count AggregateFunction(uniq, String),
-// event_time DateTime64(3),
-// grouped_message_ids AggregateFunction(groupArray, String),
-// computed_at DateTime64(3)
-
-async function readState({
+async function readDisaggregatedStates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<ComputedPropertyState[]> {
+}): Promise<unknown[]> {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
@@ -195,7 +183,8 @@ async function readState({
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
-      computed_at
+      computed_at,
+      event_time
     from computed_property_state_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
@@ -204,27 +193,16 @@ async function readState({
       computed_property_id,
       state_id,
       user_id,
-      computed_at
+      computed_at,
+      event_time
     order by computed_at desc
   `;
   const response = await clickhouseClient().query({
     query,
     query_params: qb.getQueries(),
   });
-  const values: { data: ComputedPropertyState[] } = await response.json();
+  const values: { data: unknown[] } = await response.json();
   return values.data;
-}
-
-interface State {
-  type: "segment" | "user_property";
-  computed_property_id: string;
-  state_id: string;
-  user_id: string;
-  max_event_time: string;
-  computed_at: string;
-  last_value: string;
-  unique_count: string;
-  grouped_message_ids: string[];
 }
 
 async function readStates({
@@ -507,7 +485,7 @@ enum EventsStepType {
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
-  DebugAssignments = "DebugAssignments",
+  Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
 }
 
@@ -535,7 +513,7 @@ interface ComputePropertiesStep {
 }
 
 interface DebugAssignmentsStep {
-  type: EventsStepType.DebugAssignments;
+  type: EventsStepType.Debug;
 }
 
 interface SleepStep {
@@ -3416,7 +3394,7 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -3583,7 +3561,7 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -6469,7 +6447,7 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -6572,7 +6550,7 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -6728,7 +6706,7 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -7200,11 +7178,18 @@ describe("computeProperties", () => {
           }
           break;
         }
-        case EventsStepType.DebugAssignments: {
-          const assignments = await readAssignments({ workspaceId });
+        case EventsStepType.Debug: {
+          const [assignments, states] = await Promise.all([
+            readAssignments({ workspaceId }),
+            readDisaggregatedStates({ workspaceId }),
+            readResolvedSegmentStates({
+              workspaceId,
+            }),
+          ]);
           logger().warn(
             {
               assignments,
+              states,
             },
             "debug assignments",
           );
