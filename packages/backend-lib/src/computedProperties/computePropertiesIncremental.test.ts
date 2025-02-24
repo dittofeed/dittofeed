@@ -527,6 +527,7 @@ interface ComputePropertiesStep {
 
 interface DebugAssignmentsStep {
   type: EventsStepType.Debug;
+  userId?: string;
 }
 
 interface SleepStep {
@@ -7247,9 +7248,15 @@ describe("computeProperties", () => {
             ]);
           logger().warn(
             {
-              assignments,
-              states,
-              resolvedSegmentStates,
+              assignments: assignments.filter((a) =>
+                step.userId ? a.user_id === step.userId : true,
+              ),
+              states: states.filter((s) =>
+                step.userId ? s.user_id === step.userId : true,
+              ),
+              resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
+                step.userId ? s.user_id === step.userId : true,
+              ),
             },
             "debug clickhouse values",
           );
