@@ -1923,10 +1923,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-          userId: "user-1",
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "user-2 is in the segment because their event has fallen out of the window",
@@ -3434,9 +3430,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
@@ -6608,9 +6601,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "then after resubmitting the event the user enters the segment a second time",
@@ -6762,9 +6752,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
