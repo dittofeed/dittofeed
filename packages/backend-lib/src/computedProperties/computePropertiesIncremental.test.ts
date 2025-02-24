@@ -1833,6 +1833,14 @@ describe("computeProperties", () => {
               userId: "user-2",
               event: "test",
             },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                env: "prod",
+              },
+            },
           ],
         },
         {
@@ -1851,6 +1859,12 @@ describe("computeProperties", () => {
             },
             {
               id: "user-2",
+              segments: {
+                andSegment: null,
+              },
+            },
+            {
+              id: "user-3",
               segments: {
                 andSegment: null,
               },
@@ -1881,6 +1895,12 @@ describe("computeProperties", () => {
                 andSegment: null,
               },
             },
+            {
+              id: "user-3",
+              segments: {
+                andSegment: null,
+              },
+            },
           ],
         },
         {
@@ -1905,6 +1925,12 @@ describe("computeProperties", () => {
               id: "user-2",
               segments: {
                 andSegment: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                andSegment: null,
               },
             },
           ],
