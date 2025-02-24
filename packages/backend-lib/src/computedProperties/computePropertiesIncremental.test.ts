@@ -1780,8 +1780,6 @@ describe("computeProperties", () => {
     {
       description:
         "computes an AND segment with a mixture of trait and zero-times windowed performed nodes",
-      only: true,
-      // FIXME
       userProperties: [
         {
           name: "id",
@@ -1933,7 +1931,6 @@ describe("computeProperties", () => {
           description:
             "user-2 is in the segment because their event has fallen out of the window",
           users: [
-            // FIXME
             {
               id: "user-1",
               segments: {
