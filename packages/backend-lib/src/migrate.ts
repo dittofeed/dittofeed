@@ -63,13 +63,16 @@ export async function findDrizzleFolder(dirname: string): Promise<string> {
   return migrationsFolder;
 }
 
-export async function drizzleMigrate() {
-  await createDatabase();
-
+export async function publicDrizzleMigrate() {
   const migrationsFolder = await findDrizzleFolder(__dirname);
 
   logger().info({ migrationsFolder }, "Running migrations");
   await migrate(db(), {
     migrationsFolder,
   });
+}
+
+export async function drizzleMigrate() {
+  await createDatabase();
+  await publicDrizzleMigrate();
 }
