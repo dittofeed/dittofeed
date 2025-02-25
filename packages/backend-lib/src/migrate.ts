@@ -17,7 +17,7 @@ async function checkDirectory(p: string) {
   }
 }
 
-export async function drizzleMigrate() {
+async function createDatabase() {
   const client = new Client(databaseUrlWithoutName());
   const { database } = config();
   try {
@@ -40,14 +40,18 @@ export async function drizzleMigrate() {
   } finally {
     await client.end();
   }
+}
 
-  let migrationsFolder = path.join(__dirname, "..", "drizzle");
+export async function findDrizzleFolder(dirname: string): Promise<string> {
+  // Tries both paths for prod and dev.
+  let migrationsFolder = path.join(dirname, "..", "drizzle");
   if (!(await checkDirectory(migrationsFolder))) {
     logger().info(
       { migrationsFolder },
       "Migrations folder not found, trying root package dir",
     );
-    migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
+    // Have to go up two levels to get to the drizzle folder because we're inside of the dist folder.
+    migrationsFolder = path.join(dirname, "..", "..", "drizzle");
     if (!(await checkDirectory(migrationsFolder))) {
       logger().error(
         { migrationsFolder },
@@ -56,6 +60,13 @@ export async function drizzleMigrate() {
       throw new Error("Migrations folder not found");
     }
   }
+  return migrationsFolder;
+}
+
+export async function drizzleMigrate() {
+  await createDatabase();
+
+  const migrationsFolder = await findDrizzleFolder(__dirname);
 
   logger().info({ migrationsFolder }, "Running migrations");
   await migrate(db(), {
