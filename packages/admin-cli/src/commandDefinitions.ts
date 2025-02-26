@@ -17,6 +17,7 @@ import * as schema from "backend-lib/src/db/schema";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
+import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import { transferResources } from "backend-lib/src/transferResources";
@@ -815,6 +816,15 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
         },
         "Found due workspaces.",
       );
+    },
+  },
+  {
+    command: "migrate",
+    description: "Run migrations.",
+    handler: async () => {
+      logger().info("Running migrations");
+      await publicDrizzleMigrate();
+      logger().info("Migrations complete");
     },
   },
 ];

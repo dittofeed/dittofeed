@@ -434,18 +434,19 @@ export async function bootstrapComputeProperties({
   }
 }
 
-export default async function bootstrap({
-  workspaceName,
-  workspaceDomain,
-  workspaceType,
-  features,
-}: {
+export interface BootstrapWorkspaceParams {
   workspaceName: string;
   workspaceType: WorkspaceTypeApp;
   workspaceDomain?: string;
   features?: Features;
-}): Promise<{ workspaceId: string }> {
-  await drizzleMigrate();
+}
+
+export async function bootstrapWorkspace({
+  workspaceName,
+  workspaceType,
+  workspaceDomain,
+  features,
+}: BootstrapWorkspaceParams): Promise<{ workspaceId: string }> {
   const workspace = await bootstrapPostgres({
     workspaceName,
     workspaceDomain,
@@ -464,26 +465,8 @@ export default async function bootstrap({
   }
   const workspaceId = workspace.value.id;
 
-  const initialBootstrap = [
-    bootstrapClickhouse().catch(
-      handleErrorFactory("failed to bootstrap clickhouse"),
-    ),
-  ];
-  if (config().writeMode === "kafka") {
-    initialBootstrap.push(
-      bootstrapKafka().catch(handleErrorFactory("failed to bootstrap kafka")),
-    );
-  }
-  await Promise.all(initialBootstrap);
-
   if (config().bootstrapEvents) {
     await insertDefaultEvents({ workspaceId });
-  }
-
-  if (config().enableBlobStorage) {
-    await createBucket(storage(), {
-      bucketName: config().blobStorageBucket,
-    });
   }
 
   if (config().bootstrapWorker) {
@@ -491,6 +474,33 @@ export default async function bootstrap({
     await startGlobalCron();
   }
   return { workspaceId };
+}
+
+export async function bootstrapDependencies(): Promise<void> {
+  const promises = [
+    drizzleMigrate(),
+    bootstrapClickhouse().catch(
+      handleErrorFactory("failed to bootstrap clickhouse"),
+    ),
+  ];
+  if (config().enableBlobStorage) {
+    promises.push(
+      createBucket(storage(), {
+        bucketName: config().blobStorageBucket,
+      }),
+    );
+  }
+  if (config().writeMode === "kafka") {
+    promises.push(bootstrapKafka());
+  }
+  await Promise.all(promises);
+}
+
+export default async function bootstrap(
+  params: BootstrapWorkspaceParams,
+): Promise<{ workspaceId: string }> {
+  await bootstrapDependencies();
+  return bootstrapWorkspace(params);
 }
 
 export interface BootstrapWithoutDefaultsParams {
