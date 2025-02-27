@@ -6,15 +6,29 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { bootstrapPostgres } from "./bootstrap";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
+import {
+  generateSubscriptionChangeUrl,
+  inSubscriptionGroup,
+} from "./subscriptionGroups";
 import {
   SubscriptionChange,
   SubscriptionGroup,
+  SubscriptionGroupType,
   WorkspaceTypeAppEnum,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 
 describe("subscriptionGroups", () => {
+  describe("inSubscriptionGroup", () => {
+    it("when action is unsubscribe and opt-out, it returns false", () => {
+      const result = inSubscriptionGroup({
+        action: SubscriptionChange.Unsubscribe,
+        type: SubscriptionGroupType.OptOut,
+        id: randomUUID(),
+      });
+      expect(result).toBe(false);
+    });
+  });
   describe("generateSubscriptionChangeUrl", () => {
     let userId: string;
     let email: string;
