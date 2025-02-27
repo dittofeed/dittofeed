@@ -3064,6 +3064,7 @@ const BatchItem = Type.Union([
   BatchTrackData,
   BatchPageData,
   BatchScreenData,
+  BatchGroupData,
 ]);
 
 export type BatchItem = Static<typeof BatchItem>;
