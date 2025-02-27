@@ -74,6 +74,8 @@ export enum InternalEventType {
   ManualSegmentUpdate = "DFManualSegmentUpdate",
   AttachedFiles = "DFAttachedFiles",
   UserTrackSignal = "DFUserTrackSignal",
+  GroupUserAssignment = "DFGroupUserAssignment",
+  UserGroupAssignment = "DFUserGroupAssignment",
 }
 
 export enum SubscriptionGroupType {
@@ -4049,7 +4051,6 @@ export interface SecretAvailabilityResource {
   value: boolean;
   configValue?: Record<string, boolean>;
 }
-
 export interface Resource {
   workspaceId: string;
   id: string;
