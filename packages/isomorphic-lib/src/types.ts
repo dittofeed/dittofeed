@@ -2890,6 +2890,7 @@ export const BaseGroupData = {
   files: AppDataFiles,
   context: AppDataContext,
   groupId: Type.String(),
+  assigned: Type.Optional(Type.Boolean()),
   traits: Type.Optional(GroupEventTraits),
 };
 
@@ -4740,4 +4741,22 @@ export const UpsertSubscriptionGroupAssignmentsRequest = Type.Object({
 
 export type UpsertSubscriptionGroupAssignmentsRequest = Static<
   typeof UpsertSubscriptionGroupAssignmentsRequest
+>;
+
+export const UserGroupAssignmentProperties = Type.Object({
+  groupId: Type.String(),
+  assigned: Type.Boolean(),
+});
+
+export type UserGroupAssignmentProperties = Static<
+  typeof UserGroupAssignmentProperties
+>;
+
+export const GroupUserAssignmentProperties = Type.Object({
+  userId: Type.String(),
+  assigned: Type.Boolean(),
+});
+
+export type GroupUserAssignmentProperties = Static<
+  typeof GroupUserAssignmentProperties
 >;

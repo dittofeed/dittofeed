@@ -2,9 +2,14 @@ import {
   BatchGroupData,
   BatchIdentifyData,
   BatchTrackData,
+  EventType,
   GroupData,
+  InternalEventType,
+  GroupUserAssignmentProperties,
   IdentifyData,
   TrackData,
+  TrackEventProperties,
+  UserGroupAssignmentProperties,
 } from "../types";
 
 // Function overload signatures
@@ -28,7 +33,7 @@ export function splitGroupEvents(
  * @returns An array where the first two elements are track events and the third optional element is an identify event
  */
 export function splitGroupEvents(
-  _data: GroupData | BatchGroupData,
+  data: GroupData | BatchGroupData,
 ): Promise<
   [
     TrackData | BatchTrackData,
@@ -36,5 +41,18 @@ export function splitGroupEvents(
     (IdentifyData | BatchIdentifyData)?,
   ]
 > {
+  const userOrAnonymousId = "userId" in data ? data.userId : data.anonymousId;
+  const assigned = data.assigned ?? true;
+
+  const userGroupAssignmentProperties: TrackEventProperties = {
+    groupId: data.groupId,
+    assigned,
+  } satisfies UserGroupAssignmentProperties;
+
+  const groupUserAssignmentProperties: TrackEventProperties = {
+    userId: userOrAnonymousId,
+    assigned,
+  } satisfies GroupUserAssignmentProperties;
+
   throw new Error("Not implemented");
 }
