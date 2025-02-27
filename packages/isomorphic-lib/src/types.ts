@@ -2754,7 +2754,6 @@ export const BaseAppData = {
 
 export const BaseIdentifyData = {
   ...BaseAppData,
-  // FIXME context should not be here?
   context: AppDataContext,
   traits: Type.Optional(Traits),
 };
@@ -2831,18 +2830,22 @@ export type TrackEventProperties = Static<typeof TrackEventProperties>;
 export const BaseTrackData = {
   ...BaseAppData,
   files: AppDataFiles,
-  context: AppDataContext,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
+  context: AppDataContext,
 };
 
 export const BaseBatchTrackData = {
-  ...BaseTrackData,
+  ...BaseAppData,
+  files: AppDataFiles,
+  event: TrackEventName,
+  properties: Type.Optional(TrackEventProperties),
   type: Type.Literal(EventType.Track),
 };
 
 export const KnownTrackData = Type.Object({
   ...BaseTrackData,
+  context: AppDataContext,
   userId: UserId,
 });
 
@@ -2850,6 +2853,7 @@ export type KnownTrackData = Static<typeof KnownTrackData>;
 
 export const AnonymousTrackData = Type.Object({
   ...BaseTrackData,
+  context: AppDataContext,
   anonymousId: AnonymousId,
 });
 
@@ -2888,19 +2892,23 @@ export type GroupEventTraits = Static<typeof GroupEventTraits>;
 
 export const BaseGroupData = {
   ...BaseAppData,
-  context: AppDataContext,
   groupId: Type.String(),
   assigned: Type.Optional(Type.Boolean()),
   traits: Type.Optional(GroupEventTraits),
+  context: AppDataContext,
 };
 
 export const BaseBatchGroupData = {
-  ...BaseGroupData,
+  ...BaseAppData,
+  groupId: Type.String(),
+  assigned: Type.Optional(Type.Boolean()),
+  traits: Type.Optional(GroupEventTraits),
   type: Type.Literal(EventType.Group),
 };
 
 export const KnownGroupData = Type.Object({
   ...BaseGroupData,
+  context: AppDataContext,
   userId: UserId,
 });
 
@@ -2908,6 +2916,7 @@ export type KnownGroupData = Static<typeof KnownGroupData>;
 
 export const AnonymousGroupData = Type.Object({
   ...BaseGroupData,
+  context: AppDataContext,
   anonymousId: AnonymousId,
 });
 
@@ -2958,13 +2967,15 @@ export const PageProperties = Type.Record(Type.String(), Type.Any(), {
 
 export const BasePageData = {
   ...BaseAppData,
-  context: AppDataContext,
   name: Type.Optional(PageName),
   properties: Type.Optional(PageProperties),
+  context: AppDataContext,
 };
 
 export const BaseBatchPageData = {
-  ...BasePageData,
+  ...BaseAppData,
+  name: Type.Optional(PageName),
+  properties: Type.Optional(PageProperties),
   type: Type.Literal(EventType.Page),
 };
 
@@ -3025,7 +3036,9 @@ export const BaseScreenData = {
 };
 
 export const BaseBatchScreenData = {
-  ...BaseScreenData,
+  ...BaseAppData,
+  name: Type.Optional(ScreenName),
+  properties: Type.Optional(ScreenProperties),
   type: Type.Literal(EventType.Screen),
 };
 

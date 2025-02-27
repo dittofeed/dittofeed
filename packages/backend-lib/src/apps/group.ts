@@ -59,26 +59,25 @@ export function splitGroupEvents(
     messageId: data.messageId,
     properties: userGroupAssignmentProperties,
     timestamp: data.timestamp,
-    context: data.context,
   };
 
   const groupUserAssignmentEvent: Omit<BatchTrackData, "type"> = {
     event: InternalEventType.GroupUserAssignment,
     messageId: data.messageId,
-    context: data.context,
     properties: groupUserAssignmentProperties,
     timestamp: data.timestamp,
   };
 
-  const identifyEvent: Omit<BatchIdentifyData, "type"> | null =
-    data.traits && Object.keys(data.traits).length > 0
-      ? {
-          messageId: data.messageId,
-          context: data.context,
-          traits: data.traits,
-          timestamp: data.timestamp,
-        }
-      : null;
+  throw new Error("Not implemented");
+  // const identifyEvent: Omit<BatchIdentifyData, "type"> | null =
+  //   data.traits && Object.keys(data.traits).length > 0
+  //     ? {
+  //         messageId: data.messageId,
+  //         context: data.context,
+  //         traits: data.traits,
+  //         timestamp: data.timestamp,
+  //       }
+  //     : null;
 
-  return [userGroupAssignmentEvent, groupUserAssignmentEvent, identifyEvent];
+  // return [userGroupAssignmentEvent, groupUserAssignmentEvent, identifyEvent];
 }

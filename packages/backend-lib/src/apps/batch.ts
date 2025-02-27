@@ -15,6 +15,9 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
     let rest: Record<string, unknown>;
     let timestamp: string;
     const messageRaw: Record<string, unknown> = { context };
+    if (message.type === EventType.Group) {
+      throw new Error("not implemented");
+    }
 
     if (message.type === EventType.Identify) {
       rest = R.omit(message, ["timestamp", "traits"]);
