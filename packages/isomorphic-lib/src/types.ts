@@ -2754,6 +2754,7 @@ export const BaseAppData = {
 
 export const BaseIdentifyData = {
   ...BaseAppData,
+  // FIXME context should not be here?
   context: AppDataContext,
   traits: Type.Optional(Traits),
 };
@@ -2887,7 +2888,6 @@ export type GroupEventTraits = Static<typeof GroupEventTraits>;
 
 export const BaseGroupData = {
   ...BaseAppData,
-  files: AppDataFiles,
   context: AppDataContext,
   groupId: Type.String(),
   assigned: Type.Optional(Type.Boolean()),
