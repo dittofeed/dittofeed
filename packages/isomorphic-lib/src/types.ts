@@ -2879,6 +2879,64 @@ export const BatchTrackData = Type.Union([
 
 export type BatchTrackData = Static<typeof BatchTrackData>;
 
+export const GroupEventTraits = Type.Record(Type.String(), Type.Any(), {
+  description: "Traits of the group.",
+});
+
+export type GroupEventTraits = Static<typeof GroupEventTraits>;
+
+export const BaseGroupData = {
+  ...BaseAppData,
+  files: AppDataFiles,
+  context: AppDataContext,
+  groupId: Type.String(),
+  traits: Type.Optional(GroupEventTraits),
+};
+
+export const BaseBatchGroupData = {
+  ...BaseGroupData,
+  type: Type.Literal(EventType.Group),
+};
+
+export const KnownGroupData = Type.Object({
+  ...BaseGroupData,
+  userId: UserId,
+});
+
+export type KnownGroupData = Static<typeof KnownGroupData>;
+
+export const AnonymousGroupData = Type.Object({
+  ...BaseGroupData,
+  anonymousId: AnonymousId,
+});
+
+export type AnonymousGroupData = Static<typeof AnonymousGroupData>;
+
+export const GroupData = Type.Union([KnownGroupData, AnonymousGroupData]);
+
+export type GroupData = Static<typeof GroupData>;
+
+export const KnownBatchGroupData = Type.Object({
+  ...BaseBatchGroupData,
+  userId: UserId,
+});
+
+export type KnownBatchGroupData = Static<typeof KnownBatchGroupData>;
+
+export const AnonymousBatchGroupData = Type.Object({
+  ...BaseBatchGroupData,
+  anonymousId: AnonymousId,
+});
+
+export type AnonymousBatchGroupData = Static<typeof AnonymousBatchGroupData>;
+
+export const BatchGroupData = Type.Union([
+  KnownBatchGroupData,
+  AnonymousBatchGroupData,
+]);
+
+export type BatchGroupData = Static<typeof BatchGroupData>;
+
 export const PageName = Type.String({
   description: "Name of the page visited by the user.",
   examples: ["Home"],
