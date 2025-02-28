@@ -3939,6 +3939,9 @@ export const SearchDeliveriesRequest = Type.Object({
   endDate: Type.Optional(Type.String()),
   sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
   sortDirection: Type.Optional(SortDirection),
+  groupId: Type.Optional(
+    Type.Union([Type.String(), Type.Array(Type.String())]),
+  ),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
