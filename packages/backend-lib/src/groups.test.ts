@@ -5,6 +5,7 @@ import { submitGroup } from "./apps";
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { getGroupsForUser, getUsersForGroup } from "./groups";
 import { createWorkspace } from "./workspaces";
+import logger from "./logger";
 
 async function getEvents(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
@@ -39,7 +40,7 @@ describe("groups", () => {
     workspaceId = workspace.id;
   });
 
-  describe("getUsersForGroup", () => {
+  describe.only("getUsersForGroup", () => {
     describe("when user is assigned to group and then removed from group", () => {
       it("the return value should reflect the addition and removal", async () => {
         const userId = "user-1";
@@ -81,6 +82,18 @@ describe("groups", () => {
           },
         });
 
+        const [events, groupUserAssignments] = await Promise.all([
+          getEvents(workspaceId),
+          getGroupUserAssignments(workspaceId),
+        ]);
+
+        logger().info(
+          {
+            events,
+            groupUserAssignments,
+          },
+          "loc3",
+        );
         const users2 = await getUsersForGroup({
           workspaceId,
           groupId,
