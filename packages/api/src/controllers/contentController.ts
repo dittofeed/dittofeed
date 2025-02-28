@@ -240,10 +240,6 @@ export default async function contentController(fastify: FastifyInstance) {
               where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
             })) as DefaultEmailProviderResource | null;
 
-          logger().debug(
-            { emailContentsType },
-            "Resetting message template with email contents type loc1",
-          );
           definition = defaultEmailDefinition({
             emailProvider: defaultEmailProvider ?? undefined,
             emailContentsType: emailContentsType ?? EmailContentsType.Code,

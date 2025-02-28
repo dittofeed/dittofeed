@@ -615,7 +615,6 @@ function segmentToResolvedState({
       }
 
       if (node.withinSeconds && node.withinSeconds > 0) {
-        logger().debug("loc1");
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
           and cps_performed.type = 'segment'

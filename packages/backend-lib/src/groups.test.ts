@@ -2,32 +2,9 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitGroup } from "./apps";
-import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { getGroupsForUser, getUsersForGroup } from "./groups";
-import { createWorkspace } from "./workspaces";
 import logger from "./logger";
-
-async function getEvents(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const query = `
-    SELECT * FROM user_events_v2
-    WHERE workspace_id = ${workspaceIdParam}
-  `;
-  const result = await chQuery({ query, query_params: qb.getQueries() });
-  return result.json();
-}
-
-async function getGroupUserAssignments(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const query = `
-    SELECT * FROM group_user_assignments
-    WHERE workspace_id = ${workspaceIdParam}
-  `;
-  const result = await chQuery({ query, query_params: qb.getQueries() });
-  return result.json();
-}
+import { createWorkspace } from "./workspaces";
 
 describe("groups", () => {
   let workspaceId: string;
@@ -82,18 +59,6 @@ describe("groups", () => {
           },
         });
 
-        const [events, groupUserAssignments] = await Promise.all([
-          getEvents(workspaceId),
-          getGroupUserAssignments(workspaceId),
-        ]);
-
-        logger().info(
-          {
-            events,
-            groupUserAssignments,
-          },
-          "loc3",
-        );
         const users2 = await getUsersForGroup({
           workspaceId,
           groupId,
