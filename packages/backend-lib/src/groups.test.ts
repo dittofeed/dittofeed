@@ -40,7 +40,7 @@ describe("groups", () => {
     workspaceId = workspace.id;
   });
 
-  describe.only("getUsersForGroup", () => {
+  describe("getUsersForGroup", () => {
     describe("when user is assigned to group and then removed from group", () => {
       it("the return value should reflect the addition and removal", async () => {
         const userId = "user-1";

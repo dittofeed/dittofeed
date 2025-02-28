@@ -60,17 +60,19 @@ export async function getGroupsForUser({
   const offsetParam = qb.addQueryValue(offset, "UInt64");
   const query = `
     SELECT
-      group_id
+      group_id,
+      argMax(assigned, assigned_at) as last_assigned,
+      max(assigned_at) as last_assigned_at
     FROM
       user_group_assignments
     WHERE
       workspace_id = ${workspaceIdParam}
       AND user_id = ${userIdParam}
     GROUP BY
-      workspace_id, user_id, group_id, assigned_at
+      workspace_id, user_id, group_id
     HAVING
-      assigned = true
-    ORDER BY assigned_at DESC
+      last_assigned = true
+    ORDER BY last_assigned_at DESC
     LIMIT ${limitParam}
     OFFSET ${offsetParam}
   `;
