@@ -213,6 +213,7 @@ export async function searchDeliveries({
   templateIds,
   startDate,
   endDate,
+  groupId,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -274,6 +275,36 @@ export async function searchDeliveries({
   const endDateClause = endDate
     ? `AND processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`
     : "";
+  let groupIdClause = "";
+  if (groupId) {
+    const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
+    const groupIdParams = queryBuilder.addQueryValue(
+      groupIdArray,
+      "Array(String)",
+    );
+    groupIdClause = `
+      AND (workspace_id, user_or_anonymous_id) IN (
+        SELECT
+          workspace_id,
+          user_id
+        FROM (
+          SELECT
+            workspace_id,
+            group_id,
+            user_id,
+            argMax(assigned, assigned_at) as is_assigned
+          FROM group_user_assignments
+          WHERE
+            workspace_id = ${workspaceIdParam}
+            AND group_id IN ${groupIdParams}
+          GROUP BY
+            workspace_id,
+            group_id,
+            user_id
+        )
+        WHERE is_assigned = true
+      )`;
+  }
 
   let sortByClause: string;
 
@@ -340,6 +371,7 @@ export async function searchDeliveries({
         ${templateIdClause}
         ${startDateClause}
         ${endDateClause}
+        ${groupIdClause}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     HAVING

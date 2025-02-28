@@ -205,6 +205,5 @@ export async function submitGroup({
   data: GroupData;
 }) {
   const batch = splitGroupEvents(data) satisfies BatchItem[];
-  logger().debug({ batch }, "loc2");
   await submitBatch({ workspaceId, data: { batch, context: data.context } });
 }

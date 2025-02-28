@@ -17,8 +17,7 @@ export async function getUsersForGroup({
       user_id,
       argMax(assigned, assigned_at) as last_assigned,
       max(assigned_at) as last_assigned_at
-    FROM
-      group_user_assignments
+    FROM group_user_assignments
     WHERE
       workspace_id = ${workspaceIdParam}
       AND group_id = ${groupIdParam}
@@ -54,8 +53,7 @@ export async function getGroupsForUser({
       group_id,
       argMax(assigned, assigned_at) as last_assigned,
       max(assigned_at) as last_assigned_at
-    FROM
-      user_group_assignments
+    FROM user_group_assignments
     WHERE
       workspace_id = ${workspaceIdParam}
       AND user_id = ${userIdParam}

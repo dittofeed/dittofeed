@@ -75,7 +75,6 @@ function ImageForm({
 function ImageComponent({ node, updateAttributes }: NodeViewProps) {
   const attribute = node.attrs as ImageAttributes;
   const [visible, setVisible] = useState(attribute.defaultOpen);
-  console.log("loc1", attribute);
 
   return (
     <NodeViewWrapper as="span">
@@ -134,7 +133,6 @@ export const Image = Node.create({
   },
 
   addNodeView() {
-    console.log("loc3");
     return ReactNodeViewRenderer(ImageComponent);
   },
 
