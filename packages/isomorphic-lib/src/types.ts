@@ -4773,3 +4773,33 @@ export const GroupUserAssignmentProperties = Type.Object({
 export type GroupUserAssignmentProperties = Static<
   typeof GroupUserAssignmentProperties
 >;
+
+export const GetUsersForGroupRequest = Type.Object({
+  workspaceId: Type.String(),
+  groupId: Type.String(),
+  limit: Type.Optional(Type.Number()),
+  offset: Type.Optional(Type.Number()),
+});
+
+export type GetUsersForGroupRequest = Static<typeof GetUsersForGroupRequest>;
+
+export const GetUsersForGroupResponse = Type.Object({
+  users: Type.Array(Type.String()),
+});
+
+export type GetUsersForGroupResponse = Static<typeof GetUsersForGroupResponse>;
+
+export const GetGroupsForUserRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  limit: Type.Optional(Type.Number()),
+  offset: Type.Optional(Type.Number()),
+});
+
+export type GetGroupsForUserRequest = Static<typeof GetGroupsForUserRequest>;
+
+export const GetGroupsForUserResponse = Type.Object({
+  groups: Type.Array(Type.String()),
+});
+
+export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;

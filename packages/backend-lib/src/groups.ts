@@ -1,16 +1,12 @@
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
+import { GetGroupsForUserRequest, GetUsersForGroupRequest } from "./types";
 
 export async function getUsersForGroup({
   workspaceId,
   groupId,
   limit = 100,
   offset = 0,
-}: {
-  workspaceId: string;
-  groupId: string;
-  limit?: number;
-  offset?: number;
-}): Promise<string[]> {
+}: GetUsersForGroupRequest): Promise<string[]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const groupIdParam = qb.addQueryValue(groupId, "String");
@@ -47,12 +43,7 @@ export async function getGroupsForUser({
   userId,
   limit = 100,
   offset = 0,
-}: {
-  workspaceId: string;
-  userId: string;
-  limit?: number;
-  offset?: number;
-}): Promise<string[]> {
+}: GetGroupsForUserRequest): Promise<string[]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
