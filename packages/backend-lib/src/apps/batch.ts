@@ -2,6 +2,7 @@ import * as R from "remeda";
 
 import { BatchAppData, EventType } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
+import { splitGroupEvents } from "./group";
 
 export interface SubmitBatchOptions {
   workspaceId: string;
@@ -10,14 +11,14 @@ export interface SubmitBatchOptions {
 
 export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
   const { context, batch } = data;
+  const batchWithMappedGroupEvents = batch.flatMap((message) =>
+    message.type === EventType.Group ? splitGroupEvents(message) : message,
+  );
 
-  return batch.map((message) => {
+  return batchWithMappedGroupEvents.map((message) => {
     let rest: Record<string, unknown>;
     let timestamp: string;
     const messageRaw: Record<string, unknown> = { context };
-    if (message.type === EventType.Group) {
-      throw new Error("not implemented");
-    }
 
     if (message.type === EventType.Identify) {
       rest = R.omit(message, ["timestamp", "traits"]);

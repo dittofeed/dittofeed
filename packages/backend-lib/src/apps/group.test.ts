@@ -1,3 +1,0 @@
-describe("group", () => {
-  describe("splitGroupEvents", () => {});
-});
