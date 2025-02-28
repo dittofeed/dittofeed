@@ -661,6 +661,121 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when filtering by group id", () => {
+      let groupId1: string;
+      let groupId2: string;
+      let userId1: string;
+      let userId2: string;
+      let userId3: string;
+      beforeEach(async () => {
+        groupId1 = "group-1";
+        groupId2 = "group-2";
+        userId1 = "user-1";
+        userId2 = "user-2";
+        userId3 = "user-3";
+
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+
+        const events: BatchItem[] = [
+          // message sent events for users
+          {
+            userId: userId1,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          {
+            userId: userId2,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          {
+            userId: userId3,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          // group assignments
+          {
+            userId: userId1,
+            timestamp: new Date().toISOString(),
+            type: EventType.Group,
+            messageId: randomUUID(),
+            groupId: groupId1,
+          },
+          {
+            userId: userId2,
+            timestamp: new Date().toISOString(),
+            type: EventType.Group,
+            messageId: randomUUID(),
+            groupId: groupId2,
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+
+      it.only("only shows users in the group", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          groupId: [groupId1, groupId2],
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(2);
+        expect(deliveries.items.map((d) => d.userId)).toEqual([
+          userId1,
+          userId2,
+        ]);
+      });
+    });
+
     describe("when filtering by channel", () => {
       let channel: ChannelType;
       beforeEach(async () => {
