@@ -25,10 +25,10 @@ function isGroupData(data: GroupData | BatchGroupData): data is GroupData {
 // Function overload signatures
 export function splitGroupEvents(
   data: GroupData,
-): Promise<[TrackData, TrackData, IdentifyData?]>;
+): [TrackData, TrackData, IdentifyData?];
 export function splitGroupEvents(
   data: BatchGroupData,
-): Promise<[BatchTrackData, BatchTrackData, BatchIdentifyData?]>;
+): [BatchTrackData, BatchTrackData, BatchIdentifyData?];
 
 /**
  * Split group into several other events
@@ -112,7 +112,35 @@ export function splitGroupEvents(
     return [userGroupAssignmentEvent, groupUserAssignmentEvent];
   }
   if (isGroupData(data)) {
-    // return [userGroupAssignmentEvent, groupUserAssignmentEvent, null];
+    const userGroupAssignmentEvent: TrackData = {
+      ...partialUserGroupAssignmentEvent,
+      ...userIdOrAnonymousIdRecord,
+      context: data.context,
+    };
+    const groupUserAssignmentEvent: TrackData = {
+      ...partialGroupUserAssignmentEvent,
+      ...userIdOrAnonymousIdRecord,
+      context: data.context,
+    };
+    const identifyEvent: IdentifyData | null =
+      data.traits && Object.keys(data.traits).length > 0
+        ? {
+            ...userIdOrAnonymousIdRecord,
+            context: data.context,
+            traits: data.traits,
+            messageId: data.messageId,
+            timestamp: data.timestamp,
+          }
+        : null;
+
+    if (identifyEvent) {
+      return [
+        userGroupAssignmentEvent,
+        groupUserAssignmentEvent,
+        identifyEvent,
+      ];
+    }
+    return [userGroupAssignmentEvent, groupUserAssignmentEvent];
   }
 
   throw Error("Unreachable");
