@@ -167,7 +167,8 @@
                   "resources/user-property-types/keyed-performed"
                 ]
               },
-              "resources/broadcasts"
+              "resources/broadcasts",
+              "resources/groups"
             ]
           },
           {
@@ -209,6 +210,7 @@
               "api-reference/endpoints/apps/track",
               "api-reference/endpoints/apps/page",
               "api-reference/endpoints/apps/screen",
+              "api-reference/auto/public-apps/post-apipublicappsgroup",
               "api-reference/endpoints/apps/batch",
               "api-reference/endpoints/webhooks/segment",
               "api-reference/auto/content/get-apiadmincontenttemplates",
@@ -232,7 +234,9 @@
               "api-reference/auto/workspace/put-api-ladminworkspaceschild",
               "api-reference/auto/workspace/delete-api-ladminworkspaces",
               "api-reference/auto/workspace/get-api-ladminworkspaces",
-              "api-reference/auto/sessions/post-api-lsessions"
+              "api-reference/auto/sessions/post-api-lsessions",
+              "api-reference/auto/groups/get-apiadmingroupsuser-groups",
+              "api-reference/auto/groups/get-apiadmingroupsusers"
             ]
           }
         ]
