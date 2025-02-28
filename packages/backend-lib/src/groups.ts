@@ -25,7 +25,7 @@ export async function getUsersForGroup({
       workspace_id = ${workspaceIdParam}
       AND group_id = ${groupIdParam}
     GROUP BY
-      workspace_id, group_id, user_id
+      workspace_id, group_id, user_id, assigned_at
     HAVING
       assigned = true
     ORDER BY assigned_at DESC
@@ -59,7 +59,7 @@ export async function getGroupsForUser({
       workspace_id = ${workspaceIdParam}
       AND user_id = ${userIdParam}
     GROUP BY
-      workspace_id, user_id, group_id
+      workspace_id, user_id, group_id, assigned_at
     HAVING
       assigned = true
     ORDER BY assigned_at DESC
