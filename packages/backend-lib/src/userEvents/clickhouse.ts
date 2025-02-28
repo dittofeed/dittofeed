@@ -254,6 +254,36 @@ export async function createUserEventsTables({
             user_id
         );
       `,
+    `
+        CREATE TABLE IF NOT EXISTS group_user_assignments (
+          workspace_id LowCardinality(String),
+          group_id LowCardinality(String),
+          user_id LowCardinality(String),
+          assigned Boolean,
+          assigned_at DateTime64(3) DEFAULT now64(3)
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          group_id,
+          user_id
+        );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS user_group_assignments (
+          workspace_id LowCardinality(String),
+          group_id LowCardinality(String),
+          user_id LowCardinality(String),
+          assigned Boolean,
+          assigned_at DateTime64(3) DEFAULT now64(3)
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          user_id,
+          group_id
+        );
+      `,
   ];
 
   if (ingressTopic && config().writeMode === "kafka") {
