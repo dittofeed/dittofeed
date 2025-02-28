@@ -62,11 +62,6 @@ export async function getGroupsForUser({
     ORDER BY assigned_at DESC
   `;
 
-  // WHERE
-  //   workspace_id = ${workspaceIdParam}
-  //   AND user_id = ${userIdParam}
-  // HAVING
-  //   assigned = true
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),

@@ -363,9 +363,9 @@ export async function createUserEventsTables({
       create materialized view if not exists group_user_assignments_mv to group_user_assignments
       as select
         workspace_id,
-        user_id as group_id,
-        JSONExtractString(properties, 'userId') as user_id,
-        JSONExtractBool(properties, 'assigned') as assigned
+        user_id,
+        JSONExtractString(properties, 'userId'),
+        JSONExtractBool(properties, 'assigned')
       from user_events_v2
       where
         event_type = 'track'

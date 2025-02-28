@@ -41,7 +41,7 @@ export function splitGroupEvents(
   } satisfies GroupUserAssignmentProperties;
 
   const partialUserGroupAssignmentEvent: Omit<BatchTrackData, "type"> = {
-    event: InternalEventType.GroupUserAssignment,
+    event: InternalEventType.UserGroupAssignment,
     messageId: data.messageId,
     properties: userGroupAssignmentProperties,
     timestamp: data.timestamp,

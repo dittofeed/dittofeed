@@ -18,6 +18,7 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import logger from "./logger";
 
 export async function submitIdentify({
   workspaceId,
@@ -204,6 +205,6 @@ export async function submitGroup({
   data: GroupData;
 }) {
   const batch = splitGroupEvents(data) satisfies BatchItem[];
-  console.log("loc1 batch", batch);
+  logger().debug({ batch }, "loc2");
   await submitBatch({ workspaceId, data: { batch, context: data.context } });
 }
