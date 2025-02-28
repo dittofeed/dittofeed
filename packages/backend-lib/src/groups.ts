@@ -43,13 +43,19 @@ export async function getUsersForGroup({
 export async function getGroupsForUser({
   workspaceId,
   userId,
+  limit = 100,
+  offset = 0,
 }: {
   workspaceId: string;
   userId: string;
+  limit?: number;
+  offset?: number;
 }): Promise<string[]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
+  const limitParam = qb.addQueryValue(limit, "UInt64");
+  const offsetParam = qb.addQueryValue(offset, "UInt64");
   const query = `
     SELECT
       group_id
@@ -57,9 +63,14 @@ export async function getGroupsForUser({
       user_group_assignments
     WHERE
       workspace_id = ${workspaceIdParam}
+      AND user_id = ${userIdParam}
     GROUP BY
       workspace_id, user_id, group_id, assigned_at
+    HAVING
+      assigned = true
     ORDER BY assigned_at DESC
+    LIMIT ${limitParam}
+    OFFSET ${offsetParam}
   `;
 
   const result = await chQuery({

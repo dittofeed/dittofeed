@@ -371,6 +371,18 @@ export async function createUserEventsTables({
         uev.event_type = 'track'
         and uev.event = '${InternalEventType.GroupUserAssignment}'
     `,
+    `
+      create materialized view if not exists user_group_assignments_mv to user_group_assignments
+      as select
+        workspace_id,
+        JSONExtractString(uev.properties, 'groupId') as group_id,
+        uev.user_or_anonymous_id as user_id,
+        JSONExtractBool(uev.properties, 'assigned') as assigned
+      from user_events_v2 as uev
+      where
+        uev.event_type = 'track'
+        and uev.event = '${InternalEventType.UserGroupAssignment}'
+    `,
   ];
   if (ingressTopic && config().writeMode === "kafka") {
     mvQueries.push(`
