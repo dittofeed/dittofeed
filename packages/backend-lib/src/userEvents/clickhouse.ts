@@ -257,8 +257,8 @@ export async function createUserEventsTables({
     `
         CREATE TABLE IF NOT EXISTS group_user_assignments (
           workspace_id LowCardinality(String),
-          group_id LowCardinality(String),
-          user_id LowCardinality(String),
+          group_id String,
+          user_id String,
           assigned Boolean,
           assigned_at DateTime64(3) DEFAULT now64(3)
         )

@@ -3,8 +3,8 @@ import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 export async function getUsersForGroup({
   workspaceId,
   groupId,
-  limit,
-  offset,
+  limit = 100,
+  offset = 0,
 }: {
   workspaceId: string;
   groupId: string;
@@ -28,9 +28,9 @@ export async function getUsersForGroup({
       workspace_id, group_id, user_id
     HAVING
       assigned = true
+    ORDER BY assigned_at DESC
     LIMIT ${limitParam}
     OFFSET ${offsetParam}
-    ORDER BY assigned_at DESC
   `;
   const result = await chQuery({
     query,
@@ -47,5 +47,27 @@ export async function getGroupsForUser({
   workspaceId: string;
   userId: string;
 }): Promise<string[]> {
-  throw new Error("Not implemented");
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const query = `
+    SELECT
+      group_id
+    FROM
+      user_group_assignments
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND user_id = ${userIdParam}
+    GROUP BY
+      workspace_id, user_id, group_id
+    HAVING
+      assigned = true
+    ORDER BY assigned_at DESC
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{ group_id: string }>();
+  return rows.map((row) => row.group_id);
 }
