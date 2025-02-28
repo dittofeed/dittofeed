@@ -2,7 +2,11 @@ import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
 import logger from "../logger";
-import { ComputedPropertyAssignment, JSONValue } from "../types";
+import {
+  ComputedPropertyAssignment,
+  InternalEventType,
+  JSONValue,
+} from "../types";
 
 export interface InsertValue {
   processingTime?: string;
@@ -354,6 +358,18 @@ export async function createUserEventsTables({
         state_id,
         user_id,
         computed_at;
+    `,
+    `
+      create materialized view if not exists group_user_assignments_mv to group_user_assignments
+      as select
+        workspace_id,
+        group_id,
+        user_id,
+        JSONExtractBool(properties, 'assigned') as assigned
+      from user_events_v2
+      where
+        event_type = 'track'
+        and event = '${InternalEventType.GroupUserAssignment}'
     `,
   ];
   if (ingressTopic && config().writeMode === "kafka") {

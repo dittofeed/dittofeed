@@ -54,16 +54,17 @@ export function splitGroupEvents(
     timestamp: data.timestamp,
   };
 
+  const groupUserAssignmentEvent: BatchTrackData = {
+    ...partialGroupUserAssignmentEvent,
+    userId: data.groupId,
+    type: EventType.Track,
+  };
+
   const userIdOrAnonymousIdRecord =
     "userId" in data
       ? { userId: data.userId }
       : { anonymousId: data.anonymousId };
 
-  const groupUserAssignmentEvent: BatchTrackData = {
-    ...partialGroupUserAssignmentEvent,
-    ...userIdOrAnonymousIdRecord,
-    type: EventType.Track,
-  };
   const userGroupAssignmentEvent: BatchTrackData = {
     ...partialUserGroupAssignmentEvent,
     ...userIdOrAnonymousIdRecord,
@@ -72,7 +73,7 @@ export function splitGroupEvents(
   const identifyEvent: BatchIdentifyData | null =
     data.traits && Object.keys(data.traits).length > 0
       ? {
-          ...userIdOrAnonymousIdRecord,
+          userId: data.groupId,
           type: EventType.Identify,
           messageId: data.messageId,
           timestamp: data.timestamp,
