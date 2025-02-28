@@ -74,6 +74,8 @@ export enum InternalEventType {
   ManualSegmentUpdate = "DFManualSegmentUpdate",
   AttachedFiles = "DFAttachedFiles",
   UserTrackSignal = "DFUserTrackSignal",
+  GroupUserAssignment = "DFGroupUserAssignment",
+  UserGroupAssignment = "DFUserGroupAssignment",
 }
 
 export enum SubscriptionGroupType {
@@ -2828,18 +2830,22 @@ export type TrackEventProperties = Static<typeof TrackEventProperties>;
 export const BaseTrackData = {
   ...BaseAppData,
   files: AppDataFiles,
-  context: AppDataContext,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
+  context: AppDataContext,
 };
 
 export const BaseBatchTrackData = {
-  ...BaseTrackData,
+  ...BaseAppData,
+  files: AppDataFiles,
+  event: TrackEventName,
+  properties: Type.Optional(TrackEventProperties),
   type: Type.Literal(EventType.Track),
 };
 
 export const KnownTrackData = Type.Object({
   ...BaseTrackData,
+  context: AppDataContext,
   userId: UserId,
 });
 
@@ -2847,6 +2853,7 @@ export type KnownTrackData = Static<typeof KnownTrackData>;
 
 export const AnonymousTrackData = Type.Object({
   ...BaseTrackData,
+  context: AppDataContext,
   anonymousId: AnonymousId,
 });
 
@@ -2877,6 +2884,69 @@ export const BatchTrackData = Type.Union([
 
 export type BatchTrackData = Static<typeof BatchTrackData>;
 
+export const GroupEventTraits = Type.Record(Type.String(), Type.Any(), {
+  description: "Traits of the group.",
+});
+
+export type GroupEventTraits = Static<typeof GroupEventTraits>;
+
+export const BaseGroupData = {
+  ...BaseAppData,
+  groupId: Type.String(),
+  assigned: Type.Optional(Type.Boolean()),
+  traits: Type.Optional(GroupEventTraits),
+  context: AppDataContext,
+};
+
+export const BaseBatchGroupData = {
+  ...BaseAppData,
+  groupId: Type.String(),
+  assigned: Type.Optional(Type.Boolean()),
+  traits: Type.Optional(GroupEventTraits),
+  type: Type.Literal(EventType.Group),
+};
+
+export const KnownGroupData = Type.Object({
+  ...BaseGroupData,
+  context: AppDataContext,
+  userId: UserId,
+});
+
+export type KnownGroupData = Static<typeof KnownGroupData>;
+
+export const AnonymousGroupData = Type.Object({
+  ...BaseGroupData,
+  context: AppDataContext,
+  anonymousId: AnonymousId,
+});
+
+export type AnonymousGroupData = Static<typeof AnonymousGroupData>;
+
+export const GroupData = Type.Union([KnownGroupData, AnonymousGroupData]);
+
+export type GroupData = Static<typeof GroupData>;
+
+export const KnownBatchGroupData = Type.Object({
+  ...BaseBatchGroupData,
+  userId: UserId,
+});
+
+export type KnownBatchGroupData = Static<typeof KnownBatchGroupData>;
+
+export const AnonymousBatchGroupData = Type.Object({
+  ...BaseBatchGroupData,
+  anonymousId: AnonymousId,
+});
+
+export type AnonymousBatchGroupData = Static<typeof AnonymousBatchGroupData>;
+
+export const BatchGroupData = Type.Union([
+  KnownBatchGroupData,
+  AnonymousBatchGroupData,
+]);
+
+export type BatchGroupData = Static<typeof BatchGroupData>;
+
 export const PageName = Type.String({
   description: "Name of the page visited by the user.",
   examples: ["Home"],
@@ -2897,13 +2967,15 @@ export const PageProperties = Type.Record(Type.String(), Type.Any(), {
 
 export const BasePageData = {
   ...BaseAppData,
-  context: AppDataContext,
   name: Type.Optional(PageName),
   properties: Type.Optional(PageProperties),
+  context: AppDataContext,
 };
 
 export const BaseBatchPageData = {
-  ...BasePageData,
+  ...BaseAppData,
+  name: Type.Optional(PageName),
+  properties: Type.Optional(PageProperties),
   type: Type.Literal(EventType.Page),
 };
 
@@ -2964,7 +3036,9 @@ export const BaseScreenData = {
 };
 
 export const BaseBatchScreenData = {
-  ...BaseScreenData,
+  ...BaseAppData,
+  name: Type.Optional(ScreenName),
+  properties: Type.Optional(ScreenProperties),
   type: Type.Literal(EventType.Screen),
 };
 
@@ -3004,6 +3078,7 @@ const BatchItem = Type.Union([
   BatchTrackData,
   BatchPageData,
   BatchScreenData,
+  BatchGroupData,
 ]);
 
 export type BatchItem = Static<typeof BatchItem>;
@@ -4049,7 +4124,6 @@ export interface SecretAvailabilityResource {
   value: boolean;
   configValue?: Record<string, boolean>;
 }
-
 export interface Resource {
   workspaceId: string;
   id: string;
@@ -4681,3 +4755,51 @@ export const UpsertSubscriptionGroupAssignmentsRequest = Type.Object({
 export type UpsertSubscriptionGroupAssignmentsRequest = Static<
   typeof UpsertSubscriptionGroupAssignmentsRequest
 >;
+
+export const UserGroupAssignmentProperties = Type.Object({
+  groupId: Type.String(),
+  assigned: Type.Boolean(),
+});
+
+export type UserGroupAssignmentProperties = Static<
+  typeof UserGroupAssignmentProperties
+>;
+
+export const GroupUserAssignmentProperties = Type.Object({
+  userId: Type.String(),
+  assigned: Type.Boolean(),
+});
+
+export type GroupUserAssignmentProperties = Static<
+  typeof GroupUserAssignmentProperties
+>;
+
+export const GetUsersForGroupRequest = Type.Object({
+  workspaceId: Type.String(),
+  groupId: Type.String(),
+  limit: Type.Optional(Type.Number()),
+  offset: Type.Optional(Type.Number()),
+});
+
+export type GetUsersForGroupRequest = Static<typeof GetUsersForGroupRequest>;
+
+export const GetUsersForGroupResponse = Type.Object({
+  users: Type.Array(Type.String()),
+});
+
+export type GetUsersForGroupResponse = Static<typeof GetUsersForGroupResponse>;
+
+export const GetGroupsForUserRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  limit: Type.Optional(Type.Number()),
+  offset: Type.Optional(Type.Number()),
+});
+
+export type GetGroupsForUserRequest = Static<typeof GetGroupsForUserRequest>;
+
+export const GetGroupsForUserResponse = Type.Object({
+  groups: Type.Array(Type.String()),
+});
+
+export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;

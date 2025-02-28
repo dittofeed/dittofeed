@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import {
   submitBatchWithTriggers,
+  submitGroup,
   submitIdentify,
   submitPage,
   submitScreen,
@@ -14,6 +15,7 @@ import {
   BaseMessageResponse,
   BatchAppData,
   EmptyResponse,
+  GroupData,
   IdentifyData,
   PageData,
   PublicWriteKey,
@@ -196,15 +198,31 @@ export default async function publicAppsController(fastify: FastifyInstance) {
             publicWriteKey: [],
           },
         ],
+        description:
+          "The group call lets you assign or unassign a user to a group, along with optionally adding traits to the group.",
         tags: ["Public Apps"],
+        body: GroupData,
+        headers: Type.Object({
+          authorization: PublicWriteKey,
+        }),
       },
     },
     async (request, reply) => {
-      logger().warn("Client is calling unimplemented endpoint /group");
-
-      return reply.status(400).send({
-        message: "Not yet implemented.",
+      const workspaceIdFromWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
       });
+
+      if (!workspaceIdFromWriteKey) {
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
+      }
+
+      await submitGroup({
+        workspaceId: workspaceIdFromWriteKey,
+        data: request.body,
+      });
+      return reply.status(204).send();
     },
   );
 

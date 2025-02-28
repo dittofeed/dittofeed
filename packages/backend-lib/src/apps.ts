@@ -2,19 +2,23 @@ import * as R from "remeda";
 
 import { submitBatch, SubmitBatchOptions } from "./apps/batch";
 import { persistFiles } from "./apps/files";
+import { splitGroupEvents } from "./apps/group";
 import { submitTrack } from "./apps/track";
 import {
   triggerEventEntryJourneys,
   TriggerEventEntryJourneysOptions,
 } from "./journeys";
 import {
+  BatchItem,
   EventType,
+  GroupData,
   IdentifyData,
   PageData,
   ScreenData,
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import logger from "./logger";
 
 export async function submitIdentify({
   workspaceId,
@@ -191,4 +195,16 @@ export async function submitScreen({
     workspaceId,
     userEvents: [userEvent],
   });
+}
+
+export async function submitGroup({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: GroupData;
+}) {
+  const batch = splitGroupEvents(data) satisfies BatchItem[];
+  logger().debug({ batch }, "loc2");
+  await submitBatch({ workspaceId, data: { batch, context: data.context } });
 }

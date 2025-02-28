@@ -2,7 +2,11 @@ import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
 import logger from "../logger";
-import { ComputedPropertyAssignment, JSONValue } from "../types";
+import {
+  ComputedPropertyAssignment,
+  InternalEventType,
+  JSONValue,
+} from "../types";
 
 export interface InsertValue {
   processingTime?: string;
@@ -254,6 +258,36 @@ export async function createUserEventsTables({
             user_id
         );
       `,
+    `
+        CREATE TABLE IF NOT EXISTS group_user_assignments (
+          workspace_id LowCardinality(String),
+          group_id String,
+          user_id String,
+          assigned Boolean,
+          assigned_at DateTime64(3) DEFAULT now64(3)
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          group_id,
+          user_id
+        );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS user_group_assignments (
+          workspace_id LowCardinality(String),
+          group_id LowCardinality(String),
+          user_id LowCardinality(String),
+          assigned Boolean,
+          assigned_at DateTime64(3) DEFAULT now64(3)
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          user_id,
+          group_id
+        );
+      `,
   ];
 
   if (ingressTopic && config().writeMode === "kafka") {
@@ -324,6 +358,30 @@ export async function createUserEventsTables({
         state_id,
         user_id,
         computed_at;
+    `,
+    `
+      create materialized view if not exists group_user_assignments_mv to group_user_assignments
+      as select
+        workspace_id,
+        uev.user_id as group_id,
+        JSONExtractString(uev.properties, 'userId') as user_id,
+        JSONExtractBool(uev.properties, 'assigned') as assigned
+      from user_events_v2 as uev
+      where
+        uev.event_type = 'track'
+        and uev.event = '${InternalEventType.GroupUserAssignment}'
+    `,
+    `
+      create materialized view if not exists user_group_assignments_mv to user_group_assignments
+      as select
+        workspace_id,
+        JSONExtractString(uev.properties, 'groupId') as group_id,
+        uev.user_or_anonymous_id as user_id,
+        JSONExtractBool(uev.properties, 'assigned') as assigned
+      from user_events_v2 as uev
+      where
+        uev.event_type = 'track'
+        and uev.event = '${InternalEventType.UserGroupAssignment}'
     `,
   ];
   if (ingressTopic && config().writeMode === "kafka") {

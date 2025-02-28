@@ -11,6 +11,7 @@ import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import deliveriesController from "../controllers/deliveriesController";
 import eventsController from "../controllers/eventsController";
+import groupsController from "../controllers/groupsController";
 import indexController from "../controllers/indexController";
 import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
@@ -63,6 +64,7 @@ export default async function router(
         }),
         f.register(apiKeyController, { prefix: "/admin-keys" }),
         f.register(usersController, { prefix: "/users" }),
+        f.register(groupsController, { prefix: "/groups" }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.
         f.register(webhooksController, { prefix: "/webhooks" }),
@@ -113,6 +115,7 @@ export default async function router(
         f.register(adminBroadcastsController, {
           prefix: "/broadcasts",
         }),
+        f.register(groupsController, { prefix: "/groups" }),
       ]);
     },
     { prefix: "/api/admin" },
