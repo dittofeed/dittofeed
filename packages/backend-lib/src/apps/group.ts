@@ -25,10 +25,12 @@ function isGroupData(data: GroupData | BatchGroupData): data is GroupData {
 // Function overload signatures
 export function splitGroupEvents(
   data: GroupData,
-): [TrackData, TrackData, IdentifyData?];
+): [TrackData, TrackData] | [TrackData, TrackData, IdentifyData];
 export function splitGroupEvents(
   data: BatchGroupData,
-): [BatchTrackData, BatchTrackData, BatchIdentifyData?];
+):
+  | [BatchTrackData, BatchTrackData]
+  | [BatchTrackData, BatchTrackData, BatchIdentifyData];
 
 /**
  * Split group into several other events
@@ -40,15 +42,17 @@ export function splitGroupEvents(
  * 3. Optionally, if traits are specified, an identify event with the user or
  * anonymous id set to the group id
  * @param _data The group event data to split
- * @returns An array where the first two elements are track events and the third optional element is an identify event
+ * @returns Either an array with two track events or an array with two track events and an identify event
  */
 export function splitGroupEvents(
   data: GroupData | BatchGroupData,
-): [
-  TrackData | BatchTrackData,
-  TrackData | BatchTrackData,
-  (IdentifyData | BatchIdentifyData)?,
-] {
+):
+  | [TrackData | BatchTrackData, TrackData | BatchTrackData]
+  | [
+      TrackData | BatchTrackData,
+      TrackData | BatchTrackData,
+      IdentifyData | BatchIdentifyData,
+    ] {
   const userOrAnonymousId = "userId" in data ? data.userId : data.anonymousId;
   const assigned = data.assigned ?? true;
 
