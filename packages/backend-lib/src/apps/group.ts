@@ -4,13 +4,23 @@ import {
   BatchTrackData,
   EventType,
   GroupData,
-  InternalEventType,
   GroupUserAssignmentProperties,
   IdentifyData,
+  InternalEventType,
   TrackData,
   TrackEventProperties,
   UserGroupAssignmentProperties,
 } from "../types";
+
+function isBatchGroupData(
+  data: GroupData | BatchGroupData,
+): data is BatchGroupData {
+  return "type" in data && data.type === EventType.Group;
+}
+
+function isGroupData(data: GroupData | BatchGroupData): data is GroupData {
+  return !("type" in data);
+}
 
 // Function overload signatures
 export function splitGroupEvents(
@@ -34,13 +44,11 @@ export function splitGroupEvents(
  */
 export function splitGroupEvents(
   data: GroupData | BatchGroupData,
-): Promise<
-  [
-    TrackData | BatchTrackData,
-    TrackData | BatchTrackData,
-    (IdentifyData | BatchIdentifyData)?,
-  ]
-> {
+): [
+  TrackData | BatchTrackData,
+  TrackData | BatchTrackData,
+  (IdentifyData | BatchIdentifyData)?,
+] {
   const userOrAnonymousId = "userId" in data ? data.userId : data.anonymousId;
   const assigned = data.assigned ?? true;
 
@@ -54,30 +62,58 @@ export function splitGroupEvents(
     assigned,
   } satisfies GroupUserAssignmentProperties;
 
-  const userGroupAssignmentEvent: Omit<BatchTrackData, "type"> = {
+  const partialUserGroupAssignmentEvent: Omit<BatchTrackData, "type"> = {
     event: InternalEventType.GroupUserAssignment,
     messageId: data.messageId,
     properties: userGroupAssignmentProperties,
     timestamp: data.timestamp,
   };
 
-  const groupUserAssignmentEvent: Omit<BatchTrackData, "type"> = {
+  const partialGroupUserAssignmentEvent: Omit<BatchTrackData, "type"> = {
     event: InternalEventType.GroupUserAssignment,
     messageId: data.messageId,
     properties: groupUserAssignmentProperties,
     timestamp: data.timestamp,
   };
 
-  throw new Error("Not implemented");
-  // const identifyEvent: Omit<BatchIdentifyData, "type"> | null =
-  //   data.traits && Object.keys(data.traits).length > 0
-  //     ? {
-  //         messageId: data.messageId,
-  //         context: data.context,
-  //         traits: data.traits,
-  //         timestamp: data.timestamp,
-  //       }
-  //     : null;
+  const userIdOrAnonymousIdRecord =
+    "userId" in data
+      ? { userId: data.userId }
+      : { anonymousId: data.anonymousId };
 
-  // return [userGroupAssignmentEvent, groupUserAssignmentEvent, identifyEvent];
+  if (isBatchGroupData(data)) {
+    const groupUserAssignmentEvent: BatchTrackData = {
+      ...partialGroupUserAssignmentEvent,
+      ...userIdOrAnonymousIdRecord,
+      type: EventType.Track,
+    };
+    const userGroupAssignmentEvent: BatchTrackData = {
+      ...partialUserGroupAssignmentEvent,
+      ...userIdOrAnonymousIdRecord,
+      type: EventType.Track,
+    };
+    const identifyEvent: BatchIdentifyData | null =
+      data.traits && Object.keys(data.traits).length > 0
+        ? {
+            ...userIdOrAnonymousIdRecord,
+            type: EventType.Identify,
+            messageId: data.messageId,
+            timestamp: data.timestamp,
+            traits: data.traits,
+          }
+        : null;
+    if (identifyEvent) {
+      return [
+        userGroupAssignmentEvent,
+        groupUserAssignmentEvent,
+        identifyEvent,
+      ];
+    }
+    return [userGroupAssignmentEvent, groupUserAssignmentEvent];
+  }
+  if (isGroupData(data)) {
+    // return [userGroupAssignmentEvent, groupUserAssignmentEvent, null];
+  }
+
+  throw Error("Unreachable");
 }
