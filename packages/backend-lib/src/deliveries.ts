@@ -286,17 +286,23 @@ export async function searchDeliveries({
       AND (workspace_id, user_or_anonymous_id) IN (
         SELECT
           workspace_id,
-          user_id,
-          argMax(assigned, assigned_at) as assigned
-        FROM group_user_assignments
-        WHERE
-          workspace_id = ${workspaceIdParam}
-          AND group_id IN ${groupIdParams}
-        GROUP BY
-          workspace_id,
           user_id
-        HAVING
-          assigned = true
+        FROM (
+          SELECT
+            workspace_id,
+            group_id,
+            user_id,
+            argMax(assigned, assigned_at) as is_assigned
+          FROM group_user_assignments
+          WHERE
+            workspace_id = ${workspaceIdParam}
+            AND group_id IN ${groupIdParams}
+          GROUP BY
+            workspace_id,
+            group_id,
+            user_id
+        )
+        WHERE is_assigned = true
       )`;
   }
 

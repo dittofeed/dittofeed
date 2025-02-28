@@ -762,17 +762,16 @@ describe("deliveries", () => {
         });
       });
 
-      it.only("only shows users in the group", async () => {
+      it("only shows users in the group", async () => {
         const deliveries = await searchDeliveries({
           workspaceId,
           groupId: [groupId1, groupId2],
           limit: 10,
         });
         expect(deliveries.items).toHaveLength(2);
-        expect(deliveries.items.map((d) => d.userId)).toEqual([
-          userId1,
-          userId2,
-        ]);
+        expect(deliveries.items.map((d) => d.userId)).toContain(userId1);
+        expect(deliveries.items.map((d) => d.userId)).toContain(userId2);
+        expect(deliveries.items.map((d) => d.userId)).not.toContain(userId3);
       });
     });
 
