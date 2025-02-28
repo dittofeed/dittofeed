@@ -230,6 +230,7 @@
       "pages": [
         "api-reference/endpoints/apps/identify",
         "api-reference/endpoints/apps/track",
+        "api-reference/auto/public-apps/post-apipublicappsgroup",
         "api-reference/endpoints/apps/page",
         "api-reference/endpoints/apps/screen",
         "api-reference/endpoints/apps/batch",
