@@ -526,6 +526,7 @@ interface DeliveriesTableV2Props {
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
   userId?: string[] | string;
+  groupId?: string[] | string;
   journeyId?: string;
 }
 
@@ -535,6 +536,7 @@ export function DeliveriesTableV2({
   templateUriTemplate,
   originUriTemplate,
   userId,
+  groupId,
   columnAllowList,
   journeyId,
 }: DeliveriesTableV2Props) {
@@ -603,6 +605,7 @@ export function DeliveriesTableV2({
         sortBy: state.query.sortBy,
         sortDirection: state.query.sortDirection,
         userId,
+        groupId,
         journeyId,
       };
       const response = await getDeliveriesRequest({
