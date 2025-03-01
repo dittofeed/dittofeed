@@ -1,0 +1,104 @@
+---
+title: Groups
+description: Compose users into groups.
+---
+
+Groups represent a collection of users, that are themselves represented as users, and which can have their own traits, and perform actions.
+
+In contrast to [segments](/resources/segments), group ids are fully dynamic. So for example, a user can be assigned to a group, "group-123" without defining any resources in advance.
+
+## Assigning Users to a Group
+
+Users can be assigned to a group by submitting a Group event using the [Group endpoint](/api-reference/auto/public-apps/post-apipublicappsgroup).
+
+```json POST /api/public/apps/group
+{
+  "userId": "user-123",
+  "groupId": "group-456"
+}
+```
+
+Note that groups are themselves users, and can have their own traits, and perform actions.
+
+<Warning>
+  Because groups are themselves users, its important to ensure that group ids and standard user ids don't clash. This is a risk for teams which are using auto-incrementing integer ids.
+
+  To address this, we recommend using a prefix for group ids. For example, "group-123" instead of "123".
+</Warning>
+
+You can assign traits to a group, with the group endpoint.
+
+```json POST /api/public/apps/group
+{
+  "userId": "user-123",
+  "groupId": "group-456",
+  "traits": {
+    "name": "Class of 2025"
+  }
+}
+```
+
+Moreover, because groups are themselves users, you can also perform actions as a group.
+
+```json POST /api/public/apps/track
+{
+  "userId": "group-456",
+  "event": "ACTIVATE",
+  "properties": {
+    "plan": "pro"
+  }
+}
+```
+
+## Unassigning Users from a Group
+
+To unassign a user from a group, you can use the `assign` flag and set it to `false`.
+
+```json POST /api/public/apps/group
+{
+  "userId": "user-123",
+  "groupId": "group-456",
+  "assign": false
+}
+```
+
+## Retrieval
+
+You can retrieve groups for a user with the [`/groups/user-groups` endpoint](/api-reference/auto/groups/get-apiadmingroupsuser-groups).
+
+You can also retrieve all users for a group with the [`/groups/users` endpoint](/api-reference/auto/groups/get-apiadmingroupsusers).
+
+
+## Examples
+
+### Parents and Children
+
+Imagine you're running a school. Your users in Dittofeed are the parents whose contacts you've imported.
+
+Parents share children between them. So for example, John and Jane are both parents of Sam.
+
+You can represent this in Dittofeed by creating a group for Sam, and then adding John and Jane as members.
+
+```json POST /api/public/apps/group
+{
+  "userId": "user-john-123",
+  "groupId": "group-sam-456"
+}
+```
+
+```json POST /api/public/apps/group
+{
+  "userId": "user-jane-456",
+  "groupId": "group-sam-456"
+}
+```
+
+Now, you can retrieve all users for Sam's group with the [`/groups/users` endpoint](/api-reference/auto/groups/get-apiadmingroupsusers).
+
+```json GET /api/admin/groups/users
+{
+  "groupId": "group-sam-456"
+}
+```
+
+
