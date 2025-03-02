@@ -53,16 +53,18 @@ export const requestContext: <T>(
               basePath: false,
             },
           };
-        case RequestContextErrorType.Unauthorized:
+        case RequestContextErrorType.Unauthorized: {
           logger().info(
             {
               contextErrorMsg: error.message,
             },
             "user unauthorized",
           );
+
           return {
-            redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },
+            redirect: { destination: error.action.url, permanent: false },
           };
+        }
         case RequestContextErrorType.ApplicationError:
           throw new Error(error.message);
         case RequestContextErrorType.NotAuthenticated:
