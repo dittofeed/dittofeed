@@ -398,12 +398,7 @@ export async function getRequestContext(
           profile,
         });
 
-        if (result.isOk()) {
-          const postProcessingResult = await postProcessor(result.value);
-          if (postProcessingResult.isErr()) {
-            result = err(postProcessingResult.error);
-          }
-        }
+        result = await postProcessor(result);
         break;
       }
     }

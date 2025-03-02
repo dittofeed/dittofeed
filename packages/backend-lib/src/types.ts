@@ -774,5 +774,5 @@ export type RequestContextResult = Result<
 >;
 
 export type RequestContextPostProcessor = (
-  requestContext: DFRequestContext,
-) => Promise<Result<void, RequestContextError>>;
+  result: RequestContextResult,
+) => Promise<RequestContextResult>;
