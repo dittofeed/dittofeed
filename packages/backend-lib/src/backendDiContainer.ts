@@ -17,7 +17,7 @@ export const BACKEND_DI_CONTAINER_KEYS = {
 BACKEND_DI_CONTAINER.register(
   BACKEND_DI_CONTAINER_KEYS.REQUEST_CONTEXT_POST_PROCESSOR,
   // eslint-disable-next-line @typescript-eslint/require-await
-  async (_result: RequestContextResult) => {
-    return ok(undefined);
+  async (result: RequestContextResult) => {
+    return result;
   },
 );
