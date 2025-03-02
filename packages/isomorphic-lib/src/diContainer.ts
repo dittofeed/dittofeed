@@ -1,38 +1,40 @@
-export class DiContainer<
-  TServiceMap extends Record<string, unknown> = Record<string, never>,
-> {
-  private services = new Map<string, unknown>();
+/**
+ * Type-safe service container using Symbol keys
+ */
+export class DiContainer {
+  private services = new Map<symbol, unknown>();
 
   /**
-   * Register a new service
-   * @returns A new container type with the registered service type information
+   * Create a typed service key
    */
-  register<K extends string, T>(
-    name: K,
-    implementation: T,
-  ): DiContainer<TServiceMap & Record<K, T>> {
-    this.services.set(name, implementation);
-    return this as DiContainer<TServiceMap & Record<K, T>>;
+  static createServiceKey<T>(description: string): symbol & { __type?: T } {
+    return Symbol(description) as symbol & { __type?: T };
   }
 
   /**
-   * Resolve a service with complete type safety
-   * The return type is inferred from the service name
+   * Register a service
    */
-  resolve<K extends keyof TServiceMap>(name: K): TServiceMap[K] {
-    const service = this.services.get(name as string);
+  register<T>(key: symbol & { __type?: T }, implementation: T): void {
+    this.services.set(key, implementation);
+  }
+
+  /**
+   * Resolve a service
+   */
+  resolve<T>(key: symbol & { __type?: T }): T {
+    const service = this.services.get(key);
 
     if (service === undefined) {
-      throw new Error(`Service "${String(name)}" not registered`);
+      throw new Error(`Service ${key.description} not registered`);
     }
 
-    return service as TServiceMap[K];
+    return service as T;
   }
 
   /**
    * Check if a service exists
    */
-  has<K extends string>(name: K): boolean {
-    return this.services.has(name);
+  has(key: symbol): boolean {
+    return this.services.has(key);
   }
 }
