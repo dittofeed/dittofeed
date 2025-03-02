@@ -6,6 +6,10 @@ import { err, ok } from "neverthrow";
 import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
+import {
+  BACKEND_DI_CONTAINER,
+  BACKEND_DI_CONTAINER_KEYS,
+} from "./backendDiContainer";
 import config from "./config";
 import { db } from "./db";
 import {
@@ -28,8 +32,6 @@ import {
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
 } from "./types";
-import { BACKEND_DI_CONTAINER_KEYS } from "./backendDiContainer";
-import { BACKEND_DI_CONTAINER } from "./backendDiContainer";
 
 export const SESSION_KEY = "df-session-key";
 
