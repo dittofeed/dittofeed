@@ -28,6 +28,8 @@ import {
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
 } from "./types";
+import { BACKEND_DI_CONTAINER_KEYS } from "./backendDiContainer";
+import { BACKEND_DI_CONTAINER } from "./backendDiContainer";
 
 export const SESSION_KEY = "df-session-key";
 
@@ -384,11 +386,22 @@ export async function getRequestContext(
           headers.authorization && typeof headers.authorization === "string"
             ? headers.authorization
             : null;
+
+        const postProcessor = BACKEND_DI_CONTAINER.resolve(
+          BACKEND_DI_CONTAINER_KEYS.REQUEST_CONTEXT_POST_PROCESSOR,
+        );
         result = await getMultiTenantRequestContext({
           authorizationToken,
           authProvider: config().authProvider,
           profile,
         });
+
+        if (result.isOk()) {
+          const postProcessingResult = await postProcessor(result.value);
+          if (postProcessingResult.isErr()) {
+            result = err(postProcessingResult.error);
+          }
+        }
         break;
       }
     }
