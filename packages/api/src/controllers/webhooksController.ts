@@ -249,9 +249,13 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       const { workspaceId } = request.body.data.tags;
       if (!workspaceId) {
-        return reply.status(400).send({
-          error: "Missing workspaceId. Try setting the df-workspace-id header.",
-        });
+        logger().info(
+          {
+            tags: request.body.data.tags,
+          },
+          "Missing workspaceId on resend tags",
+        );
+        return reply.status(200).send();
       }
 
       if (!workspaceId) {
