@@ -280,7 +280,7 @@ describe("segments", () => {
   });
 
   describe("upsertSegment", () => {
-    describe.only("when a segment is renamed", () => {
+    describe("when a segment is renamed", () => {
       it("updates the segment name", async () => {
         const id = randomUUID();
         const definition = {
@@ -304,7 +304,6 @@ describe("segments", () => {
           }),
         );
         expect(segment.name).toBe("test1");
-        // FIXME allow to update without definition
         const updatedSegment = unwrap(
           await upsertSegment({
             id,

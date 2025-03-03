@@ -366,7 +366,10 @@ export async function upsertSegment(
       .insert(dbSegment)
       .values(value)
       .onConflictDoUpdate({
-        target: [dbSegment.workspaceId, dbSegment.name],
+        target: params.id
+          ? [dbSegment.id]
+          : [dbSegment.workspaceId, dbSegment.name],
+        setWhere: eq(dbSegment.workspaceId, params.workspaceId),
         set: {
           definition: params.definition,
           name: params.name,
@@ -386,20 +389,25 @@ export async function upsertSegment(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
+    logger().error(
+      {
+        result,
+        params,
+        err: result.error,
+        workspaceId: params.workspaceId,
+      },
+      "Failed to upsert segment",
+    );
     throw result.error;
   }
 
   const insertedSegment = result.value[0];
   if (!insertedSegment) {
-    logger().error(
-      {
-        result,
-        params,
-        workspaceId: params.workspaceId,
-      },
-      "No segment inserted",
-    );
-    throw new Error("No segment inserted");
+    return err({
+      type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
+      message:
+        "Names must be unique in workspace. Id's must be globally unique.",
+    });
   }
 
   return ok({

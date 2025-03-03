@@ -49,6 +49,7 @@ export async function queryResult<D, P extends Promise<D>>(
     if (isQueryError(e)) {
       return err(e);
     }
+    logger().debug({ e }, "Unexpected error in queryResult");
     throw e;
   }
 }
