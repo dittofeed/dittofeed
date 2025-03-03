@@ -280,6 +280,41 @@ describe("segments", () => {
   });
 
   describe("upsertSegment", () => {
+    describe("when a segment is renamed", () => {
+      it("updates the segment name", async () => {
+        const id = randomUUID();
+        const definition = {
+          entryNode: {
+            id: randomUUID(),
+            type: SegmentNodeType.Trait,
+            path: "name",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "test",
+            },
+          },
+          nodes: [],
+        } satisfies SegmentDefinition;
+        const segment = unwrap(
+          await upsertSegment({
+            id,
+            name: "test1",
+            workspaceId: workspace.id,
+            definition,
+          }),
+        );
+        expect(segment.name).toBe("test1");
+        const updatedSegment = unwrap(
+          await upsertSegment({
+            id,
+            name: "test2",
+            workspaceId: workspace.id,
+            definition,
+          }),
+        );
+        expect(updatedSegment.name).toBe("test2");
+      });
+    });
     describe("when a segment is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;
       beforeEach(async () => {
