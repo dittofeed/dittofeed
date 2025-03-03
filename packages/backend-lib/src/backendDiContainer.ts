@@ -1,5 +1,4 @@
 import { DiContainer } from "isomorphic-lib/src/diContainer";
-import { ok } from "neverthrow";
 
 import { RequestContextPostProcessor, RequestContextResult } from "./types";
 
