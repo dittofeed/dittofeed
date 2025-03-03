@@ -22296,10 +22296,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"neverthrow@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "neverthrow@npm:6.0.0"
-  checksum: 10/23d1b6c1883077b182d74b147b6422b37a6ba238afa979f7726a9af668713567d2cc4dde435f6d6cada98bb7736ef1a9498662c7204d341b3d9a69cf2227ac13
+"neverthrow@npm:6.2.1":
+  version: 6.2.1
+  resolution: "neverthrow@npm:6.2.1"
+  checksum: 10/35ffcef451260fa362f930abc0de3db9ef9ea6d87978524200fafc470f4baaa26cc7f17fffc33e20a5a0bf543937d7cf41955ac44d87b1c0372fa047a71bfc9a
   languageName: node
   linkType: hard
 
