@@ -19,6 +19,12 @@ export const requestContext: <T>(
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
     const { profile } = context.req as { profile?: OpenIdProfile };
+    logger().debug(
+      {
+        profile,
+      },
+      "loc6",
+    );
     const rc = await getRequestContext(context.req.headers, profile);
     const { onboardingUrl } = backendConfig();
     if (rc.isErr()) {

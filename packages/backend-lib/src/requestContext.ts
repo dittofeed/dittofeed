@@ -7,7 +7,7 @@ import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import {
-  BACKEND_DI_CONTAINER,
+  backendDiContainer,
   BACKEND_DI_CONTAINER_KEYS,
 } from "./backendDiContainer";
 import config from "./config";
@@ -369,6 +369,12 @@ export async function getRequestContext(
   return withSpan({ name: "get-request-context" }, async (span) => {
     const { authMode } = config();
     let result: RequestContextResult;
+    logger().debug(
+      {
+        authMode,
+      },
+      "loc5",
+    );
     switch (authMode) {
       case "anonymous": {
         result = await getAnonymousRequestContext();
@@ -389,7 +395,7 @@ export async function getRequestContext(
             ? headers.authorization
             : null;
 
-        const postProcessor = BACKEND_DI_CONTAINER.resolve(
+        const postProcessor = backendDiContainer().resolve(
           BACKEND_DI_CONTAINER_KEYS.REQUEST_CONTEXT_POST_PROCESSOR,
         );
         result = await getMultiTenantRequestContext({
@@ -397,6 +403,12 @@ export async function getRequestContext(
           authProvider: config().authProvider,
           profile,
         });
+        logger().debug(
+          {
+            result,
+          },
+          "loc4",
+        );
 
         result = await postProcessor(result);
         break;
