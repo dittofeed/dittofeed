@@ -2,8 +2,6 @@ import { DiContainer } from "isomorphic-lib/src/diContainer";
 
 import { RequestContextPostProcessor } from "./types";
 
-// declaring as global because singletons are wacky in jest
-
 declare global {
   // eslint-disable-next-line vars-on-top, no-var
   var BACKEND_DI_CONTAINER_INSTANCE: DiContainer | null;
@@ -15,7 +13,9 @@ if (typeof globalThis.BACKEND_DI_CONTAINER_INSTANCE === "undefined")
 
 export function backendDiContainer(): DiContainer {
   if (!globalThis.BACKEND_DI_CONTAINER_INSTANCE) {
-    globalThis.BACKEND_DI_CONTAINER_INSTANCE = new DiContainer();
+    const container = new DiContainer();
+    globalThis.BACKEND_DI_CONTAINER_INSTANCE = container;
+    return container;
   }
   return globalThis.BACKEND_DI_CONTAINER_INSTANCE;
 }

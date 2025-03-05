@@ -7,8 +7,8 @@ import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import {
-  backendDiContainer,
   BACKEND_DI_CONTAINER_KEYS,
+  backendDiContainer,
 } from "./backendDiContainer";
 import config from "./config";
 import { db } from "./db";
