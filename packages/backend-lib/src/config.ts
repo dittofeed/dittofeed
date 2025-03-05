@@ -120,7 +120,7 @@ const BaseRawConfigProps = {
   computePropertiesSchedulerInterval: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
-  requestContextPostProcessor: Type.Optional(Type.String()),
+  overrideDir: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {

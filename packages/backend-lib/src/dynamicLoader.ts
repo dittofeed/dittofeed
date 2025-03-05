@@ -1,14 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
-export async function loadDynamicModule<T>({
-  path,
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires */
+import path from "path";
+
+import config from "./config";
+
+export function loadDynamicModule<T>({
+  moduleName,
   fallback,
 }: {
-  path?: string;
+  moduleName: string;
   fallback: T;
-}): Promise<T> {
-  if (!path) {
+}): T {
+  const { overrideDir } = config();
+  if (!overrideDir) {
     return fallback;
   }
-  const module = await import(path);
+  const modulePath = path.join(overrideDir, moduleName);
+  const module = require(modulePath);
   return module as T;
 }

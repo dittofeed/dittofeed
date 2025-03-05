@@ -392,7 +392,6 @@ export async function getRequestContext(
             ? headers.authorization
             : null;
 
-        const postProcessorModule = await requestContextPostProcessor();
         result = await getMultiTenantRequestContext({
           authorizationToken,
           authProvider: config().authProvider,
@@ -405,7 +404,7 @@ export async function getRequestContext(
           "loc4",
         );
 
-        result = await postProcessorModule.postProcessor(result);
+        result = await requestContextPostProcessor().postProcessor(result);
         break;
       }
     }
