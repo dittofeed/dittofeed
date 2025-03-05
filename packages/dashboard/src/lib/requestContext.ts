@@ -68,7 +68,11 @@ export const requestContext: <T>(
           );
 
           return {
-            redirect: { destination: error.action.url, permanent: false },
+            redirect: {
+              destination: error.action.url,
+              permanent: false,
+              basePath: false,
+            },
           };
         }
         case RequestContextErrorType.ApplicationError:

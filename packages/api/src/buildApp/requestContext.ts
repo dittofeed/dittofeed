@@ -42,7 +42,7 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
           logger().debug({ rc: rc.error }, "Not authenticated");
           return reply.status(401).send();
         case RequestContextErrorType.Unauthorized:
-          return reply.redirect(`/dashboard/${rc.error.action.url}`);
+          return reply.redirect(rc.error.action.url);
         case RequestContextErrorType.WorkspaceInactive:
           logger().info(
             {
