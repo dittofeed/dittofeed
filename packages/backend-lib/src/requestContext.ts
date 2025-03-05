@@ -6,10 +6,6 @@ import { err, ok } from "neverthrow";
 import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
-import {
-  BACKEND_DI_CONTAINER_KEYS,
-  backendDiContainer,
-} from "./backendDiContainer";
 import config from "./config";
 import { db } from "./db";
 import {
@@ -20,6 +16,7 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
+import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
   NotOnboardedError,
   OpenIdProfile,
@@ -395,9 +392,7 @@ export async function getRequestContext(
             ? headers.authorization
             : null;
 
-        const postProcessor = backendDiContainer().resolve(
-          BACKEND_DI_CONTAINER_KEYS.REQUEST_CONTEXT_POST_PROCESSOR,
-        );
+        const postProcessorModule = await requestContextPostProcessor();
         result = await getMultiTenantRequestContext({
           authorizationToken,
           authProvider: config().authProvider,
@@ -410,7 +405,7 @@ export async function getRequestContext(
           "loc4",
         );
 
-        result = await postProcessor(result);
+        result = await postProcessorModule.postProcessor(result);
         break;
       }
     }
