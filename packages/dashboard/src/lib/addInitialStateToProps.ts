@@ -27,6 +27,7 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     enableMobilePush,
     dashboardUrl,
+    // FIXME use config to show cloud settings
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
