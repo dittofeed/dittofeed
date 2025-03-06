@@ -22,7 +22,7 @@ import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import { transferResources } from "backend-lib/src/transferResources";
-import { NodeEnvEnum } from "backend-lib/src/types";
+import { NodeEnvEnum, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
   activateTombstonedWorkspace,
@@ -882,7 +882,7 @@ export function createCommands(yargs: Argv): Argv {
           return;
         }
 
-        let workspace;
+        let workspace: Workspace | undefined;
 
         if (workspaceId) {
           if (!validateUuid(workspaceId)) {
