@@ -908,8 +908,6 @@ export function createCommands(yargs: Argv): Argv {
           logger().error("Workspace not found.");
           return;
         }
-
-        // At this point, we know maybeWorkspace is defined
         const workspace = maybeWorkspace;
 
         if (!force) {
