@@ -46,10 +46,7 @@ function ProfileTab() {
         <ListItemText primary="Settings" />
       </ListItemButton>
       {enableAdditionalDashboardSettings && additionalDashboardSettingsPath ? (
-        <ListItemButton
-          LinkComponent={Link}
-          href={additionalDashboardSettingsPath}
-        >
+        <ListItemButton href={additionalDashboardSettingsPath}>
           <ListItemIcon>
             <SettingsApplications />
           </ListItemIcon>
