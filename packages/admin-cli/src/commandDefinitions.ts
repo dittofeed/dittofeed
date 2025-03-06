@@ -882,7 +882,7 @@ export function createCommands(yargs: Argv): Argv {
           return;
         }
 
-        let workspace: Workspace | undefined;
+        let maybeWorkspace: Workspace | undefined;
 
         if (workspaceId) {
           if (!validateUuid(workspaceId)) {
@@ -890,11 +890,11 @@ export function createCommands(yargs: Argv): Argv {
             return;
           }
 
-          workspace = await db().query.workspace.findFirst({
+          maybeWorkspace = await db().query.workspace.findFirst({
             where: eq(dbWorkspace.id, workspaceId),
           });
         } else if (workspaceName) {
-          workspace = await db().query.workspace.findFirst({
+          maybeWorkspace = await db().query.workspace.findFirst({
             where: eq(dbWorkspace.name, workspaceName),
           });
         } else {
@@ -904,10 +904,13 @@ export function createCommands(yargs: Argv): Argv {
           return;
         }
 
-        if (!workspace) {
+        if (!maybeWorkspace) {
           logger().error("Workspace not found.");
           return;
         }
+
+        // At this point, we know maybeWorkspace is defined
+        const workspace = maybeWorkspace;
 
         if (!force) {
           const rl = readline.createInterface({
