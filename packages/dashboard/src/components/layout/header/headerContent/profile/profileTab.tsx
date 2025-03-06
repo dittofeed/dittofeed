@@ -1,5 +1,5 @@
 // assets
-import { Logout, Settings } from "@mui/icons-material";
+import { Logout, Settings, SettingsApplications } from "@mui/icons-material";
 import {
   List,
   ListItemButton,
@@ -45,7 +45,19 @@ function ProfileTab() {
         </ListItemIcon>
         <ListItemText primary="Settings" />
       </ListItemButton>
-      {/* FIXME add additional settings button here */}
+      {enableAdditionalDashboardSettings && additionalDashboardSettingsPath ? (
+        <ListItemButton
+          LinkComponent={Link}
+          href={additionalDashboardSettingsPath}
+        >
+          <ListItemIcon>
+            <SettingsApplications />
+          </ListItemIcon>
+          <ListItemText
+            primary={additionalDashboardSettingsTitle ?? "Additional Settings"}
+          />
+        </ListItemButton>
+      ) : null}
       {signoutUrl ? (
         <ListItemButton href={signoutUrl}>
           <ListItemIcon>
