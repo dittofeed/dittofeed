@@ -14,6 +14,7 @@ import { findDueWorkspaceMaxTos } from "backend-lib/src/computedProperties/perio
 import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { workspace as dbWorkspace } from "backend-lib/src/db/schema";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
@@ -21,6 +22,7 @@ import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import { transferResources } from "backend-lib/src/transferResources";
+import { NodeEnvEnum } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
   activateTombstonedWorkspace,
@@ -49,6 +51,8 @@ import {
   WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
 import path from "path";
+import readline from "readline";
+import { validate as validateUuid } from "uuid";
 import { Argv } from "yargs";
 
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
@@ -840,6 +844,115 @@ export function createCommands(yargs: Argv): Argv {
         logger().info("Running migrations");
         await publicDrizzleMigrate();
         logger().info("Migrations complete");
+      },
+    )
+    .command(
+      "delete-workspace",
+      "Delete a workspace by ID or name (only works in development environment).",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            conflicts: "workspace-name",
+            describe: "The ID of the workspace to delete.",
+          },
+          "workspace-name": {
+            type: "string",
+            conflicts: "workspace-id",
+            describe: "The name of the workspace to delete.",
+          },
+          force: {
+            type: "boolean",
+            default: false,
+            describe: "Force deletion without confirmation.",
+          },
+        }),
+      async ({ workspaceId, workspaceName, force }) => {
+        if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
+          logger().error(
+            "This command can only be run in development environment.",
+          );
+          return;
+        }
+
+        if (!workspaceId && !workspaceName) {
+          logger().error(
+            "Either workspace-id or workspace-name must be provided.",
+          );
+          return;
+        }
+
+        let workspace;
+
+        if (workspaceId) {
+          if (!validateUuid(workspaceId)) {
+            logger().error("Invalid workspace ID format.");
+            return;
+          }
+
+          workspace = await db().query.workspace.findFirst({
+            where: eq(dbWorkspace.id, workspaceId),
+          });
+        } else if (workspaceName) {
+          workspace = await db().query.workspace.findFirst({
+            where: eq(dbWorkspace.name, workspaceName),
+          });
+        } else {
+          logger().error(
+            "Either workspace-id or workspace-name must be provided.",
+          );
+          return;
+        }
+
+        if (!workspace) {
+          logger().error("Workspace not found.");
+          return;
+        }
+
+        if (!force) {
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+
+          const answer = await new Promise<string>((resolve) => {
+            rl.question(
+              `Are you sure you want to delete workspace "${workspace.name}" (${workspace.id})? This action cannot be undone. [y/N]: `,
+              resolve,
+            );
+          });
+
+          rl.close();
+
+          if (answer.toLowerCase() !== "y") {
+            logger().info("Deletion cancelled.");
+            return;
+          }
+        }
+
+        logger().info(
+          `Deleting workspace "${workspace.name}" (${workspace.id})...`,
+        );
+
+        try {
+          await db().transaction(async (tx) => {
+            // Delete the workspace from the database
+            await tx
+              .delete(dbWorkspace)
+              .where(eq(dbWorkspace.id, workspace.id));
+          });
+
+          // Stop any workflows related to this workspace
+          await terminateComputePropertiesWorkflow({
+            workspaceId: workspace.id,
+          });
+
+          logger().info(
+            `Workspace "${workspace.name}" (${workspace.id}) has been deleted.`,
+          );
+        } catch (error) {
+          logger().error({ error }, "Failed to delete workspace.");
+        }
       },
     );
 }

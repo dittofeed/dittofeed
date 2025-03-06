@@ -740,6 +740,11 @@ export interface RedirectAction {
   url: string;
 }
 
+export enum UnauthorizedReason {
+  WorkspaceRequiresPayment = "WorkspaceRequiresPayment",
+  LacksPermission = "LacksPermission",
+}
+
 export type UnauthorizedAction = RedirectAction;
 
 export interface UnauthorizedError {
@@ -749,6 +754,7 @@ export interface UnauthorizedError {
   memberRoles: WorkspaceMemberRoleResource[];
   workspace: WorkspaceResource;
   action: UnauthorizedAction;
+  reason: UnauthorizedReason;
 }
 
 export interface NotOnboardedError {
