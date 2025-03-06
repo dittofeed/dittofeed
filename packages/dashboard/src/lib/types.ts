@@ -174,6 +174,9 @@ export type AppState = {
     | "enableSourceControl"
     | "sourceControlProvider"
     | "enableMobilePush"
+    | "enableAdditionalDashboardSettings"
+    | "additionalDashboardSettingsPath"
+    | "additionalDashboardSettingsTitle"
   > &
   Partial<Pick<Config, "signoutUrl">>;
 

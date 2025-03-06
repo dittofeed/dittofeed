@@ -17,6 +17,7 @@ import {
 } from "./types";
 
 const BaseRawConfigProps = {
+  // FIXME add config
   databaseUrl: Type.Optional(Type.String()),
   databaseUser: Type.Optional(Type.String()),
   databasePassword: Type.Optional(Type.String()),
@@ -121,6 +122,9 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   overrideDir: Type.Optional(Type.String()),
+  enableAdditionalDashboardSettings: Type.Optional(BoolStr),
+  additionalDashboardSettingsPath: Type.Optional(Type.String()),
+  additionalDashboardSettingsTitle: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -240,6 +244,7 @@ export type Config = Overwrite<
     computePropertiesQueueConcurrency: number;
     computePropertiesQueueCapacity: number;
     computePropertiesSchedulerInterval: number;
+    enableAdditionalDashboardSettings: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -549,6 +554,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesSchedulerInterval
         ? parseInt(rawConfig.computePropertiesSchedulerInterval)
         : 10 * 1000,
+    enableAdditionalDashboardSettings:
+      rawConfig.enableAdditionalDashboardSettings === "true",
   };
 
   return parsedConfig;

@@ -27,7 +27,9 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     enableMobilePush,
     dashboardUrl,
-    // FIXME use config to show cloud settings
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
@@ -47,6 +49,9 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     enableMobilePush,
     features: dfContext.features,
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
   });
 
   return {

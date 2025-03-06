@@ -10,13 +10,23 @@ import {
 import { useTheme } from "@mui/material/styles";
 import Link from "next/link";
 
-import { useAppStore } from "../../../../../lib/appStore";
+import { useAppStorePick } from "../../../../../lib/appStore";
 
 // ==============================|| HEADER PROFILE - PROFILE TAB ||============================== //
 
 function ProfileTab() {
   const theme = useTheme();
-  const signoutUrl = useAppStore((store) => store.signoutUrl);
+  const {
+    signoutUrl,
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
+  } = useAppStorePick([
+    "signoutUrl",
+    "enableAdditionalDashboardSettings",
+    "additionalDashboardSettingsPath",
+    "additionalDashboardSettingsTitle",
+  ]);
 
   return (
     <List
@@ -35,6 +45,7 @@ function ProfileTab() {
         </ListItemIcon>
         <ListItemText primary="Settings" />
       </ListItemButton>
+      {/* FIXME add additional settings button here */}
       {signoutUrl ? (
         <ListItemButton href={signoutUrl}>
           <ListItemIcon>
