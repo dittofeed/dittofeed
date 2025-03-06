@@ -731,12 +731,30 @@ export interface WorkspaceInactiveError {
   workspace: WorkspaceResource;
 }
 
+export enum UnauthorizedActionType {
+  Redirect = "Redirect",
+}
+
+export interface RedirectAction {
+  type: UnauthorizedActionType.Redirect;
+  url: string;
+}
+
+export enum UnauthorizedReason {
+  WorkspaceRequiresPayment = "WorkspaceRequiresPayment",
+  LacksPermission = "LacksPermission",
+}
+
+export type UnauthorizedAction = RedirectAction;
+
 export interface UnauthorizedError {
   type: RequestContextErrorType.Unauthorized;
   message: string;
   member: WorkspaceMemberResource;
   memberRoles: WorkspaceMemberRoleResource[];
   workspace: WorkspaceResource;
+  action: UnauthorizedAction;
+  reason: UnauthorizedReason;
 }
 
 export interface NotOnboardedError {
@@ -772,3 +790,7 @@ export type RequestContextResult = Result<
   DFRequestContext,
   RequestContextError
 >;
+
+export type RequestContextPostProcessor = (
+  result: RequestContextResult,
+) => Promise<RequestContextResult>;

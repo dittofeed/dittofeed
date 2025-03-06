@@ -16,6 +16,7 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
+import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
   NotOnboardedError,
   OpenIdProfile,
@@ -365,6 +366,12 @@ export async function getRequestContext(
   return withSpan({ name: "get-request-context" }, async (span) => {
     const { authMode } = config();
     let result: RequestContextResult;
+    logger().debug(
+      {
+        authMode,
+      },
+      "loc5",
+    );
     switch (authMode) {
       case "anonymous": {
         result = await getAnonymousRequestContext();
@@ -384,11 +391,20 @@ export async function getRequestContext(
           headers.authorization && typeof headers.authorization === "string"
             ? headers.authorization
             : null;
+
         result = await getMultiTenantRequestContext({
           authorizationToken,
           authProvider: config().authProvider,
           profile,
         });
+        logger().debug(
+          {
+            result,
+          },
+          "loc4",
+        );
+
+        result = await requestContextPostProcessor().postProcessor(result);
         break;
       }
     }
@@ -412,7 +428,18 @@ export async function getRequestContext(
       // TODO handle when users can request access to a workspace that they
       // currently are not authorized to access
       case RequestContextErrorType.Unauthorized: {
-        throw new Error("unhandled unauthorized error");
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.message,
+        });
+        span.setAttributes({
+          type: result.error.type,
+          memberEmail: result.error.member.email,
+          memberId: result.error.member.id,
+          workspaceId: result.error.workspace.id,
+          workspaceName: result.error.workspace.name,
+        });
+        break;
       }
       case RequestContextErrorType.NotOnboarded: {
         span.setStatus({

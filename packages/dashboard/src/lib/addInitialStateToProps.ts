@@ -27,6 +27,9 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     enableMobilePush,
     dashboardUrl,
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
@@ -46,6 +49,9 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     enableMobilePush,
     features: dfContext.features,
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
   });
 
   return {

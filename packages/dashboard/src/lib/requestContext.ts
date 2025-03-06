@@ -19,6 +19,12 @@ export const requestContext: <T>(
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
     const { profile } = context.req as { profile?: OpenIdProfile };
+    logger().debug(
+      {
+        profile,
+      },
+      "loc6",
+    );
     const rc = await getRequestContext(context.req.headers, profile);
     const { onboardingUrl } = backendConfig();
     if (rc.isErr()) {
@@ -53,16 +59,22 @@ export const requestContext: <T>(
               basePath: false,
             },
           };
-        case RequestContextErrorType.Unauthorized:
+        case RequestContextErrorType.Unauthorized: {
           logger().info(
             {
               contextErrorMsg: error.message,
             },
             "user unauthorized",
           );
+
           return {
-            redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },
+            redirect: {
+              destination: error.action.url,
+              permanent: false,
+              basePath: false,
+            },
           };
+        }
         case RequestContextErrorType.ApplicationError:
           throw new Error(error.message);
         case RequestContextErrorType.NotAuthenticated:

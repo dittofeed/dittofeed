@@ -1,5 +1,5 @@
 // assets
-import { Logout, Settings } from "@mui/icons-material";
+import { Logout, Settings, SettingsApplications } from "@mui/icons-material";
 import {
   List,
   ListItemButton,
@@ -10,13 +10,23 @@ import {
 import { useTheme } from "@mui/material/styles";
 import Link from "next/link";
 
-import { useAppStore } from "../../../../../lib/appStore";
+import { useAppStorePick } from "../../../../../lib/appStore";
 
 // ==============================|| HEADER PROFILE - PROFILE TAB ||============================== //
 
 function ProfileTab() {
   const theme = useTheme();
-  const signoutUrl = useAppStore((store) => store.signoutUrl);
+  const {
+    signoutUrl,
+    enableAdditionalDashboardSettings,
+    additionalDashboardSettingsPath,
+    additionalDashboardSettingsTitle,
+  } = useAppStorePick([
+    "signoutUrl",
+    "enableAdditionalDashboardSettings",
+    "additionalDashboardSettingsPath",
+    "additionalDashboardSettingsTitle",
+  ]);
 
   return (
     <List
@@ -35,6 +45,16 @@ function ProfileTab() {
         </ListItemIcon>
         <ListItemText primary="Settings" />
       </ListItemButton>
+      {enableAdditionalDashboardSettings && additionalDashboardSettingsPath ? (
+        <ListItemButton href={additionalDashboardSettingsPath}>
+          <ListItemIcon>
+            <SettingsApplications />
+          </ListItemIcon>
+          <ListItemText
+            primary={additionalDashboardSettingsTitle ?? "Additional Settings"}
+          />
+        </ListItemButton>
+      ) : null}
       {signoutUrl ? (
         <ListItemButton href={signoutUrl}>
           <ListItemIcon>
