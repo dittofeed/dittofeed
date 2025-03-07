@@ -61,10 +61,27 @@ import { upsertWorkspace } from "./workspaces/createWorkspace";
 const DOMAIN_REGEX =
   /^(?!-)[A-Za-z0-9-]+(?<!-)(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 
+const INVALID_COMMON_EMAIL_DOMAINS = new Set([
+  "gmail",
+  "yahoo",
+  "hotmail",
+  "outlook",
+  "aol",
+  "icloud",
+  "protonmail",
+  "zoho",
+  "mail",
+  "gmx",
+  "yandex",
+]);
+
 function isValidDomain(domain: string): boolean {
   if (!domain) return false;
   if (domain.length > 255) return false;
   if (domain.startsWith(".") || domain.endsWith(".")) return false;
+
+  // Reject common email domains
+  if (INVALID_COMMON_EMAIL_DOMAINS.has(domain)) return false;
 
   return DOMAIN_REGEX.test(domain);
 }
