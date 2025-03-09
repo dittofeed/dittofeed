@@ -14,6 +14,8 @@ This guide will walk you through the process of upgrading your Dittofeed instanc
 
 In this release we migrated from Prisma to Drizzle as our ORM. To upgrade to v0.21.0, you'll need to make sure you've upgraded Dittofeed to v0.20.0 and run its postgres migrations, prior to upgrading to v0.21.0.
 
+See the [Upgrading from v0.19.0 to v0.20.0](/deployment/self-hosted/upgrade-guide/v0-20-0) guide for more information on upgrading to v0.20.0.
+
 ## Upgrade Dittofeed in Docker Compose
 
 ### Step 1: Setting Up Your `docker-compose.lite.yaml` File
@@ -77,7 +79,7 @@ docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 Run Dittofeed's database migrations before deploying the new version of Dittofeed:
 
 ```bash
-./scripts/admin-lite.sh prisma migrate deploy
+./scripts/admin-lite.sh migrate
 ```
 
 ### Step 4: Upgrade Your `docker-compose.lite.yaml` File
