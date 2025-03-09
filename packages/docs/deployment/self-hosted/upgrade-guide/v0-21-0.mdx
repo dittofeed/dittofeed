@@ -2,13 +2,17 @@
 title: "Upgrading from v0.20.0 to v0.21.0"
 ---
 
-Upgrading from v0.16.0 to v0.21.0 is more involved than other upgrades and involves several steps.
+Upgrading from v0.20.0 to v0.21.0 is more involved than other upgrades and involves several steps.
 
 1. Upgrading to v0.20.0 prior to upgrading to v0.21.0
 2. Running the postgres migrations
 3. Creating new group tables and materialized views in ClickHouse
 
 This guide will walk you through the process of upgrading your Dittofeed instance.
+
+## Upgrading to v0.20.0
+
+In this release we migrated from Prisma to Drizzle as our ORM. To upgrade to v0.21.0, you'll need to make sure you've upgraded Dittofeed to v0.20.0 and run its postgres migrations, prior to upgrading to v0.21.0.
 
 ## Upgrade Dittofeed in Docker Compose
 
@@ -24,7 +28,7 @@ Your `docker-compose.lite.yaml` file should look something like this:
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.16.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.20.0}
     restart: always
     ports:
       - "3000:3000"
