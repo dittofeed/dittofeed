@@ -81,7 +81,7 @@ docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 Run the upgrade script to run postgres migrations and create the new clickhouse tables and views:
 
 ```bash
-./scripts/admin-lite.sh upgrade-0-21-0-pre
+./admin.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade Your `docker-compose.lite.yaml` File
