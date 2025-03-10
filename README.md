@@ -12,7 +12,7 @@
 <h2 align="center">Open-source customer engagement</h3>
 
 <p align="center">
-  <a href="https://docs.dittofeed.com/introduction">Docs</a> | <a href="https://discord.gg/HajPkCG4Mm">Discord</a> | <a href="https://demo.dittofeed.com/dashboard">Demo App</a> | <a href="https://docs.dittofeed.com/contributing/running-locally">Contributing</a>
+  <a href="https://app.dittofeed.com/dashboard">Start Cloud Trial</a> | <a href="https://docs.dittofeed.com/introduction">Docs</a> | <a href="https://discord.gg/HajPkCG4Mm">Discord</a> | <a href="https://docs.dittofeed.com/contributing/running-locally">Contributing</a>
 </p>
 
 [Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, WhatsApp, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
@@ -85,6 +85,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 | Feature                      | Purpose                                                                                                         | Status  |
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
 | Replace Prisma with Drizzle  | Enhance memory efficiency and stability.                                                                        | - ✅  |
+| User grouping                | Provide a way to represent a collection of users (e.g., club, company, team) for segment membership conditions. | - ✅  |
 | Identity resolution          | Enable joining of users based on traits or behavior. Important for identifying anonymous users post sign-up/sign-in. | - ☑️  |
 | Embedded components (public release)  | Implement internal dashboard for embedded low code components. Write great docs. Create demo projects. | - ☑️  |
 | Expand Emailo functionality  | Add more commands to the low code email editor command palette to improve email editing experience.             | - \[ ]  |
@@ -98,7 +99,6 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
 | LLM Integration              | Drive quicker, easier generation of journeys, segments, and templates.                                          | - \[ ]  |
 | Stripe integration           | Sync customer data between Stripe and Dittofeed.                                                                | - \[ ]  |
-| User grouping                | Provide a way to represent a collection of users (e.g., club, company, team) for segment membership conditions. | - \[ ]  |
 | Git-based resources          | Track changes, audit, and transfer resources between workspaces.                                                | - \[ ]  |
 
 
