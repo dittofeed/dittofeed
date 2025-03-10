@@ -74,14 +74,12 @@ Next, run the following command to start your `admin-cli` service:
 docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 ```
 
-### Step 3: Run the Migrations
+### Step 3: Run the Upgrade Script
 
-Run Dittofeed's database migrations before deploying the new version of Dittofeed:
-
-{/* FIXME add new migration script that runs postgres migrations and clickhouse tables and views  */}
+Run the upgrade script to run postgres migrations and create the new clickhouse tables and views:
 
 ```bash
-./scripts/admin-lite.sh migrate
+./scripts/admin-lite.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade Your `docker-compose.lite.yaml` File
@@ -156,7 +154,7 @@ kubectl exec -it deployment/dittofeed-admin-cli -- /bin/bash
 Run the migrations:
 
 ```bash
-./admin.sh prisma migrate deploy
+./admin.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade the Dittofeed Chart
