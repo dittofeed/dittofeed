@@ -50,7 +50,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.21.0}
+    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.21.0}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
@@ -81,7 +81,7 @@ docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 Run the upgrade script to run postgres migrations and create the new clickhouse tables and views:
 
 ```bash
-./scripts/admin-lite.sh upgrade-0-21-0-pre
+./admin.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade Your `docker-compose.lite.yaml` File
