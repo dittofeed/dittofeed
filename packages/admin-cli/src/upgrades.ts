@@ -6,12 +6,17 @@ import {
 import { db, insert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
+import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import {
   EmailProviderSecret,
   EmailProviderType,
   Workspace,
 } from "backend-lib/src/types";
-import { createUserEventsTables } from "backend-lib/src/userEvents/clickhouse";
+import {
+  createUserEventsTables,
+  GROUP_MATERIALIZED_VIEWS,
+  GROUP_TABLES,
+} from "backend-lib/src/userEvents/clickhouse";
 import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -224,4 +229,32 @@ export async function upgradeV012Pre() {
     "deploy",
   ]);
   logger().info("Pre-upgrade steps for v0.12.0 completed.");
+}
+
+async function createGroupTables() {
+  const tableQueries = GROUP_TABLES.map((q) =>
+    command({
+      query: q,
+      clickhouse_settings: { wait_end_of_query: 1 },
+    }),
+  );
+  await Promise.all(tableQueries);
+
+  const mvQueries = GROUP_MATERIALIZED_VIEWS.map((q) =>
+    command({
+      query: q,
+      clickhouse_settings: { wait_end_of_query: 1 },
+    }),
+  );
+  await Promise.all(mvQueries);
+}
+
+export async function upgradeV021Pre() {
+  logger().info("Performing pre-upgrade steps for v0.21.0");
+  logger().info("Running postgres migrations");
+  await publicDrizzleMigrate();
+  logger().info("Creating group clickhouse tables");
+  await createGroupTables();
+
+  logger().info("Pre-upgrade steps for v0.21.0 completed.");
 }

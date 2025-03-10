@@ -64,6 +64,7 @@ import {
   upgradeV010Post,
   upgradeV010Pre,
   upgradeV012Pre,
+  upgradeV021Pre,
 } from "./upgrades";
 
 export function createCommands(yargs: Argv): Argv {
@@ -586,6 +587,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV012Pre();
+      },
+    )
+    .command(
+      "upgrade-0-21-0-pre",
+      "Run the pre-upgrade steps for the 0.21.0 prior to updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV021Pre();
       },
     )
     .command(

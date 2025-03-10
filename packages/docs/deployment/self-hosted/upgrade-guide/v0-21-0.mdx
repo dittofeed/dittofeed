@@ -1,8 +1,22 @@
 ---
-title: "Upgrading from v0.16.0 to v0.17.0"
+title: "Upgrading from v0.20.0 to v0.21.0"
 ---
 
-Upgrading from v0.16.0 to v0.17.0 is fairly straightforward, and only requires running postgres migrations. This guide will walk you through the process of upgrading your Dittofeed instance.
+Upgrading from v0.20.0 to v0.21.0 is more involved than other upgrades and involves several steps.
+
+1. Upgrading to v0.20.0 prior to upgrading to v0.21.0
+2. Running the postgres migrations
+3. Creating new group tables and materialized views in ClickHouse
+
+This guide will walk you through the process of upgrading your Dittofeed instance.
+
+## Upgrading to v0.20.0
+
+<Warning>
+In this release we migrated from Prisma to Drizzle as our ORM. To upgrade to v0.21.0, you'll need to make sure you've upgraded Dittofeed to v0.20.0 and run its postgres migrations, prior to upgrading to v0.21.0.
+</Warning>
+
+See the [Upgrading from v0.19.0 to v0.20.0](/deployment/self-hosted/upgrade-guide/v0-20-0) guide for more information on upgrading to v0.20.0.
 
 ## Upgrade Dittofeed in Docker Compose
 
@@ -18,7 +32,7 @@ Your `docker-compose.lite.yaml` file should look something like this:
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.16.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.20.0}
     restart: always
     ports:
       - "3000:3000"
@@ -36,7 +50,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.17.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.21.0}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
@@ -62,23 +76,23 @@ Next, run the following command to start your `admin-cli` service:
 docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 ```
 
-### Step 3: Run the Migrations
+### Step 3: Run the Upgrade Script
 
-Run Dittofeed's database migrations before deploying the new version of Dittofeed:
+Run the upgrade script to run postgres migrations and create the new clickhouse tables and views:
 
 ```bash
-./scripts/admin-lite.sh prisma migrate deploy
+./scripts/admin-lite.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade Your `docker-compose.lite.yaml` File
 
-Upgrade the version in your docker-compose.lite.yaml file to v0.17.0:
+Upgrade the version in your docker-compose.lite.yaml file to v0.21.0:
 
 ```yaml
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.17.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.21.0}
 ...
 ```
 
@@ -119,14 +133,14 @@ helm upgrade --install dittofeed-admin-cli ./dittofeed/helm-charts/dittofeed-adm
 Make sure that the `dittofeed-admin-cli` pod is running the version of the `dittofeed-admin-cli` chart that you're upgrading to.
 
 ```yaml chart.yaml
-appVersion: "v0.17.0"
+appVersion: "v0.21.0"
 ```
 
-Or set the `tag` in your `values.yaml` file to `v0.17.0`:
+Or set the `tag` in your `values.yaml` file to `v0.21.0`:
 
 ```yaml values.yaml
 image:
-  tag: v0.17.0
+  tag: v0.21.0
 ```
 
 ### Step 3: Run the Migrations
@@ -142,16 +156,16 @@ kubectl exec -it deployment/dittofeed-admin-cli -- /bin/bash
 Run the migrations:
 
 ```bash
-./admin.sh prisma migrate deploy
+./admin.sh upgrade-0-21-0-pre
 ```
 
 ### Step 4: Upgrade the Dittofeed Chart
 
-Update the `tag` in your `values.yaml` file to `v0.17.0`:
+Update the `tag` in your `values.yaml` file to `v0.21.0`:
 
 ```yaml values.yaml
 image:
-  tag: v0.17.0
+  tag: v0.21.0
 ```
 
 Upgrade the dittofeed chart:
