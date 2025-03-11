@@ -7089,7 +7089,9 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME
       description: "anonymous users can and opt in subscription group",
+      only: true,
       userProperties: [
         {
           definition: {
@@ -7137,6 +7139,40 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 optIn: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              anonymousId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.SubscriptionChange,
+              properties: {
+                subscriptionId: "subscription-group-id",
+                action: SubscriptionChange.Subscribe,
+              },
+            } satisfies TestEvent & SubscriptionChangeEvent,
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "after opting in, user is in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optIn: true,
               },
             },
           ],
