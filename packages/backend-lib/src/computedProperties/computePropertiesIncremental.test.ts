@@ -7090,8 +7090,6 @@ describe("computeProperties", () => {
     },
     {
       description: "anonymous users can and opt in subscription group",
-      // FIXME
-      only: true,
       userProperties: [
         {
           definition: {
@@ -7116,7 +7114,7 @@ describe("computeProperties", () => {
       ],
       journeys: [
         {
-          name: "optIn",
+          name: "optInAnonymous",
           entrySegmentName: "optIn",
         },
       ],
@@ -7184,7 +7182,7 @@ describe("computeProperties", () => {
           ],
           journeys: [
             {
-              journeyName: "optIn",
+              journeyName: "optInAnonymous",
               // FIXME 3
               times: 1,
             },
