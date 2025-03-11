@@ -1,10 +1,16 @@
+/* eslint-disable import/first */
+// For tests that don't require the custom journeys implementation,
+// we can keep the basic initial mock.
+jest.mock("./journeys", () => ({
+  triggerEventEntryJourneys: jest.fn(),
+}));
+
 import NodeCache from "node-cache";
 import { v4 as uuidv4 } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { db } from "./db";
 import { journey as dbJourney } from "./db/schema";
-import { triggerEventEntryJourneysFactory } from "./journeys";
 import {
   EventType,
   JourneyDefinition,
@@ -67,6 +73,9 @@ describe("apps", () => {
     let submitBatchWithTriggers: typeof import("./apps").submitBatchWithTriggers;
 
     beforeEach(async () => {
+      // Reset module registry so that our new mock is picked up.
+      jest.resetModules();
+
       entryEventName = "Purchase";
       const eventTriggeredJourneyDefinition: JourneyDefinition = {
         entryNode: {
@@ -123,13 +132,19 @@ describe("apps", () => {
 
       startKeyedJourneyImpl = jest.fn();
 
-      // Custom implementation
-      jest.mock("./journeys", () => ({
+      // Import the actual triggerEventEntryJourneysFactory from the unmocked module.
+      const { triggerEventEntryJourneysFactory } =
+        jest.requireActual("./journeys");
+
+      // Re-mock the journeys module with our custom implementation.
+      jest.doMock("./journeys", () => ({
         triggerEventEntryJourneys: triggerEventEntryJourneysFactory({
           journeyCache: new NodeCache(),
           startKeyedJourneyImpl,
         }),
       }));
+
+      // Re-import the apps module so that it picks up our new journeys mock.
       const apps = await import("./apps");
       submitBatchWithTriggers = apps.submitBatchWithTriggers;
     });
