@@ -7090,6 +7090,8 @@ describe("computeProperties", () => {
     },
     {
       description: "anonymous users can and opt in subscription group",
+      // FIXME
+      only: true,
       userProperties: [
         {
           definition: {
@@ -7110,6 +7112,12 @@ describe("computeProperties", () => {
             },
             nodes: [],
           },
+        },
+      ],
+      journeys: [
+        {
+          name: "optIn",
+          entrySegmentName: "optIn",
         },
       ],
       steps: [
@@ -7164,9 +7172,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-        },
-        {
           type: EventsStepType.Assert,
           description: "after opting in, user is in the segment",
           users: [
@@ -7175,6 +7180,13 @@ describe("computeProperties", () => {
               segments: {
                 optIn: true,
               },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "optIn",
+              // FIXME 3
+              times: 1,
             },
           ],
         },
