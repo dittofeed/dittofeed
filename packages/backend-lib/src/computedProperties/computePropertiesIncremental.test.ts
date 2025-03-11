@@ -42,6 +42,7 @@ import {
   SegmentResource,
   SubscriptionChange,
   SubscriptionChangeEvent,
+  SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -7081,6 +7082,61 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 withMalformed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "anonymous users can and opt in subscription group",
+      userProperties: [
+        {
+          definition: {
+            type: UserPropertyDefinitionType.AnonymousId,
+          },
+          name: "anonymousId",
+        },
+      ],
+      segments: [
+        {
+          name: "optIn",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.SubscriptionGroup,
+              id: "1",
+              subscriptionGroupId: "subscription-group-id",
+              subscriptionGroupType: SubscriptionGroupType.OptIn,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              anonymousId: "user-1",
+              traits: {
+                email: "test@test.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "before opting in, user is not in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optIn: null,
               },
             },
           ],
