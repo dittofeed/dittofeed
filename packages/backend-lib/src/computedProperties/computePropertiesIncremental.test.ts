@@ -7089,9 +7089,7 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description: "anonymous users can and opt in subscription group",
-      only: true,
       userProperties: [
         {
           definition: {
@@ -7164,6 +7162,9 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Debug,
         },
         {
           type: EventsStepType.Assert,
