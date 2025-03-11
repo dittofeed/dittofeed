@@ -7183,7 +7183,6 @@ describe("computeProperties", () => {
           journeys: [
             {
               journeyName: "optInAnonymous",
-              // FIXME 3
               times: 1,
             },
           ],
@@ -7624,25 +7623,14 @@ describe("computeProperties", () => {
                 `could not find journey with name: ${assertedJourney.journeyName}`,
               );
             }
+            const { calls } = signalWithStart.mock;
+            const timesForJourney = calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (c) => c[1].args[0].journeyId === journey.id,
+            ).length;
+
             if (assertedJourney.times !== undefined) {
-              expect(signalWithStart).toHaveBeenCalledTimes(
-                assertedJourney.times,
-              );
-            }
-            if (
-              assertedJourney.times === undefined ||
-              assertedJourney.times > 0
-            ) {
-              expect(signalWithStart).toHaveBeenCalledWith(
-                expect.any(Function),
-                expect.objectContaining({
-                  args: [
-                    expect.objectContaining({
-                      journeyId: journey.id,
-                    }),
-                  ],
-                }),
-              );
+              expect(timesForJourney).toEqual(assertedJourney.times);
             }
           }
           break;
