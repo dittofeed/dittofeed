@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import {
+  AnonymousBatchIdentifyData,
+  AnonymousBatchTrackData,
   BatchAppData,
   BatchItem,
   KnownBatchIdentifyData,
@@ -8,7 +10,6 @@ import {
 import { omit } from "remeda";
 
 import { buildBatchUserEvents } from "../src/apps/batch";
-import logger from "../src/logger";
 import { insertUserEvents } from "../src/userEvents";
 
 export type TestEventCommon<T> = Omit<T, "messageId" | "timestamp"> & {
@@ -19,7 +20,9 @@ export type TestEventCommon<T> = Omit<T, "messageId" | "timestamp"> & {
 
 export type TestEvent =
   | TestEventCommon<KnownBatchIdentifyData>
-  | TestEventCommon<KnownBatchTrackData>;
+  | TestEventCommon<KnownBatchTrackData>
+  | TestEventCommon<AnonymousBatchIdentifyData>
+  | TestEventCommon<AnonymousBatchTrackData>;
 
 export async function submitBatch({
   workspaceId,
