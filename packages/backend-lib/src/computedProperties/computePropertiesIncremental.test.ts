@@ -42,6 +42,7 @@ import {
   SegmentResource,
   SubscriptionChange,
   SubscriptionChangeEvent,
+  SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -7087,6 +7088,107 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "anonymous users can and opt in subscription group",
+      userProperties: [
+        {
+          definition: {
+            type: UserPropertyDefinitionType.AnonymousId,
+          },
+          name: "anonymousId",
+        },
+      ],
+      segments: [
+        {
+          name: "optIn",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.SubscriptionGroup,
+              id: "1",
+              subscriptionGroupId: "subscription-group-id",
+              subscriptionGroupType: SubscriptionGroupType.OptIn,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      journeys: [
+        {
+          name: "optInAnonymous",
+          entrySegmentName: "optIn",
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              anonymousId: "user-1",
+              traits: {
+                email: "test@test.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "before opting in, user is not in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optIn: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              anonymousId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.SubscriptionChange,
+              properties: {
+                subscriptionId: "subscription-group-id",
+                action: SubscriptionChange.Subscribe,
+              },
+            } satisfies TestEvent & SubscriptionChangeEvent,
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "after opting in, user is in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optIn: true,
+              },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "optInAnonymous",
+              times: 1,
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -7521,25 +7623,14 @@ describe("computeProperties", () => {
                 `could not find journey with name: ${assertedJourney.journeyName}`,
               );
             }
+            const { calls } = signalWithStart.mock;
+            const timesForJourney = calls.filter(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (c) => c[1].args[0].journeyId === journey.id,
+            ).length;
+
             if (assertedJourney.times !== undefined) {
-              expect(signalWithStart).toHaveBeenCalledTimes(
-                assertedJourney.times,
-              );
-            }
-            if (
-              assertedJourney.times === undefined ||
-              assertedJourney.times > 0
-            ) {
-              expect(signalWithStart).toHaveBeenCalledWith(
-                expect.any(Function),
-                expect.objectContaining({
-                  args: [
-                    expect.objectContaining({
-                      journeyId: journey.id,
-                    }),
-                  ],
-                }),
-              );
+              expect(timesForJourney).toEqual(assertedJourney.times);
             }
           }
           break;
