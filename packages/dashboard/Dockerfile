@@ -17,8 +17,8 @@ RUN yarn set version 4.1.1
 RUN yarn workspaces focus isomorphic-lib emailo backend-lib dashboard
 
 RUN mkdir -p packages/dashboard/public/public && \
-    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
-    curl https://raw.githubusercontent.com/dittofeed/sdk-web/8ba1161ef3c59f276b30395dc84b3efbc20e6c2d/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/7050a5b6f85fe0f9cab59043b782b65c9a911791/snippet/dittofeed.umd.js -o packages/dashboard/public/public/dittofeed.umd.js && \
+    curl https://raw.githubusercontent.com/dittofeed/sdk-web/7050a5b6f85fe0f9cab59043b782b65c9a911791/snippet/dittofeed.es.js -o packages/dashboard/public/public/dittofeed.es.js
 
 RUN yarn workspace emailo build && \
     yarn workspace isomorphic-lib build && \
