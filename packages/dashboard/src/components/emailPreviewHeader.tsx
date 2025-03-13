@@ -1,5 +1,4 @@
 import { TextField, useTheme } from "@mui/material";
-import escapeHTML from "escape-html";
 import React from "react";
 
 import { getDisabledInputStyles } from "./templateEditor";
@@ -28,7 +27,7 @@ function EmailPreviewHeader({ email, from, subject }: EmailPreviewHeaderProps) {
           },
         }}
         sx={disabledStyles}
-        value={escapeHTML(email ?? "")}
+        value={email ?? ""}
       />
       <TextField
         required
@@ -42,7 +41,7 @@ function EmailPreviewHeader({ email, from, subject }: EmailPreviewHeaderProps) {
           },
         }}
         sx={disabledStyles}
-        value={escapeHTML(from ?? "")}
+        value={from ?? ""}
       />
       <TextField
         required
@@ -56,7 +55,7 @@ function EmailPreviewHeader({ email, from, subject }: EmailPreviewHeaderProps) {
           },
         }}
         sx={disabledStyles}
-        value={escapeHTML(subject ?? "")}
+        value={subject ?? ""}
       />
     </>
   );
