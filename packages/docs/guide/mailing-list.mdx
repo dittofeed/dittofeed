@@ -1,0 +1,142 @@
+---
+title: "Mailing List / Newsletter"
+description: "How to add a mailing list or newsletter to your website."
+---
+
+The following example shows how to use the [Web SDK](/integrations/sdks/web) to add a mailing list to your website. When a user subscribes to the mailing list, the SDK will send an identify event with the email address and a subscribe event with the configured subscription group ID.
+
+
+<Frame>
+![Mailing List](/images/newsletterform.png)
+</Frame>
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Signup</title>
+  <style>
+    .newsletter-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .newsletter-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .newsletter-title {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .newsletter-description {
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .newsletter-input {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .newsletter-button {
+      padding: 12px 20px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .newsletter-button:hover {
+      background-color: #3367d6;
+    }
+    .success-message {
+      display: none;
+      color: #28a745;
+      margin-top: 10px;
+    }
+  </style>
+  <!-- Dittofeed SDK Snippet -->
+  <script type="text/javascript">
+    var _df = _df || [];
+
+    (function () {
+      var methods = ["track", "identify", "page", "flush", "subscribe", "unsubscribe", "getAnonymousId", "resetAnonymousId"];
+      methods.forEach(function (method) {
+        _df[method] = function () {
+          _df.push([method].concat(Array.prototype.slice.call(arguments)));
+        };
+      });
+
+      var script = document.createElement("script");
+      script.type = "module";
+      script.async = true;
+      script.src = "https://app.dittofeed.com/dashboard/public/dittofeed.umd.js";
+      script.id = "df-tracker";
+      // Replace with your own write key
+      script.setAttribute("data-write-key", "Basic your-write-key-here");
+      document.head.appendChild(script);
+    })();
+  </script>
+</head>
+<body>
+  <div class="newsletter-container">
+    <h2 class="newsletter-title">Subscribe to Our Newsletter</h2>
+    <p class="newsletter-description">Stay updated with our latest news and updates.</p>
+    
+    <form id="newsletterForm" class="newsletter-form">
+      <input type="email" id="emailInput" class="newsletter-input" placeholder="mail@example.com" required>
+      <button type="submit" class="newsletter-button">Subscribe</button>
+    </form>
+    
+    <p id="successMessage" class="success-message">Thank you for subscribing!</p>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('newsletterForm');
+      const emailInput = document.getElementById('emailInput');
+      const successMessage = document.getElementById('successMessage');
+      
+      // Replace with your actual subscription group ID
+      const SUBSCRIPTION_GROUP_ID = "23b5757f-15a5-4477-858f-a96913b2a3f1";
+      
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        const email = emailInput.value.trim();
+        
+        if (email) {
+          // Send identify event with the email
+          _df.identify({
+            traits: {
+              email: email
+            }
+          });
+          
+          // Send subscribe event with the subscription group ID
+          _df.subscribe({
+            subscriptionGroupId: SUBSCRIPTION_GROUP_ID
+          });
+          
+          // Ensure events are sent immediately
+          _df.flush();
+          
+          // Show success message and reset form
+          form.style.display = 'none';
+          successMessage.style.display = 'block';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+```

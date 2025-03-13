@@ -187,6 +187,7 @@
               },
               "guide/accessing-admin-api",
               "guide/submitting-broadcasts-api",
+              "guide/mailing-list",
               "guide/git-workflows",
               "guide/license"
             ]
