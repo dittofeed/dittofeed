@@ -4,6 +4,185 @@ title: "Free MJML Email Templates"
 
 For a quick way to get started sending messages, copy/paste the code for these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
 
+## Product Release Email
+
+This is a variation of a product release email template we use at Dittofeed. Adapt the design, copy, and links to suit your company's newsletter needs, then send it off with a Dittofeed broadcast!
+
+<Accordion title="Code.">
+```html product-release.mjml
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="14px" color="#0f172a" line-height="1.5" align="left" />
+      <mj-divider border-color="#F57430" border-width="0.75px" width="100%" />
+      <mj-button font-size="14px" align="center" />
+      <mj-section padding="6px" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      /* Headings */
+      .heading-alt {
+        color: #3B302D;
+        font-size: 21px;
+        font-weight: 500;
+        line-height: 1.25;
+      }
+      .section-heading {
+        color: #0f172a;
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: bold;
+      }
+      /* Dividers */
+      .divider-intro { border-color: #F57430; }
+      .divider-light { border-color: #F57430; }
+      /* Buttons */
+      .button-primary {
+        color: #334155;
+        font-weight: 700;
+        padding: 10px;
+      }
+      /* Footer text */
+      .footer-text {
+        font-size: 10px;
+        line-height: 1.25;
+        text-align: center;
+      }
+      /* Link styles */
+      .footer-link {
+        color: #939393;
+        text-decoration: underline;
+      }
+      .cta-link {
+        color: #939393;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body>
+    <mj-wrapper padding="10px">
+      <!-- Intro Section -->
+      <mj-section padding-top="20px">
+        <mj-column>
+          <mj-text>
+            Hi everyone! Chandler from Dittofeed here. We have some great updates to share with you from this week's product release.
+          </mj-text>
+          <mj-divider css-class="divider-intro" padding-top="30px" />
+          <mj-text>
+            <p class="heading-alt">Release v0.21.0 - User Grouping &amp; Improved Deliveries Table</p>
+          </mj-text>
+          <mj-divider css-class="divider-intro" />
+        </mj-column>
+      </mj-section>
+      <!-- User Grouping Section -->
+      <mj-section>
+        <mj-column>
+          <mj-text>
+            <p class="section-heading">New - User Grouping</p>
+          </mj-text>
+          <mj-text>
+          We have many users in health and education that need the ability to dynamically assign their customers to groups. For instance, family members of a patient or student need to be assigned to a group for that patient or student.
+            <p>Unlike segments which are predefined, groups allow you to dynamically assign users to a group by submitting a Group event using our Group endpoint. Example:
+          </mj-text>
+          <mj-text padding="0 25px">
+            <div style="background-color: #1F1E1D; border-radius: 7px; padding: 10px;">
+              <p style="font-family: monospace; color: #FFFFFF; margin: 10px; font-size: 14px; line-height: 1.4;">
+                POST /api/public/apps/group<br>
+                {<br>
+                &nbsp;&nbsp;"userId": "user-123",<br>
+                &nbsp;&nbsp;"groupId": "group-456"<br>
+                }
+              </p>
+            </div>
+          </mj-text>
+          
+          <mj-button padding-top="24px" css-class="button-secondary" href="https://docs.dittofeed.com/resources/groups#groups">
+            Read the docs
+          </mj-button>
+          <mj-divider padding-top="40px" css-class="divider-light" />
+        </mj-column>
+      </mj-section>
+      <!-- Deliveries Table Section -->
+      <mj-section>
+        <mj-column>
+          <mj-text>
+            <p class="section-heading">New - Deliveries Table</p>
+          </mj-text>
+          <mj-text>
+            We've fully upgraded the deliveries interface, making it easier for you to navigate and analyze your delivery records.
+            <p>Additionally, you can now filter your delivery data by date to focus on specific timeframes.
+          </mj-text>
+          <mj-image padding-bottom="12px" src="https://storage.googleapis.com/dittofeed-public/deliveries-table.png" border-radius="5px" alt="Deliveries Table UI"></mj-image>
+          <mj-button css-class="button-primary" href="https://app.dittofeed.com/dashboard">
+            Try it out!
+          </mj-button>
+          <mj-divider padding-top="40px" css-class="divider-light" />
+        </mj-column>
+      </mj-section>
+      <!-- Improvements Section -->
+      <mj-section>
+        <mj-column>
+          <mj-text padding-top="10px">
+            <p class="section-heading">Improved - Backend & Performance Optimizations</p>
+          </mj-text>
+          <mj-text>
+            1 - Direct ClickHouse Read/Write for Assignments:
+            <p>Computed properties are now read directly from ClickHouse instead of being replicated to and read from Postgres. This accelerates your compute property intervals and broadcast deliveries by up to several minutes.
+          </mj-text>
+          <mj-text>
+            2 - Optimized Multi-Tenant Compute Properties:
+            <p>This change significantly reduces the cost and latency associated with compute property intervals when running Dittofeed in multi-tenant mode.
+          </mj-text>
+          <mj-text>
+            3 - Replaced Prisma with Drizzle:
+            <p>We’ve switched our ORM from Prisma to Drizzle, which improves overall performance and reduces memory footprint.
+          </mj-text>
+          <mj-text>
+            Beyond these improvements, we've added and fixed many smaller features, including adding an image block to our low-code email editor! To read more, check out the full release post.
+          </mj-text>
+          <mj-button css-class="button-secondary" href="https://www.dittofeed.com/post/release-v0-21-0">
+            Full release
+          </mj-button>
+          <mj-divider padding-top="40px" padding-bottom="30px" css-class="divider-light" />
+            <mj-button background-color="#D9D9D9" color="#1F1E1D" font-weight="600" border="1px solid #F57430" border-radius="3px" inner-padding="10px 20px" href="https://app.dittofeed.com/dashboard">
+  Try updates in Dittofeed Cloud ☁️ &rarr;
+</mj-button>
+            <mj-divider padding-top="30px" padding-bottom="30px" css-class="divider-light" />
+        </mj-column>
+      </mj-section>
+      <!-- General Info Section -->
+      <mj-section padding="20px">
+        <mj-column>
+          <mj-image src="https://storage.googleapis.com/dittofeed-public/dittofeed-circle-graphic-logo.png" width="60px" alt="Dittofeed Graphic"></mj-image>
+          <mj-text align="center">
+            Dittofeed's release newsletter is great way to track the work we're doing developing the world's most flexible open-source messaging automation platform. The Dittofeed community would love to hear your thoughts!
+          </mj-text>
+          <mj-button background-color="#ffffff" color="#1F1E1D" font-weight="600" inner-padding="10px 20px"  href="https://discord.gg/HajPkCG4Mm">
+            Join us on Discord &rarr;
+          </mj-button>
+        </mj-column>
+      </mj-section>
+      <!-- Footer Section -->
+      <mj-section padding-bottom="10px">
+        <mj-column>
+          <mj-text align="center" padding-top="20px">
+            <p class="footer-text">We send this newsletter once a month. To no longer receive these emails, <a class="footer-link" href="{% unsubscribe_url %}">unsubscribe</a> or <a class="footer-link" href="mailto:support@dittofeed.com">contact us</a>. Idea Market Inc., 2261 Market Street STE 5651 San Francisco, CA 94114.</p>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      
+    </mj-wrapper>
+  </mj-body>
+</mjml>
+
+````
+</Accordion>
+
+<Frame>![Product Release Email](/images/product-release_email.png)</Frame>
+
+
 ## Styled Onboarding Email
 
 Use this template for a more styled approach to onboarding.
@@ -33,7 +212,6 @@ Great onboarding emails give recipients straightforward instructions. To improve
     </mj-attributes>
   </mj-head>
   <mj-body background-color="#ffffff">
-    
     <!-- Header Section -->
     <mj-section background-color="#ffffff">
       <mj-group>
@@ -47,7 +225,6 @@ Great onboarding emails give recipients straightforward instructions. To improve
       </mj-column>
         </mj-group>
     </mj-section>
-    
     <!-- Main Section -->
     <mj-section border-radius="10px" background-color="#f1f5f9">
       <mj-column>
@@ -62,7 +239,6 @@ Great onboarding emails give recipients straightforward instructions. To improve
         </mj-button>
       </mj-column>
     </mj-section>
-    
     <!-- Steps Section -->
     <mj-section background-color="#ffffff">
       <mj-column>
@@ -95,7 +271,6 @@ Great onboarding emails give recipients straightforward instructions. To improve
         </mj-text>
       </mj-column>
     </mj-section>
-
     <!-- Footer Section -->
     <mj-section border-radius="10px" background-color="#f1f5f9">
       <mj-column>
@@ -107,7 +282,6 @@ Great onboarding emails give recipients straightforward instructions. To improve
         </mj-text>
       </mj-column>
     </mj-section>
-
   </mj-body>
 </mjml>
 
