@@ -520,6 +520,7 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
   autoReloadByDefault: false,
+  reloadPeriodMs: 30000,
 };
 
 interface DeliveriesTableV2Props {
@@ -532,6 +533,7 @@ interface DeliveriesTableV2Props {
   groupId?: string[] | string;
   journeyId?: string;
   autoReloadByDefault?: boolean;
+  reloadPeriodMs?: number;
 }
 
 export function DeliveriesTableV2({
@@ -544,6 +546,7 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   autoReloadByDefault = false,
+  reloadPeriodMs = 30000,
 }: DeliveriesTableV2Props) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -625,7 +628,9 @@ export function DeliveriesTableV2({
     },
     placeholderData: keepPreviousData,
     refetchInterval:
-      state.autoReload && state.selectedTimeOption !== "custom" ? 30000 : false,
+      state.autoReload && state.selectedTimeOption !== "custom"
+        ? reloadPeriodMs
+        : false,
   });
 
   const renderPreviewCell = useMemo(
@@ -1259,7 +1264,7 @@ export function DeliveriesTableV2({
             </IconButton>
           </Tooltip>
           <Tooltip
-            title="Auto refresh every 30 seconds"
+            title={`Auto refresh every ${Math.floor(reloadPeriodMs / 1000)} seconds`}
             placement="bottom-start"
           >
             <IconButton

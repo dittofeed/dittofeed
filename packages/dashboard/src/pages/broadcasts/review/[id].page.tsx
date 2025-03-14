@@ -183,6 +183,8 @@ export default function BroadcastReview() {
                 (c) => c !== "origin",
               )}
               journeyId={persistedBroadcast?.journeyId}
+              autoReloadByDefault
+              reloadPeriodMs={10000}
             />
           </Stack>
         )}

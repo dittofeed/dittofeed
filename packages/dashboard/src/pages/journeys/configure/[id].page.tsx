@@ -340,6 +340,8 @@ function JourneyConfigure() {
                 (c) => c !== "origin",
               )}
               journeyId={id}
+              autoReloadByDefault
+              reloadPeriodMs={10000}
             />
           </Stack>
         )}
