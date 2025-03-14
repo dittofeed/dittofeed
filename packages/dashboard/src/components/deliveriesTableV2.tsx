@@ -2,6 +2,7 @@ import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
   ArrowUpward as ArrowUpwardIcon,
+  Bolt as BoltIcon,
   Clear as ClearIcon,
   Computer,
   Home,
@@ -336,6 +337,7 @@ interface State {
     startDate: Date;
     endDate: Date;
   };
+  autoReload: boolean;
 }
 
 interface BaseDelivery {
@@ -517,6 +519,8 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   templateUriTemplate: "/templates/{channel}/{templateId}",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
+  autoReloadByDefault: false,
+  reloadPeriodMs: 30000,
 };
 
 interface DeliveriesTableV2Props {
@@ -528,6 +532,8 @@ interface DeliveriesTableV2Props {
   userId?: string[] | string;
   groupId?: string[] | string;
   journeyId?: string;
+  autoReloadByDefault?: boolean;
+  reloadPeriodMs?: number;
 }
 
 export function DeliveriesTableV2({
@@ -539,6 +545,8 @@ export function DeliveriesTableV2({
   groupId,
   columnAllowList,
   journeyId,
+  autoReloadByDefault = false,
+  reloadPeriodMs = 30000,
 }: DeliveriesTableV2Props) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -570,6 +578,7 @@ export function DeliveriesTableV2({
       sortBy: "sentAt",
       sortDirection: SortDirectionEnum.Desc,
     },
+    autoReload: autoReloadByDefault,
   });
   const theme = useTheme();
   const filtersHash = useMemo(
@@ -618,6 +627,10 @@ export function DeliveriesTableV2({
       return result;
     },
     placeholderData: keepPreviousData,
+    refetchInterval:
+      state.autoReload && state.selectedTimeOption !== "custom"
+        ? reloadPeriodMs
+        : false,
   });
 
   const renderPreviewCell = useMemo(
@@ -1248,6 +1261,30 @@ export function DeliveriesTableV2({
               }}
             >
               <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={`Auto refresh every ${Math.floor(reloadPeriodMs / 1000)} seconds`}
+            placement="bottom-start"
+          >
+            <IconButton
+              disabled={state.selectedTimeOption === "custom"}
+              onClick={() => {
+                setState((draft) => {
+                  draft.autoReload = !draft.autoReload;
+                });
+              }}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.400",
+                bgcolor: state.autoReload ? "grey.600" : "inherit",
+                color: state.autoReload ? "white" : "inherit",
+                "&:hover": {
+                  bgcolor: state.autoReload ? "grey.700" : undefined,
+                },
+              }}
+            >
+              <BoltIcon />
             </IconButton>
           </Tooltip>
         </Stack>
