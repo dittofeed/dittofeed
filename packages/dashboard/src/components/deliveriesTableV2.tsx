@@ -1269,10 +1269,10 @@ export function DeliveriesTableV2({
               sx={{
                 border: "1px solid",
                 borderColor: "grey.400",
-                bgcolor: state.autoReload ? "primary.light" : "inherit",
-                color: state.autoReload ? "primary.contrastText" : "inherit",
+                bgcolor: state.autoReload ? "grey.600" : "inherit",
+                color: state.autoReload ? "white" : "inherit",
                 "&:hover": {
-                  bgcolor: state.autoReload ? "primary.main" : undefined,
+                  bgcolor: state.autoReload ? "grey.700" : undefined,
                 },
               }}
             >
