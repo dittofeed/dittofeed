@@ -519,6 +519,7 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   templateUriTemplate: "/templates/{channel}/{templateId}",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
+  autoReloadByDefault: false,
 };
 
 interface DeliveriesTableV2Props {
@@ -530,6 +531,7 @@ interface DeliveriesTableV2Props {
   userId?: string[] | string;
   groupId?: string[] | string;
   journeyId?: string;
+  autoReloadByDefault?: boolean;
 }
 
 export function DeliveriesTableV2({
@@ -541,6 +543,7 @@ export function DeliveriesTableV2({
   groupId,
   columnAllowList,
   journeyId,
+  autoReloadByDefault = false,
 }: DeliveriesTableV2Props) {
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -572,7 +575,7 @@ export function DeliveriesTableV2({
       sortBy: "sentAt",
       sortDirection: SortDirectionEnum.Desc,
     },
-    autoReload: false,
+    autoReload: autoReloadByDefault,
   });
   const theme = useTheme();
   const filtersHash = useMemo(
