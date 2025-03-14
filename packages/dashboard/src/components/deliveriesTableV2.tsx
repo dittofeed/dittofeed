@@ -2,6 +2,7 @@ import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
   ArrowUpward as ArrowUpwardIcon,
+  Bolt as BoltIcon,
   Clear as ClearIcon,
   Computer,
   Home,
@@ -336,6 +337,7 @@ interface State {
     startDate: Date;
     endDate: Date;
   };
+  autoReload: boolean;
 }
 
 interface BaseDelivery {
@@ -570,6 +572,7 @@ export function DeliveriesTableV2({
       sortBy: "sentAt",
       sortDirection: SortDirectionEnum.Desc,
     },
+    autoReload: false,
   });
   const theme = useTheme();
   const filtersHash = useMemo(
@@ -618,6 +621,8 @@ export function DeliveriesTableV2({
       return result;
     },
     placeholderData: keepPreviousData,
+    refetchInterval:
+      state.autoReload && state.selectedTimeOption !== "custom" ? 30000 : false,
   });
 
   const renderPreviewCell = useMemo(
@@ -1248,6 +1253,30 @@ export function DeliveriesTableV2({
               }}
             >
               <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Auto refresh every 30 seconds"
+            placement="bottom-start"
+          >
+            <IconButton
+              disabled={state.selectedTimeOption === "custom"}
+              onClick={() => {
+                setState((draft) => {
+                  draft.autoReload = !draft.autoReload;
+                });
+              }}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.400",
+                bgcolor: state.autoReload ? "primary.light" : "inherit",
+                color: state.autoReload ? "primary.contrastText" : "inherit",
+                "&:hover": {
+                  bgcolor: state.autoReload ? "primary.main" : undefined,
+                },
+              }}
+            >
+              <BoltIcon />
             </IconButton>
           </Tooltip>
         </Stack>

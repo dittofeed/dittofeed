@@ -366,12 +366,6 @@ export async function getRequestContext(
   return withSpan({ name: "get-request-context" }, async (span) => {
     const { authMode } = config();
     let result: RequestContextResult;
-    logger().debug(
-      {
-        authMode,
-      },
-      "loc5",
-    );
     switch (authMode) {
       case "anonymous": {
         result = await getAnonymousRequestContext();
