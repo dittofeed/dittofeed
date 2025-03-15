@@ -1,8 +1,10 @@
 import {
   Bolt as BoltIcon,
+  ContentCopy as ContentCopyIcon,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
+  OpenInNew,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import {
@@ -12,6 +14,7 @@ import {
   CircularProgress,
   IconButton,
   Paper,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -44,7 +47,7 @@ import {
   GetUsersUserPropertyFilter,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { NextRouter, useRouter } from "next/router";
+import { NextRouter } from "next/router";
 import React, { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
@@ -54,56 +57,109 @@ import { useAppStore } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
 
 // Cell components defined outside the main component
-function UserIdCell({ value }: { value: string }) {
+function UserIdCell({
+  value,
+  userUriTemplate,
+}: {
+  value: string;
+  userUriTemplate: string;
+}) {
+  const [showCopied, setShowCopied] = React.useState(false);
+  const uri = userUriTemplate.replace("{userId}", value);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setShowCopied(true);
+  };
+
   return (
-    <Tooltip title={value}>
-      <Typography
-        sx={{
-          fontFamily: "monospace",
-          maxWidth: "150px",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
+    <>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ maxWidth: "280px" }}
       >
-        {value}
-      </Typography>
-    </Tooltip>
+        <Tooltip title={value}>
+          <Typography
+            sx={{
+              fontFamily: "monospace",
+              maxWidth: "150px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {value}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Copy ID">
+          <IconButton size="small" onClick={handleCopy}>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="View User Profile">
+          <IconButton size="small" component={Link} href={uri}>
+            <OpenInNew fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={2000}
+        onClose={() => setShowCopied(false)}
+        message="User ID copied to clipboard"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+    </>
   );
 }
 
-function EmailCell({
-  email,
-  userId,
-  userUriTemplate,
-}: {
-  email: string;
-  userId: string;
-  userUriTemplate: string;
-}) {
-  const uri = userUriTemplate.replace("{userId}", userId);
+function EmailCell({ email }: { email: string }) {
+  const [showCopied, setShowCopied] = React.useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(email);
+    setShowCopied(true);
+  };
 
   return (
-    <Tooltip title={email} placement="bottom-start">
-      <Typography
-        component={Link}
-        href={uri}
-        sx={{
-          textDecoration: "none",
-          color: "primary.main",
-          "&:hover": {
-            textDecoration: "underline",
-          },
-          maxWidth: "250px",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          display: "block",
-        }}
+    <>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ maxWidth: "280px" }}
       >
-        {email || "N/A"}
-      </Typography>
-    </Tooltip>
+        <Tooltip title={email} placement="bottom-start">
+          <Typography
+            sx={{
+              textDecoration: "none",
+              color: "primary.main",
+              maxWidth: "220px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+            }}
+          >
+            {email || "N/A"}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Copy Email">
+          <IconButton size="small" onClick={handleCopy} disabled={!email}>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={2000}
+        onClose={() => setShowCopied(false)}
+        message="Email copied to clipboard"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+    </>
   );
 }
 
@@ -126,23 +182,21 @@ function SegmentsCell({ segments }: { segments: string }) {
 }
 
 // Cell renderer functions for the table columns
-const userIdCellRenderer = ({ getValue }: { getValue: () => unknown }) => (
-  <UserIdCell value={getValue() as string} />
+const userIdCellRenderer = ({
+  getValue,
+  userUriTemplate,
+}: {
+  getValue: () => unknown;
+  userUriTemplate: string;
+}) => (
+  <UserIdCell value={getValue() as string} userUriTemplate={userUriTemplate} />
 );
 
 const emailCellRenderer = ({
   row,
-  userUriTemplate,
 }: {
   row: { original: { id: string; email: string } };
-  userUriTemplate: string;
-}) => (
-  <EmailCell
-    email={row.original.email}
-    userId={row.original.id}
-    userUriTemplate={userUriTemplate}
-  />
-);
+}) => <EmailCell email={row.original.email} />;
 
 const segmentsCellRenderer = ({ getValue }: { getValue: () => unknown }) => (
   <SegmentsCell segments={getValue() as string} />
@@ -301,7 +355,6 @@ export default function UsersTableV2({
   reloadPeriodMs = 30000,
   userUriTemplate = "/users/{userId}",
 }: UsersTableProps) {
-  const router = useRouter();
   const apiBase = useAppStore((store) => store.apiBase);
   const { userProperties: filterUserProperties, segments: filterSegments } =
     filterStorePick(["userProperties", "segments"]);
@@ -442,13 +495,13 @@ export default function UsersTableV2({
         id: "id",
         header: "User ID",
         accessorKey: "id",
-        cell: userIdCellRenderer,
+        cell: (info) => userIdCellRenderer({ ...info, userUriTemplate }),
       },
       {
         id: "email",
         header: "Email",
         accessorKey: "email",
-        cell: (info) => emailCellRenderer({ ...info, userUriTemplate }),
+        cell: (info) => emailCellRenderer(info),
       },
       {
         id: "segments",
@@ -583,13 +636,7 @@ export default function UsersTableV2({
               <TableRow
                 key={row.id}
                 hover
-                onClick={() => {
-                  router.push({
-                    pathname: `/users/${row.original.id}`,
-                  });
-                }}
                 sx={{
-                  cursor: "pointer",
                   "&:hover": {
                     backgroundColor: "rgba(0, 0, 0, 0.04)",
                   },
