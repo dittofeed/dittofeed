@@ -104,7 +104,7 @@ export function UsersFilterV2({
           onDelete={() => removeSegment(updater, segment.id)}
         />
       ))}
-      <UsersFilterSelectorV2 />
+      <UsersFilterSelectorV2 state={state} updater={updater} />
     </Stack>
   );
 }

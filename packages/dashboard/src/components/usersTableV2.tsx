@@ -55,6 +55,8 @@ import { immer } from "zustand/middleware/immer";
 
 import { useAppStore } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
+import { useUserFilterState } from "./usersTable/userFiltersState";
+import { UsersFilterV2 } from "./usersTable/usersFilterV2";
 
 // Cell components defined outside the main component
 function UserIdCell({
@@ -362,6 +364,8 @@ export default function UsersTableV2({
   const { userProperties: filterUserProperties, segments: filterSegments } =
     filterStorePick(["userProperties", "segments"]);
 
+  const [userFilterState, userFilterUpdater] = useUserFilterState();
+
   const [state, setState] = useImmer<UserState>({
     autoReload: autoReloadByDefault,
     query: {
@@ -582,6 +586,7 @@ export default function UsersTableV2({
         spacing={1}
         sx={{ width: "100%", height: "48px" }}
       >
+        <UsersFilterV2 state={userFilterState} updater={userFilterUpdater} />
         <Box flex={1} />
         <Tooltip title="Refresh Results" placement="bottom-start">
           <IconButton
