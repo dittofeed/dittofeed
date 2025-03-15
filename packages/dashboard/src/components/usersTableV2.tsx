@@ -143,14 +143,16 @@ function EmailCell({ email }: { email: string }) {
               display: "block",
             }}
           >
-            {email || "N/A"}
+            {email || ""}
           </Typography>
         </Tooltip>
-        <Tooltip title="Copy Email">
-          <IconButton size="small" onClick={handleCopy} disabled={!email}>
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {email && (
+          <Tooltip title="Copy Email">
+            <IconButton size="small" onClick={handleCopy}>
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
       <Snackbar
         open={showCopied}
@@ -175,7 +177,7 @@ function SegmentsCell({ segments }: { segments: string }) {
           whiteSpace: "nowrap",
         }}
       >
-        {segments || "No segments"}
+        {segments}
       </Typography>
     </Tooltip>
   );
