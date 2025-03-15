@@ -4,9 +4,9 @@ import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
-import { UsersFilterSelector as UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
+import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
-export function UsersFilter() {
+export function UsersFilterV2() {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
     useAppStorePick(["userProperties", "segments"]);
 
@@ -86,15 +86,7 @@ export function UsersFilter() {
   };
 
   return (
-    <Stack
-      spacing={1}
-      direction="row"
-      alignItems="center"
-      flexWrap="wrap"
-      sx={{
-        backgroundColor: theme.palette.background.paper,
-      }}
-    >
+    <Stack spacing={1} direction="row" alignItems="center" flexWrap="wrap">
       {joinedUserPropertyFilters.flatMap((property) => (
         <Chip
           key={property.id}

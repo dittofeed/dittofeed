@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../components/dashboardContent";
-import { UsersFilter } from "../components/usersFilter";
+import { UsersFilterV2 } from "../components/usersFilterV2";
 import UsersTableV2, {
   OnPaginationChangeProps,
 } from "../components/usersTableV2";
@@ -89,7 +89,7 @@ export default function SegmentUsers() {
         <Stack direction="row">
           <Typography variant="h4">Users</Typography>
         </Stack>
-        <UsersFilter />
+        <UsersFilterV2 />
         <UsersTableV2
           {...queryParams}
           workspaceId={workspace.value.id}
