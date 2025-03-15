@@ -8,7 +8,7 @@ import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
-import UsersFilterSelector from "./usersFilterSelector";
+import { UsersFilterSelector } from "./usersFilterSelector";
 
 function CloseIconButton({ onClick }: { onClick: () => void }) {
   return (

@@ -4,7 +4,7 @@ import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
-import UsersFilterSelectorV2 from "./usersFilterSelectorV2";
+import { UsersFilterSelector as UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
 export function UsersFilter() {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
