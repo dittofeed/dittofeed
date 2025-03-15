@@ -296,6 +296,16 @@ export const defaultGetUsersRequest = function getUsersRequest({
   return axios.post(`${apiBase}/api/users`, params);
 };
 
+export const getUsersCountRequest = function getUsersCountRequest({
+  params,
+  apiBase,
+}: {
+  params: Omit<GetUsersRequest, "cursor" | "direction" | "limit">;
+  apiBase: string;
+}) {
+  return axios.post(`${apiBase}/api/users/count`, params);
+};
+
 export default function UsersTableV2({
   workspaceId,
   segmentFilter: segmentIds,
@@ -335,33 +345,62 @@ export default function UsersTableV2({
     [filterUserProperties, filterSegments],
   );
 
-  const query = useQuery<GetUsersResponse>({
-    queryKey: ["users", state, segmentIds, filtersHash],
-    queryFn: async () => {
-      const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
-        filterUserProperties.size > 0
-          ? Array.from(filterUserProperties).map((up) => ({
-              id: up[0],
-              values: Array.from(up[1]),
-            }))
-          : undefined;
+  // Function to prepare common filter parameters for both queries
+  const getCommonQueryParams = useCallback(() => {
+    const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
+      filterUserProperties.size > 0
+        ? Array.from(filterUserProperties).map((up) => ({
+            id: up[0],
+            values: Array.from(up[1]),
+          }))
+        : undefined;
 
-      const allFilterSegments = new Set<string>(filterSegments);
-      if (segmentIds) {
-        for (const segmentId of segmentIds) {
-          allFilterSegments.add(segmentId);
-        }
+    const allFilterSegments = new Set<string>(filterSegments);
+    if (segmentIds) {
+      for (const segmentId of segmentIds) {
+        allFilterSegments.add(segmentId);
       }
+    }
+
+    return {
+      segmentFilter:
+        allFilterSegments.size > 0 ? Array.from(allFilterSegments) : undefined,
+      workspaceId,
+      userPropertyFilter: requestUserPropertyFilter,
+    };
+  }, [filterUserProperties, filterSegments, segmentIds, workspaceId]);
+
+  // Query for fetching users count
+  const countQuery = useQuery({
+    queryKey: ["usersCount", workspaceId, segmentIds, filtersHash],
+    queryFn: async () => {
+      const commonParams = getCommonQueryParams();
+
+      try {
+        const response = await getUsersCountRequest({
+          params: commonParams,
+          apiBase,
+        });
+
+        return response.data.userCount;
+      } catch (error) {
+        console.error("Failed to fetch users count", error);
+        throw error;
+      }
+    },
+    refetchInterval: state.autoReload ? reloadPeriodMs : false,
+  });
+
+  // Main query for fetching users
+  const query = useQuery<GetUsersResponse>({
+    queryKey: ["users", state.query, segmentIds, filtersHash],
+    queryFn: async () => {
+      const commonParams = getCommonQueryParams();
 
       const params: GetUsersRequest = {
-        segmentFilter:
-          allFilterSegments.size > 0
-            ? Array.from(allFilterSegments)
-            : undefined,
+        ...commonParams,
         cursor: state.query.cursor ?? undefined,
         direction,
-        workspaceId,
-        userPropertyFilter: requestUserPropertyFilter,
         limit: state.query.limit,
       };
 
@@ -386,10 +425,6 @@ export default function UsersTableV2({
           draft.getUsersRequest = {
             type: CompletionStatus.InProgress,
           };
-        });
-
-        setState((draft) => {
-          draft.usersCount = result.userCount;
         });
 
         if (result.users.length === 0 && cursor) {
@@ -517,7 +552,8 @@ export default function UsersTableV2({
 
   const handleRefresh = useCallback(() => {
     query.refetch();
-  }, [query]);
+    countQuery.refetch();
+  }, [query, countQuery]);
 
   const toggleAutoRefresh = useCallback(() => {
     setState((draft) => {
@@ -660,12 +696,14 @@ export default function UsersTableV2({
                     </GreyButton>
                   </Stack>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    {state.usersCount !== null && (
+                    {countQuery.data !== undefined && (
                       <Typography variant="body2" color="text.secondary">
-                        Total users: {state.usersCount}
+                        Total users: {countQuery.data}
                       </Typography>
                     )}
-                    {isLoading && (
+                    {(isLoading ||
+                      countQuery.isPending ||
+                      countQuery.isFetching) && (
                       <CircularProgress color="inherit" size={20} />
                     )}
                   </Stack>

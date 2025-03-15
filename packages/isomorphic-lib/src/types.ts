@@ -2428,7 +2428,11 @@ export const GetUsersCountResponse = Type.Object({
 
 export type GetUsersCountResponse = Static<typeof GetUsersCountResponse>;
 
-export const GetUsersCountRequest = Type.Omit(GetUsersRequest, ["cursor"]);
+export const GetUsersCountRequest = Type.Omit(GetUsersRequest, [
+  "cursor",
+  "limit",
+  "direction",
+]);
 
 export type GetUsersCountRequest = Static<typeof GetUsersCountRequest>;
 
