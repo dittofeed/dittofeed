@@ -336,13 +336,12 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 interface TableState {
   autoReload: boolean;
-  // FIXME uncomment
-  // users: Record<string, GetUsersResponseItem>;
-  // usersCount: number | null;
-  // currentPageUserIds: string[];
-  // getUsersRequest: EphemeralRequestStatus<Error>;
-  // previousCursor: string | null;
-  // nextCursor: string | null;
+  users: Record<string, GetUsersResponseItem>;
+  usersCount: number | null;
+  currentPageUserIds: string[];
+  getUsersRequest: EphemeralRequestStatus<Error>;
+  previousCursor: string | null;
+  nextCursor: string | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -378,22 +377,18 @@ export default function UsersTableV2({
   const [state, setState] = useImmer<TableState>({
     autoReload: autoReloadByDefault,
     query: {
-      cursor: cursor || null,
+      cursor: cursor ?? null,
       limit: 10,
     },
+    users: {},
+    usersCount: null,
+    currentPageUserIds: [],
+    getUsersRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    nextCursor: null,
+    previousCursor: null,
   });
-
-  const users = usersStore((store) => store.users);
-  const nextCursor = usersStore((store) => store.nextCursor);
-  const previousCursor = usersStore((store) => store.previousCursor);
-  const currentPageUserIds = usersStore((store) => store.currentPageUserIds);
-  const usersCount = usersStore((store) => store.usersCount);
-  const setGetUsersRequest = usersStore((store) => store.setGetUsersRequest);
-  const setNextCursor = usersStore((store) => store.setNextCursor);
-  const setUsers = usersStore((store) => store.setUsers);
-  const setUsersPage = usersStore((store) => store.setUsersPage);
-  const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
-  const setUsersCount = usersStore((store) => store.setUsersCount);
 
   const filtersHash = useMemo(
     () =>
@@ -432,8 +427,10 @@ export default function UsersTableV2({
         limit: state.query.limit,
       };
 
-      setGetUsersRequest({
-        type: CompletionStatus.InProgress,
+      setState((draft) => {
+        draft.getUsersRequest = {
+          type: CompletionStatus.InProgress,
+        };
       });
 
       try {
@@ -447,29 +444,42 @@ export default function UsersTableV2({
         );
 
         // Use InProgress status as the final state instead of trying to use Successful
-        setGetUsersRequest({
-          type: CompletionStatus.InProgress,
+        setState((draft) => {
+          draft.getUsersRequest = {
+            type: CompletionStatus.InProgress,
+          };
         });
 
-        setUsersCount(result.userCount);
+        setState((draft) => {
+          draft.usersCount = result.userCount;
+        });
+
         if (result.users.length === 0 && cursor) {
           if (direction === CursorDirectionEnum.Before) {
-            setNextCursor(null);
-            setPreviousCursor(null);
+            setState((draft) => {
+              draft.nextCursor = null;
+              draft.previousCursor = null;
+            });
             onPaginationChange({});
           }
         } else {
-          setUsers(result.users);
-          setUsersPage(result.users.map((u) => u.id));
-          setNextCursor(result.nextCursor ?? null);
-          setPreviousCursor(result.previousCursor ?? null);
+          setState((draft) => {
+            for (const user of result.users) {
+              draft.users[user.id] = user;
+            }
+            draft.currentPageUserIds = result.users.map((u) => u.id);
+            draft.nextCursor = result.nextCursor ?? null;
+            draft.previousCursor = result.previousCursor ?? null;
+          });
         }
 
         return result;
       } catch (error) {
-        setGetUsersRequest({
-          type: CompletionStatus.Failed,
-          error: error as Error,
+        setState((draft) => {
+          draft.getUsersRequest = {
+            type: CompletionStatus.Failed,
+            error: error as Error,
+          };
         });
         throw error;
       }
@@ -479,8 +489,8 @@ export default function UsersTableV2({
   });
 
   const usersData = useMemo<Row[]>(() => {
-    return currentPageUserIds.flatMap((id) => {
-      const user = users[id];
+    return state.currentPageUserIds.flatMap((id) => {
+      const user = state.users[id];
       if (!user) {
         return [];
       }
@@ -503,7 +513,7 @@ export default function UsersTableV2({
         segments,
       };
     });
-  }, [currentPageUserIds, users]);
+  }, [state.currentPageUserIds, state.users]);
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
@@ -537,28 +547,28 @@ export default function UsersTableV2({
   });
 
   const onNextPage = useCallback(() => {
-    if (nextCursor) {
+    if (state.nextCursor) {
       onPaginationChange({
-        cursor: nextCursor,
+        cursor: state.nextCursor,
         direction: CursorDirectionEnum.After,
       });
       setState((draft) => {
-        draft.query.cursor = nextCursor;
+        draft.query.cursor = state.nextCursor;
       });
     }
-  }, [nextCursor, onPaginationChange, setState]);
+  }, [state.nextCursor, onPaginationChange, setState]);
 
   const onPreviousPage = useCallback(() => {
-    if (previousCursor) {
+    if (state.previousCursor) {
       onPaginationChange({
-        cursor: previousCursor,
+        cursor: state.previousCursor,
         direction: CursorDirectionEnum.Before,
       });
       setState((draft) => {
-        draft.query.cursor = previousCursor;
+        draft.query.cursor = state.previousCursor;
       });
     }
-  }, [previousCursor, onPaginationChange, setState]);
+  }, [state.previousCursor, onPaginationChange, setState]);
 
   const onFirstPage = useCallback(() => {
     onPaginationChange({});
@@ -691,30 +701,30 @@ export default function UsersTableV2({
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <GreyButton
                       onClick={onFirstPage}
-                      disabled={!previousCursor}
+                      disabled={!state.previousCursor}
                       startIcon={<KeyboardDoubleArrowLeft />}
                     >
                       First
                     </GreyButton>
                     <GreyButton
                       onClick={onPreviousPage}
-                      disabled={!previousCursor}
+                      disabled={!state.previousCursor}
                       startIcon={<KeyboardArrowLeft />}
                     >
                       Previous
                     </GreyButton>
                     <GreyButton
                       onClick={onNextPage}
-                      disabled={!nextCursor}
+                      disabled={!state.nextCursor}
                       endIcon={<KeyboardArrowRight />}
                     >
                       Next
                     </GreyButton>
                   </Stack>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    {usersCount !== null && (
+                    {state.usersCount !== null && (
                       <Typography variant="body2" color="text.secondary">
-                        Total users: {usersCount}
+                        Total users: {state.usersCount}
                       </Typography>
                     )}
                     {isLoading && (
