@@ -234,6 +234,7 @@ interface Row {
   segments: string;
 }
 
+// FIXME remove, and use immer instead
 interface UsersState {
   users: Record<string, GetUsersResponseItem>;
   usersCount: number | null;
@@ -243,6 +244,7 @@ interface UsersState {
   nextCursor: string | null;
 }
 
+// FIXME remove, and use immer instead
 interface UsersActions {
   setUsers: (val: GetUsersResponseItem[]) => void;
   setUsersPage: (val: string[]) => void;
@@ -332,8 +334,15 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   userUriTemplate?: string;
 };
 
-interface UserState {
+interface TableState {
   autoReload: boolean;
+  // FIXME uncomment
+  // users: Record<string, GetUsersResponseItem>;
+  // usersCount: number | null;
+  // currentPageUserIds: string[];
+  // getUsersRequest: EphemeralRequestStatus<Error>;
+  // previousCursor: string | null;
+  // nextCursor: string | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -366,7 +375,7 @@ export default function UsersTableV2({
 
   const [userFilterState, userFilterUpdater] = useUserFilterState();
 
-  const [state, setState] = useImmer<UserState>({
+  const [state, setState] = useImmer<TableState>({
     autoReload: autoReloadByDefault,
     query: {
       cursor: cursor || null,
