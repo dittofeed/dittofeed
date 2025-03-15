@@ -50,8 +50,6 @@ import Link from "next/link";
 import { NextRouter } from "next/router";
 import React, { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
 
 import { useAppStore } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
@@ -233,66 +231,6 @@ interface Row {
   email: string;
   segments: string;
 }
-
-// FIXME remove, and use immer instead
-interface UsersState {
-  users: Record<string, GetUsersResponseItem>;
-  usersCount: number | null;
-  currentPageUserIds: string[];
-  getUsersRequest: EphemeralRequestStatus<Error>;
-  previousCursor: string | null;
-  nextCursor: string | null;
-}
-
-// FIXME remove, and use immer instead
-interface UsersActions {
-  setUsers: (val: GetUsersResponseItem[]) => void;
-  setUsersPage: (val: string[]) => void;
-  setGetUsersRequest: (val: EphemeralRequestStatus<Error>) => void;
-  setPreviousCursor: (val: string | null) => void;
-  setNextCursor: (val: string | null) => void;
-  setUsersCount: (val: number) => void;
-}
-
-// FIXME use use immer instead of zustand
-export const usersStore = create(
-  immer<UsersState & UsersActions>((set) => ({
-    users: {},
-    usersCount: null,
-    currentPageUserIds: [],
-    getUsersRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    nextCursor: null,
-    previousCursor: null,
-    setUsers: (users) =>
-      set((state) => {
-        for (const user of users) {
-          state.users[user.id] = user;
-        }
-      }),
-    setUsersPage: (ids) =>
-      set((state) => {
-        state.currentPageUserIds = ids;
-      }),
-    setGetUsersRequest: (request) =>
-      set((state) => {
-        state.getUsersRequest = request;
-      }),
-    setPreviousCursor: (cursor) =>
-      set((state) => {
-        state.previousCursor = cursor;
-      }),
-    setNextCursor: (cursor) =>
-      set((state) => {
-        state.nextCursor = cursor;
-      }),
-    setUsersCount: (count) =>
-      set((state) => {
-        state.usersCount = count;
-      }),
-  })),
-);
 
 export const greyButtonStyle = {
   bgcolor: "grey.200",
