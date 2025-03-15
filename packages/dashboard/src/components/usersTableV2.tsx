@@ -1,36 +1,39 @@
 import {
+  Bolt as BoltIcon,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
   Refresh as RefreshIcon,
-  Bolt as BoltIcon,
 } from "@mui/icons-material";
 import {
   Box,
+  Button,
+  ButtonProps,
+  CircularProgress,
   IconButton,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TableRow,
-  TableFooter,
-  Paper,
-  Stack,
-  Button,
-  ButtonProps,
   Tooltip,
   Typography,
-  CircularProgress,
 } from "@mui/material";
+import { Type } from "@sinclair/typebox";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Type } from "@sinclair/typebox";
+import axios from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   CursorDirectionEnum,
@@ -40,19 +43,110 @@ import {
   GetUsersResponseItem,
   GetUsersUserPropertyFilter,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
-import React, { useMemo, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
+import { useImmer } from "use-immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { useImmer } from "use-immer";
-import Link from "next/link";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import { monospaceCell } from "../lib/datagridCells";
 import { filterStorePick } from "../lib/filterStore";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+
+// Cell components defined outside the main component
+function UserIdCell({ value }: { value: string }) {
+  return (
+    <Tooltip title={value}>
+      <Typography
+        sx={{
+          fontFamily: "monospace",
+          maxWidth: "150px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+function EmailCell({
+  email,
+  userId,
+  userUriTemplate,
+}: {
+  email: string;
+  userId: string;
+  userUriTemplate: string;
+}) {
+  const uri = userUriTemplate.replace("{userId}", userId);
+
+  return (
+    <Tooltip title={email} placement="bottom-start">
+      <Typography
+        component={Link}
+        href={uri}
+        sx={{
+          textDecoration: "none",
+          color: "primary.main",
+          "&:hover": {
+            textDecoration: "underline",
+          },
+          maxWidth: "250px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          display: "block",
+        }}
+      >
+        {email || "N/A"}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+function SegmentsCell({ segments }: { segments: string }) {
+  return (
+    <Tooltip title={segments} placement="bottom-start">
+      <Typography
+        sx={{
+          fontFamily: "monospace",
+          maxWidth: "300px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {segments || "No segments"}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+// Cell renderer functions for the table columns
+const userIdCellRenderer = ({ getValue }: { getValue: () => unknown }) => (
+  <UserIdCell value={getValue() as string} />
+);
+
+const emailCellRenderer = ({
+  row,
+  userUriTemplate,
+}: {
+  row: { original: { id: string; email: string } };
+  userUriTemplate: string;
+}) => (
+  <EmailCell
+    email={row.original.email}
+    userId={row.original.id}
+    userUriTemplate={userUriTemplate}
+  />
+);
+
+const segmentsCellRenderer = ({ getValue }: { getValue: () => unknown }) => (
+  <SegmentsCell segments={getValue() as string} />
+);
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -187,6 +281,16 @@ interface UserState {
   };
 }
 
+export const defaultGetUsersRequest = function getUsersRequest({
+  params,
+  apiBase,
+}: {
+  params: GetUsersRequest;
+  apiBase: string;
+}) {
+  return axios.post(`${apiBase}/api/users`, params);
+};
+
 export default function UsersTableV2({
   workspaceId,
   segmentFilter: segmentIds,
@@ -210,7 +314,6 @@ export default function UsersTableV2({
     },
   });
 
-  const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
   const nextCursor = usersStore((store) => store.nextCursor);
   const previousCursor = usersStore((store) => store.previousCursor);
@@ -265,20 +368,18 @@ export default function UsersTableV2({
       });
 
       try {
-        const response = await fetch(`${apiBase}/api/users`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(params),
+        const response = await defaultGetUsersRequest({
+          params,
+          apiBase,
         });
 
-        const data = await response.json();
-        const result = unwrap(schemaValidateWithErr(data, GetUsersResponse));
+        const result = unwrap(
+          schemaValidateWithErr(response.data, GetUsersResponse),
+        );
 
+        // Use InProgress status as the final state instead of trying to use Successful
         setGetUsersRequest({
           type: CompletionStatus.InProgress,
-          completionPercentage: 100,
         });
 
         setUsersCount(result.userCount);
@@ -341,77 +442,19 @@ export default function UsersTableV2({
         id: "id",
         header: "User ID",
         accessorKey: "id",
-        cell: ({ getValue }) => (
-          <Tooltip title={getValue() as string}>
-            <Typography
-              sx={{
-                fontFamily: "monospace",
-                maxWidth: "150px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {getValue() as string}
-            </Typography>
-          </Tooltip>
-        ),
+        cell: userIdCellRenderer,
       },
       {
         id: "email",
         header: "Email",
         accessorKey: "email",
-        cell: ({ row }) => {
-          const userId = row.original.id;
-          const email = row.original.email;
-          const uri = userUriTemplate.replace("{userId}", userId);
-
-          return (
-            <Tooltip title={email} placement="bottom-start">
-              <Typography
-                component={Link}
-                href={uri}
-                sx={{
-                  textDecoration: "none",
-                  color: "primary.main",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                  maxWidth: "250px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  display: "block",
-                }}
-              >
-                {email || "N/A"}
-              </Typography>
-            </Tooltip>
-          );
-        },
+        cell: (info) => emailCellRenderer({ ...info, userUriTemplate }),
       },
       {
         id: "segments",
         header: "Segments",
         accessorKey: "segments",
-        cell: ({ getValue }) => {
-          const segments = getValue() as string;
-          return (
-            <Tooltip title={segments} placement="bottom-start">
-              <Typography
-                sx={{
-                  fontFamily: "monospace",
-                  maxWidth: "300px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {segments || "No segments"}
-              </Typography>
-            </Tooltip>
-          );
-        },
+        cell: segmentsCellRenderer,
       },
     ],
     [userUriTemplate],
