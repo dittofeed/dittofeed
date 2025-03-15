@@ -3,24 +3,23 @@ import { CompletionStatus } from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { filterStorePick } from "../../lib/filterStore";
+import {
+  removeSegment,
+  removeUserProperty,
+  UserFilterState,
+  UserFilterUpdater,
+} from "./userFiltersState";
 import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
-export function UsersFilterV2() {
+export function UsersFilterV2({
+  state,
+  updater,
+}: {
+  state: UserFilterState;
+  updater: UserFilterUpdater;
+}) {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
     useAppStorePick(["userProperties", "segments"]);
-
-  const {
-    removeUserProperty: removeUserPropertyFilter,
-    removeSegment: removeSegmentFilter,
-    userProperties: filterUserProperties,
-    segments: filterSegments,
-  } = filterStorePick([
-    "removeUserProperty",
-    "removeSegment",
-    "userProperties",
-    "segments",
-  ]);
 
   const joinedFilterSegments: {
     id: string;
@@ -34,14 +33,14 @@ export function UsersFilterV2() {
       return acc;
     }, new Map<string, string>());
 
-    return Array.from(filterSegments).flatMap((id) => {
+    return Array.from(state.segments).flatMap((id) => {
       const name = segmentNames.get(id);
       if (!name) {
         return [];
       }
       return { id, name };
     });
-  }, [filterSegments, segmentResult]);
+  }, [state.segments, segmentResult]);
 
   const joinedUserPropertyFilters: {
     id: string;
@@ -56,14 +55,14 @@ export function UsersFilterV2() {
       return acc;
     }, new Map<string, string>());
 
-    return Array.from(filterUserProperties).flatMap(([id, values]) => {
+    return Array.from(state.userProperties).flatMap(([id, values]) => {
       const name = userPropertyNames.get(id);
       if (!name) {
         return [];
       }
       return { id, name, values: Array.from(values) };
     });
-  }, [filterUserProperties, userPropertiesResult]);
+  }, [state.userProperties, userPropertiesResult]);
 
   const theme = useTheme();
 
@@ -94,7 +93,7 @@ export function UsersFilterV2() {
           label={`${property.name} = ${property.values
             .map((value) => `"${value}"`)
             .join(" OR ")}`}
-          onDelete={() => removeUserPropertyFilter(property.id)}
+          onDelete={() => removeUserProperty(updater, property.id)}
         />
       ))}
       {joinedFilterSegments.map((segment) => (
@@ -102,7 +101,7 @@ export function UsersFilterV2() {
           key={segment.id}
           sx={chipSx}
           label={`User in ${segment.name}`}
-          onDelete={() => removeSegmentFilter(segment.id)}
+          onDelete={() => removeSegment(updater, segment.id)}
         />
       ))}
       <UsersFilterSelectorV2 />

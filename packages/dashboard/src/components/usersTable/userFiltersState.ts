@@ -36,7 +36,7 @@ export type FilterStage =
   | FilterSegmentStage
   | FilterComputedPropertyTypeStage;
 
-interface UserFilterState {
+export interface UserFilterState {
   // map from user property id to user property value
   userProperties: Map<string, Set<string>>;
   staticUserProperties: Map<string, Set<string>>;
@@ -46,7 +46,9 @@ interface UserFilterState {
   stage: FilterStage | null;
 }
 
-export type UserFilterHook = [UserFilterState, Updater<UserFilterState>];
+export type UserFilterUpdater = Updater<UserFilterState>;
+
+export type UserFilterHook = [UserFilterState, UserFilterUpdater];
 
 export function useUserFilterState(
   initialState?: Partial<UserFilterState>,
