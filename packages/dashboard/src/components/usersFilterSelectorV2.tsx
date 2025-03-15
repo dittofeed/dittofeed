@@ -4,7 +4,6 @@ import {
   Autocomplete,
   Box,
   IconButton,
-  Paper,
   Popover,
   TextField,
   Tooltip,
@@ -25,19 +24,11 @@ import {
   FilterUserPropertyValueStage,
 } from "../lib/filterStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
+import { SquarePaper } from "./squarePaper";
 
 interface Option {
   id: string;
   label: string;
-}
-
-function AutocompletePaperComponent(props: React.ComponentProps<typeof Paper>) {
-  return (
-    <Paper
-      {...props}
-      sx={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-    />
-  );
 }
 
 function ComputedPropertyAutocomplete({
@@ -59,13 +50,15 @@ function ComputedPropertyAutocomplete({
       }}
       options={options}
       open
-      PaperComponent={AutocompletePaperComponent}
+      ListboxProps={{
+        sx: {
+          padding: 0,
+        },
+      }}
+      PaperComponent={SquarePaper}
       sx={{
         width: theme.spacing(30),
         height: "100%",
-        "& .MuiAutocomplete-listbox": {
-          padding: 0,
-        },
       }}
       autoComplete
       disablePortal
