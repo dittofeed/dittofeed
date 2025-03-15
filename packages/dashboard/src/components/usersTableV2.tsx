@@ -250,6 +250,7 @@ interface UsersActions {
   setUsersCount: (val: number) => void;
 }
 
+// FIXME use use immer instead of zustand
 export const usersStore = create(
   immer<UsersState & UsersActions>((set) => ({
     users: {},
