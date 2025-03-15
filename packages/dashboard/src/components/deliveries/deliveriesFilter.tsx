@@ -7,7 +7,6 @@ import {
   ButtonProps,
   Chip,
   Paper,
-  PaperProps,
   SxProps,
   TextField,
   Theme,
@@ -27,10 +26,7 @@ import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { greyTextFieldStyles } from "../greyScaleStyles";
-
-function SquarePaper(props: PaperProps) {
-  return <Paper {...props} square elevation={4} />;
-}
+import { SquarePaper } from "../squarePaper";
 
 export interface BaseDeliveriesFilterCommand {
   label: string;

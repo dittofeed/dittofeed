@@ -1,53 +1,12 @@
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import { IconButton, useTheme } from "@mui/material";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
-import { UsersFilterSelector } from "./usersFilterSelector";
+import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
-function CloseIconButton({ onClick }: { onClick: () => void }) {
-  return (
-    <IconButton size="small" color="secondary" onClick={onClick}>
-      <CloseOutlinedIcon />
-    </IconButton>
-  );
-}
-
-function AppliedFilter({
-  remove,
-  name,
-  label,
-}: {
-  name: string;
-  label: string;
-  remove: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      sx={{
-        borderRadius: 1,
-        backgroundColor: theme.palette.grey[300],
-      }}
-      pr={1}
-    >
-      <CloseIconButton onClick={() => remove()} />
-      <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
-        <Typography color="inherit">{label}</Typography>
-        <Typography color="inherit">{name}</Typography>
-      </Breadcrumbs>
-    </Stack>
-  );
-}
-
-export function UsersFilter() {
+export function UsersFilterV2() {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
     useAppStorePick(["userProperties", "segments"]);
 
@@ -106,32 +65,47 @@ export function UsersFilter() {
     });
   }, [filterUserProperties, userPropertiesResult]);
 
+  const theme = useTheme();
+
+  // Define common chip styles to match DeliveriesFilter grayscale look
+  const chipSx: SxProps<Theme> = {
+    borderRadius: "4px",
+    color: theme.palette.grey[700],
+    backgroundColor: theme.palette.grey[200],
+    "& .MuiChip-deleteIcon": {
+      color: theme.palette.grey[500],
+      "&:hover": {
+        color: theme.palette.grey[700],
+      },
+    },
+    margin: theme.spacing(0.5),
+    height: theme.spacing(4),
+    "& .MuiChip-label": {
+      fontWeight: 500,
+    },
+  };
+
   return (
-    <Stack
-      spacing={2}
-      direction="row"
-      justifyItems="center"
-      alignItems="center"
-    >
+    <Stack spacing={1} direction="row" alignItems="center" flexWrap="wrap">
       {joinedUserPropertyFilters.flatMap((property) => (
-        <AppliedFilter
+        <Chip
           key={property.id}
-          name={property.values
-            .map((value) => `${property.name} = "${value}"`)
-            .join(" OR ")}
-          label="User Property"
-          remove={() => removeUserPropertyFilter(property.id)}
+          sx={chipSx}
+          label={`${property.name} = ${property.values
+            .map((value) => `"${value}"`)
+            .join(" OR ")}`}
+          onDelete={() => removeUserPropertyFilter(property.id)}
         />
       ))}
       {joinedFilterSegments.map((segment) => (
-        <AppliedFilter
+        <Chip
           key={segment.id}
-          name={segment.name}
-          label="Segment"
-          remove={() => removeSegmentFilter(segment.id)}
+          sx={chipSx}
+          label={`User in ${segment.name}`}
+          onDelete={() => removeSegmentFilter(segment.id)}
         />
       ))}
-      <UsersFilterSelector />
+      <UsersFilterSelectorV2 />
     </Stack>
   );
 }

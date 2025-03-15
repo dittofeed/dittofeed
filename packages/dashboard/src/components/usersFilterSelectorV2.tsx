@@ -24,6 +24,7 @@ import {
   FilterUserPropertyValueStage,
 } from "../lib/filterStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
+import { SquarePaper } from "./squarePaper";
 
 interface Option {
   id: string;
@@ -49,7 +50,16 @@ function ComputedPropertyAutocomplete({
       }}
       options={options}
       open
-      sx={{ width: theme.spacing(30), height: "100%" }}
+      ListboxProps={{
+        sx: {
+          padding: 0,
+        },
+      }}
+      PaperComponent={SquarePaper}
+      sx={{
+        width: theme.spacing(30),
+        height: "100%",
+      }}
       autoComplete
       disablePortal
       renderInput={(params) => (
@@ -276,7 +286,6 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
       display="flex"
       justifyContent="space-between"
       sx={{
-        p: 1,
         borderBottom: `1px solid ${theme.palette.divider}`,
       }}
       alignItems="center"
@@ -292,6 +301,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
             cursor: "pointer",
             color: theme.palette.grey[700],
             fontWeight: 500,
+            pr: 1,
           }}
           onClick={addUserProperty}
         >
@@ -302,7 +312,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
   );
 }
 
-export function UsersFilterSelector() {
+export function UsersFilterSelectorV2() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
@@ -384,6 +394,7 @@ export function UsersFilterSelector() {
             borderRadius: 0,
             boxShadow: 4,
           },
+          p: 0,
         }}
         anchorOrigin={{
           vertical: "bottom",
@@ -398,13 +409,7 @@ export function UsersFilterSelector() {
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />
         )}
-        <Box
-          sx={{
-            p: stage?.type === FilterStageType.ComputedPropertyType ? 0 : 1,
-          }}
-        >
-          {stageEl}
-        </Box>
+        {stageEl}
       </Popover>
     </>
   );
