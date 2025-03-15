@@ -17,14 +17,18 @@ import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import {
-  FilterStageType,
-  FilterStageWithBack,
-  filterStorePick,
-  FilterUserPropertyValueStage,
-} from "../../lib/filterStore";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
+import {
+  addSegment,
+  addUserProperty,
+  FilterStageType,
+  FilterStageWithBack,
+  FilterUserPropertyValueStage,
+  setStage,
+  UserFilterState,
+  UserFilterUpdater,
+} from "./userFiltersState";
 
 interface Option {
   id: string;
@@ -105,9 +109,14 @@ function ComputedPropertyAutocomplete({
   );
 }
 
-function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
+function SegmentSelector({
+  updater,
+  closeDropdown,
+}: {
+  updater: UserFilterUpdater;
+  closeDropdown: () => void;
+}) {
   const { segments: segmentsResult } = useAppStorePick(["segments"]);
-  const { addSegment } = filterStorePick(["addSegment"]);
 
   const options: Option[] = React.useMemo(() => {
     if (segmentsResult.type !== CompletionStatus.Successful) {
@@ -123,7 +132,7 @@ function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
     <ComputedPropertyAutocomplete
       options={options}
       onChange={(id) => {
-        addSegment(id);
+        addSegment(updater, id);
         closeDropdown();
       }}
       label="Segment"
@@ -131,11 +140,10 @@ function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
   );
 }
 
-function UserPropertySelector() {
+function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
   const { userProperties: userPropertiesResult } = useAppStorePick([
     "userProperties",
   ]);
-  const { setStage } = filterStorePick(["setStage"]);
 
   const options: Option[] = React.useMemo(() => {
     if (userPropertiesResult.type !== CompletionStatus.Successful) {
@@ -151,7 +159,7 @@ function UserPropertySelector() {
     <ComputedPropertyAutocomplete
       options={options}
       onChange={(id) => {
-        setStage({
+        setStage(updater, {
           type: FilterStageType.UserPropertyValue,
           id,
           value: "",
@@ -164,15 +172,13 @@ function UserPropertySelector() {
 
 function UserPropertyValueSelector({
   stage,
+  updater,
   closeDropdown,
 }: {
   stage: FilterUserPropertyValueStage;
+  updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  const { setStage, addUserProperty } = filterStorePick([
-    "setStage",
-    "addUserProperty",
-  ]);
   const theme = useTheme();
 
   return (
@@ -192,13 +198,13 @@ function UserPropertyValueSelector({
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
-          addUserProperty();
+          addUserProperty(updater);
           closeDropdown();
         }
       }}
       onChange={(e) => {
         const { value } = e.target;
-        setStage({
+        setStage(updater, {
           type: FilterStageType.UserPropertyValue,
           id: stage.id,
           value,
@@ -208,8 +214,11 @@ function UserPropertyValueSelector({
   );
 }
 
-function ComputedPropertyTypeSelector() {
-  const { setStage } = filterStorePick(["setStage"]);
+function ComputedPropertyTypeSelector({
+  updater,
+}: {
+  updater: UserFilterUpdater;
+}) {
   const theme = useTheme();
 
   const FilterOptionsArray: {
@@ -231,7 +240,7 @@ function ComputedPropertyTypeSelector() {
         <MenuItem
           key={option.title}
           onClick={() =>
-            setStage({
+            setStage(updater, {
               type: option.type,
             })
           }
@@ -251,27 +260,29 @@ function ComputedPropertyTypeSelector() {
   );
 }
 
-function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
-  const { setStage, addUserProperty } = filterStorePick([
-    "setStage",
-    "addUserProperty",
-  ]);
+function SelectorFooter({
+  stage,
+  updater,
+}: {
+  stage: FilterStageWithBack;
+  updater: UserFilterUpdater;
+}) {
   const theme = useTheme();
 
   const handlePrevious = () => {
     switch (stage.type) {
       case FilterStageType.UserPropertyValue:
-        setStage({
+        setStage(updater, {
           type: FilterStageType.UserProperty,
         });
         break;
       case FilterStageType.UserProperty:
-        setStage({
+        setStage(updater, {
           type: FilterStageType.ComputedPropertyType,
         });
         break;
       case FilterStageType.Segment:
-        setStage({
+        setStage(updater, {
           type: FilterStageType.ComputedPropertyType,
         });
         break;
@@ -303,7 +314,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
             fontWeight: 500,
             pr: 1,
           }}
-          onClick={addUserProperty}
+          onClick={() => addUserProperty(updater)}
         >
           Submit
         </Typography>
@@ -312,18 +323,23 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
   );
 }
 
-export function UsersFilterSelectorV2() {
+export function UsersFilterSelectorV2({
+  state,
+  updater,
+}: {
+  state: UserFilterState;
+  updater: UserFilterUpdater;
+}) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const { stage, setStage } = filterStorePick(["setStage", "stage"]);
   const theme = useTheme();
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (stage !== null) {
+    if (state.stage !== null) {
       return;
     }
     setAnchorEl(event.currentTarget);
-    setStage({
+    setStage(updater, {
       type: FilterStageType.ComputedPropertyType,
     });
   };
@@ -331,32 +347,35 @@ export function UsersFilterSelectorV2() {
   const handleClose = () => {
     setAnchorEl(null);
     setTimeout(() => {
-      setStage(null);
+      setStage(updater, null);
     }, 300);
   };
 
   let stageEl: React.ReactNode = null;
-  if (stage) {
-    switch (stage.type) {
+  if (state.stage) {
+    switch (state.stage.type) {
       case FilterStageType.ComputedPropertyType:
-        stageEl = <ComputedPropertyTypeSelector />;
+        stageEl = <ComputedPropertyTypeSelector updater={updater} />;
         break;
       case FilterStageType.Segment:
-        stageEl = <SegmentSelector closeDropdown={handleClose} />;
+        stageEl = (
+          <SegmentSelector updater={updater} closeDropdown={handleClose} />
+        );
         break;
       case FilterStageType.UserProperty:
-        stageEl = <UserPropertySelector />;
+        stageEl = <UserPropertySelector updater={updater} />;
         break;
       case FilterStageType.UserPropertyValue:
         stageEl = (
           <UserPropertyValueSelector
-            stage={stage}
+            stage={state.stage}
+            updater={updater}
             closeDropdown={handleClose}
           />
         );
         break;
       default:
-        assertUnreachable(stage);
+        assertUnreachable(state.stage);
     }
   }
 
@@ -406,9 +425,10 @@ export function UsersFilterSelectorV2() {
         }}
         onClose={handleClose}
       >
-        {stage && stage.type !== FilterStageType.ComputedPropertyType && (
-          <SelectorFooter stage={stage} />
-        )}
+        {state.stage &&
+          state.stage.type !== FilterStageType.ComputedPropertyType && (
+            <SelectorFooter stage={state.stage} updater={updater} />
+          )}
         {stageEl}
       </Popover>
     </>
