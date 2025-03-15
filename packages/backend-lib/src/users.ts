@@ -26,6 +26,7 @@ import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
   DeleteUsersRequest,
+  GetUsersCountResponse,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
@@ -399,4 +400,10 @@ export async function deleteUsers({
         ),
       ),
   ]);
+}
+
+export async function getUsersCount({
+  workspaceId,
+}: GetUsersRequest): Promise<Result<GetUsersCountResponse, Error>> {
+  throw new Error("Not implemented");
 }
