@@ -91,7 +91,7 @@ export function UsersFilterV2() {
         <Chip
           key={property.id}
           sx={chipSx}
-          label={`User Property = ${property.values
+          label={`${property.name} = ${property.values
             .map((value) => `"${value}"`)
             .join(" OR ")}`}
           onDelete={() => removeUserPropertyFilter(property.id)}
@@ -101,7 +101,7 @@ export function UsersFilterV2() {
         <Chip
           key={segment.id}
           sx={chipSx}
-          label={`Segment = ${segment.name}`}
+          label={`User in ${segment.name}`}
           onDelete={() => removeSegmentFilter(segment.id)}
         />
       ))}
