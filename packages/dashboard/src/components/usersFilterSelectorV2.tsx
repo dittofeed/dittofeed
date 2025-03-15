@@ -302,7 +302,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
   );
 }
 
-export default function UsersFilterSelectorV2() {
+export default function UsersFilterSelector() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
