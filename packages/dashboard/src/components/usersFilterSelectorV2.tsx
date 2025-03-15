@@ -63,13 +63,8 @@ function ComputedPropertyAutocomplete({
       sx={{
         width: theme.spacing(30),
         height: "100%",
-        "& .MuiAutocomplete-paper": {
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-        },
         "& .MuiAutocomplete-listbox": {
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
+          padding: 0,
         },
       }}
       autoComplete
