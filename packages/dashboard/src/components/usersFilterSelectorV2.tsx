@@ -276,7 +276,6 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
       display="flex"
       justifyContent="space-between"
       sx={{
-        p: 1,
         borderBottom: `1px solid ${theme.palette.divider}`,
       }}
       alignItems="center"
@@ -292,6 +291,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
             cursor: "pointer",
             color: theme.palette.grey[700],
             fontWeight: 500,
+            pr: 1,
           }}
           onClick={addUserProperty}
         >
@@ -384,6 +384,7 @@ export function UsersFilterSelectorV2() {
             borderRadius: 0,
             boxShadow: 4,
           },
+          p: 0,
         }}
         anchorOrigin={{
           vertical: "bottom",
@@ -398,13 +399,7 @@ export function UsersFilterSelectorV2() {
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />
         )}
-        <Box
-          sx={{
-            p: stage?.type === FilterStageType.ComputedPropertyType ? 0 : 1,
-          }}
-        >
-          {stageEl}
-        </Box>
+        {stageEl}
       </Popover>
     </>
   );
