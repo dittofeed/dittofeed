@@ -48,13 +48,16 @@ interface UserFilterState {
 
 export type UserFilterHook = [UserFilterState, Updater<UserFilterState>];
 
-export function useUserFilterState(): UserFilterHook {
+export function useUserFilterState(
+  initialState?: Partial<UserFilterState>,
+): UserFilterHook {
   return useImmer<UserFilterState>({
     userProperties: new Map(),
     staticUserProperties: new Map(),
     segments: new Set(),
     staticSegments: new Set(),
     stage: null,
+    ...initialState,
   });
 }
 
