@@ -11,7 +11,9 @@ import React, { useMemo } from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import { UsersFilter } from "../components/usersFilter";
-import UsersTable, { OnPaginationChangeProps } from "../components/usersTable";
+import UsersTableV2, {
+  OnPaginationChangeProps,
+} from "../components/usersTableV2";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
@@ -88,7 +90,7 @@ export default function SegmentUsers() {
           <Typography variant="h4">Users</Typography>
         </Stack>
         <UsersFilter />
-        <UsersTable
+        <UsersTableV2
           {...queryParams}
           workspaceId={workspace.value.id}
           onPaginationChange={onUsersTablePaginate}
