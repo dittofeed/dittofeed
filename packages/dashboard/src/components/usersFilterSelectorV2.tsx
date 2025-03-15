@@ -4,6 +4,7 @@ import {
   Autocomplete,
   Box,
   IconButton,
+  Paper,
   Popover,
   TextField,
   Tooltip,
@@ -30,6 +31,15 @@ interface Option {
   label: string;
 }
 
+function AutocompletePaperComponent(props: React.ComponentProps<typeof Paper>) {
+  return (
+    <Paper
+      {...props}
+      sx={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+    />
+  );
+}
+
 function ComputedPropertyAutocomplete({
   options,
   onChange,
@@ -49,7 +59,19 @@ function ComputedPropertyAutocomplete({
       }}
       options={options}
       open
-      sx={{ width: theme.spacing(30), height: "100%" }}
+      PaperComponent={AutocompletePaperComponent}
+      sx={{
+        width: theme.spacing(30),
+        height: "100%",
+        "& .MuiAutocomplete-paper": {
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        },
+        "& .MuiAutocomplete-listbox": {
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        },
+      }}
       autoComplete
       disablePortal
       renderInput={(params) => (
