@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../components/dashboardContent";
-import { UsersFilterV2 } from "../components/usersFilterV2";
+import { UsersFilterV2 } from "../components/usersTable/usersFilterV2";
 import UsersTableV2, {
   OnPaginationChangeProps,
 } from "../components/usersTableV2";

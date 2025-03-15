@@ -16,15 +16,15 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
-import { useAppStorePick } from "../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import {
   FilterStageType,
   FilterStageWithBack,
   filterStorePick,
   FilterUserPropertyValueStage,
-} from "../lib/filterStore";
-import { greyTextFieldStyles } from "./greyScaleStyles";
-import { SquarePaper } from "./squarePaper";
+} from "../../lib/filterStore";
+import { greyTextFieldStyles } from "../greyScaleStyles";
+import { SquarePaper } from "../squarePaper";
 
 interface Option {
   id: string;

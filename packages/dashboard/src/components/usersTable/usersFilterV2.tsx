@@ -2,8 +2,8 @@ import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import React from "react";
 
-import { useAppStorePick } from "../lib/appStore";
-import { filterStorePick } from "../lib/filterStore";
+import { useAppStorePick } from "../../lib/appStore";
+import { filterStorePick } from "../../lib/filterStore";
 import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
 export function UsersFilterV2() {
