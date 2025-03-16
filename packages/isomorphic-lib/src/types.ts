@@ -2417,10 +2417,24 @@ export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
   previousCursor: Type.Optional(Type.String()),
   nextCursor: Type.Optional(Type.String()),
-  userCount: Type.Number(),
+  userCount: Type.Literal(0),
 });
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
+
+export const GetUsersCountResponse = Type.Object({
+  userCount: Type.Number(),
+});
+
+export type GetUsersCountResponse = Static<typeof GetUsersCountResponse>;
+
+export const GetUsersCountRequest = Type.Omit(GetUsersRequest, [
+  "cursor",
+  "limit",
+  "direction",
+]);
+
+export type GetUsersCountRequest = Static<typeof GetUsersCountRequest>;
 
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),

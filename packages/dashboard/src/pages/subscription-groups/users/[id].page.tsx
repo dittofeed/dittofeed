@@ -5,10 +5,10 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import UsersTable, {
+import UsersTableV2, {
   usersTablePaginationHandler,
   UsersTableParams,
-} from "../../../components/usersTable";
+} from "../../../components/usersTableV2";
 import { useAppStore } from "../../../lib/appStore";
 import { PropsWithInitialState } from "../../../lib/types";
 import getSubscriptionGroupsSSP from "../getSubscriptionGroupsSSP";
@@ -41,6 +41,13 @@ export default function SubscriptionGroupUsers() {
         : undefined,
     [segmentsResult, id],
   );
+  const segmentNameOverrides: Map<string, string> | undefined = useMemo(
+    () =>
+      segment && editedSubscriptionGroup
+        ? new Map([[segment.id, editedSubscriptionGroup.name]])
+        : undefined,
+    [editedSubscriptionGroup, segment],
+  );
 
   if (!id) {
     return new Error("Missing id");
@@ -68,9 +75,10 @@ export default function SubscriptionGroupUsers() {
             <Typography variant="h4">
               Users in &quot;{editedSubscriptionGroup.name}&quot;
             </Typography>
-            <UsersTable
+            <UsersTableV2
               workspaceId={workspace.value.id}
               segmentFilter={[segment.id]}
+              segmentNameOverrides={segmentNameOverrides}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />

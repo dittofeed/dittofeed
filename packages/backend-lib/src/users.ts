@@ -26,6 +26,7 @@ import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
   DeleteUsersRequest,
+  GetUsersCountResponse,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
@@ -399,4 +400,88 @@ export async function deleteUsers({
         ),
       ),
   ]);
+}
+
+export async function getUsersCount({
+  workspaceId,
+  segmentFilter,
+  userIds,
+  userPropertyFilter,
+}: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
+  Result<GetUsersCountResponse, Error>
+> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const userPropertyWhereClause = userPropertyFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        userPropertyFilter.map((property) => property.id),
+        "Array(String)",
+      )}`
+    : "";
+  const segmentWhereClause = segmentFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        segmentFilter,
+        "Array(String)",
+      )}`
+    : "";
+
+  const selectUserIdColumns = ["user_id"];
+
+  const havingSubClauses: string[] = [];
+  for (const property of userPropertyFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(
+      `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+    );
+  }
+  for (const segment of segmentFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(`${varName} = True`);
+  }
+  const havingClause =
+    havingSubClauses.length > 0
+      ? `HAVING ${havingSubClauses.join(" AND ")}`
+      : "";
+  const selectUserIdStr = selectUserIdColumns.join(", ");
+  const userIdsClause = userIds
+    ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+    : "";
+
+  // Using a similar nested query approach as getUsers
+  const query = `
+    SELECT
+      uniq(user_id) as user_count
+    FROM (
+      SELECT
+        ${selectUserIdStr}
+      FROM computed_property_assignments_v2
+      WHERE
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        ${userPropertyWhereClause}
+        ${segmentWhereClause}
+        ${userIdsClause}
+      GROUP BY workspace_id, user_id
+      ${havingClause}
+    )
+  `;
+
+  const results = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+
+  const rows = await results.json<{ user_count: number }>();
+
+  // If no rows returned, count is 0
+  const userCount = rows.length > 0 ? Number(rows[0]?.user_count || 0) : 0;
+
+  return ok({
+    userCount,
+  });
 }
