@@ -241,6 +241,38 @@ describe("getUsers", () => {
           expect(result.users).toHaveLength(0);
         });
       });
+
+      describe("when a user has opted in", () => {
+        beforeEach(async () => {
+          await Promise.all([
+            insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]),
+            insertSegmentAssignments([
+              {
+                segmentId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                inSegment: true,
+              },
+            ]),
+          ]);
+        });
+        it("the user is included in the results", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(1);
+        });
+      });
     });
     describe("when the subscription group is opt-in", () => {
       describe("when a user hasn't opted in", () => {

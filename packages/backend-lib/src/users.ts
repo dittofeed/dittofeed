@@ -145,13 +145,6 @@ export async function getUsers({
       >(),
     );
 
-    logger().debug(
-      {
-        subscriptionGroups: Object.fromEntries(subscriptionGroups),
-        subscriptionGroupsRows,
-      },
-      "loc1 subscription groups",
-    );
     for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
       const sg = subscriptionGroups.get(subscriptionGroup);
       if (!sg) {
@@ -169,11 +162,14 @@ export async function getUsers({
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
-      havingSubClauses.push(
-        `${varName}${type === SubscriptionGroupType.OptOut ? " != False" : " = True"}`,
-      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+      }
     }
   }
+
   const havingClause =
     havingSubClauses.length > 0
       ? `HAVING ${havingSubClauses.join(" AND ")}`
