@@ -135,7 +135,7 @@ function EmailCell({ email }: { email: string }) {
           <Typography
             sx={{
               textDecoration: "none",
-              color: "primary.main",
+              color: "text.primary",
               maxWidth: "220px",
               overflow: "hidden",
               textOverflow: "ellipsis",
