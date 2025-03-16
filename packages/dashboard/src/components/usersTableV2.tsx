@@ -8,13 +8,16 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import {
+  Autocomplete,
   Box,
   Button,
   ButtonProps,
   Chip,
   CircularProgress,
   IconButton,
+  MenuItem,
   Paper,
+  Popover,
   Snackbar,
   Stack,
   Table,
@@ -24,6 +27,7 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  TextField,
   Tooltip,
   Typography,
   useTheme,
@@ -57,6 +61,8 @@ import { useAppStore } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
 import { useUserFilterState } from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
+import { SquarePaper } from "./squarePaper";
+import { greyTextFieldStyles } from "./greyScaleStyles";
 
 // Cell components defined outside the main component
 function UserIdCell({
@@ -167,15 +173,105 @@ function EmailCell({ email }: { email: string }) {
   );
 }
 
+function SegmentsPopover({
+  segments,
+  onSegmentSelect,
+}: {
+  segments: { id: string; name: string }[];
+  onSegmentSelect: (id: string) => void;
+}) {
+  const theme = useTheme();
+  const options = segments.map((segment) => ({
+    id: segment.id,
+    label: segment.name,
+  }));
+
+  return (
+    <Autocomplete
+      onChange={(_, value) => {
+        if (value) {
+          onSegmentSelect(value.id);
+        }
+      }}
+      options={options}
+      open
+      ListboxProps={{
+        sx: {
+          padding: 0,
+        },
+      }}
+      PaperComponent={SquarePaper}
+      sx={{
+        width: theme.spacing(30),
+        height: "100%",
+      }}
+      autoComplete
+      disablePortal
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          variant="filled"
+          label="Segment"
+          autoFocus
+          InputProps={{
+            ...params.InputProps,
+            sx: {
+              borderRadius: 0,
+            },
+          }}
+          sx={greyTextFieldStyles}
+        />
+      )}
+      renderOption={(props, option) => (
+        <MenuItem
+          {...props}
+          sx={{
+            borderRadius: 0,
+            color: theme.palette.grey[700],
+          }}
+        >
+          <Tooltip title={option.label}>
+            <Box
+              sx={{
+                width: "100%",
+                textOverflow: "ellipsis",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {option.label}
+            </Box>
+          </Tooltip>
+        </MenuItem>
+      )}
+    />
+  );
+}
+
 function SegmentsCell({
   segments,
 }: {
   segments: Array<{ id: string; name: string }>;
 }) {
   const theme = useTheme();
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const open = Boolean(anchorEl);
 
   const visibleSegments = segments.slice(0, 2);
   const hasMoreSegments = segments.length > 2;
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSegmentSelect = (segmentId: string) => {
+    window.location.href = `/segments/${segmentId}`;
+    handleClose();
+  };
 
   return (
     <Stack direction="row" spacing={1} alignItems="center">
@@ -198,14 +294,47 @@ function SegmentsCell({
         />
       ))}
       {hasMoreSegments && (
-        <Chip
-          label="..."
-          size="small"
-          sx={{
-            color: theme.palette.grey[700],
-            bgcolor: theme.palette.grey[200],
-          }}
-        />
+        <>
+          <Chip
+            label="..."
+            size="small"
+            onClick={handleClick}
+            sx={{
+              cursor: "pointer",
+              color: theme.palette.grey[700],
+              bgcolor: theme.palette.grey[200],
+              "&:hover": {
+                bgcolor: theme.palette.grey[300],
+              },
+            }}
+          />
+          <Popover
+            open={open}
+            anchorEl={anchorEl}
+            onClose={handleClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+            sx={{
+              "& .MuiPopover-paper": {
+                overflow: "visible",
+                borderRadius: 0,
+                boxShadow: 4,
+              },
+              p: 0,
+            }}
+          >
+            <SegmentsPopover
+              segments={segments}
+              onSegmentSelect={handleSegmentSelect}
+            />
+          </Popover>
+        </>
       )}
     </Stack>
   );
