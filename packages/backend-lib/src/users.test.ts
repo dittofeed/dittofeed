@@ -131,6 +131,24 @@ describe("getUsers", () => {
       expect(result3.nextCursor).toBeUndefined();
     });
   });
+  describe("when a subscriptionGroupFilter is passed", () => {
+    describe("when the subscription group is opt-out", () => {
+      describe("when a user hasn't opted out", () => {
+        it("the user is included in the results", async () => {}):
+      });
+      describe("when a user has opted out", () => {
+        it("the user is not included in the results", async () => {});
+      });
+    });
+    describe("when the subscription group is opt-in", () => {
+      describe("when a user hasn't opted in", () => {
+        it("the user is not included in the results", async () => {});
+      });
+      describe("when a user has opted in", () => {
+        it("the user is included in the results", async () => {});
+      });
+    });
+  });
 
   describe("when a segmentId is passed", () => {
     let userIds: [string, string, string];
