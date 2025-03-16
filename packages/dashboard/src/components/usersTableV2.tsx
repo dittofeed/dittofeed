@@ -53,12 +53,11 @@ import {
   GetUsersUserPropertyFilter,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { NextRouter } from "next/router";
+import { NextRouter, useRouter } from "next/router";
 import React, { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStore } from "../lib/appStore";
-import { filterStorePick } from "../lib/filterStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import { useUserFilterState } from "./usersTable/userFiltersState";
@@ -251,9 +250,10 @@ function SegmentsPopover({
 function SegmentsCell({
   segments,
 }: {
-  segments: Array<{ id: string; name: string }>;
+  segments: { id: string; name: string }[];
 }) {
   const theme = useTheme();
+  const router = useRouter();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
 
@@ -269,7 +269,7 @@ function SegmentsCell({
   };
 
   const handleSegmentSelect = (segmentId: string) => {
-    window.location.href = `/segments/${segmentId}`;
+    router.push(`/segments/${segmentId}`);
     handleClose();
   };
 
@@ -281,7 +281,7 @@ function SegmentsCell({
           label={segment.name}
           size="small"
           onClick={() => {
-            window.location.href = `/segments/${segment.id}`;
+            router.push(`/segments/${segment.id}`);
           }}
           sx={{
             cursor: "pointer",
