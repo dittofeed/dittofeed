@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   ButtonProps,
+  Chip,
   CircularProgress,
   IconButton,
   Paper,
@@ -25,6 +26,7 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { Type } from "@sinclair/typebox";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -165,21 +167,47 @@ function EmailCell({ email }: { email: string }) {
   );
 }
 
-function SegmentsCell({ segments }: { segments: string }) {
+function SegmentsCell({
+  segments,
+}: {
+  segments: Array<{ id: string; name: string }>;
+}) {
+  const theme = useTheme();
+
+  const visibleSegments = segments.slice(0, 2);
+  const hasMoreSegments = segments.length > 2;
+
   return (
-    <Tooltip title={segments} placement="bottom-start">
-      <Typography
-        sx={{
-          fontFamily: "monospace",
-          maxWidth: "300px",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {segments}
-      </Typography>
-    </Tooltip>
+    <Stack direction="row" spacing={1} alignItems="center">
+      {visibleSegments.map((segment) => (
+        <Chip
+          key={segment.id}
+          label={segment.name}
+          size="small"
+          onClick={() => {
+            window.location.href = `/segments/${segment.id}`;
+          }}
+          sx={{
+            cursor: "pointer",
+            color: theme.palette.grey[700],
+            bgcolor: theme.palette.grey[200],
+            "&:hover": {
+              bgcolor: theme.palette.grey[300],
+            },
+          }}
+        />
+      ))}
+      {hasMoreSegments && (
+        <Chip
+          label="..."
+          size="small"
+          sx={{
+            color: theme.palette.grey[700],
+            bgcolor: theme.palette.grey[200],
+          }}
+        />
+      )}
+    </Stack>
   );
 }
 
@@ -200,9 +228,11 @@ const emailCellRenderer = ({
   row: { original: { id: string; email: string } };
 }) => <EmailCell email={row.original.email} />;
 
-const segmentsCellRenderer = ({ getValue }: { getValue: () => unknown }) => (
-  <SegmentsCell segments={getValue() as string} />
-);
+const segmentsCellRenderer = ({
+  row,
+}: {
+  row: { original: { segments: Array<{ id: string; name: string }> } };
+}) => <SegmentsCell segments={row.original.segments} />;
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -229,7 +259,10 @@ export function usersTablePaginationHandler(router: NextRouter) {
 interface Row {
   id: string;
   email: string;
-  segments: string;
+  segments: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 export const greyButtonStyle = {
@@ -478,12 +511,10 @@ export default function UsersTableV2({
         }
       }
 
-      const segments = user.segments.map((segment) => segment.name).join(", ");
-
       return {
         id: user.id,
         email,
-        segments,
+        segments: user.segments,
       };
     });
   }, [state.currentPageUserIds, state.users]);
