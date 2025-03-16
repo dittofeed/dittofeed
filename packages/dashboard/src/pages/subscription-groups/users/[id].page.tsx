@@ -41,6 +41,13 @@ export default function SubscriptionGroupUsers() {
         : undefined,
     [segmentsResult, id],
   );
+  const segmentNameOverrides: Map<string, string> | undefined = useMemo(
+    () =>
+      segment && editedSubscriptionGroup
+        ? new Map([[segment.id, editedSubscriptionGroup.name]])
+        : undefined,
+    [editedSubscriptionGroup, segment],
+  );
 
   if (!id) {
     return new Error("Missing id");
@@ -68,11 +75,10 @@ export default function SubscriptionGroupUsers() {
             <Typography variant="h4">
               Users in &quot;{editedSubscriptionGroup.name}&quot;
             </Typography>
-            {/* FIXME users not showing up in table for opt out */}
-            {/* FIXME don't show subscription group sgment name */}
             <UsersTableV2
               workspaceId={workspace.value.id}
               segmentFilter={[segment.id]}
+              segmentNameOverrides={segmentNameOverrides}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />

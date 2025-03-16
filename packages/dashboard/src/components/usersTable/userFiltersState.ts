@@ -39,10 +39,11 @@ export type FilterStage =
 export interface UserFilterState {
   // map from user property id to user property value
   userProperties: Map<string, Set<string>>;
-  staticUserProperties: Map<string, Set<string>>;
   // set of segment ids
   segments: Set<string>;
   staticSegments: Set<string>;
+  // map from segment id to segment name
+  segmentNameOverrides: Map<string, string>;
   stage: FilterStage | null;
 }
 
@@ -55,9 +56,9 @@ export function useUserFilterState(
 ): UserFilterHook {
   return useImmer<UserFilterState>({
     userProperties: new Map(),
-    staticUserProperties: new Map(),
     segments: new Set(),
     staticSegments: new Set(),
+    segmentNameOverrides: new Map(),
     stage: null,
     ...initialState,
   });
@@ -69,9 +70,6 @@ export function addUserProperty(updater: Updater<UserFilterState>) {
       return state;
     }
     const { id, value } = state.stage;
-    if (state.staticUserProperties.has(id)) {
-      return state;
-    }
     const values = state.userProperties.get(id) ?? new Set();
     values.add(value);
     state.userProperties.set(id, values);
@@ -97,9 +95,6 @@ export function removeUserProperty(
   id: string,
 ) {
   updater((state) => {
-    if (state.staticUserProperties.has(id)) {
-      return state;
-    }
     state.userProperties.delete(id);
     return state;
   });

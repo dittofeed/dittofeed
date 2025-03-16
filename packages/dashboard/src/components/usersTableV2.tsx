@@ -73,7 +73,10 @@ import { useImmer } from "use-immer";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
-import { useUserFilterState } from "./usersTable/userFiltersState";
+import {
+  UserFilterState,
+  useUserFilterState,
+} from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
 
 // Cell components defined outside the main component
@@ -687,6 +690,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
+  segmentNameOverrides?: UserFilterState["segmentNameOverrides"];
 };
 
 interface TableState {
@@ -732,12 +736,14 @@ export default function UsersTableV2({
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
   userUriTemplate = "/users/{userId}",
+  segmentNameOverrides,
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
 
   const [userFilterState, userFilterUpdater] = useUserFilterState({
     segments: segmentIds ? new Set(segmentIds) : undefined,
     staticSegments: segmentIds ? new Set(segmentIds) : undefined,
+    segmentNameOverrides,
   });
 
   const [state, setState] = useImmer<TableState>({
