@@ -1,9 +1,11 @@
 import {
   Bolt as BoltIcon,
   ContentCopy as ContentCopyIcon,
+  Delete as DeleteIcon,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
+  MoreVert as MoreVertIcon,
   OpenInNew,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
@@ -14,7 +16,13 @@ import {
   ButtonProps,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
+  Menu,
   MenuItem,
   Paper,
   Popover,
@@ -373,6 +381,140 @@ const segmentsCellRenderer = ({
   row: { original: { segments: { id: string; name: string }[] } };
 }) => <SegmentsCell segments={row.original.segments} />;
 
+// Actions menu item
+function ActionsCell({ userId }: { userId: string }) {
+  const theme = useTheme();
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDeleteClick = () => {
+    handleClose();
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmClose = () => {
+    setConfirmOpen(false);
+  };
+
+  const handleConfirmDelete = () => {
+    // Implement actual delete logic here
+    console.log(`Deleting user with ID: ${userId}`);
+    handleConfirmClose();
+  };
+
+  return (
+    <>
+      <IconButton
+        onClick={handleClick}
+        size="small"
+        sx={{
+          color: theme.palette.grey[700],
+          "&:hover": {
+            bgcolor: theme.palette.grey[200],
+          },
+        }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
+      <Menu
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        onClick={(e) => e.stopPropagation()}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 0,
+            boxShadow: 4,
+            minWidth: theme.spacing(15),
+          },
+        }}
+      >
+        <MenuItem
+          onClick={handleDeleteClick}
+          sx={{
+            borderRadius: 0,
+            py: 1.5,
+            color: theme.palette.grey[700],
+            "&:hover": {
+              bgcolor: theme.palette.grey[100],
+            },
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center">
+            <DeleteIcon
+              fontSize="small"
+              sx={{ color: theme.palette.grey[700] }}
+            />
+            <Typography variant="body2">Delete</Typography>
+          </Stack>
+        </MenuItem>
+      </Menu>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={handleConfirmClose}>
+        <DialogTitle>Confirm deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this user? This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirmClose();
+            }}
+            sx={{ color: theme.palette.grey[700] }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirmDelete();
+            }}
+            color="primary"
+            autoFocus
+            sx={{
+              bgcolor: theme.palette.error.main,
+              color: "white",
+              "&:hover": {
+                bgcolor: theme.palette.error.dark,
+              },
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+const actionsCellRenderer = ({
+  row,
+}: {
+  row: { original: { id: string } };
+}) => <ActionsCell userId={row.original.id} />;
+
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
   "direction",
@@ -675,6 +817,12 @@ export default function UsersTableV2({
         header: "Segments",
         accessorKey: "segments",
         cell: segmentsCellRenderer,
+      },
+      {
+        id: "actions",
+        header: "",
+        size: 70,
+        cell: actionsCellRenderer,
       },
     ],
     [userUriTemplate],
