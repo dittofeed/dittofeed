@@ -735,7 +735,10 @@ export default function UsersTableV2({
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
 
-  const [userFilterState, userFilterUpdater] = useUserFilterState();
+  const [userFilterState, userFilterUpdater] = useUserFilterState({
+    segments: segmentIds ? new Set(segmentIds) : undefined,
+    staticSegments: segmentIds ? new Set(segmentIds) : undefined,
+  });
 
   const [state, setState] = useImmer<TableState>({
     autoReload: autoReloadByDefault,

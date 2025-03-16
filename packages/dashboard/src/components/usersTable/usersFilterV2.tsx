@@ -93,6 +93,7 @@ export function UsersFilterV2({
           label={`${property.name} = ${property.values
             .map((value) => `"${value}"`)
             .join(" OR ")}`}
+          disabled={state.staticUserProperties?.has(property.id)}
           onDelete={() => removeUserProperty(updater, property.id)}
         />
       ))}
@@ -100,6 +101,7 @@ export function UsersFilterV2({
         <Chip
           key={segment.id}
           sx={chipSx}
+          disabled={state.staticSegments?.has(segment.id)}
           label={`User in ${segment.name}`}
           onDelete={() => removeSegment(updater, segment.id)}
         />
