@@ -5,10 +5,10 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import UsersTable, {
+import UsersTableV2, {
   usersTablePaginationHandler,
   UsersTableParams,
-} from "../../../components/usersTable";
+} from "../../../components/usersTableV2";
 import { useAppStore } from "../../../lib/appStore";
 import { PropsWithInitialState } from "../../../lib/types";
 import getSubscriptionGroupsSSP from "../getSubscriptionGroupsSSP";
@@ -68,7 +68,9 @@ export default function SubscriptionGroupUsers() {
             <Typography variant="h4">
               Users in &quot;{editedSubscriptionGroup.name}&quot;
             </Typography>
-            <UsersTable
+            {/* FIXME users not showing up in table for opt out */}
+            {/* FIXME don't show subscription group sgment name */}
+            <UsersTableV2
               workspaceId={workspace.value.id}
               segmentFilter={[segment.id]}
               {...queryParams}
