@@ -180,10 +180,18 @@ function SegmentsPopover({
   onSegmentSelect: (id: string) => void;
 }) {
   const theme = useTheme();
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const options = segments.map((segment) => ({
     id: segment.id,
     label: segment.name,
   }));
+
+  // Focus the input when the component is rendered
+  React.useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   return (
     <Autocomplete
@@ -212,6 +220,7 @@ function SegmentsPopover({
           variant="filled"
           label="Segment"
           autoFocus
+          inputRef={inputRef}
           InputProps={{
             ...params.InputProps,
             sx: {
@@ -312,6 +321,7 @@ function SegmentsCell({
             open={open}
             anchorEl={anchorEl}
             onClose={handleClose}
+            onClick={(e) => e.stopPropagation()}
             anchorOrigin={{
               vertical: "bottom",
               horizontal: "left",
