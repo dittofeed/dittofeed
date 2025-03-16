@@ -2387,6 +2387,7 @@ export const GetUsersRequest = Type.Object({
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(UserId)),
+  subscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
 });
