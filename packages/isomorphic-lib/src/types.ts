@@ -4821,3 +4821,32 @@ export const GetGroupsForUserResponse = Type.Object({
 });
 
 export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;
+
+export const GetResourcesRequest = Type.Object({
+  workspaceId: Type.String(),
+  segments: Type.Optional(Type.Boolean()),
+  userProperties: Type.Optional(Type.Boolean()),
+});
+
+export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
+
+export const GetResourcesResponse = Type.Object({
+  segments: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      }),
+    ),
+  ),
+  userProperties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      }),
+    ),
+  ),
+});
+
+export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
