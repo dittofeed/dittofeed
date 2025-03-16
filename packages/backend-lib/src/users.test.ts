@@ -5,15 +5,14 @@ import { submitBatch } from "./apps/batch";
 import { db, insert } from "./db";
 import {
   segment as dbSegment,
+  subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
-  subscriptionGroup as dbSubscriptionGroup,
 } from "./db/schema";
 import { insertSegmentAssignments } from "./segments";
 import {
   ChannelType,
   EventType,
-  LastPerformedSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -138,11 +137,9 @@ describe("getUsers", () => {
   });
   describe.only("when a subscriptionGroupFilter is passed", () => {
     let userId1: string;
-    let userId2: string;
 
     beforeEach(async () => {
       userId1 = randomUUID();
-      userId2 = randomUUID();
     });
 
     describe("when the subscription group is opt-out", () => {
@@ -174,21 +171,23 @@ describe("getUsers", () => {
                 type: UserPropertyDefinitionType.Id,
               },
             }),
-          db()
-            .insert(dbSegment)
-            .values({
-              id: segmentId,
-              workspaceId: workspace.id,
-              name: "segment1",
-              updatedAt: new Date(),
-              definition: {
-                type: SegmentNodeType.SubscriptionGroup,
-                id: "1",
-                subscriptionGroupId,
-                subscriptionGroupType: SubscriptionGroupType.OptOut,
-              } satisfies SubscriptionGroupSegmentNode,
-            }),
         ]);
+
+        await db()
+          .insert(dbSegment)
+          .values({
+            id: segmentId,
+            workspaceId: workspace.id,
+            name: "segment1",
+            updatedAt: new Date(),
+            subscriptionGroupId,
+            definition: {
+              type: SegmentNodeType.SubscriptionGroup,
+              id: "1",
+              subscriptionGroupId,
+              subscriptionGroupType: SubscriptionGroupType.OptOut,
+            } satisfies SubscriptionGroupSegmentNode,
+          });
       });
       describe("when a user hasn't opted out", () => {
         beforeEach(async () => {
