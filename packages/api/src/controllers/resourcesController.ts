@@ -1,8 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { getResources } from "backend-lib/src/resources";
 import { FastifyInstance } from "fastify";
 import {
-  GetSegmentsRequest,
-  GetSegmentsResponse,
+  GetResourcesRequest,
+  GetResourcesResponse,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -11,16 +12,17 @@ export default async function resourcesController(fastify: FastifyInstance) {
     "/",
     {
       schema: {
-        description: "Get all resource handles.",
+        description: "Get a list of all resources by name and id.",
         tags: ["Resources"],
-        querystring: GetSegmentsRequest,
+        querystring: GetResourcesRequest,
         response: {
-          200: GetSegmentsResponse,
+          200: GetResourcesResponse,
         },
       },
     },
     async (request, reply) => {
-      return reply.status(200).send();
+      const response = await getResources(request.query);
+      return reply.status(200).send(response);
     },
   );
 }
