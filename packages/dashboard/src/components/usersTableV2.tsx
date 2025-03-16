@@ -1141,16 +1141,32 @@ export default function UsersTableV2({
                     </GreyButton>
                   </Stack>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    {countQuery.data !== undefined && (
-                      <Typography variant="body2" color="text.secondary">
-                        Total users: {countQuery.data}
-                      </Typography>
-                    )}
                     {(isLoading ||
                       countQuery.isPending ||
                       countQuery.isFetching) && (
                       <CircularProgress color="inherit" size={20} />
                     )}
+                    <Stack
+                      direction="row"
+                      justifyContent="flex-start"
+                      alignItems="center"
+                      spacing={2}
+                      sx={{
+                        minWidth: "100px",
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          height: "100%",
+                        }}
+                      >
+                        {countQuery.isPending || countQuery.isFetching
+                          ? "Loading users..."
+                          : `Total users: ${countQuery.data ?? 0}`}
+                      </Typography>
+                    </Stack>
                   </Stack>
                 </Stack>
               </TableCell>
