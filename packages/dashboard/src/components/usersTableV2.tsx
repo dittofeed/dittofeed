@@ -41,7 +41,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { Type } from "@sinclair/typebox";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
   flexRender,
@@ -65,7 +65,7 @@ import { NextRouter, useRouter } from "next/router";
 import React, { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
-import { useAppStore } from "../lib/appStore";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import { useUserFilterState } from "./usersTable/userFiltersState";
@@ -381,12 +381,52 @@ const segmentsCellRenderer = ({
   row: { original: { segments: { id: string; name: string }[] } };
 }) => <SegmentsCell segments={row.original.segments} />;
 
+// Define the DeleteUsersRequest type if it doesn't exist elsewhere
+interface DeleteUsersRequest {
+  workspaceId: string;
+  userIds: string[];
+}
+
 // Actions menu item
 function ActionsCell({ userId }: { userId: string }) {
   const theme = useTheme();
+  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [deleteSuccess, setDeleteSuccess] = React.useState(false);
   const open = Boolean(anchorEl);
+
+  // Get workspaceId from the workspace object
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : "";
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId) {
+        throw new Error("Workspace ID not available");
+      }
+
+      const response = await axios.delete(`${apiBase}/api/users`, {
+        data: {
+          workspaceId,
+          userIds: [userId],
+        } satisfies DeleteUsersRequest,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      setDeleteSuccess(true);
+      // Refetch users data after successful deletion
+      // This could be done via invalidating the query cache as well
+      setTimeout(() => {
+        window.location.reload(); // Simple refresh to show updated data
+      }, 2000);
+    },
+    onError: (error) => {
+      console.error("Failed to delete user:", error);
+      // You could set an error state here and show a message to the user
+    },
+  });
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -406,8 +446,7 @@ function ActionsCell({ userId }: { userId: string }) {
   };
 
   const handleConfirmDelete = () => {
-    // Implement actual delete logic here
-    console.log(`Deleting user with ID: ${userId}`);
+    deleteUserMutation.mutate();
     handleConfirmClose();
   };
 
@@ -493,6 +532,7 @@ function ActionsCell({ userId }: { userId: string }) {
             }}
             color="primary"
             autoFocus
+            disabled={deleteUserMutation.isPending}
             sx={{
               bgcolor: theme.palette.error.main,
               color: "white",
@@ -501,10 +541,19 @@ function ActionsCell({ userId }: { userId: string }) {
               },
             }}
           >
-            Delete
+            {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={deleteSuccess}
+        autoHideDuration={2000}
+        onClose={() => setDeleteSuccess(false)}
+        message="User successfully deleted"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </>
   );
 }
