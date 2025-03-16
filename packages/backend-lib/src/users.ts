@@ -17,6 +17,7 @@ import { db } from "./db";
 import {
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
+  subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
 } from "./db/schema";
@@ -30,6 +31,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinition,
 } from "./types";
@@ -56,6 +58,7 @@ export async function getUsers({
   userPropertyFilter,
   direction = CursorDirectionEnum.After,
   limit = 10,
+  subscriptionGroupFilter,
 }: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
   // TODO implement alternate sorting
   let cursor: Cursor | null = null;
@@ -112,6 +115,61 @@ export async function getUsers({
     );
     havingSubClauses.push(`${varName} = True`);
   }
+  if (subscriptionGroupFilter) {
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        type: dbSubscriptionGroup.type,
+        segmentId: dbSegment.id,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+    const subscriptionGroups = subscriptionGroupsRows.reduce(
+      (acc, subscriptionGroup) => {
+        acc.set(subscriptionGroup.id, {
+          type: subscriptionGroup.type as SubscriptionGroupType,
+          segmentId: subscriptionGroup.segmentId,
+        });
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        }
+      >(),
+    );
+
+    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+      const sg = subscriptionGroups.get(subscriptionGroup);
+      if (!sg) {
+        logger().error(
+          {
+            subscriptionGroupId: subscriptionGroup,
+            workspaceId,
+          },
+          "subscription group not found",
+        );
+        continue;
+      }
+      const { type, segmentId } = sg;
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+      }
+    }
+  }
+
   const havingClause =
     havingSubClauses.length > 0
       ? `HAVING ${havingSubClauses.join(" AND ")}`
@@ -407,6 +465,7 @@ export async function getUsersCount({
   segmentFilter,
   userIds,
   userPropertyFilter,
+  subscriptionGroupFilter,
 }: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
   Result<GetUsersCountResponse, Error>
 > {
@@ -443,6 +502,61 @@ export async function getUsersCount({
       `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
     );
     havingSubClauses.push(`${varName} = True`);
+  }
+
+  if (subscriptionGroupFilter) {
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        type: dbSubscriptionGroup.type,
+        segmentId: dbSegment.id,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+    const subscriptionGroups = subscriptionGroupsRows.reduce(
+      (acc, subscriptionGroup) => {
+        acc.set(subscriptionGroup.id, {
+          type: subscriptionGroup.type as SubscriptionGroupType,
+          segmentId: subscriptionGroup.segmentId,
+        });
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        }
+      >(),
+    );
+
+    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+      const sg = subscriptionGroups.get(subscriptionGroup);
+      if (!sg) {
+        logger().error(
+          {
+            subscriptionGroupId: subscriptionGroup,
+            workspaceId,
+          },
+          "subscription group not found",
+        );
+        continue;
+      }
+      const { type, segmentId } = sg;
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+      }
+    }
   }
   const havingClause =
     havingSubClauses.length > 0
