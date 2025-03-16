@@ -41,7 +41,12 @@ import {
   useTheme,
 } from "@mui/material";
 import { Type } from "@sinclair/typebox";
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   ColumnDef,
   flexRender,
@@ -388,12 +393,21 @@ interface DeleteUsersRequest {
 }
 
 // Actions menu item
-function ActionsCell({ userId }: { userId: string }) {
+function ActionsCell({
+  userId,
+  onOptimisticDelete,
+}: {
+  userId: string;
+  onOptimisticDelete?: (userId: string) => void;
+}) {
   const theme = useTheme();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const queryClient = useQueryClient();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [deleteSuccess, setDeleteSuccess] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
   const open = Boolean(anchorEl);
 
   // Get workspaceId from the workspace object
@@ -414,17 +428,31 @@ function ActionsCell({ userId }: { userId: string }) {
       });
       return response.data;
     },
+    onMutate: () => {
+      // Optimistically update the UI by removing the user from the table
+      onOptimisticDelete?.(userId);
+    },
     onSuccess: () => {
       setDeleteSuccess(true);
-      // Refetch users data after successful deletion
-      // This could be done via invalidating the query cache as well
-      setTimeout(() => {
-        window.location.reload(); // Simple refresh to show updated data
-      }, 2000);
+
+      // Invalidate and refetch the users and usersCount queries
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["usersCount"] });
     },
     onError: (error) => {
       console.error("Failed to delete user:", error);
-      // You could set an error state here and show a message to the user
+      setDeleteError(true);
+
+      // Extract error message from the error response if available
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setErrorMessage(error.response.data.message);
+      } else {
+        setErrorMessage("Failed to delete user. Please try again.");
+      }
+
+      // Since the optimistic update already happened, we need to refetch to restore data
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["usersCount"] });
     },
   });
 
@@ -554,15 +582,41 @@ function ActionsCell({ userId }: { userId: string }) {
         message="User successfully deleted"
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={deleteError}
+        autoHideDuration={4000}
+        onClose={() => setDeleteError(false)}
+        message={errorMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{
+          sx: {
+            bgcolor: theme.palette.error.main,
+          },
+        }}
+      />
     </>
   );
 }
 
 const actionsCellRenderer = ({
   row,
+  table,
 }: {
   row: { original: { id: string } };
-}) => <ActionsCell userId={row.original.id} />;
+  table: {
+    options: { meta?: { performOptimisticDelete?: (userId: string) => void } };
+  };
+}) => {
+  const onOptimisticDelete = table.options.meta?.performOptimisticDelete;
+  return (
+    <ActionsCell
+      userId={row.original.id}
+      onOptimisticDelete={onOptimisticDelete}
+    />
+  );
+};
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -877,11 +931,37 @@ export default function UsersTableV2({
     [userUriTemplate],
   );
 
+  // Function to optimistically delete a user from the table
+  const performOptimisticDelete = useCallback(
+    (userId: string) => {
+      setState((draft) => {
+        // Remove user from currentPageUserIds array
+        draft.currentPageUserIds = draft.currentPageUserIds.filter(
+          (id) => id !== userId,
+        );
+
+        // Remove user from users object
+        if (draft.users[userId]) {
+          delete draft.users[userId];
+        }
+
+        // Decrement the count if it exists
+        if (draft.usersCount !== null) {
+          draft.usersCount -= 1;
+        }
+      });
+    },
+    [setState],
+  );
+
   const table = useReactTable({
     columns,
     data: usersData,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
+    meta: {
+      performOptimisticDelete,
+    },
   });
 
   const onNextPage = useCallback(() => {
