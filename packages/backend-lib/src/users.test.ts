@@ -2,18 +2,23 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "./apps/batch";
-import { insert } from "./db";
+import { db, insert } from "./db";
 import {
   segment as dbSegment,
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
+  subscriptionGroup as dbSubscriptionGroup,
 } from "./db/schema";
 import { insertSegmentAssignments } from "./segments";
 import {
+  ChannelType,
   EventType,
+  LastPerformedSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  SubscriptionGroupSegmentNode,
+  SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinitionType,
   Workspace,
@@ -131,13 +136,111 @@ describe("getUsers", () => {
       expect(result3.nextCursor).toBeUndefined();
     });
   });
-  describe("when a subscriptionGroupFilter is passed", () => {
+  describe.only("when a subscriptionGroupFilter is passed", () => {
+    let userId1: string;
+    let userId2: string;
+
+    beforeEach(async () => {
+      userId1 = randomUUID();
+      userId2 = randomUUID();
+    });
+
     describe("when the subscription group is opt-out", () => {
+      let subscriptionGroupId: string;
+      let userPropertyId: string;
+      let segmentId: string;
+
+      beforeEach(async () => {
+        subscriptionGroupId = randomUUID();
+        userPropertyId = randomUUID();
+        segmentId = randomUUID();
+        await Promise.all([
+          db().insert(dbSubscriptionGroup).values({
+            id: subscriptionGroupId,
+            workspaceId: workspace.id,
+            name: "subscriptionGroup1",
+            updatedAt: new Date(),
+            type: SubscriptionGroupType.OptOut,
+            channel: ChannelType.Email,
+          }),
+          db()
+            .insert(dbUserProperty)
+            .values({
+              id: userPropertyId,
+              workspaceId: workspace.id,
+              name: "id",
+              updatedAt: new Date(),
+              definition: {
+                type: UserPropertyDefinitionType.Id,
+              },
+            }),
+          db()
+            .insert(dbSegment)
+            .values({
+              id: segmentId,
+              workspaceId: workspace.id,
+              name: "segment1",
+              updatedAt: new Date(),
+              definition: {
+                type: SegmentNodeType.SubscriptionGroup,
+                id: "1",
+                subscriptionGroupId,
+                subscriptionGroupType: SubscriptionGroupType.OptOut,
+              } satisfies SubscriptionGroupSegmentNode,
+            }),
+        ]);
+      });
       describe("when a user hasn't opted out", () => {
-        it("the user is included in the results", async () => {}):
+        beforeEach(async () => {
+          await insertUserPropertyAssignments([
+            {
+              userPropertyId,
+              userId: userId1,
+              workspaceId: workspace.id,
+              value: JSON.stringify(userId1),
+            },
+          ]);
+        });
+        it("the user is included in the results", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(1);
+        });
       });
       describe("when a user has opted out", () => {
-        it("the user is not included in the results", async () => {});
+        beforeEach(async () => {
+          await Promise.all([
+            insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]),
+            insertSegmentAssignments([
+              {
+                segmentId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                inSegment: false,
+              },
+            ]),
+          ]);
+        });
+        it("the user is not included in the results", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(0);
+        });
       });
     });
     describe("when the subscription group is opt-in", () => {
