@@ -59,10 +59,10 @@ import { useImmer } from "use-immer";
 
 import { useAppStore } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
+import { greyTextFieldStyles } from "./greyScaleStyles";
+import { SquarePaper } from "./squarePaper";
 import { useUserFilterState } from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
-import { SquarePaper } from "./squarePaper";
-import { greyTextFieldStyles } from "./greyScaleStyles";
 
 // Cell components defined outside the main component
 function UserIdCell({
@@ -360,7 +360,7 @@ const emailCellRenderer = ({
 const segmentsCellRenderer = ({
   row,
 }: {
-  row: { original: { segments: Array<{ id: string; name: string }> } };
+  row: { original: { segments: { id: string; name: string }[] } };
 }) => <SegmentsCell segments={row.original.segments} />;
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
@@ -479,8 +479,6 @@ export default function UsersTableV2({
   userUriTemplate = "/users/{userId}",
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
-  const { userProperties: filterUserProperties, segments: filterSegments } =
-    filterStorePick(["userProperties", "segments"]);
 
   const [userFilterState, userFilterUpdater] = useUserFilterState();
 
@@ -502,22 +500,22 @@ export default function UsersTableV2({
 
   const filtersHash = useMemo(
     () =>
-      JSON.stringify(Array.from(filterUserProperties.entries())) +
-      JSON.stringify(Array.from(filterSegments)),
-    [filterUserProperties, filterSegments],
+      JSON.stringify(Array.from(userFilterState.userProperties.entries())) +
+      JSON.stringify(Array.from(userFilterState.segments)),
+    [userFilterState],
   );
 
   // Function to prepare common filter parameters for both queries
   const getCommonQueryParams = useCallback(() => {
     const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
-      filterUserProperties.size > 0
-        ? Array.from(filterUserProperties).map((up) => ({
+      userFilterState.userProperties.size > 0
+        ? Array.from(userFilterState.userProperties).map((up) => ({
             id: up[0],
             values: Array.from(up[1]),
           }))
         : undefined;
 
-    const allFilterSegments = new Set<string>(filterSegments);
+    const allFilterSegments = new Set<string>(userFilterState.segments);
     if (segmentIds) {
       for (const segmentId of segmentIds) {
         allFilterSegments.add(segmentId);
@@ -530,7 +528,7 @@ export default function UsersTableV2({
       workspaceId,
       userPropertyFilter: requestUserPropertyFilter,
     };
-  }, [filterUserProperties, filterSegments, segmentIds, workspaceId]);
+  }, [userFilterState, segmentIds, workspaceId]);
 
   // Query for fetching users count
   const countQuery = useQuery({
