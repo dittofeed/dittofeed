@@ -59,6 +59,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   CompletionStatus,
   CursorDirectionEnum,
+  DeleteUsersRequest,
   EphemeralRequestStatus,
   GetUsersRequest,
   GetUsersResponse,
@@ -388,12 +389,6 @@ const segmentsCellRenderer = ({
 }: {
   row: { original: { segments: { id: string; name: string }[] } };
 }) => <SegmentsCell segments={row.original.segments} />;
-
-// Define the DeleteUsersRequest type if it doesn't exist elsewhere
-interface DeleteUsersRequest {
-  workspaceId: string;
-  userIds: string[];
-}
 
 // Actions menu item
 function ActionsCell({
