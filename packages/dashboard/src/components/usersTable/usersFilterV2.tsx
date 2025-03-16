@@ -100,7 +100,7 @@ export function UsersFilterV2({
         <Chip
           key={segment.id}
           sx={chipSx}
-          disabled={state.staticSegments?.has(segment.id)}
+          disabled={state.staticSegments.has(segment.id)}
           label={`User in ${
             state.segmentNameOverrides.get(segment.id) ?? segment.name
           }`}

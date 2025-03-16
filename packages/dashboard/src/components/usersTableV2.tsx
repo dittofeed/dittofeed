@@ -646,10 +646,10 @@ export function usersTablePaginationHandler(router: NextRouter) {
 interface Row {
   id: string;
   email: string;
-  segments: Array<{
+  segments: {
     id: string;
     name: string;
-  }>;
+  }[];
 }
 
 export const greyButtonStyle = {
