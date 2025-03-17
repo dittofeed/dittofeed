@@ -76,6 +76,7 @@ import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import {
   UserFilterState,
+  useUserFiltersHash,
   useUserFilterState,
 } from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
@@ -757,12 +758,7 @@ export default function UsersTableV2({
     previousCursor: null,
   });
 
-  const filtersHash = useMemo(
-    () =>
-      JSON.stringify(Array.from(userFilterState.userProperties.entries())) +
-      JSON.stringify(Array.from(userFilterState.segments)),
-    [userFilterState],
-  );
+  const filtersHash = useUserFiltersHash(userFilterState);
 
   // Function to prepare common filter parameters for both queries
   const getCommonQueryParams = useCallback(() => {

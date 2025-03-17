@@ -1,3 +1,4 @@
+import React from "react";
 import { Updater, useImmer } from "use-immer";
 
 export enum FilterStageType {
@@ -50,6 +51,21 @@ export interface UserFilterState {
 export type UserFilterUpdater = Updater<UserFilterState>;
 
 export type UserFilterHook = [UserFilterState, UserFilterUpdater];
+
+/**
+ * Create a memoized hash of user filter state for efficient caching and comparison
+ *
+ * @param state The user filter state
+ * @returns A string hash representing the user filter state
+ */
+export function useUserFiltersHash(state: UserFilterState): string {
+  return React.useMemo(
+    () =>
+      JSON.stringify(Array.from(state.userProperties.entries())) +
+      JSON.stringify(Array.from(state.segments)),
+    [state.userProperties, state.segments],
+  );
+}
 
 export function useUserFilterState(
   initialState?: Partial<UserFilterState>,
