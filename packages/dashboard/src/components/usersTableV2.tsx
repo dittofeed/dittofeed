@@ -810,6 +810,7 @@ export default function UsersTableV2({
       subscriptionGroupIds,
       filtersHash,
     ],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const commonParams = getCommonQueryParams();
 
