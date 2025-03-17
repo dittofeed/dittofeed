@@ -8,6 +8,7 @@ export async function getResources({
   workspaceId,
   segments: shouldGetSegments,
   userProperties: shouldGetUserProperties,
+  subscriptionGroups: shouldGetSubscriptionGroups,
 }: GetResourcesRequest): Promise<GetResourcesResponse> {
   const promises = [
     shouldGetSegments
@@ -30,9 +31,20 @@ export async function getResources({
           orderBy: [asc(schema.userProperty.name)],
         })
       : null,
+    shouldGetSubscriptionGroups
+      ? db().query.subscriptionGroup.findMany({
+          columns: {
+            id: true,
+            name: true,
+          },
+          where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
+          orderBy: [asc(schema.subscriptionGroup.name)],
+        })
+      : null,
   ];
 
-  const [segments, userProperties] = await Promise.all(promises);
+  const [segments, userProperties, subscriptionGroups] =
+    await Promise.all(promises);
 
   const response: GetResourcesResponse = {};
   if (segments) {
@@ -47,6 +59,13 @@ export async function getResources({
       name: userProperty.name,
     }));
   }
-
+  if (subscriptionGroups) {
+    response.subscriptionGroups = subscriptionGroups.map(
+      (subscriptionGroup) => ({
+        id: subscriptionGroup.id,
+        name: subscriptionGroup.name,
+      }),
+    );
+  }
   return response;
 }

@@ -4826,6 +4826,7 @@ export const GetResourcesRequest = Type.Object({
   workspaceId: Type.String(),
   segments: Type.Optional(Type.Boolean()),
   userProperties: Type.Optional(Type.Boolean()),
+  subscriptionGroups: Type.Optional(Type.Boolean()),
 });
 
 export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
@@ -4840,6 +4841,14 @@ export const GetResourcesResponse = Type.Object({
     ),
   ),
   userProperties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      }),
+    ),
+  ),
+  subscriptionGroups: Type.Optional(
     Type.Array(
       Type.Object({
         id: Type.String(),
