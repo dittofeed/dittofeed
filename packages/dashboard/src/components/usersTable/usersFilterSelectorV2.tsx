@@ -140,6 +140,17 @@ function SegmentSelector({
   );
 }
 
+function SubscriptionGroupSelector({
+  updater,
+  closeDropdown,
+}: {
+  updater: UserFilterUpdater;
+  closeDropdown: () => void;
+}) {
+  // throw new Error("Not implemented");
+  return <></>;
+}
+
 function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
   const { userProperties: userPropertiesResult } = useAppStorePick([
     "userProperties",
@@ -223,7 +234,10 @@ function ComputedPropertyTypeSelector({
 
   const FilterOptionsArray: {
     title: string;
-    type: FilterStageType.Segment | FilterStageType.UserProperty;
+    type:
+      | FilterStageType.Segment
+      | FilterStageType.UserProperty
+      | FilterStageType.SubscriptionGroup;
   }[] = [
     {
       title: "User Property",
@@ -232,6 +246,10 @@ function ComputedPropertyTypeSelector({
     {
       title: "Segment",
       type: FilterStageType.Segment,
+    },
+    {
+      title: "Subscription Group",
+      type: FilterStageType.SubscriptionGroup,
     },
   ];
   return (
@@ -282,6 +300,11 @@ function SelectorFooter({
         });
         break;
       case FilterStageType.Segment:
+        setStage(updater, {
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+      case FilterStageType.SubscriptionGroup:
         setStage(updater, {
           type: FilterStageType.ComputedPropertyType,
         });
@@ -369,6 +392,14 @@ export function UsersFilterSelectorV2({
         stageEl = (
           <UserPropertyValueSelector
             stage={state.stage}
+            updater={updater}
+            closeDropdown={handleClose}
+          />
+        );
+        break;
+      case FilterStageType.SubscriptionGroup:
+        stageEl = (
+          <SubscriptionGroupSelector
             updater={updater}
             closeDropdown={handleClose}
           />

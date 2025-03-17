@@ -29,7 +29,6 @@ export interface FilterSegmentStage {
 
 export interface FilterSubscriptionGroupStage {
   type: FilterStageType.SubscriptionGroup;
-  id: string;
 }
 
 export type FilterStageWithBack =
