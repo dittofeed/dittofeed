@@ -22,26 +22,8 @@ const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const [segments, userProperties] = await Promise.all([
-      findManyPartialSegments({
-        workspaceId: dfContext.workspace.id,
-      }),
-      findAllUserPropertyResources({
-        workspaceId: dfContext.workspace.id,
-      }),
-    ]);
     return {
       props: addInitialStateToProps({
-        serverInitialState: {
-          segments: {
-            type: CompletionStatus.Successful,
-            value: segments,
-          },
-          userProperties: {
-            type: CompletionStatus.Successful,
-            value: userProperties,
-          },
-        },
         dfContext,
         props: {},
       }),

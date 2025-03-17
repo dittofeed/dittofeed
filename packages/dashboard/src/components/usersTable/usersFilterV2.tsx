@@ -1,8 +1,8 @@
 import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
-import { CompletionStatus } from "isomorphic-lib/src/types";
 import React from "react";
 
-import { useAppStorePick } from "../../lib/appStore";
+import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import {
   removeSegment,
   removeUserProperty,
@@ -18,20 +18,25 @@ export function UsersFilterV2({
   state: UserFilterState;
   updater: UserFilterUpdater;
 }) {
-  const { userProperties: userPropertiesResult, segments: segmentResult } =
-    useAppStorePick(["userProperties", "segments"]);
+  const userPropertiesQuery = useUserPropertiesQuery();
+  const segmentsQuery = useSegmentsQuery();
 
   const joinedFilterSegments: {
     id: string;
     name: string;
   }[] = React.useMemo(() => {
-    if (segmentResult.type !== CompletionStatus.Successful) {
+    if (segmentsQuery.status !== "success") {
       return [];
     }
-    const segmentNames = segmentResult.value.reduce((acc, segment) => {
-      acc.set(segment.id, segment.name);
-      return acc;
-    }, new Map<string, string>());
+
+    const segments = segmentsQuery.data.segments || [];
+    const segmentNames = segments.reduce(
+      (acc: Map<string, string>, segment) => {
+        acc.set(segment.id, segment.name);
+        return acc;
+      },
+      new Map<string, string>(),
+    );
 
     return Array.from(state.segments).flatMap((id) => {
       const name = segmentNames.get(id);
@@ -40,20 +45,25 @@ export function UsersFilterV2({
       }
       return { id, name };
     });
-  }, [state.segments, segmentResult]);
+  }, [state.segments, segmentsQuery]);
 
   const joinedUserPropertyFilters: {
     id: string;
     name: string;
     values: string[];
   }[] = React.useMemo(() => {
-    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+    if (userPropertiesQuery.status !== "success") {
       return [];
     }
-    const userPropertyNames = userPropertiesResult.value.reduce((acc, up) => {
-      acc.set(up.id, up.name);
-      return acc;
-    }, new Map<string, string>());
+
+    const userProperties = userPropertiesQuery.data.userProperties || [];
+    const userPropertyNames = userProperties.reduce(
+      (acc: Map<string, string>, up) => {
+        acc.set(up.id, up.name);
+        return acc;
+      },
+      new Map<string, string>(),
+    );
 
     return Array.from(state.userProperties).flatMap(([id, values]) => {
       const name = userPropertyNames.get(id);
@@ -62,7 +72,7 @@ export function UsersFilterV2({
       }
       return { id, name, values: Array.from(values) };
     });
-  }, [state.userProperties, userPropertiesResult]);
+  }, [state.userProperties, userPropertiesQuery]);
 
   const theme = useTheme();
 

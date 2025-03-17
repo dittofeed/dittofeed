@@ -55,12 +55,11 @@ export function useUserFilterState(
   initialState?: Partial<UserFilterState>,
 ): UserFilterHook {
   return useImmer<UserFilterState>({
-    userProperties: new Map(),
-    segments: new Set(),
-    staticSegments: new Set(),
-    segmentNameOverrides: new Map(),
-    stage: null,
-    ...initialState,
+    userProperties: initialState?.userProperties ?? new Map(),
+    segments: initialState?.segments ?? new Set(),
+    staticSegments: initialState?.staticSegments ?? new Set(),
+    segmentNameOverrides: initialState?.segmentNameOverrides ?? new Map(),
+    stage: initialState?.stage ?? null,
   });
 }
 
