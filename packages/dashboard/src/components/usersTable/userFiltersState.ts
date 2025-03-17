@@ -70,8 +70,9 @@ export function useUserFiltersHash(state: UserFilterState): string {
   return React.useMemo(
     () =>
       JSON.stringify(Array.from(state.userProperties.entries())) +
-      JSON.stringify(Array.from(state.segments)),
-    [state.userProperties, state.segments],
+      JSON.stringify(Array.from(state.segments)) +
+      JSON.stringify(Array.from(state.subscriptionGroups)),
+    [state.userProperties, state.segments, state.subscriptionGroups],
   );
 }
 

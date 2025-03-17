@@ -75,7 +75,6 @@ import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import {
-  UserFilterState,
   useUserFiltersHash,
   useUserFilterState,
 } from "./usersTable/userFiltersState";
@@ -686,7 +685,6 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
-  segmentNameOverrides?: UserFilterState["segmentNameOverrides"];
 };
 
 interface TableState {
@@ -726,20 +724,25 @@ export const getUsersCountRequest = function getUsersCountRequest({
 export default function UsersTableV2({
   workspaceId,
   segmentFilter: segmentIds,
+  subscriptionGroupFilter: subscriptionGroupIds,
   direction,
   cursor,
   onPaginationChange,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
   userUriTemplate = "/users/{userId}",
-  segmentNameOverrides,
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
 
   const [userFilterState, userFilterUpdater] = useUserFilterState({
     segments: segmentIds ? new Set(segmentIds) : undefined,
     staticSegments: segmentIds ? new Set(segmentIds) : undefined,
-    segmentNameOverrides,
+    subscriptionGroups: subscriptionGroupIds
+      ? new Set(subscriptionGroupIds)
+      : undefined,
+    staticSubscriptionGroups: subscriptionGroupIds
+      ? new Set(subscriptionGroupIds)
+      : undefined,
   });
 
   const [state, setState] = useImmer<TableState>({
@@ -777,17 +780,36 @@ export default function UsersTableV2({
       }
     }
 
+    const allFilterSubscriptionGroups = new Set<string>(
+      userFilterState.subscriptionGroups,
+    );
+    if (subscriptionGroupIds) {
+      for (const subscriptionGroupId of subscriptionGroupIds) {
+        allFilterSubscriptionGroups.add(subscriptionGroupId);
+      }
+    }
+
     return {
       segmentFilter:
         allFilterSegments.size > 0 ? Array.from(allFilterSegments) : undefined,
+      subscriptionGroupFilter:
+        allFilterSubscriptionGroups.size > 0
+          ? Array.from(allFilterSubscriptionGroups)
+          : undefined,
       workspaceId,
       userPropertyFilter: requestUserPropertyFilter,
     };
-  }, [userFilterState, segmentIds, workspaceId]);
+  }, [userFilterState, segmentIds, subscriptionGroupIds, workspaceId]);
 
   // Query for fetching users count
   const countQuery = useQuery({
-    queryKey: ["usersCount", workspaceId, segmentIds, filtersHash],
+    queryKey: [
+      "usersCount",
+      workspaceId,
+      segmentIds,
+      subscriptionGroupIds,
+      filtersHash,
+    ],
     queryFn: async () => {
       const commonParams = getCommonQueryParams();
 

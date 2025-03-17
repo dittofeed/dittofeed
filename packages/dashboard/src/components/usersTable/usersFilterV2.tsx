@@ -149,6 +149,7 @@ export function UsersFilterV2({
         <Chip
           key={sg.id}
           sx={chipSx}
+          disabled={state.staticSubscriptionGroups.has(sg.id)}
           label={`User subscribed to ${sg.name}`}
           onDelete={() => removeSubscriptionGroup(updater, sg.id)}
         />

@@ -16,6 +16,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import * as React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
@@ -30,7 +31,6 @@ import {
   UserFilterState,
   UserFilterUpdater,
 } from "./userFiltersState";
-import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 
 interface Option {
   id: string;

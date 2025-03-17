@@ -77,8 +77,7 @@ export default function SubscriptionGroupUsers() {
             </Typography>
             <UsersTableV2
               workspaceId={workspace.value.id}
-              segmentFilter={[segment.id]}
-              segmentNameOverrides={segmentNameOverrides}
+              subscriptionGroupFilter={[id]}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />
