@@ -1,8 +1,12 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { GetResourcesRequest, GetResourcesResponse } from "./types";
+import {
+  ChannelType,
+  GetResourcesRequest,
+  GetResourcesResponse,
+} from "./types";
 
 export async function getResources({
   workspaceId,
@@ -10,14 +14,22 @@ export async function getResources({
   userProperties: shouldGetUserProperties,
   subscriptionGroups: shouldGetSubscriptionGroups,
 }: GetResourcesRequest): Promise<GetResourcesResponse> {
-  const promises = [
+  const promises: [
+    null | Promise<{ id: string; name: string }[]>,
+    null | Promise<{ id: string; name: string }[]>,
+    null | Promise<{ id: string; name: string; channel: string }[]>,
+  ] = [
     shouldGetSegments
       ? db().query.segment.findMany({
           columns: {
             id: true,
             name: true,
           },
-          where: eq(schema.segment.workspaceId, workspaceId),
+          where: and(
+            eq(schema.segment.workspaceId, workspaceId),
+            eq(schema.segment.resourceType, "Declarative"),
+            eq(schema.segment.status, "Running"),
+          ),
           orderBy: [asc(schema.segment.name)],
         })
       : null,
@@ -27,7 +39,10 @@ export async function getResources({
             id: true,
             name: true,
           },
-          where: eq(schema.userProperty.workspaceId, workspaceId),
+          where: and(
+            eq(schema.userProperty.workspaceId, workspaceId),
+            eq(schema.userProperty.resourceType, "Declarative"),
+          ),
           orderBy: [asc(schema.userProperty.name)],
         })
       : null,
@@ -36,6 +51,7 @@ export async function getResources({
           columns: {
             id: true,
             name: true,
+            channel: true,
           },
           where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
           orderBy: [asc(schema.subscriptionGroup.name)],
@@ -64,6 +80,7 @@ export async function getResources({
       (subscriptionGroup) => ({
         id: subscriptionGroup.id,
         name: subscriptionGroup.name,
+        channel: subscriptionGroup.channel as ChannelType,
       }),
     );
   }

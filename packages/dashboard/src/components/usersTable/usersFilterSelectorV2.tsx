@@ -13,10 +13,10 @@ import {
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
-import { useAppStorePick } from "../../lib/appStore";
+import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 import {
@@ -116,17 +116,18 @@ function SegmentSelector({
   updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  const { segments: segmentsResult } = useAppStorePick(["segments"]);
+  const segmentsQuery = useSegmentsQuery();
 
   const options: Option[] = React.useMemo(() => {
-    if (segmentsResult.type !== CompletionStatus.Successful) {
+    if (segmentsQuery.status !== "success") {
       return [];
     }
-    return segmentsResult.value.map((segment) => ({
+    const segments = segmentsQuery.data.segments || [];
+    return segments.map((segment) => ({
       id: segment.id,
       label: segment.name,
     }));
-  }, [segmentsResult]);
+  }, [segmentsQuery]);
 
   return (
     <ComputedPropertyAutocomplete
@@ -141,30 +142,29 @@ function SegmentSelector({
 }
 
 function SubscriptionGroupSelector({
-  updater,
-  closeDropdown,
+  updater: _updater,
+  closeDropdown: _closeDropdown,
 }: {
   updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  // throw new Error("Not implemented");
-  return <></>;
+  // Not implemented yet
+  return null;
 }
 
 function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
-  const { userProperties: userPropertiesResult } = useAppStorePick([
-    "userProperties",
-  ]);
+  const userPropertiesQuery = useUserPropertiesQuery();
 
   const options: Option[] = React.useMemo(() => {
-    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+    if (userPropertiesQuery.status !== "success") {
       return [];
     }
-    return userPropertiesResult.value.map((up) => ({
+    const userProperties = userPropertiesQuery.data.userProperties || [];
+    return userProperties.map((up) => ({
       id: up.id,
       label: up.name,
     }));
-  }, [userPropertiesResult]);
+  }, [userPropertiesQuery]);
 
   return (
     <ComputedPropertyAutocomplete
