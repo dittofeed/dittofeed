@@ -707,7 +707,6 @@ interface TableState {
   users: Record<string, GetUsersResponseItem>;
   usersCount: number | null;
   currentPageUserIds: string[];
-  getUsersRequest: EphemeralRequestStatus<Error>;
   previousCursor: string | null;
   nextCursor: string | null;
   query: {
@@ -771,15 +770,10 @@ export default function UsersTableV2({
     users: {},
     usersCount: null,
     currentPageUserIds: [],
-    getUsersRequest: {
-      type: CompletionStatus.NotStarted,
-    },
     nextCursor: null,
     previousCursor: null,
   });
 
-  console.log("state", state);
-  // GET users request stuck in progress
   const filtersHash = useUserFiltersHash(userFilterState);
 
   // Function to prepare common filter parameters for both queries
@@ -861,60 +855,37 @@ export default function UsersTableV2({
         limit: state.query.limit,
       };
 
-      setState((draft) => {
-        draft.getUsersRequest = {
-          type: CompletionStatus.InProgress,
-        };
+      const response = await defaultGetUsersRequest({
+        params,
+        apiBase,
       });
 
-      try {
-        const response = await defaultGetUsersRequest({
-          params,
-          apiBase,
-        });
+      const result = unwrap(
+        schemaValidateWithErr(response.data, GetUsersResponse),
+      );
 
-        const result = unwrap(
-          schemaValidateWithErr(response.data, GetUsersResponse),
-        );
-
-        // Use InProgress status as the final state instead of trying to use Successful
-        setState((draft) => {
-          draft.getUsersRequest = {
-            type: CompletionStatus.InProgress,
-          };
-        });
-
-        if (result.users.length === 0 && cursor) {
-          if (state.query.direction === CursorDirectionEnum.Before) {
-            setState((draft) => {
-              draft.nextCursor = null;
-              draft.previousCursor = null;
-              draft.query.cursor = null;
-              draft.query.direction = null;
-            });
-            onPaginationChange({});
-          }
-        } else {
+      if (result.users.length === 0 && cursor) {
+        if (state.query.direction === CursorDirectionEnum.Before) {
           setState((draft) => {
-            for (const user of result.users) {
-              draft.users[user.id] = user;
-            }
-            draft.currentPageUserIds = result.users.map((u) => u.id);
-            draft.nextCursor = result.nextCursor ?? null;
-            draft.previousCursor = result.previousCursor ?? null;
+            draft.nextCursor = null;
+            draft.previousCursor = null;
+            draft.query.cursor = null;
+            draft.query.direction = null;
           });
+          onPaginationChange({});
         }
-
-        return result;
-      } catch (error) {
+      } else {
         setState((draft) => {
-          draft.getUsersRequest = {
-            type: CompletionStatus.Failed,
-            error: error as Error,
-          };
+          for (const user of result.users) {
+            draft.users[user.id] = user;
+          }
+          draft.currentPageUserIds = result.users.map((u) => u.id);
+          draft.nextCursor = result.nextCursor ?? null;
+          draft.previousCursor = result.previousCursor ?? null;
         });
-        throw error;
       }
+
+      return result;
     },
     placeholderData: keepPreviousData,
     refetchInterval: state.autoReload ? reloadPeriodMs : false,
