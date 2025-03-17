@@ -21,6 +21,7 @@ import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 import {
   addSegment,
+  addSubscriptionGroup,
   addUserProperty,
   FilterStageType,
   FilterStageWithBack,
@@ -29,6 +30,7 @@ import {
   UserFilterState,
   UserFilterUpdater,
 } from "./userFiltersState";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 
 interface Option {
   id: string;
@@ -142,14 +144,36 @@ function SegmentSelector({
 }
 
 function SubscriptionGroupSelector({
-  updater: _updater,
-  closeDropdown: _closeDropdown,
+  updater,
+  closeDropdown,
 }: {
   updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  // Not implemented yet
-  return null;
+  const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
+
+  const options: Option[] = React.useMemo(() => {
+    if (subscriptionGroupsQuery.status !== "success") {
+      return [];
+    }
+    const subscriptionGroups =
+      subscriptionGroupsQuery.data.subscriptionGroups || [];
+    return subscriptionGroups.map((sg) => ({
+      id: sg.id,
+      label: sg.name,
+    }));
+  }, [subscriptionGroupsQuery]);
+
+  return (
+    <ComputedPropertyAutocomplete
+      options={options}
+      onChange={(id) => {
+        addSubscriptionGroup(updater, id);
+        closeDropdown();
+      }}
+      label="Subscription Group"
+    />
+  );
 }
 
 function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
