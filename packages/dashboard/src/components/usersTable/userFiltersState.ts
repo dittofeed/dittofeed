@@ -27,15 +27,22 @@ export interface FilterSegmentStage {
   type: FilterStageType.Segment;
 }
 
+export interface FilterSubscriptionGroupStage {
+  type: FilterStageType.SubscriptionGroup;
+  id: string;
+}
+
 export type FilterStageWithBack =
   | FilterUserPropertyStage
   | FilterSegmentStage
-  | FilterUserPropertyValueStage;
+  | FilterUserPropertyValueStage
+  | FilterSubscriptionGroupStage;
 
 export type FilterStage =
   | FilterUserPropertyStage
   | FilterUserPropertyValueStage
   | FilterSegmentStage
+  | FilterSubscriptionGroupStage
   | FilterComputedPropertyTypeStage;
 
 export interface UserFilterState {
