@@ -391,12 +391,6 @@ export async function getRequestContext(
           authProvider: config().authProvider,
           profile,
         });
-        logger().debug(
-          {
-            result,
-          },
-          "loc4",
-        );
 
         result = await requestContextPostProcessor().postProcessor(result);
         break;
