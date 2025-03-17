@@ -895,6 +895,7 @@ export default function UsersTableV2({
         throw error;
       }
     },
+    placeholderData: keepPreviousData,
     refetchInterval: state.autoReload ? reloadPeriodMs : false,
   });
 
