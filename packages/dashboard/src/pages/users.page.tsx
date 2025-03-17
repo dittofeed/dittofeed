@@ -9,7 +9,6 @@ import React, { useMemo } from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import UsersTableV2, {
-  OnPaginationChangeProps,
   usersTablePaginationHandler,
 } from "../components/usersTableV2";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";

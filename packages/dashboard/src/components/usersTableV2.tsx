@@ -60,7 +60,6 @@ import {
   CompletionStatus,
   CursorDirectionEnum,
   DeleteUsersRequest,
-  EphemeralRequestStatus,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
