@@ -637,6 +637,7 @@ export function usersTablePaginationHandler(router: NextRouter) {
     const newQuery: Record<string, string | string[] | undefined> = {
       ...remainingParams,
     };
+    // delete cursor and direction from newQuery if they don't exist
     if (direction) {
       newQuery.direction = direction;
     }
@@ -712,6 +713,7 @@ interface TableState {
   query: {
     cursor: string | null;
     limit: number;
+    direction: CursorDirectionEnum | null;
   };
 }
 
@@ -763,6 +765,7 @@ export default function UsersTableV2({
     autoReload: autoReloadByDefault,
     query: {
       cursor: cursor ?? null,
+      direction: direction ?? null,
       limit: 10,
     },
     users: {},
@@ -852,7 +855,7 @@ export default function UsersTableV2({
       const params: GetUsersRequest = {
         ...commonParams,
         cursor: state.query.cursor ?? undefined,
-        direction,
+        direction: state.query.direction ?? undefined,
         limit: state.query.limit,
       };
 
@@ -880,7 +883,7 @@ export default function UsersTableV2({
         });
 
         if (result.users.length === 0 && cursor) {
-          if (direction === CursorDirectionEnum.Before) {
+          if (state.query.direction === CursorDirectionEnum.Before) {
             setState((draft) => {
               draft.nextCursor = null;
               draft.previousCursor = null;
@@ -1009,6 +1012,7 @@ export default function UsersTableV2({
       });
       setState((draft) => {
         draft.query.cursor = state.nextCursor;
+        draft.query.direction = CursorDirectionEnum.After;
       });
     }
   }, [state.nextCursor, onPaginationChange, setState]);
@@ -1021,6 +1025,7 @@ export default function UsersTableV2({
       });
       setState((draft) => {
         draft.query.cursor = state.previousCursor;
+        draft.query.direction = CursorDirectionEnum.Before;
       });
     }
   }, [state.previousCursor, onPaginationChange, setState]);
