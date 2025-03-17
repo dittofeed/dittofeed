@@ -626,14 +626,28 @@ export function usersTablePaginationHandler(router: NextRouter) {
     direction,
     cursor,
   }: OnPaginationChangeProps) => {
-    router.push({
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      direction: existingDirection,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      cursor: existingCursor,
+      ...remainingParams
+    } = router.query;
+
+    const newQuery: Record<string, string | string[] | undefined> = {
+      ...remainingParams,
+    };
+    if (direction) {
+      newQuery.direction = direction;
+    }
+    if (cursor) {
+      newQuery.cursor = cursor;
+    }
+    const routerParams = {
       pathname: router.pathname,
-      query: {
-        ...router.query,
-        direction,
-        cursor,
-      },
-    });
+      query: newQuery,
+    };
+    router.push(routerParams, undefined, { shallow: true });
   };
   return onUsersTablePaginate;
 }

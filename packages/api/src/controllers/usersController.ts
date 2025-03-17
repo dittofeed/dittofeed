@@ -29,7 +29,6 @@ export default async function usersController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
       const result = await getUsers(request.body);
       if (result.isErr()) {
         return reply.status(400).send({

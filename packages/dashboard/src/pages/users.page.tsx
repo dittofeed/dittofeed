@@ -10,6 +10,7 @@ import React, { useMemo } from "react";
 import DashboardContent from "../components/dashboardContent";
 import UsersTableV2, {
   OnPaginationChangeProps,
+  usersTablePaginationHandler,
 } from "../components/usersTableV2";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
@@ -40,19 +41,7 @@ export default function SegmentUsers() {
     return null;
   }
 
-  const onUsersTablePaginate = ({
-    direction,
-    cursor,
-  }: OnPaginationChangeProps) => {
-    router.push({
-      pathname: router.pathname,
-      query: {
-        ...router.query,
-        direction,
-        cursor,
-      },
-    });
-  };
+  const onUsersTablePaginate = usersTablePaginationHandler(router);
 
   return (
     <DashboardContent>
