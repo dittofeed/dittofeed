@@ -6,6 +6,7 @@ export enum FilterStageType {
   UserProperty = "UserProperty",
   UserPropertyValue = "UserPropertyValue",
   Segment = "Segment",
+  SubscriptionGroup = "SubscriptionGroup",
 }
 
 export interface FilterComputedPropertyTypeStage {
@@ -43,8 +44,9 @@ export interface UserFilterState {
   // set of segment ids
   segments: Set<string>;
   staticSegments: Set<string>;
-  // map from segment id to segment name
-  segmentNameOverrides: Map<string, string>;
+  // set of subscription group ids
+  subscriptionGroups: Set<string>;
+  staticSubscriptionGroups: Set<string>;
   stage: FilterStage | null;
 }
 
@@ -74,7 +76,9 @@ export function useUserFilterState(
     userProperties: initialState?.userProperties ?? new Map(),
     segments: initialState?.segments ?? new Set(),
     staticSegments: initialState?.staticSegments ?? new Set(),
-    segmentNameOverrides: initialState?.segmentNameOverrides ?? new Map(),
+    subscriptionGroups: initialState?.subscriptionGroups ?? new Set(),
+    staticSubscriptionGroups:
+      initialState?.staticSubscriptionGroups ?? new Set(),
     stage: initialState?.stage ?? null,
   });
 }
@@ -131,6 +135,32 @@ export function setStage(
 ) {
   updater((state) => {
     state.stage = stage;
+    return state;
+  });
+}
+
+export function addSubscriptionGroup(
+  updater: Updater<UserFilterState>,
+  id: string,
+) {
+  updater((state) => {
+    if (state.stage?.type !== FilterStageType.SubscriptionGroup) {
+      return state;
+    }
+    state.subscriptionGroups.add(id);
+    return state;
+  });
+}
+
+export function removeSubscriptionGroup(
+  updater: Updater<UserFilterState>,
+  id: string,
+) {
+  updater((state) => {
+    if (state.staticSubscriptionGroups.has(id)) {
+      return state;
+    }
+    state.subscriptionGroups.delete(id);
     return state;
   });
 }
