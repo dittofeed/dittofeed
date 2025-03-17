@@ -2,9 +2,11 @@ import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
 import React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import {
   removeSegment,
+  removeSubscriptionGroup,
   removeUserProperty,
   UserFilterState,
   UserFilterUpdater,
@@ -20,6 +22,7 @@ export function UsersFilterV2({
 }) {
   const userPropertiesQuery = useUserPropertiesQuery();
   const segmentsQuery = useSegmentsQuery();
+  const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
 
   const joinedFilterSegments: {
     id: string;
@@ -74,6 +77,33 @@ export function UsersFilterV2({
     });
   }, [state.userProperties, userPropertiesQuery]);
 
+  const joinedSubscriptionGroups: {
+    id: string;
+    name: string;
+  }[] = React.useMemo(() => {
+    if (subscriptionGroupsQuery.status !== "success") {
+      return [];
+    }
+
+    const subscriptionGroups =
+      subscriptionGroupsQuery.data.subscriptionGroups || [];
+    const subscriptionGroupNames = subscriptionGroups.reduce(
+      (acc: Map<string, string>, sg) => {
+        acc.set(sg.id, sg.name);
+        return acc;
+      },
+      new Map<string, string>(),
+    );
+
+    return Array.from(state.subscriptionGroups).flatMap((id) => {
+      const name = subscriptionGroupNames.get(id);
+      if (!name) {
+        return [];
+      }
+      return { id, name };
+    });
+  }, [state.subscriptionGroups, subscriptionGroupsQuery]);
+
   const theme = useTheme();
 
   // Define common chip styles to match DeliveriesFilter grayscale look
@@ -111,10 +141,16 @@ export function UsersFilterV2({
           key={segment.id}
           sx={chipSx}
           disabled={state.staticSegments.has(segment.id)}
-          label={`User in ${
-            state.segmentNameOverrides.get(segment.id) ?? segment.name
-          }`}
+          label={`User in ${segment.name}`}
           onDelete={() => removeSegment(updater, segment.id)}
+        />
+      ))}
+      {joinedSubscriptionGroups.map((sg) => (
+        <Chip
+          key={sg.id}
+          sx={chipSx}
+          label={`User subscribed to ${sg.name}`}
+          onDelete={() => removeSubscriptionGroup(updater, sg.id)}
         />
       ))}
       <UsersFilterSelectorV2 state={state} updater={updater} />
