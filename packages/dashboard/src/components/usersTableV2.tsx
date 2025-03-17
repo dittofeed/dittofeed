@@ -778,6 +778,8 @@ export default function UsersTableV2({
     previousCursor: null,
   });
 
+  console.log("state", state);
+  // GET users request stuck in progress
   const filtersHash = useUserFiltersHash(userFilterState);
 
   // Function to prepare common filter parameters for both queries
@@ -887,6 +889,8 @@ export default function UsersTableV2({
             setState((draft) => {
               draft.nextCursor = null;
               draft.previousCursor = null;
+              draft.query.cursor = null;
+              draft.query.direction = null;
             });
             onPaginationChange({});
           }
