@@ -60,7 +60,6 @@ import {
   CompletionStatus,
   CursorDirectionEnum,
   DeleteUsersRequest,
-  EphemeralRequestStatus,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
@@ -626,14 +625,29 @@ export function usersTablePaginationHandler(router: NextRouter) {
     direction,
     cursor,
   }: OnPaginationChangeProps) => {
-    router.push({
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      direction: existingDirection,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      cursor: existingCursor,
+      ...remainingParams
+    } = router.query;
+
+    const newQuery: Record<string, string | string[] | undefined> = {
+      ...remainingParams,
+    };
+    // delete cursor and direction from newQuery if they don't exist
+    if (direction) {
+      newQuery.direction = direction;
+    }
+    if (cursor) {
+      newQuery.cursor = cursor;
+    }
+    const routerParams = {
       pathname: router.pathname,
-      query: {
-        ...router.query,
-        direction,
-        cursor,
-      },
-    });
+      query: newQuery,
+    };
+    router.push(routerParams, undefined, { shallow: true });
   };
   return onUsersTablePaginate;
 }
@@ -692,12 +706,12 @@ interface TableState {
   users: Record<string, GetUsersResponseItem>;
   usersCount: number | null;
   currentPageUserIds: string[];
-  getUsersRequest: EphemeralRequestStatus<Error>;
   previousCursor: string | null;
   nextCursor: string | null;
   query: {
     cursor: string | null;
     limit: number;
+    direction: CursorDirectionEnum | null;
   };
 }
 
@@ -749,14 +763,12 @@ export default function UsersTableV2({
     autoReload: autoReloadByDefault,
     query: {
       cursor: cursor ?? null,
+      direction: direction ?? null,
       limit: 10,
     },
     users: {},
     usersCount: null,
     currentPageUserIds: [],
-    getUsersRequest: {
-      type: CompletionStatus.NotStarted,
-    },
     nextCursor: null,
     previousCursor: null,
   });
@@ -810,6 +822,7 @@ export default function UsersTableV2({
       subscriptionGroupIds,
       filtersHash,
     ],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const commonParams = getCommonQueryParams();
 
@@ -837,62 +850,41 @@ export default function UsersTableV2({
       const params: GetUsersRequest = {
         ...commonParams,
         cursor: state.query.cursor ?? undefined,
-        direction,
+        direction: state.query.direction ?? undefined,
         limit: state.query.limit,
       };
 
-      setState((draft) => {
-        draft.getUsersRequest = {
-          type: CompletionStatus.InProgress,
-        };
+      const response = await defaultGetUsersRequest({
+        params,
+        apiBase,
       });
 
-      try {
-        const response = await defaultGetUsersRequest({
-          params,
-          apiBase,
-        });
+      const result = unwrap(
+        schemaValidateWithErr(response.data, GetUsersResponse),
+      );
 
-        const result = unwrap(
-          schemaValidateWithErr(response.data, GetUsersResponse),
-        );
-
-        // Use InProgress status as the final state instead of trying to use Successful
-        setState((draft) => {
-          draft.getUsersRequest = {
-            type: CompletionStatus.InProgress,
-          };
-        });
-
-        if (result.users.length === 0 && cursor) {
-          if (direction === CursorDirectionEnum.Before) {
-            setState((draft) => {
-              draft.nextCursor = null;
-              draft.previousCursor = null;
-            });
-            onPaginationChange({});
-          }
-        } else {
+      if (result.users.length === 0 && cursor) {
+        if (state.query.direction === CursorDirectionEnum.Before) {
           setState((draft) => {
-            for (const user of result.users) {
-              draft.users[user.id] = user;
-            }
-            draft.currentPageUserIds = result.users.map((u) => u.id);
-            draft.nextCursor = result.nextCursor ?? null;
-            draft.previousCursor = result.previousCursor ?? null;
+            draft.nextCursor = null;
+            draft.previousCursor = null;
+            draft.query.cursor = null;
+            draft.query.direction = null;
           });
+          onPaginationChange({});
         }
-
-        return result;
-      } catch (error) {
+      } else {
         setState((draft) => {
-          draft.getUsersRequest = {
-            type: CompletionStatus.Failed,
-            error: error as Error,
-          };
+          for (const user of result.users) {
+            draft.users[user.id] = user;
+          }
+          draft.currentPageUserIds = result.users.map((u) => u.id);
+          draft.nextCursor = result.nextCursor ?? null;
+          draft.previousCursor = result.previousCursor ?? null;
         });
-        throw error;
       }
+
+      return result;
     },
     placeholderData: keepPreviousData,
     refetchInterval: state.autoReload ? reloadPeriodMs : false,
@@ -994,6 +986,7 @@ export default function UsersTableV2({
       });
       setState((draft) => {
         draft.query.cursor = state.nextCursor;
+        draft.query.direction = CursorDirectionEnum.After;
       });
     }
   }, [state.nextCursor, onPaginationChange, setState]);
@@ -1006,6 +999,7 @@ export default function UsersTableV2({
       });
       setState((draft) => {
         draft.query.cursor = state.previousCursor;
+        draft.query.direction = CursorDirectionEnum.Before;
       });
     }
   }, [state.previousCursor, onPaginationChange, setState]);
