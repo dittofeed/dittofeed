@@ -41,14 +41,6 @@ export default function SubscriptionGroupUsers() {
         : undefined,
     [segmentsResult, id],
   );
-  const segmentNameOverrides: Map<string, string> | undefined = useMemo(
-    () =>
-      segment && editedSubscriptionGroup
-        ? new Map([[segment.id, editedSubscriptionGroup.name]])
-        : undefined,
-    [editedSubscriptionGroup, segment],
-  );
-
   if (!id) {
     return new Error("Missing id");
   }
