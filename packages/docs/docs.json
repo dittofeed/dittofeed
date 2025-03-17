@@ -238,7 +238,8 @@
               "api-reference/auto/workspace/get-api-ladminworkspaces",
               "api-reference/auto/sessions/post-api-lsessions",
               "api-reference/auto/groups/get-apiadmingroupsuser-groups",
-              "api-reference/auto/groups/get-apiadmingroupsusers"
+              "api-reference/auto/groups/get-apiadmingroupsusers",
+              "api-reference/auto/deliveries/get-apiadmindeliveries"
             ]
           }
         ]
