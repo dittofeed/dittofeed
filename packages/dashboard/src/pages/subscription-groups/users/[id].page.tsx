@@ -41,14 +41,6 @@ export default function SubscriptionGroupUsers() {
         : undefined,
     [segmentsResult, id],
   );
-  const segmentNameOverrides: Map<string, string> | undefined = useMemo(
-    () =>
-      segment && editedSubscriptionGroup
-        ? new Map([[segment.id, editedSubscriptionGroup.name]])
-        : undefined,
-    [editedSubscriptionGroup, segment],
-  );
-
   if (!id) {
     return new Error("Missing id");
   }
@@ -77,8 +69,7 @@ export default function SubscriptionGroupUsers() {
             </Typography>
             <UsersTableV2
               workspaceId={workspace.value.id}
-              segmentFilter={[segment.id]}
-              segmentNameOverrides={segmentNameOverrides}
+              subscriptionGroupFilter={[id]}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />

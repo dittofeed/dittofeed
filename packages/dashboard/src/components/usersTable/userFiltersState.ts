@@ -1,3 +1,4 @@
+import React from "react";
 import { Updater, useImmer } from "use-immer";
 
 export enum FilterStageType {
@@ -5,6 +6,7 @@ export enum FilterStageType {
   UserProperty = "UserProperty",
   UserPropertyValue = "UserPropertyValue",
   Segment = "Segment",
+  SubscriptionGroup = "SubscriptionGroup",
 }
 
 export interface FilterComputedPropertyTypeStage {
@@ -25,15 +27,21 @@ export interface FilterSegmentStage {
   type: FilterStageType.Segment;
 }
 
+export interface FilterSubscriptionGroupStage {
+  type: FilterStageType.SubscriptionGroup;
+}
+
 export type FilterStageWithBack =
   | FilterUserPropertyStage
   | FilterSegmentStage
-  | FilterUserPropertyValueStage;
+  | FilterUserPropertyValueStage
+  | FilterSubscriptionGroupStage;
 
 export type FilterStage =
   | FilterUserPropertyStage
   | FilterUserPropertyValueStage
   | FilterSegmentStage
+  | FilterSubscriptionGroupStage
   | FilterComputedPropertyTypeStage;
 
 export interface UserFilterState {
@@ -42,8 +50,9 @@ export interface UserFilterState {
   // set of segment ids
   segments: Set<string>;
   staticSegments: Set<string>;
-  // map from segment id to segment name
-  segmentNameOverrides: Map<string, string>;
+  // set of subscription group ids
+  subscriptionGroups: Set<string>;
+  staticSubscriptionGroups: Set<string>;
   stage: FilterStage | null;
 }
 
@@ -51,16 +60,33 @@ export type UserFilterUpdater = Updater<UserFilterState>;
 
 export type UserFilterHook = [UserFilterState, UserFilterUpdater];
 
+/**
+ * Create a memoized hash of user filter state for efficient caching and comparison
+ *
+ * @param state The user filter state
+ * @returns A string hash representing the user filter state
+ */
+export function useUserFiltersHash(state: UserFilterState): string {
+  return React.useMemo(
+    () =>
+      JSON.stringify(Array.from(state.userProperties.entries())) +
+      JSON.stringify(Array.from(state.segments)) +
+      JSON.stringify(Array.from(state.subscriptionGroups)),
+    [state.userProperties, state.segments, state.subscriptionGroups],
+  );
+}
+
 export function useUserFilterState(
   initialState?: Partial<UserFilterState>,
 ): UserFilterHook {
   return useImmer<UserFilterState>({
-    userProperties: new Map(),
-    segments: new Set(),
-    staticSegments: new Set(),
-    segmentNameOverrides: new Map(),
-    stage: null,
-    ...initialState,
+    userProperties: initialState?.userProperties ?? new Map(),
+    segments: initialState?.segments ?? new Set(),
+    staticSegments: initialState?.staticSegments ?? new Set(),
+    subscriptionGroups: initialState?.subscriptionGroups ?? new Set(),
+    staticSubscriptionGroups:
+      initialState?.staticSubscriptionGroups ?? new Set(),
+    stage: initialState?.stage ?? null,
   });
 }
 
@@ -116,6 +142,32 @@ export function setStage(
 ) {
   updater((state) => {
     state.stage = stage;
+    return state;
+  });
+}
+
+export function addSubscriptionGroup(
+  updater: Updater<UserFilterState>,
+  id: string,
+) {
+  updater((state) => {
+    if (state.stage?.type !== FilterStageType.SubscriptionGroup) {
+      return state;
+    }
+    state.subscriptionGroups.add(id);
+    return state;
+  });
+}
+
+export function removeSubscriptionGroup(
+  updater: Updater<UserFilterState>,
+  id: string,
+) {
+  updater((state) => {
+    if (state.staticSubscriptionGroups.has(id)) {
+      return state;
+    }
+    state.subscriptionGroups.delete(id);
     return state;
   });
 }

@@ -10,15 +10,14 @@ function clone<T>(obj: T): T {
 
 export function addInitialStateToProps<
   T extends Record<string, unknown> = Record<string, never>,
->({
-  props,
-  serverInitialState,
-  dfContext,
-}: {
+>(params: {
   props: T;
-  serverInitialState: Partial<AppState>;
+  serverInitialState?: Partial<AppState>;
   dfContext: DashboardContext;
 }): T & PropsWithInitialState {
+  const { props, serverInitialState, dfContext } = params;
+  const effectiveServerInitialState = serverInitialState ?? {};
+
   const {
     sourceControlProvider,
     enableSourceControl,
@@ -37,7 +36,7 @@ export function addInitialStateToProps<
     dashboardUrl,
     sourceControlProvider,
     enableSourceControl,
-    ...serverInitialState,
+    ...effectiveServerInitialState,
     workspace: {
       type: CompletionStatus.Successful,
       value: dfContext.workspace,

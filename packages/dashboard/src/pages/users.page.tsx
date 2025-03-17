@@ -1,8 +1,6 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { Type } from "@sinclair/typebox";
-import { findManyPartialSegments } from "backend-lib/src/segments";
-import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { CompletionStatus, GetUsersRequest } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -22,26 +20,8 @@ const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const [segments, userProperties] = await Promise.all([
-      findManyPartialSegments({
-        workspaceId: dfContext.workspace.id,
-      }),
-      findAllUserPropertyResources({
-        workspaceId: dfContext.workspace.id,
-      }),
-    ]);
     return {
       props: addInitialStateToProps({
-        serverInitialState: {
-          segments: {
-            type: CompletionStatus.Successful,
-            value: segments,
-          },
-          userProperties: {
-            type: CompletionStatus.Successful,
-            value: userProperties,
-          },
-        },
         dfContext,
         props: {},
       }),

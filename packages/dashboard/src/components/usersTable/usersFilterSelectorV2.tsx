@@ -13,14 +13,16 @@ import {
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
-import { useAppStorePick } from "../../lib/appStore";
+import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
+import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 import {
   addSegment,
+  addSubscriptionGroup,
   addUserProperty,
   FilterStageType,
   FilterStageWithBack,
@@ -116,17 +118,18 @@ function SegmentSelector({
   updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  const { segments: segmentsResult } = useAppStorePick(["segments"]);
+  const segmentsQuery = useSegmentsQuery();
 
   const options: Option[] = React.useMemo(() => {
-    if (segmentsResult.type !== CompletionStatus.Successful) {
+    if (segmentsQuery.status !== "success") {
       return [];
     }
-    return segmentsResult.value.map((segment) => ({
+    const segments = segmentsQuery.data.segments || [];
+    return segments.map((segment) => ({
       id: segment.id,
       label: segment.name,
     }));
-  }, [segmentsResult]);
+  }, [segmentsQuery]);
 
   return (
     <ComputedPropertyAutocomplete
@@ -140,20 +143,52 @@ function SegmentSelector({
   );
 }
 
-function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
-  const { userProperties: userPropertiesResult } = useAppStorePick([
-    "userProperties",
-  ]);
+function SubscriptionGroupSelector({
+  updater,
+  closeDropdown,
+}: {
+  updater: UserFilterUpdater;
+  closeDropdown: () => void;
+}) {
+  const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
 
   const options: Option[] = React.useMemo(() => {
-    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+    if (subscriptionGroupsQuery.status !== "success") {
       return [];
     }
-    return userPropertiesResult.value.map((up) => ({
+    const subscriptionGroups =
+      subscriptionGroupsQuery.data.subscriptionGroups || [];
+    return subscriptionGroups.map((sg) => ({
+      id: sg.id,
+      label: sg.name,
+    }));
+  }, [subscriptionGroupsQuery]);
+
+  return (
+    <ComputedPropertyAutocomplete
+      options={options}
+      onChange={(id) => {
+        addSubscriptionGroup(updater, id);
+        closeDropdown();
+      }}
+      label="Subscription Group"
+    />
+  );
+}
+
+function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
+  const userPropertiesQuery = useUserPropertiesQuery();
+
+  const options: Option[] = React.useMemo(() => {
+    if (userPropertiesQuery.status !== "success") {
+      return [];
+    }
+    const userProperties = userPropertiesQuery.data.userProperties || [];
+    return userProperties.map((up) => ({
       id: up.id,
       label: up.name,
     }));
-  }, [userPropertiesResult]);
+  }, [userPropertiesQuery]);
 
   return (
     <ComputedPropertyAutocomplete
@@ -223,7 +258,10 @@ function ComputedPropertyTypeSelector({
 
   const FilterOptionsArray: {
     title: string;
-    type: FilterStageType.Segment | FilterStageType.UserProperty;
+    type:
+      | FilterStageType.Segment
+      | FilterStageType.UserProperty
+      | FilterStageType.SubscriptionGroup;
   }[] = [
     {
       title: "User Property",
@@ -232,6 +270,10 @@ function ComputedPropertyTypeSelector({
     {
       title: "Segment",
       type: FilterStageType.Segment,
+    },
+    {
+      title: "Subscription Group",
+      type: FilterStageType.SubscriptionGroup,
     },
   ];
   return (
@@ -282,6 +324,11 @@ function SelectorFooter({
         });
         break;
       case FilterStageType.Segment:
+        setStage(updater, {
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+      case FilterStageType.SubscriptionGroup:
         setStage(updater, {
           type: FilterStageType.ComputedPropertyType,
         });
@@ -369,6 +416,14 @@ export function UsersFilterSelectorV2({
         stageEl = (
           <UserPropertyValueSelector
             stage={state.stage}
+            updater={updater}
+            closeDropdown={handleClose}
+          />
+        );
+        break;
+      case FilterStageType.SubscriptionGroup:
+        stageEl = (
+          <SubscriptionGroupSelector
             updater={updater}
             closeDropdown={handleClose}
           />
