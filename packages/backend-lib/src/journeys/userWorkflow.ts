@@ -153,6 +153,9 @@ export async function userJourneyWorkflow(
     props.version === UserJourneyWorkflowVersion.V2
       ? props.event?.properties
       : props.context;
+  const isHidden =
+    props.version === UserJourneyWorkflowVersion.V2 &&
+    props.event?.context?.hidden === true;
   const eventKeyName =
     props.definition.entryNode.type === JourneyNodeType.EventEntryNode
       ? props.definition.entryNode.key
