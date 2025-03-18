@@ -404,27 +404,27 @@ export async function deleteUsers({
 
   const queries = [
     // Delete from user_events_v2
-    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM user_events_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_v2
-    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_state_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_assignments_v2
-    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from processed_computed_properties_v2
-    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_index
-    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_state_index WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from resolved_segment_state
-    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
   ];
 
@@ -436,6 +436,7 @@ export async function deleteUsers({
         query_params: qb.getQueries(),
         clickhouse_settings: {
           wait_end_of_query: 1,
+          allow_experimental_lightweight_delete: 1,
           mutations_sync: "1",
         },
       }),
