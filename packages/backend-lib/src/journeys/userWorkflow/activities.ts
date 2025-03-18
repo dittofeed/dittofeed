@@ -194,11 +194,16 @@ export function sendMessageFactory(sender: Sender) {
         };
       }
 
+      const context: TrackData["context"] = {};
+      if (params.isHidden) {
+        context.hidden = true;
+      }
       const trackData: TrackData = {
         userId,
         messageId,
         event,
         timestamp: now.toISOString(),
+        context,
         properties: trackingProperties,
       };
       logger().debug({ trackData }, "send message track data");
