@@ -340,6 +340,7 @@ export async function userJourneyWorkflow(
       runId,
       currentNode,
       eventKey,
+      isHidden,
     };
     logger.info("user journey node", {
       ...defaultLoggingFields,
@@ -616,10 +617,11 @@ export async function userJourneyWorkflow(
         }
 
         const shouldContinue = await sendMessageV2({
-          events: keyedEvents,
-          context: entryEventProperties,
           ...messagePayload,
           ...variant,
+          events: keyedEvents,
+          context: entryEventProperties,
+          isHidden,
         });
 
         if (!shouldContinue) {

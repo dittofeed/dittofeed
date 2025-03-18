@@ -63,6 +63,7 @@ export type SendParams = Omit<BaseSendParams, "channel">;
 export type SendParamsV2 = BaseSendParams & {
   context?: Record<string, JSONValue>;
   events?: UserWorkflowTrackEvent[];
+  isHidden?: boolean;
 };
 
 export type SendParamsInner = SendParamsV2 & {
