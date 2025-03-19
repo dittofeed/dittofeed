@@ -16,12 +16,14 @@ import {
   JourneyNodeType,
   Workspace,
 } from "../types";
+import { findManyEventsWithCount } from "../userEvents";
 import { createWorkspace } from "../workspaces";
 import {
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
+import { clickhouseClient } from "../clickhouse";
 
 jest.setTimeout(15000);
 
@@ -141,6 +143,28 @@ describe("eventEntry journeys with hidden triggering events", () => {
       });
 
       expect(senderMock).toHaveBeenCalledTimes(1);
+
+      const resultSet = await clickhouseClient().query({
+        query: `select event, JSONExtract(message_raw, 'context') context, properties from user_events_v2 where event_type = 'track' and event = 'APPOINTMENT_UPDATE' and workspace_id = '${workspace.id}'`,
+        format: "JSONEachRow",
+      });
+
+      const events = await resultSet.json<{
+        context: string;
+        properties: string;
+        event: string;
+      }>();
+
+      const messageSentEvent = events.find(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        (event) => event.event === InternalEventType.MessageSent,
+      );
+      expect(messageSentEvent).not.toBeUndefined();
+      expect(messageSentEvent?.context).toEqual(
+        expect.objectContaining({
+          hidden: true,
+        }),
+      );
     });
   });
 });
