@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import { clickhouseClient } from "../clickhouse";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
 import {
@@ -16,14 +17,12 @@ import {
   JourneyNodeType,
   Workspace,
 } from "../types";
-import { findManyEventsWithCount } from "../userEvents";
 import { createWorkspace } from "../workspaces";
 import {
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
-import { clickhouseClient } from "../clickhouse";
 
 jest.setTimeout(15000);
 
@@ -145,15 +144,23 @@ describe("eventEntry journeys with hidden triggering events", () => {
       expect(senderMock).toHaveBeenCalledTimes(1);
 
       const resultSet = await clickhouseClient().query({
-        query: `select event, JSONExtract(message_raw, 'context') context, properties from user_events_v2 where event_type = 'track' and event = 'APPOINTMENT_UPDATE' and workspace_id = '${workspace.id}'`,
+        query: `select event, JSONExtract(message_raw, 'context', 'Nullable(String)') as event_context, properties from user_events_v2 where workspace_id = '${workspace.id}'`,
         format: "JSONEachRow",
       });
 
-      const events = await resultSet.json<{
-        context: string;
-        properties: string;
-        event: string;
-      }>();
+      const events = (
+        await resultSet.json<{
+          event_context: string | null;
+          properties: string;
+          event: string;
+        }>()
+      ).map((event) => ({
+        event: event.event,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        properties: event.properties ? JSON.parse(event.properties) : null,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        context: event.event_context ? JSON.parse(event.event_context) : null,
+      }));
 
       const messageSentEvent = events.find(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
