@@ -75,12 +75,9 @@ describe("eventEntry journeys with hidden triggering events", () => {
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;
-    let dateUserPropertyId: string;
-    const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
       const templateId = randomUUID();
-      dateUserPropertyId = randomUUID();
 
       journeyDefinition = {
         entryNode: {
@@ -103,7 +100,7 @@ describe("eventEntry journeys with hidden triggering events", () => {
           },
         ],
       };
-      await insert({
+      journey = await insert({
         table: dbJourney,
         values: {
           id: randomUUID(),
