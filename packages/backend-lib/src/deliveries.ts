@@ -356,11 +356,13 @@ export async function searchDeliveries({
         }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id,
         if(event = '${
           InternalEventType.MessageSent
-        }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id
+        }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+        JSONExtractBool(message_raw, 'context', 'hidden') as hidden
       FROM user_events_v2
       WHERE
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}
+        AND hidden = False
         ${channelClause}
         ${toClause}
         ${fromClause}
@@ -389,6 +391,7 @@ export async function searchDeliveries({
     format: "JSONEachRow",
     clickhouse_settings: {
       date_time_output_format: "iso",
+      function_json_value_return_type_allow_complex: 1,
     },
   });
 
