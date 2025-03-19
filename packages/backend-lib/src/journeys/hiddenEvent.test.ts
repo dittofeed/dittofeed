@@ -8,6 +8,7 @@ import { createEnvAndWorker } from "../../test/temporal";
 import { clickhouseClient } from "../clickhouse";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
+import { searchDeliveries } from "../deliveries";
 import {
   ChannelType,
   EmailProviderType,
@@ -172,6 +173,11 @@ describe("eventEntry journeys with hidden triggering events", () => {
           hidden: true,
         }),
       );
+
+      const deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+      });
+      expect(deliveries.items).toHaveLength(0);
     });
   });
 });

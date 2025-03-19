@@ -41,10 +41,6 @@ export const SearchDeliveryRow = Type.Object({
 
 export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
 
-const MessageProperties = Type.Record(Type.String(), Type.Any());
-
-type MessageProperties = Static<typeof MessageProperties>;
-
 const OffsetKey = "o" as const;
 
 // TODO use real token / cursor, not just encoded offset
