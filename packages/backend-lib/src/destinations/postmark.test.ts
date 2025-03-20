@@ -1,23 +1,35 @@
-import { err } from "neverthrow";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
 
-import { sendMail } from "./postmark";
-
-// Create a completely mocked module
-jest.mock("./postmark");
-
 describe("postmark", () => {
+  // Reset modules before each test to clear module cache
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe("sendMail", () => {
     describe("when the operation fails", () => {
-      it("should return an error result", async () => {
-        // Setup mock implementation for this test
+      it("should return an error result when Postmark returns an error", async () => {
+        // Setup mock error response
         const mockErrorResponse: DefaultResponse = {
           ErrorCode: 11,
           Message: "Test error message",
         };
 
-        // Mock the implementation for this test only
-        (sendMail as jest.Mock).mockResolvedValue(err(mockErrorResponse));
+        // Mock the module before importing
+        jest.doMock("postmark", () => {
+          return {
+            ServerClient: jest.fn().mockImplementation(() => ({
+              sendEmail: jest.fn().mockResolvedValue(mockErrorResponse),
+            })),
+          };
+        });
+
+        // Import the module with the mock applied
+        const { sendMail } = await import("./postmark");
 
         // Act
         const result = await sendMail({
@@ -38,6 +50,36 @@ describe("postmark", () => {
             expect(errorResult.Message).toBe("Test error message");
           },
         );
+      });
+
+      it("should propagate errors thrown by the Postmark client", async () => {
+        // Setup the error
+        const errorMessage = "Test error message";
+        const thrownError = new Error(errorMessage);
+
+        // Mock the module before importing
+        jest.doMock("postmark", () => {
+          return {
+            ServerClient: jest.fn().mockImplementation(() => ({
+              sendEmail: jest.fn().mockRejectedValue(thrownError),
+            })),
+          };
+        });
+
+        // Import the module with the mock applied
+        const { sendMail } = await import("./postmark");
+
+        // Act & Assert
+        await expect(
+          sendMail({
+            apiKey: "fake-api-key",
+            mailData: {
+              From: "test@example.com",
+              To: "recipient@example.com",
+              Subject: "Test",
+            },
+          }),
+        ).rejects.toThrow(thrownError);
       });
     });
   });

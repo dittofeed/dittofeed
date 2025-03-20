@@ -22,48 +22,7 @@ import {
   PostMarkEventType,
 } from "../types";
 
-function guardResponseError(payload: unknown): DefaultResponse {
-  const error = payload as Error;
-  return {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    ErrorCode: (error.cause as DefaultResponse["ErrorCode"]) ?? "",
-    Message: error.message,
-  };
-}
-
-/* 
-Postmarks's client does not throw an error and instead returns a nullish error 
-object that's why we wrap it out in our wrapper function
-*/
-
-const sendMailWrapper = async (apiKey: string, mailData: Message) => {
-  const postmarkClient = new ServerClient(apiKey);
-
-  logger().debug({ mailData }, "loc0 Postmark request");
-  const response = await postmarkClient.sendEmail(mailData);
-  logger().debug({ response }, "loc1 Postmark response");
-  if (response.ErrorCode) {
-    throw new Error(response.Message, {
-      cause: response.ErrorCode,
-    });
-  }
-  return response;
-};
-
 export async function sendMail({
-  apiKey,
-  mailData,
-}: {
-  apiKey: string;
-  mailData: Message;
-}): Promise<ResultAsync<MessageSendingResponse, DefaultResponse>> {
-  return ResultAsync.fromPromise(
-    sendMailWrapper(apiKey, mailData),
-    guardResponseError,
-  ).map((resultArray) => resultArray);
-}
-
-export async function sendMailV2({
   apiKey,
   mailData,
 }: {
