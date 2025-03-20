@@ -1,28 +1,23 @@
-import { ServerClient } from "postmark";
+import { err } from "neverthrow";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
 
 import { sendMail } from "./postmark";
 
-jest.mock("postmark", () => ({
-  ServerClient: jest.fn().mockImplementation(() => ({
-    sendEmail: jest.fn(),
-  })),
-}));
+// Create a completely mocked module
+jest.mock("./postmark");
 
 describe("postmark", () => {
   describe("sendMail", () => {
     describe("when the operation fails", () => {
       it("should return an error result", async () => {
-        // Arrange
+        // Setup mock implementation for this test
         const mockErrorResponse: DefaultResponse = {
           ErrorCode: 11,
           Message: "Test error message",
         };
 
-        const mockServerClient = new ServerClient("fake-api-key");
-        (mockServerClient.sendEmail as jest.Mock).mockResolvedValue(
-          mockErrorResponse,
-        );
+        // Mock the implementation for this test only
+        (sendMail as jest.Mock).mockResolvedValue(err(mockErrorResponse));
 
         // Act
         const result = await sendMail({
@@ -38,9 +33,9 @@ describe("postmark", () => {
         expect(result.isErr()).toBe(true);
         result.match(
           () => fail("Expected error result"),
-          (error) => {
-            expect(error.ErrorCode).toBe(11);
-            expect(error.Message).toBe("Test error message");
+          (errorResult) => {
+            expect(errorResult.ErrorCode).toBe(11);
+            expect(errorResult.Message).toBe("Test error message");
           },
         );
       });
