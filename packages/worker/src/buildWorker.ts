@@ -12,6 +12,7 @@ import {
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
+import { OpenTelemetry } from "backend-lib/src/openTelemetry";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
@@ -19,7 +20,7 @@ import workerLogger from "backend-lib/src/workerLogger";
 
 import config from "./config";
 
-export async function buildWorker() {
+export async function buildWorker(otel: OpenTelemetry) {
   Runtime.install({ logger: workerLogger });
 
   const [connection, workflowClient] = await Promise.all([

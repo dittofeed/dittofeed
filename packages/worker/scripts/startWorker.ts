@@ -19,7 +19,7 @@ async function run() {
   }
 
   const otel = initWorkerOpenTelemetry();
-  const worker = await buildWorker();
+  const worker = await buildWorker(otel);
   otel.start();
 
   await worker.run();

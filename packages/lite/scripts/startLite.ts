@@ -104,7 +104,7 @@ async function startLite() {
     },
   });
 
-  const worker = await buildWorker();
+  const worker = await buildWorker(otel);
 
   otel.start();
 
