@@ -39,7 +39,9 @@ object that's why we wrap it out in our wrapper function
 const sendMailWrapper = async (apiKey: string, mailData: Message) => {
   const postmarkClient = new ServerClient(apiKey);
 
+  logger().debug({ mailData }, "loc0 Postmark request");
   const response = await postmarkClient.sendEmail(mailData);
+  logger().debug({ response }, "loc1 Postmark response");
   if (response.ErrorCode) {
     throw new Error(response.Message, {
       cause: response.ErrorCode,
@@ -59,6 +61,21 @@ export async function sendMail({
     sendMailWrapper(apiKey, mailData),
     guardResponseError,
   ).map((resultArray) => resultArray);
+}
+
+export async function sendMailV2({
+  apiKey,
+  mailData,
+}: {
+  apiKey: string;
+  mailData: Message;
+}): Promise<ResultAsync<MessageSendingResponse, DefaultResponse>> {
+  const postmarkClient = new ServerClient(apiKey);
+  const response = await postmarkClient.sendEmail(mailData);
+  if (response.ErrorCode) {
+    return err(response);
+  }
+  return ok(response);
 }
 
 function unwrapTag(tagName: string, tags: Record<string, string>) {
