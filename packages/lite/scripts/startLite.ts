@@ -2,18 +2,25 @@
 import "@fastify/secure-session";
 
 import { BOOTSTRAP_OPTIONS } from "admin-cli/src/bootstrap";
-import buildApp from "api/src/buildApp";
 import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
 import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import logger from "backend-lib/src/logger";
 import next from "next";
 import path from "path";
-import { buildWorker } from "worker/src/buildWorker";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import liteConfig from "../src/config";
+import { initLiteOpenTelemetry } from "../src/openTelemetry";
+
+const otel = initLiteOpenTelemetry();
+
+// Importing buildApp and buildWorker after otel initialization to allow monkey patching
+// eslint-disable-next-line import/first, import/order
+import buildApp from "api/src/buildApp";
+// eslint-disable-next-line import/first, import/order
+import { buildWorker } from "worker/src/buildWorker";
 
 function findPackagesDir(fullPath: string): string {
   // Normalize the path to handle different path separators
@@ -98,6 +105,8 @@ async function startLite() {
   });
 
   const worker = await buildWorker();
+
+  otel.start();
 
   await Promise.all([app.listen({ port, host }), worker.run()]);
 }

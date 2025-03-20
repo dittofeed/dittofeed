@@ -3,7 +3,7 @@ import logger from "backend-lib/src/logger";
 
 import { buildWorker } from "../src/buildWorker";
 import config from "../src/config";
-import { initWorkerOpenTelemetry } from "../src/openTelementry";
+import { initWorkerOpenTelemetry } from "../src/openTelemetry";
 
 async function run() {
   const workerConfig = config();
