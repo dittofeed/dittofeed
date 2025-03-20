@@ -20,7 +20,7 @@ import workerLogger from "backend-lib/src/workerLogger";
 
 import config from "./config";
 
-export async function buildWorker(otel: OpenTelemetry) {
+export async function buildWorker(otel?: OpenTelemetry) {
   Runtime.install({ logger: workerLogger });
 
   const [connection, workflowClient] = await Promise.all([
@@ -39,15 +39,18 @@ export async function buildWorker(otel: OpenTelemetry) {
     reuseContext: reuseV8Context,
   } = config();
 
+  const sinks: WorkerOptions["sinks"] = {
+    ...defaultSinks(workerLogger),
+  };
+  if (otel) {
+    sinks.exporter = makeWorkflowExporter(otel.traceExporter, otel.resource);
+  }
   const opts: WorkerOptions = {
     connection,
     namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
     activities,
-    sinks: {
-      ...defaultSinks(workerLogger),
-      exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
-    },
+    sinks,
     interceptors: appendDefaultInterceptors(
       {
         activityInbound: [
