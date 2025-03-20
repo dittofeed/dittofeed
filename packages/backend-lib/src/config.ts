@@ -17,7 +17,6 @@ import {
 } from "./types";
 
 const BaseRawConfigProps = {
-  // FIXME add config
   databaseUrl: Type.Optional(Type.String()),
   databaseUser: Type.Optional(Type.String()),
   databasePassword: Type.Optional(Type.String()),

@@ -13,7 +13,7 @@ import { getWorkspaceIdFromReq } from "./workspace";
 const apiConfig = config();
 const { apiServiceName: serviceName } = apiConfig;
 
-const telemetryConfig: Parameters<
+export const API_TELEMETRY_CONFIG: Parameters<
   typeof initOpenTelemetry
 >[0]["configOverrides"] = {
   "@opentelemetry/instrumentation-http": {
@@ -41,18 +41,18 @@ const telemetryConfig: Parameters<
   },
 };
 
+export const API_VIEWS = [
+  new View({
+    aggregation: new ExplicitBucketHistogramAggregation([200, 300, 400, 500]),
+    instrumentName: "api-statuses",
+    instrumentType: InstrumentType.HISTOGRAM,
+  }),
+];
+
 export function initApiOpenTelemetry() {
   return initOpenTelemetry({
     serviceName,
-    configOverrides: telemetryConfig,
-    meterProviderViews: [
-      new View({
-        aggregation: new ExplicitBucketHistogramAggregation([
-          200, 300, 400, 500,
-        ]),
-        instrumentName: "api-statuses",
-        instrumentType: InstrumentType.HISTOGRAM,
-      }),
-    ],
+    configOverrides: API_TELEMETRY_CONFIG,
+    meterProviderViews: API_VIEWS,
   });
 }
