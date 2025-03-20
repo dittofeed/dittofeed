@@ -31,7 +31,7 @@ export type FastifyAppOpts = FastifyHttpOptions<RawServerDefault, Logger>;
 
 export function buildFastifyAppOpts(): FastifyAppOpts {
   const fastifyLogger = logger();
-  const rewriteUrl: FastifyAppOpts["rewriteUrl"] = (req) => {
+  const rewriteUrl: FastifyAppOpts["rewriteUrl"] = function rewriteUrl(req) {
     const { apiPrefix } = config();
     if (!req.url) {
       return "";

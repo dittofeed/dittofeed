@@ -85,6 +85,7 @@ async function startLite() {
     dir,
     customServer: true,
   });
+  await nextApp.prepare();
   const nextHandler = nextApp.getRequestHandler();
 
   app.route({
