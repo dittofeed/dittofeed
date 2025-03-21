@@ -393,7 +393,7 @@ function journeyDefinitionFromStateBranch(
         let variant: DelayNode["variant"];
         switch (uiNode.variant.type) {
           case DelayVariantType.Second: {
-            if (!uiNode.variant.seconds) {
+            if (uiNode.variant.seconds === undefined) {
               return err({
                 message: "Delay node must have a timeout",
                 nodeId: nId,
@@ -406,13 +406,13 @@ function journeyDefinitionFromStateBranch(
             break;
           }
           case DelayVariantType.LocalTime: {
-            if (!uiNode.variant.hour) {
+            if (uiNode.variant.hour === undefined) {
               return err({
                 message: "Local time delay node must have an hour",
                 nodeId: nId,
               });
             }
-            if (!uiNode.variant.minute) {
+            if (uiNode.variant.minute === undefined) {
               return err({
                 message: "Local time delay node must have a minute",
                 nodeId: nId,
@@ -456,7 +456,7 @@ function journeyDefinitionFromStateBranch(
         break;
       }
       case JourneyNodeType.WaitForNode: {
-        if (!uiNode.timeoutSeconds) {
+        if (uiNode.timeoutSeconds === undefined) {
           return err({
             message: "Wait for node must have a timeout",
             nodeId: nId,
