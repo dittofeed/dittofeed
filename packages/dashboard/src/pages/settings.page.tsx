@@ -67,6 +67,7 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
+import { enqueueSnackbar } from "notistack";
 import { useEffect, useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
@@ -93,6 +94,7 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
+import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 
@@ -543,6 +545,21 @@ function SegmentIoConfig() {
       queryClient.invalidateQueries({
         queryKey: ["segmentConfig", workspaceId],
       });
+      enqueueSnackbar("Segment configuration updated successfully", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to update Segment configuration: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        },
+      );
     },
   });
 
@@ -559,6 +576,21 @@ function SegmentIoConfig() {
       queryClient.invalidateQueries({
         queryKey: ["segmentConfig", workspaceId],
       });
+      enqueueSnackbar("Segment integration disabled successfully", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to disable Segment integration: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        },
+      );
     },
   });
 
@@ -572,6 +604,9 @@ function SegmentIoConfig() {
 
   const isPending =
     segmentConfigMutation.isPending || deleteSegmentConfigMutation.isPending;
+
+  const saveButtonDisabled =
+    isPending || (isEnabled && !secretExists && !sharedSecret);
 
   return (
     <Stack spacing={3}>
@@ -634,7 +669,7 @@ function SegmentIoConfig() {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={isPending || sharedSecret.length === 0}
+          disabled={saveButtonDisabled}
           sx={{
             alignSelf: {
               xs: "start",
