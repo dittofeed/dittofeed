@@ -520,18 +520,13 @@ function SegmentIoConfig() {
       // Determine what shared secret value to send
       let sharedSecretValue: string | undefined;
 
-      if (isEnabled) {
-        // If there's no new value entered and a secret already exists,
-        // send undefined to keep existing value
-        if (!sharedSecret && secretExists) {
-          sharedSecretValue = undefined;
-        } else {
-          // Otherwise send the new value (which could be empty string if disabling)
-          sharedSecretValue = sharedSecret;
-        }
+      // If there's no new value entered and a secret already exists,
+      // send undefined to keep existing value
+      if (!sharedSecret && secretExists) {
+        sharedSecretValue = undefined;
       } else {
-        // If disabling, always send empty string
-        sharedSecretValue = "";
+        // Otherwise send the new value
+        sharedSecretValue = sharedSecret;
       }
 
       const body = {
@@ -551,9 +546,32 @@ function SegmentIoConfig() {
     },
   });
 
+  // Mutation to delete segment configuration
+  const deleteSegmentConfigMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId) return null;
+
+      return axios.delete(
+        `${apiBase}/api/settings/data-sources?workspaceId=${workspaceId}&type=${DataSourceVariantType.SegmentIO}`,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["segmentConfig", workspaceId],
+      });
+    },
+  });
+
   const handleSubmit = () => {
-    segmentConfigMutation.mutate();
+    if (isEnabled) {
+      segmentConfigMutation.mutate();
+    } else {
+      deleteSegmentConfigMutation.mutate();
+    }
   };
+
+  const isPending =
+    segmentConfigMutation.isPending || deleteSegmentConfigMutation.isPending;
 
   return (
     <Stack spacing={3}>
@@ -580,7 +598,7 @@ function SegmentIoConfig() {
                       },
                       switchProps: {
                         checked: isEnabled,
-                        disabled: segmentConfigMutation.isPending,
+                        disabled: segmentConfigQuery.isPending,
                         onChange: (_, checked) => {
                           setIsEnabled(checked);
                         },
@@ -594,9 +612,7 @@ function SegmentIoConfig() {
                           type: "text",
                           fieldProps: {
                             label: "Shared Secret",
-                            placeholder: secretExists
-                              ? "••••••••••"
-                              : undefined,
+                            placeholder: secretExists ? "••••••••••" : "",
                             helperText:
                               secretExists && !sharedSecret
                                 ? "Secret is already configured. Enter a new value to change it."
@@ -618,7 +634,7 @@ function SegmentIoConfig() {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={segmentConfigMutation.isPending}
+          disabled={isPending || sharedSecret.length === 0}
           sx={{
             alignSelf: {
               xs: "start",
