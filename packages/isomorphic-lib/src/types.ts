@@ -4860,3 +4860,19 @@ export const GetResourcesResponse = Type.Object({
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
+
+export const ListDataSourceConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type ListDataSourceConfigurationRequest = Static<
+  typeof ListDataSourceConfigurationRequest
+>;
+
+export const ListDataSourceConfigurationResponse = Type.Object({
+  dataSourceConfigurations: Type.Array(Type.Enum(DataSourceVariantType)),
+});
+
+export type ListDataSourceConfigurationResponse = Static<
+  typeof ListDataSourceConfigurationResponse
+>;

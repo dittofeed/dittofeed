@@ -17,6 +17,8 @@ import {
   DefaultSmsProviderResource,
   DeleteWriteKeyResource,
   EmptyResponse,
+  ListDataSourceConfigurationRequest,
+  ListDataSourceConfigurationResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
   PersistedSmsProvider,
@@ -30,6 +32,35 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function settingsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/data-sources",
+    {
+      schema: {
+        description: "Get data source settings",
+        tags: ["Settings"],
+        querystring: ListDataSourceConfigurationRequest,
+        response: {
+          200: ListDataSourceConfigurationResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const segmentIoConfiguration =
+        await db().query.segmentIoConfiguration.findFirst({
+          where: eq(
+            schema.segmentIoConfiguration.workspaceId,
+            request.query.workspaceId,
+          ),
+        });
+      const existingDatasources: DataSourceVariantType[] = [];
+      if (segmentIoConfiguration) {
+        existingDatasources.push(DataSourceVariantType.SegmentIO);
+      }
+      return reply.status(200).send({
+        dataSourceConfigurations: existingDatasources,
+      });
+    },
+  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/data-sources",
     {
