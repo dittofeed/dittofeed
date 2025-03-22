@@ -499,14 +499,14 @@ function SegmentIoConfig() {
     enabled: !!workspaceId,
   });
 
-  // Update local state when data is loaded
+  // Update isEnabled when the query data changes
   useEffect(() => {
-    if (
-      segmentConfigQuery.data?.dataSourceConfigurations?.includes(
-        DataSourceVariantType.SegmentIO,
-      )
-    ) {
-      setIsEnabled(true);
+    if (segmentConfigQuery.data) {
+      const segmentEnabled =
+        segmentConfigQuery.data.dataSourceConfigurations?.includes(
+          DataSourceVariantType.SegmentIO,
+        );
+      setIsEnabled(!!segmentEnabled);
     }
   }, [segmentConfigQuery.data]);
 
@@ -560,7 +560,8 @@ function SegmentIoConfig() {
                         label: "Enable",
                       },
                       switchProps: {
-                        value: isEnabled,
+                        checked: isEnabled,
+                        disabled: segmentConfigMutation.isPending,
                         onChange: (_, checked) => {
                           setIsEnabled(checked);
                         },
