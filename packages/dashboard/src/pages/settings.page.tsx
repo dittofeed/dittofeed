@@ -23,6 +23,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
@@ -45,7 +47,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
-  DataSourceConfigurationResource,
   DataSourceVariantType,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
@@ -59,7 +60,6 @@ import {
   SmtpSecretKey,
   SubscriptionChange,
   SyncIntegration,
-  UpsertDataSourceConfigurationResource,
   UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
 import {
@@ -67,7 +67,8 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import { useMemo, useState } from "react";
+import { enqueueSnackbar } from "notistack";
+import { useEffect, useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
@@ -93,6 +94,7 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
+import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 
@@ -438,14 +440,10 @@ function SettingsLayout(
 
 interface SettingsState {
   upsertSmsProviderRequest: EphemeralRequestStatus<Error>;
-  segmentIoRequest: EphemeralRequestStatus<Error>;
-  segmentIoSharedSecret: string;
   upsertIntegrationsRequest: EphemeralRequestStatus<Error>;
 }
 
 interface SettingsActions {
-  updateSegmentIoSharedSecret: (key: string) => void;
-  updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateUpsertIntegrationsRequest: (
     request: EphemeralRequestStatus<Error>,
   ) => void;
@@ -456,10 +454,6 @@ type SettingsContent = SettingsState & SettingsActions;
 
 export const useSettingsStore = create(
   immer<SettingsActions & SettingsState>((set) => ({
-    segmentIoRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    segmentIoSharedSecret: "",
     upsertIntegrationsRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -469,16 +463,6 @@ export const useSettingsStore = create(
     updateUpsertIntegrationsRequest: (request) => {
       set((state) => {
         state.upsertIntegrationsRequest = request;
-      });
-    },
-    updateSegmentIoSharedSecret: (key) => {
-      set((state) => {
-        state.segmentIoSharedSecret = key;
-      });
-    },
-    updateSegmentIoRequest: (request) => {
-      set((state) => {
-        state.segmentIoRequest = request;
       });
     },
     updateSmsProviderRequest: (request) => {
@@ -494,57 +478,135 @@ function useSettingsStorePick(params: (keyof SettingsContent)[]) {
 }
 
 function SegmentIoConfig() {
-  const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
-  const [isEnabled, setIsEnabled] = useState(!!sharedSecret.trim());
-  const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
-  const apiBase = useAppStore((store) => store.apiBase);
-  const updateSegmentIoRequest = useSettingsStore(
-    (store) => store.updateSegmentIoRequest,
-  );
-  const workspace = useAppStore((store) => store.workspace);
-  const upsertDataSourceConfiguration = useAppStore(
-    (store) => store.upsertDataSourceConfiguration,
-  );
-  const updateSegmentIoSharedSecret = useSettingsStore(
-    (store) => store.updateSegmentIoSharedSecret,
-  );
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [sharedSecret, setSharedSecret] = useState("");
+  const [secretExists, setSecretExists] = useState(false);
+  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const queryClient = useQueryClient();
+
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
-  if (!workspaceId) {
-    return null;
-  }
-  const body: UpsertDataSourceConfigurationResource = {
-    workspaceId,
-    variant: {
-      type: DataSourceVariantType.SegmentIO,
-      sharedSecret,
+  // Fetch existing segment configuration
+  const segmentConfigQuery = useQuery({
+    queryKey: ["segmentConfig", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+
+      const response = await axios.get(
+        `${apiBase}/api/settings/data-sources?workspaceId=${workspaceId}`,
+      );
+
+      return response.data;
     },
-  };
-  const apiHandler = apiRequestHandlerFactory({
-    request: segmentIoRequest,
-    setRequest: updateSegmentIoRequest,
-    responseSchema: DataSourceConfigurationResource,
-    setResponse: upsertDataSourceConfiguration,
-    onSuccessNotice: "Updated segment.com configuration.",
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to update segment.com configuration.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/settings/data-sources`,
-      data: body,
-      headers: {
-        "Content-Type": "application/json",
-      },
+    enabled: !!workspaceId,
+  });
+
+  // Update isEnabled when the query data changes
+  useEffect(() => {
+    if (segmentConfigQuery.data) {
+      const segmentEnabled =
+        segmentConfigQuery.data.dataSourceConfigurations?.includes(
+          DataSourceVariantType.SegmentIO,
+        );
+      setIsEnabled(!!segmentEnabled);
+      setSecretExists(!!segmentEnabled);
+    }
+  }, [segmentConfigQuery.data]);
+
+  // Mutation to update segment configuration
+  const segmentConfigMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId) return null;
+
+      // Determine what shared secret value to send
+      let sharedSecretValue: string | undefined;
+
+      // If there's no new value entered and a secret already exists,
+      // send undefined to keep existing value
+      if (!sharedSecret && secretExists) {
+        sharedSecretValue = undefined;
+      } else {
+        // Otherwise send the new value
+        sharedSecretValue = sharedSecret;
+      }
+
+      const body = {
+        workspaceId,
+        variant: {
+          type: DataSourceVariantType.SegmentIO,
+          sharedSecret: sharedSecretValue,
+        },
+      };
+
+      return axios.put(`${apiBase}/api/settings/data-sources`, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["segmentConfig", workspaceId],
+      });
+      enqueueSnackbar("Segment configuration updated successfully", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to update Segment configuration: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        },
+      );
     },
   });
+
+  // Mutation to delete segment configuration
+  const deleteSegmentConfigMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId) return null;
+
+      return axios.delete(
+        `${apiBase}/api/settings/data-sources?workspaceId=${workspaceId}&type=${DataSourceVariantType.SegmentIO}`,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["segmentConfig", workspaceId],
+      });
+      enqueueSnackbar("Segment integration disabled successfully", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to disable Segment integration: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        },
+      );
+    },
+  });
+
   const handleSubmit = () => {
-    if (!isEnabled) updateSegmentIoSharedSecret("");
-    apiHandler();
+    if (isEnabled) {
+      segmentConfigMutation.mutate();
+    } else {
+      deleteSegmentConfigMutation.mutate();
+    }
   };
 
-  const requestInProgress =
-    segmentIoRequest.type === CompletionStatus.InProgress;
+  const isPending =
+    segmentConfigMutation.isPending || deleteSegmentConfigMutation.isPending;
+
+  const saveButtonDisabled =
+    isPending || (isEnabled && !secretExists && !sharedSecret);
 
   return (
     <Stack spacing={3}>
@@ -570,7 +632,8 @@ function SegmentIoConfig() {
                         label: "Enable",
                       },
                       switchProps: {
-                        value: isEnabled,
+                        checked: isEnabled,
+                        disabled: segmentConfigQuery.isPending,
                         onChange: (_, checked) => {
                           setIsEnabled(checked);
                         },
@@ -584,10 +647,13 @@ function SegmentIoConfig() {
                           type: "text",
                           fieldProps: {
                             label: "Shared Secret",
+                            placeholder: secretExists ? "••••••••••" : "",
                             helperText:
-                              "Secret for validating signed request bodies from segment.",
+                              secretExists && !sharedSecret
+                                ? "Secret is already configured. Enter a new value to change it."
+                                : "Secret for validating signed request bodies from segment.",
                             onChange: (e) => {
-                              updateSegmentIoSharedSecret(e.target.value);
+                              setSharedSecret(e.target.value);
                             },
                             value: sharedSecret,
                           },
@@ -603,7 +669,7 @@ function SegmentIoConfig() {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={requestInProgress}
+          disabled={saveButtonDisabled}
           sx={{
             alignSelf: {
               xs: "start",

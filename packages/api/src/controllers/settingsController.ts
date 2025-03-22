@@ -15,8 +15,11 @@ import {
   DataSourceVariantType,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
+  DeleteDataSourceConfigurationRequest,
   DeleteWriteKeyResource,
   EmptyResponse,
+  ListDataSourceConfigurationRequest,
+  ListDataSourceConfigurationResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
   PersistedSmsProvider,
@@ -30,6 +33,35 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function settingsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/data-sources",
+    {
+      schema: {
+        description: "Get data source settings",
+        tags: ["Settings"],
+        querystring: ListDataSourceConfigurationRequest,
+        response: {
+          200: ListDataSourceConfigurationResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const segmentIoConfiguration =
+        await db().query.segmentIoConfiguration.findFirst({
+          where: eq(
+            schema.segmentIoConfiguration.workspaceId,
+            request.query.workspaceId,
+          ),
+        });
+      const existingDatasources: DataSourceVariantType[] = [];
+      if (segmentIoConfiguration) {
+        existingDatasources.push(DataSourceVariantType.SegmentIO);
+      }
+      return reply.status(200).send({
+        dataSourceConfigurations: existingDatasources,
+      });
+    },
+  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/data-sources",
     {
@@ -81,6 +113,32 @@ export default async function settingsController(fastify: FastifyInstance) {
       }
 
       return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/data-sources",
+    {
+      schema: {
+        description: "Delete data source settings",
+        tags: ["Settings"],
+        querystring: DeleteDataSourceConfigurationRequest,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, type } = request.query;
+      switch (type) {
+        case DataSourceVariantType.SegmentIO: {
+          await db()
+            .delete(schema.segmentIoConfiguration)
+            .where(eq(schema.segmentIoConfiguration.workspaceId, workspaceId));
+          break;
+        }
+      }
+      return reply.status(204).send();
     },
   );
 
