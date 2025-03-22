@@ -476,9 +476,9 @@ function useSettingsStorePick(params: (keyof SettingsContent)[]) {
 }
 
 function SegmentIoConfig() {
-  const SECRET_PLACEHOLDER = "**********";
   const [isEnabled, setIsEnabled] = useState(false);
   const [sharedSecret, setSharedSecret] = useState("");
+  const [secretExists, setSecretExists] = useState(false);
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
   const queryClient = useQueryClient();
 
@@ -508,13 +508,9 @@ function SegmentIoConfig() {
           DataSourceVariantType.SegmentIO,
         );
       setIsEnabled(!!segmentEnabled);
-
-      // If segment is enabled, set the placeholder to indicate a secret exists
-      if (segmentEnabled && sharedSecret === "") {
-        setSharedSecret(SECRET_PLACEHOLDER);
-      }
+      setSecretExists(!!segmentEnabled);
     }
-  }, [segmentConfigQuery.data, sharedSecret]);
+  }, [segmentConfigQuery.data]);
 
   // Mutation to update segment configuration
   const segmentConfigMutation = useMutation({
@@ -522,16 +518,20 @@ function SegmentIoConfig() {
       if (!workspaceId) return null;
 
       // Determine what shared secret value to send
-      let sharedSecretValue: string | undefined = "";
+      let sharedSecretValue: string | undefined;
 
       if (isEnabled) {
-        // Only send a new value if it's not the placeholder
-        if (sharedSecret !== SECRET_PLACEHOLDER) {
-          sharedSecretValue = sharedSecret;
-        } else {
-          // Using undefined tells the backend to keep the existing value
+        // If there's no new value entered and a secret already exists,
+        // send undefined to keep existing value
+        if (!sharedSecret && secretExists) {
           sharedSecretValue = undefined;
+        } else {
+          // Otherwise send the new value (which could be empty string if disabling)
+          sharedSecretValue = sharedSecret;
         }
+      } else {
+        // If disabling, always send empty string
+        sharedSecretValue = "";
       }
 
       const body = {
@@ -583,10 +583,6 @@ function SegmentIoConfig() {
                         disabled: segmentConfigMutation.isPending,
                         onChange: (_, checked) => {
                           setIsEnabled(checked);
-                          // Clear placeholder when disabling
-                          if (!checked && sharedSecret === SECRET_PLACEHOLDER) {
-                            setSharedSecret("");
-                          }
                         },
                       },
                     },
@@ -598,8 +594,11 @@ function SegmentIoConfig() {
                           type: "text",
                           fieldProps: {
                             label: "Shared Secret",
+                            placeholder: secretExists
+                              ? "••••••••••"
+                              : undefined,
                             helperText:
-                              sharedSecret === SECRET_PLACEHOLDER
+                              secretExists && !sharedSecret
                                 ? "Secret is already configured. Enter a new value to change it."
                                 : "Secret for validating signed request bodies from segment.",
                             onChange: (e) => {

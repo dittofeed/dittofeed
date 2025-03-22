@@ -15,6 +15,7 @@ import {
   DataSourceVariantType,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
+  DeleteDataSourceConfigurationRequest,
   DeleteWriteKeyResource,
   EmptyResponse,
   ListDataSourceConfigurationRequest,
@@ -112,6 +113,32 @@ export default async function settingsController(fastify: FastifyInstance) {
       }
 
       return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/data-sources",
+    {
+      schema: {
+        description: "Delete data source settings",
+        tags: ["Settings"],
+        querystring: DeleteDataSourceConfigurationRequest,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, type } = request.query;
+      switch (type) {
+        case DataSourceVariantType.SegmentIO: {
+          await db()
+            .delete(schema.segmentIoConfiguration)
+            .where(eq(schema.segmentIoConfiguration.workspaceId, workspaceId));
+          break;
+        }
+      }
+      return reply.status(204).send();
     },
   );
 
