@@ -10,3 +10,38 @@ It provides separate workspace member accounts, which can be configured with dif
 The `multi-tenant` auth mode is only available in dittofeed-ee, and Dittofeed cloud. See [dittofeed-ee](/docs/deployment/self-hosted/dittofeed-ee) for more information on installing dittofeed-ee.
 
 ## Setup
+
+Multi-tenancy utilizes OIDC for authentication. To enable multi-tenancy, you will need to configure an OIDC provider.
+
+### Auth0
+
+In order to configure Auth0 as an OIDC provider for multi-tenancy, use the following environment variables.
+
+```bash .env
+OPEN_ID_CLIENT_ID='<your-auth0-client-id>'
+OPEN_ID_CLIENT_SECRET='<your-auth0-client-secret>'
+SECRET_KEY='<your-secret-key>'
+AUTH_MODE='multi-tenant'
+AUTH_PROVIDER='auth0'
+# example: https://my-dittofeed-instance.com/dashboard/signout
+SIGNOUT_URL='https://<your-dittofeed-instance>/dashboard/signout'
+```
+
+#### Configuring Auth0
+
+In auth0 create a Regular Web Application.
+
+Then in the settings of the application, (https://manage.auth0.com/dashboard/us/dittofeed/applications/<application-id>/settings) take the following actions.
+
+* Copy the `Client ID` which will be used as the `OPEN_ID_CLIENT_ID`.
+* Copy the `Client Secret` which will be used as the `OPEN_ID_CLIENT_SECRET`.
+* Add a callback URL of the form `https://<your-dittofeed-instance>/dashboard/oauth2/callback`.
+* Add a `Logout URL` of the form `https://<your-dittofeed-instance>/dashboard/signout/complete`.
+* Add an `Allowed Callback URLs` of the form `https://<your-dittofeed-instance>`.
+* Allow Cross-Origin Authentication.
+* Click Save Changes.
+
+
+### Generating a Secret Key
+
+See our documentation on [Authentication Modes](/deployment/self-hosted/auth-modes) for instructions on how to generate a new `SECRET_KEY`.
