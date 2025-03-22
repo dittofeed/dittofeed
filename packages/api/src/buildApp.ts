@@ -6,8 +6,8 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
-import { DittofeedFastifyInstance } from "backend-lib/src/types";
-import fastify from "fastify";
+import { DittofeedFastifyInstance, Logger } from "backend-lib/src/types";
+import fastify, { FastifyHttpOptions, RawServerDefault } from "fastify";
 import { TYPE_REFS } from "isomorphic-lib/src/typeRefs";
 import {
   DFRequestContext,
@@ -27,24 +27,34 @@ declare module "@fastify/request-context" {
   export interface RequestContextData extends DFRequestContext {}
 }
 
-async function buildApp(opts?: BuildAppOpts) {
-  const fastifyLogger = logger();
-  const server: DittofeedFastifyInstance = fastify({
-    bodyLimit: config().apiBodyLimit,
-    querystringParser: (str) => qs.parse(str),
-    rewriteUrl: (req) => {
-      const { apiPrefix } = config();
-      if (!req.url) {
-        return "";
-      }
+export type FastifyAppOpts = FastifyHttpOptions<RawServerDefault, Logger>;
 
-      if (!apiPrefix) {
-        return req.url;
-      }
-      return req.url.replace(apiPrefix, "");
-    },
+export function buildFastifyAppOpts(): FastifyAppOpts {
+  const fastifyLogger = logger();
+  const rewriteUrl: FastifyAppOpts["rewriteUrl"] = function rewriteUrl(req) {
+    const { apiPrefix } = config();
+    if (!req.url) {
+      return "";
+    }
+
+    if (!apiPrefix) {
+      return req.url;
+    }
+    return req.url.replace(apiPrefix, "");
+  };
+  return {
+    bodyLimit: config().apiBodyLimit,
+    querystringParser: (str: string) => qs.parse(str),
+    rewriteUrl,
     logger: fastifyLogger,
-  }).withTypeProvider<TypeBoxTypeProvider>();
+  } satisfies FastifyAppOpts;
+}
+
+export async function registerApp(
+  originalServer: DittofeedFastifyInstance,
+  opts?: BuildAppOpts,
+) {
+  const server = originalServer.withTypeProvider<TypeBoxTypeProvider>();
 
   let servers: OpenAPIV3_1.ServerObject[];
   switch (config().nodeEnv) {
@@ -135,6 +145,12 @@ async function buildApp(opts?: BuildAppOpts) {
     server.swagger();
   });
 
+  return server;
+}
+
+async function buildApp(opts?: BuildAppOpts) {
+  const server = fastify(buildFastifyAppOpts());
+  await registerApp(server, opts);
   return server;
 }
 

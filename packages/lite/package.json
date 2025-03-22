@@ -8,6 +8,9 @@
     "check": "tsc --build",
     "lint": "eslint ."
   },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "dependencies": {
     "@fastify/secure-session": "7.1.0",
     "@sinclair/typebox": "0.32.29",

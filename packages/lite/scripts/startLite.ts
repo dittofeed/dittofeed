@@ -1,30 +1,26 @@
 // ensures types are imported to support single-tenant auth
 import "@fastify/secure-session";
 
-import {
-  appendDefaultInterceptors,
-  defaultSinks,
-  NativeConnection,
-  Runtime,
-  Worker,
-} from "@temporalio/worker";
 import { BOOTSTRAP_OPTIONS } from "admin-cli/src/bootstrap";
-import buildApp from "api/src/buildApp";
 import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
 import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import logger from "backend-lib/src/logger";
-import * as activities from "backend-lib/src/temporal/activities";
-import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
-import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
-import workerLogger from "backend-lib/src/workerLogger";
 import next from "next";
 import path from "path";
-import workerConfig from "worker/src/config";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import liteConfig from "../src/config";
+import { initLiteOpenTelemetry } from "../src/openTelemetry";
+
+const otel = initLiteOpenTelemetry();
+
+// Importing buildApp and buildWorker after otel initialization to allow monkey patching
+// eslint-disable-next-line import/first, import/order
+import buildApp from "api/src/buildApp";
+// eslint-disable-next-line import/first, import/order
+import { buildWorker } from "worker/src/buildWorker";
 
 function findPackagesDir(fullPath: string): string {
   // Normalize the path to handle different path separators
@@ -89,17 +85,8 @@ async function startLite() {
     dir,
     customServer: true,
   });
+  await nextApp.prepare();
   const nextHandler = nextApp.getRequestHandler();
-
-  Runtime.install({ logger: workerLogger });
-
-  const [connection, workflowClient] = await Promise.all([
-    NativeConnection.connect({
-      address: backendConfig().temporalAddress,
-    }),
-    connectWorkflowCLient(),
-    nextApp.prepare(),
-  ]);
 
   app.route({
     // Exclude 'OPTIONS to avoid conflict with cors plugin'
@@ -118,30 +105,9 @@ async function startLite() {
     },
   });
 
-  const worker = await Worker.create({
-    connection,
-    namespace: backendConfig().temporalNamespace,
-    workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
-    activities,
-    taskQueue: "default",
-    sinks: {
-      ...defaultSinks(workerLogger),
-    },
-    interceptors: appendDefaultInterceptors(
-      {
-        activityInbound: [
-          (ctx) =>
-            new CustomActivityInboundInterceptor(ctx, {
-              workflowClient,
-            }),
-        ],
-      },
-      workerLogger,
-    ),
-    reuseV8Context: workerConfig().reuseContext,
-    maxCachedWorkflows: workerConfig().maxCachedWorkflows,
-    enableSDKTracing: true,
-  });
+  const worker = await buildWorker(otel);
+
+  otel.start();
 
   await Promise.all([app.listen({ port, host }), worker.run()]);
 }
