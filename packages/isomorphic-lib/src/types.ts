@@ -4876,3 +4876,12 @@ export const ListDataSourceConfigurationResponse = Type.Object({
 export type ListDataSourceConfigurationResponse = Static<
   typeof ListDataSourceConfigurationResponse
 >;
+
+export const DeleteDataSourceConfigurationRequest = Type.Object({
+  workspaceId: Type.String(),
+  type: Type.Enum(DataSourceVariantType),
+});
+
+export type DeleteDataSourceConfigurationRequest = Static<
+  typeof DeleteDataSourceConfigurationRequest
+>;
