@@ -6080,6 +6080,61 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "with a performed user property with a flat complex inner structure",
+      userProperties: [
+        {
+          name: "complex",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "test",
+            path: "$",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+              properties: {
+                prop1: "value1",
+                obj2: {
+                  prop2: "value2",
+                  prop3: ["value3", "value4"],
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                complex: {
+                  prop1: "value1",
+                  obj2: {
+                    prop2: "value2",
+                    prop3: ["value3", "value4"],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "with a trait user property with a complex inner structure",
       userProperties: [
         {
