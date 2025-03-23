@@ -19,6 +19,7 @@
               "introduction",
               "quick-start",
               "video-walkthrough",
+              "dittofeed-ee",
               "glossary"
             ]
           },
@@ -33,7 +34,14 @@
                   "deployment/self-hosted/docker-compose",
                   "deployment/self-hosted/kubernetes",
                   "deployment/self-hosted/cloudformation",
+                  "deployment/self-hosted/dittofeed-ee",
                   "deployment/self-hosted/auth-modes",
+                  {
+                    "group": "Auth Modes",
+                    "pages": [
+                      "deployment/self-hosted/auth-modes/multi-tenant"
+                    ]
+                  },
                   {
                     "group": "Upgrade Guide",
                     "pages": [

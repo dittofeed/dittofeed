@@ -22,6 +22,10 @@ envVarGroups:
         value: onrender.com
       - key: DASHBOARD_API_PORT
         value: 443
+      - key: IMAGE_REPOSITORY
+        value: dittofeed/dittofeed-ee
+      - key: IMAGE_TAG
+        value: v0.21.0
   - name: temporal-shared
     envVars:
     - key: DYNAMIC_CONFIG_FILE_PATH
@@ -34,7 +38,7 @@ services:
     runtime: image
     autoDeploy: false
     image:
-      url: "docker.io/dittofeed/dittofeed-lite:v0.21.0"
+      url: "${IMAGE_REPOSITORY}:${IMAGE_TAG}"
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).

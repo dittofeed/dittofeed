@@ -1,0 +1,74 @@
+---
+title: dittofeed-ee
+---
+
+The dittofeed-ee application is a closed source extension of Dittofeed that includes additional features, like support for [multi-tenancy](/deployment/self-hosted/auth-modes/multi-tenant).
+
+## Installation
+
+To install dittofeed-ee, contact the Dittofeed team at [support@dittofeed.com](mailto:support@dittofeed.com) in order to receive a personal access token for our private docker image registry.
+
+Once you have the token, you can install dittofeed-ee using our docker compose file or helm chart.
+
+### Docker Compose
+
+First, login to the docker registry using your Dittofeed issued personal access token.
+
+```bash
+docker login -u <username> -p <personal-access-token> 
+```
+
+Then, run our docker-compose.lite.yaml file with the repository set to `dittofeed/dittofeed-ee`.
+
+```bash
+IMAGE_TAG=v0.22.0-ee.1 IMAGE_REPOSITORY=dittofeed/dittofeed-ee docker-compose -f docker-compose.lite.yaml up -d
+```
+
+### Helm Chart
+
+Likewise, you can install dittofeed-ee using our helm chart. First, login to the docker registry using your Dittofeed issued personal access token.
+
+```bash
+docker login -u <username> -p <personal-access-token> 
+```
+
+Then, install the helm chart.
+
+```bash
+helm install dittofeed dittofeed/dittofeed --set image.repository=dittofeed/dittofeed-ee --set image.tag=v0.22.0-ee.1
+```
+
+or set the repository in your values.yaml file.
+
+```yaml
+image:
+  repository: dittofeed/dittofeed-ee
+  tag: v0.22.0-ee.1
+```
+
+### Render
+
+We support deployment of dittofeed-ee on [Render](https://render.com). To do so, you will need to add your Docker Hub credentials to your Render account settings.
+
+1. Log in to your Render account and navigate to the Dashboard.
+
+2. Go to "Account Settings" in the left sidebar.
+
+3. Click on "Registry Credentials" in the Account Settings menu.
+
+4. Click the "Add Credential" button.
+
+5. In the "Add Registry Credential" modal:
+   - Select "Docker Hub" as the registry type
+   - Enter your Docker Hub username
+   - Enter your Docker Hub password or personal access token
+   - Give the credential a name for easy reference
+
+6. Click "Add Credential" to save.
+
+Then, set the following environment variables in your Render environment variables settings when deploying the dittofeed-ee service.
+
+```
+- IMAGE_REPOSITORY: dittofeed/dittofeed-ee
+- IMAGE_TAG: v0.22.0-ee.1
+```
