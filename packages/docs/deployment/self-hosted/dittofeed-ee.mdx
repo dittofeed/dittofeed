@@ -21,7 +21,7 @@ docker login -u <username> -p <personal-access-token>
 Then, run our docker-compose.lite.yaml file with the repository set to `dittofeed/dittofeed-ee`.
 
 ```bash
-IMAGE_REPOSITORY=dittofeed/dittofeed-ee docker-compose -f docker-compose.lite.yaml up -d
+IMAGE_TAG=v0.22.0-ee.1 IMAGE_REPOSITORY=dittofeed/dittofeed-ee docker-compose -f docker-compose.lite.yaml up -d
 ```
 
 ### Helm Chart
@@ -35,7 +35,7 @@ docker login -u <username> -p <personal-access-token>
 Then, install the helm chart.
 
 ```bash
-helm install dittofeed dittofeed/dittofeed --set image.repository=dittofeed/dittofeed-ee
+helm install dittofeed dittofeed/dittofeed --set image.repository=dittofeed/dittofeed-ee --set image.tag=v0.22.0-ee.1
 ```
 
 or set the repository in your values.yaml file.
@@ -43,6 +43,7 @@ or set the repository in your values.yaml file.
 ```yaml
 image:
   repository: dittofeed/dittofeed-ee
+  tag: v0.22.0-ee.1
 ```
 
 ### Render
@@ -69,5 +70,5 @@ Then, set the following environment variables in your Render environment variabl
 
 ```
 - IMAGE_REPOSITORY: dittofeed/dittofeed-ee
-- IMAGE_TAG: v0.21.0
+- IMAGE_TAG: v0.22.0-ee.1
 ```
