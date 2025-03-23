@@ -25,7 +25,7 @@ envVarGroups:
       - key: IMAGE_REPOSITORY
         value: dittofeed/dittofeed-ee
       - key: IMAGE_TAG
-        value: v0.21.0
+        value: v0.22.0
   - name: temporal-shared
     envVars:
     - key: DYNAMIC_CONFIG_FILE_PATH
