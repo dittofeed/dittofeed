@@ -1,3 +1,6 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# $schema: https://render.com/schema/render.yaml.json
+
 databases:
   - name: dittofeed-db
 
@@ -24,28 +27,23 @@ envVarGroups:
         value: 443
       - key: LITE_MEM_LIMIT
         value: 412
-  - name: temporal-shared
-    envVars:
-    - key: DYNAMIC_CONFIG_FILE_PATH
-      value: /etc/temporal/dynamicconfig.yaml
-    - key: DB
-      value: postgresql
 services:
   - type: web
-    name: dittofeed-lite
+    name: dittofeed-ee
     runtime: image
     autoDeploy: false
     image:
-      url: "dittofeed/dittofeed-lite:v0.23.0"
+      url: "docker.io/dittofeed/dittofeed-ee:v0.22.0-ee.6"
+      creds:
+        fromRegistryCreds:
+          name: dittofeed
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=412 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+    dockerCommand: node --max-old-space-size=412 ./packages/ee/dist/scripts/startLite.js
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
-      - key: WORKSPACE_NAME
-        sync: false
       - key: REUSE_CONTEXT
         value: "true"
       - key: MAX_CACHED_WORKFLOWS
@@ -76,7 +74,15 @@ services:
           type: pserv
           name: temporal
           property: host
-      - key: PASSWORD
+      - key: AUTH_MODE
+        value: "multi-tenant"
+      - key: AUTH_PROVIDER
+        value: "auth0"
+      - key: SIGNOUT_URL
+        value: "/dashboard/signout"
+      - key: OPEN_ID_CLIENT_ID
+        sync: false
+      - key: OPEN_ID_CLIENT_SECRET
         sync: false
       - key: SECRET_KEY
         generateValue: true
@@ -139,7 +145,10 @@ services:
     env: docker
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
     envVars:
-    - fromGroup: temporal-shared
+    - key: DYNAMIC_CONFIG_FILE_PATH
+      value: /etc/temporal/dynamicconfig.yaml
+    - key: DB
+      value: postgresql
     - key: PORT
       value: 7233
     - key: DBNAME
