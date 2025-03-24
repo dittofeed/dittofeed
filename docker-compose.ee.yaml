@@ -7,8 +7,6 @@ x-backend-app-env: &backend-app-env
   NODE_ENV: production
   DATABASE_HOST: ${DATABASE_HOST:-postgres}
   DATABASE_PORT: ${DATABASE_PORT:-5432}
-  DATABASE_USER: ${DATABASE_USER:-postgres}
-  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
   CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
   WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
