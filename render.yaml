@@ -33,13 +33,13 @@ envVarGroups:
 services:
   - type: web
     name: dittofeed-ee
-    runtime: image
+    runtime: docker
     autoDeploy: false
     image:
       url: "dittofeed/dittofeed-ee:v0.22.0-ee.1"
-    registryCredential:
-      fromRegistryCreds:
-        name: dittofeed
+      creds:
+        fromRegistryCreds:
+          name: dittofeed
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
