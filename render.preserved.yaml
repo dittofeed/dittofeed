@@ -32,18 +32,20 @@ envVarGroups:
       value: postgresql
 services:
   - type: web
-    name: dittofeed-ee
+    name: dittofeed-lite
     runtime: image
     autoDeploy: false
     image:
-      url: "dittofeed/dittofeed-ee:v0.22.0-ee.1"
+      url: "dittofeed/dittofeed-lite:v0.22.0"
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=412 ./packages/ee/dist/scripts/startLite.js
+    dockerCommand: node --max-old-space-size=412 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
+      - key: WORKSPACE_NAME
+        sync: false
       - key: REUSE_CONTEXT
         value: "true"
       - key: MAX_CACHED_WORKFLOWS
