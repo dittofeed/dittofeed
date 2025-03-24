@@ -36,7 +36,7 @@ services:
     runtime: docker
     autoDeploy: false
     image:
-      url: "dittofeed/dittofeed-ee:v0.22.0-ee.1"
+      url: "docker.io/dittofeed/dittofeed-ee:v0.22.0-ee.1"
       creds:
         fromRegistryCreds:
           name: dittofeed
