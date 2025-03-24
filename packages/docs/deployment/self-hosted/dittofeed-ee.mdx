@@ -22,21 +22,22 @@ First, login to the docker registry using your Dittofeed issued personal access 
 docker login -u <username> -p <personal-access-token> 
 ```
 
-Then, run our docker-compose.lite.yaml file with the repository set to `dittofeed/dittofeed-ee`.
+Create a .env file in the root directory with the environment variables described in the [multi-tenant auth mode docs](/deployment/self-hosted/auth-modes/multi-tenant).
 
-```bash
-AUTH_MODE=multi-tenant IMAGE_TAG=v0.22.0-ee.3 IMAGE_REPOSITORY=dittofeed/dittofeed-ee docker-compose -f docker-compose.lite.yaml up -d
-```
-
-Then, uncomment the block in the docker-compose.lite.yaml file that looks like this to include secret environment variables:
-
-```yaml docker-compose.lite.yaml
-# README: To add local env variables uncomment the following line and add a .env file in the root directory
-env_file:
-  - .env
+```bash .env
+OPEN_ID_CLIENT_ID='<your-auth0-client-id>'
+OPEN_ID_CLIENT_SECRET='<your-auth0-client-secret>'
+SECRET_KEY='<your-secret-key>'
+AUTH_PROVIDER='auth0'
 ```
 
 You will also need to set the environment variables described in the [multi-tenant auth mode docs](/deployment/self-hosted/auth-modes/multi-tenant) in your .env file.
+
+Then, run our docker-compose.ee.yaml file.
+
+```bash
+docker-compose -f docker-compose.ee.yaml up -d
+```
 
 ### Helm Chart
 
@@ -46,18 +47,45 @@ Likewise, you can install dittofeed-ee using our helm chart. First, login to the
 docker login -u <username> -p <personal-access-token> 
 ```
 
-Then, install the helm chart.
+First set the following values in your values.yaml file.
 
-```bash
-helm install dittofeed dittofeed/dittofeed --set image.repository=dittofeed/dittofeed-ee --set image.tag=v0.22.0-ee.3
-```
-
-or set the repository in your values.yaml file.
 
 ```yaml
 image:
   repository: dittofeed/dittofeed-ee
   tag: v0.22.0-ee.3
+
+env:
+  ...
+  - name: ONBOARDING_URL
+    value: "/dashboard-l/onboarding"
+  - name: SIGNOUT_URL
+    value: "/dashboard/signout"
+  - name: AUTH_MODE
+    value: "multi-tenant"
+  - name: AUTH_PROVIDER
+    value: "auth0"
+  - name: OPEN_ID_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: dittofeed-ee-auth0-client-id
+        key: value
+  - name: OPEN_ID_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: dittofeed-ee-auth0-client-secret
+        key: value
+  - name: SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: dittofeed-ee-secret-key
+        key: value
+```
+
+Then, install the helm chart.
+
+```bash
+helm install dittofeed dittofeed/dittofeed --values values.yaml
 ```
 
 ### Render
