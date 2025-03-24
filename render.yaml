@@ -1,3 +1,6 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# $schema: https://render.com/schema/render.yaml.json
+
 databases:
   - name: dittofeed-db
 
