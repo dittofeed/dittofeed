@@ -1,0 +1,107 @@
+version: "3.9"
+x-clickhouse-credentials: &clickhouse-credentials
+  CLICKHOUSE_USER: dittofeed
+  CLICKHOUSE_PASSWORD: password
+x-backend-app-env: &backend-app-env
+  <<: *clickhouse-credentials
+  NODE_ENV: production
+  DATABASE_HOST: ${DATABASE_HOST:-postgres}
+  DATABASE_PORT: ${DATABASE_PORT:-5432}
+  DATABASE_USER: ${DATABASE_USER:-postgres}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
+  TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+  WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
+  AUTH_MODE: ${AUTH_MODE:-multi-tenant}
+  SECRET_KEY: ${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}
+  DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
+  ONBOARDING_URL: "/dashboard-l/onboarding"
+  SIGNOUT_URL: "/dashboard/signout"
+services:
+  ee:
+    image: dittofeed/dittofeed-ee:v0.22.0-ee.3
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    env_file:
+      - .env
+    environment:
+      <<: *backend-app-env
+      DASHBOARD_API_BASE: "http://localhost:3000"
+      BOOTSTRAP: "true"
+      PORT: "3000"
+      HOST: "0.0.0.0"
+    networks:
+      - dittofeed-network-ee
+  postgres:
+    image: "postgres:15"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dittofeed
+      POSTGRES_USER: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - dittofeed-network-ee
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:23.8.8.20-alpine
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    environment:
+      <<: *clickhouse-credentials
+    volumes:
+      - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
+      - clickhouse_lib:/var/lib/clickhouse
+      - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - dittofeed-network-ee
+  admin-cli:
+    image: dittofeed/dittofeed-admin-cli-licensed:v0.22.0-ee.3
+    entrypoint: []
+    profiles: ["admin-cli"]
+    command: tail -f /dev/null
+    tty: true
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+    networks:
+      - dittofeed-network-ee
+  temporal:
+    depends_on:
+      - postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=password
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
+    image: temporalio/auto-setup:1.18.5
+    labels:
+      kompose.volume.type: configMap
+    networks:
+      - dittofeed-network-ee
+    ports:
+      - 7233:7233
+    volumes:
+      - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+volumes:
+  postgres:
+  clickhouse_lib:
+  clickhouse_log:
+
+networks:
+  dittofeed-network-ee:
+    driver: bridge
+    name: dittofeed-network-ee
