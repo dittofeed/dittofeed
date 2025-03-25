@@ -203,6 +203,19 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
               value={draft.replyTo ?? ""}
               sx={{ mb: 2 }}
             />
+            <TextField
+              label="Display Name"
+              variant="outlined"
+              fullWidth
+              disabled={disabled}
+              value={draft.name ?? ""}
+              onChange={(e) => {
+                setDraft((defn) => {
+                  return { ...defn, name: e.target.value };
+                });
+              }}
+              sx={{ mb: 2 }}
+            />
             <Autocomplete
               filterSelectedOptions
               value={draft.attachmentUserProperties ?? []}
