@@ -19,7 +19,9 @@ x-backend-app-env: &backend-app-env
   SIGNOUT_URL: "/dashboard/signout"
 services:
   ee:
-    image: dittofeed/dittofeed-ee:v0.22.0-ee.3
+    image: ee:local
+    command: ["tail", "-f", "/dev/null"]
+    tty: true
     ports:
       - "3000:3000"
     depends_on:
