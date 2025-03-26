@@ -4621,7 +4621,6 @@ export const SearchDeliveriesRequestSortByEnum = {
   to: DeliveriesAllowedColumnEnum.to,
   status: DeliveriesAllowedColumnEnum.status,
   sentAt: DeliveriesAllowedColumnEnum.sentAt,
-  userId: DeliveriesAllowedColumnEnum.userId,
 } as const;
 
 export const SearchDeliveriesRequestSortBy = Type.KeyOf(

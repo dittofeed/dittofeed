@@ -117,8 +117,6 @@ function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
       return "To";
     case SearchDeliveriesRequestSortByEnum.status:
       return "Status";
-    case SearchDeliveriesRequestSortByEnum.userId:
-      return "User ID";
     default:
       assertUnreachable(sortBy);
   }
