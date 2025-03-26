@@ -682,9 +682,6 @@ export function DeliveriesTableV2({
         return null;
       }
 
-      const effectiveStartDate = state.query.startDate;
-      const effectiveEndDate = state.query.endDate;
-
       const templateIds = getFilterValues(deliveriesFilterState, "template");
       const channels = getFilterValues(deliveriesFilterState, "channel") as
         | ChannelType[]
@@ -697,8 +694,8 @@ export function DeliveriesTableV2({
         workspaceId: workspace.value.id,
         cursor: state.query.cursor ?? undefined,
         limit: state.query.limit,
-        startDate: effectiveStartDate.toISOString(),
-        endDate: effectiveEndDate.toISOString(),
+        startDate: state.query.startDate.toISOString(),
+        endDate: state.query.endDate.toISOString(),
         templateIds,
         channels,
         to,
