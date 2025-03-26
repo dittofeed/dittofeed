@@ -19,9 +19,8 @@ x-backend-app-env: &backend-app-env
   SIGNOUT_URL: "/dashboard/signout"
 services:
   ee:
-    image: ee:local
-    command: ["tail", "-f", "/dev/null"]
-    tty: true
+    image: dittofeed/dittofeed-ee:v0.22.0-ee.6
+    command: node --max-old-space-size=412 ./packages/ee/dist/scripts/startLite.js
     ports:
       - "3000:3000"
     depends_on:
