@@ -73,6 +73,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
+import { useInterval } from "usehooks-ts";
 
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
@@ -640,17 +641,49 @@ export function DeliveriesTableV2({
     },
     autoReload: autoReloadByDefault,
   });
+
+  useInterval(
+    () => {
+      setState((draft) => {
+        const selectedOption = timeOptions.find(
+          (o) => o.id === draft.selectedTimeOption,
+        );
+        if (selectedOption && selectedOption.type === "minutes") {
+          const now = new Date();
+          draft.query.endDate = now;
+          draft.query.startDate = subMinutes(now, selectedOption.minutes);
+        }
+      });
+    },
+    state.autoReload && state.selectedTimeOption !== "custom"
+      ? reloadPeriodMs
+      : null,
+  );
+
   const theme = useTheme();
   const filtersHash = useMemo(
     () => JSON.stringify(Array.from(deliveriesFilterState.filters.entries())),
     [deliveriesFilterState.filters],
   );
+
   const query = useQuery<SearchDeliveriesResponse | null>({
-    queryKey: ["deliveries", state, filtersHash],
+    queryKey: [
+      "deliveries",
+      state,
+      filtersHash,
+      userId,
+      groupId,
+      journeyId,
+      workspace,
+      apiBase,
+    ],
     queryFn: async () => {
       if (workspace.type !== CompletionStatus.Successful) {
         return null;
       }
+
+      const effectiveStartDate = state.query.startDate;
+      const effectiveEndDate = state.query.endDate;
 
       const templateIds = getFilterValues(deliveriesFilterState, "template");
       const channels = getFilterValues(deliveriesFilterState, "channel") as
@@ -664,8 +697,8 @@ export function DeliveriesTableV2({
         workspaceId: workspace.value.id,
         cursor: state.query.cursor ?? undefined,
         limit: state.query.limit,
-        startDate: state.query.startDate.toISOString(),
-        endDate: state.query.endDate.toISOString(),
+        startDate: effectiveStartDate.toISOString(),
+        endDate: effectiveEndDate.toISOString(),
         templateIds,
         channels,
         to,
@@ -687,10 +720,6 @@ export function DeliveriesTableV2({
       return result;
     },
     placeholderData: keepPreviousData,
-    refetchInterval:
-      state.autoReload && state.selectedTimeOption !== "custom"
-        ? reloadPeriodMs
-        : false,
   });
 
   const renderPreviewCell = useMemo(
