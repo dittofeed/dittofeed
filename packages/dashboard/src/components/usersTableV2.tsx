@@ -743,7 +743,7 @@ export default function UsersTableV2({
   cursor,
   onPaginationChange,
   autoReloadByDefault = false,
-  reloadPeriodMs = 30000,
+  reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
