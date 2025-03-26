@@ -97,6 +97,7 @@ export const DEFAULT_ALLOWED_COLUMNS: DeliveriesAllowedColumn[] = [
   "preview",
   "from",
   "to",
+  "userId",
   "channel",
   "status",
   "origin",
@@ -114,6 +115,10 @@ function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
       return "To";
     case SearchDeliveriesRequestSortByEnum.status:
       return "Status";
+    case SearchDeliveriesRequestSortByEnum.userId:
+      return "User ID";
+    default:
+      assertUnreachable(sortBy);
   }
 }
 

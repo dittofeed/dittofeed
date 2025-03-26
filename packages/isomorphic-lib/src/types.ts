@@ -3922,45 +3922,6 @@ export const GetPropertiesResponse = Type.Object({
 
 export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 
-export const SearchDeliveriesRequestSortByEnum = {
-  from: "from",
-  to: "to",
-  status: "status",
-  sentAt: "sentAt",
-} as const;
-
-export const SearchDeliveriesRequestSortBy = Type.KeyOf(
-  Type.Const(SearchDeliveriesRequestSortByEnum),
-);
-
-export type SearchDeliveriesRequestSortBy = Static<
-  typeof SearchDeliveriesRequestSortBy
->;
-
-export const SearchDeliveriesRequest = Type.Object({
-  workspaceId: Type.String(),
-  fromIdentifier: Type.Optional(Type.String()),
-  toIdentifier: Type.Optional(Type.String()),
-  journeyId: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.Union([UserId, Type.Array(UserId)])),
-  channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
-  limit: Type.Optional(Type.Number()),
-  cursor: Type.Optional(Type.String()),
-  from: Type.Optional(Type.Array(Type.String())),
-  to: Type.Optional(Type.Array(Type.String())),
-  statuses: Type.Optional(Type.Array(Type.String())),
-  templateIds: Type.Optional(Type.Array(Type.String())),
-  startDate: Type.Optional(Type.String()),
-  endDate: Type.Optional(Type.String()),
-  sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
-  sortDirection: Type.Optional(SortDirection),
-  groupId: Type.Optional(
-    Type.Union([Type.String(), Type.Array(Type.String())]),
-  ),
-});
-
-export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
-
 const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
@@ -4641,6 +4602,7 @@ export const DeliveriesAllowedColumnEnum = {
   preview: "preview",
   from: "from",
   to: "to",
+  userId: "userId",
   snippet: "snippet",
   channel: "channel",
   status: "status",
@@ -4648,11 +4610,27 @@ export const DeliveriesAllowedColumnEnum = {
   sentAt: "sentAt",
   template: "template",
   updatedAt: "updatedAt",
-};
+} as const;
 
 export const DeliveriesAllowedColumn = Type.KeyOf(
   Type.Const(DeliveriesAllowedColumnEnum),
 );
+
+export const SearchDeliveriesRequestSortByEnum = {
+  from: DeliveriesAllowedColumnEnum.from,
+  to: DeliveriesAllowedColumnEnum.to,
+  status: DeliveriesAllowedColumnEnum.status,
+  sentAt: DeliveriesAllowedColumnEnum.sentAt,
+  userId: DeliveriesAllowedColumnEnum.userId,
+} as const;
+
+export const SearchDeliveriesRequestSortBy = Type.KeyOf(
+  Type.Const(SearchDeliveriesRequestSortByEnum),
+);
+
+export type SearchDeliveriesRequestSortBy = Static<
+  typeof SearchDeliveriesRequestSortBy
+>;
 
 export type DeliveriesAllowedColumn = Static<typeof DeliveriesAllowedColumn>;
 
@@ -4885,3 +4863,27 @@ export const DeleteDataSourceConfigurationRequest = Type.Object({
 export type DeleteDataSourceConfigurationRequest = Static<
   typeof DeleteDataSourceConfigurationRequest
 >;
+
+export const SearchDeliveriesRequest = Type.Object({
+  workspaceId: Type.String(),
+  fromIdentifier: Type.Optional(Type.String()),
+  toIdentifier: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  userId: Type.Optional(Type.Union([UserId, Type.Array(UserId)])),
+  channels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
+  limit: Type.Optional(Type.Number()),
+  cursor: Type.Optional(Type.String()),
+  from: Type.Optional(Type.Array(Type.String())),
+  to: Type.Optional(Type.Array(Type.String())),
+  statuses: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
+  startDate: Type.Optional(Type.String()),
+  endDate: Type.Optional(Type.String()),
+  sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
+  sortDirection: Type.Optional(SortDirection),
+  groupId: Type.Optional(
+    Type.Union([Type.String(), Type.Array(Type.String())]),
+  ),
+});
+
+export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
