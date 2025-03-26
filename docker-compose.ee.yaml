@@ -20,9 +20,15 @@ x-backend-app-env: &backend-app-env
 services:
   ee:
     image: dittofeed/dittofeed-ee:v0.22.0-ee.6
-    command: node --max-old-space-size=412 ./packages/ee/dist/scripts/startLite.js
+    command: node --max-old-space-size=${MEM_LIMIT:-824} ./packages/ee/dist/scripts/startLite.js
+    deploy:
+      resources:
+        limits:
+          memory: ${CONTAINER_MEM_LIMIT:-1024}m
     ports:
       - "3000:3000"
+    logging:
+      driver: "local"
     depends_on:
       - postgres
       - temporal
@@ -32,6 +38,7 @@ services:
     environment:
       <<: *backend-app-env
       DASHBOARD_API_BASE: "http://localhost:3000"
+      # comment out after initial setup
       BOOTSTRAP: "true"
       PORT: "3000"
       HOST: "0.0.0.0"
@@ -46,6 +53,8 @@ services:
       POSTGRES_USER: postgres
     ports:
       - "5432:5432"
+    logging:
+      driver: "local"
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
@@ -56,6 +65,12 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
+    logging:
+      driver: "local"
+    deploy:
+      resources:
+        limits:
+          memory: ${CLICKHOUSE_CONTAINER_MEM_LIMIT:-1024}m
     environment:
       <<: *clickhouse-credentials
     volumes:
@@ -65,11 +80,13 @@ services:
     networks:
       - dittofeed-network-ee
   admin-cli:
-    image: dittofeed/dittofeed-admin-cli-licensed:v0.22.0-ee.3
+    image: dittofeed/dittofeed-admin-cli-licensed:v0.22.0-ee.6
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
     tty: true
+    logging:
+      driver: "local"
     depends_on:
       - postgres
       - temporal
@@ -87,14 +104,16 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PWD=password
       - POSTGRES_SEEDS=postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
-    image: temporalio/auto-setup:1.18.5
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
       kompose.volume.type: configMap
     networks:
       - dittofeed-network-ee
     ports:
       - 7233:7233
+    logging:
+      driver: "local"
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
 volumes:
