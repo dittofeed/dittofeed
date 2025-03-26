@@ -5,6 +5,7 @@ import {
   Bolt as BoltIcon,
   Clear as ClearIcon,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -28,6 +29,7 @@ import {
   Paper,
   Popover,
   Select,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -97,6 +99,7 @@ export const DEFAULT_ALLOWED_COLUMNS: DeliveriesAllowedColumn[] = [
   "preview",
   "from",
   "to",
+  "userId",
   "channel",
   "status",
   "origin",
@@ -114,6 +117,8 @@ function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
       return "To";
     case SearchDeliveriesRequestSortByEnum.status:
       return "Status";
+    default:
+      assertUnreachable(sortBy);
   }
 }
 
@@ -515,7 +520,6 @@ const timeOptions: TimeOption[] = [
 ];
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
-  userUriTemplate: "/users/{userId}",
   templateUriTemplate: "/templates/{channel}/{templateId}",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
@@ -525,7 +529,6 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
 
 interface DeliveriesTableV2Props {
   getDeliveriesRequest?: GetDeliveriesRequest;
-  userUriTemplate?: string;
   templateUriTemplate?: string;
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
@@ -536,9 +539,66 @@ interface DeliveriesTableV2Props {
   reloadPeriodMs?: number;
 }
 
+function UserIdCell({ value }: { value: string }) {
+  const [showCopied, setShowCopied] = useState(false);
+  const uri = `/users/${value}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setShowCopied(true);
+  };
+
+  return (
+    <>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ maxWidth: "280px" }}
+      >
+        <Tooltip title={value}>
+          <Typography
+            sx={{
+              fontFamily: "monospace",
+              maxWidth: "150px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {value}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Copy ID">
+          <IconButton size="small" onClick={handleCopy}>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="View User Profile">
+          <IconButton size="small" component={Link} href={uri} target="_blank">
+            <OpenInNew fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={2000}
+        onClose={() => setShowCopied(false)}
+        message="User ID copied to clipboard"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+    </>
+  );
+}
+
+function userIdCellFactory() {
+  return function UserIdCellRenderer({ row }: { row: Row<Delivery> }) {
+    return <UserIdCell value={row.original.userId} />;
+  };
+}
+
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
-  userUriTemplate,
   templateUriTemplate,
   originUriTemplate,
   userId,
@@ -637,10 +697,6 @@ export function DeliveriesTableV2({
     () => renderPreviewCellFactory(setState),
     [setState],
   );
-  const userLinkCell = useMemo(
-    () => linkCellFactory(userUriTemplate),
-    [userUriTemplate],
-  );
   const templateLinkCell = useMemo(
     () => linkCellFactory(templateUriTemplate),
     [templateUriTemplate],
@@ -649,6 +705,8 @@ export function DeliveriesTableV2({
     () => linkCellFactory(originUriTemplate),
     [originUriTemplate],
   );
+
+  const userIdCellRenderer = useMemo(() => userIdCellFactory(), []);
 
   const columns = useMemo<ColumnDef<Delivery>[]>(() => {
     const columnDefinitions: Record<
@@ -668,7 +726,13 @@ export function DeliveriesTableV2({
         id: "to",
         header: "To",
         accessorKey: "to",
-        cell: userLinkCell,
+        cell: linkCellFactory(),
+      },
+      userId: {
+        id: "userId",
+        header: "User ID",
+        accessorKey: "userId",
+        cell: userIdCellRenderer,
       },
       snippet: {
         id: "snippet",
@@ -721,10 +785,10 @@ export function DeliveriesTableV2({
     return columnAllowList.map((columnId) => columnDefinitions[columnId]);
   }, [
     renderPreviewCell,
-    userLinkCell,
     templateLinkCell,
     originLinkCell,
     columnAllowList,
+    userIdCellRenderer,
   ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
