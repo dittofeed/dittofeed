@@ -520,7 +520,7 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
   autoReloadByDefault: false,
-  reloadPeriodMs: 30000,
+  reloadPeriodMs: 10000,
 };
 
 interface DeliveriesTableV2Props {
