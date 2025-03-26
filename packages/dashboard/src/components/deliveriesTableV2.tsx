@@ -5,6 +5,7 @@ import {
   Bolt as BoltIcon,
   Clear as ClearIcon,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -28,6 +29,7 @@ import {
   Paper,
   Popover,
   Select,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -541,6 +543,75 @@ interface DeliveriesTableV2Props {
   reloadPeriodMs?: number;
 }
 
+function UserIdCell({
+  value,
+  userUriTemplate,
+}: {
+  value: string;
+  userUriTemplate: string;
+}) {
+  const [showCopied, setShowCopied] = useState(false);
+  const uri = userUriTemplate.replace("{userId}", value);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setShowCopied(true);
+  };
+
+  return (
+    <>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ maxWidth: "280px" }}
+      >
+        <Tooltip title={value}>
+          <Typography
+            sx={{
+              fontFamily: "monospace",
+              maxWidth: "150px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {value}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Copy ID">
+          <IconButton size="small" onClick={handleCopy}>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="View User Profile">
+          <IconButton size="small" component={Link} href={uri} target="_blank">
+            <OpenInNew fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={2000}
+        onClose={() => setShowCopied(false)}
+        message="User ID copied to clipboard"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+    </>
+  );
+}
+
+function userIdCellFactory(userUriTemplate?: string) {
+  return function UserIdCellRenderer({ row }: { row: Row<Delivery> }) {
+    return (
+      <UserIdCell
+        value={row.original.userId}
+        userUriTemplate={userUriTemplate ?? "/users/{userId}"}
+      />
+    );
+  };
+}
+
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
   userUriTemplate,
@@ -642,10 +713,6 @@ export function DeliveriesTableV2({
     () => renderPreviewCellFactory(setState),
     [setState],
   );
-  const userLinkCell = useMemo(
-    () => linkCellFactory(userUriTemplate),
-    [userUriTemplate],
-  );
   const templateLinkCell = useMemo(
     () => linkCellFactory(templateUriTemplate),
     [templateUriTemplate],
@@ -653,6 +720,11 @@ export function DeliveriesTableV2({
   const originLinkCell = useMemo(
     () => linkCellFactory(originUriTemplate),
     [originUriTemplate],
+  );
+
+  const userIdCellRenderer = useMemo(
+    () => userIdCellFactory(userUriTemplate),
+    [userUriTemplate],
   );
 
   const columns = useMemo<ColumnDef<Delivery>[]>(() => {
@@ -673,7 +745,13 @@ export function DeliveriesTableV2({
         id: "to",
         header: "To",
         accessorKey: "to",
-        cell: userLinkCell,
+        cell: linkCellFactory(),
+      },
+      userId: {
+        id: "userId",
+        header: "User ID",
+        accessorKey: "userId",
+        cell: userIdCellRenderer,
       },
       snippet: {
         id: "snippet",
@@ -726,10 +804,11 @@ export function DeliveriesTableV2({
     return columnAllowList.map((columnId) => columnDefinitions[columnId]);
   }, [
     renderPreviewCell,
-    userLinkCell,
     templateLinkCell,
     originLinkCell,
     columnAllowList,
+    userUriTemplate,
+    userIdCellRenderer,
   ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
