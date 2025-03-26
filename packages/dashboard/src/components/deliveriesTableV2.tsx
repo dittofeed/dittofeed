@@ -532,7 +532,6 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
 
 interface DeliveriesTableV2Props {
   getDeliveriesRequest?: GetDeliveriesRequest;
-  userUriTemplate?: string;
   templateUriTemplate?: string;
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
@@ -543,15 +542,9 @@ interface DeliveriesTableV2Props {
   reloadPeriodMs?: number;
 }
 
-function UserIdCell({
-  value,
-  userUriTemplate,
-}: {
-  value: string;
-  userUriTemplate: string;
-}) {
+function UserIdCell({ value }: { value: string }) {
   const [showCopied, setShowCopied] = useState(false);
-  const uri = userUriTemplate.replace("{userId}", value);
+  const uri = `/users/${value}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
@@ -601,20 +594,14 @@ function UserIdCell({
   );
 }
 
-function userIdCellFactory(userUriTemplate?: string) {
+function userIdCellFactory() {
   return function UserIdCellRenderer({ row }: { row: Row<Delivery> }) {
-    return (
-      <UserIdCell
-        value={row.original.userId}
-        userUriTemplate={userUriTemplate ?? "/users/{userId}"}
-      />
-    );
+    return <UserIdCell value={row.original.userId} />;
   };
 }
 
 export function DeliveriesTableV2({
   getDeliveriesRequest = defaultGetDeliveriesRequest,
-  userUriTemplate,
   templateUriTemplate,
   originUriTemplate,
   userId,
@@ -722,10 +709,7 @@ export function DeliveriesTableV2({
     [originUriTemplate],
   );
 
-  const userIdCellRenderer = useMemo(
-    () => userIdCellFactory(userUriTemplate),
-    [userUriTemplate],
-  );
+  const userIdCellRenderer = useMemo(() => userIdCellFactory(), []);
 
   const columns = useMemo<ColumnDef<Delivery>[]>(() => {
     const columnDefinitions: Record<
@@ -807,7 +791,6 @@ export function DeliveriesTableV2({
     templateLinkCell,
     originLinkCell,
     columnAllowList,
-    userUriTemplate,
     userIdCellRenderer,
   ]);
   const data = useMemo<Delivery[] | null>(() => {
