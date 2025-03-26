@@ -520,7 +520,6 @@ const timeOptions: TimeOption[] = [
 ];
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
-  userUriTemplate: "/users/{userId}",
   templateUriTemplate: "/templates/{channel}/{templateId}",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
