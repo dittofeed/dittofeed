@@ -406,7 +406,25 @@ describe("reEnter", () => {
           expect(nextProps).not.toBeNull();
         });
       });
-      it("should run to completion on second run", async () => {});
+      it.only("should run to completion on second run", async () => {
+        await worker.runUntil(async () => {
+          await testEnv.client.workflow.execute(userJourneyWorkflow, {
+            workflowId: "workflow1",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                shouldContinueAsNew: false,
+              },
+            ],
+          });
+          expect(senderMock).toHaveBeenCalledTimes(1);
+        });
+      });
     });
     describe("when the user is not in the segment", () => {
       beforeEach(async () => {
