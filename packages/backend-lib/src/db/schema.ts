@@ -384,6 +384,7 @@ export const broadcast = pgTable(
     messageTemplateId: uuid(),
     status: dbBroadcastStatus().default("NotStarted"),
     statusV2: dbBroadcastStatusV2().default("Draft"),
+    scheduledAt: timestamp({ precision: 3, mode: "date", withTimezone: false }),
     version: dbBroadcastVersion().default("V1"),
   },
   (table) => [
