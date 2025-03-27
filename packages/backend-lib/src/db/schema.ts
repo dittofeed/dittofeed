@@ -22,6 +22,16 @@ export const dbBroadcastStatus = pgEnum("DBBroadcastStatus", [
   "InProgress",
   "Triggered",
 ]);
+export const dbBroadcastStatusV2 = pgEnum("DBBroadcastStatusV2", [
+  "Draft",
+  "Scheduled",
+  "Running",
+  "Paused",
+  "Completed",
+  "Cancelled",
+  "Failed",
+]);
+export const dbBroadcastVersion = pgEnum("DBBroadcastVersion", ["V1", "V2"]);
 export const dbChannelType = pgEnum("DBChannelType", [
   "Email",
   "MobilePush",
@@ -373,6 +383,8 @@ export const broadcast = pgTable(
     journeyId: uuid(),
     messageTemplateId: uuid(),
     status: dbBroadcastStatus().default("NotStarted"),
+    statusV2: dbBroadcastStatusV2().default("Draft"),
+    version: dbBroadcastVersion().default("V1"),
   },
   (table) => [
     uniqueIndex("Broadcast_workspaceId_name_key").using(
