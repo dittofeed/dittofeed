@@ -76,7 +76,6 @@ describe("journeys with wait-for nodes", () => {
   afterEach(async () => {
     await testEnv.teardown();
   });
-
   describe("when a journey a user already is in the segment being waited for, and when they satisfy the wait-for condition after entering they should also be sent to the message node", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;

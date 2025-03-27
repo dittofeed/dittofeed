@@ -373,7 +373,7 @@ describe("reEnter", () => {
           },
         ]);
       });
-      it.only("should run to completion and continue as new", async () => {
+      it("should run to completion and continue as new", async () => {
         await worker.runUntil(async () => {
           const handle = await testEnv.client.workflow.signalWithStart(
             userJourneyWorkflow,
@@ -408,7 +408,49 @@ describe("reEnter", () => {
       });
     });
     describe("when the user is not in the segment", () => {
-      it("should run to completion and not continue as new", () => {});
+      beforeEach(async () => {
+        await insertSegmentAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            segmentId: segment.id,
+            inSegment: false,
+          },
+        ]);
+      });
+      it("should run to completion and not continue as new", async () => {
+        await worker.runUntil(async () => {
+          const handle = await testEnv.client.workflow.signalWithStart(
+            userJourneyWorkflow,
+            {
+              workflowId: "workflow1",
+              taskQueue: "default",
+              signal: segmentUpdateSignal,
+              signalArgs: [
+                {
+                  segmentId: segment.id,
+                  currentlyInSegment: true,
+                  type: "segment",
+                  segmentVersion: await testEnv.currentTimeMs(),
+                },
+              ],
+              args: [
+                {
+                  journeyId: journey.id,
+                  workspaceId: workspace.id,
+                  userId,
+                  definition: journeyDefinition,
+                  version: UserJourneyWorkflowVersion.V2,
+                  shouldContinueAsNew: false,
+                },
+              ],
+            },
+          );
+
+          const nextProps = await handle.result();
+          expect(nextProps).toBeNull();
+        });
+      });
     });
   });
   // FIXME test that continue as new'd workflow doesn't require another signal
