@@ -372,7 +372,7 @@ export const broadcast = pgTable(
       .notNull(),
     journeyId: uuid(),
     messageTemplateId: uuid(),
-    status: dbBroadcastStatus().default("NotStarted").notNull(),
+    status: dbBroadcastStatus().default("NotStarted"),
   },
   (table) => [
     uniqueIndex("Broadcast_workspaceId_name_key").using(

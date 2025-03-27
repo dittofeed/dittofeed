@@ -61,6 +61,15 @@ export function getBroadcastJourneyName({
 }
 
 export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
+  if (broadcast.status === null) {
+    logger().error(
+      {
+        broadcast,
+      },
+      "Broadcast status is null",
+    );
+    throw new Error("Broadcast status is null");
+  }
   const resource: BroadcastResource = {
     workspaceId: broadcast.workspaceId,
     id: broadcast.id,
