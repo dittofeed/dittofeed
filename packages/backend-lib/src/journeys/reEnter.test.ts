@@ -17,11 +17,8 @@ import {
   JourneyNodeType,
   JourneyResourceStatusEnum,
   Segment,
-  SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentUpdate,
-  TraitSegmentNode,
   Workspace,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
@@ -214,7 +211,111 @@ describe("reEnter", () => {
   });
 
   describe("when canRunMultiple is false and the journey is run twice", () => {
-    it("should run the journey once to completion", () => {});
+    beforeEach(async () => {
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: segment.id,
+          child: "message-node",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "message-node",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "test",
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      await insertSegmentAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          segmentId: segment.id,
+          inSegment: true,
+        },
+      ]);
+      journey = await insert({
+        table: dbJourney,
+        values: {
+          id: randomUUID(),
+          name: `re-enter-${randomUUID()}`,
+          definition: journeyDefinition,
+          workspaceId: workspace.id,
+          canRunMultiple: false,
+          status: JourneyResourceStatusEnum.Running,
+        },
+      }).then(unwrap);
+    });
+    it("should run the journey once to completion", async () => {
+      await worker.runUntil(async () => {
+        const handle1 = await testEnv.client.workflow.signalWithStart(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow1",
+            taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: segment.id,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+              },
+            ],
+          },
+        );
+
+        await handle1.result();
+
+        expect(senderMock).toHaveBeenCalledTimes(1);
+
+        const handle2 = await testEnv.client.workflow.signalWithStart(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow2",
+            taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: segment.id,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+              },
+            ],
+          },
+        );
+
+        await handle2.result();
+
+        expect(senderMock).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe("when canRunMultiple is true and it is configured to re-enter", () => {
