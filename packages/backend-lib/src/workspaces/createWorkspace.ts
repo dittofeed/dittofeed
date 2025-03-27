@@ -3,10 +3,17 @@ import { Result } from "neverthrow";
 
 import { insert, QueryError, upsert } from "../db";
 import { workspace as dbWorkspace } from "../db/schema";
+import logger from "../logger";
 
 export async function createWorkspace(
   values: typeof dbWorkspace.$inferInsert,
 ): Promise<Result<typeof dbWorkspace.$inferSelect, QueryError>> {
+  logger().debug(
+    {
+      values,
+    },
+    "creating workspace",
+  );
   return insert({
     table: dbWorkspace,
     values,

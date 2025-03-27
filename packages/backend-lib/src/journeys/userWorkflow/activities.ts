@@ -274,6 +274,12 @@ export async function isRunnable({
     );
   }
   if (workspace?.status !== "Active") {
+    logger().debug(
+      {
+        workspace: workspace ?? "missing",
+      },
+      "workspace is not active, journey is not runnable",
+    );
     return false;
   }
   return canRunMultiple;

@@ -197,7 +197,15 @@ export async function userJourneyWorkflow(
     eventKey = props.eventKey;
   }
 
-  if (!(await isRunnable({ journeyId, userId, eventKey, eventKeyName }))) {
+  if (
+    !(await isRunnable({
+      journeyId,
+      userId,
+      eventKey,
+      eventKeyName,
+      workspaceId,
+    }))
+  ) {
     logger.info("early exit unrunnable user journey", {
       workflow: WORKFLOW_NAME,
       journeyId,
