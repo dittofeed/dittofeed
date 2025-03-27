@@ -406,6 +406,7 @@ describe("reEnter", () => {
           expect(nextProps).not.toBeNull();
         });
       });
+      it("should run to completion on second run", async () => {});
     });
     describe("when the user is not in the segment", () => {
       beforeEach(async () => {
@@ -451,14 +452,8 @@ describe("reEnter", () => {
           expect(nextProps).toBeNull();
         });
       });
-    });
-  });
-  describe("when reEnter is true and on the second run", () => {
-    describe("when the user is in the segment", () => {
-      it("should run to completion", async () => {});
-    });
-    describe("when the user is not in the segment", () => {
-      it("should early exit", async () => {});
+
+      it("should not run to completion on second run", async () => {});
     });
   });
 });
