@@ -123,6 +123,7 @@ export interface UserJourneyWorkflowPropsV2 {
   definition: JourneyDefinition;
   journeyId: string;
   event?: UserWorkflowTrackEvent;
+  shouldContinueAsNew?: boolean;
 }
 
 export interface UserJourneyWorkflowPropsV1 {
@@ -133,6 +134,7 @@ export interface UserJourneyWorkflowPropsV1 {
   eventKey?: string;
   context?: Record<string, JSONValue>;
   version?: UserJourneyWorkflowVersion.V1;
+  shouldContinueAsNew?: boolean;
 }
 
 export type UserJourneyWorkflowProps =
@@ -147,8 +149,14 @@ const LONG_RUNNING_NODE_TYPES = new Set<JourneyNodeType>([
 
 export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
-): Promise<void> {
-  const { workspaceId, userId, definition, journeyId } = props;
+): Promise<UserJourneyWorkflowProps | null> {
+  const {
+    workspaceId,
+    userId,
+    definition,
+    journeyId,
+    shouldContinueAsNew = true,
+  } = props;
   const entryEventProperties =
     props.version === UserJourneyWorkflowVersion.V2
       ? props.event?.properties
@@ -213,7 +221,7 @@ export async function userJourneyWorkflow(
       workspaceId,
       entryEventProperties,
     });
-    return;
+    return null;
   }
 
   const keyedEvents: UserWorkflowTrackEvent[] = [];
@@ -235,7 +243,7 @@ export async function userJourneyWorkflow(
       workspaceId,
       eventKey,
     });
-    return;
+    return null;
   }
 
   const journeyStartedAt = Date.now();
@@ -750,6 +758,11 @@ export async function userJourneyWorkflow(
   });
 
   if (await shouldReEnter({ journeyId, userId, workspaceId })) {
-    await continueAsNew<typeof userJourneyWorkflow>(props);
+    if (shouldContinueAsNew) {
+      await continueAsNew<typeof userJourneyWorkflow>(props);
+    } else {
+      return props;
+    }
   }
+  return null;
 }

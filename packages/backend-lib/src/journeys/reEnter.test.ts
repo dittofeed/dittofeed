@@ -319,11 +319,97 @@ describe("reEnter", () => {
   });
 
   describe("when canRunMultiple is true and it is configured to re-enter", () => {
+    beforeEach(async () => {
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: segment.id,
+          child: "message-node",
+          reEnter: true,
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "message-node",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "test",
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      await insertSegmentAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          segmentId: segment.id,
+          inSegment: true,
+        },
+      ]);
+      journey = await insert({
+        table: dbJourney,
+        values: {
+          id: randomUUID(),
+          name: `re-enter-${randomUUID()}`,
+          definition: journeyDefinition,
+          workspaceId: workspace.id,
+          canRunMultiple: true,
+          status: JourneyResourceStatusEnum.Running,
+        },
+      }).then(unwrap);
+    });
     describe("when the user is in the segment", () => {
-      it("should run to completion and continue as new", () => {});
+      beforeEach(async () => {
+        await insertSegmentAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            segmentId: segment.id,
+            inSegment: true,
+          },
+        ]);
+      });
+      it.only("should run to completion and continue as new", async () => {
+        await worker.runUntil(async () => {
+          const handle = await testEnv.client.workflow.signalWithStart(
+            userJourneyWorkflow,
+            {
+              workflowId: "workflow1",
+              taskQueue: "default",
+              signal: segmentUpdateSignal,
+              signalArgs: [
+                {
+                  segmentId: segment.id,
+                  currentlyInSegment: true,
+                  type: "segment",
+                  segmentVersion: await testEnv.currentTimeMs(),
+                },
+              ],
+              args: [
+                {
+                  journeyId: journey.id,
+                  workspaceId: workspace.id,
+                  userId,
+                  definition: journeyDefinition,
+                  version: UserJourneyWorkflowVersion.V2,
+                  shouldContinueAsNew: false,
+                },
+              ],
+            },
+          );
+
+          const nextProps = await handle.result();
+          expect(nextProps).not.toBeNull();
+        });
+      });
     });
     describe("when the user is not in the segment", () => {
       it("should run to completion and not continue as new", () => {});
     });
   });
+  // FIXME test that continue as new'd workflow doesn't require another signal
 });
