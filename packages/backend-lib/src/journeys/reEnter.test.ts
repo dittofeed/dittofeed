@@ -1,3 +1,4 @@
+import { WorkflowFailedError } from "@temporalio/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
@@ -477,7 +478,35 @@ describe("reEnter", () => {
         });
       });
 
-      it("should not run to completion on second run", async () => {});
+      it("should not run to completion on second run", async () => {
+        let err: unknown;
+        await worker.runUntil(async () => {
+          const handle = await testEnv.client.workflow.start(
+            userJourneyWorkflow,
+            {
+              workflowId: "workflow1",
+              taskQueue: "default",
+              args: [
+                {
+                  journeyId: journey.id,
+                  workspaceId: workspace.id,
+                  userId,
+                  definition: journeyDefinition,
+                  version: UserJourneyWorkflowVersion.V2,
+                  shouldContinueAsNew: false,
+                },
+              ],
+            },
+          );
+          try {
+            await handle.result();
+          } catch (e) {
+            err = e;
+          }
+        });
+        expect(err).toBeInstanceOf(WorkflowFailedError);
+        expect((err as WorkflowFailedError).message).toContain("timed out");
+      });
     });
   });
 });
