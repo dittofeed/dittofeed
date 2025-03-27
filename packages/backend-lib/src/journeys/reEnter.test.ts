@@ -453,5 +453,12 @@ describe("reEnter", () => {
       });
     });
   });
-  // FIXME test that continue as new'd workflow doesn't require another signal
+  describe("when reEnter is true and on the second run", () => {
+    describe("when the user is in the segment", () => {
+      it("should run to completion", async () => {});
+    });
+    describe("when the user is not in the segment", () => {
+      it("should early exit", async () => {});
+    });
+  });
 });
