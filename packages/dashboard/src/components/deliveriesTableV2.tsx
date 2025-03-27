@@ -292,7 +292,7 @@ function LinkCell({
         spacing={1}
         alignItems="center"
         sx={{
-          maxWidth: "280px",
+          maxWidth: "200px",
         }}
       >
         <Box
