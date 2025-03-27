@@ -365,7 +365,21 @@ export async function userJourneyWorkflow(
     switch (currentNode.type) {
       case JourneyNodeType.SegmentEntryNode: {
         const cn = currentNode;
-        await wf.condition(() => segmentAssignedTrue(cn.segment));
+        const initialSegmentAssignment =
+          (
+            await getSegmentAssignment({
+              workspaceId,
+              userId,
+              segmentId: cn.segment,
+              events: keyedEvents,
+              keyValue: eventKey,
+              nowMs: Date.now(),
+              version: GetSegmentAssignmentVersion.V1,
+            })
+          )?.inSegment === true;
+        if (!initialSegmentAssignment) {
+          await wf.condition(() => segmentAssignedTrue(cn.segment));
+        }
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
           logger.error("missing entry node child", {

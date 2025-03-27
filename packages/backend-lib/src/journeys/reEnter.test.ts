@@ -17,6 +17,7 @@ import {
   JourneyNodeType,
   JourneyResourceStatusEnum,
   Segment,
+  SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
   Workspace,
@@ -87,12 +88,17 @@ describe("reEnter", () => {
         name: `segment1`,
         workspaceId: workspace.id,
         definition: {
-          type: SegmentNodeType.Trait,
-          operator: {
-            type: SegmentOperatorType.Equals,
-            value: "value1",
+          entryNode: {
+            id: randomUUID(),
+            type: SegmentNodeType.Trait,
+            path: "path",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "value1",
+            },
           },
-        },
+          nodes: [],
+        } satisfies SegmentDefinition,
       },
     }).then(unwrap);
   });
@@ -406,7 +412,7 @@ describe("reEnter", () => {
           expect(nextProps).not.toBeNull();
         });
       });
-      it.only("should run to completion on second run", async () => {
+      it("should run to completion on second run", async () => {
         await worker.runUntil(async () => {
           await testEnv.client.workflow.execute(userJourneyWorkflow, {
             workflowId: "workflow1",
