@@ -15,6 +15,7 @@ import {
   Journey,
   JourneyDefinition,
   JourneyNodeType,
+  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -36,6 +37,9 @@ describe("reEnter", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let journeyDefinition: JourneyDefinition;
+  let journey: Journey;
+  let segment: Segment;
 
   const senderMock = jest.fn().mockReturnValue(
     ok({
@@ -72,6 +76,22 @@ describe("reEnter", () => {
     });
     testEnv = envAndWorker.testEnv;
     worker = envAndWorker.worker;
+
+    segment = await insert({
+      table: dbSegment,
+      values: {
+        id: randomUUID(),
+        name: `segment1`,
+        workspaceId: workspace.id,
+        definition: {
+          type: SegmentNodeType.Trait,
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "value1",
+          },
+        },
+      },
+    }).then(unwrap);
   });
 
   afterEach(async () => {
@@ -79,7 +99,39 @@ describe("reEnter", () => {
   });
 
   describe("when canRunMultiple is true and the journey is run twice", () => {
-    it("should run the journey twice to completion", () => {});
+    beforeEach(async () => {
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: segment.id,
+          child: "message-node",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "message-node",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "test",
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      journey = await insert({
+        table: dbJourney,
+        values: {
+          id: randomUUID(),
+          name: `re-enter-${randomUUID()}`,
+          definition: journeyDefinition,
+          workspaceId: workspace.id,
+          status: "Running",
+        },
+      }).then(unwrap);
+    });
   });
 
   describe("when canRunMultiple is false and the journey is run twice", () => {
