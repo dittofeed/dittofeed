@@ -353,8 +353,7 @@ export async function findDueWorkspaceMaxTos({
         sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
       ),
     )
-    // Use `ASC nulls first` in some SQL dialects if needed, or rely on drizzle's `sql` expression
-    .orderBy(sql`${aggregatedMax} ASC`)
+    .orderBy(sql`${aggregatedMax} ASC NULLS FIRST`)
     .limit(limit);
 
   return periodsQuery;
