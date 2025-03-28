@@ -68,9 +68,9 @@ export async function broadcastWorkflowV2({
           timeZone: timezone,
         });
         if (timestamp) {
-          const timestampTimezones = deliveryTimeMap.get(timestamp);
-          if (timestampTimezones) {
-            timestampTimezones.add(timezone);
+          const deliveryTimeTimezones = deliveryTimeMap.get(timestamp);
+          if (deliveryTimeTimezones) {
+            deliveryTimeTimezones.add(timezone);
           } else {
             deliveryTimeMap.set(timestamp, new Set([timezone]));
           }
@@ -78,7 +78,16 @@ export async function broadcastWorkflowV2({
       });
 
       await Promise.all(timezonePromises);
-      const deliveryTimes = Array.from(deliveryTimeMap.keys());
+      for (const [
+        timestamp,
+        deliveryTimeTimezones,
+      ] of deliveryTimeMap.entries()) {
+        await sendMessages({
+          workspaceId,
+          timezones: Array.from(deliveryTimeTimezones),
+          limit: 100,
+        });
+      }
     } else {
     }
   } else {
