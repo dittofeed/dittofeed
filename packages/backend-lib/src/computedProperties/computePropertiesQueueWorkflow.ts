@@ -32,16 +32,7 @@ const { config } = proxyActivities<typeof activities>({
   startToCloseTimeout: "1 minutes",
 });
 
-/**
- * The workflow parameters now only include `queueState`.
- * We no longer accept concurrency, capacity, or maxLoopIterations from params;
- * instead, we pull those from the `config` activity at runtime.
- */
 export interface ComputePropertiesQueueWorkflowParams {
-  /**
-   * The current queue of workspace IDs (FIFO) carried across `continueAsNew`.
-   * We'll infer membership from this queue at startup.
-   */
   queueState?: string[];
 }
 

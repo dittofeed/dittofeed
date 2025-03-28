@@ -1,4 +1,4 @@
-export * from "../broadcasts/broadcastWorkflowV2/activities";
+export * from "../broadcasts/activities";
 export * from "../computedProperties/computePropertiesWorkflow/activities";
 export { getFeature } from "../features";
 export * from "../integrations/hubspot/activities";
