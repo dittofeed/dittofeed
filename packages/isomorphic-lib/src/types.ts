@@ -4905,3 +4905,25 @@ export const BroadcastV2Config = Type.Object({
 });
 
 export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
+
+export const BroadcastResourceV2 = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  messageTemplateId: Type.Optional(Type.String()),
+  config: BroadcastV2Config,
+  status: Type.Union([
+    Type.Literal("Draft"),
+    Type.Literal("Scheduled"),
+    Type.Literal("Running"),
+    Type.Literal("Paused"),
+    Type.Literal("Completed"),
+    Type.Literal("Cancelled"),
+    Type.Literal("Failed"),
+  ]),
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
+
+export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;

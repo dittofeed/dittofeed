@@ -133,6 +133,7 @@ export async function findAllUserPropertyResources({
   requireRunning,
 }: {
   workspaceId: string;
+  requireRunning?: boolean;
 }): Promise<SavedUserPropertyResource[]> {
   const userProperties = await findAllUserProperties({
     workspaceId,
