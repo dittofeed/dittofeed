@@ -69,6 +69,11 @@ export const segmentStatus = pgEnum("SegmentStatus", [
   "Running",
   "Paused",
 ]);
+export const userPropertyStatus = pgEnum("UserPropertyStatus", [
+  "NotStarted",
+  "Running",
+  "Paused",
+]);
 export const workspaceStatus = pgEnum("WorkspaceStatus", [
   "Active",
   "Tombstoned",
@@ -150,6 +155,7 @@ export const userProperty = pgTable(
     definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
       .defaultNow()
       .notNull(),
+    status: userPropertyStatus().default("Running").notNull(),
     exampleValue: text(),
   },
   (table) => [
