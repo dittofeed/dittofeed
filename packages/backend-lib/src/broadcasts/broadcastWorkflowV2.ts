@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import {
   continueAsNew,
   getExternalWorkflowHandle,
@@ -12,9 +13,13 @@ import type * as activities from "../temporal/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
-const { sendMessages, computeTimezones, getBroadcast } = proxyActivities<
-  typeof activities
->({
+const {
+  sendMessages,
+  computeTimezones,
+  getBroadcast,
+  getZonedTimestamp,
+  getFeature,
+} = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
@@ -40,8 +45,45 @@ export async function broadcastWorkflowV2({
   const broadcast = await getBroadcast({ workspaceId, broadcastId });
 
   if (broadcast.status !== "Draft") {
-    l;
+    logger.info("skipping non-draft broadcast", {
+      broadcastId,
+      status: broadcast.status,
+      workspaceId,
+    });
     return;
   }
-  // TODO: Implement the workflow
+
+  const { scheduledAt, config } = broadcast;
+  if (scheduledAt) {
+    if (config.useIndividualTimezone) {
+      const { timezones } = await computeTimezones({
+        workspaceId,
+        defaultTimezone: broadcast.config.defaultTimezone,
+      });
+      // Map of delivery timestamps to timezones with that delivery timestamp
+      const deliveryTimeMap = new Map<number, Set<string>>();
+      const timezonePromises = timezones.map(async (timezone) => {
+        const { timestamp } = await getZonedTimestamp({
+          naiveDateTimeString: scheduledAt,
+          timeZone: timezone,
+        });
+        if (timestamp) {
+          const timestampTimezones = deliveryTimeMap.get(timestamp);
+          if (timestampTimezones) {
+            timestampTimezones.add(timezone);
+          } else {
+            deliveryTimeMap.set(timestamp, new Set([timezone]));
+          }
+        }
+      });
+
+      await Promise.all(timezonePromises);
+      const deliveryTimes = Array.from(deliveryTimeMap.keys());
+    } else {
+    }
+  } else {
+  }
+  // const timezones = await computeTimezones({
+  //   workspaceId,
+  // });
 }

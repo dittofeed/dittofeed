@@ -4922,6 +4922,7 @@ export const BroadcastResourceV2 = Type.Object({
     Type.Literal("Cancelled"),
     Type.Literal("Failed"),
   ]),
+  scheduledAt: Type.Optional(Type.String()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
 });
