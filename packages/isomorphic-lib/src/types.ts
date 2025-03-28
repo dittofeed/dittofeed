@@ -4886,3 +4886,22 @@ export const SearchDeliveriesRequest = Type.Object({
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
+
+export const BroadcastConfigTypeEnum = {
+  V2: "V2",
+} as const;
+
+export const BroadcastConfigType = Type.KeyOf(
+  Type.Const(BroadcastConfigTypeEnum),
+);
+
+export type BroadcastConfigType = Static<typeof BroadcastConfigType>;
+
+export const BroadcastV2Config = Type.Object({
+  type: Type.Literal(BroadcastConfigTypeEnum.V2),
+  rateLimit: Type.Optional(Type.Number()),
+  defaultTimezone: Type.Optional(Type.String()),
+  useIndividualTimezone: Type.Optional(Type.Boolean()),
+});
+
+export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
