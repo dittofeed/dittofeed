@@ -68,7 +68,7 @@ export async function broadcastWorkflowV2({
     return;
   }
 
-  const sendAllMessages = async function sendRateLimitedMessages({
+  const sendAllMessages = async function sendAllMessages({
     timezones,
     batchSize,
   }: {
@@ -77,6 +77,18 @@ export async function broadcastWorkflowV2({
   }) {
     let cursor: string | null = null;
     do {
+      const { status } = await getBroadcastStatus({
+        workspaceId,
+        broadcastId,
+      });
+      if (status !== "Running") {
+        logger.info("early exit of sendAllMessages no longer running", {
+          status,
+          workspaceId,
+          broadcastId,
+        });
+        return;
+      }
       const activityStartTime = Date.now();
 
       const { nextCursor, messagesSent } = await sendMessages({

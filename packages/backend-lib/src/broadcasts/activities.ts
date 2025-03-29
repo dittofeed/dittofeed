@@ -101,31 +101,14 @@ export async function getZonedTimestamp({
   }
 }
 
-export async function markBroadcastAsRunning({
+export async function markBroadcastStatus({
   workspaceId,
   broadcastId,
+  status,
 }: {
   workspaceId: string;
   broadcastId: string;
-}): Promise<void> {
-  throw new Error("Not implemented");
-}
-
-export async function markBroadcastAsPaused({
-  workspaceId,
-  broadcastId,
-}: {
-  workspaceId: string;
-  broadcastId: string;
-}): Promise<void> {
-  throw new Error("Not implemented");
-}
-export async function cancelBroadcast({
-  workspaceId,
-  broadcastId,
-}: {
-  workspaceId: string;
-  broadcastId: string;
+  status: BroadcastV2Status;
 }): Promise<void> {
   throw new Error("Not implemented");
 }
@@ -136,6 +119,6 @@ export async function getBroadcastStatus({
 }: {
   workspaceId: string;
   broadcastId: string;
-}): Promise<BroadcastV2Status> {
+}): Promise<{ status: BroadcastV2Status }> {
   throw new Error("Not implemented");
 }
