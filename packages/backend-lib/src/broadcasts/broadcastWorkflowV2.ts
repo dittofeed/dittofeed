@@ -75,20 +75,73 @@ export async function broadcastWorkflowV2({
   }) {
     let cursor: string | null = null;
     do {
-      const startTime = Date.now();
-      const { nextCursor } = await sendMessages({
+      const activityStartTime = Date.now();
+
+      const { nextCursor, messagesSent } = await sendMessages({
         workspaceId,
         timezones,
         limit: batchSize,
         cursor: cursor ?? undefined,
       });
-      const endTime = Date.now();
 
-      // FIXME
-      const sleepTime = 0;
+      const activityEndTime = Date.now();
+      const activityDurationMillis = activityEndTime - activityStartTime;
+
+      // Refactored logging
+      logger.info("sendMessages activity completed.", {
+        durationMs: activityDurationMillis,
+        messagesSent,
+        nextCursor: nextCursor ?? null,
+      });
+
+      if (typeof messagesSent !== "number" || messagesSent < 0) {
+        // Already follows the pattern
+        logger.warn("sendMessages did not return valid messagesSent count.", {
+          activityDurationMs: activityDurationMillis,
+          returnedValue: messagesSent,
+          nextCursor: nextCursor ?? null,
+          operation: "Cannot apply rate limit for this batch.",
+        });
+        cursor = nextCursor ?? null;
+        continue;
+      }
+
+      let sleepTime = 0;
+      if (messagesSent > 0) {
+        const targetCycleTimeSeconds = messagesSent / usersPerSecond;
+        const targetCycleTimeMillis = targetCycleTimeSeconds * 1000;
+        const sleepNeededMillis =
+          targetCycleTimeMillis - activityDurationMillis;
+
+        if (sleepNeededMillis > 0) {
+          sleepTime = Math.max(10, sleepNeededMillis);
+          logger.info("Applying rate limit sleep.", {
+            targetCycleMs: targetCycleTimeMillis,
+            activityDurationMs: activityDurationMillis,
+            sleepNeededMs: sleepNeededMillis,
+            sleepDurationMs: sleepTime,
+          });
+        } else {
+          logger.info("Rate limit - no sleep needed.", {
+            targetCycleMs: targetCycleTimeMillis,
+            activityDurationMs: activityDurationMillis,
+            sleepNeededMs: sleepNeededMillis, // Include for context, will be <= 0
+          });
+          sleepTime = 0;
+        }
+      } else {
+        // Refactored logging (added context)
+        logger.info("Rate limit not applicable for this batch.", {
+          usersPerSecond,
+          messagesSent,
+          reason: "No messages sent in batch",
+        });
+      }
+
       if (sleepTime > 0) {
         await sleep(sleepTime);
       }
+
       cursor = nextCursor ?? null;
     } while (cursor != null);
   };

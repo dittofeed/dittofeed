@@ -23,8 +23,9 @@ export async function sendMessages({
   limit: number;
 }): Promise<{
   nextCursor?: string;
+  messagesSent: number;
 }> {
-  return {};
+  throw new Error("Not implemented");
 }
 
 /**
