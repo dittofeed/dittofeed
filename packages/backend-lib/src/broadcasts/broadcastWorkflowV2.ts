@@ -67,11 +67,9 @@ export async function broadcastWorkflowV2({
   const sendRateLimitedMessages = async function sendRateLimitedMessages({
     timezones,
     batchSize,
-    usersPerSecond,
   }: {
     timezones: string[];
     batchSize: number;
-    usersPerSecond: number;
   }) {
     let cursor: string | null = null;
     do {
@@ -107,8 +105,8 @@ export async function broadcastWorkflowV2({
       }
 
       let sleepTime = 0;
-      if (messagesSent > 0) {
-        const targetCycleTimeSeconds = messagesSent / usersPerSecond;
+      if (rateLimit && messagesSent > 0) {
+        const targetCycleTimeSeconds = messagesSent / rateLimit;
         const targetCycleTimeMillis = targetCycleTimeSeconds * 1000;
         const sleepNeededMillis =
           targetCycleTimeMillis - activityDurationMillis;
@@ -125,14 +123,13 @@ export async function broadcastWorkflowV2({
           logger.info("Rate limit - no sleep needed.", {
             targetCycleMs: targetCycleTimeMillis,
             activityDurationMs: activityDurationMillis,
-            sleepNeededMs: sleepNeededMillis, // Include for context, will be <= 0
+            sleepNeededMs: sleepNeededMillis,
           });
           sleepTime = 0;
         }
       } else {
-        // Refactored logging (added context)
         logger.info("Rate limit not applicable for this batch.", {
-          usersPerSecond,
+          rateLimit,
           messagesSent,
           reason: "No messages sent in batch",
         });
@@ -171,16 +168,23 @@ export async function broadcastWorkflowV2({
       });
 
       await Promise.all(timezonePromises);
-      for (const [
-        timestamp,
-        deliveryTimeTimezones,
-      ] of deliveryTimeMap.entries()) {
-        await sendMessages({
-          workspaceId,
-          timezones: Array.from(deliveryTimeTimezones),
-          limit: 100,
-        });
-      }
+
+      const sendMessagesPromises = Array.from(deliveryTimeMap.entries()).map(
+        async ([timestamp, deliveryTimeTimezones]) => {
+          const sleepTime = timestamp - Date.now();
+          if (sleepTime > 0) {
+            // Wait until the localized delivery time
+            await sleep(sleepTime);
+          }
+
+          await sendRateLimitedMessages({
+            timezones: Array.from(deliveryTimeTimezones),
+            batchSize: 100,
+          });
+        },
+      );
+
+      await Promise.all(sendMessagesPromises);
     } else {
     }
   } else {
