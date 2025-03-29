@@ -4906,6 +4906,20 @@ export const BroadcastV2Config = Type.Object({
 
 export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
 
+export const BroadcastV2StatusEnum = {
+  Draft: "Draft",
+  Scheduled: "Scheduled",
+  Running: "Running",
+  Paused: "Paused",
+  Completed: "Completed",
+  Cancelled: "Cancelled",
+  Failed: "Failed",
+} as const;
+
+export const BroadcastV2Status = Type.KeyOf(Type.Const(BroadcastV2StatusEnum));
+
+export type BroadcastV2Status = Static<typeof BroadcastV2Status>;
+
 export const BroadcastResourceV2 = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -4913,15 +4927,7 @@ export const BroadcastResourceV2 = Type.Object({
   segmentId: Type.Optional(Type.String()),
   messageTemplateId: Type.Optional(Type.String()),
   config: BroadcastV2Config,
-  status: Type.Union([
-    Type.Literal("Draft"),
-    Type.Literal("Scheduled"),
-    Type.Literal("Running"),
-    Type.Literal("Paused"),
-    Type.Literal("Completed"),
-    Type.Literal("Cancelled"),
-    Type.Literal("Failed"),
-  ]),
+  status: BroadcastV2Status,
   scheduledAt: Type.Optional(Type.String()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),

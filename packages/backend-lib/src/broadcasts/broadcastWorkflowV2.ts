@@ -1,7 +1,5 @@
 /* eslint-disable no-await-in-loop */
 import {
-  continueAsNew,
-  getExternalWorkflowHandle,
   LoggerSinks,
   proxyActivities,
   proxySinks,
@@ -18,7 +16,8 @@ const {
   computeTimezones,
   getBroadcast,
   getZonedTimestamp,
-  getFeature,
+  markBroadcastStatus,
+  getBroadcastStatus,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
@@ -61,14 +60,19 @@ export async function broadcastWorkflowV2({
       rateLimit,
       workspaceId,
     });
+    await markBroadcastStatus({
+      workspaceId,
+      broadcastId,
+      status: "Cancelled",
+    });
     return;
   }
 
-  const sendRateLimitedMessages = async function sendRateLimitedMessages({
+  const sendAllMessages = async function sendRateLimitedMessages({
     timezones,
     batchSize,
   }: {
-    timezones: string[];
+    timezones?: string[];
     batchSize: number;
   }) {
     let cursor: string | null = null;
@@ -144,11 +148,21 @@ export async function broadcastWorkflowV2({
   };
 
   const { scheduledAt, config } = broadcast;
+  const { defaultTimezone } = config;
+
   if (scheduledAt) {
+    if (!defaultTimezone) {
+      logger.error("defaultTimezone is not set", {
+        broadcastId,
+        workspaceId,
+        scheduledAt,
+      });
+      return;
+    }
     if (config.useIndividualTimezone) {
       const { timezones } = await computeTimezones({
         workspaceId,
-        defaultTimezone: broadcast.config.defaultTimezone,
+        defaultTimezone,
       });
       // Map of delivery timestamps to timezones with that delivery timestamp
       const deliveryTimeMap = new Map<number, Set<string>>();
@@ -164,10 +178,21 @@ export async function broadcastWorkflowV2({
           } else {
             deliveryTimeMap.set(timestamp, new Set([timezone]));
           }
+        } else {
+          logger.info("user specific timezone is invalid", {
+            timezone,
+            scheduledAt,
+          });
         }
       });
 
       await Promise.all(timezonePromises);
+
+      await markBroadcastStatus({
+        workspaceId,
+        broadcastId,
+        status: "Scheduled",
+      });
 
       const sendMessagesPromises = Array.from(deliveryTimeMap.entries()).map(
         async ([timestamp, deliveryTimeTimezones]) => {
@@ -177,7 +202,13 @@ export async function broadcastWorkflowV2({
             await sleep(sleepTime);
           }
 
-          await sendRateLimitedMessages({
+          await markBroadcastStatus({
+            workspaceId,
+            broadcastId,
+            status: "Running",
+          });
+
+          await sendAllMessages({
             timezones: Array.from(deliveryTimeTimezones),
             batchSize: 100,
           });
@@ -186,10 +217,58 @@ export async function broadcastWorkflowV2({
 
       await Promise.all(sendMessagesPromises);
     } else {
+      const { timestamp } = await getZonedTimestamp({
+        naiveDateTimeString: scheduledAt,
+        timeZone: defaultTimezone,
+      });
+      if (timestamp) {
+        await markBroadcastStatus({
+          workspaceId,
+          broadcastId,
+          status: "Scheduled",
+        });
+
+        const sleepTime = timestamp - Date.now();
+        if (sleepTime > 0) {
+          // Wait until the localized delivery time
+          await sleep(sleepTime);
+        }
+
+        await markBroadcastStatus({
+          workspaceId,
+          broadcastId,
+          status: "Running",
+        });
+
+        await sendAllMessages({
+          batchSize: 100,
+        });
+      } else {
+        logger.error(
+          "workspace member specified timezone is invalid for scheduled broadcast, should have validated",
+          {
+            broadcastId,
+            workspaceId,
+            scheduledAt,
+          },
+        );
+      }
     }
   } else {
+    await markBroadcastStatus({
+      workspaceId,
+      broadcastId,
+      status: "Running",
+    });
+
+    await sendAllMessages({
+      batchSize: 100,
+    });
   }
-  // const timezones = await computeTimezones({
-  //   workspaceId,
-  // });
+
+  await markBroadcastStatus({
+    workspaceId,
+    broadcastId,
+    status: "Completed",
+  });
 }

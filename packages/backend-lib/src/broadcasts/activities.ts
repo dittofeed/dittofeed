@@ -1,7 +1,7 @@
 import { zonedTimeToUtc } from "date-fns-tz";
 
 import logger from "../logger";
-import { Broadcast, BroadcastResourceV2 } from "../types";
+import { Broadcast, BroadcastResourceV2, BroadcastV2Status } from "../types";
 
 export async function getTimezones(): Promise<
   {
@@ -39,10 +39,11 @@ export async function computeTimezones({
   defaultTimezone,
 }: {
   workspaceId: string;
-  defaultTimezone?: string;
+  defaultTimezone: string;
 }): Promise<{
   timezones: string[];
 }> {
+  // FIXME validate timezones and submit errors to user events for users with invalid timezones
   throw new Error("Not implemented");
 }
 
@@ -98,4 +99,43 @@ export async function getZonedTimestamp({
     );
     return { timestamp: null };
   }
+}
+
+export async function markBroadcastAsRunning({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}): Promise<void> {
+  throw new Error("Not implemented");
+}
+
+export async function markBroadcastAsPaused({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}): Promise<void> {
+  throw new Error("Not implemented");
+}
+export async function cancelBroadcast({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}): Promise<void> {
+  throw new Error("Not implemented");
+}
+
+export async function getBroadcastStatus({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}): Promise<BroadcastV2Status> {
+  throw new Error("Not implemented");
 }
