@@ -35,7 +35,7 @@ export function sendMessagesFactory(sender: Sender) {
   };
 }
 
-export const sendMessagesV2 = sendMessagesFactory(sendMessage);
+export const sendMessages = sendMessagesFactory(sendMessage);
 
 /**
  * Computes the timezones for all users in a broadcast using timezone, lat/lon,

@@ -11,7 +11,10 @@ import * as schema from "../db/schema";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   BroadcastResourceV2,
+  EmailProviderType,
+  ChannelType,
   IdUserPropertyDefinition,
+  InternalEventType,
   SubscriptionGroupType,
   TraitUserPropertyDefinition,
   UserProperty,
@@ -25,6 +28,8 @@ import {
   BroadcastWorkflowV2Params,
   generateBroadcastWorkflowId,
 } from "./broadcastWorkflowV2";
+import { sendMessagesFactory } from "./activities";
+import { ok } from "neverthrow";
 
 jest.setTimeout(15000);
 
@@ -35,8 +40,27 @@ describe("broadcastWorkflowV2", () => {
   let broadcast: BroadcastResourceV2;
   let idUserProperty: UserProperty;
   let emailUserProperty: UserProperty;
-  // FIXME
-  const testActivities = {};
+
+  const senderMock = jest.fn().mockReturnValue(
+    ok({
+      type: InternalEventType.MessageSent,
+      variant: {
+        type: ChannelType.Email,
+        from: "test@test.com",
+        body: "test",
+        to: "test@test.com",
+        subject: "test",
+        headers: {},
+        replyTo: "test@test.com",
+        provider: {
+          type: EmailProviderType.Test,
+        },
+      },
+    }),
+  );
+  const testActivities = {
+    sendMessages: sendMessagesFactory(senderMock),
+  };
 
   beforeEach(async () => {
     workspace = await createWorkspace({
