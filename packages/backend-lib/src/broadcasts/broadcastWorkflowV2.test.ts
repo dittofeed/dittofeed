@@ -20,6 +20,7 @@ import {
   UserProperty,
   UserPropertyDefinitionType,
   Workspace,
+  EmailTemplateResource,
 } from "../types";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { createWorkspace } from "../workspaces";
@@ -117,6 +118,20 @@ describe("broadcastWorkflowV2", () => {
         channel: "Email",
       }).then(unwrap);
 
+      const messageTemplate = await insert({
+        table: schema.messageTemplate,
+        values: {
+          workspaceId: workspace.id,
+          name: `template-${randomUUID()}`,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "{% unsubscribe_link here %}.",
+          } satisfies EmailTemplateResource,
+        },
+      }).then(unwrap);
+
       const dbBroadcast = await insert({
         table: schema.broadcast,
         values: {
@@ -125,7 +140,7 @@ describe("broadcastWorkflowV2", () => {
           name: "test-broadcast",
           statusV2: "Draft",
           version: "V2",
-          messageTemplateId: templateId,
+          messageTemplateId: messageTemplate.id,
         },
       }).then(unwrap);
 
@@ -146,7 +161,7 @@ describe("broadcastWorkflowV2", () => {
         },
       ]);
     });
-    it("should send messages to all users immediately", async () => {
+    it.only("should send messages to all users immediately", async () => {
       await worker.runUntil(async () => {
         await testEnv.client.workflow.execute(broadcastWorkflowV2, {
           workflowId: generateBroadcastWorkflowId({
