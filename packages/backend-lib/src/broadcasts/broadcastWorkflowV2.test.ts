@@ -20,6 +20,11 @@ import {
 } from "../types";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { createWorkspace } from "../workspaces";
+import {
+  broadcastWorkflowV2,
+  BroadcastWorkflowV2Params,
+  generateBroadcastWorkflowId,
+} from "./broadcastWorkflowV2";
 
 jest.setTimeout(15000);
 
@@ -118,6 +123,21 @@ describe("broadcastWorkflowV2", () => {
       ]);
     });
     it("should send messages to all users immediately", async () => {
+      await worker.runUntil(async () => {
+        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+          workflowId: generateBroadcastWorkflowId({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        });
+      });
       // expect messages to be in deliveries filtered by broadcast id
     });
   });
