@@ -1,26 +1,41 @@
 import { zonedTimeToUtc } from "date-fns-tz";
 
 import logger from "../logger";
-import { Broadcast, BroadcastResourceV2, BroadcastV2Status } from "../types";
+import { BroadcastResourceV2, BroadcastV2Status } from "../types";
+import { Sender, sendMessage } from "../messaging";
+import { withSpan } from "../openTelemetry";
 
-export async function sendMessages({
-  workspaceId,
-  broadcastId,
-  cursor,
-  timezones,
-  limit,
-}: {
+interface SendMessagesResponse {
+  messagesSent: number;
+  nextCursor?: string;
+}
+
+interface SendMessagesParams {
   workspaceId: string;
   broadcastId: string;
   timezones?: string[];
   cursor?: string;
   limit: number;
-}): Promise<{
-  nextCursor?: string;
-  messagesSent: number;
-}> {
-  throw new Error("Not implemented");
 }
+
+export function sendMessagesFactory(sender: Sender) {
+  return async function sendMessagesWithSender(
+    params: SendMessagesParams,
+  ): Promise<SendMessagesResponse> {
+    return withSpan({ name: "send-messages" }, async (span) => {
+      span.setAttributes({
+        workspaceId: params.workspaceId,
+        broadcastId: params.broadcastId,
+        timezones: params.timezones,
+        cursor: params.cursor,
+        limit: params.limit,
+      });
+      throw new Error("Not implemented");
+    });
+  };
+}
+
+export const sendMessagesV2 = sendMessagesFactory(sendMessage);
 
 /**
  * Computes the timezones for all users in a broadcast using timezone, lat/lon,
