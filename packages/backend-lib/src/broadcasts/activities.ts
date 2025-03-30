@@ -3,21 +3,15 @@ import { zonedTimeToUtc } from "date-fns-tz";
 import logger from "../logger";
 import { Broadcast, BroadcastResourceV2, BroadcastV2Status } from "../types";
 
-export async function getTimezones(): Promise<
-  {
-    name: string;
-  }[]
-> {
-  throw new Error("Not implemented");
-}
-
 export async function sendMessages({
   workspaceId,
+  broadcastId,
   cursor,
   timezones,
   limit,
 }: {
   workspaceId: string;
+  broadcastId: string;
   timezones?: string[];
   cursor?: string;
   limit: number;

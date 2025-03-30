@@ -4934,3 +4934,23 @@ export const BroadcastResourceV2 = Type.Object({
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
+
+export const UpsertBroadcastV2ErrorTypeEnum = {
+  IdError: "IdError",
+  UniqueConstraintViolation: "UniqueConstraintViolation",
+} as const;
+
+export const UpsertBroadcastV2ErrorType = Type.KeyOf(
+  Type.Const(UpsertBroadcastV2ErrorTypeEnum),
+);
+
+export type UpsertBroadcastV2ErrorType = Static<
+  typeof UpsertBroadcastV2ErrorType
+>;
+
+export const UpsertBroadcastV2Error = Type.Object({
+  type: UpsertBroadcastV2ErrorType,
+  message: Type.String(),
+});
+
+export type UpsertBroadcastV2Error = Static<typeof UpsertBroadcastV2Error>;

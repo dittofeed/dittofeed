@@ -93,6 +93,7 @@ export async function broadcastWorkflowV2({
 
       const { nextCursor, messagesSent } = await sendMessages({
         workspaceId,
+        broadcastId,
         timezones,
         limit: batchSize,
         cursor: cursor ?? undefined,
