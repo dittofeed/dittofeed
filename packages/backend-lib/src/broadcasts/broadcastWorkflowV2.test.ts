@@ -162,7 +162,7 @@ describe("broadcastWorkflowV2", () => {
           ],
         });
       });
-      // expect messages to be in deliveries filtered by broadcast id
+      expect(senderMock).toHaveBeenCalledTimes(1);
     });
   });
   describe("when sending a broadcast immediately with a rate limit", () => {
