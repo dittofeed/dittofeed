@@ -24,6 +24,7 @@ import {
   AppFileType,
   BlobStorageFile,
   ComputedPropertyAssignment,
+  ComputedPropertyPeriod,
   ComputedPropertyStep,
   EventType,
   InternalEventType,
@@ -134,6 +135,53 @@ async function getUserCounts(workspaceId: string) {
     stateUserCount,
     assignmentUserCount,
   };
+}
+
+async function readPeriods({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ComputedPropertyPeriod[]> {
+  const periods = await db()
+    .select()
+    .from(schema.computedPropertyPeriod)
+    .where(eq(schema.computedPropertyPeriod.workspaceId, workspaceId));
+  return periods;
+}
+
+async function readUpdatedComputedPropertyState({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<
+  {
+    workspace_id: string;
+    type: string;
+    computed_property_id: string;
+    state_id: string;
+    user_id: string;
+    computed_at: string;
+  }[]
+> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select *
+    from updated_computed_property_state
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values = await response.json<{
+    workspace_id: string;
+    type: string;
+    computed_property_id: string;
+    state_id: string;
+    user_id: string;
+    computed_at: string;
+  }>();
+  return values.data;
 }
 
 async function readAssignments({
@@ -300,14 +348,15 @@ async function readResolvedSegmentStates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<ResolvedSegmentState[]> {
+}): Promise<(ResolvedSegmentState & { computed_at: string })[]> {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
       segment_id,
       state_id,
       user_id,
-      segment_state_value
+      segment_state_value,
+      computed_at
     from resolved_segment_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
@@ -316,7 +365,9 @@ async function readResolvedSegmentStates({
       query,
       query_params: qb.getQueries(),
     })
-  ).json()) satisfies { data: ResolvedSegmentState[] };
+  ).json()) satisfies {
+    data: (ResolvedSegmentState & { computed_at: string })[];
+  };
 
   return response.data;
 }
@@ -531,6 +582,13 @@ interface DebugAssignmentsStep {
   type: EventsStepType.Debug;
   userId?: string;
   description?: string;
+  queries?: ((
+    ctx: StepContext,
+    qb: ClickHouseQueryBuilder,
+  ) => {
+    query: string;
+    name: string;
+  })[];
 }
 
 interface SleepStep {
@@ -7351,6 +7409,20 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
           type: EventsStepType.Assert,
           description:
             "user is in the segment prior to the journey being created",
@@ -7362,10 +7434,6 @@ describe("computeProperties", () => {
               },
             },
           ],
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
           type: EventsStepType.UpdateJourney,
@@ -7393,9 +7461,42 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Debug,
           description: "loc1",
+          queries: [
+            // fixme
+            (ctx, qb) => ({
+              query: `
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  computed_at
+                from updated_computed_property_state
+                where
+                  workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
+                  and type = 'segment'
+                  and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
+                  and state_id = ${qb.addQueryValue(
+                    segmentNodeStateId(
+                      ctx.segments[0]!,
+                      ctx.segments[0]!.definition.entryNode.id,
+                    ),
+                    "String",
+                  )}
+                  and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
+                  and computed_at >= toDateTime64(${ctx.now / 1000 - 3 * 24 * 60 * 60}, 3)
+              `,
+              name: "loc1 updated computed property state",
+            }),
+          ],
         },
+        // FIXME this is the step that's adding a resolved segment state that shouldn't
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Debug,
+          description: "loc1.5",
         },
         {
           type: EventsStepType.Assert,
@@ -7438,8 +7539,91 @@ describe("computeProperties", () => {
           timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
+          type: EventsStepType.Debug,
+          description: "loc2",
+          queries: [
+            // fixme
+            (ctx, qb) => ({
+              query: `
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  computed_at
+                from updated_computed_property_state
+                where
+                  workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
+                  and type = 'segment'
+                  and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
+                  and state_id = ${qb.addQueryValue(
+                    segmentNodeStateId(
+                      ctx.segments[0]!,
+                      ctx.segments[0]!.definition.entryNode.id,
+                    ),
+                    "String",
+                  )}
+                  and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
+                  and computed_at >= toDateTime64(${ctx.now / 1000 - 259200}, 3)
+              `,
+              name: "loc2 updated computed property state",
+            }),
+            (ctx, qb) => ({
+              query: `
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id,
+                  max(event_time),
+                  toDateTime64(${ctx.now / 1000}, 3) as assigned_at
+                from computed_property_state_v2 as cps
+                where
+                  (
+                    workspace_id,
+                    computed_property_id,
+                    state_id,
+                    user_id
+                  ) in (
+                    select
+                      workspace_id,
+                      computed_property_id,
+                      state_id,
+                      user_id
+                    from updated_computed_property_state
+                    where
+                      workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
+                      and type = 'segment'
+                      and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
+                      and state_id = ${qb.addQueryValue(
+                        segmentNodeStateId(
+                          ctx.segments[0]!,
+                          ctx.segments[0]!.definition.entryNode.id,
+                        ),
+                        "String",
+                      )}
+                      and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
+                      and computed_at >= toDateTime64(${ctx.now / 1000 - 259200}, 3)
+                  )
+                group by
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id
+              `,
+              name: "loc2 resolved computed property state",
+            }),
+          ],
+        },
+        {
           type: EventsStepType.ComputeProperties,
         },
+        {
+          type: EventsStepType.Debug,
+          description: "loc3",
+        },
+        // FIXME all assignments are being re-assigned with every polling period, causing test to pass locally
+        // resolved segment states are duplicated
         {
           type: EventsStepType.Assert,
           users: [
@@ -7596,26 +7780,63 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.Debug: {
-          const [assignments, states, resolvedSegmentStates] =
-            await Promise.all([
-              readAssignments({ workspaceId }),
-              readDisaggregatedStates({ workspaceId }),
-              readResolvedSegmentStates({
-                workspaceId,
-              }),
-            ]);
+          const debugQueries = step.queries?.map(async (q) => {
+            const qb = new ClickHouseQueryBuilder();
+            const { query, name } = q(stepContext, qb);
+            const result = await clickhouseClient().query({
+              query,
+              query_params: qb.getQueries(),
+            });
+            const { data } = await result.json();
+            const values = {
+              name,
+              query,
+              data,
+            };
+            return values;
+          });
+          const [
+            assignments,
+            states,
+            resolvedSegmentStates,
+            periods,
+            updatedComputedPropertyState,
+            debugQueryData,
+          ] = await Promise.all([
+            readAssignments({ workspaceId }),
+            readDisaggregatedStates({ workspaceId }),
+            readResolvedSegmentStates({
+              workspaceId,
+            }),
+            readPeriods({ workspaceId }),
+            readUpdatedComputedPropertyState({ workspaceId }),
+            Promise.all(debugQueries ?? []),
+          ]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const logged: Record<string, any> = {
+            assignments: assignments.filter((a) =>
+              step.userId ? a.user_id === step.userId : true,
+            ),
+            states: states.filter((s) =>
+              step.userId ? s.user_id === step.userId : true,
+            ),
+            resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
+              step.userId ? s.user_id === step.userId : true,
+            ),
+            updatedComputedPropertyState: updatedComputedPropertyState.filter(
+              (s) => (step.userId ? s.user_id === step.userId : true),
+            ),
+            periods,
+            stepContext,
+          };
+          for (const { name, query, data } of debugQueryData) {
+            logged[name] = {
+              query,
+              data,
+            };
+          }
           logger().warn(
-            {
-              assignments: assignments.filter((a) =>
-                step.userId ? a.user_id === step.userId : true,
-              ),
-              states: states.filter((s) =>
-                step.userId ? s.user_id === step.userId : true,
-              ),
-              resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
-                step.userId ? s.user_id === step.userId : true,
-              ),
-            },
+            logged,
             `debug clickhouse values:${step.description ? ` ${step.description}` : ""}`,
           );
           break;

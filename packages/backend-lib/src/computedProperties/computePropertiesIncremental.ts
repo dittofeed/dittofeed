@@ -440,6 +440,7 @@ function segmentToIndexed({
 }
 
 function getLowerBoundClause(bound?: number): string {
+  // FIXME
   return bound && bound > 0
     ? `and computed_at >= toDateTime64(${bound / 1000}, 3)`
     : "";
@@ -2356,6 +2357,7 @@ function assignStandardUserPropertiesQuery({
     return null;
   }
   const lowerBoundClause =
+    // FIXME
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
@@ -2447,6 +2449,7 @@ function assignPerformedManyUserPropertiesQuery({
   const nowSeconds = now / 1000;
 
   const lowerBoundClause =
+    // FIXME
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
@@ -3130,6 +3133,13 @@ export async function computeAssignments({
           segment.definitionUpdatedAt >= (periodBound ?? 0) &&
           segment.definitionUpdatedAt > segment.createdAt
         ) {
+          logger().debug(
+            {
+              segment,
+              workspaceId,
+            },
+            "resetting segment assignments",
+          );
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3529,6 +3539,7 @@ function buildProcessAssignmentsQuery({
     version: computedPropertyVersion,
   });
   const periodBound = period?.maxTo.getTime();
+  // FIXME
   const lowerBoundClause =
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
