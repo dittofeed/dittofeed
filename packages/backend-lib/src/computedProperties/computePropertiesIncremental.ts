@@ -440,7 +440,6 @@ function segmentToIndexed({
 }
 
 function getLowerBoundClause(bound?: number): string {
-  // FIXME
   return bound && bound > 0
     ? `and computed_at >= toDateTime64(${bound / 1000}, 3)`
     : "";
@@ -2357,7 +2356,6 @@ function assignStandardUserPropertiesQuery({
     return null;
   }
   const lowerBoundClause =
-    // FIXME
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
@@ -2449,7 +2447,6 @@ function assignPerformedManyUserPropertiesQuery({
   const nowSeconds = now / 1000;
 
   const lowerBoundClause =
-    // FIXME
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
@@ -3479,6 +3476,7 @@ interface BaseProcessAssignmentsQueryArgs {
   computedPropertyVersion: string;
   now: number;
   periodByComputedPropertyId: PeriodByComputedPropertyId;
+  processedForUpdatedAt: number;
 }
 
 type SegmentProcessAssignmentsQueryArgs = BaseProcessAssignmentsQueryArgs & {
@@ -3507,6 +3505,7 @@ function buildProcessAssignmentsQuery({
   computedPropertyVersion,
   limit,
   cursor,
+  processedForUpdatedAt,
   ...rest
 }: ProcessAssignmentsQueryArgs & {
   limit: number;
@@ -3534,22 +3533,21 @@ function buildProcessAssignmentsQuery({
       break;
   }
 
-  // period should be for the processed_for not just the computed property
   const period = periodByComputedPropertyId.get({
     computedPropertyId,
     version: computedPropertyVersion,
   });
   const periodBound = period?.maxTo.getTime();
-  // FIXME period should be empty when new journey
+  // ignore bound if the resource that the user property or segment is processed
+  // for was updated in the last period
   const lowerBoundClause =
-    periodBound && periodBound > 0
+    periodBound && periodBound > 0 && periodBound > processedForUpdatedAt
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
   const innerCursorClause = cursor
     ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
     : "";
 
-  // FIXME
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
    *
@@ -3831,6 +3829,21 @@ export async function processAssignments({
       return memo;
     }, new Map());
 
+    const journeyMap = journeys.reduce<
+      Map<string, SavedHasStartedJourneyResource>
+    >((memo, j) => {
+      memo.set(j.id, j);
+      return memo;
+    }, new Map());
+
+    // map from integration name to integration
+    const integrationMap = integrations.reduce<
+      Map<string, SavedIntegrationResource>
+    >((memo, i) => {
+      memo.set(i.name, i);
+      return memo;
+    }, new Map());
+
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
       workspaceId,
       step: ComputedPropertyStep.ProcessAssignments,
@@ -3841,9 +3854,28 @@ export async function processAssignments({
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
       const segment = segmentById.get(segmentId);
       if (!segment) {
+        logger().error(
+          {
+            workspaceId,
+            segmentId,
+          },
+          "segment not found to process",
+        );
         continue;
       }
       for (const journeyId of Array.from(journeySet)) {
+        const journey = journeyMap.get(journeyId);
+        if (!journey) {
+          logger().error(
+            {
+              workspaceId,
+              journeyId,
+            },
+            "journey not found to process",
+          );
+          continue;
+        }
+
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "segment",
@@ -3852,6 +3884,7 @@ export async function processAssignments({
           processedFor: journeyId,
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+          processedForUpdatedAt: journey.updatedAt,
           now,
           journeys,
         });
@@ -3864,9 +3897,27 @@ export async function processAssignments({
     )) {
       const segment = segmentById.get(segmentId);
       if (!segment) {
+        logger().error(
+          {
+            workspaceId,
+            segmentId,
+          },
+          "segment not found to process",
+        );
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
+        const integration = integrationMap.get(integrationName);
+        if (!integration) {
+          logger().error(
+            {
+              workspaceId,
+              integrationName,
+            },
+            "integration not found to process",
+          );
+          continue;
+        }
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "segment",
@@ -3876,6 +3927,7 @@ export async function processAssignments({
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
           now,
+          processedForUpdatedAt: integration.updatedAt,
           journeys,
         });
         assignmentProcessors.push(processor);
@@ -3890,6 +3942,17 @@ export async function processAssignments({
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
+        const integration = integrationMap.get(integrationName);
+        if (!integration) {
+          logger().error(
+            {
+              workspaceId,
+              integrationName,
+            },
+            "integration not found to process",
+          );
+          continue;
+        }
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "user_property",
@@ -3899,6 +3962,7 @@ export async function processAssignments({
           periodByComputedPropertyId,
           computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
           now,
+          processedForUpdatedAt: integration.updatedAt,
           journeys,
         });
         assignmentProcessors.push(processor);
