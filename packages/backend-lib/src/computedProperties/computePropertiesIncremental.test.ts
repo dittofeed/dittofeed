@@ -530,6 +530,7 @@ interface ComputePropertiesStep {
 interface DebugAssignmentsStep {
   type: EventsStepType.Debug;
   userId?: string;
+  description?: string;
 }
 
 interface SleepStep {
@@ -7306,6 +7307,7 @@ describe("computeProperties", () => {
     },
     {
       description: "retroactively signals a segment entry journey",
+      only: true,
       userProperties: [
         {
           name: "id",
@@ -7363,13 +7365,13 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 1000,
+          timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
           type: EventsStepType.UpdateJourney,
           journeys: [
             (ctx) => ({
-              name: "isMax",
+              name: "isMaxJourney",
               definition: {
                 entryNode: {
                   type: JourneyNodeType.SegmentEntryNode,
@@ -7386,7 +7388,11 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 1000,
+          timeMs: 3 * 24 * 60 * 60 * 1000,
+        },
+        {
+          type: EventsStepType.Debug,
+          description: "loc1",
         },
         {
           type: EventsStepType.ComputeProperties,
@@ -7403,7 +7409,54 @@ describe("computeProperties", () => {
           ],
           journeys: [
             {
-              journeyName: "isMax",
+              journeyName: "isMaxJourney",
+              times: 1,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.UpdateJourney,
+          journeys: [
+            (ctx) => ({
+              name: "otherIsMaxJourney",
+              definition: {
+                entryNode: {
+                  type: JourneyNodeType.SegmentEntryNode,
+                  segment: ctx.segments.find((s) => s.name === "isMax")!.id,
+                  child: JourneyNodeType.ExitNode,
+                },
+                nodes: [],
+                exitNode: {
+                  type: JourneyNodeType.ExitNode,
+                },
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 3 * 24 * 60 * 60 * 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                isMax: true,
+              },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "isMaxJourney",
+              times: 1,
+            },
+            {
+              journeyName: "otherIsMaxJourney",
               times: 1,
             },
           ],
@@ -7563,7 +7616,7 @@ describe("computeProperties", () => {
                 step.userId ? s.user_id === step.userId : true,
               ),
             },
-            "debug clickhouse values",
+            `debug clickhouse values:${step.description ? ` ${step.description}` : ""}`,
           );
           break;
         }
