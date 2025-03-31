@@ -188,7 +188,6 @@ export async function createPeriods({
       .insert(dbComputedPropertyPeriod)
       .values(newPeriods)
       .onConflictDoNothing();
-    // FIXME periods aren't deleting?
     logger().debug("Deleted periods");
     await tx
       .delete(dbComputedPropertyPeriod)
