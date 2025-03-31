@@ -34,6 +34,7 @@ import {
   PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
+  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -501,6 +502,7 @@ enum EventsStepType {
   Sleep = "Sleep",
   Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
+  UpdateJourney = "UpdateJourney",
 }
 
 interface StepContext {
@@ -565,6 +567,8 @@ interface AssertStep {
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
+type TestJourneyResource = Pick<SavedJourneyResource, "name" | "definition">;
+
 interface TestJourney {
   name: string;
   entrySegmentName: string;
@@ -576,6 +580,11 @@ interface UpdateComputedPropertyStep {
   segments?: TestSegment[];
 }
 
+interface UpdateJourneyStep {
+  type: EventsStepType.UpdateJourney;
+  journeys: TestJourneyResource[];
+}
+
 type TableStep =
   | SubmitEventsStep
   | SubmitEventsTimesStep
@@ -583,7 +592,8 @@ type TableStep =
   | AssertStep
   | SleepStep
   | DebugAssignmentsStep
-  | UpdateComputedPropertyStep;
+  | UpdateComputedPropertyStep
+  | UpdateJourneyStep;
 
 interface TableTest {
   description: string;
@@ -593,6 +603,41 @@ interface TableTest {
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
+}
+
+async function upsertJourneys({
+  workspaceId,
+  now,
+  journeys,
+}: {
+  workspaceId: string;
+  journeys: TestJourneyResource[];
+  now: number;
+}): Promise<SavedJourneyResource[]> {
+  await Promise.all(
+    journeys.map((j) =>
+      upsert({
+        table: schema.journey,
+        target: [schema.journey.workspaceId, schema.journey.name],
+        values: {
+          id: randomUUID(),
+          workspaceId,
+          name: j.name,
+          definition: j.definition,
+          createdAt: new Date(now),
+          updatedAt: new Date(now),
+        },
+        set: {
+          updatedAt: new Date(now),
+        },
+      }),
+    ),
+  );
+  const journeyModels = await db()
+    .select()
+    .from(schema.journey)
+    .where(eq(schema.journey.workspaceId, workspaceId));
+  return journeyModels.map((j) => unwrap(toJourneyResource(j)));
 }
 
 async function upsertComputedProperties({
@@ -7281,8 +7326,8 @@ describe("computeProperties", () => {
       now,
     });
 
-    const journeys = await Promise.all(
-      test.journeys?.map(({ name, entrySegmentName }) => {
+    let journeys = await Promise.all(
+      test.journeys?.map(async ({ name, entrySegmentName }) => {
         const segment = segments.find((s) => s.name === entrySegmentName);
         if (!segment) {
           throw new Error(
@@ -7300,7 +7345,7 @@ describe("computeProperties", () => {
             type: JourneyNodeType.ExitNode,
           },
         };
-        return insert({
+        const journeyModel = await insert({
           table: schema.journey,
           values: {
             id: randomUUID(),
@@ -7312,6 +7357,7 @@ describe("computeProperties", () => {
             createdAt: new Date(now),
           },
         }).then(unwrap);
+        return unwrap(toJourneyResource(journeyModel));
       }) ?? [],
     );
     const journeyResources: SavedHasStartedJourneyResource[] = journeys.map(
@@ -7699,6 +7745,14 @@ describe("computeProperties", () => {
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
+          break;
+        }
+        case EventsStepType.UpdateJourney: {
+          journeys = await upsertJourneys({
+            workspaceId,
+            now,
+            journeys: step.journeys,
+          });
           break;
         }
         default:
