@@ -581,7 +581,10 @@ interface UpdateComputedPropertyStep {
 
 interface UpdateJourneyStep {
   type: EventsStepType.UpdateJourney;
-  journeys: TestJourneyResource[];
+  journeys: (
+    | TestJourneyResource
+    | ((ctx: StepContext) => TestJourneyResource)
+  )[];
 }
 
 type TableStep =
@@ -608,30 +611,36 @@ async function upsertJourneys({
   workspaceId,
   now,
   journeys,
+  context,
 }: {
   workspaceId: string;
-  journeys: TestJourneyResource[];
+  journeys: (
+    | TestJourneyResource
+    | ((ctx: StepContext) => TestJourneyResource)
+  )[];
   now: number;
+  context: StepContext;
 }): Promise<SavedHasStartedJourneyResource[]> {
   await Promise.all(
-    journeys.map((j) =>
-      upsert({
+    journeys.map((j) => {
+      const resource = typeof j === "function" ? j(context) : j;
+      return upsert({
         table: schema.journey,
         target: [schema.journey.workspaceId, schema.journey.name],
         values: {
           id: randomUUID(),
           workspaceId,
-          name: j.name,
+          name: resource.name,
           status: "Running",
-          definition: j.definition,
+          definition: resource.definition,
           createdAt: new Date(now),
           updatedAt: new Date(now),
         },
         set: {
           updatedAt: new Date(now),
         },
-      }),
-    ),
+      });
+    }),
   );
   const journeyModels = await db()
     .select()
@@ -7295,6 +7304,112 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "retroactively signals a segment entry journey",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "isMax",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "firstName",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "Max",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                firstName: "Max",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is in the segment prior to the journey being created",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                isMax: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateJourney,
+          journeys: [
+            (ctx) => ({
+              name: "isMax",
+              definition: {
+                entryNode: {
+                  type: JourneyNodeType.SegmentEntryNode,
+                  segment: ctx.segments.find((s) => s.name === "isMax")!.id,
+                  child: JourneyNodeType.ExitNode,
+                },
+                nodes: [],
+                exitNode: {
+                  type: JourneyNodeType.ExitNode,
+                },
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                isMax: true,
+              },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "isMax",
+              times: 1,
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -7753,6 +7868,7 @@ describe("computeProperties", () => {
             workspaceId,
             now,
             journeys: step.journeys,
+            context: stepContext,
           });
           break;
         }
