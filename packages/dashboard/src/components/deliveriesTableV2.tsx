@@ -231,7 +231,16 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   const formatted = formatDistanceToNow(timestamp, { addSuffix: true });
   return (
     <Tooltip title={tooltipContent} placement="bottom-start" arrow>
-      <Typography>{formatted}</Typography>
+      <Box
+        sx={{
+          maxWidth: "200px",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        <Typography>{formatted}</Typography>
+      </Box>
     </Tooltip>
   );
 }
@@ -292,7 +301,7 @@ function LinkCell({
         spacing={1}
         alignItems="center"
         sx={{
-          maxWidth: "280px",
+          maxWidth: "200px",
         }}
       >
         <Box
@@ -324,6 +333,23 @@ function linkCellFactory(uriTemplate?: string) {
     column: ColumnDef<Delivery>;
   }) {
     return <LinkCell row={row} column={column} uriTemplate={uriTemplate} />;
+  };
+}
+
+function maxWidthCellFactory() {
+  return function maxWidthCell({ row }: { row: Row<Delivery> }) {
+    return (
+      <Box
+        sx={{
+          maxWidth: "200px",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {row.original.from}
+      </Box>
+    );
   };
 }
 
@@ -731,6 +757,7 @@ export function DeliveriesTableV2({
     () => linkCellFactory(originUriTemplate),
     [originUriTemplate],
   );
+  const maxWidthCell = useMemo(() => maxWidthCellFactory(), []);
 
   const userIdCellRenderer = useMemo(() => userIdCellFactory(), []);
 
@@ -747,6 +774,7 @@ export function DeliveriesTableV2({
         id: "from",
         header: "From",
         accessorKey: "from",
+        cell: maxWidthCell,
       },
       to: {
         id: "to",
