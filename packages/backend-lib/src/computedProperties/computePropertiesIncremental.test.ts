@@ -43,7 +43,6 @@ import {
   SegmentResource,
   SubscriptionChange,
   SubscriptionChangeEvent,
-  SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -613,7 +612,7 @@ async function upsertJourneys({
   workspaceId: string;
   journeys: TestJourneyResource[];
   now: number;
-}): Promise<SavedJourneyResource[]> {
+}): Promise<SavedHasStartedJourneyResource[]> {
   await Promise.all(
     journeys.map((j) =>
       upsert({
@@ -623,6 +622,7 @@ async function upsertJourneys({
           id: randomUUID(),
           workspaceId,
           name: j.name,
+          status: "Running",
           definition: j.definition,
           createdAt: new Date(now),
           updatedAt: new Date(now),
@@ -637,7 +637,13 @@ async function upsertJourneys({
     .select()
     .from(schema.journey)
     .where(eq(schema.journey.workspaceId, workspaceId));
-  return journeyModels.map((j) => unwrap(toJourneyResource(j)));
+  return journeyModels.map((j) => {
+    const resource = unwrap(toJourneyResource(j));
+    if (resource.status === "NotStarted") {
+      throw new Error("journey should have been started");
+    }
+    return resource;
+  });
 }
 
 async function upsertComputedProperties({
@@ -7326,7 +7332,7 @@ describe("computeProperties", () => {
       now,
     });
 
-    let journeys = await Promise.all(
+    let journeys: SavedHasStartedJourneyResource[] = await Promise.all(
       test.journeys?.map(async ({ name, entrySegmentName }) => {
         const segment = segments.find((s) => s.name === entrySegmentName);
         if (!segment) {
@@ -7357,17 +7363,12 @@ describe("computeProperties", () => {
             createdAt: new Date(now),
           },
         }).then(unwrap);
-        return unwrap(toJourneyResource(journeyModel));
-      }) ?? [],
-    );
-    const journeyResources: SavedHasStartedJourneyResource[] = journeys.map(
-      (j) => {
-        const resource = unwrap(toJourneyResource(j));
+        const resource = unwrap(toJourneyResource(journeyModel));
         if (resource.status === "NotStarted") {
           throw new Error("journey should have been started");
         }
         return resource;
-      },
+      }) ?? [],
     );
 
     for (const step of test.steps) {
@@ -7475,7 +7476,7 @@ describe("computeProperties", () => {
             workspaceId,
             segments,
             integrations: [],
-            journeys: journeyResources,
+            journeys,
             userProperties,
             now,
           });
@@ -7716,7 +7717,7 @@ describe("computeProperties", () => {
           await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
-            const journey = journeyResources.find(
+            const journey = journeys.find(
               (j) => j.name === assertedJourney.journeyName,
             );
             if (!journey) {
