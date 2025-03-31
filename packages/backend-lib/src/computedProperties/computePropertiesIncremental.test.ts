@@ -24,6 +24,7 @@ import {
   AppFileType,
   BlobStorageFile,
   ComputedPropertyAssignment,
+  ComputedPropertyPeriod,
   ComputedPropertyStep,
   EventType,
   InternalEventType,
@@ -134,6 +135,53 @@ async function getUserCounts(workspaceId: string) {
     stateUserCount,
     assignmentUserCount,
   };
+}
+
+async function readPeriods({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ComputedPropertyPeriod[]> {
+  const periods = await db()
+    .select()
+    .from(schema.computedPropertyPeriod)
+    .where(eq(schema.computedPropertyPeriod.workspaceId, workspaceId));
+  return periods;
+}
+
+async function readUpdatedComputedPropertyState({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<
+  {
+    workspace_id: string;
+    type: string;
+    computed_property_id: string;
+    state_id: string;
+    user_id: string;
+    computed_at: string;
+  }[]
+> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select *
+    from updated_computed_property_state
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const values = await response.json<{
+    workspace_id: string;
+    type: string;
+    computed_property_id: string;
+    state_id: string;
+    user_id: string;
+    computed_at: string;
+  }>();
+  return values.data;
 }
 
 async function readAssignments({
@@ -300,14 +348,15 @@ async function readResolvedSegmentStates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<ResolvedSegmentState[]> {
+}): Promise<(ResolvedSegmentState & { computed_at: string })[]> {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
       segment_id,
       state_id,
       user_id,
-      segment_state_value
+      segment_state_value,
+      computed_at
     from resolved_segment_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
@@ -316,7 +365,9 @@ async function readResolvedSegmentStates({
       query,
       query_params: qb.getQueries(),
     })
-  ).json()) satisfies { data: ResolvedSegmentState[] };
+  ).json()) satisfies {
+    data: (ResolvedSegmentState & { computed_at: string })[];
+  };
 
   return response.data;
 }
@@ -530,6 +581,14 @@ interface ComputePropertiesStep {
 interface DebugAssignmentsStep {
   type: EventsStepType.Debug;
   userId?: string;
+  description?: string;
+  queries?: ((
+    ctx: StepContext,
+    qb: ClickHouseQueryBuilder,
+  ) => {
+    query: string;
+    name: string;
+  })[];
 }
 
 interface SleepStep {
@@ -7366,10 +7425,20 @@ describe("computeProperties", () => {
           timeMs: 1000,
         },
         {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
           type: EventsStepType.UpdateJourney,
           journeys: [
             (ctx) => ({
-              name: "isMax",
+              name: "isMaxJourney",
               definition: {
                 entryNode: {
                   type: JourneyNodeType.SegmentEntryNode,
@@ -7386,24 +7455,57 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 1000,
+          timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
           type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Assert,
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                isMax: true,
-              },
-            },
-          ],
+          description:
+            "journey signals for segment which has undergone several compute property periods before journey was created",
           journeys: [
             {
-              journeyName: "isMax",
+              journeyName: "isMaxJourney",
+              times: 1,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.UpdateJourney,
+          journeys: [
+            (ctx) => ({
+              name: "otherIsMaxJourney",
+              definition: {
+                entryNode: {
+                  type: JourneyNodeType.SegmentEntryNode,
+                  segment: ctx.segments.find((s) => s.name === "isMax")!.id,
+                  child: JourneyNodeType.ExitNode,
+                },
+                nodes: [],
+                exitNode: {
+                  type: JourneyNodeType.ExitNode,
+                },
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 3 * 24 * 60 * 60 * 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          journeys: [
+            {
+              journeyName: "isMaxJourney",
+              times: 1,
+            },
+            {
+              journeyName: "otherIsMaxJourney",
               times: 1,
             },
           ],
@@ -7543,27 +7645,64 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.Debug: {
-          const [assignments, states, resolvedSegmentStates] =
-            await Promise.all([
-              readAssignments({ workspaceId }),
-              readDisaggregatedStates({ workspaceId }),
-              readResolvedSegmentStates({
-                workspaceId,
-              }),
-            ]);
+          const debugQueries = step.queries?.map(async (q) => {
+            const qb = new ClickHouseQueryBuilder();
+            const { query, name } = q(stepContext, qb);
+            const result = await clickhouseClient().query({
+              query,
+              query_params: qb.getQueries(),
+            });
+            const { data } = await result.json();
+            const values = {
+              name,
+              query,
+              data,
+            };
+            return values;
+          });
+          const [
+            assignments,
+            states,
+            resolvedSegmentStates,
+            periods,
+            updatedComputedPropertyState,
+            debugQueryData,
+          ] = await Promise.all([
+            readAssignments({ workspaceId }),
+            readDisaggregatedStates({ workspaceId }),
+            readResolvedSegmentStates({
+              workspaceId,
+            }),
+            readPeriods({ workspaceId }),
+            readUpdatedComputedPropertyState({ workspaceId }),
+            Promise.all(debugQueries ?? []),
+          ]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const logged: Record<string, any> = {
+            assignments: assignments.filter((a) =>
+              step.userId ? a.user_id === step.userId : true,
+            ),
+            states: states.filter((s) =>
+              step.userId ? s.user_id === step.userId : true,
+            ),
+            resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
+              step.userId ? s.user_id === step.userId : true,
+            ),
+            updatedComputedPropertyState: updatedComputedPropertyState.filter(
+              (s) => (step.userId ? s.user_id === step.userId : true),
+            ),
+            periods,
+            stepContext,
+          };
+          for (const { name, query, data } of debugQueryData) {
+            logged[name] = {
+              query,
+              data,
+            };
+          }
           logger().warn(
-            {
-              assignments: assignments.filter((a) =>
-                step.userId ? a.user_id === step.userId : true,
-              ),
-              states: states.filter((s) =>
-                step.userId ? s.user_id === step.userId : true,
-              ),
-              resolvedSegmentStates: resolvedSegmentStates.filter((s) =>
-                step.userId ? s.user_id === step.userId : true,
-              ),
-            },
-            "debug clickhouse values",
+            logged,
+            `debug clickhouse values:${step.description ? ` ${step.description}` : ""}`,
           );
           break;
         }

@@ -3130,6 +3130,13 @@ export async function computeAssignments({
           segment.definitionUpdatedAt >= (periodBound ?? 0) &&
           segment.definitionUpdatedAt > segment.createdAt
         ) {
+          logger().debug(
+            {
+              segment,
+              workspaceId,
+            },
+            "resetting segment assignments",
+          );
           const resetQuery = `
           insert into computed_property_assignments_v2
           select
@@ -3469,6 +3476,7 @@ interface BaseProcessAssignmentsQueryArgs {
   computedPropertyVersion: string;
   now: number;
   periodByComputedPropertyId: PeriodByComputedPropertyId;
+  processedForUpdatedAt: number;
 }
 
 type SegmentProcessAssignmentsQueryArgs = BaseProcessAssignmentsQueryArgs & {
@@ -3497,6 +3505,7 @@ function buildProcessAssignmentsQuery({
   computedPropertyVersion,
   limit,
   cursor,
+  processedForUpdatedAt,
   ...rest
 }: ProcessAssignmentsQueryArgs & {
   limit: number;
@@ -3529,8 +3538,10 @@ function buildProcessAssignmentsQuery({
     version: computedPropertyVersion,
   });
   const periodBound = period?.maxTo.getTime();
+  // ignore bound if the resource that the user property or segment is processed
+  // for was updated in the last period
   const lowerBoundClause =
-    periodBound && periodBound > 0
+    periodBound && periodBound > 0 && periodBound > processedForUpdatedAt
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
   const innerCursorClause = cursor
@@ -3818,6 +3829,21 @@ export async function processAssignments({
       return memo;
     }, new Map());
 
+    const journeyMap = journeys.reduce<
+      Map<string, SavedHasStartedJourneyResource>
+    >((memo, j) => {
+      memo.set(j.id, j);
+      return memo;
+    }, new Map());
+
+    // map from integration name to integration
+    const integrationMap = integrations.reduce<
+      Map<string, SavedIntegrationResource>
+    >((memo, i) => {
+      memo.set(i.name, i);
+      return memo;
+    }, new Map());
+
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
       workspaceId,
       step: ComputedPropertyStep.ProcessAssignments,
@@ -3828,9 +3854,28 @@ export async function processAssignments({
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
       const segment = segmentById.get(segmentId);
       if (!segment) {
+        logger().error(
+          {
+            workspaceId,
+            segmentId,
+          },
+          "segment not found to process",
+        );
         continue;
       }
       for (const journeyId of Array.from(journeySet)) {
+        const journey = journeyMap.get(journeyId);
+        if (!journey) {
+          logger().error(
+            {
+              workspaceId,
+              journeyId,
+            },
+            "journey not found to process",
+          );
+          continue;
+        }
+
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "segment",
@@ -3839,6 +3884,7 @@ export async function processAssignments({
           processedFor: journeyId,
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
+          processedForUpdatedAt: journey.updatedAt,
           now,
           journeys,
         });
@@ -3851,9 +3897,27 @@ export async function processAssignments({
     )) {
       const segment = segmentById.get(segmentId);
       if (!segment) {
+        logger().error(
+          {
+            workspaceId,
+            segmentId,
+          },
+          "segment not found to process",
+        );
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
+        const integration = integrationMap.get(integrationName);
+        if (!integration) {
+          logger().error(
+            {
+              workspaceId,
+              integrationName,
+            },
+            "integration not found to process",
+          );
+          continue;
+        }
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "segment",
@@ -3863,6 +3927,7 @@ export async function processAssignments({
           periodByComputedPropertyId,
           computedPropertyVersion: segment.definitionUpdatedAt.toString(),
           now,
+          processedForUpdatedAt: integration.updatedAt,
           journeys,
         });
         assignmentProcessors.push(processor);
@@ -3877,6 +3942,17 @@ export async function processAssignments({
         continue;
       }
       for (const integrationName of Array.from(integrationSet)) {
+        const integration = integrationMap.get(integrationName);
+        if (!integration) {
+          logger().error(
+            {
+              workspaceId,
+              integrationName,
+            },
+            "integration not found to process",
+          );
+          continue;
+        }
         const processor = new AssignmentProcessor({
           workspaceId,
           type: "user_property",
@@ -3886,6 +3962,7 @@ export async function processAssignments({
           periodByComputedPropertyId,
           computedPropertyVersion: userProperty.definitionUpdatedAt.toString(),
           now,
+          processedForUpdatedAt: integration.updatedAt,
           journeys,
         });
         assignmentProcessors.push(processor);

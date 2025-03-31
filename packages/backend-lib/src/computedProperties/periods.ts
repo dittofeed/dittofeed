@@ -183,10 +183,12 @@ export async function createPeriods({
   }
 
   await db().transaction(async (tx) => {
+    logger().debug({ newPeriods }, "Creating periods");
     await tx
       .insert(dbComputedPropertyPeriod)
       .values(newPeriods)
       .onConflictDoNothing();
+    logger().debug("Deleted periods");
     await tx
       .delete(dbComputedPropertyPeriod)
       .where(
