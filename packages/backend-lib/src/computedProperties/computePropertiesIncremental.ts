@@ -3534,12 +3534,13 @@ function buildProcessAssignmentsQuery({
       break;
   }
 
+  // period should be for the processed_for not just the computed property
   const period = periodByComputedPropertyId.get({
     computedPropertyId,
     version: computedPropertyVersion,
   });
   const periodBound = period?.maxTo.getTime();
-  // FIXME
+  // FIXME period should be empty when new journey
   const lowerBoundClause =
     periodBound && periodBound > 0
       ? `and assigned_at >= toDateTime64(${periodBound / 1000}, 3)`
@@ -3548,6 +3549,7 @@ function buildProcessAssignmentsQuery({
     ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
     : "";
 
+  // FIXME
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
    *
