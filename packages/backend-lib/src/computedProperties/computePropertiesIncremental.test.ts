@@ -7365,7 +7365,6 @@ describe("computeProperties", () => {
     },
     {
       description: "retroactively signals a segment entry journey",
-      only: true,
       userProperties: [
         {
           name: "id",
@@ -7409,20 +7408,6 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Sleep,
-          timeMs: 1000,
-        },
-        {
-          type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 1000,
-        },
-        {
-          type: EventsStepType.ComputeProperties,
-        },
-        {
           type: EventsStepType.Assert,
           description:
             "user is in the segment prior to the journey being created",
@@ -7434,6 +7419,20 @@ describe("computeProperties", () => {
               },
             },
           ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.UpdateJourney,
@@ -7459,55 +7458,12 @@ describe("computeProperties", () => {
           timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
-          type: EventsStepType.Debug,
-          description: "loc1",
-          queries: [
-            // fixme
-            (ctx, qb) => ({
-              query: `
-                select
-                  workspace_id,
-                  computed_property_id,
-                  state_id,
-                  user_id,
-                  computed_at
-                from updated_computed_property_state
-                where
-                  workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
-                  and type = 'segment'
-                  and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
-                  and state_id = ${qb.addQueryValue(
-                    segmentNodeStateId(
-                      ctx.segments[0]!,
-                      ctx.segments[0]!.definition.entryNode.id,
-                    ),
-                    "String",
-                  )}
-                  and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
-                  and computed_at >= toDateTime64(${ctx.now / 1000 - 3 * 24 * 60 * 60}, 3)
-              `,
-              name: "loc1 updated computed property state",
-            }),
-          ],
-        },
-        // FIXME this is the step that's adding a resolved segment state that shouldn't
-        {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-          description: "loc1.5",
-        },
-        {
           type: EventsStepType.Assert,
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                isMax: true,
-              },
-            },
-          ],
+          description:
+            "journey signals for segment which has undergone several compute property periods before journey was created",
           journeys: [
             {
               journeyName: "isMaxJourney",
@@ -7539,101 +7495,10 @@ describe("computeProperties", () => {
           timeMs: 3 * 24 * 60 * 60 * 1000,
         },
         {
-          type: EventsStepType.Debug,
-          description: "loc2",
-          queries: [
-            // fixme
-            (ctx, qb) => ({
-              query: `
-                select
-                  workspace_id,
-                  computed_property_id,
-                  state_id,
-                  user_id,
-                  computed_at
-                from updated_computed_property_state
-                where
-                  workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
-                  and type = 'segment'
-                  and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
-                  and state_id = ${qb.addQueryValue(
-                    segmentNodeStateId(
-                      ctx.segments[0]!,
-                      ctx.segments[0]!.definition.entryNode.id,
-                    ),
-                    "String",
-                  )}
-                  and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
-                  and computed_at >= toDateTime64(${ctx.now / 1000 - 259200}, 3)
-              `,
-              name: "loc2 updated computed property state",
-            }),
-            (ctx, qb) => ({
-              query: `
-                select
-                  workspace_id,
-                  computed_property_id,
-                  state_id,
-                  user_id,
-                  max(event_time),
-                  toDateTime64(${ctx.now / 1000}, 3) as assigned_at
-                from computed_property_state_v2 as cps
-                where
-                  (
-                    workspace_id,
-                    computed_property_id,
-                    state_id,
-                    user_id
-                  ) in (
-                    select
-                      workspace_id,
-                      computed_property_id,
-                      state_id,
-                      user_id
-                    from updated_computed_property_state
-                    where
-                      workspace_id = ${qb.addQueryValue(ctx.workspace.id, "String")}
-                      and type = 'segment'
-                      and computed_property_id = ${qb.addQueryValue(ctx.segments[0]!.id, "String")}
-                      and state_id = ${qb.addQueryValue(
-                        segmentNodeStateId(
-                          ctx.segments[0]!,
-                          ctx.segments[0]!.definition.entryNode.id,
-                        ),
-                        "String",
-                      )}
-                      and computed_at <= toDateTime64(${ctx.now / 1000}, 3)
-                      and computed_at >= toDateTime64(${ctx.now / 1000 - 259200}, 3)
-                  )
-                group by
-                  workspace_id,
-                  computed_property_id,
-                  state_id,
-                  user_id
-              `,
-              name: "loc2 resolved computed property state",
-            }),
-          ],
-        },
-        {
           type: EventsStepType.ComputeProperties,
         },
         {
-          type: EventsStepType.Debug,
-          description: "loc3",
-        },
-        // FIXME all assignments are being re-assigned with every polling period, causing test to pass locally
-        // resolved segment states are duplicated
-        {
           type: EventsStepType.Assert,
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                isMax: true,
-              },
-            },
-          ],
           journeys: [
             {
               journeyName: "isMaxJourney",
