@@ -34,6 +34,7 @@ import {
   PerformedUserPropertyDefinition,
   RelationalOperators,
   SavedHasStartedJourneyResource,
+  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -42,7 +43,6 @@ import {
   SegmentResource,
   SubscriptionChange,
   SubscriptionChangeEvent,
-  SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
@@ -501,6 +501,7 @@ enum EventsStepType {
   Sleep = "Sleep",
   Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
+  UpdateJourney = "UpdateJourney",
 }
 
 interface StepContext {
@@ -565,6 +566,8 @@ interface AssertStep {
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
+type TestJourneyResource = Pick<SavedJourneyResource, "name" | "definition">;
+
 interface TestJourney {
   name: string;
   entrySegmentName: string;
@@ -576,6 +579,14 @@ interface UpdateComputedPropertyStep {
   segments?: TestSegment[];
 }
 
+interface UpdateJourneyStep {
+  type: EventsStepType.UpdateJourney;
+  journeys: (
+    | TestJourneyResource
+    | ((ctx: StepContext) => TestJourneyResource)
+  )[];
+}
+
 type TableStep =
   | SubmitEventsStep
   | SubmitEventsTimesStep
@@ -583,7 +594,8 @@ type TableStep =
   | AssertStep
   | SleepStep
   | DebugAssignmentsStep
-  | UpdateComputedPropertyStep;
+  | UpdateComputedPropertyStep
+  | UpdateJourneyStep;
 
 interface TableTest {
   description: string;
@@ -593,6 +605,54 @@ interface TableTest {
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
+}
+
+async function upsertJourneys({
+  workspaceId,
+  now,
+  journeys,
+  context,
+}: {
+  workspaceId: string;
+  journeys: (
+    | TestJourneyResource
+    | ((ctx: StepContext) => TestJourneyResource)
+  )[];
+  now: number;
+  context: StepContext;
+}): Promise<SavedHasStartedJourneyResource[]> {
+  await Promise.all(
+    journeys.map((j) => {
+      const resource = typeof j === "function" ? j(context) : j;
+      return upsert({
+        table: schema.journey,
+        target: [schema.journey.workspaceId, schema.journey.name],
+        values: {
+          id: randomUUID(),
+          workspaceId,
+          name: resource.name,
+          status: "Running",
+          definition: resource.definition,
+          createdAt: new Date(now),
+          updatedAt: new Date(now),
+        },
+        set: {
+          updatedAt: new Date(now),
+        },
+      });
+    }),
+  );
+  const journeyModels = await db()
+    .select()
+    .from(schema.journey)
+    .where(eq(schema.journey.workspaceId, workspaceId));
+  return journeyModels.map((j) => {
+    const resource = unwrap(toJourneyResource(j));
+    if (resource.status === "NotStarted") {
+      throw new Error("journey should have been started");
+    }
+    return resource;
+  });
 }
 
 async function upsertComputedProperties({
@@ -7244,6 +7304,112 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "retroactively signals a segment entry journey",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "isMax",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "firstName",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "Max",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                firstName: "Max",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is in the segment prior to the journey being created",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                isMax: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateJourney,
+          journeys: [
+            (ctx) => ({
+              name: "isMax",
+              definition: {
+                entryNode: {
+                  type: JourneyNodeType.SegmentEntryNode,
+                  segment: ctx.segments.find((s) => s.name === "isMax")!.id,
+                  child: JourneyNodeType.ExitNode,
+                },
+                nodes: [],
+                exitNode: {
+                  type: JourneyNodeType.ExitNode,
+                },
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                isMax: true,
+              },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "isMax",
+              times: 1,
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -7281,8 +7447,8 @@ describe("computeProperties", () => {
       now,
     });
 
-    const journeys = await Promise.all(
-      test.journeys?.map(({ name, entrySegmentName }) => {
+    let journeys: SavedHasStartedJourneyResource[] = await Promise.all(
+      test.journeys?.map(async ({ name, entrySegmentName }) => {
         const segment = segments.find((s) => s.name === entrySegmentName);
         if (!segment) {
           throw new Error(
@@ -7300,7 +7466,7 @@ describe("computeProperties", () => {
             type: JourneyNodeType.ExitNode,
           },
         };
-        return insert({
+        const journeyModel = await insert({
           table: schema.journey,
           values: {
             id: randomUUID(),
@@ -7312,16 +7478,12 @@ describe("computeProperties", () => {
             createdAt: new Date(now),
           },
         }).then(unwrap);
-      }) ?? [],
-    );
-    const journeyResources: SavedHasStartedJourneyResource[] = journeys.map(
-      (j) => {
-        const resource = unwrap(toJourneyResource(j));
+        const resource = unwrap(toJourneyResource(journeyModel));
         if (resource.status === "NotStarted") {
           throw new Error("journey should have been started");
         }
         return resource;
-      },
+      }) ?? [],
     );
 
     for (const step of test.steps) {
@@ -7429,7 +7591,7 @@ describe("computeProperties", () => {
             workspaceId,
             segments,
             integrations: [],
-            journeys: journeyResources,
+            journeys,
             userProperties,
             now,
           });
@@ -7670,7 +7832,7 @@ describe("computeProperties", () => {
           await Promise.all(usersAssertions);
 
           for (const assertedJourney of step.journeys ?? []) {
-            const journey = journeyResources.find(
+            const journey = journeys.find(
               (j) => j.name === assertedJourney.journeyName,
             );
             if (!journey) {
@@ -7699,6 +7861,15 @@ describe("computeProperties", () => {
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
+          break;
+        }
+        case EventsStepType.UpdateJourney: {
+          journeys = await upsertJourneys({
+            workspaceId,
+            now,
+            journeys: step.journeys,
+            context: stepContext,
+          });
           break;
         }
         default:
