@@ -106,39 +106,35 @@ export async function computePropertiesQueueWorkflow(
   const priorityQueue: WorkspaceQueueItem[] = [];
   const membership = new Set<string>();
 
-  // Counter for tracking insertion order
-  let insertionCounter = 0;
-
   // Handle backward compatibility with queueState (string array)
   if (params.queueState && params.queueState.length > 0) {
+    const now = Date.now();
     for (const workspaceId of params.queueState) {
       if (workspaceId && !membership.has(workspaceId)) {
         const item: WorkspaceQueueItem = {
           id: workspaceId,
-          insertedAt: insertionCounter, // Use counter for insertion order
+          insertedAt: now, // Use current timestamp
         };
         priorityQueue.push(item);
         membership.add(workspaceId);
-        insertionCounter += 1;
       }
     }
   }
 
   // Handle queueStateV2 (WorkspaceQueueItem array)
   if (params.queueStateV2 && params.queueStateV2.length > 0) {
+    const now = Date.now();
     for (const item of params.queueStateV2) {
-      if (item && item.id && !membership.has(item.id)) {
-        // Preserve the insertedAt if it exists, otherwise assign a new one
+      if (!membership.has(item.id)) {
+        // Preserve the insertedAt if it exists, otherwise assign current timestamp
         const queueItem: WorkspaceQueueItem = {
           id: item.id,
           priority: item.priority,
           maxPeriod: item.maxPeriod,
-          insertedAt:
-            item.insertedAt !== undefined ? item.insertedAt : insertionCounter,
+          insertedAt: item.insertedAt !== undefined ? item.insertedAt : now,
         };
         priorityQueue.push(queueItem);
         membership.add(item.id);
-        insertionCounter += 1;
       }
     }
   }
@@ -182,15 +178,15 @@ export async function computePropertiesQueueWorkflow(
       workspaceIdsCount: workspaceIds.length,
     });
 
+    const now = Date.now();
     for (const id of workspaceIds) {
       if (id && priorityQueue.length < capacity && !membership.has(id)) {
         const item: WorkspaceQueueItem = {
           id,
-          insertedAt: insertionCounter, // Use counter for insertion order
+          insertedAt: now, // Use timestamp
         };
         priorityQueue.push(item);
         membership.add(id);
-        insertionCounter += 1;
       }
     }
   });
@@ -203,17 +199,17 @@ export async function computePropertiesQueueWorkflow(
       workspaceIdsCount: signal.workspaces.length,
     });
 
+    const now = Date.now();
     for (const item of signal.workspaces) {
       if (priorityQueue.length < capacity && !membership.has(item.id)) {
         const queueItem: WorkspaceQueueItem = {
           id: item.id,
           priority: item.priority,
           maxPeriod: item.maxPeriod,
-          insertedAt: insertionCounter, // Use counter for insertion order
+          insertedAt: now, // Use timestamp
         };
         priorityQueue.push(queueItem);
         membership.add(item.id);
-        insertionCounter += 1;
       }
     }
   });
