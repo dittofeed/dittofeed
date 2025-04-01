@@ -198,6 +198,8 @@ describe("broadcastWorkflowV2", () => {
         // sleep for long period
         // assert no more messages sent
         // retrieve pending messages and expect them to contain the subset of messages that were not sent
+        // resume broadcast
+        // assert all messages sent
       });
     });
   });
