@@ -169,7 +169,17 @@ export async function markBroadcastStatus({
   broadcastId: string;
   status: BroadcastV2Status;
 }): Promise<void> {
-  throw new Error("Not implemented");
+  await db()
+    .update(schema.broadcast)
+    .set({
+      statusV2: status,
+    })
+    .where(
+      and(
+        eq(schema.broadcast.id, broadcastId),
+        eq(schema.broadcast.workspaceId, workspaceId),
+      ),
+    );
 }
 
 export async function getBroadcastStatus({
