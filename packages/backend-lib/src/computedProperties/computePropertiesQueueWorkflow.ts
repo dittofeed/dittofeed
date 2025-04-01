@@ -59,7 +59,7 @@ export interface ComputePropertiesQueueWorkflowParams {
 
 /**
  * Comparator function for WorkspaceQueueItems that implements priority ordering:
- * 1. Higher priority (lower number) comes first
+ * 1. Higher priority (higher number) comes first
  * 2. Longer maxPeriod comes first
  * 3. Earlier insertion order comes first
  */
@@ -71,7 +71,7 @@ function compareWorkspaceItems(
   if (a.priority !== undefined && b.priority === undefined) return -1;
   if (a.priority === undefined && b.priority !== undefined) return 1;
   if (a.priority !== undefined && b.priority !== undefined) {
-    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (a.priority !== b.priority) return b.priority - a.priority; // Reverse the order so higher numbers come first
   }
 
   // Next, compare by maxPeriod (undefined is lowest priority)
@@ -115,8 +115,6 @@ export async function computePropertiesQueueWorkflow(
       if (workspaceId && !membership.has(workspaceId)) {
         const item: WorkspaceQueueItem = {
           id: workspaceId,
-          priority: Number.MAX_SAFE_INTEGER, // Lowest priority
-          maxPeriod: 0,
           insertedAt: insertionCounter, // Use counter for insertion order
         };
         priorityQueue.push(item);
@@ -188,8 +186,6 @@ export async function computePropertiesQueueWorkflow(
       if (id && priorityQueue.length < capacity && !membership.has(id)) {
         const item: WorkspaceQueueItem = {
           id,
-          priority: Number.MAX_SAFE_INTEGER, // Lowest priority
-          maxPeriod: 0,
           insertedAt: insertionCounter, // Use counter for insertion order
         };
         priorityQueue.push(item);
