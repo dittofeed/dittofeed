@@ -42,6 +42,13 @@ export async function broadcastWorkflowV2({
   broadcastId,
 }: BroadcastWorkflowV2Params): Promise<void> {
   const broadcast = await getBroadcast({ workspaceId, broadcastId });
+  if (!broadcast) {
+    logger.error("broadcast not found", {
+      broadcastId,
+      workspaceId,
+    });
+    return;
+  }
 
   if (broadcast.status !== "Draft") {
     logger.info("skipping non-draft broadcast", {
