@@ -188,6 +188,25 @@ export async function getBroadcastStatus({
 }: {
   workspaceId: string;
   broadcastId: string;
-}): Promise<{ status: BroadcastV2Status }> {
-  throw new Error("Not implemented");
+}): Promise<BroadcastV2Status | null> {
+  const model = await db().query.broadcast.findFirst({
+    where: and(
+      eq(schema.broadcast.id, broadcastId),
+      eq(schema.broadcast.workspaceId, workspaceId),
+    ),
+  });
+  if (!model) {
+    return null;
+  }
+  if (model.statusV2 === null) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast status is null",
+    );
+    return null;
+  }
+  return model.statusV2;
 }

@@ -84,7 +84,7 @@ export async function broadcastWorkflowV2({
   }) {
     let cursor: string | null = null;
     do {
-      const { status } = await getBroadcastStatus({
+      const status = await getBroadcastStatus({
         workspaceId,
         broadcastId,
       });
