@@ -378,7 +378,6 @@ export const broadcast = pgTable(
   {
     id: uuid().primaryKey().defaultRandom().notNull(),
     workspaceId: uuid().notNull(),
-    segmentId: uuid(),
     name: text().notNull(),
     triggeredAt: timestamp({ precision: 3, mode: "date" }),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
@@ -388,6 +387,8 @@ export const broadcast = pgTable(
       .notNull(),
     journeyId: uuid(),
     messageTemplateId: uuid(),
+    segmentId: uuid(),
+    subscriptionGroupId: uuid(),
     status: dbBroadcastStatus().default("NotStarted"),
     statusV2: dbBroadcastStatusV2().default("Draft"),
     scheduledAt: timestamp({

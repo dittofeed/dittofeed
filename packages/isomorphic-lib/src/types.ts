@@ -4926,6 +4926,7 @@ export const BroadcastResourceV2 = Type.Object({
   name: Type.String(),
   segmentId: Type.Optional(Type.String()),
   messageTemplateId: Type.Optional(Type.String()),
+  subscriptionGroupId: Type.Optional(Type.String()),
   config: BroadcastV2Config,
   status: BroadcastV2Status,
   scheduledAt: Type.Optional(Type.String()),

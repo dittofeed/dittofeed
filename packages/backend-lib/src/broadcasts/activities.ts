@@ -1,9 +1,17 @@
 import { zonedTimeToUtc } from "date-fns-tz";
+import { and, eq } from "drizzle-orm";
 
+import { db } from "../db";
+import * as schema from "../db/schema";
 import logger from "../logger";
-import { BroadcastResourceV2, BroadcastV2Status } from "../types";
 import { Sender, sendMessage } from "../messaging";
 import { withSpan } from "../openTelemetry";
+import {
+  BroadcastResourceV2,
+  BroadcastV2Config,
+  BroadcastV2Status,
+} from "../types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 interface SendMessagesResponse {
   messagesSent: number;
@@ -62,8 +70,50 @@ export async function getBroadcast({
 }: {
   workspaceId: string;
   broadcastId: string;
-}): Promise<BroadcastResourceV2> {
-  throw new Error("Not implemented");
+}): Promise<BroadcastResourceV2 | null> {
+  const model = await db().query.broadcast.findFirst({
+    where: and(
+      eq(schema.broadcast.id, broadcastId),
+      eq(schema.broadcast.workspaceId, workspaceId),
+    ),
+  });
+  if (!model) {
+    return null;
+  }
+  const configResult = schemaValidateWithErr(model.config, BroadcastV2Config);
+  if (configResult.isErr()) {
+    logger().error(
+      {
+        err: configResult.error,
+        broadcastId,
+        workspaceId,
+      },
+      "Error validating broadcast config",
+    );
+    return null;
+  }
+  if (model.statusV2 === null) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast status is null",
+    );
+    return null;
+  }
+  return {
+    workspaceId: model.workspaceId,
+    config: configResult.value,
+    id: model.id,
+    name: model.name,
+    status: model.statusV2,
+    messageTemplateId: model.messageTemplateId ?? undefined,
+    segmentId: model.segmentId ?? undefined,
+    subscriptionGroupId: model.subscriptionGroupId ?? undefined,
+    createdAt: model.createdAt.getTime(),
+    updatedAt: model.updatedAt.getTime(),
+  };
 }
 
 /**
