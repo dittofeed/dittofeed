@@ -23,6 +23,19 @@ export const addWorkspacesSignal = defineSignal<[string[]]>(
   "addWorkspacesSignal",
 );
 
+interface WorkspaceQueueSignal {
+  workspaces: {
+    id: string;
+    priority: number;
+    maxPeriod: number;
+  }[];
+}
+
+// TODO handle this signal
+export const addWorkspacesSignalV2 = defineSignal<[WorkspaceQueueSignal]>(
+  "addWorkspacesSignalV2",
+);
+
 export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 
 /**
