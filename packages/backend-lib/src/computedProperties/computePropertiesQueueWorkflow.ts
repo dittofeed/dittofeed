@@ -13,6 +13,7 @@ import {
 
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
+import { WorkspaceQueueItem } from "../types";
 
 export const COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID =
   "compute-properties-queue-workflow";
@@ -22,13 +23,6 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const addWorkspacesSignal = defineSignal<[string[]]>(
   "addWorkspacesSignal",
 );
-
-export interface WorkspaceQueueItem {
-  id: string;
-  priority?: number;
-  maxPeriod?: number;
-  insertedAt?: number; // Number representing insertion order
-}
 
 export interface WorkspaceQueueSignal {
   workspaces: WorkspaceQueueItem[];
