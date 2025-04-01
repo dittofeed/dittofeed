@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { Result } from "neverthrow";
 
 import { db, insert } from "../../../db";
 import * as schema from "../../../db/schema";
