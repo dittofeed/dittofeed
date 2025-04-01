@@ -22,7 +22,7 @@ const {
   startToCloseTimeout: "5 minutes",
 });
 
-export function generateBroadcastWorkflowId({
+export function generateBroadcastWorkflowV2Id({
   workspaceId,
   broadcastId,
 }: {

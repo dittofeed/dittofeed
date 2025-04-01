@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
@@ -11,8 +12,10 @@ import * as schema from "../db/schema";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   BroadcastResourceV2,
-  EmailProviderType,
+  BroadcastV2Config,
   ChannelType,
+  EmailProviderType,
+  EmailTemplateResource,
   IdUserPropertyDefinition,
   InternalEventType,
   SubscriptionGroupType,
@@ -20,17 +23,15 @@ import {
   UserProperty,
   UserPropertyDefinitionType,
   Workspace,
-  EmailTemplateResource,
 } from "../types";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { createWorkspace } from "../workspaces";
+import { sendMessagesFactory } from "./activities";
 import {
   broadcastWorkflowV2,
   BroadcastWorkflowV2Params,
-  generateBroadcastWorkflowId,
+  generateBroadcastWorkflowV2Id,
 } from "./broadcastWorkflowV2";
-import { sendMessagesFactory } from "./activities";
-import { ok } from "neverthrow";
 
 jest.setTimeout(15000);
 
@@ -141,6 +142,9 @@ describe("broadcastWorkflowV2", () => {
           statusV2: "Draft",
           version: "V2",
           messageTemplateId: messageTemplate.id,
+          config: {
+            type: "V2",
+          } satisfies BroadcastV2Config,
         },
       }).then(unwrap);
 
@@ -164,7 +168,7 @@ describe("broadcastWorkflowV2", () => {
     it.only("should send messages to all users immediately", async () => {
       await worker.runUntil(async () => {
         await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowId({
+          workflowId: generateBroadcastWorkflowV2Id({
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
           }),
