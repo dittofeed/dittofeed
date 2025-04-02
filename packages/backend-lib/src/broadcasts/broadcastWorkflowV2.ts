@@ -12,7 +12,6 @@ import type * as activities from "../temporal/activities";
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 const {
-  sendMessages,
   computeTimezones,
   getBroadcast,
   getZonedTimestamp,
@@ -20,6 +19,14 @@ const {
   getBroadcastStatus,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
+});
+
+const { sendMessages } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "5 minutes",
+  retry: {
+    initialInterval: "1 second",
+    maximumAttempts: 5,
+  },
 });
 
 export function generateBroadcastWorkflowV2Id({

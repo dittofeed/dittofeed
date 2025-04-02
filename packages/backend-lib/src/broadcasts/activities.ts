@@ -1,5 +1,6 @@
 import { zonedTimeToUtc } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -11,39 +12,8 @@ import {
   BroadcastV2Config,
   BroadcastV2Status,
 } from "../types";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-
-interface SendMessagesResponse {
-  messagesSent: number;
-  nextCursor?: string;
-}
-
-interface SendMessagesParams {
-  workspaceId: string;
-  broadcastId: string;
-  timezones?: string[];
-  cursor?: string;
-  limit: number;
-}
-
-export function sendMessagesFactory(sender: Sender) {
-  return async function sendMessagesWithSender(
-    params: SendMessagesParams,
-  ): Promise<SendMessagesResponse> {
-    return withSpan({ name: "send-messages" }, async (span) => {
-      span.setAttributes({
-        workspaceId: params.workspaceId,
-        broadcastId: params.broadcastId,
-        timezones: params.timezones,
-        cursor: params.cursor,
-        limit: params.limit,
-      });
-      throw new Error("Not implemented");
-    });
-  };
-}
-
-export const sendMessages = sendMessagesFactory(sendMessage);
+import { getUsers } from "../users";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 /**
  * Computes the timezones for all users in a broadcast using timezone, lat/lon,
@@ -115,6 +85,74 @@ export async function getBroadcast({
     updatedAt: model.updatedAt.getTime(),
   };
 }
+
+interface SendMessagesResponse {
+  messagesSent: number;
+  nextCursor?: string;
+}
+
+interface SendMessagesParams {
+  workspaceId: string;
+  broadcastId: string;
+  timezones?: string[];
+  cursor?: string;
+  limit: number;
+}
+
+export function sendMessagesFactory(sender: Sender) {
+  return async function sendMessagesWithSender(
+    params: SendMessagesParams,
+  ): Promise<SendMessagesResponse> {
+    return withSpan({ name: "send-messages" }, async (span) => {
+      // FIXME in order to safely pause/unpause, will need to track which messages were sent within a batch
+      span.setAttributes({
+        workspaceId: params.workspaceId,
+        broadcastId: params.broadcastId,
+        timezones: params.timezones,
+        cursor: params.cursor,
+        limit: params.limit,
+      });
+      const broadcast = await getBroadcast({
+        workspaceId: params.workspaceId,
+        broadcastId: params.broadcastId,
+      });
+      if (!broadcast) {
+        throw new Error("Broadcast not found");
+      }
+      span.setAttributes({
+        segmentId: broadcast.segmentId,
+        subscriptionGroupId: broadcast.subscriptionGroupId,
+        templateId: broadcast.messageTemplateId,
+      });
+      // TODO implement timezones
+      const { users, nextCursor } = await getUsers({
+        workspaceId: params.workspaceId,
+        segmentFilter: broadcast.segmentId ? [broadcast.segmentId] : undefined,
+        subscriptionGroupFilter: broadcast.subscriptionGroupId
+          ? [broadcast.subscriptionGroupId]
+          : undefined,
+        cursor: params.cursor,
+        limit: params.limit,
+      }).then(unwrap);
+
+      const promises = users.map(async (user) => {
+        await withSpan({ name: "send-messages-user" }, async (usersSpan) => {
+          usersSpan.setAttributes({
+            userId: user.id,
+            workspaceId: params.workspaceId,
+            broadcastId: params.broadcastId,
+            templateId: broadcast.messageTemplateId,
+            segmentId: broadcast.segmentId,
+            subscriptionGroupId: broadcast.subscriptionGroupId,
+          });
+          throw new Error("Not implemented");
+        });
+      });
+    });
+  };
+}
+
+export const sendMessages = sendMessagesFactory(sendMessage);
 
 /**
  * Converts a naive datetime string (YYYY-MM-DD HH:MM:SS) to a Unix timestamp
