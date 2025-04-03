@@ -238,7 +238,7 @@ export async function bootstrapPostgres({
         type: UserPropertyDefinitionType.Trait,
         path: "accountManager",
       },
-      exampleValue: '"Jane Johnson"',
+      exampleValue: '"jane.johnson@example.com"',
     },
     {
       name: "latLon",

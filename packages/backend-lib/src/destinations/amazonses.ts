@@ -15,6 +15,8 @@ import {
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result, ResultAsync } from "neverthrow";
+import MailComposer from "nodemailer/lib/mail-composer";
+import Mail from "nodemailer/lib/mailer";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
 import { Overwrite } from "utility-types";
@@ -39,19 +41,14 @@ import {
   InternalEventType,
 } from "../types";
 
-// README the typescript types on this are wrong, body is not of type string,
-// it's a parsed JSON object
-function guardResponseError(e: unknown): SESv2ServiceException {
-  if (e instanceof SESv2ServiceException) {
-    return e;
-  }
-  throw e;
-}
-
 export type SesMailData = Overwrite<
   AmazonSesMailFields,
-  { tags?: Record<string, string> }
->;
+  {
+    tags?: Record<string, string>;
+  }
+> & {
+  attachments?: Mail.Attachment[];
+};
 
 export async function sendMail({
   config,
@@ -59,7 +56,7 @@ export async function sendMail({
 }: {
   config: AmazonSesConfig;
   mailData: SesMailData;
-}): Promise<Result<SendEmailCommandOutput, SESv2ServiceException>> {
+}): Promise<Result<SendEmailCommandOutput, SESv2ServiceException | unknown>> {
   const { accessKeyId, secretAccessKey, region } = config;
   const client = new SESv2Client({
     region,
@@ -83,41 +80,84 @@ export async function sendMail({
     "sending ses tags",
   );
 
-  // TODO: Add cc and bcc and attachments
+  // Process attachments if they exist
+  const attachments = Array.isArray(mailData.attachments)
+    ? mailData.attachments
+    : [];
+
+  // Create mail options for MailComposer
+  const mailOptions: Mail.Options = {
+    from: mailData.from,
+    to: mailData.to,
+    subject: mailData.subject,
+    cc: mailData.cc,
+    bcc: mailData.bcc,
+    html: mailData.html,
+    attachments,
+    headers: mailData.headers,
+    replyTo: mailData.replyTo,
+  };
+
+  if (mailData.replyTo) {
+    mailOptions.replyTo = mailData.replyTo;
+  }
+
+  // Use MailComposer to create raw email content
+  const mailComposer = new MailComposer(mailOptions);
+
+  let rawEmailContent: Buffer;
+  try {
+    // Build the message
+    rawEmailContent = await mailComposer.compile().build();
+  } catch (error) {
+    logger().info(
+      {
+        err: error,
+        templateId: mailData.tags?.templateId,
+        workspaceId: mailData.tags?.workspaceId,
+      },
+      "Error sending ses email",
+    );
+    return err(error);
+  }
+
+  // Always use the Raw content interface
   const input: SendEmailRequest = {
-    FromEmailAddress: mailData.from,
-    Destination: {
-      ToAddresses: [mailData.to],
-    },
     Content: {
-      Simple: {
-        Subject: {
-          Data: mailData.subject,
-          Charset: "UTF-8",
-        },
-        Body: {
-          Html: {
-            Data: mailData.html,
-            Charset: "UTF-8",
-          },
-        },
-        Headers: mailData.headers
-          ? Object.entries(mailData.headers).map(([Name, Value]) => ({
-              Name,
-              Value,
-            }))
-          : undefined,
+      Raw: {
+        Data: Uint8Array.from(rawEmailContent),
       },
     },
     EmailTags: tags,
-    ReplyToAddresses: mailData.replyTo ? [mailData.replyTo] : undefined,
   };
 
   const command = new SendEmailCommand(input);
 
-  return ResultAsync.fromPromise(client.send(command), guardResponseError).map(
-    (resultArray) => resultArray,
-  );
+  try {
+    const result = await client.send(command);
+    return ok(result);
+  } catch (error) {
+    if (error instanceof SESv2ServiceException && !error.$retryable) {
+      logger().info(
+        {
+          err: error,
+          workspaceId: mailData.tags?.workspaceId,
+          templateId: mailData.tags?.templateId,
+        },
+        "Non-retryable error sending ses email",
+      );
+      return err(error);
+    }
+    logger().error(
+      {
+        err: error,
+        workspaceId: mailData.tags?.workspaceId,
+        templateId: mailData.tags?.templateId,
+      },
+      "Retryable error sending ses email",
+    );
+    throw error;
+  }
 }
 
 export async function submitAmazonSesEvents(

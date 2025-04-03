@@ -1,3 +1,4 @@
+import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
@@ -1077,16 +1078,23 @@ export async function sendEmail({
           },
         });
       }
+      const sesAttachments = attachments?.map((attachment) => ({
+        filename: attachment.name,
+        content: attachment.data,
+        contentType: attachment.mimeType,
+      }));
+
+      const fromWithName = emailName ? `${emailName} <${from}>` : from;
       const mailData: SesMailData = {
         to,
-        from,
-        name: emailName,
+        from: fromWithName,
         subject,
         html: body,
         replyTo,
         cc,
         bcc,
         headers,
+        attachments: sesAttachments,
         tags: {
           workspaceId,
           templateId,
@@ -1118,13 +1126,29 @@ export async function sendEmail({
       });
 
       if (result.isErr()) {
+        let message: string | undefined;
+        if (result.error instanceof SESv2ServiceException) {
+          message = result.error.message;
+        } else if (result.error instanceof Error) {
+          message = result.error.message;
+        } else {
+          logger().error(
+            {
+              err: result.error,
+              workspaceId,
+              messageId: messageTags?.messageId,
+            },
+            "Unknown error sending email",
+          );
+          message = "Unknown error";
+        }
         return err({
           type: InternalEventType.MessageFailure,
           variant: {
             type: ChannelType.Email,
             provider: {
               type: EmailProviderType.AmazonSes,
-              message: result.error.message,
+              message,
             },
           },
         });
