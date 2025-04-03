@@ -130,7 +130,10 @@ async function emitPublicSignals({ workspaces }: { workspaces: Workspace[] }) {
     messageCounts.push([row.workspace_id, count]);
   }
 
-  const firstWorkspace = workspaces[0]?.id;
+  // Sort workspaces by createdAt and take the first ID
+  const firstWorkspace = workspaces
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    .at(0)?.id;
 
   for (const [workspaceId, count] of userCounts) {
     publicLogger().info(

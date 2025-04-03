@@ -1,4 +1,4 @@
-import { and, eq, inArray, not, or } from "drizzle-orm";
+import { and, asc, eq, inArray, not, or } from "drizzle-orm";
 import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
@@ -153,6 +153,7 @@ export function recomputableWorkspacesQuery() {
 export async function getRecomputableWorkspaces(): Promise<Workspace[]> {
   const workspaces = await db().query.workspace.findMany({
     where: recomputableWorkspacesQuery(),
+    orderBy: [asc(dbWorkspace.createdAt)],
   });
   return workspaces;
 }
