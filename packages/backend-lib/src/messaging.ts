@@ -1,3 +1,4 @@
+import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
@@ -96,7 +97,6 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 
 export function enrichMessageTemplate({
   id,
@@ -1083,10 +1083,11 @@ export async function sendEmail({
         content: attachment.data,
         contentType: attachment.mimeType,
       }));
+
+      const fromWithName = emailName ? `${emailName} <${from}>` : from;
       const mailData: SesMailData = {
         to,
-        from,
-        name: emailName,
+        from: fromWithName,
         subject,
         html: body,
         replyTo,

@@ -88,7 +88,6 @@ export async function sendMail({
   // Create mail options for MailComposer
   const mailOptions: Mail.Options = {
     from: mailData.from,
-    sender: mailData.name,
     to: mailData.to,
     subject: mailData.subject,
     cc: mailData.cc,
@@ -105,16 +104,21 @@ export async function sendMail({
   // Use MailComposer to create raw email content
   const mailComposer = new MailComposer(mailOptions);
 
-  // Build the message
-  const rawEmailContent = await new Promise<Buffer>((resolve, reject) => {
-    mailComposer.compile().build((composerErr, message) => {
-      if (composerErr) {
-        reject(composerErr);
-        return;
-      }
-      resolve(message);
-    });
-  });
+  let rawEmailContent: Buffer;
+  try {
+    // Build the message
+    rawEmailContent = await mailComposer.compile().build();
+  } catch (error) {
+    logger().info(
+      {
+        err: error,
+        templateId: mailData.tags?.templateId,
+        workspaceId: mailData.tags?.workspaceId,
+      },
+      "Error sending ses email",
+    );
+    return err(error);
+  }
 
   // Always use the Raw content interface
   const input: SendEmailRequest = {
@@ -124,7 +128,7 @@ export async function sendMail({
     },
     Content: {
       Raw: {
-        Data: new Uint8Array(rawEmailContent),
+        Data: Uint8Array.from(rawEmailContent),
       },
     },
     EmailTags: tags,
@@ -138,8 +142,24 @@ export async function sendMail({
     return ok(result);
   } catch (error) {
     if (error instanceof SESv2ServiceException && !error.$retryable) {
+      logger().info(
+        {
+          err: error,
+          workspaceId: mailData.tags?.workspaceId,
+          templateId: mailData.tags?.templateId,
+        },
+        "Non-retryable error sending ses email",
+      );
       return err(error);
     }
+    logger().error(
+      {
+        err: error,
+        workspaceId: mailData.tags?.workspaceId,
+        templateId: mailData.tags?.templateId,
+      },
+      "Retryable error sending ses email",
+    );
     throw error;
   }
 }
