@@ -95,6 +95,7 @@ export async function sendMail({
     html: mailData.html,
     attachments,
     headers: mailData.headers,
+    replyTo: mailData.replyTo,
   };
 
   if (mailData.replyTo) {
@@ -122,17 +123,12 @@ export async function sendMail({
 
   // Always use the Raw content interface
   const input: SendEmailRequest = {
-    FromEmailAddress: mailData.from,
-    Destination: {
-      ToAddresses: [mailData.to],
-    },
     Content: {
       Raw: {
         Data: Uint8Array.from(rawEmailContent),
       },
     },
     EmailTags: tags,
-    ReplyToAddresses: mailData.replyTo ? [mailData.replyTo] : undefined,
   };
 
   const command = new SendEmailCommand(input);
