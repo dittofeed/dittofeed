@@ -96,6 +96,7 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 
 export function enrichMessageTemplate({
   id,
@@ -1077,6 +1078,11 @@ export async function sendEmail({
           },
         });
       }
+      const sesAttachments = attachments?.map((attachment) => ({
+        filename: attachment.name,
+        content: attachment.data,
+        contentType: attachment.mimeType,
+      }));
       const mailData: SesMailData = {
         to,
         from,
@@ -1087,6 +1093,7 @@ export async function sendEmail({
         cc,
         bcc,
         headers,
+        attachments: sesAttachments,
         tags: {
           workspaceId,
           templateId,
@@ -1118,13 +1125,29 @@ export async function sendEmail({
       });
 
       if (result.isErr()) {
+        let message: string | undefined;
+        if (result.error instanceof SESv2ServiceException) {
+          message = result.error.message;
+        } else if (result.error instanceof Error) {
+          message = result.error.message;
+        } else {
+          logger().error(
+            {
+              err: result.error,
+              workspaceId,
+              messageId: messageTags?.messageId,
+            },
+            "Unknown error sending email",
+          );
+          message = "Unknown error";
+        }
         return err({
           type: InternalEventType.MessageFailure,
           variant: {
             type: ChannelType.Email,
             provider: {
               type: EmailProviderType.AmazonSes,
-              message: result.error.message,
+              message,
             },
           },
         });
