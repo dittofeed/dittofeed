@@ -794,10 +794,3 @@ export type RequestContextResult = Result<
 export type RequestContextPostProcessor = (
   result: RequestContextResult,
 ) => Promise<RequestContextResult>;
-
-export interface WorkspaceQueueItem {
-  id: string;
-  priority?: number;
-  maxPeriod?: number;
-  insertedAt?: number; // Number representing insertion order
-}
