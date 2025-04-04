@@ -10,7 +10,7 @@ import {
 } from "@temporalio/workflow";
 
 import type * as activities from "../temporal/activities";
-import { addWorkspacesSignalV2 } from "./computePropertiesQueueWorkflow";
+import { addWorkspacesSignal } from "./computePropertiesQueueWorkflow";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -20,7 +20,7 @@ export const COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID =
 //
 // Activities proxy
 //
-const { findDueWorkspacesV2, getQueueSize, config } = proxyActivities<
+const { findDueWorkspaces, getQueueSize, config } = proxyActivities<
   typeof activities
 >({
   startToCloseTimeout: "1 minute",
@@ -76,22 +76,20 @@ export async function computePropertiesSchedulerWorkflow(
         size,
         computePropertiesQueueCapacity,
       });
-      const dueWorkspaces = await findDueWorkspacesV2({
+      const dueWorkspaces = await findDueWorkspaces({
         now: Date.now(),
       });
 
       logger.info("Scheduler: Found due workspaces", {
-        workspaceIdsCount: dueWorkspaces.workspaces.length,
+        workspaceIdsCount: dueWorkspaces.workspaceIds.length,
       });
 
-      if (dueWorkspaces.workspaces.length > 0) {
+      if (dueWorkspaces.workspaceIds.length > 0) {
         logger.debug("Scheduler: Signaling queue workflow with new items", {
-          workspaceIds: dueWorkspaces.workspaces.map((w) => w.id),
+          workspaceId: dueWorkspaces.workspaceIds,
         });
         // (C) Signal the queue workflow with new items
-        await queueWf.signal(addWorkspacesSignalV2, {
-          workspaces: dueWorkspaces.workspaces,
-        });
+        await queueWf.signal(addWorkspacesSignal, dueWorkspaces.workspaceIds);
       }
     } else {
       logger.info("Scheduler: No room in the queue", {
