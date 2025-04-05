@@ -138,6 +138,13 @@ async function getUnmessagedUsers(
     endDate: now.toISOString(),
     startDate: new Date(now.getTime() - 1000 * 60 * 60 * 24).toISOString(),
   });
+  logger().debug(
+    {
+      users,
+      alreadySent,
+    },
+    "Broadcast users",
+  );
   return {
     users: users.filter(
       (user) => !alreadySent.items.some((item) => item.userId === user.id),

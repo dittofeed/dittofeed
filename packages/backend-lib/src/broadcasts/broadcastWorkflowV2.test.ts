@@ -9,7 +9,10 @@ import { createEnvAndWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
-import { upsertSubscriptionGroup } from "../subscriptionGroups";
+import {
+  updateUserSubscriptions,
+  upsertSubscriptionGroup,
+} from "../subscriptionGroups";
 import {
   BroadcastResourceV2,
   BroadcastV2Config,
@@ -171,6 +174,17 @@ describe("broadcastWorkflowV2", () => {
           value: "test@test.com",
         },
       ]);
+      await updateUserSubscriptions({
+        workspaceId: workspace.id,
+        userUpdates: [
+          {
+            userId,
+            changes: {
+              [subscriptionGroupId]: true,
+            },
+          },
+        ],
+      });
     });
     it.only("should send messages to all users immediately", async () => {
       await worker.runUntil(async () => {
