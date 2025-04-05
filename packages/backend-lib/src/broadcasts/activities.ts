@@ -17,7 +17,6 @@ import {
   SendMessageParametersBase,
 } from "../messaging";
 import { withSpan } from "../openTelemetry";
-import { SubscriptionGroupWithAssignment } from "../subscriptionGroups";
 import {
   BackendMessageSendResult,
   BatchTrackData,

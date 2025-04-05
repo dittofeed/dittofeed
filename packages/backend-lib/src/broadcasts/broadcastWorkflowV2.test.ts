@@ -145,8 +145,12 @@ describe("broadcastWorkflowV2", () => {
           statusV2: "Draft",
           version: "V2",
           messageTemplateId: messageTemplate.id,
+          subscriptionGroupId,
           config: {
             type: "V2",
+            message: {
+              type: ChannelType.Email,
+            },
           } satisfies BroadcastV2Config,
         },
       }).then(unwrap);
