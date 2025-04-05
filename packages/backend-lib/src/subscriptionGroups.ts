@@ -135,6 +135,10 @@ export async function getSubscriptionGroupWithAssignment({
   };
 }
 
+export function getSubscriptionGroupSegmentName(id: string) {
+  return `subscriptionGroup-${id}`;
+}
+
 // TODO enable a channel type to specified
 export async function upsertSubscriptionGroup({
   id,
@@ -162,7 +166,7 @@ export async function upsertSubscriptionGroup({
       },
     }).then(unwrap);
 
-    const segmentName = `subscriptionGroup-${id}`;
+    const segmentName = getSubscriptionGroupSegmentName(subscriptionGroup.id);
     const segmentDefinition: SegmentDefinition = {
       entryNode: {
         type: SegmentNodeType.SubscriptionGroup,

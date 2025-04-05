@@ -4880,6 +4880,7 @@ export const SearchDeliveriesRequest = Type.Object({
   endDate: Type.Optional(Type.String()),
   sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
   sortDirection: Type.Optional(SortDirection),
+  broadcastId: Type.Optional(Type.String()),
   groupId: Type.Optional(
     Type.Union([Type.String(), Type.Array(Type.String())]),
   ),
@@ -4902,7 +4903,27 @@ export const BroadcastV2Config = Type.Object({
   rateLimit: Type.Optional(Type.Number()),
   defaultTimezone: Type.Optional(Type.String()),
   useIndividualTimezone: Type.Optional(Type.Boolean()),
+  message: Type.Union([
+    Type.Omit(EmailMessageVariant, ["templateId"]),
+    Type.Omit(SmsMessageVariant, ["templateId"]),
+    Type.Omit(WebhookMessageVariant, ["templateId"]),
+  ]),
 });
+
+// export const BroadcastV2Config = Type.Union([
+//   Type.Composite([
+//     BaseBroadcastV2Config,
+//     Type.Omit(EmailMessageVariant, ["templateId"]),
+//   ]),
+//   Type.Composite([
+//     BaseBroadcastV2Config,
+//     Type.Omit(SmsMessageVariant, ["templateId"]),
+//   ]),
+//   Type.Composite([
+//     BaseBroadcastV2Config,
+//     Type.Omit(WebhookMessageVariant, ["templateId"]),
+//   ]),
+// ]);
 
 export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
 

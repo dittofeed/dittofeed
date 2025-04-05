@@ -210,6 +210,8 @@ export async function searchDeliveries({
   startDate,
   endDate,
   groupId,
+  // FIXME
+  broadcastId,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();

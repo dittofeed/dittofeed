@@ -106,10 +106,13 @@ describe("broadcastWorkflowV2", () => {
     let templateId: string;
     let subscriptionGroupId: string;
     let userId: string;
+    let anonymousUserId: string;
 
     beforeEach(async () => {
       templateId = randomUUID();
       subscriptionGroupId = randomUUID();
+      anonymousUserId = randomUUID();
+      userId = randomUUID();
 
       await upsertSubscriptionGroup({
         id: subscriptionGroupId,
@@ -182,6 +185,9 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       expect(senderMock).toHaveBeenCalledTimes(1);
+      // FIXME
+      // add an anonymous user and check that they were sent a message with the track event submitted under their anonymous id
+      // add a second user who is unsubscribed and check that they are not sent a message
     });
   });
   describe("when sending a broadcast immediately with a rate limit", () => {

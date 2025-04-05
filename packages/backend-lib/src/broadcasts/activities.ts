@@ -1,19 +1,36 @@
 import { zonedTimeToUtc } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { omit } from "remeda";
+import { v5 as uuidV5 } from "uuid";
 
+import { submitBatch } from "../apps/batch";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { searchDeliveries } from "../deliveries";
 import logger from "../logger";
-import { Sender, sendMessage } from "../messaging";
-import { withSpan } from "../openTelemetry";
 import {
+  Sender,
+  sendMessage,
+  SendMessageParameters,
+  SendMessageParametersBase,
+} from "../messaging";
+import { withSpan } from "../openTelemetry";
+import { SubscriptionGroupWithAssignment } from "../subscriptionGroups";
+import {
+  BackendMessageSendResult,
+  BatchTrackData,
   BroadcastResourceV2,
   BroadcastV2Config,
   BroadcastV2Status,
+  ChannelType,
+  EventType,
+  GetUsersResponseItem,
+  InternalEventType,
+  TrackData,
 } from "../types";
 import { getUsers } from "../users";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 /**
  * Computes the timezones for all users in a broadcast using timezone, lat/lon,
@@ -99,11 +116,43 @@ interface SendMessagesParams {
   limit: number;
 }
 
+async function getUnmessagedUsers(
+  params: Parameters<typeof getUsers>[0] & {
+    broadcastId: string;
+  },
+): Promise<{
+  users: GetUsersResponseItem[];
+  nextCursor?: string;
+}> {
+  const { broadcastId, ...rest } = params;
+  const { users, nextCursor } = await getUsers(rest, {
+    allowInternalSegment: true,
+  }).then(unwrap);
+  const now = new Date();
+
+  // TODO implement timezones
+  const alreadySent = await searchDeliveries({
+    workspaceId: params.workspaceId,
+    broadcastId,
+    userId: users.map((user) => user.id),
+    limit: params.limit,
+    endDate: now.toISOString(),
+    startDate: new Date(now.getTime() - 1000 * 60 * 60 * 24).toISOString(),
+  });
+  return {
+    users: users.filter(
+      (user) => !alreadySent.items.some((item) => item.userId === user.id),
+    ),
+    nextCursor,
+  };
+}
+
 export function sendMessagesFactory(sender: Sender) {
   return async function sendMessagesWithSender(
     params: SendMessagesParams,
   ): Promise<SendMessagesResponse> {
     return withSpan({ name: "send-messages" }, async (span) => {
+      const now = new Date();
       // FIXME in order to safely pause/unpause, will need to track which messages were sent within a batch
       span.setAttributes({
         workspaceId: params.workspaceId,
@@ -119,24 +168,60 @@ export function sendMessagesFactory(sender: Sender) {
       if (!broadcast) {
         throw new Error("Broadcast not found");
       }
+      const { messageTemplateId, config: unparsedConfig } = broadcast;
+      if (!messageTemplateId) {
+        throw new Error("Broadcast template is null");
+      }
+      const configResult = schemaValidateWithErr(
+        unparsedConfig,
+        BroadcastV2Config,
+      );
+      if (configResult.isErr()) {
+        throw new Error("Broadcast config is invalid");
+      }
+      const config = configResult.value;
+
       span.setAttributes({
         segmentId: broadcast.segmentId,
         subscriptionGroupId: broadcast.subscriptionGroupId,
         templateId: broadcast.messageTemplateId,
       });
-      // TODO implement timezones
-      const { users, nextCursor } = await getUsers({
+
+      if (!broadcast.subscriptionGroupId) {
+        throw new Error("Broadcast subscription group is null");
+      }
+
+      const subscriptionGroup = await db().query.subscriptionGroup.findFirst({
+        where: eq(schema.subscriptionGroup.id, broadcast.subscriptionGroupId),
+        with: {
+          segments: true,
+        },
+      });
+      if (!subscriptionGroup) {
+        throw new Error("Subscription group not found");
+      }
+      const subscriptionGroupSegment = subscriptionGroup.segments[0];
+      if (!subscriptionGroupSegment) {
+        throw new Error("Subscription group segment not found");
+      }
+
+      const { users, nextCursor } = await getUnmessagedUsers({
         workspaceId: params.workspaceId,
         segmentFilter: broadcast.segmentId ? [broadcast.segmentId] : undefined,
+        // This will account for subscription group logic
         subscriptionGroupFilter: broadcast.subscriptionGroupId
           ? [broadcast.subscriptionGroupId]
           : undefined,
         cursor: params.cursor,
         limit: params.limit,
-      }).then(unwrap);
+        broadcastId: params.broadcastId,
+      });
 
-      const promises = users.map(async (user) => {
-        await withSpan({ name: "send-messages-user" }, async (usersSpan) => {
+      const promises: Promise<{
+        userId: string;
+        result: BackendMessageSendResult;
+      }>[] = users.flatMap((user) => {
+        return withSpan({ name: "send-messages-user" }, async (usersSpan) => {
           usersSpan.setAttributes({
             userId: user.id,
             workspaceId: params.workspaceId,
@@ -145,9 +230,90 @@ export function sendMessagesFactory(sender: Sender) {
             segmentId: broadcast.segmentId,
             subscriptionGroupId: broadcast.subscriptionGroupId,
           });
-          throw new Error("Not implemented");
+          const baseParams: SendMessageParametersBase = {
+            userId: user.id,
+            workspaceId: params.workspaceId,
+            templateId: messageTemplateId,
+            useDraft: false,
+            userPropertyAssignments: user.properties,
+          };
+          let messageVariant: SendMessageParameters;
+          switch (config.message.type) {
+            case ChannelType.Email:
+              messageVariant = {
+                ...baseParams,
+                ...config.message,
+                channel: ChannelType.Email,
+              };
+              break;
+            case ChannelType.Sms:
+              messageVariant = {
+                ...baseParams,
+                ...config.message,
+                channel: ChannelType.Sms,
+              };
+              break;
+            case ChannelType.Webhook:
+              messageVariant = {
+                ...baseParams,
+                ...config.message,
+                channel: ChannelType.Webhook,
+              };
+              break;
+          }
+          const result = await sender(messageVariant);
+          return {
+            userId: user.id,
+            result,
+          };
         });
       });
+      const results = await Promise.all(promises);
+      // FIXME handle anonymous users
+      const baseProperties: TrackData["properties"] = {
+        broadcastId: params.broadcastId,
+        templateId: broadcast.messageTemplateId,
+        workspaceId: params.workspaceId,
+      };
+      const events: BatchTrackData[] = results.map(({ userId, result }) => {
+        const messageId = uuidV5(
+          `${userId}-${params.broadcastId}`,
+          params.workspaceId,
+        );
+        let event: InternalEventType;
+        let trackingProperties: TrackData["properties"];
+        if (result.isErr()) {
+          event = result.error.type;
+          trackingProperties = {
+            ...baseProperties,
+            ...omit(result.error, ["type"]),
+          };
+        } else {
+          event = result.value.type;
+          trackingProperties = {
+            ...baseProperties,
+            ...omit(result.value, ["type"]),
+          };
+        }
+        return {
+          userId,
+          messageId,
+          type: EventType.Track,
+          timestamp: now.toISOString(),
+          event,
+          properties: trackingProperties,
+        };
+      });
+      await submitBatch({
+        workspaceId: params.workspaceId,
+        data: {
+          batch: events,
+        },
+      });
+      return {
+        messagesSent: results.length,
+        nextCursor,
+      };
     });
   };
 }
