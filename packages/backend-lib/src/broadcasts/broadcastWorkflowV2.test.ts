@@ -109,6 +109,7 @@ describe("broadcastWorkflowV2", () => {
     let templateId: string;
     let subscriptionGroupId: string;
     let userId: string;
+    let userId2: string;
     let anonymousUserId: string;
 
     beforeEach(async () => {
@@ -173,6 +174,18 @@ describe("broadcastWorkflowV2", () => {
           userPropertyId: emailUserProperty.id,
           value: "test@test.com",
         },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: idUserProperty.id,
+          value: userId2,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: emailUserProperty.id,
+          value: "test2@test.com",
+        },
       ]);
       await updateUserSubscriptions({
         workspaceId: workspace.id,
@@ -203,6 +216,16 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+        }),
+      );
+      expect(senderMock).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: userId2,
+        }),
+      );
       // FIXME
       // add an anonymous user and check that they were sent a message with the track event submitted under their anonymous id
       // add a second user who is unsubscribed and check that they are not sent a message
