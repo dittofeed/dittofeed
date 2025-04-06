@@ -226,16 +226,23 @@ export function sendMessagesFactory(sender: Sender) {
       const promises: Promise<{
         userId: string;
         result: BackendMessageSendResult;
+        isAnonymous: boolean;
       }>[] = users.flatMap((user) => {
         return withSpan({ name: "send-messages-user" }, async (usersSpan) => {
+          const isAnonymous = Object.values(user.properties).some(
+            (property) => property.name === "anonymousId",
+          );
+
           usersSpan.setAttributes({
             userId: user.id,
+            isAnonymous,
             workspaceId: params.workspaceId,
             broadcastId: params.broadcastId,
             templateId: broadcast.messageTemplateId,
             segmentId: broadcast.segmentId,
             subscriptionGroupId: broadcast.subscriptionGroupId,
           });
+
           const baseParams: SendMessageParametersBase = {
             userId: user.id,
             workspaceId: params.workspaceId,
@@ -270,46 +277,55 @@ export function sendMessagesFactory(sender: Sender) {
           const result = await sender(messageVariant);
           return {
             userId: user.id,
+            isAnonymous,
             result,
           };
         });
       });
       const results = await Promise.all(promises);
-      // FIXME handle anonymous users
       const baseProperties: TrackData["properties"] = {
         broadcastId: params.broadcastId,
         templateId: broadcast.messageTemplateId,
         workspaceId: params.workspaceId,
       };
-      const events: BatchTrackData[] = results.map(({ userId, result }) => {
-        const messageId = uuidV5(
-          `${userId}-${params.broadcastId}`,
-          params.workspaceId,
-        );
-        let event: InternalEventType;
-        let trackingProperties: TrackData["properties"];
-        if (result.isErr()) {
-          event = result.error.type;
-          trackingProperties = {
-            ...baseProperties,
-            ...omit(result.error, ["type"]),
+      const events: BatchTrackData[] = results.map(
+        ({ userId, result, isAnonymous }) => {
+          const messageId = uuidV5(
+            `${userId}-${params.broadcastId}`,
+            params.workspaceId,
+          );
+          let event: InternalEventType;
+          let trackingProperties: TrackData["properties"];
+          if (result.isErr()) {
+            event = result.error.type;
+            trackingProperties = {
+              ...baseProperties,
+              ...omit(result.error, ["type"]),
+            };
+          } else {
+            event = result.value.type;
+            trackingProperties = {
+              ...baseProperties,
+              ...omit(result.value, ["type"]),
+            };
+          }
+          return {
+            ...(isAnonymous
+              ? {
+                  anonymousId: userId,
+                }
+              : {
+                  userId,
+                }),
+            messageId,
+            type: EventType.Track,
+            timestamp: now.toISOString(),
+            event,
+            properties: trackingProperties,
           };
-        } else {
-          event = result.value.type;
-          trackingProperties = {
-            ...baseProperties,
-            ...omit(result.value, ["type"]),
-          };
-        }
-        return {
-          userId,
-          messageId,
-          type: EventType.Track,
-          timestamp: now.toISOString(),
-          event,
-          properties: trackingProperties,
-        };
-      });
+        },
+      );
+      logger().debug({ events }, "Broadcast events");
       await submitBatch({
         workspaceId: params.workspaceId,
         data: {

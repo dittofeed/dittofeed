@@ -9,11 +9,13 @@ import { createEnvAndWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
+import { searchDeliveries } from "../deliveries";
 import {
   updateUserSubscriptions,
   upsertSubscriptionGroup,
 } from "../subscriptionGroups";
 import {
+  AnonymousIdUserPropertyDefinition,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
@@ -45,6 +47,7 @@ describe("broadcastWorkflowV2", () => {
   let broadcast: BroadcastResourceV2;
   let idUserProperty: UserProperty;
   let emailUserProperty: UserProperty;
+  let anonymousIdProprty: UserProperty;
 
   const senderMock = jest.fn().mockReturnValue(
     ok({
@@ -88,6 +91,7 @@ describe("broadcastWorkflowV2", () => {
         } satisfies IdUserPropertyDefinition,
       },
     }).then(unwrap);
+
     emailUserProperty = await insert({
       table: schema.userProperty,
       values: {
@@ -97,6 +101,17 @@ describe("broadcastWorkflowV2", () => {
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         } satisfies TraitUserPropertyDefinition,
+      },
+    }).then(unwrap);
+
+    anonymousIdProprty = await insert({
+      table: schema.userProperty,
+      values: {
+        name: "anonymousId",
+        workspaceId: workspace.id,
+        definition: {
+          type: UserPropertyDefinitionType.AnonymousId,
+        } satisfies AnonymousIdUserPropertyDefinition,
       },
     }).then(unwrap);
   });
@@ -186,12 +201,35 @@ describe("broadcastWorkflowV2", () => {
           userPropertyId: emailUserProperty.id,
           value: "test2@test.com",
         },
+        {
+          workspaceId: workspace.id,
+          userId: anonymousUserId,
+          userPropertyId: anonymousIdProprty.id,
+          value: anonymousUserId,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: anonymousUserId,
+          userPropertyId: emailUserProperty.id,
+          value: "test3@test.com",
+        },
       ]);
       await updateUserSubscriptions({
         workspaceId: workspace.id,
         userUpdates: [
           {
             userId,
+            changes: {
+              [subscriptionGroupId]: true,
+            },
+          },
+        ],
+      });
+      await updateUserSubscriptions({
+        workspaceId: workspace.id,
+        userUpdates: [
+          {
+            userId: anonymousUserId,
             changes: {
               [subscriptionGroupId]: true,
             },
@@ -215,7 +253,7 @@ describe("broadcastWorkflowV2", () => {
           ],
         });
       });
-      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledTimes(2);
       expect(senderMock).toHaveBeenCalledWith(
         expect.objectContaining({
           userId,
@@ -226,9 +264,19 @@ describe("broadcastWorkflowV2", () => {
           userId: userId2,
         }),
       );
-      // FIXME
-      // add an anonymous user and check that they were sent a message with the track event submitted under their anonymous id
-      // add a second user who is unsubscribed and check that they are not sent a message
+      const deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(deliveries.items).toHaveLength(2);
+      expect(
+        deliveries.items.find((d) => d.userId === anonymousUserId),
+      ).toEqual(
+        expect.objectContaining({
+          userId: anonymousUserId,
+          isAnonymous: true,
+        }),
+      );
     });
   });
   describe("when sending a broadcast immediately with a rate limit", () => {
