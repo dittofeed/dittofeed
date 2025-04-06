@@ -41,8 +41,10 @@ import {
   broadcastWorkflowV2,
   BroadcastWorkflowV2Params,
   generateBroadcastWorkflowV2Id,
+  pauseBroadcastSignal,
   resumeBroadcastSignal,
 } from "./broadcastWorkflowV2";
+import { times } from "remeda";
 
 const successMessageSentResult: MessageSendSuccess = {
   type: InternalEventType.MessageSent,
@@ -303,43 +305,87 @@ describe("broadcastWorkflowV2", () => {
     });
   });
   describe("when sending a broadcast immediately with a rate limit", () => {
-    it("should send message to all users at the specified rate", async () => {
-      // use test env sleep to test rate limiting
-    });
-
-    describe("when the broadcast is paused", () => {
-      let userId1: string;
+    describe("when the broadcast is paused and resumed", () => {
+      let userIds: string[];
       beforeEach(async () => {
-        userId1 = randomUUID();
-
-        await insertUserPropertyAssignments([
+        await createTestEnvAndWorker();
+        await createBroadcast({
+          config: {
+            type: "V2",
+            message: { type: ChannelType.Email },
+            batchSize: 1,
+            rateLimit: 1,
+          },
+        });
+        userIds = times(100, (i) => `user-${i}`);
+        const assignments = userIds.flatMap((userId, i) => [
           {
             workspaceId: workspace.id,
-            userId: userId1,
+            userId,
             userPropertyId: idUserProperty.id,
-            value: userId1,
+            value: userId,
           },
           {
             workspaceId: workspace.id,
-            userId: userId1,
+            userId,
             userPropertyId: emailUserProperty.id,
-            value: "test@test.com",
+            value: `test${i}@test.com`,
           },
         ]);
+        await insertUserPropertyAssignments(assignments);
+        const userUpdates = userIds.map((userId) => ({
+          userId,
+          changes: {
+            [subscriptionGroupId]: true,
+          },
+        }));
 
         await updateUserSubscriptions({
           workspaceId: workspace.id,
-          userUpdates: [
-            {
-              userId: userId1,
-              changes: {
-                [subscriptionGroupId]: true,
-              },
-            },
-          ],
+          userUpdates,
         });
       });
       it("should stop sending messages until the broadcast is resumed", async () => {
+        await worker.runUntil(async () => {
+          const handle = await testEnv.client.workflow.start(
+            broadcastWorkflowV2,
+            {
+              workflowId: generateBroadcastWorkflowV2Id({
+                workspaceId: workspace.id,
+                broadcastId: broadcast.id,
+              }),
+              taskQueue: "default",
+              args: [
+                {
+                  workspaceId: workspace.id,
+                  broadcastId: broadcast.id,
+                } satisfies BroadcastWorkflowV2Params,
+              ],
+            },
+          );
+          // sleep for less than the rate limit period
+          await testEnv.sleep(500);
+          expect(
+            senderMock,
+            "should have sent 1 message initially",
+          ).toHaveBeenCalledTimes(1);
+
+          await testEnv.sleep(1000);
+          expect(
+            senderMock,
+            "should have sent 2 messages after waiting for one rate limit period",
+          ).toHaveBeenCalledTimes(2);
+          await handle.signal(pauseBroadcastSignal);
+          await testEnv.sleep(5000);
+          expect(
+            senderMock,
+            "should not have sent any more messages while paused",
+          ).toHaveBeenCalledTimes(2);
+
+          await handle.signal(resumeBroadcastSignal);
+          await handle.result();
+          expect(senderMock).toHaveBeenCalledTimes(userIds.length);
+        });
         // start workflow
         // assert subset of messages sent
         // wait for period < rate limit

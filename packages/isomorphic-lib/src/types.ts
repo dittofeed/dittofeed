@@ -4913,6 +4913,7 @@ export type BroadcastErrorHandling = Static<typeof BroadcastErrorHandling>;
 
 export const BroadcastV2Config = Type.Object({
   type: Type.Literal(BroadcastConfigTypeEnum.V2),
+  // messages per second
   rateLimit: Type.Optional(Type.Number()),
   defaultTimezone: Type.Optional(Type.String()),
   useIndividualTimezone: Type.Optional(Type.Boolean()),

@@ -71,22 +71,6 @@ export async function broadcastWorkflowV2({
     return;
   }
 
-  const { rateLimit } = broadcast.config;
-
-  if (rateLimit !== undefined && rateLimit <= 0) {
-    logger.error("rate limit is 0, invalid config", {
-      broadcastId,
-      rateLimit,
-      workspaceId,
-    });
-    await markBroadcastStatus({
-      workspaceId,
-      broadcastId,
-      status: "Cancelled",
-    });
-    return;
-  }
-
   // eslint-disable-next-line prefer-destructuring
   let status: BroadcastV2Status = broadcast.status;
 
@@ -111,11 +95,31 @@ export async function broadcastWorkflowV2({
     }
   }
 
+  const { rateLimit } = broadcast.config;
+
+  if (rateLimit !== undefined && rateLimit <= 0) {
+    logger.error("rate limit is less than or equal to 0, invalid config", {
+      broadcastId,
+      rateLimit,
+      workspaceId,
+    });
+    await updateStatus("Cancelled");
+    return;
+  }
+
   wf.setHandler(pauseBroadcastSignal, async () => {
+    logger.info("pausing broadcast", {
+      broadcastId,
+      workspaceId,
+    });
     await updateStatus("Paused");
   });
 
   wf.setHandler(resumeBroadcastSignal, async () => {
+    logger.info("resuming broadcast", {
+      broadcastId,
+      workspaceId,
+    });
     await updateStatus("Running");
   });
 
