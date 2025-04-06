@@ -4924,21 +4924,6 @@ export const BroadcastV2Config = Type.Object({
   ]),
 });
 
-// export const BroadcastV2Config = Type.Union([
-//   Type.Composite([
-//     BaseBroadcastV2Config,
-//     Type.Omit(EmailMessageVariant, ["templateId"]),
-//   ]),
-//   Type.Composite([
-//     BaseBroadcastV2Config,
-//     Type.Omit(SmsMessageVariant, ["templateId"]),
-//   ]),
-//   Type.Composite([
-//     BaseBroadcastV2Config,
-//     Type.Omit(WebhookMessageVariant, ["templateId"]),
-//   ]),
-// ]);
-
 export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
 
 export const BroadcastV2StatusEnum = {

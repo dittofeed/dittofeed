@@ -23,6 +23,7 @@ import {
   EmailTemplateResource,
   IdUserPropertyDefinition,
   InternalEventType,
+  MessageTemplate,
   SubscriptionGroupType,
   TraitUserPropertyDefinition,
   UserProperty,
@@ -48,6 +49,8 @@ describe("broadcastWorkflowV2", () => {
   let idUserProperty: UserProperty;
   let emailUserProperty: UserProperty;
   let anonymousIdProprty: UserProperty;
+  let subscriptionGroupId: string;
+  let messageTemplate: MessageTemplate;
 
   const senderMock = jest.fn().mockReturnValue(
     ok({
@@ -114,66 +117,70 @@ describe("broadcastWorkflowV2", () => {
         } satisfies AnonymousIdUserPropertyDefinition,
       },
     }).then(unwrap);
+
+    subscriptionGroupId = randomUUID();
+    await upsertSubscriptionGroup({
+      id: subscriptionGroupId,
+      name: "default",
+      workspaceId: workspace.id,
+      type: SubscriptionGroupType.OptIn,
+      channel: "Email",
+    }).then(unwrap);
+
+    messageTemplate = await insert({
+      table: schema.messageTemplate,
+      values: {
+        workspaceId: workspace.id,
+        name: `template-${randomUUID()}`,
+        definition: {
+          type: ChannelType.Email,
+          from: "support@company.com",
+          subject: "Hello",
+          body: "{% unsubscribe_link here %}.",
+        } satisfies EmailTemplateResource,
+      },
+    }).then(unwrap);
   });
 
   afterEach(async () => {
     await testEnv.teardown();
   });
 
+  async function createBroadcast({ config }: { config: BroadcastV2Config }) {
+    const dbBroadcast = await insert({
+      table: schema.broadcast,
+      values: {
+        id: randomUUID(),
+        workspaceId: workspace.id,
+        name: "test-broadcast",
+        statusV2: "Draft",
+        version: "V2",
+        messageTemplateId: messageTemplate.id,
+        subscriptionGroupId,
+        config,
+      },
+    }).then(unwrap);
+
+    broadcast = broadcastV2ToResource(dbBroadcast);
+  }
+
   describe("when sending a broadcast immediately with no rate limit", () => {
-    let subscriptionGroupId: string;
     let userId: string;
     let userId2: string;
     let anonymousUserId: string;
 
     beforeEach(async () => {
-      subscriptionGroupId = randomUUID();
       anonymousUserId = randomUUID();
       userId = randomUUID();
 
-      await upsertSubscriptionGroup({
-        id: subscriptionGroupId,
-        name: "default",
-        workspaceId: workspace.id,
-        type: SubscriptionGroupType.OptIn,
-        channel: "Email",
-      }).then(unwrap);
-
-      const messageTemplate = await insert({
-        table: schema.messageTemplate,
-        values: {
-          workspaceId: workspace.id,
-          name: `template-${randomUUID()}`,
-          definition: {
+      await createBroadcast({
+        config: {
+          type: "V2",
+          message: {
             type: ChannelType.Email,
-            from: "support@company.com",
-            subject: "Hello",
-            body: "{% unsubscribe_link here %}.",
-          } satisfies EmailTemplateResource,
+          },
         },
-      }).then(unwrap);
-
-      const dbBroadcast = await insert({
-        table: schema.broadcast,
-        values: {
-          id: randomUUID(),
-          workspaceId: workspace.id,
-          name: "test-broadcast",
-          statusV2: "Draft",
-          version: "V2",
-          messageTemplateId: messageTemplate.id,
-          subscriptionGroupId,
-          config: {
-            type: "V2",
-            message: {
-              type: ChannelType.Email,
-            },
-          } satisfies BroadcastV2Config,
-        },
-      }).then(unwrap);
-
-      broadcast = broadcastV2ToResource(dbBroadcast);
-
+      });
       await insertUserPropertyAssignments([
         {
           workspaceId: workspace.id,
