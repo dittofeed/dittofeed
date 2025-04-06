@@ -43,6 +43,13 @@
       "when": 1738535212232,
       "tag": "0005_equal_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1743969643083,
+      "tag": "0006_talented_mattie_franklin",
+      "breakpoints": true
     }
   ]
 }
