@@ -237,7 +237,7 @@ describe("broadcastWorkflowV2", () => {
         ],
       });
     });
-    it.only("should send messages to all users immediately", async () => {
+    it("should send messages to all users immediately", async () => {
       await worker.runUntil(async () => {
         await testEnv.client.workflow.execute(broadcastWorkflowV2, {
           workflowId: generateBroadcastWorkflowV2Id({
