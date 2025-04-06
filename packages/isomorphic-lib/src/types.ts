@@ -4900,11 +4900,23 @@ export const BroadcastConfigType = Type.KeyOf(
 
 export type BroadcastConfigType = Static<typeof BroadcastConfigType>;
 
+export const BroadcastErrorHandlingEnum = {
+  PauseOnError: "PauseOnError",
+  SkipOnError: "SkipOnError",
+} as const;
+
+export const BroadcastErrorHandling = Type.KeyOf(
+  Type.Const(BroadcastErrorHandlingEnum),
+);
+
+export type BroadcastErrorHandling = Static<typeof BroadcastErrorHandling>;
+
 export const BroadcastV2Config = Type.Object({
   type: Type.Literal(BroadcastConfigTypeEnum.V2),
   rateLimit: Type.Optional(Type.Number()),
   defaultTimezone: Type.Optional(Type.String()),
   useIndividualTimezone: Type.Optional(Type.Boolean()),
+  errorHandling: Type.Optional(BroadcastErrorHandling),
   message: Type.Union([
     Type.Omit(EmailMessageVariant, ["templateId"]),
     Type.Omit(SmsMessageVariant, ["templateId"]),

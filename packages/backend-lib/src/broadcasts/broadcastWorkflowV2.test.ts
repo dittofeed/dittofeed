@@ -121,14 +121,12 @@ describe("broadcastWorkflowV2", () => {
   });
 
   describe("when sending a broadcast immediately with no rate limit", () => {
-    let templateId: string;
     let subscriptionGroupId: string;
     let userId: string;
     let userId2: string;
     let anonymousUserId: string;
 
     beforeEach(async () => {
-      templateId = randomUUID();
       subscriptionGroupId = randomUUID();
       anonymousUserId = randomUUID();
       userId = randomUUID();
@@ -285,7 +283,7 @@ describe("broadcastWorkflowV2", () => {
     });
 
     describe("when the broadcast is paused", () => {
-      it("should stop sending messages", async () => {
+      it("should stop sending messages until the broadcast is resumed", async () => {
         // start workflow
         // assert subset of messages sent
         // wait for period < rate limit
@@ -296,6 +294,14 @@ describe("broadcastWorkflowV2", () => {
         // resume broadcast
         // assert all messages sent
       });
+    });
+  });
+  describe("when a broadcast receives a non-retryable error and is configured to pause on error", () => {
+    it("should be paused", async () => {
+      // start workflow
+      // assert subset of messages sent
+      // send error
+      // assert no more messages sent
     });
   });
   describe("when sending a broadcast with a scheduled time", () => {
