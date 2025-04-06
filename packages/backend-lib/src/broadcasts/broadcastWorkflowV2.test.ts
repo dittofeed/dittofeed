@@ -10,6 +10,7 @@ import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
+import { SendMessageParameters } from "../messaging";
 import {
   updateUserSubscriptions,
   upsertSubscriptionGroup,
@@ -25,6 +26,7 @@ import {
   IdUserPropertyDefinition,
   InternalEventType,
   MessageEmailServiceFailure,
+  MessageSendSuccess,
   MessageTemplate,
   SubscriptionGroupType,
   TraitUserPropertyDefinition,
@@ -40,7 +42,22 @@ import {
   BroadcastWorkflowV2Params,
   generateBroadcastWorkflowV2Id,
 } from "./broadcastWorkflowV2";
-import { SendMessageParameters } from "../messaging";
+
+const successMessageSentResult: MessageSendSuccess = {
+  type: InternalEventType.MessageSent,
+  variant: {
+    type: ChannelType.Email,
+    from: "test@test.com",
+    body: "test",
+    to: "test@test.com",
+    subject: "test",
+    headers: {},
+    replyTo: "test@test.com",
+    provider: {
+      type: EmailProviderType.Test,
+    },
+  },
+};
 
 jest.setTimeout(15000);
 
@@ -150,24 +167,7 @@ describe("broadcastWorkflowV2", () => {
   } = {}) {
     const sendMessageImplementation =
       sendMessageOverride ??
-      (() =>
-        Promise.resolve(
-          ok({
-            type: InternalEventType.MessageSent,
-            variant: {
-              type: ChannelType.Email,
-              from: "test@test.com",
-              body: "test",
-              to: "test@test.com",
-              subject: "test",
-              headers: {},
-              replyTo: "test@test.com",
-              provider: {
-                type: EmailProviderType.Test,
-              },
-            },
-          }),
-        ));
+      (() => Promise.resolve(ok(successMessageSentResult)));
     senderMock = jest.fn().mockImplementation(sendMessageImplementation);
     const testActivities = {
       sendMessages: sendMessagesFactory(senderMock),
@@ -352,22 +352,29 @@ describe("broadcastWorkflowV2", () => {
     });
   });
   describe("when a broadcast receives a non-retryable error and is configured to pause on error", () => {
+    let shouldError: boolean;
     beforeEach(async () => {
+      shouldError = true;
+
       await createTestEnvAndWorker({
-        sendMessageOverride: () =>
-          Promise.resolve(
-            err({
-              type: InternalEventType.MessageFailure,
-              variant: {
-                type: ChannelType.Email,
-                provider: {
-                  type: EmailProviderType.Sendgrid,
-                  status: 403,
-                  body: "missing permissions",
-                },
-              } satisfies MessageEmailServiceFailure,
-            }),
-          ),
+        sendMessageOverride: () => {
+          if (shouldError) {
+            return Promise.resolve(
+              err({
+                type: InternalEventType.MessageFailure,
+                variant: {
+                  type: ChannelType.Email,
+                  provider: {
+                    type: EmailProviderType.Sendgrid,
+                    status: 403,
+                    body: "missing permissions",
+                  },
+                } satisfies MessageEmailServiceFailure,
+              }),
+            );
+          }
+          return Promise.resolve(ok(successMessageSentResult));
+        },
       });
       await createBroadcast({
         config: {

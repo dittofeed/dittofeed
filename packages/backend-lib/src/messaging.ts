@@ -1915,6 +1915,13 @@ export type Sender = (
   params: SendMessageParameters,
 ) => Promise<BackendMessageSendResult>;
 
+/**
+ * Send a message to a channel
+ * Re-tryable errors will be thrown. Non-retryable errors will be returned as
+ * error objects.
+ * @param params - The parameters for the message
+ * @returns The result of the message send
+ */
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {

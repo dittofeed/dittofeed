@@ -14,6 +14,7 @@ import { BroadcastV2Status } from "../types";
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 export const pauseBroadcastSignal = wf.defineSignal("PauseBroadcast");
+export const resumeBroadcastSignal = wf.defineSignal("ResumeBroadcast");
 
 const {
   computeTimezones,
@@ -114,6 +115,10 @@ export async function broadcastWorkflowV2({
     await updateStatus("Paused");
   });
 
+  wf.setHandler(resumeBroadcastSignal, async () => {
+    await updateStatus("Running");
+  });
+
   const sendAllMessages = async function sendAllMessages({
     timezones,
     batchSize,
@@ -144,13 +149,14 @@ export async function broadcastWorkflowV2({
       }
       const activityStartTime = Date.now();
 
-      const { nextCursor, messagesSent } = await sendMessages({
-        workspaceId,
-        broadcastId,
-        timezones,
-        limit: batchSize,
-        cursor: cursor ?? undefined,
-      });
+      const { nextCursor, messagesSent, includesNonRetryableError } =
+        await sendMessages({
+          workspaceId,
+          broadcastId,
+          timezones,
+          limit: batchSize,
+          cursor: cursor ?? undefined,
+        });
 
       const activityEndTime = Date.now();
       const activityDurationMillis = activityEndTime - activityStartTime;
@@ -172,6 +178,14 @@ export async function broadcastWorkflowV2({
         });
         cursor = nextCursor ?? null;
         continue;
+      }
+
+      if (includesNonRetryableError) {
+        logger.info("non-retryable error encountered, pausing broadcast", {
+          workspaceId,
+          broadcastId,
+        });
+        await updateStatus("Paused");
       }
 
       let sleepTime = 0;
