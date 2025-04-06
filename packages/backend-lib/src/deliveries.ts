@@ -225,6 +225,12 @@ export async function searchDeliveries({
         "String",
       )}`
     : "";
+  const broadcastIdClause = broadcastId
+    ? `AND JSONExtractString(properties, 'broadcastId') = ${queryBuilder.addQueryValue(
+        broadcastId,
+        "String",
+      )}`
+    : "";
   let userIdClause = "";
   if (userId) {
     if (Array.isArray(userId)) {
@@ -382,6 +388,7 @@ export async function searchDeliveries({
       origin_message_id != ''
       AND properties != ''
       ${journeyIdClause}
+      ${broadcastIdClause}
       ${userIdClause}
       ${statusClause}
     ORDER BY ${sortByClause}

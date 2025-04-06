@@ -677,6 +677,74 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when filtering by broadcast id for broadcasts v2", () => {
+      let broadcastId: string;
+      beforeEach(async () => {
+        broadcastId = randomUUID();
+
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+        const events: BatchItem[] = [
+          {
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              broadcastId,
+              // // FIXME remove
+              // journeyId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          {
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              broadcastId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+      it("returns the correct number of items", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          broadcastId,
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]?.broadcastId).toEqual(broadcastId);
+      });
+    });
+
     describe("when filtering by journey id", () => {
       let journeyId: string;
       beforeEach(async () => {

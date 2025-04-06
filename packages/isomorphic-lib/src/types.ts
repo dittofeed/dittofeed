@@ -3925,7 +3925,8 @@ export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
-  journeyId: Type.String(),
+  journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
   userId: UserId,
   isAnonymous: Type.Optional(Type.Boolean()),
   originMessageId: Type.String(),
