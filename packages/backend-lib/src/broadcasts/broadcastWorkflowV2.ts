@@ -229,6 +229,7 @@ export async function broadcastWorkflowV2({
 
   const { scheduledAt, config } = broadcast;
   const { defaultTimezone } = config;
+  const batchSize = config.batchSize ?? 100;
 
   if (scheduledAt) {
     if (!defaultTimezone) {
@@ -281,7 +282,7 @@ export async function broadcastWorkflowV2({
 
           await sendAllMessages({
             timezones: Array.from(deliveryTimeTimezones),
-            batchSize: 100,
+            batchSize,
           });
         },
       );
@@ -304,7 +305,7 @@ export async function broadcastWorkflowV2({
         await updateStatus("Running");
 
         await sendAllMessages({
-          batchSize: 100,
+          batchSize,
         });
       } else {
         logger.error(
@@ -321,7 +322,7 @@ export async function broadcastWorkflowV2({
     await updateStatus("Running");
 
     await sendAllMessages({
-      batchSize: 100,
+      batchSize,
     });
   }
 

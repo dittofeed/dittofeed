@@ -352,12 +352,14 @@ describe("broadcastWorkflowV2", () => {
       });
     });
   });
-  describe.only("when a broadcast receives a non-retryable error and is configured to pause on error", () => {
+  describe("when a broadcast receives a non-retryable error and is configured to pause on error", () => {
     let shouldError: boolean;
-    let userId: string;
+    let userId1: string;
+    let userId2: string;
     beforeEach(async () => {
       shouldError = true;
-      userId = randomUUID();
+      userId1 = randomUUID();
+      userId2 = randomUUID();
 
       await createTestEnvAndWorker({
         sendMessageOverride: () => {
@@ -384,27 +386,43 @@ describe("broadcastWorkflowV2", () => {
           type: "V2",
           message: { type: ChannelType.Email },
           errorHandling: "PauseOnError",
+          batchSize: 1,
         },
       });
 
       await insertUserPropertyAssignments([
         {
           workspaceId: workspace.id,
-          userId,
+          userId: userId1,
           userPropertyId: idUserProperty.id,
-          value: userId,
+          value: userId1,
         },
         {
           workspaceId: workspace.id,
-          userId,
+          userId: userId1,
           userPropertyId: emailUserProperty.id,
           value: "test@test.com",
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: idUserProperty.id,
+          value: userId2,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: emailUserProperty.id,
+          value: "test2@test.com",
         },
       ]);
 
       await updateUserSubscriptions({
         workspaceId: workspace.id,
-        userUpdates: [{ userId, changes: { [subscriptionGroupId]: true } }],
+        userUpdates: [
+          { userId: userId1, changes: { [subscriptionGroupId]: true } },
+          { userId: userId2, changes: { [subscriptionGroupId]: true } },
+        ],
       });
     });
     it("should be paused until the broadcast is resumed", async () => {

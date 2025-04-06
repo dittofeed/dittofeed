@@ -4917,6 +4917,7 @@ export const BroadcastV2Config = Type.Object({
   defaultTimezone: Type.Optional(Type.String()),
   useIndividualTimezone: Type.Optional(Type.Boolean()),
   errorHandling: Type.Optional(BroadcastErrorHandling),
+  batchSize: Type.Optional(Type.Number()),
   message: Type.Union([
     Type.Omit(EmailMessageVariant, ["templateId"]),
     Type.Omit(SmsMessageVariant, ["templateId"]),
