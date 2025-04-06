@@ -3927,6 +3927,7 @@ const BaseDeliveryItem = Type.Object({
   updatedAt: Type.String(),
   journeyId: Type.String(),
   userId: UserId,
+  isAnonymous: Type.Optional(Type.Boolean()),
   originMessageId: Type.String(),
   triggeringMessageId: Type.Optional(Type.String()),
   templateId: Type.String(),

@@ -37,6 +37,7 @@ export const SearchDeliveryRow = Type.Object({
   triggering_message_id: Type.Optional(Type.String()),
   workspace_id: Type.String(),
   user_or_anonymous_id: Type.String(),
+  is_anonymous: Type.Number(),
 });
 
 export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
@@ -88,6 +89,7 @@ export function parseSearchDeliveryRow(
       originMessageId: row.origin_message_id,
       triggeringMessageId: row.triggering_message_id,
       userId: row.user_or_anonymous_id,
+      isAnonymous: row.is_anonymous === 1 ? true : undefined,
       channel:
         properties.channnel ??
         properties.messageType ??
@@ -345,7 +347,8 @@ export async function searchDeliveries({
       user_or_anonymous_id,
       origin_message_id,
       any(triggering_message_id) as triggering_message_id,
-      workspace_id
+      workspace_id,
+      is_anonymous
     FROM (
       SELECT
         workspace_id,
@@ -359,7 +362,8 @@ export async function searchDeliveries({
         if(event = '${
           InternalEventType.MessageSent
         }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
-        JSONExtractBool(message_raw, 'context', 'hidden') as hidden
+        JSONExtractBool(message_raw, 'context', 'hidden') as hidden,
+        anonymous_id != '' as is_anonymous
       FROM user_events_v2
       WHERE
         event in ${eventList}
@@ -373,7 +377,7 @@ export async function searchDeliveries({
         ${endDateClause}
         ${groupIdClause}
     ) AS inner
-    GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
+    GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
     HAVING
       origin_message_id != ''
       AND properties != ''

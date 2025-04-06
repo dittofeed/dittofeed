@@ -88,6 +88,92 @@ describe("deliveries", () => {
       });
     });
 
+    describe("with anonymous users", () => {
+      let anonymousId: string;
+      let userId: string;
+
+      beforeEach(async () => {
+        anonymousId = randomUUID();
+        userId = randomUUID();
+
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+
+        const events: BatchItem[] = [
+          // message sent events for users
+          {
+            userId,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          {
+            anonymousId,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+      it("marks the user as anonymous", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+        });
+        expect(deliveries.items).toHaveLength(2);
+        expect(deliveries.items.find((d) => d.userId === anonymousId)).toEqual(
+          expect.objectContaining({
+            userId: anonymousId,
+            isAnonymous: true,
+          }),
+        );
+        expect(deliveries.items.find((d) => d.userId === userId)).toEqual(
+          expect.objectContaining({
+            userId,
+          }),
+        );
+        expect(
+          deliveries.items.find((d) => d.userId === userId)?.isAnonymous,
+        ).toBeUndefined();
+      });
+    });
+
     describe("with two different messages from the same journey", () => {
       beforeEach(async () => {
         const userId = randomUUID();
@@ -1088,6 +1174,7 @@ describe("deliveries", () => {
         origin_message_id: "043ddf20-b4a6-4e88-a7b6-15c88b9617de",
         user_or_anonymous_id: "3dae7dd0-cc99-4a76-b298-af33dd606b27",
         workspace_id: "4f0732c7-e505-45f1-b052-4d08e30e7c33",
+        is_anonymous: 0,
         properties: JSON.stringify({
           body: "body",
           emailProvider: "SendGrid",
@@ -1113,6 +1200,7 @@ describe("deliveries", () => {
         origin_message_id: randomUUID(),
         user_or_anonymous_id: randomUUID(),
         workspace_id: randomUUID(),
+        is_anonymous: 0,
         properties: JSON.stringify({
           email: "test@email.com",
           journeyId: randomUUID(),
