@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
@@ -16,6 +16,7 @@ import {
 } from "../subscriptionGroups";
 import {
   AnonymousIdUserPropertyDefinition,
+  BackendMessageSendResult,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
@@ -23,6 +24,7 @@ import {
   EmailTemplateResource,
   IdUserPropertyDefinition,
   InternalEventType,
+  MessageEmailServiceFailure,
   MessageTemplate,
   SubscriptionGroupType,
   TraitUserPropertyDefinition,
@@ -32,12 +34,13 @@ import {
 } from "../types";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { createWorkspace } from "../workspaces";
-import { sendMessagesFactory } from "./activities";
+import { getBroadcast, sendMessagesFactory } from "./activities";
 import {
   broadcastWorkflowV2,
   BroadcastWorkflowV2Params,
   generateBroadcastWorkflowV2Id,
 } from "./broadcastWorkflowV2";
+import { SendMessageParameters } from "../messaging";
 
 jest.setTimeout(15000);
 
@@ -51,38 +54,12 @@ describe("broadcastWorkflowV2", () => {
   let anonymousIdProprty: UserProperty;
   let subscriptionGroupId: string;
   let messageTemplate: MessageTemplate;
-
-  const senderMock = jest.fn().mockReturnValue(
-    ok({
-      type: InternalEventType.MessageSent,
-      variant: {
-        type: ChannelType.Email,
-        from: "test@test.com",
-        body: "test",
-        to: "test@test.com",
-        subject: "test",
-        headers: {},
-        replyTo: "test@test.com",
-        provider: {
-          type: EmailProviderType.Test,
-        },
-      },
-    }),
-  );
-  const testActivities = {
-    sendMessages: sendMessagesFactory(senderMock),
-  };
+  let senderMock: jest.Mock;
 
   beforeEach(async () => {
     workspace = await createWorkspace({
       name: `broadcast-workflow-v2-${randomUUID()}`,
     }).then(unwrap);
-
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
 
     idUserProperty = await insert({
       table: schema.userProperty,
@@ -164,12 +141,52 @@ describe("broadcastWorkflowV2", () => {
     broadcast = broadcastV2ToResource(dbBroadcast);
   }
 
+  async function createTestEnvAndWorker({
+    sendMessageOverride,
+  }: {
+    sendMessageOverride?: (
+      params: SendMessageParameters,
+    ) => Promise<BackendMessageSendResult>;
+  } = {}) {
+    const sendMessageImplementation =
+      sendMessageOverride ??
+      (() =>
+        Promise.resolve(
+          ok({
+            type: InternalEventType.MessageSent,
+            variant: {
+              type: ChannelType.Email,
+              from: "test@test.com",
+              body: "test",
+              to: "test@test.com",
+              subject: "test",
+              headers: {},
+              replyTo: "test@test.com",
+              provider: {
+                type: EmailProviderType.Test,
+              },
+            },
+          }),
+        ));
+    senderMock = jest.fn().mockImplementation(sendMessageImplementation);
+    const testActivities = {
+      sendMessages: sendMessagesFactory(senderMock),
+    };
+
+    const envAndWorker = await createEnvAndWorker({
+      activityOverrides: testActivities,
+    });
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  }
+
   describe("when sending a broadcast immediately with no rate limit", () => {
     let userId: string;
     let userId2: string;
     let anonymousUserId: string;
 
     beforeEach(async () => {
+      await createTestEnvAndWorker();
       anonymousUserId = randomUUID();
       userId = randomUUID();
 
@@ -242,7 +259,7 @@ describe("broadcastWorkflowV2", () => {
         ],
       });
     });
-    it("should send messages to all users immediately", async () => {
+    it.only("should send messages to all users immediately", async () => {
       await worker.runUntil(async () => {
         await testEnv.client.workflow.execute(broadcastWorkflowV2, {
           workflowId: generateBroadcastWorkflowV2Id({
@@ -290,6 +307,37 @@ describe("broadcastWorkflowV2", () => {
     });
 
     describe("when the broadcast is paused", () => {
+      let userId1: string;
+      beforeEach(async () => {
+        userId1 = randomUUID();
+
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId: userId1,
+            userPropertyId: idUserProperty.id,
+            value: userId1,
+          },
+          {
+            workspaceId: workspace.id,
+            userId: userId1,
+            userPropertyId: emailUserProperty.id,
+            value: "test@test.com",
+          },
+        ]);
+
+        await updateUserSubscriptions({
+          workspaceId: workspace.id,
+          userUpdates: [
+            {
+              userId: userId1,
+              changes: {
+                [subscriptionGroupId]: true,
+              },
+            },
+          ],
+        });
+      });
       it("should stop sending messages until the broadcast is resumed", async () => {
         // start workflow
         // assert subset of messages sent
@@ -304,7 +352,61 @@ describe("broadcastWorkflowV2", () => {
     });
   });
   describe("when a broadcast receives a non-retryable error and is configured to pause on error", () => {
+    beforeEach(async () => {
+      await createTestEnvAndWorker({
+        sendMessageOverride: () =>
+          Promise.resolve(
+            err({
+              type: InternalEventType.MessageFailure,
+              variant: {
+                type: ChannelType.Email,
+                provider: {
+                  type: EmailProviderType.Sendgrid,
+                  status: 403,
+                  body: "missing permissions",
+                },
+              } satisfies MessageEmailServiceFailure,
+            }),
+          ),
+      });
+      await createBroadcast({
+        config: {
+          type: "V2",
+          message: { type: ChannelType.Email },
+          errorHandling: "PauseOnError",
+        },
+      });
+    });
     it("should be paused", async () => {
+      await worker.runUntil(async () => {
+        await testEnv.client.workflow.start(broadcastWorkflowV2, {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        });
+      });
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      const deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(deliveries.items).toHaveLength(0);
+
+      const updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Paused");
+      // test method that exposes errors
+
       // start workflow
       // assert subset of messages sent
       // send error

@@ -394,8 +394,8 @@ export async function markBroadcastStatus({
   workspaceId: string;
   broadcastId: string;
   status: BroadcastV2Status;
-}): Promise<void> {
-  await db()
+}): Promise<BroadcastV2Status | null> {
+  const result = await db()
     .update(schema.broadcast)
     .set({
       statusV2: status,
@@ -405,7 +405,12 @@ export async function markBroadcastStatus({
         eq(schema.broadcast.id, broadcastId),
         eq(schema.broadcast.workspaceId, workspaceId),
       ),
-    );
+    )
+    .returning();
+  if (result.length === 0) {
+    return null;
+  }
+  return result[0]?.statusV2 ?? null;
 }
 
 export async function getBroadcastStatus({

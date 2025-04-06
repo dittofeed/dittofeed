@@ -1,4 +1,5 @@
-/* eslint-disable no-await-in-loop */
+/* eslint-disable @typescript-eslint/no-loop-func,no-await-in-loop */
+import * as wf from "@temporalio/workflow";
 import {
   LoggerSinks,
   proxyActivities,
@@ -8,8 +9,11 @@ import {
 
 // Only import the activity types
 import type * as activities from "../temporal/activities";
+import { BroadcastV2Status } from "../types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
+
+export const pauseBroadcastSignal = wf.defineSignal("PauseBroadcast");
 
 const {
   computeTimezones,
@@ -82,6 +86,34 @@ export async function broadcastWorkflowV2({
     return;
   }
 
+  // eslint-disable-next-line prefer-destructuring
+  let status: BroadcastV2Status = broadcast.status;
+
+  async function refreshStatus() {
+    const updatedStatus = await getBroadcastStatus({
+      workspaceId,
+      broadcastId,
+    });
+    if (updatedStatus) {
+      status = updatedStatus;
+    }
+  }
+
+  async function updateStatus(newStatus: BroadcastV2Status) {
+    const updatedStatus = await markBroadcastStatus({
+      workspaceId,
+      broadcastId,
+      status: newStatus,
+    });
+    if (updatedStatus) {
+      status = updatedStatus;
+    }
+  }
+
+  wf.setHandler(pauseBroadcastSignal, async () => {
+    await updateStatus("Paused");
+  });
+
   const sendAllMessages = async function sendAllMessages({
     timezones,
     batchSize,
@@ -91,10 +123,17 @@ export async function broadcastWorkflowV2({
   }) {
     let cursor: string | null = null;
     do {
-      const status = await getBroadcastStatus({
-        workspaceId,
-        broadcastId,
-      });
+      await refreshStatus();
+
+      if (status === "Paused") {
+        logger.info("waiting for broadcast to be resumed", {
+          status,
+          workspaceId,
+          broadcastId,
+        });
+        await wf.condition(() => status !== "Paused");
+      }
+
       if (status !== "Running") {
         logger.info("early exit of sendAllMessages no longer running", {
           status,
@@ -214,12 +253,7 @@ export async function broadcastWorkflowV2({
       });
 
       await Promise.all(timezonePromises);
-
-      await markBroadcastStatus({
-        workspaceId,
-        broadcastId,
-        status: "Scheduled",
-      });
+      await updateStatus("Scheduled");
 
       const sendMessagesPromises = Array.from(deliveryTimeMap.entries()).map(
         async ([timestamp, deliveryTimeTimezones]) => {
@@ -229,11 +263,7 @@ export async function broadcastWorkflowV2({
             await sleep(sleepTime);
           }
 
-          await markBroadcastStatus({
-            workspaceId,
-            broadcastId,
-            status: "Running",
-          });
+          await updateStatus("Running");
 
           await sendAllMessages({
             timezones: Array.from(deliveryTimeTimezones),
@@ -249,11 +279,7 @@ export async function broadcastWorkflowV2({
         timeZone: defaultTimezone,
       });
       if (timestamp) {
-        await markBroadcastStatus({
-          workspaceId,
-          broadcastId,
-          status: "Scheduled",
-        });
+        await updateStatus("Scheduled");
 
         const sleepTime = timestamp - Date.now();
         if (sleepTime > 0) {
@@ -261,11 +287,7 @@ export async function broadcastWorkflowV2({
           await sleep(sleepTime);
         }
 
-        await markBroadcastStatus({
-          workspaceId,
-          broadcastId,
-          status: "Running",
-        });
+        await updateStatus("Running");
 
         await sendAllMessages({
           batchSize: 100,
@@ -282,20 +304,12 @@ export async function broadcastWorkflowV2({
       }
     }
   } else {
-    await markBroadcastStatus({
-      workspaceId,
-      broadcastId,
-      status: "Running",
-    });
+    await updateStatus("Running");
 
     await sendAllMessages({
       batchSize: 100,
     });
   }
 
-  await markBroadcastStatus({
-    workspaceId,
-    broadcastId,
-    status: "Completed",
-  });
+  await updateStatus("Completed");
 }
