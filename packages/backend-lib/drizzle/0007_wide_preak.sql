@@ -1,1 +1,0 @@
-ALTER TABLE "Broadcast" ADD COLUMN "subscriptionGroupId" uuid;
