@@ -105,6 +105,7 @@ export async function getBroadcast({
 interface SendMessagesResponse {
   messagesSent: number;
   nextCursor?: string;
+  includesNonRetryableError: boolean;
 }
 
 interface SendMessagesParams {
@@ -159,7 +160,6 @@ export function sendMessagesFactory(sender: Sender) {
   ): Promise<SendMessagesResponse> {
     return withSpan({ name: "send-messages" }, async (span) => {
       const now = new Date();
-      // FIXME in order to safely pause/unpause, will need to track which messages were sent within a batch
       span.setAttributes({
         workspaceId: params.workspaceId,
         broadcastId: params.broadcastId,
@@ -332,9 +332,13 @@ export function sendMessagesFactory(sender: Sender) {
           batch: events,
         },
       });
+      const includesNonRetryableError = results.some(({ result }) =>
+        result.isErr(),
+      );
       return {
         messagesSent: results.length,
         nextCursor,
+        includesNonRetryableError,
       };
     });
   };
