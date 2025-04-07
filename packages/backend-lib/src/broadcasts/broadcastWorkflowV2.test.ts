@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
-import { addWeeks, set } from "date-fns";
-import { format, utcToZonedTime, zonedTimeToUtc } from "date-fns-tz";
+import { zonedTimeToUtc } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok } from "neverthrow";
 import { times } from "remeda";
@@ -13,7 +12,6 @@ import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
-import logger from "../logger";
 import { SendMessageParameters } from "../messaging";
 import {
   updateUserSubscriptions,
@@ -375,6 +373,7 @@ describe("broadcastWorkflowV2", () => {
           );
           // sleep for less than the rate limit period
           await testEnv.sleep(500);
+          // FIXME failing in prod
           expect(
             senderMock,
             "should have sent 1 message initially",
