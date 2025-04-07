@@ -96,6 +96,7 @@ export async function getBroadcast({
     status: model.statusV2,
     messageTemplateId: model.messageTemplateId ?? undefined,
     segmentId: model.segmentId ?? undefined,
+    scheduledAt: model.scheduledAt ?? undefined,
     subscriptionGroupId: model.subscriptionGroupId ?? undefined,
     createdAt: model.createdAt.getTime(),
     updatedAt: model.updatedAt.getTime(),
@@ -111,6 +112,7 @@ interface SendMessagesResponse {
 interface SendMessagesParams {
   workspaceId: string;
   broadcastId: string;
+  now: number;
   timezones?: string[];
   cursor?: string;
   limit: number;
@@ -119,6 +121,7 @@ interface SendMessagesParams {
 async function getUnmessagedUsers(
   params: Parameters<typeof getUsers>[0] & {
     broadcastId: string;
+    now: number;
   },
 ): Promise<{
   users: GetUsersResponseItem[];
@@ -128,7 +131,7 @@ async function getUnmessagedUsers(
   const { users, nextCursor } = await getUsers(rest, {
     allowInternalSegment: true,
   }).then(unwrap);
-  const now = new Date();
+  const nowDate = new Date(params.now);
 
   // TODO implement timezones
   const alreadySent = await searchDeliveries({
@@ -136,8 +139,8 @@ async function getUnmessagedUsers(
     broadcastId,
     userId: users.map((user) => user.id),
     limit: params.limit,
-    endDate: now.toISOString(),
-    startDate: new Date(now.getTime() - 1000 * 60 * 60 * 24).toISOString(),
+    endDate: nowDate.toISOString(),
+    startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
   });
   logger().debug(
     {
@@ -159,7 +162,7 @@ export function sendMessagesFactory(sender: Sender) {
     params: SendMessagesParams,
   ): Promise<SendMessagesResponse> {
     return withSpan({ name: "send-messages" }, async (span) => {
-      const now = new Date();
+      const now = new Date(params.now);
       span.setAttributes({
         workspaceId: params.workspaceId,
         broadcastId: params.broadcastId,
@@ -221,6 +224,7 @@ export function sendMessagesFactory(sender: Sender) {
         cursor: params.cursor,
         limit: params.limit,
         broadcastId: params.broadcastId,
+        now: params.now,
       });
 
       const promises: Promise<{
@@ -374,6 +378,14 @@ export async function getZonedTimestamp({
     // but ISO 'YYYY-MM-DDTHH:MM:SS' is generally safer.
     const utcDate: Date = zonedTimeToUtc(naiveDateTimeString, timeZone);
 
+    logger().debug(
+      {
+        utcDate: utcDate.toISOString(),
+        naiveDateTimeString,
+        timeZone,
+      },
+      "getZonedTimestamp",
+    );
     return {
       timestamp: utcDate.getTime(),
     };

@@ -160,6 +160,7 @@ export async function broadcastWorkflowV2({
           timezones,
           limit: batchSize,
           cursor: cursor ?? undefined,
+          now: activityStartTime,
         });
 
       const activityEndTime = Date.now();
@@ -236,6 +237,11 @@ export async function broadcastWorkflowV2({
   const batchSize = config.batchSize ?? 100;
 
   if (scheduledAt) {
+    logger.debug("sending scheduled broadcast", {
+      workspaceId,
+      broadcastId,
+      scheduledAt,
+    });
     if (!defaultTimezone) {
       logger.error("defaultTimezone is not set", {
         broadcastId,
@@ -279,6 +285,12 @@ export async function broadcastWorkflowV2({
           const sleepTime = timestamp - Date.now();
           if (sleepTime > 0) {
             // Wait until the localized delivery time
+            logger.info("waiting for localized delivery time", {
+              timestamp: new Date(timestamp).toISOString(),
+              deliveryTimeTimezones: Array.from(deliveryTimeTimezones),
+              workspaceId,
+              broadcastId,
+            });
             await sleep(sleepTime);
           }
 
@@ -303,6 +315,15 @@ export async function broadcastWorkflowV2({
         const sleepTime = timestamp - Date.now();
         if (sleepTime > 0) {
           // Wait until the localized delivery time
+          logger.info(
+            "waiting for localized delivery time from default timezone",
+            {
+              timestamp: new Date(timestamp).toISOString(),
+              sleepTime,
+              workspaceId,
+              broadcastId,
+            },
+          );
           await sleep(sleepTime);
         }
 
@@ -323,6 +344,10 @@ export async function broadcastWorkflowV2({
       }
     }
   } else {
+    logger.debug("sending immediate broadcast", {
+      workspaceId,
+      broadcastId,
+    });
     await updateStatus("Running");
 
     await sendAllMessages({
@@ -331,4 +356,10 @@ export async function broadcastWorkflowV2({
   }
 
   await updateStatus("Completed");
+
+  logger.info("broadcast completed", {
+    currentTime: new Date().toISOString(),
+    workspaceId,
+    broadcastId,
+  });
 }

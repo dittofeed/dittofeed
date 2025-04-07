@@ -2,14 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
+import { addWeeks, set } from "date-fns";
+import { format, utcToZonedTime, zonedTimeToUtc } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok } from "neverthrow";
+import { times } from "remeda";
 
 import { createEnvAndWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
+import logger from "../logger";
 import { SendMessageParameters } from "../messaging";
 import {
   updateUserSubscriptions,
@@ -44,7 +48,6 @@ import {
   pauseBroadcastSignal,
   resumeBroadcastSignal,
 } from "./broadcastWorkflowV2";
-import { times } from "remeda";
 
 const successMessageSentResult: MessageSendSuccess = {
   type: InternalEventType.MessageSent,
@@ -143,7 +146,13 @@ describe("broadcastWorkflowV2", () => {
     await testEnv.teardown();
   });
 
-  async function createBroadcast({ config }: { config: BroadcastV2Config }) {
+  async function createBroadcast({
+    config,
+    scheduledAt,
+  }: {
+    config: BroadcastV2Config;
+    scheduledAt?: string;
+  }) {
     const dbBroadcast = await insert({
       table: schema.broadcast,
       values: {
@@ -153,6 +162,7 @@ describe("broadcastWorkflowV2", () => {
         statusV2: "Draft",
         version: "V2",
         messageTemplateId: messageTemplate.id,
+        scheduledAt,
         subscriptionGroupId,
         config,
       },
@@ -386,15 +396,6 @@ describe("broadcastWorkflowV2", () => {
           await handle.result();
           expect(senderMock).toHaveBeenCalledTimes(userIds.length);
         });
-        // start workflow
-        // assert subset of messages sent
-        // wait for period < rate limit
-        // pause broadcast
-        // sleep for long period
-        // assert no more messages sent
-        // retrieve pending messages and expect them to contain the subset of messages that were not sent
-        // resume broadcast
-        // assert all messages sent
       });
     });
   });
@@ -526,7 +527,84 @@ describe("broadcastWorkflowV2", () => {
   });
   describe("when sending a broadcast with a scheduled time", () => {
     describe("when just using a default timezone", () => {
-      it("should localize the delivery time to that default timezone", async () => {});
+      let userId: string;
+      let scheduledAt: string;
+      let timeZone: string;
+
+      beforeEach(async () => {
+        userId = randomUUID();
+
+        await createTestEnvAndWorker();
+        timeZone = "America/New_York";
+        // Test will fail after this date.
+        scheduledAt = "2030-01-01 08:00";
+
+        await createBroadcast({
+          scheduledAt,
+          config: {
+            type: "V2",
+            message: { type: ChannelType.Email },
+            defaultTimezone: timeZone,
+          },
+        });
+
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: idUserProperty.id,
+            value: userId,
+          },
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: emailUserProperty.id,
+            value: "test@test.com",
+          },
+        ]);
+        await updateUserSubscriptions({
+          workspaceId: workspace.id,
+          userUpdates: [{ userId, changes: { [subscriptionGroupId]: true } }],
+        });
+      });
+      it("should localize the delivery time to that default timezone", async () => {
+        await worker.runUntil(async () => {
+          const handle = await testEnv.client.workflow.start(
+            broadcastWorkflowV2,
+            {
+              workflowId: generateBroadcastWorkflowV2Id({
+                workspaceId: workspace.id,
+                broadcastId: broadcast.id,
+              }),
+              taskQueue: "default",
+              args: [
+                {
+                  workspaceId: workspace.id,
+                  broadcastId: broadcast.id,
+                } satisfies BroadcastWorkflowV2Params,
+              ],
+            },
+          );
+
+          await testEnv.sleep(1000);
+          expect(senderMock).toHaveBeenCalledTimes(0);
+
+          await handle.result();
+          await testEnv.sleep(0);
+        });
+
+        const deliveries = await searchDeliveries({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        });
+
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]?.userId).toEqual(userId);
+        const sentAt = new Date(deliveries.items[0]?.sentAt ?? 0);
+        const utcScheduledAt = zonedTimeToUtc(scheduledAt, timeZone);
+        const difference = sentAt.getTime() - utcScheduledAt.getTime();
+        expect(difference).toBeLessThan(1000);
+      });
     });
     describe("when using individual timezones", () => {
       it("should localize the delivery time for each user", async () => {});
