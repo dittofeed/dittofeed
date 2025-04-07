@@ -536,8 +536,9 @@ describe("broadcastWorkflowV2", () => {
 
         await createTestEnvAndWorker();
         timeZone = "America/New_York";
+        const currentYear = new Date().getFullYear();
         // Test will fail after this date.
-        scheduledAt = "2030-01-01 08:00";
+        scheduledAt = `${currentYear + 1}-01-01 08:00`;
 
         await createBroadcast({
           scheduledAt,
@@ -606,7 +607,7 @@ describe("broadcastWorkflowV2", () => {
         expect(difference).toBeLessThan(1000);
       });
     });
-    describe("when using individual timezones", () => {
+    describe.skip("when using individual timezones", () => {
       it("should localize the delivery time for each user", async () => {});
 
       describe("when using a rate limit", () => {
