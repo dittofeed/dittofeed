@@ -24,6 +24,11 @@ SECRET_KEY='<your-secret-key>'
 AUTH_MODE='multi-tenant'
 AUTH_PROVIDER='auth0'
 SIGNOUT_URL='/dashboard/signout'
+# Example: https://dittofeed.us.auth0.com/
+OPEN_ID_ISSUER='https://<your-auth0-domain>.auth0.com/'
+OPEN_ID_AUTHORIZATION_URL='https://<your-auth0-domain>.auth0.com/authorize'
+OPEN_ID_TOKEN_URL='https://<your-auth0-domain>.auth0.com/oauth/token'
+OPEN_ID_USER_INFO_URL='https://<your-auth0-domain>.auth0.com/userinfo'
 ```
 
 #### Configuring Auth0
