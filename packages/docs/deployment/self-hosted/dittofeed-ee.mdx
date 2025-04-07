@@ -29,6 +29,11 @@ OPEN_ID_CLIENT_ID='<your-auth0-client-id>'
 OPEN_ID_CLIENT_SECRET='<your-auth0-client-secret>'
 SECRET_KEY='<your-secret-key>'
 AUTH_PROVIDER='auth0'
+# Example: https://dittofeed.us.auth0.com/
+OPEN_ID_ISSUER='https://<your-auth0-domain>.auth0.com/'
+OPEN_ID_AUTHORIZATION_URL='https://<your-auth0-domain>.auth0.com/authorize'
+OPEN_ID_TOKEN_URL='https://<your-auth0-domain>.auth0.com/oauth/token'
+OPEN_ID_USER_INFO_URL='https://<your-auth0-domain>.auth0.com/userinfo'
 ```
 
 You will also need to set the environment variables described in the [multi-tenant auth mode docs](/deployment/self-hosted/auth-modes/multi-tenant) in your .env file.
@@ -65,6 +70,15 @@ env:
     value: "multi-tenant"
   - name: AUTH_PROVIDER
     value: "auth0"
+  # Example: https://dittofeed.us.auth0.com/
+  - name: OPEN_ID_ISSUER
+    value: "https://<your-auth0-domain>.auth0.com/"
+  - name: OPEN_ID_AUTHORIZATION_URL
+    value: "https://<your-auth0-domain>.auth0.com/authorize"
+  - name: OPEN_ID_TOKEN_URL
+    value: "https://<your-auth0-domain>.auth0.com/oauth/token"
+  - name: OPEN_ID_USER_INFO_URL
+    value: "https://<your-auth0-domain>.auth0.com/userinfo"
   - name: OPEN_ID_CLIENT_ID
     valueFrom:
       secretKeyRef:
