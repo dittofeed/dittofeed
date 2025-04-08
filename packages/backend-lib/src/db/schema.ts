@@ -22,6 +22,16 @@ export const dbBroadcastStatus = pgEnum("DBBroadcastStatus", [
   "InProgress",
   "Triggered",
 ]);
+export const dbBroadcastStatusV2 = pgEnum("DBBroadcastStatusV2", [
+  "Draft",
+  "Scheduled",
+  "Running",
+  "Paused",
+  "Completed",
+  "Cancelled",
+  "Failed",
+]);
+export const dbBroadcastVersion = pgEnum("DBBroadcastVersion", ["V1", "V2"]);
 export const dbChannelType = pgEnum("DBChannelType", [
   "Email",
   "MobilePush",
@@ -55,6 +65,11 @@ export const journeyStatus = pgEnum("JourneyStatus", [
   "Broadcast",
 ]);
 export const segmentStatus = pgEnum("SegmentStatus", [
+  "NotStarted",
+  "Running",
+  "Paused",
+]);
+export const userPropertyStatus = pgEnum("UserPropertyStatus", [
   "NotStarted",
   "Running",
   "Paused",
@@ -140,6 +155,7 @@ export const userProperty = pgTable(
     definitionUpdatedAt: timestamp({ precision: 3, mode: "date" })
       .defaultNow()
       .notNull(),
+    status: userPropertyStatus().default("Running").notNull(),
     exampleValue: text(),
   },
   (table) => [
@@ -362,7 +378,6 @@ export const broadcast = pgTable(
   {
     id: uuid().primaryKey().defaultRandom().notNull(),
     workspaceId: uuid().notNull(),
-    segmentId: uuid(),
     name: text().notNull(),
     triggeredAt: timestamp({ precision: 3, mode: "date" }),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
@@ -372,7 +387,18 @@ export const broadcast = pgTable(
       .notNull(),
     journeyId: uuid(),
     messageTemplateId: uuid(),
-    status: dbBroadcastStatus().default("NotStarted").notNull(),
+    segmentId: uuid(),
+    subscriptionGroupId: uuid(),
+    status: dbBroadcastStatus().default("NotStarted"),
+    statusV2: dbBroadcastStatusV2().default("Draft"),
+    scheduledAt: timestamp({
+      precision: 3,
+      mode: "string",
+      withTimezone: false,
+    }),
+    version: dbBroadcastVersion().default("V1"),
+    archived: boolean().default(false).notNull(),
+    config: jsonb(),
   },
   (table) => [
     uniqueIndex("Broadcast_workspaceId_name_key").using(

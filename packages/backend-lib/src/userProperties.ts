@@ -100,13 +100,17 @@ export function toSavedUserPropertyResource(
 
 export async function findAllUserProperties({
   workspaceId,
+  requireRunning = false,
 }: {
   workspaceId: string;
+  requireRunning?: boolean;
 }): Promise<EnrichedUserProperty[]> {
-  const userProperties = await db()
-    .select()
-    .from(dbUserProperty)
-    .where(eq(dbUserProperty.workspaceId, workspaceId));
+  const conditions: SQL[] = [eq(dbUserProperty.workspaceId, workspaceId)];
+  if (requireRunning) {
+    conditions.push(eq(dbUserProperty.status, "Running"));
+  }
+  const where = and(...conditions);
+  const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
@@ -126,10 +130,15 @@ export async function findAllUserProperties({
 
 export async function findAllUserPropertyResources({
   workspaceId,
+  requireRunning,
 }: {
   workspaceId: string;
+  requireRunning?: boolean;
 }): Promise<SavedUserPropertyResource[]> {
-  const userProperties = await findAllUserProperties({ workspaceId });
+  const userProperties = await findAllUserProperties({
+    workspaceId,
+    requireRunning,
+  });
 
   return userProperties.map((up) => ({
     ...up,

@@ -2,6 +2,8 @@ import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
+  BroadcastResourceV2,
+  BroadcastV2Config,
   ChannelType,
   EmailContentsType,
   JourneyDefinition,
@@ -12,6 +14,7 @@ import {
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
+  UpsertBroadcastV2Error,
 } from "isomorphic-lib/src/types";
 
 import {
@@ -35,6 +38,8 @@ import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
 import { Broadcast } from "./types";
+import { Result } from "neverthrow";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -61,6 +66,15 @@ export function getBroadcastJourneyName({
 }
 
 export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
+  if (broadcast.status === null) {
+    logger().error(
+      {
+        broadcast,
+      },
+      "Broadcast status is null",
+    );
+    throw new Error("Broadcast status is null");
+  }
   const resource: BroadcastResource = {
     workspaceId: broadcast.workspaceId,
     id: broadcast.id,
@@ -399,4 +413,41 @@ export async function triggerBroadcast({
     throw new Error("Broadcast not found");
   }
   return toBroadcastResource(updatedBroadcast);
+}
+
+export async function upsertBroadcastV2({
+  workspaceId,
+  name,
+  segmentDefinition,
+  messageTemplateDefinition,
+}: {
+  workspaceId: string;
+  name: string;
+  segmentDefinition?: SegmentDefinition;
+  messageTemplateDefinition?: MessageTemplateResourceDefinition;
+}): Promise<Result<BroadcastResourceV2, UpsertBroadcastV2Error>> {
+  throw new Error("Not implemented");
+}
+
+export function broadcastV2ToResource(
+  broadcast: Broadcast,
+): BroadcastResourceV2 {
+  if (broadcast.statusV2 === null) {
+    throw new Error("Broadcast statusV2 is null");
+  }
+  const config = unwrap(
+    schemaValidateWithErr(broadcast.config, BroadcastV2Config),
+  );
+  return {
+    id: broadcast.id,
+    name: broadcast.name,
+    status: broadcast.statusV2,
+    createdAt: broadcast.createdAt.getTime(),
+    updatedAt: broadcast.updatedAt.getTime(),
+    workspaceId: broadcast.workspaceId,
+    config,
+    scheduledAt: broadcast.scheduledAt ?? undefined,
+    segmentId: broadcast.segmentId ?? undefined,
+    messageTemplateId: broadcast.messageTemplateId ?? undefined,
+  };
 }

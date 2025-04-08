@@ -1,5 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   schemaValidate,
@@ -50,16 +50,25 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
-export async function getUsers({
-  workspaceId,
-  cursor: unparsedCursor,
-  segmentFilter,
-  userIds,
-  userPropertyFilter,
-  direction = CursorDirectionEnum.After,
-  limit = 10,
-  subscriptionGroupFilter,
-}: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
+export async function getUsers(
+  {
+    workspaceId,
+    cursor: unparsedCursor,
+    segmentFilter,
+    userIds,
+    userPropertyFilter,
+    direction = CursorDirectionEnum.After,
+    limit = 10,
+    subscriptionGroupFilter,
+  }: GetUsersRequest,
+  {
+    allowInternalSegment = false,
+    allowInternalUserProperty = false,
+  }: {
+    allowInternalSegment?: boolean;
+    allowInternalUserProperty?: boolean;
+  } = {},
+): Promise<Result<GetUsersResponse, Error>> {
   // TODO implement alternate sorting
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
@@ -222,7 +231,21 @@ export async function getUsers({
     ORDER BY
       assignments.user_id ASC
   `;
+  const userPropertyCondition: SQL[] = [
+    eq(dbUserProperty.workspaceId, workspaceId),
+  ];
+  if (!allowInternalUserProperty) {
+    userPropertyCondition.push(
+      eq(dbUserProperty.resourceType, DBResourceTypeEnum.Declarative),
+    );
+  }
 
+  const segmentCondition: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (!allowInternalSegment) {
+    segmentCondition.push(
+      eq(dbSegment.resourceType, DBResourceTypeEnum.Declarative),
+    );
+  }
   const [results, userProperties, segments] = await Promise.all([
     chQuery({
       query,
@@ -235,12 +258,7 @@ export async function getUsers({
         definition: dbUserProperty.definition,
       })
       .from(dbUserProperty)
-      .where(
-        and(
-          eq(dbUserProperty.workspaceId, workspaceId),
-          eq(dbUserProperty.resourceType, DBResourceTypeEnum.Declarative),
-        ),
-      ),
+      .where(and(...userPropertyCondition)),
     db()
       .select({
         name: dbSegment.name,
@@ -248,12 +266,7 @@ export async function getUsers({
         definition: dbSegment.definition,
       })
       .from(dbSegment)
-      .where(
-        and(
-          eq(dbSegment.workspaceId, workspaceId),
-          eq(dbSegment.resourceType, DBResourceTypeEnum.Declarative),
-        ),
-      ),
+      .where(and(...segmentCondition)),
   ]);
   const segmentNameById = new Map<string, string>();
   for (const segment of segments) {

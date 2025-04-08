@@ -3925,8 +3925,10 @@ export type GetPropertiesResponse = Static<typeof GetPropertiesResponse>;
 const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
-  journeyId: Type.String(),
+  journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
   userId: UserId,
+  isAnonymous: Type.Optional(Type.Boolean()),
   originMessageId: Type.String(),
   triggeringMessageId: Type.Optional(Type.String()),
   templateId: Type.String(),
@@ -4880,9 +4882,98 @@ export const SearchDeliveriesRequest = Type.Object({
   endDate: Type.Optional(Type.String()),
   sortBy: Type.Optional(SearchDeliveriesRequestSortBy),
   sortDirection: Type.Optional(SortDirection),
+  broadcastId: Type.Optional(Type.String()),
   groupId: Type.Optional(
     Type.Union([Type.String(), Type.Array(Type.String())]),
   ),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
+
+export const BroadcastConfigTypeEnum = {
+  V2: "V2",
+} as const;
+
+export const BroadcastConfigType = Type.KeyOf(
+  Type.Const(BroadcastConfigTypeEnum),
+);
+
+export type BroadcastConfigType = Static<typeof BroadcastConfigType>;
+
+export const BroadcastErrorHandlingEnum = {
+  PauseOnError: "PauseOnError",
+  SkipOnError: "SkipOnError",
+} as const;
+
+export const BroadcastErrorHandling = Type.KeyOf(
+  Type.Const(BroadcastErrorHandlingEnum),
+);
+
+export type BroadcastErrorHandling = Static<typeof BroadcastErrorHandling>;
+
+export const BroadcastV2Config = Type.Object({
+  type: Type.Literal(BroadcastConfigTypeEnum.V2),
+  // messages per second
+  rateLimit: Type.Optional(Type.Number()),
+  defaultTimezone: Type.Optional(Type.String()),
+  useIndividualTimezone: Type.Optional(Type.Boolean()),
+  errorHandling: Type.Optional(BroadcastErrorHandling),
+  batchSize: Type.Optional(Type.Number()),
+  message: Type.Union([
+    Type.Omit(EmailMessageVariant, ["templateId"]),
+    Type.Omit(SmsMessageVariant, ["templateId"]),
+    Type.Omit(WebhookMessageVariant, ["templateId"]),
+  ]),
+});
+
+export type BroadcastV2Config = Static<typeof BroadcastV2Config>;
+
+export const BroadcastV2StatusEnum = {
+  Draft: "Draft",
+  Scheduled: "Scheduled",
+  Running: "Running",
+  Paused: "Paused",
+  Completed: "Completed",
+  Cancelled: "Cancelled",
+  Failed: "Failed",
+} as const;
+
+export const BroadcastV2Status = Type.KeyOf(Type.Const(BroadcastV2StatusEnum));
+
+export type BroadcastV2Status = Static<typeof BroadcastV2Status>;
+
+export const BroadcastResourceV2 = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  messageTemplateId: Type.Optional(Type.String()),
+  subscriptionGroupId: Type.Optional(Type.String()),
+  config: BroadcastV2Config,
+  status: BroadcastV2Status,
+  scheduledAt: Type.Optional(Type.String()),
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
+
+export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
+
+export const UpsertBroadcastV2ErrorTypeEnum = {
+  IdError: "IdError",
+  UniqueConstraintViolation: "UniqueConstraintViolation",
+} as const;
+
+export const UpsertBroadcastV2ErrorType = Type.KeyOf(
+  Type.Const(UpsertBroadcastV2ErrorTypeEnum),
+);
+
+export type UpsertBroadcastV2ErrorType = Static<
+  typeof UpsertBroadcastV2ErrorType
+>;
+
+export const UpsertBroadcastV2Error = Type.Object({
+  type: UpsertBroadcastV2ErrorType,
+  message: Type.String(),
+});
+
+export type UpsertBroadcastV2Error = Static<typeof UpsertBroadcastV2Error>;
