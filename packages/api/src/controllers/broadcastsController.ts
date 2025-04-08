@@ -17,6 +17,35 @@ import { FastifyInstance } from "fastify";
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function broadcastsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/v2",
+    {
+      schema: {
+        description: "Upsert a v2 broadcast.",
+        tags: ["Broadcasts"],
+        body: UpdateBroadcastRequest,
+        response: {
+          200: BroadcastResource,
+          404: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const [broadcast] = await db()
+        .update(schema.broadcast)
+        .set({
+          name: request.body.name,
+        })
+        .where(eq(schema.broadcast.id, request.body.id))
+        .returning();
+      if (!broadcast) {
+        return reply.status(404).send({
+          message: "Broadcast not found",
+        });
+      }
+      return reply.status(200).send(toBroadcastResource(broadcast));
+    },
+  );
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
       schema: {

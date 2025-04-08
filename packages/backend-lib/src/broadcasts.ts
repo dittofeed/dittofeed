@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   BroadcastResource,
   BroadcastResourceV2,
@@ -15,7 +16,9 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   UpsertBroadcastV2Error,
+  UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
+import { Result } from "neverthrow";
 
 import {
   broadcastWorkflow,
@@ -38,8 +41,6 @@ import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
 import { Broadcast } from "./types";
-import { Result } from "neverthrow";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -415,20 +416,6 @@ export async function triggerBroadcast({
   return toBroadcastResource(updatedBroadcast);
 }
 
-export async function upsertBroadcastV2({
-  workspaceId,
-  name,
-  segmentDefinition,
-  messageTemplateDefinition,
-}: {
-  workspaceId: string;
-  name: string;
-  segmentDefinition?: SegmentDefinition;
-  messageTemplateDefinition?: MessageTemplateResourceDefinition;
-}): Promise<Result<BroadcastResourceV2, UpsertBroadcastV2Error>> {
-  throw new Error("Not implemented");
-}
-
 export function broadcastV2ToResource(
   broadcast: Broadcast,
 ): BroadcastResourceV2 {
@@ -450,4 +437,18 @@ export function broadcastV2ToResource(
     segmentId: broadcast.segmentId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
   };
+}
+
+export async function upsertBroadcastV2({
+  workspaceId,
+  id,
+  name,
+  segmentId,
+  messageTemplateId,
+  subscriptionGroupId,
+  config,
+}: UpsertBroadcastV2Request): Promise<
+  Result<BroadcastResourceV2, UpsertBroadcastV2Error>
+> {
+  throw new Error("Not implemented");
 }

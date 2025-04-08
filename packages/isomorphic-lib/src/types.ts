@@ -4977,3 +4977,15 @@ export const UpsertBroadcastV2Error = Type.Object({
 });
 
 export type UpsertBroadcastV2Error = Static<typeof UpsertBroadcastV2Error>;
+
+export const UpsertBroadcastV2Request = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.Optional(Type.String()),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  messageTemplateId: Type.Optional(Type.String()),
+  subscriptionGroupId: Type.Optional(Type.String()),
+  config: BroadcastV2Config,
+});
+
+export type UpsertBroadcastV2Request = Static<typeof UpsertBroadcastV2Request>;
