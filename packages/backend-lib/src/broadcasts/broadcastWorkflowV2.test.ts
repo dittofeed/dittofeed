@@ -63,6 +63,24 @@ const successMessageSentResult: MessageSendSuccess = {
   },
 };
 
+type Trigger<T> = (value: T | PromiseLike<T>) => void;
+
+function buildManuallyTriggered<T = void>() {
+  let trigger!: Trigger<T>;
+
+  // Create the promise, and capture its resolve function
+  const triggeredPromise = new Promise<T>((resolve) => {
+    // Assign the promise's resolve capability to the external variable
+    trigger = resolve;
+  });
+
+  // Return the promise and the function that can trigger its resolution
+  return {
+    triggeredPromise,
+    trigger,
+  };
+}
+
 jest.setTimeout(15000);
 
 describe("broadcastWorkflowV2", () => {
@@ -315,8 +333,20 @@ describe("broadcastWorkflowV2", () => {
   describe("when sending a broadcast immediately with a rate limit", () => {
     describe("when the broadcast is paused and resumed", () => {
       let userIds: string[];
+      let firstMessageTrigger: Trigger<void>;
+      let firstMessagePromise: Promise<void>;
+
       beforeEach(async () => {
-        await createTestEnvAndWorker();
+        const manuallyTriggered = buildManuallyTriggered();
+        firstMessagePromise = manuallyTriggered.triggeredPromise;
+        firstMessageTrigger = manuallyTriggered.trigger;
+
+        await createTestEnvAndWorker({
+          sendMessageOverride: () => {
+            firstMessageTrigger();
+            return Promise.resolve(ok(successMessageSentResult));
+          },
+        });
         await createBroadcast({
           config: {
             type: "V2",
@@ -371,9 +401,9 @@ describe("broadcastWorkflowV2", () => {
               ],
             },
           );
-          // sleep for less than the rate limit period
-          await testEnv.sleep(500);
-          // FIXME failing in prod
+          // wait for the first message to be sent
+          await firstMessagePromise;
+
           expect(
             senderMock,
             "should have sent 1 message initially",
