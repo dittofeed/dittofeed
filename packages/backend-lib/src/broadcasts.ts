@@ -1,11 +1,15 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, SQL } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BroadcastResource,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
   EmailContentsType,
+  GetBroadcastsResponse,
+  GetBroadcastsV2Request,
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
@@ -14,14 +18,19 @@ import {
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
+  UpdateBroadcastArchiveRequest,
   UpsertBroadcastV2Error,
+  UpsertBroadcastV2ErrorTypeEnum,
+  UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
+import { err, ok, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
-import { db, insert } from "./db";
+import { db, insert, PostgresError, queryResult } from "./db";
 import {
   broadcast as dbBroadcast,
   defaultEmailProvider as dbDefaultEmailProvider,
@@ -38,8 +47,6 @@ import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
 import { Broadcast } from "./types";
-import { Result } from "neverthrow";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -82,12 +89,14 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     segmentId: broadcast.segmentId ?? undefined,
     journeyId: broadcast.journeyId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
+    archived: broadcast.archived,
     triggeredAt: broadcast.triggeredAt
       ? broadcast.triggeredAt.getTime()
       : undefined,
     status: broadcast.status,
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
+    version: "V1",
   };
   return resource;
 }
@@ -415,25 +424,14 @@ export async function triggerBroadcast({
   return toBroadcastResource(updatedBroadcast);
 }
 
-export async function upsertBroadcastV2({
-  workspaceId,
-  name,
-  segmentDefinition,
-  messageTemplateDefinition,
-}: {
-  workspaceId: string;
-  name: string;
-  segmentDefinition?: SegmentDefinition;
-  messageTemplateDefinition?: MessageTemplateResourceDefinition;
-}): Promise<Result<BroadcastResourceV2, UpsertBroadcastV2Error>> {
-  throw new Error("Not implemented");
-}
-
 export function broadcastV2ToResource(
   broadcast: Broadcast,
 ): BroadcastResourceV2 {
   if (broadcast.statusV2 === null) {
     throw new Error("Broadcast statusV2 is null");
+  }
+  if (broadcast.version && broadcast.version !== "V2") {
+    throw new Error("Broadcast version is not V2");
   }
   const config = unwrap(
     schemaValidateWithErr(broadcast.config, BroadcastV2Config),
@@ -445,9 +443,290 @@ export function broadcastV2ToResource(
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
     workspaceId: broadcast.workspaceId,
+    version: broadcast.version ?? undefined,
     config,
     scheduledAt: broadcast.scheduledAt ?? undefined,
     segmentId: broadcast.segmentId ?? undefined,
+    subscriptionGroupId: broadcast.subscriptionGroupId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
+    archived: broadcast.archived,
   };
+}
+
+export async function upsertBroadcastV2({
+  workspaceId,
+  id,
+  name,
+  segmentId,
+  messageTemplateId,
+  subscriptionGroupId,
+  config,
+}: UpsertBroadcastV2Request): Promise<
+  Result<BroadcastResourceV2, UpsertBroadcastV2Error>
+> {
+  if (id && !validateUuid(id)) {
+    return err({
+      type: UpsertBroadcastV2ErrorTypeEnum.IdError,
+      message: "Invalid UUID",
+    });
+  }
+  const result: Result<BroadcastResourceV2, UpsertBroadcastV2Error> =
+    await db().transaction(async (tx) => {
+      let existingModel: Broadcast | undefined;
+      if (id) {
+        existingModel = await tx.query.broadcast.findFirst({
+          where: and(
+            eq(dbBroadcast.id, id),
+            eq(dbBroadcast.workspaceId, workspaceId),
+          ),
+        });
+      } else if (name) {
+        existingModel = await tx.query.broadcast.findFirst({
+          where: and(
+            eq(dbBroadcast.name, name),
+            eq(dbBroadcast.workspaceId, workspaceId),
+          ),
+        });
+      }
+      const existing: BroadcastResourceV2 | undefined = existingModel
+        ? broadcastV2ToResource(existingModel)
+        : undefined;
+
+      const [messageTemplate, subscriptionGroup] = await Promise.all([
+        messageTemplateId
+          ? tx.query.messageTemplate.findFirst({
+              where: and(
+                eq(dbMessageTemplate.id, messageTemplateId),
+                eq(dbMessageTemplate.workspaceId, workspaceId),
+              ),
+            })
+          : null,
+        subscriptionGroupId
+          ? tx.query.subscriptionGroup.findFirst({
+              where: and(
+                eq(dbSubscriptionGroup.id, subscriptionGroupId),
+                eq(dbSubscriptionGroup.workspaceId, workspaceId),
+              ),
+            })
+          : null,
+      ]);
+      if (messageTemplate === undefined || subscriptionGroup === undefined) {
+        return err({
+          type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+          message:
+            "The segment, message template, or subscription group does not exist",
+        });
+      }
+      const messageTemplateDefinition = messageTemplate
+        ? unwrap(enrichMessageTemplate(messageTemplate)).definition
+        : null;
+
+      const channels = new Set<ChannelType>();
+      if (messageTemplateDefinition) {
+        channels.add(messageTemplateDefinition.type);
+      }
+      if (subscriptionGroup) {
+        channels.add(subscriptionGroup.channel);
+      }
+      if (config) {
+        channels.add(config.message.type);
+      }
+      if (channels.size > 1) {
+        return err({
+          type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+          message:
+            "The message template, subscription group, and broadcast config must all be the same channel type",
+        });
+      }
+      let broadcast: Broadcast;
+      if (existing) {
+        const updateResult = await queryResult(
+          tx
+            .update(dbBroadcast)
+            .set({
+              name,
+              segmentId,
+              messageTemplateId,
+              subscriptionGroupId,
+              config,
+            })
+            .where(
+              and(
+                eq(dbBroadcast.id, existing.id),
+                eq(dbBroadcast.workspaceId, workspaceId),
+              ),
+            )
+            .returning(),
+        );
+
+        if (updateResult.isErr()) {
+          if (updateResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+              message:
+                "The segment, message template, or subscription group does not exist",
+            });
+          }
+          if (updateResult.error.code === PostgresError.UNIQUE_VIOLATION) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.UniqueConstraintViolation,
+              message: "The broadcast name must be unique",
+            });
+          }
+          logger().error(
+            {
+              err: updateResult.error,
+              broadcastId: existing.id,
+              workspaceId,
+            },
+            "Failed to update broadcast",
+          );
+          throw updateResult.error;
+        }
+        const updatedBroadcast = updateResult.value[0];
+        if (!updatedBroadcast) {
+          logger().error(
+            {
+              broadcastId: existing.id,
+              workspaceId,
+            },
+            "Broadcast not found",
+          );
+          throw new Error("Broadcast not found");
+        }
+        broadcast = updatedBroadcast;
+      } else {
+        if (!name) {
+          return err({
+            type: UpsertBroadcastV2ErrorTypeEnum.MissingRequiredFields,
+            message: "Name is required when creating a new broadcast",
+          });
+        }
+        const channel: ChannelType =
+          Array.from(channels)[0] ?? ChannelType.Email;
+
+        if (channel === ChannelType.MobilePush) {
+          return err({
+            type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+            message: "Mobile push is not supported yet",
+          });
+        }
+
+        let messageConfig: BroadcastV2Config["message"];
+        switch (channel) {
+          case ChannelType.Email:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          case ChannelType.Sms:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          case ChannelType.Webhook:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          default:
+            throw new Error("Unsupported channel type");
+        }
+
+        const insertedConfig: BroadcastV2Config = config ?? {
+          type: "V2",
+          message: messageConfig,
+        };
+        const insertResult = await queryResult(
+          tx
+            .insert(dbBroadcast)
+            .values({
+              name,
+              workspaceId,
+              segmentId,
+              messageTemplateId,
+              subscriptionGroupId,
+              version: "V2",
+              config: insertedConfig,
+            })
+            .returning(),
+        );
+        if (insertResult.isErr()) {
+          if (
+            insertResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+            insertResult.error.code === PostgresError.UNIQUE_VIOLATION
+          ) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+              message:
+                "Make sure the segment, message template, and subscription group exists, and that the name and id satisfy unique constraints.",
+            });
+          }
+          logger().error(
+            {
+              err: insertResult.error,
+              workspaceId,
+              broadcastId: id,
+              name,
+            },
+            "Failed to insert broadcast",
+          );
+          throw insertResult.error;
+        }
+        const insertedBroadcast = insertResult.value[0];
+        if (!insertedBroadcast) {
+          throw new Error("Broadcast not found");
+        }
+        broadcast = insertedBroadcast;
+      }
+      return ok(broadcastV2ToResource(broadcast));
+    });
+  return result;
+}
+
+export async function getBroadcastsV2({
+  workspaceId,
+  ids,
+}: GetBroadcastsV2Request): Promise<GetBroadcastsResponse> {
+  const conditions: SQL[] = [eq(dbBroadcast.workspaceId, workspaceId)];
+  if (ids) {
+    conditions.push(inArray(dbBroadcast.id, ids));
+  }
+  const broadcasts = await db().query.broadcast.findMany({
+    where: and(...conditions),
+    orderBy: [desc(dbBroadcast.createdAt)],
+  });
+  // eslint-disable-next-line array-callback-return
+  return broadcasts.map((b) => {
+    const { version } = b;
+    switch (version) {
+      case null:
+      case "V1":
+        return toBroadcastResource(b);
+      case "V2":
+        return broadcastV2ToResource(b);
+      default:
+        assertUnreachable(version);
+    }
+  });
+}
+
+export async function archiveBroadcast({
+  workspaceId,
+  broadcastId,
+  archived,
+}: UpdateBroadcastArchiveRequest): Promise<boolean> {
+  const result = await db()
+    .update(dbBroadcast)
+    .set({
+      archived,
+    })
+    .where(
+      and(
+        eq(dbBroadcast.id, broadcastId),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      ),
+    )
+    .returning();
+  return result.length > 0;
 }
