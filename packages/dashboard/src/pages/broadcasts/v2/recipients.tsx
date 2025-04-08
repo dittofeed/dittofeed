@@ -10,7 +10,7 @@ import BroadcastLayout from "./broadcastLayout";
 export default function BroadcastRecipientsPage() {
   return (
     <DashboardContent>
-      <BroadcastLayout activeStepIndex={0}>
+      <BroadcastLayout activeStepKey="recipients">
         <Typography>Recipients Page</Typography>
         {/* TODO: Implement segment selection component */}
         <Box sx={{ mt: 2 }}>

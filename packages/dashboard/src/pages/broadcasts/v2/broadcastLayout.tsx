@@ -6,26 +6,32 @@ import Link from "next/link";
 import React from "react";
 
 const steps = [
-  { name: "Recipients", path: "/broadcasts/v2/recipients" },
-  { name: "Content", path: "/broadcasts/v2/content" },
-  { name: "Configuration", path: "/broadcasts/v2/configuration" },
-  { name: "Preview", path: "/broadcasts/v2/preview" },
+  { key: "recipients", name: "Recipients", path: "/broadcasts/v2/recipients" },
+  { key: "content", name: "Content", path: "/broadcasts/v2/content" },
+  {
+    key: "configuration",
+    name: "Configuration",
+    path: "/broadcasts/v2/configuration",
+  },
+  { key: "preview", name: "Preview", path: "/broadcasts/v2/preview" },
 ];
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
-  activeStepIndex: number;
+  activeStepKey: string;
 }
 
 export default function BroadcastLayout({
   children,
-  activeStepIndex,
+  activeStepKey,
 }: BroadcastLayoutProps) {
+  const activeStepIndex = steps.findIndex((step) => step.key === activeStepKey);
+
   return (
     <Box sx={{ width: "100%" }}>
       <Stepper nonLinear activeStep={activeStepIndex}>
         {steps.map((step) => (
-          <Step key={step.name}>
+          <Step key={step.key}>
             <Link href={step.path} passHref legacyBehavior>
               <StepButton color="inherit" component="a">
                 {step.name}

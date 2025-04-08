@@ -7,7 +7,7 @@ import BroadcastLayout from "./broadcastLayout";
 export default function BroadcastPreviewPage() {
   return (
     <DashboardContent>
-      <BroadcastLayout activeStepIndex={3}>
+      <BroadcastLayout activeStepKey="preview">
         <Typography>Preview Page</Typography>
       </BroadcastLayout>
     </DashboardContent>

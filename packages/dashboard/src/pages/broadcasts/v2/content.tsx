@@ -10,7 +10,7 @@ import BroadcastLayout from "./broadcastLayout";
 export default function BroadcastContentPage() {
   return (
     <DashboardContent>
-      <BroadcastLayout activeStepIndex={1}>
+      <BroadcastLayout activeStepKey="content">
         <Typography>Content Page</Typography>
         {/* TODO: Implement template selection component */}
         <Box sx={{ mt: 2 }}>

@@ -7,7 +7,7 @@ import BroadcastLayout from "./broadcastLayout";
 export default function BroadcastConfigurationPage() {
   return (
     <DashboardContent>
-      <BroadcastLayout activeStepIndex={2}>
+      <BroadcastLayout activeStepKey="configuration">
         <Typography>Configuration Page</Typography>
       </BroadcastLayout>
     </DashboardContent>
