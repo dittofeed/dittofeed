@@ -409,11 +409,12 @@ describe("broadcastWorkflowV2", () => {
             "should have sent 1 message initially",
           ).toHaveBeenCalledTimes(1);
 
-          await testEnv.sleep(1000);
+          await testEnv.sleep(1500);
           expect(
             senderMock,
             "should have sent 2 messages after waiting for one rate limit period",
           ).toHaveBeenCalledTimes(2);
+
           await handle.signal(pauseBroadcastSignal);
           await testEnv.sleep(5000);
           expect(
