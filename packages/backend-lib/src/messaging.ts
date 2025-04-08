@@ -1130,6 +1130,7 @@ export async function sendEmail({
         if (result.error instanceof SESv2ServiceException) {
           message = result.error.message;
         } else if (result.error instanceof Error) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           message = result.error.message;
         } else {
           logger().error(
