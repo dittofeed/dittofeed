@@ -3,6 +3,7 @@
 import { SourceType } from "isomorphic-lib/src/constants";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import { Message, ServerClient } from "postmark";
+import { InactiveRecipientsError } from "postmark/dist/client/errors/Errors";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
 import { MessageSendingResponse } from "postmark/dist/client/models/message/Message";
 import * as R from "remeda";
@@ -28,13 +29,26 @@ export async function sendMail({
 }: {
   apiKey: string;
   mailData: Message;
-}): Promise<ResultAsync<MessageSendingResponse, DefaultResponse>> {
+}): Promise<ResultAsync<MessageSendingResponse | null, DefaultResponse>> {
   const postmarkClient = new ServerClient(apiKey);
-  const response = await postmarkClient.sendEmail(mailData);
-  if (response.ErrorCode) {
-    return err(response);
+  try {
+    const response = await postmarkClient.sendEmail(mailData);
+    if (response.ErrorCode) {
+      return err(response);
+    }
+    return ok(response);
+  } catch (e) {
+    if (e instanceof InactiveRecipientsError) {
+      logger().info(
+        {
+          err: e,
+        },
+        "Postmark: Inactive recipients",
+      );
+      return ok(null);
+    }
+    throw e;
   }
-  return ok(response);
 }
 
 function unwrapTag(tagName: string, tags: Record<string, string>) {
