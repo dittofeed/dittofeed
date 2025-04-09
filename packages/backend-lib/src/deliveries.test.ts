@@ -15,6 +15,7 @@ import {
   EmailProviderType,
   EventType,
   InternalEventType,
+  KnownBatchTrackData,
   MessageSendSuccess,
   MessageSendSuccessVariant,
   SmsProviderType,
@@ -110,7 +111,10 @@ describe("deliveries", () => {
         triggeredMessageId3 = randomUUID();
         triggeredMessageId4 = randomUUID();
 
-        const triggeringEventBase = {
+        const triggeringEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
           userId,
           timestamp: new Date(Date.now() - 10000).toISOString(),
           type: EventType.Track,
@@ -120,7 +124,10 @@ describe("deliveries", () => {
           },
         };
 
-        const triggeredEventBase = {
+        const triggeredEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
           userId,
           timestamp: new Date().toISOString(),
           type: EventType.Track,
@@ -153,7 +160,7 @@ describe("deliveries", () => {
               baz: "hello",
               extra: "should be ignored",
             },
-          } as BatchItem,
+          },
           // Triggering event 2: Does not match properties
           {
             ...triggeringEventBase,
@@ -163,7 +170,7 @@ describe("deliveries", () => {
               fooBar: 2, // different value
               baz: "world", // different value
             },
-          } as BatchItem,
+          },
           // Triggering event 3: Matches some but not all properties
           {
             ...triggeringEventBase,
@@ -173,7 +180,7 @@ describe("deliveries", () => {
               fooBar: 1, // matches
               baz: "different", // does not match
             },
-          } as BatchItem,
+          },
           // Triggering event 4: Matches array property and string property
           {
             ...triggeringEventBase,
@@ -183,7 +190,7 @@ describe("deliveries", () => {
               fooBar: [1, 2, 3], // contains matching value
               baz: "hello", // matches
             },
-          } as BatchItem,
+          },
           // Triggered event 1: Triggered by event 1 (should match)
           {
             ...triggeredEventBase,
@@ -193,7 +200,7 @@ describe("deliveries", () => {
               messageId: triggeredMessageId1,
               triggeringMessageId: triggeringMessageId1, // Link to triggering event 1
             },
-          } as BatchItem,
+          },
           // Triggered event 2: Triggered by event 2 (should not match)
           {
             ...triggeredEventBase,
@@ -203,7 +210,7 @@ describe("deliveries", () => {
               messageId: triggeredMessageId2,
               triggeringMessageId: triggeringMessageId2, // Link to triggering event 2
             },
-          } as BatchItem,
+          },
           // Triggered event 3: Triggered by event 3 (should not match)
           {
             ...triggeredEventBase,
@@ -213,7 +220,7 @@ describe("deliveries", () => {
               messageId: triggeredMessageId3,
               triggeringMessageId: triggeringMessageId3, // Link to triggering event 3
             },
-          } as BatchItem,
+          },
           // Triggered event 4: Triggered by event 4 (should match)
           {
             ...triggeredEventBase,
@@ -223,7 +230,7 @@ describe("deliveries", () => {
               messageId: triggeredMessageId4,
               triggeringMessageId: triggeringMessageId4, // Link to triggering event 4
             },
-          } as BatchItem,
+          },
         ];
 
         await submitBatch({
