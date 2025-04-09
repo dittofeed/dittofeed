@@ -213,6 +213,7 @@ export async function searchDeliveries({
   endDate,
   groupId,
   broadcastId,
+  triggeringProperties,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -311,6 +312,22 @@ export async function searchDeliveries({
       )`;
   }
 
+  let triggeringPropertiesClause = "";
+  if (triggeringProperties && Object.keys(triggeringProperties).length > 0) {
+    const conditions = Object.entries(triggeringProperties).map(
+      ([key, value]) => {
+        const keyParam = queryBuilder.addQueryValue(key, "String");
+        const valueParam = queryBuilder.addQueryValue(value, "auto"); // 'auto' infers type
+        return `(
+          (JSONType(triggering_event_properties, ${keyParam}) = 'String' AND JSONExtractString(triggering_event_properties, ${keyParam}) = ${valueParam}) OR
+          (JSONType(triggering_event_properties, ${keyParam}) = 'Number' AND JSONExtractInt(triggering_event_properties, ${keyParam}) = ${valueParam}) OR
+          (JSONType(triggering_event_properties, ${keyParam}) = 'Array' AND has(JSONExtractArrayRaw(triggering_event_properties, ${keyParam}), ${valueParam}))
+        )`;
+      },
+    );
+    triggeringPropertiesClause = `AND (${conditions.join(" AND ")})`;
+  }
+
   let sortByClause: string;
 
   const withClauses: string[] = [];
@@ -340,7 +357,19 @@ export async function searchDeliveries({
     }
   }
   const withClause =
-    withClauses.length > 0 ? `WITH ${withClauses.join(", ")}` : "";
+    withClauses.length > 0 ? `WITH ${withClauses.join(", ")} ` : "";
+
+  let leftJoinClause = "";
+  if (triggeringPropertiesClause) {
+    leftJoinClause = `LEFT JOIN (
+      SELECT
+        message_id,
+        properties
+      FROM user_events_v2
+      WHERE workspace_id = ${workspaceIdParam}
+        AND event = '${InternalEventType.MessageSent}'
+    ) AS triggering_events ON uev.triggering_message_id = triggering_events.message_id`;
+  }
 
   const query = `
     ${withClause}
@@ -356,23 +385,25 @@ export async function searchDeliveries({
       is_anonymous
     FROM (
       SELECT
-        workspace_id,
-        user_or_anonymous_id,
-        if(event = 'DFInternalMessageSent', JSONExtractString(message_raw, 'properties'), '') properties,
-        event,
-        event_time,
-        if(event = '${
+        uev.workspace_id,
+        uev.user_or_anonymous_id,
+        if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+        uev.event,
+        uev.event_time,
+        if(uev.event = '${
           InternalEventType.MessageSent
-        }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id,
-        if(event = '${
+        }', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
+        if(uev.event = '${
           InternalEventType.MessageSent
-        }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
-        JSONExtractBool(message_raw, 'context', 'hidden') as hidden,
-        anonymous_id != '' as is_anonymous
-      FROM user_events_v2
+        }', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+        JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
+        uev.anonymous_id != '' as is_anonymous,
+        triggering_events.properties as triggering_event_properties
+      FROM user_events_v2 AS uev
+      ${leftJoinClause}
       WHERE
-        event in ${eventList}
-        AND workspace_id = ${workspaceIdParam}
+        uev.event in ${eventList}
+        AND uev.workspace_id = ${workspaceIdParam}
         AND hidden = False
         ${channelClause}
         ${toClause}
@@ -390,6 +421,7 @@ export async function searchDeliveries({
       ${broadcastIdClause}
       ${userIdClause}
       ${statusClause}
+      ${triggeringPropertiesClause}
     ORDER BY ${sortByClause}
     LIMIT ${queryBuilder.addQueryValue(
       offset,
