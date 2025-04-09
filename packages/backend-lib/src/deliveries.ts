@@ -212,8 +212,8 @@ export async function searchDeliveries({
   startDate,
   endDate,
   groupId,
-  // FIXME
   broadcastId,
+  triggeringProperties,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -312,6 +312,54 @@ export async function searchDeliveries({
       )`;
   }
 
+  let triggeringPropertiesClause = "";
+  if (triggeringProperties && triggeringProperties.length > 0) {
+    const conditions = triggeringProperties.map(({ key, value }) => {
+      const pathParam = queryBuilder.addQueryValue(key, "String");
+      let valueParam: string;
+      let valueType: "String" | "Int64";
+
+      if (typeof value === "string") {
+        valueParam = queryBuilder.addQueryValue(value, "String");
+        valueType = "String";
+      } else if (typeof value === "number") {
+        const roundedValue = Math.floor(value);
+        valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+        valueType = "Int64";
+      } else {
+        logger().warn(
+          { key, value, workspaceId },
+          "Unexpected type in triggeringProperties",
+        );
+        return "1=0";
+      }
+
+      const stringCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 34 AND JSONExtractString(triggering_events.properties, ${pathParam}) = ${valueParam})`;
+      const numberCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${pathParam}) = ${valueParam})`;
+
+      let arrayCheck = "1=0";
+      if (valueType === "String") {
+        const typedArrayExtract = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(String)')`;
+        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
+      } else if (valueType === "Int64") {
+        const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(Int64)')`;
+        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
+      }
+
+      if (valueType === "String") {
+        return `(${stringCheck} OR ${arrayCheck})`;
+      }
+      return `(${numberCheck} OR ${arrayCheck})`;
+    });
+
+    const validConditions = conditions.filter((c) => c !== "1=0");
+    if (validConditions.length > 0) {
+      triggeringPropertiesClause = validConditions.join(" AND ");
+    } else {
+      triggeringPropertiesClause = "1=0";
+    }
+  }
+
   let sortByClause: string;
 
   const withClauses: string[] = [];
@@ -341,56 +389,89 @@ export async function searchDeliveries({
     }
   }
   const withClause =
-    withClauses.length > 0 ? `WITH ${withClauses.join(", ")}` : "";
+    withClauses.length > 0 ? `WITH ${withClauses.join(", ")} ` : "";
+
+  let finalWhereClause = "WHERE 1=1";
+  if (triggeringPropertiesClause && triggeringPropertiesClause !== "1=0") {
+    finalWhereClause += ` AND triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})`;
+  }
 
   const query = `
     ${withClause}
     SELECT
-      argMax(event, event_time) last_event,
-      anyIf(properties, properties != '') properties,
-      max(event_time) updated_at,
-      min(event_time) sent_at,
-      user_or_anonymous_id,
-      origin_message_id,
-      any(triggering_message_id) as triggering_message_id,
-      workspace_id,
-      is_anonymous
+      inner_grouped.last_event,
+      inner_grouped.properties,
+      inner_grouped.updated_at,
+      inner_grouped.sent_at,
+      inner_grouped.user_or_anonymous_id,
+      inner_grouped.origin_message_id,
+      inner_grouped.triggering_message_id,
+      inner_grouped.workspace_id,
+      inner_grouped.is_anonymous
     FROM (
+        -- Inner query to aggregate events per message
+        SELECT
+          argMax(event, event_time) last_event,
+          anyIf(properties, properties != '') properties,
+          max(event_time) updated_at,
+          min(event_time) sent_at,
+          user_or_anonymous_id,
+          origin_message_id,
+          any(triggering_message_id) as triggering_message_id,
+          workspace_id,
+          is_anonymous
+        FROM (
+          -- Innermost query to extract base fields and triggering_message_id
+          SELECT
+            uev.workspace_id,
+            uev.user_or_anonymous_id,
+            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+            uev.event,
+            uev.event_time,
+            if(uev.event = '${
+              InternalEventType.MessageSent
+            }', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
+            if(uev.event = '${
+              InternalEventType.MessageSent
+            }', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+            JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
+            uev.anonymous_id != '' as is_anonymous
+          FROM user_events_v2 AS uev
+          WHERE
+            uev.event in ${eventList}
+            AND uev.workspace_id = ${workspaceIdParam}
+            AND hidden = False
+            ${channelClause}
+            ${toClause}
+            ${fromClause}
+            ${templateIdClause}
+            ${startDateClause}
+            ${endDateClause}
+            ${groupIdClause}
+        ) AS inner_extracted
+        GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
+        HAVING
+          origin_message_id != ''
+          AND properties != ''
+          ${journeyIdClause}
+          ${broadcastIdClause}
+          ${userIdClause}
+          ${statusClause}
+    ) AS inner_grouped
+    ${
+      triggeringProperties &&
+      triggeringProperties.length > 0 &&
+      triggeringPropertiesClause !== "1=0"
+        ? `LEFT JOIN (
       SELECT
-        workspace_id,
-        user_or_anonymous_id,
-        if(event = 'DFInternalMessageSent', JSONExtractString(message_raw, 'properties'), '') properties,
-        event,
-        event_time,
-        if(event = '${
-          InternalEventType.MessageSent
-        }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id,
-        if(event = '${
-          InternalEventType.MessageSent
-        }', JSON_VALUE(message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
-        JSONExtractBool(message_raw, 'context', 'hidden') as hidden,
-        anonymous_id != '' as is_anonymous
+        message_id,
+        properties
       FROM user_events_v2
-      WHERE
-        event in ${eventList}
-        AND workspace_id = ${workspaceIdParam}
-        AND hidden = False
-        ${channelClause}
-        ${toClause}
-        ${fromClause}
-        ${templateIdClause}
-        ${startDateClause}
-        ${endDateClause}
-        ${groupIdClause}
-    ) AS inner
-    GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
-    HAVING
-      origin_message_id != ''
-      AND properties != ''
-      ${journeyIdClause}
-      ${broadcastIdClause}
-      ${userIdClause}
-      ${statusClause}
+      WHERE workspace_id = ${workspaceIdParam}
+    ) AS triggering_events ON inner_grouped.triggering_message_id = triggering_events.message_id`
+        : ""
+    }
+    ${finalWhereClause}
     ORDER BY ${sortByClause}
     LIMIT ${queryBuilder.addQueryValue(
       offset,

@@ -15,6 +15,7 @@ import {
   EmailProviderType,
   EventType,
   InternalEventType,
+  KnownBatchTrackData,
   MessageSendSuccess,
   MessageSendSuccessVariant,
   SmsProviderType,
@@ -27,9 +28,7 @@ describe("deliveries", () => {
   beforeEach(async () => {
     const workspace = unwrap(
       await createWorkspace({
-        id: randomUUID(),
         name: `test-workspace-${randomUUID()}`,
-        updatedAt: new Date(),
       }),
     );
     workspaceId = workspace.id;
@@ -85,6 +84,188 @@ describe("deliveries", () => {
         expect(deliveries.items[0]?.triggeringMessageId).toEqual(
           triggeringMessageId,
         );
+      });
+    });
+
+    describe("when filtering by triggeringProperties", () => {
+      let userId: string;
+      let triggeringMessageId1: string;
+      let triggeringMessageId2: string;
+      let triggeringMessageId3: string;
+      let triggeringMessageId4: string;
+      let triggeredMessageId1: string;
+      let triggeredMessageId2: string;
+      let triggeredMessageId3: string;
+      let triggeredMessageId4: string;
+      const triggeringPropsToFilter = [
+        { key: "fooBar", value: 1 },
+        { key: "baz", value: "hello" },
+      ];
+      const triggeringEventName = "USER_TRIGGERED_MESSAGE";
+
+      beforeEach(async () => {
+        userId = randomUUID();
+        triggeringMessageId1 = randomUUID();
+        triggeringMessageId2 = randomUUID();
+        triggeringMessageId3 = randomUUID();
+        triggeringMessageId4 = randomUUID();
+        triggeredMessageId1 = randomUUID();
+        triggeredMessageId2 = randomUUID();
+        triggeredMessageId3 = randomUUID();
+        triggeredMessageId4 = randomUUID();
+
+        const triggeringEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
+          userId,
+          timestamp: new Date(Date.now() - 10000).toISOString(),
+          type: EventType.Track,
+          event: triggeringEventName, // Arbitrary triggering event
+          properties: {
+            workspaceId,
+          },
+        };
+
+        const triggeredEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            variant: {
+              type: ChannelType.Email,
+              from: "triggered@email.com",
+              to: "user@email.com",
+              subject: "triggered",
+              body: "triggered",
+              provider: { type: EmailProviderType.Sendgrid },
+            },
+          },
+        };
+
+        const events: BatchItem[] = [
+          // Triggering event 1: Matches all properties
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId1,
+            properties: {
+              ...triggeringEventBase.properties,
+              fooBar: 1,
+              baz: "hello",
+              extra: "should be ignored",
+            },
+          },
+          // Triggering event 2: Does not match properties
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId2,
+            properties: {
+              ...triggeringEventBase.properties,
+              fooBar: 2, // different value
+              baz: "world", // different value
+            },
+          },
+          // Triggering event 3: Matches some but not all properties
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId3,
+            properties: {
+              ...triggeringEventBase.properties,
+              fooBar: 1, // matches
+              baz: "different", // does not match
+            },
+          },
+          // Triggering event 4: Matches array property and string property
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId4,
+            properties: {
+              ...triggeringEventBase.properties,
+              fooBar: [1, 2, 3], // contains matching value
+              baz: "hello", // matches
+            },
+          },
+          // Triggered event 1: Triggered by event 1 (should match)
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId1,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId1,
+              triggeringMessageId: triggeringMessageId1, // Link to triggering event 1
+            },
+          },
+          // Triggered event 2: Triggered by event 2 (should not match)
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId2,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId2,
+              triggeringMessageId: triggeringMessageId2, // Link to triggering event 2
+            },
+          },
+          // Triggered event 3: Triggered by event 3 (should not match)
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId3,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId3,
+              triggeringMessageId: triggeringMessageId3, // Link to triggering event 3
+            },
+          },
+          // Triggered event 4: Triggered by event 4 (should match)
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId4,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId4,
+              triggeringMessageId: triggeringMessageId4, // Link to triggering event 4
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+      });
+
+      it("returns only deliveries triggered by messages with matching properties", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          triggeringProperties: triggeringPropsToFilter,
+          limit: 10,
+        });
+
+        expect(deliveries.items).toHaveLength(2);
+
+        const returnedTriggeringIds = deliveries.items.map(
+          (d) => d.triggeringMessageId,
+        );
+        expect(returnedTriggeringIds).toContain(triggeringMessageId1);
+        expect(returnedTriggeringIds).toContain(triggeringMessageId4);
+        expect(returnedTriggeringIds).not.toContain(triggeringMessageId2);
+        expect(returnedTriggeringIds).not.toContain(triggeringMessageId3);
+
+        const returnedMessageIds = deliveries.items.map(
+          (d) => d.originMessageId,
+        );
+        expect(returnedMessageIds).toContain(triggeredMessageId1);
+        expect(returnedMessageIds).toContain(triggeredMessageId4);
       });
     });
 
