@@ -313,61 +313,49 @@ export async function searchDeliveries({
   }
 
   let triggeringPropertiesClause = "";
-  if (triggeringProperties && Object.keys(triggeringProperties).length > 0) {
-    const conditions = Object.entries(triggeringProperties).map(
-      ([key, value]) => {
-        const keyParam = queryBuilder.addQueryValue(key, "String");
-        let valueParam: string;
-        let valueType: "String" | "Int64";
+  if (triggeringProperties && triggeringProperties.length > 0) {
+    const conditions = triggeringProperties.map(({ key, value }) => {
+      const pathParam = queryBuilder.addQueryValue(key, "String");
+      let valueParam: string;
+      let valueType: "String" | "Int64";
 
-        if (typeof value === "string") {
-          valueParam = queryBuilder.addQueryValue(value, "String");
-          valueType = "String";
-        } else if (typeof value === "number") {
-          const roundedValue = Math.floor(value);
-          valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
-          valueType = "Int64";
-        } else {
-          // This case should not be reachable due to the type definition,
-          // but included for robustness.
-          logger().warn(
-            { key, value },
-            "Unexpected type in triggeringProperties",
-          );
-          return "1=0"; // Return a condition that's always false
-        }
+      if (typeof value === "string") {
+        valueParam = queryBuilder.addQueryValue(value, "String");
+        valueType = "String";
+      } else if (typeof value === "number") {
+        const roundedValue = Math.floor(value);
+        valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+        valueType = "Int64";
+      } else {
+        logger().warn(
+          { key, value, workspaceId },
+          "Unexpected type in triggeringProperties",
+        );
+        return "1=0";
+      }
 
-        // Condition for matching a string property
-        const stringCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 34 AND JSONExtractString(triggering_events.properties, ${keyParam}) = ${valueParam})`; // 34 is Enum for String
+      const stringCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 34 AND JSONExtractString(triggering_events.properties, ${pathParam}) = ${valueParam})`;
+      const numberCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${pathParam}) = ${valueParam})`;
 
-        // Condition for matching a numeric property - use JSONExtractInt
-        const numberCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${keyParam}) = ${valueParam})`; // 105 is Enum for Int64
+      let arrayCheck = "1=0";
+      if (valueType === "String") {
+        const typedArrayExtract = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(String)')`;
+        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
+      } else if (valueType === "Int64") {
+        const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(Int64)')`;
+        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
+      }
 
-        // Condition for matching a value within an array property
-        let arrayCheck = "1=0"; // Default to false if type mismatch
-        if (valueType === "String") {
-          const typedArrayExtract = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(String)')`;
-          arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`; // 91 is Enum for Array
-        } else if (valueType === "Int64") {
-          // Check for Int64
-          const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(Int64)')`; // Use Array(Int64)
-          arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`; // 91 is Enum for Array
-        }
+      if (valueType === "String") {
+        return `(${stringCheck} OR ${arrayCheck})`;
+      }
+      return `(${numberCheck} OR ${arrayCheck})`;
+    });
 
-        // Combine checks: matches if property is string OR number OR array containing the value
-        if (valueType === "String") {
-          return `(${stringCheck} OR ${arrayCheck})`;
-        }
-        // valueType === "Int64"
-        return `(${numberCheck} OR ${arrayCheck})`;
-      },
-    );
-    // Filter out any invalid conditions (where 1=0 was returned)
     const validConditions = conditions.filter((c) => c !== "1=0");
     if (validConditions.length > 0) {
-      triggeringPropertiesClause = validConditions.join(" AND "); // Join conditions without leading AND
+      triggeringPropertiesClause = validConditions.join(" AND ");
     } else {
-      // If all properties were invalid types, set clause to always false
       triggeringPropertiesClause = "1=0";
     }
   }
@@ -471,7 +459,9 @@ export async function searchDeliveries({
           ${statusClause}
     ) AS inner_grouped
     ${
-      triggeringPropertiesClause && triggeringPropertiesClause !== "1=0"
+      triggeringProperties &&
+      triggeringProperties.length > 0 &&
+      triggeringPropertiesClause !== "1=0"
         ? `LEFT JOIN (
       SELECT
         message_id,

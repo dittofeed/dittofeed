@@ -4884,7 +4884,12 @@ export const SearchDeliveriesRequest = Type.Object({
   sortDirection: Type.Optional(SortDirection),
   broadcastId: Type.Optional(Type.String()),
   triggeringProperties: Type.Optional(
-    Type.Record(Type.String(), Type.Union([Type.String(), Type.Number()])),
+    Type.Array(
+      Type.Object({
+        key: Type.String(),
+        value: Type.Union([Type.String(), Type.Number()]),
+      }),
+    ),
   ),
   groupId: Type.Optional(
     Type.Union([Type.String(), Type.Array(Type.String())]),
