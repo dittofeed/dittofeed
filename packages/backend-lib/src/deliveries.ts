@@ -317,15 +317,59 @@ export async function searchDeliveries({
     const conditions = Object.entries(triggeringProperties).map(
       ([key, value]) => {
         const keyParam = queryBuilder.addQueryValue(key, "String");
-        const valueParam = queryBuilder.addQueryValue(value, "auto"); // 'auto' infers type
-        return `(
-          (JSONType(triggering_event_properties, ${keyParam}) = 'String' AND JSONExtractString(triggering_event_properties, ${keyParam}) = ${valueParam}) OR
-          (JSONType(triggering_event_properties, ${keyParam}) = 'Number' AND JSONExtractInt(triggering_event_properties, ${keyParam}) = ${valueParam}) OR
-          (JSONType(triggering_event_properties, ${keyParam}) = 'Array' AND has(JSONExtractArrayRaw(triggering_event_properties, ${keyParam}), ${valueParam}))
-        )`;
+        let valueParam: string;
+        let valueType: "String" | "Int64";
+
+        if (typeof value === "string") {
+          valueParam = queryBuilder.addQueryValue(value, "String");
+          valueType = "String";
+        } else if (typeof value === "number") {
+          const roundedValue = Math.floor(value);
+          valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+          valueType = "Int64";
+        } else {
+          // This case should not be reachable due to the type definition,
+          // but included for robustness.
+          logger().warn(
+            { key, value },
+            "Unexpected type in triggeringProperties",
+          );
+          return "1=0"; // Return a condition that's always false
+        }
+
+        // Condition for matching a string property
+        const stringCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 34 AND JSONExtractString(triggering_events.properties, ${keyParam}) = ${valueParam})`; // 34 is Enum for String
+
+        // Condition for matching a numeric property - use JSONExtractInt
+        const numberCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${keyParam}) = ${valueParam})`; // 105 is Enum for Int64
+
+        // Condition for matching a value within an array property
+        let arrayCheck = "1=0"; // Default to false if type mismatch
+        if (valueType === "String") {
+          const typedArrayExtract = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(String)')`;
+          arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`; // 91 is Enum for Array
+        } else if (valueType === "Int64") {
+          // Check for Int64
+          const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(Int64)')`; // Use Array(Int64)
+          arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`; // 91 is Enum for Array
+        }
+
+        // Combine checks: matches if property is string OR number OR array containing the value
+        if (valueType === "String") {
+          return `(${stringCheck} OR ${arrayCheck})`;
+        }
+        // valueType === "Int64"
+        return `(${numberCheck} OR ${arrayCheck})`;
       },
     );
-    triggeringPropertiesClause = `AND (${conditions.join(" AND ")})`;
+    // Filter out any invalid conditions (where 1=0 was returned)
+    const validConditions = conditions.filter((c) => c !== "1=0");
+    if (validConditions.length > 0) {
+      triggeringPropertiesClause = validConditions.join(" AND "); // Join conditions without leading AND
+    } else {
+      // If all properties were invalid types, set clause to always false
+      triggeringPropertiesClause = "1=0";
+    }
   }
 
   let sortByClause: string;
@@ -359,69 +403,85 @@ export async function searchDeliveries({
   const withClause =
     withClauses.length > 0 ? `WITH ${withClauses.join(", ")} ` : "";
 
-  let leftJoinClause = "";
-  if (triggeringPropertiesClause) {
-    leftJoinClause = `LEFT JOIN (
-      SELECT
-        message_id,
-        properties
-      FROM user_events_v2
-      WHERE workspace_id = ${workspaceIdParam}
-        AND event = '${InternalEventType.MessageSent}'
-    ) AS triggering_events ON uev.triggering_message_id = triggering_events.message_id`;
+  let finalWhereClause = "WHERE 1=1";
+  if (triggeringPropertiesClause && triggeringPropertiesClause !== "1=0") {
+    finalWhereClause += ` AND triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})`;
   }
 
   const query = `
     ${withClause}
     SELECT
-      argMax(event, event_time) last_event,
-      anyIf(properties, properties != '') properties,
-      max(event_time) updated_at,
-      min(event_time) sent_at,
-      user_or_anonymous_id,
-      origin_message_id,
-      any(triggering_message_id) as triggering_message_id,
-      workspace_id,
-      is_anonymous
+      inner_grouped.last_event,
+      inner_grouped.properties,
+      inner_grouped.updated_at,
+      inner_grouped.sent_at,
+      inner_grouped.user_or_anonymous_id,
+      inner_grouped.origin_message_id,
+      inner_grouped.triggering_message_id,
+      inner_grouped.workspace_id,
+      inner_grouped.is_anonymous
     FROM (
+        -- Inner query to aggregate events per message
+        SELECT
+          argMax(event, event_time) last_event,
+          anyIf(properties, properties != '') properties,
+          max(event_time) updated_at,
+          min(event_time) sent_at,
+          user_or_anonymous_id,
+          origin_message_id,
+          any(triggering_message_id) as triggering_message_id,
+          workspace_id,
+          is_anonymous
+        FROM (
+          -- Innermost query to extract base fields and triggering_message_id
+          SELECT
+            uev.workspace_id,
+            uev.user_or_anonymous_id,
+            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+            uev.event,
+            uev.event_time,
+            if(uev.event = '${
+              InternalEventType.MessageSent
+            }', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
+            if(uev.event = '${
+              InternalEventType.MessageSent
+            }', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+            JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
+            uev.anonymous_id != '' as is_anonymous
+          FROM user_events_v2 AS uev
+          WHERE
+            uev.event in ${eventList}
+            AND uev.workspace_id = ${workspaceIdParam}
+            AND hidden = False
+            ${channelClause}
+            ${toClause}
+            ${fromClause}
+            ${templateIdClause}
+            ${startDateClause}
+            ${endDateClause}
+            ${groupIdClause}
+        ) AS inner_extracted
+        GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
+        HAVING
+          origin_message_id != ''
+          AND properties != ''
+          ${journeyIdClause}
+          ${broadcastIdClause}
+          ${userIdClause}
+          ${statusClause}
+    ) AS inner_grouped
+    ${
+      triggeringPropertiesClause && triggeringPropertiesClause !== "1=0"
+        ? `LEFT JOIN (
       SELECT
-        uev.workspace_id,
-        uev.user_or_anonymous_id,
-        if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
-        uev.event,
-        uev.event_time,
-        if(uev.event = '${
-          InternalEventType.MessageSent
-        }', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
-        if(uev.event = '${
-          InternalEventType.MessageSent
-        }', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
-        JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
-        uev.anonymous_id != '' as is_anonymous,
-        triggering_events.properties as triggering_event_properties
-      FROM user_events_v2 AS uev
-      ${leftJoinClause}
-      WHERE
-        uev.event in ${eventList}
-        AND uev.workspace_id = ${workspaceIdParam}
-        AND hidden = False
-        ${channelClause}
-        ${toClause}
-        ${fromClause}
-        ${templateIdClause}
-        ${startDateClause}
-        ${endDateClause}
-        ${groupIdClause}
-    ) AS inner
-    GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
-    HAVING
-      origin_message_id != ''
-      AND properties != ''
-      ${journeyIdClause}
-      ${broadcastIdClause}
-      ${userIdClause}
-      ${statusClause}
-      ${triggeringPropertiesClause}
+        message_id,
+        properties
+      FROM user_events_v2
+      WHERE workspace_id = ${workspaceIdParam}
+    ) AS triggering_events ON inner_grouped.triggering_message_id = triggering_events.message_id`
+        : ""
+    }
+    ${finalWhereClause}
     ORDER BY ${sortByClause}
     LIMIT ${queryBuilder.addQueryValue(
       offset,
