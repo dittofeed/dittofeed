@@ -11,7 +11,7 @@ import {
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import { findDueWorkspaceMaxTos } from "backend-lib/src/computedProperties/periods";
-import backendConfig from "backend-lib/src/config";
+import backendConfig, { SECRETS } from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { workspace as dbWorkspace } from "backend-lib/src/db/schema";
@@ -52,6 +52,7 @@ import {
 } from "isomorphic-lib/src/types";
 import path from "path";
 import readline from "readline";
+import * as R from "remeda";
 import { validate as validateUuid } from "uuid";
 import { Argv } from "yargs";
 
@@ -343,7 +344,13 @@ export function createCommands(yargs: Argv): Argv {
       "Prints the backend config used by dittofeed aplications.",
       (y) => y,
       () => {
-        logger().info(backendConfig(), "Backend Config");
+        const config = backendConfig();
+        const redactedConfig = R.mapValues(config, (value, key) => {
+          // Cast key to satisfy type checker with SECRETS set
+          const k = key as keyof typeof config;
+          return SECRETS.has(k) ? "****" : value;
+        });
+        logger().info(redactedConfig, "Backend Config (redacted)");
       },
     )
     .command(
