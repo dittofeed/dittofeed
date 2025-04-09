@@ -250,6 +250,21 @@ export type Config = Overwrite<
   database: string;
 };
 
+export const SECRETS = new Set<keyof Config>([
+  "databasePassword",
+  "clickhousePassword",
+  "kafkaPassword",
+  "hubspotClientSecret",
+  "secretKey",
+  "password",
+  "openIdClientSecret",
+  "blobStorageAccessKeyId",
+  "blobStorageSecretAccessKey",
+  "hyperDxApiKey",
+  "databaseUrl", // Contains password
+  "dashboardWriteKey", // Potentially sensitive
+]);
+
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
 };
