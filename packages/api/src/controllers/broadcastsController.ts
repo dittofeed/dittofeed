@@ -10,6 +10,7 @@ import {
   BroadcastResource,
   TriggerBroadcastRequest,
   UpdateBroadcastRequest,
+  UpsertBroadcastV2Request,
 } from "backend-lib/src/types";
 import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
@@ -22,7 +23,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       schema: {
         description: "Upsert a v2 broadcast.",
         tags: ["Broadcasts"],
-        body: UpdateBroadcastRequest,
+        body: UpsertBroadcastV2Request,
         response: {
           200: BroadcastResource,
           404: BaseMessageResponse,

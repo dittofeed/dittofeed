@@ -16,9 +16,11 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   UpsertBroadcastV2Error,
+  UpsertBroadcastV2ErrorTypeEnum,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { Result } from "neverthrow";
+import { err, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import {
   broadcastWorkflow,
@@ -450,5 +452,41 @@ export async function upsertBroadcastV2({
 }: UpsertBroadcastV2Request): Promise<
   Result<BroadcastResourceV2, UpsertBroadcastV2Error>
 > {
+  if (id && !validateUuid(id)) {
+    return err({
+      type: UpsertBroadcastV2ErrorTypeEnum.IdError,
+      message: "Invalid UUID",
+    });
+  }
+  const result: Result<BroadcastResourceV2, UpsertBroadcastV2Error> =
+    await db().transaction(async (tx) => {
+      let existing: Broadcast | undefined;
+      if (id) {
+        existing = await tx.query.broadcast.findFirst({
+          where: and(
+            eq(dbBroadcast.id, id),
+            eq(dbBroadcast.workspaceId, workspaceId),
+          ),
+        });
+      } else if (name) {
+        existing = await tx.query.broadcast.findFirst({
+          where: and(
+            eq(dbBroadcast.name, name),
+            eq(dbBroadcast.workspaceId, workspaceId),
+          ),
+        });
+      }
+
+      if (!existing) {
+        if (!name) {
+          return err({
+            type: UpsertBroadcastV2ErrorTypeEnum.MissingRequiredFields,
+            message: "Name is required",
+          });
+        }
+      }
+
+      throw new Error("Not implemented");
+    });
   throw new Error("Not implemented");
 }

@@ -4961,6 +4961,7 @@ export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
 export const UpsertBroadcastV2ErrorTypeEnum = {
   IdError: "IdError",
   UniqueConstraintViolation: "UniqueConstraintViolation",
+  MissingRequiredFields: "MissingRequiredFields",
 } as const;
 
 export const UpsertBroadcastV2ErrorType = Type.KeyOf(
@@ -4978,14 +4979,26 @@ export const UpsertBroadcastV2Error = Type.Object({
 
 export type UpsertBroadcastV2Error = Static<typeof UpsertBroadcastV2Error>;
 
-export const UpsertBroadcastV2Request = Type.Object({
-  workspaceId: Type.String(),
-  id: Type.Optional(Type.String()),
-  name: Type.String(),
-  segmentId: Type.Optional(Type.String()),
-  messageTemplateId: Type.Optional(Type.String()),
-  subscriptionGroupId: Type.Optional(Type.String()),
-  config: BroadcastV2Config,
-});
+export const IdOrName = Type.Union([
+  Type.Object({
+    id: Type.String(),
+  }),
+  Type.Object({
+    name: Type.String(),
+  }),
+]);
+
+export const UpsertBroadcastV2Request = Type.Intersect([
+  Type.Object({
+    workspaceId: Type.String(),
+    id: Type.Optional(Type.String()),
+    name: Type.Optional(Type.String()),
+    segmentId: Type.Optional(Type.String()),
+    messageTemplateId: Type.Optional(Type.String()),
+    subscriptionGroupId: Type.Optional(Type.String()),
+    config: Type.Optional(BroadcastV2Config),
+  }),
+  IdOrName,
+]);
 
 export type UpsertBroadcastV2Request = Static<typeof UpsertBroadcastV2Request>;
