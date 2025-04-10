@@ -4,7 +4,15 @@ import {
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { omit } from "remeda";
+import {
+  filter as rFilter,
+  groupBy,
+  join,
+  map,
+  omit,
+  pipe,
+  values,
+} from "remeda";
 
 import {
   clickhouseClient,
@@ -213,9 +221,15 @@ export async function searchDeliveries({
   endDate,
   groupId,
   broadcastId,
-  triggeringProperties,
+  triggeringProperties: triggeringPropertiesInput,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
+  const triggeringProperties = triggeringPropertiesInput as
+    | Array<{
+        key: string;
+        value: string | number;
+      }>
+    | undefined;
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
@@ -314,47 +328,66 @@ export async function searchDeliveries({
 
   let triggeringPropertiesClause = "";
   if (triggeringProperties && triggeringProperties.length > 0) {
-    const conditions = triggeringProperties.map(({ key, value }) => {
-      const pathParam = queryBuilder.addQueryValue(key, "String");
-      let valueParam: string;
-      let valueType: "String" | "Int64";
+    const groupedByKey = groupBy(triggeringProperties, ({ key }) => key);
 
-      if (typeof value === "string") {
-        valueParam = queryBuilder.addQueryValue(value, "String");
-        valueType = "String";
-      } else if (typeof value === "number") {
-        const roundedValue = Math.floor(value);
-        valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
-        valueType = "Int64";
-      } else {
-        logger().warn(
-          { key, value, workspaceId },
-          "Unexpected type in triggeringProperties",
+    const pathConditions = pipe(
+      groupedByKey,
+      values, // Get the arrays of properties for each key
+      map((keyItems) => {
+        const key = keyItems[0]?.key;
+        if (!key) {
+          return null; // Return null if key is missing
+        }
+        const keyParam = queryBuilder.addQueryValue(key, "String");
+
+        const valueConditions = map(keyItems, ({ value }) => {
+          let valueParam: string;
+          let valueType: "String" | "Int64";
+
+          if (typeof value === "string") {
+            valueParam = queryBuilder.addQueryValue(value, "String");
+            valueType = "String";
+          } else if (typeof value === "number") {
+            const roundedValue = Math.floor(value);
+            valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+            valueType = "Int64";
+          } else {
+            logger().warn({ key, value, workspaceId }, "Unexpected type");
+            return null; // Return null for invalid type
+          }
+
+          const stringCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 34 AND JSONExtractString(triggering_events.properties, ${keyParam}) = ${valueParam})`;
+          const numberCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${keyParam}) = ${valueParam})`;
+
+          let arrayCheck = "1=0";
+          if (valueType === "String") {
+            const typedArrayExtract = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(String)')`;
+            arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
+          } else if (valueType === "Int64") {
+            const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(Int64)')`;
+            arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
+          }
+
+          if (valueType === "String") {
+            return `(${stringCheck} OR ${arrayCheck})`;
+          }
+          return `(${numberCheck} OR ${arrayCheck})`;
+        });
+
+        const validValueConditions = rFilter(
+          valueConditions,
+          (c) => c !== null,
         );
-        return "1=0";
-      }
+        if (validValueConditions.length === 0) {
+          return null;
+        }
+        return `(${join(validValueConditions, " OR ")})`;
+      }),
+      rFilter((c): c is string => c !== null),
+    );
 
-      const stringCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 34 AND JSONExtractString(triggering_events.properties, ${pathParam}) = ${valueParam})`;
-      const numberCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${pathParam}) = ${valueParam})`;
-
-      let arrayCheck = "1=0";
-      if (valueType === "String") {
-        const typedArrayExtract = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(String)')`;
-        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
-      } else if (valueType === "Int64") {
-        const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${pathParam}, 'Array(Int64)')`;
-        arrayCheck = `(JSONType(triggering_events.properties, ${pathParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
-      }
-
-      if (valueType === "String") {
-        return `(${stringCheck} OR ${arrayCheck})`;
-      }
-      return `(${numberCheck} OR ${arrayCheck})`;
-    });
-
-    const validConditions = conditions.filter((c) => c !== "1=0");
-    if (validConditions.length > 0) {
-      triggeringPropertiesClause = validConditions.join(" AND ");
+    if (pathConditions.length > 0) {
+      triggeringPropertiesClause = join(pathConditions, " AND ");
     } else {
       triggeringPropertiesClause = "1=0";
     }
@@ -409,7 +442,6 @@ export async function searchDeliveries({
       inner_grouped.workspace_id,
       inner_grouped.is_anonymous
     FROM (
-        -- Inner query to aggregate events per message
         SELECT
           argMax(event, event_time) last_event,
           anyIf(properties, properties != '') properties,
@@ -421,19 +453,14 @@ export async function searchDeliveries({
           workspace_id,
           is_anonymous
         FROM (
-          -- Innermost query to extract base fields and triggering_message_id
           SELECT
             uev.workspace_id,
             uev.user_or_anonymous_id,
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
             uev.event,
             uev.event_time,
-            if(uev.event = '${
-              InternalEventType.MessageSent
-            }', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
-            if(uev.event = '${
-              InternalEventType.MessageSent
-            }', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
+            if(uev.event = '${InternalEventType.MessageSent}', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
             JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
             uev.anonymous_id != '' as is_anonymous
           FROM user_events_v2 AS uev
@@ -473,10 +500,7 @@ export async function searchDeliveries({
     }
     ${finalWhereClause}
     ORDER BY ${sortByClause}
-    LIMIT ${queryBuilder.addQueryValue(
-      offset,
-      "UInt64",
-    )},${queryBuilder.addQueryValue(limit, "UInt64")}
+    LIMIT ${queryBuilder.addQueryValue(offset, "UInt64")},${queryBuilder.addQueryValue(limit, "UInt64")}
   `;
 
   const result = await chQuery({
