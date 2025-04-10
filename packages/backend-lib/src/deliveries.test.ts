@@ -99,6 +99,8 @@ describe("deliveries", () => {
       let triggeredMessageId4: string;
       const triggeringPropsToFilter = [
         { key: "fooBar", value: 1 },
+        // doesn't match
+        { key: "fooBar", value: 1000 },
         { key: "baz", value: "hello" },
       ];
       const triggeringEventName = "USER_TRIGGERED_MESSAGE";
@@ -1225,7 +1227,6 @@ describe("deliveries", () => {
             },
           });
         });
-
         it("only shows users in the group", async () => {
           const deliveries = await searchDeliveries({
             workspaceId,
