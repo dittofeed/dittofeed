@@ -352,20 +352,27 @@ export async function searchDeliveries({
             valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
             valueType = "Int64";
           } else {
-            logger().warn({ key, value, workspaceId }, "Unexpected type");
+            logger().error({ key, value, workspaceId }, "Unexpected type");
             return null; // Return null for invalid type
           }
 
           const stringCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 34 AND JSONExtractString(triggering_events.properties, ${keyParam}) = ${valueParam})`;
           const numberCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${keyParam}) = ${valueParam})`;
 
-          let arrayCheck = "1=0";
+          // Initialize to null for consistency, although it will always be set below.
+          let arrayCheck: string;
           if (valueType === "String") {
             const typedArrayExtract = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(String)')`;
             arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
           } else if (valueType === "Int64") {
             const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(Int64)')`;
             arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
+          } else {
+            logger().error(
+              { key, value, valueType, workspaceId },
+              "Unexpected value type",
+            );
+            return null;
           }
 
           if (valueType === "String") {
