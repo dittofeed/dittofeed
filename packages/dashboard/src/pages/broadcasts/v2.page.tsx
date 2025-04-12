@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { validate as validateUuid } from "uuid";
 
-import Broadcasts from "../../components/broadcasts";
+import Broadcasts from "../../components/broadcast";
 import DashboardContent from "../../components/dashboardContent";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
@@ -14,7 +14,7 @@ import { PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const broadcastId = ctx.params?.broadcastId;
+    const broadcastId = ctx.params?.id;
     if (typeof broadcastId !== "string") {
       return {
         notFound: true,
