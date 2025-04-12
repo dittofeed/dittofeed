@@ -460,23 +460,75 @@ export async function upsertBroadcastV2({
   }
   const result: Result<BroadcastResourceV2, UpsertBroadcastV2Error> =
     await db().transaction(async (tx) => {
-      let existing: Broadcast | undefined;
+      let existingModel: Broadcast | undefined;
       if (id) {
-        existing = await tx.query.broadcast.findFirst({
+        existingModel = await tx.query.broadcast.findFirst({
           where: and(
             eq(dbBroadcast.id, id),
             eq(dbBroadcast.workspaceId, workspaceId),
           ),
         });
       } else if (name) {
-        existing = await tx.query.broadcast.findFirst({
+        existingModel = await tx.query.broadcast.findFirst({
           where: and(
             eq(dbBroadcast.name, name),
             eq(dbBroadcast.workspaceId, workspaceId),
           ),
         });
       }
+      const existing: BroadcastResourceV2 | undefined = existingModel
+        ? broadcastV2ToResource(existingModel)
+        : undefined;
 
+      const [messageTemplate, subscriptionGroup] = await Promise.all([
+        messageTemplateId
+          ? tx.query.messageTemplate.findFirst({
+              where: and(
+                eq(dbMessageTemplate.id, messageTemplateId),
+                eq(dbMessageTemplate.workspaceId, workspaceId),
+              ),
+            })
+          : null,
+        subscriptionGroupId
+          ? tx.query.subscriptionGroup.findFirst({
+              where: and(
+                eq(dbSubscriptionGroup.id, subscriptionGroupId),
+                eq(dbSubscriptionGroup.workspaceId, workspaceId),
+              ),
+            })
+          : null,
+      ]);
+      if (
+        messageTemplateId === undefined ||
+        subscriptionGroupId === undefined
+      ) {
+        return err({
+          type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+          message:
+            "The segment, message template, or subscription group does not exist",
+        });
+      }
+      const messageTemplateDefinition = messageTemplate
+        ? unwrap(enrichMessageTemplate(messageTemplate)).definition
+        : null;
+
+      const channels = new Set<ChannelType>();
+      if (messageTemplateDefinition) {
+        channels.add(messageTemplateDefinition.type);
+      }
+      if (subscriptionGroup) {
+        channels.add(subscriptionGroup.channel);
+      }
+      if (config) {
+        channels.add(config.message.type);
+      }
+      if (channels.size > 1) {
+        return err({
+          type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+          message:
+            "The message template, subscription group, and broadcast config must all be the same channel type",
+        });
+      }
       let broadcast: Broadcast;
       if (existing) {
         const updateResult = await queryResult(
@@ -541,6 +593,13 @@ export async function upsertBroadcastV2({
             message: "Name is required when creating a new broadcast",
           });
         }
+        const insertedConfig: BroadcastV2Config = config ?? {
+          type: "V2",
+          message: {
+            type: "Email",
+            templateId: messageTemplateId,
+          },
+        };
         const insertResult = await queryResult(
           tx
             .insert(dbBroadcast)
