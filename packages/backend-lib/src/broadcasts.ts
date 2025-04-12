@@ -20,7 +20,7 @@ import {
   UpsertBroadcastV2ErrorTypeEnum,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { err, Result } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -605,7 +605,8 @@ export async function upsertBroadcastV2({
         }
 
         const messageConfig: BroadcastV2Config["message"] = {
-          type: channel,
+          // FIXME
+          type: "Email",
         };
 
         const insertedConfig: BroadcastV2Config = config ?? {
@@ -653,7 +654,7 @@ export async function upsertBroadcastV2({
         }
         broadcast = insertedBroadcast;
       }
-      return broadcastV2ToResource(broadcast);
+      return ok(broadcastV2ToResource(broadcast));
     });
   return result;
 }
