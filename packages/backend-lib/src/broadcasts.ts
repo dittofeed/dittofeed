@@ -477,6 +477,7 @@ export async function upsertBroadcastV2({
         });
       }
 
+      let broadcast: Broadcast;
       if (existing) {
         const updateResult = await queryResult(
           tx
@@ -496,6 +497,7 @@ export async function upsertBroadcastV2({
             )
             .returning(),
         );
+
         if (updateResult.isErr()) {
           if (updateResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION) {
             return err({
@@ -510,8 +512,28 @@ export async function upsertBroadcastV2({
               message: "The broadcast name must be unique",
             });
           }
+          logger().error(
+            {
+              err: updateResult.error,
+              broadcastId: existing.id,
+              workspaceId,
+            },
+            "Failed to update broadcast",
+          );
           throw updateResult.error;
         }
+        const updatedBroadcast = updateResult.value[0];
+        if (!updatedBroadcast) {
+          logger().error(
+            {
+              broadcastId: existing.id,
+              workspaceId,
+            },
+            "Broadcast not found",
+          );
+          throw new Error("Broadcast not found");
+        }
+        broadcast = updatedBroadcast;
       } else {
         if (!name) {
           return err({
@@ -519,10 +541,48 @@ export async function upsertBroadcastV2({
             message: "Name is required when creating a new broadcast",
           });
         }
-        throw new Error("Not implemented");
+        const insertResult = await queryResult(
+          tx
+            .insert(dbBroadcast)
+            .values({
+              name,
+              workspaceId,
+              segmentId,
+              messageTemplateId,
+              subscriptionGroupId,
+              config,
+            })
+            .returning(),
+        );
+        if (insertResult.isErr()) {
+          if (
+            insertResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+            insertResult.error.code === PostgresError.UNIQUE_VIOLATION
+          ) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+              message:
+                "Make sure the segment, message template, and subscription group exists, and that the name and id satisfy unique constraints.",
+            });
+          }
+          logger().error(
+            {
+              err: insertResult.error,
+              workspaceId,
+              broadcastId: id,
+              name,
+            },
+            "Failed to insert broadcast",
+          );
+          throw insertResult.error;
+        }
+        const insertedBroadcast = insertResult.value[0];
+        if (!insertedBroadcast) {
+          throw new Error("Broadcast not found");
+        }
+        broadcast = insertedBroadcast;
       }
-
-      throw new Error("Not implemented");
+      return broadcastV2ToResource(broadcast);
     });
-  throw new Error("Not implemented");
+  return result;
 }
