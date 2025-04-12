@@ -8,7 +8,7 @@ import {
   BROADCAST_STEPS,
   BroadcastState,
   BroadcastStateUpdater,
-  StepKey,
+  BroadcastStepKey,
 } from "./broadcastsShared";
 
 interface BroadcastLayoutProps {
@@ -23,7 +23,7 @@ export default function BroadcastLayout({
   updateState,
 }: BroadcastLayoutProps) {
   const updateStep = useCallback(
-    (step: StepKey) => {
+    (step: BroadcastStepKey) => {
       updateState((draft) => {
         draft.step = step;
       });

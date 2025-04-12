@@ -2,7 +2,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
-import BroadcastLayout from "./broadcasts/broadcastsLayout";
+import BroadcastLayout from "./broadcasts/broadcastsLayoutV2";
 import {
   BroadcastQueryKeys,
   BroadcastState,
@@ -17,7 +17,7 @@ import Recipients from "./broadcasts/recipients";
 import Review from "./broadcasts/review";
 
 function queryParamsToState(
-  queryParams: Record<string, string | string[]>,
+  queryParams: Record<string, string | string[] | undefined>,
 ): Partial<BroadcastState> {
   const stepValue = queryParams[BroadcastQueryKeys.STEP];
   const step = schemaValidateWithErr(stepValue, BroadcastStepKey).unwrapOr(
@@ -33,7 +33,7 @@ export default function Broadcasts({
   queryParams,
   onStateChange,
 }: {
-  queryParams: Record<string, string | string[]>;
+  queryParams: Record<string, string | string[] | undefined>;
   onStateChange?: (state: ExposedBroadcastState) => void;
 }) {
   const stateFromQueryParams = useMemo(
