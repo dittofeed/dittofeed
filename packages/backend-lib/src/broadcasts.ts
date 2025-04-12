@@ -11,6 +11,7 @@ import {
   JourneyNodeType,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageVariant,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
@@ -593,12 +594,23 @@ export async function upsertBroadcastV2({
             message: "Name is required when creating a new broadcast",
           });
         }
+        const channel: ChannelType =
+          Array.from(channels)[0] ?? ChannelType.Email;
+
+        if (channel === ChannelType.MobilePush) {
+          return err({
+            type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+            message: "Mobile push is not supported yet",
+          });
+        }
+
+        const messageConfig: BroadcastV2Config["message"] = {
+          type: channel,
+        };
+
         const insertedConfig: BroadcastV2Config = config ?? {
           type: "V2",
-          message: {
-            type: "Email",
-            templateId: messageTemplateId,
-          },
+          message: messageConfig,
         };
         const insertResult = await queryResult(
           tx
@@ -609,7 +621,7 @@ export async function upsertBroadcastV2({
               segmentId,
               messageTemplateId,
               subscriptionGroupId,
-              config,
+              config: insertedConfig,
             })
             .returning(),
         );
