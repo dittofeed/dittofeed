@@ -2,12 +2,14 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   toBroadcastResource,
   triggerBroadcast,
+  upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
   BaseMessageResponse,
   BroadcastResource,
+  BroadcastResourceV2,
   TriggerBroadcastRequest,
   UpdateBroadcastRequest,
   UpsertBroadcastV2Request,
@@ -25,25 +27,17 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         tags: ["Broadcasts"],
         body: UpsertBroadcastV2Request,
         response: {
-          200: BroadcastResource,
+          200: BroadcastResourceV2,
           404: BaseMessageResponse,
         },
       },
     },
     async (request, reply) => {
-      const [broadcast] = await db()
-        .update(schema.broadcast)
-        .set({
-          name: request.body.name,
-        })
-        .where(eq(schema.broadcast.id, request.body.id))
-        .returning();
-      if (!broadcast) {
-        return reply.status(404).send({
-          message: "Broadcast not found",
-        });
+      const result = await upsertBroadcastV2(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send(result.error);
       }
-      return reply.status(200).send(toBroadcastResource(broadcast));
+      return reply.status(200).send(result.value);
     },
   );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
