@@ -4962,6 +4962,7 @@ export const UpsertBroadcastV2ErrorTypeEnum = {
   IdError: "IdError",
   UniqueConstraintViolation: "UniqueConstraintViolation",
   MissingRequiredFields: "MissingRequiredFields",
+  ConstraintViolation: "ConstraintViolation",
 } as const;
 
 export const UpsertBroadcastV2ErrorType = Type.KeyOf(

@@ -26,7 +26,7 @@ import {
   broadcastWorkflow,
   generateBroadcastWorkflowId,
 } from "./computedProperties/broadcastWorkflow";
-import { db, insert } from "./db";
+import { db, insert, PostgresError, queryResult } from "./db";
 import {
   broadcast as dbBroadcast,
   defaultEmailProvider as dbDefaultEmailProvider,
@@ -477,13 +477,49 @@ export async function upsertBroadcastV2({
         });
       }
 
-      if (!existing) {
+      if (existing) {
+        const updateResult = await queryResult(
+          tx
+            .update(dbBroadcast)
+            .set({
+              name,
+              segmentId,
+              messageTemplateId,
+              subscriptionGroupId,
+              config,
+            })
+            .where(
+              and(
+                eq(dbBroadcast.id, existing.id),
+                eq(dbBroadcast.workspaceId, workspaceId),
+              ),
+            )
+            .returning(),
+        );
+        if (updateResult.isErr()) {
+          if (updateResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
+              message:
+                "The segment, message template, or subscription group does not exist",
+            });
+          }
+          if (updateResult.error.code === PostgresError.UNIQUE_VIOLATION) {
+            return err({
+              type: UpsertBroadcastV2ErrorTypeEnum.UniqueConstraintViolation,
+              message: "The broadcast name must be unique",
+            });
+          }
+          throw updateResult.error;
+        }
+      } else {
         if (!name) {
           return err({
             type: UpsertBroadcastV2ErrorTypeEnum.MissingRequiredFields,
-            message: "Name is required",
+            message: "Name is required when creating a new broadcast",
           });
         }
+        throw new Error("Not implemented");
       }
 
       throw new Error("Not implemented");
