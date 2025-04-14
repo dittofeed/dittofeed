@@ -9,6 +9,7 @@ import {
   ChannelType,
   EmailContentsType,
   GetBroadcastsResponse,
+  GetBroadcastsV2Request,
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,

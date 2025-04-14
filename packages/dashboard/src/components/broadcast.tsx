@@ -1,11 +1,12 @@
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { useEffect, useMemo } from "react";
-import { useImmer } from "use-immer";
+import { useCallback, useEffect, useMemo } from "react";
+import { Updater, useImmer } from "use-immer";
 
 import BroadcastLayout from "./broadcasts/broadcastsLayoutV2";
 import {
   BroadcastQueryKeys,
   BroadcastState,
+  BroadcastStateUpdater,
   BroadcastStepKey,
   BroadcastStepKeys,
   ExposedBroadcastState,
@@ -41,12 +42,21 @@ export default function Broadcasts({
     [queryParams],
   );
 
-  const [state, updateState] = useImmer<BroadcastState>({
-    step: stateFromQueryParams.step ?? BroadcastStepKeys.RECIPIENTS,
-  });
+  const { id } = queryParams;
+  const [state, updateState] = useImmer<BroadcastState | null>(
+    id && typeof id === "string"
+      ? {
+          id,
+          step: stateFromQueryParams.step ?? BroadcastStepKeys.RECIPIENTS,
+        }
+      : null,
+  );
 
   useEffect(() => {
     updateState((draft) => {
+      if (!draft) {
+        return;
+      }
       if (
         stateFromQueryParams.step !== draft.step &&
         stateFromQueryParams.step !== undefined
@@ -57,20 +67,48 @@ export default function Broadcasts({
   }, [stateFromQueryParams.step, updateState]);
 
   const exposedState = useMemo(() => {
+    if (!state) {
+      return null;
+    }
     return {
       step: state.step,
     };
-  }, [state.step]);
+  }, [state]);
 
   useEffect(() => {
+    if (!exposedState) {
+      return;
+    }
     if (onStateChange) {
       onStateChange(exposedState);
     }
   }, [exposedState, onStateChange]);
+
+  const updateStateWithoutNull: BroadcastStateUpdater = useCallback(
+    (updater) => {
+      updateState((draft) => {
+        if (draft === null) {
+          return draft;
+        }
+        if (typeof updater !== "function") {
+          return draft;
+        }
+        return updater(draft);
+      });
+    },
+    [updateState],
+  );
+
+  if (state === null) {
+    return null;
+  }
+
   let content: React.ReactNode;
   switch (state.step) {
     case BroadcastStepKeys.RECIPIENTS:
-      content = <Recipients state={state} updateState={updateState} />;
+      content = (
+        <Recipients state={state} updateState={updateStateWithoutNull} />
+      );
       break;
     case BroadcastStepKeys.CONTENT:
       content = <Content />;
