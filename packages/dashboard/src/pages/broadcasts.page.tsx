@@ -81,6 +81,34 @@ export const getServerSideProps: GetServerSideProps<BroadcastsProps> =
 // Use the union type for the table row data
 type Row = BroadcastResource | BroadcastResourceV2;
 
+// Helper function to format status strings
+function humanizeBroadcastStatus(status: string): string {
+  switch (status) {
+    case "NotStarted":
+      return "Not Started";
+    case "InProgress":
+      return "In Progress";
+    case "Triggered": // V1 status, might map to Running/Completed in practice
+      return "Triggered (V1)"; // Clarify V1 status if needed
+    case "Draft":
+      return "Draft";
+    case "Scheduled":
+      return "Scheduled";
+    case "Running":
+      return "Running";
+    case "Paused":
+      return "Paused";
+    case "Completed":
+      return "Completed";
+    case "Cancelled":
+      return "Cancelled";
+    case "Failed":
+      return "Failed";
+    default:
+      return status; // Return original if unknown
+  }
+}
+
 // Cell renderer for Actions column
 function ActionsCell({ row }: CellContext<Row, unknown>) {
   const theme = useTheme();
@@ -146,10 +174,10 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
 
 // Cell renderer for Status column
 function StatusCell({ getValue }: CellContext<Row, unknown>) {
-  // TODO: Add styling/chip based on status value
-  // Display the status string directly, works for both V1 and V2 for now
-  const value = getValue<string>();
-  return <Typography variant="body2">{value}</Typography>;
+  const rawStatus = getValue<string>();
+  const humanizedStatus = humanizeBroadcastStatus(rawStatus);
+  // TODO: Consider using MUI Chip for better visual styling
+  return <Typography variant="body2">{humanizedStatus}</Typography>;
 }
 
 // TimeCell for displaying timestamps like createdAt
