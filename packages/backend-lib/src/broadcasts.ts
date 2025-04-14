@@ -604,10 +604,26 @@ export async function upsertBroadcastV2({
           });
         }
 
-        const messageConfig: BroadcastV2Config["message"] = {
-          // FIXME
-          type: "Email",
-        };
+        let messageConfig: BroadcastV2Config["message"];
+        switch (channel) {
+          case ChannelType.Email:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          case ChannelType.Sms:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          case ChannelType.Webhook:
+            messageConfig = {
+              type: channel,
+            };
+            break;
+          default:
+            throw new Error("Unsupported channel type");
+        }
 
         const insertedConfig: BroadcastV2Config = config ?? {
           type: "V2",
