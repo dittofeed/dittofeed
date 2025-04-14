@@ -1189,6 +1189,7 @@ export const BroadcastResource = Type.Object({
     Type.Literal("InProgress"),
     Type.Literal("Triggered"),
   ]),
+  archived: Type.Optional(Type.Boolean()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
@@ -4954,6 +4955,7 @@ export const BroadcastResourceV2 = Type.Object({
   scheduledAt: Type.Optional(Type.String()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
+  archived: Type.Optional(Type.Boolean()),
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;

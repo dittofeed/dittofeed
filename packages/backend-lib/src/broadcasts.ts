@@ -88,6 +88,7 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     segmentId: broadcast.segmentId ?? undefined,
     journeyId: broadcast.journeyId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
+    archived: broadcast.archived,
     triggeredAt: broadcast.triggeredAt
       ? broadcast.triggeredAt.getTime()
       : undefined,
@@ -441,6 +442,7 @@ export function broadcastV2ToResource(
     scheduledAt: broadcast.scheduledAt ?? undefined,
     segmentId: broadcast.segmentId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
+    archived: broadcast.archived,
   };
 }
 
