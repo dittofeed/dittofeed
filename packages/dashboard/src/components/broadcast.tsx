@@ -1,6 +1,6 @@
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { useCallback, useEffect, useMemo } from "react";
-import { Updater, useImmer } from "use-immer";
+import { useImmer } from "use-immer";
 
 import BroadcastLayout from "./broadcasts/broadcastsLayoutV2";
 import {
@@ -125,7 +125,7 @@ export default function Broadcasts({
   }
 
   return (
-    <BroadcastLayout state={state} updateState={updateState}>
+    <BroadcastLayout state={state} updateState={updateStateWithoutNull}>
       {content}
     </BroadcastLayout>
   );
