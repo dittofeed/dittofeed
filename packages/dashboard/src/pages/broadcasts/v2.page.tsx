@@ -16,12 +16,7 @@ import { PropsWithInitialState } from "../../lib/types";
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
     const broadcastId = ctx.query.id;
-    logger().debug(
-      { broadcastId, params: ctx.params, query: ctx.query },
-      "loc1 getServerSideProps",
-    );
     if (typeof broadcastId !== "string") {
-      logger().debug("loc1 getServerSideProps no id");
       return {
         notFound: true,
       };
@@ -34,10 +29,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const broadcast = await db().query.broadcast.findFirst({
       where: and(
         eq(schema.broadcast.id, broadcastId),
-        eq(schema.workspace.id, dfContext.workspace.id),
+        eq(schema.broadcast.workspaceId, dfContext.workspace.id),
       ),
     });
-    logger().debug({ broadcastId, broadcast }, "loc2 getServerSideProps");
     if (!broadcast) {
       return {
         notFound: true,
