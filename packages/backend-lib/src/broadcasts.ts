@@ -17,6 +17,7 @@ import {
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
+  UpdateBroadcastArchiveRequest,
   UpsertBroadcastV2Error,
   UpsertBroadcastV2ErrorTypeEnum,
   UpsertBroadcastV2Request,
@@ -695,4 +696,24 @@ export async function getBroadcastsV2({
         assertUnreachable(version);
     }
   });
+}
+
+export async function archiveBroadcast({
+  workspaceId,
+  broadcastId,
+  archived,
+}: UpdateBroadcastArchiveRequest): Promise<boolean> {
+  const result = await db()
+    .update(dbBroadcast)
+    .set({
+      archived,
+    })
+    .where(
+      and(
+        eq(dbBroadcast.id, broadcastId),
+        eq(dbBroadcast.workspaceId, workspaceId),
+      ),
+    )
+    .returning();
+  return result.length > 0;
 }

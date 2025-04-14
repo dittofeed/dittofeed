@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+  archiveBroadcast,
   getBroadcastsV2,
   toBroadcastResource,
   triggerBroadcast,
@@ -14,6 +15,7 @@ import {
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
   TriggerBroadcastRequest,
+  UpdateBroadcastArchiveRequest,
   UpdateBroadcastRequest,
   UpsertBroadcastV2Request,
 } from "backend-lib/src/types";
@@ -22,6 +24,26 @@ import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function broadcastsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/archive",
+    {
+      schema: {
+        description: "Archive a broadcast.",
+        tags: ["Broadcasts"],
+        body: UpdateBroadcastArchiveRequest,
+        response: {
+          200: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await archiveBroadcast(request.body);
+      if (!result) {
+        return reply.status(404).send({ message: "Broadcast not found" });
+      }
+      return reply.status(200).send({ message: "Broadcast archived" });
+    },
+  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
     "/",
     {

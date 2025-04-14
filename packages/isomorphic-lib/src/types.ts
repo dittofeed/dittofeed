@@ -5015,3 +5015,13 @@ export const GetBroadcastsV2Request = Type.Object({
 });
 
 export type GetBroadcastsV2Request = Static<typeof GetBroadcastsV2Request>;
+
+export const UpdateBroadcastArchiveRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+  archived: Type.Optional(Type.Boolean()),
+});
+
+export type UpdateBroadcastArchiveRequest = Static<
+  typeof UpdateBroadcastArchiveRequest
+>;
