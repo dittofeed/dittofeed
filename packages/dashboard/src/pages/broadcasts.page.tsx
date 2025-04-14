@@ -12,7 +12,6 @@ import {
 import {
   Box,
   Button,
-  ButtonProps,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -58,8 +57,7 @@ import { useRouter } from "next/router";
 import React, { useMemo, useRef, useState } from "react";
 
 import DashboardContent from "../components/dashboardContent";
-// FIXME pull out greyButtonStyle
-import { greyButtonStyle } from "../components/usersTableV2";
+import { GreyButton, greyButtonStyle } from "../components/greyButtonStyle";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStorePick } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
@@ -240,19 +238,6 @@ function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
     >
       <Typography variant="body2">{formattedValue}</Typography>
     </Tooltip>
-  );
-}
-
-function GreyButton(props: ButtonProps) {
-  const { sx, ...rest } = props;
-  return (
-    <Button
-      {...rest}
-      sx={{
-        ...greyButtonStyle,
-        ...sx,
-      }}
-    />
   );
 }
 

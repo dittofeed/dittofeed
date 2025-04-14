@@ -89,6 +89,7 @@ import {
   humanizeStatus,
 } from "./deliveriesTable";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
@@ -147,34 +148,6 @@ function formatDate(date: Date) {
 function formatCalendarDate(date: CalendarDate) {
   return formatDate(
     date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
-  );
-}
-
-export const greyButtonStyle = {
-  bgcolor: "grey.200",
-  color: "grey.700",
-  "&:hover": {
-    bgcolor: "grey.300",
-  },
-  "&:active": {
-    bgcolor: "grey.400",
-  },
-  "&.Mui-disabled": {
-    bgcolor: "grey.100",
-    color: "grey.400",
-  },
-} as const;
-
-function GreyButton(props: ButtonProps) {
-  const { sx, ...rest } = props;
-  return (
-    <Button
-      {...rest}
-      sx={{
-        ...greyButtonStyle,
-        ...sx,
-      }}
-    />
   );
 }
 
