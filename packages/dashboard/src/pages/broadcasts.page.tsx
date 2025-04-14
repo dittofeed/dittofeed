@@ -1,5 +1,6 @@
 import {
   Add as AddIcon,
+  Archive as ArchiveIcon,
   Computer,
   Home,
   KeyboardArrowLeft,
@@ -8,9 +9,9 @@ import {
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
-  Archive as ArchiveIcon,
 } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -18,12 +19,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   Menu,
   MenuItem,
   Paper,
   Snackbar,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -35,7 +38,6 @@ import {
   Tooltip,
   Typography,
   useTheme,
-  Alert,
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -54,8 +56,8 @@ import {
   BroadcastResourceV2,
   ChannelType,
   CompletionStatus,
-  UpsertBroadcastV2Request,
   UpdateBroadcastArchiveRequest,
+  UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -331,11 +333,21 @@ export default function Broadcasts() {
   const [broadcastName, setBroadcastName] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   const query = useBroadcastsQuery();
 
   // query.data is (BroadcastResource | BroadcastResourceV2)[]
-  const broadcastsData: Row[] = query.data ?? [];
+  const rawData: Row[] = query.data ?? [];
+
+  // Filter data based on showArchived state
+  const broadcastsData: Row[] = useMemo(() => {
+    if (showArchived) {
+      return rawData;
+    }
+    // Assuming an 'archived' property exists on Row type items
+    return rawData.filter((b) => !b.archived);
+  }, [rawData, showArchived]);
 
   const [pagination, setPagination] = useState({
     pageIndex: 0, // initial page index
@@ -482,14 +494,33 @@ export default function Broadcasts() {
           alignItems="center"
         >
           <Typography variant="h4">Broadcasts</Typography>
-          <Button
-            variant="contained"
-            sx={greyButtonStyle}
-            onClick={() => setDialogOpen(true)}
-            startIcon={<AddIcon />}
-          >
-            New Broadcast
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: theme.palette.grey[500],
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: theme.palette.grey[500],
+                    },
+                  }}
+                />
+              }
+              label="Show Archived"
+            />
+            <Button
+              variant="contained"
+              sx={greyButtonStyle}
+              onClick={() => setDialogOpen(true)}
+              startIcon={<AddIcon />}
+            >
+              New Broadcast
+            </Button>
+          </Stack>
         </Stack>
         <TableContainer component={Paper}>
           <Table stickyHeader>
