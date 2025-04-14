@@ -8,6 +8,7 @@ import {
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
+  Archive as ArchiveIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -18,6 +19,8 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Menu,
+  MenuItem,
   Paper,
   Snackbar,
   Stack,
@@ -32,6 +35,7 @@ import {
   Tooltip,
   Typography,
   useTheme,
+  Alert,
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -40,6 +44,7 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  RowData,
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
@@ -50,11 +55,12 @@ import {
   ChannelType,
   CompletionStatus,
   UpsertBroadcastV2Request,
+  UpdateBroadcastArchiveRequest,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import { GreyButton, greyButtonStyle } from "../components/greyButtonStyle";
@@ -110,27 +116,71 @@ function humanizeBroadcastStatus(status: string): string {
 }
 
 // Cell renderer for Actions column
-function ActionsCell({ row }: CellContext<Row, unknown>) {
+function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
-  // TODO: Implement actions menu (e.g., View, Edit, Delete)
-  // rowId is currently unused but kept for future implementation
-  console.log("Rendering actions for row:", rowId);
+
+  // Access archive function from table meta
+  const archiveBroadcast = table.options.meta?.archiveBroadcast;
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleArchive = () => {
+    if (!archiveBroadcast) {
+      console.error("archiveBroadcast function not found in table meta");
+      return;
+    }
+    archiveBroadcast(rowId);
+    handleClose();
+  };
+
   return (
-    <Tooltip title="Actions">
-      <IconButton
-        size="small"
-        sx={{
-          color: theme.palette.grey[700],
-          "&:hover": {
-            bgcolor: theme.palette.grey[200],
+    <>
+      <Tooltip title="Actions">
+        <IconButton aria-label="actions" onClick={handleClick} size="small">
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          "aria-labelledby": "actions-button",
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            boxShadow: theme.shadows[2],
           },
         }}
-        // onClick={(e) => handleMenuOpen(e, rowId)} // Implement menu handler
       >
-        <MoreVertIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
+        <MenuItem
+          onClick={handleArchive}
+          sx={{ color: theme.palette.grey[700] }}
+        >
+          <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
+          Archive
+        </MenuItem>
+        {/* Add other actions like Edit, Delete, etc. here */}
+      </Menu>
+    </>
   );
 }
 
@@ -292,8 +342,42 @@ export default function Broadcasts() {
     pageSize: 10, // default page size
   });
 
-  const columns = useMemo<ColumnDef<Row>[]>(
-    () => [
+  // Effect to show snackbar on load error
+  useEffect(() => {
+    if (query.isError) {
+      setSnackbarMessage("Failed to load broadcasts.");
+      setSnackbarOpen(true);
+    }
+  }, [query.isError]);
+
+  const archiveBroadcastMutation = useMutation({
+    mutationFn: async (broadcastId: string) => {
+      if (!workspace || workspace.type !== CompletionStatus.Successful) {
+        throw new Error("Workspace not available");
+      }
+      const requestData: UpdateBroadcastArchiveRequest = {
+        workspaceId: workspace.value.id,
+        broadcastId,
+        archived: true, // Explicitly set to true for archiving
+      };
+      await axios.put(`${apiBase}/api/broadcasts/archive`, requestData);
+    },
+    onSuccess: (_, broadcastId) => {
+      console.log("Archived broadcast:", broadcastId);
+      // Invalidate the broadcasts query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      setSnackbarMessage("Broadcast archived successfully!");
+      setSnackbarOpen(true);
+    },
+    onError: (error, broadcastId) => {
+      console.error(`Failed to archive broadcast ${broadcastId}:`, error);
+      setSnackbarMessage("Failed to archive broadcast.");
+      setSnackbarOpen(true);
+    },
+  });
+
+  const columns = useMemo<ColumnDef<Row>[]>(() => {
+    return [
       {
         id: "name",
         header: "Name",
@@ -322,11 +406,10 @@ export default function Broadcasts() {
         id: "actions",
         header: "",
         size: 70, // Adjust size as needed
-        cell: ActionsCell,
+        cell: ActionsCell, // Use direct cell renderer
       },
-    ],
-    [],
-  );
+    ];
+  }, []); // No dependency needed now
 
   const table = useReactTable({
     columns,
@@ -336,6 +419,13 @@ export default function Broadcasts() {
     onPaginationChange: setPagination,
     state: {
       pagination,
+    },
+    // Pass the archive function via meta
+    meta: {
+      archiveBroadcast: (broadcastId: string) => {
+        if (archiveBroadcastMutation.isPending) return;
+        archiveBroadcastMutation.mutate(broadcastId);
+      },
     },
   });
 
@@ -402,12 +492,6 @@ export default function Broadcasts() {
           </Button>
         </Stack>
         <TableContainer component={Paper}>
-          {/* Always render table structure */}
-          {query.isError && (
-            <Typography color="error" sx={{ padding: 2 }}>
-              Failed to load broadcasts.
-            </Typography>
-          )}
           <Table stickyHeader>
             <TableHead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -593,7 +677,7 @@ export default function Broadcasts() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for feedback */}
+      {/* Snackbar for feedback (now includes load errors) */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
@@ -603,4 +687,11 @@ export default function Broadcasts() {
       />
     </DashboardContent>
   );
+}
+
+// Add type definition for table meta
+declare module "@tanstack/react-table" {
+  interface TableMeta {
+    archiveBroadcast?: (broadcastId: string) => void;
+  }
 }
