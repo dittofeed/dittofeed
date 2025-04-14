@@ -636,6 +636,7 @@ export async function upsertBroadcastV2({
               segmentId,
               messageTemplateId,
               subscriptionGroupId,
+              version: "V2",
               config: insertedConfig,
             })
             .returning(),

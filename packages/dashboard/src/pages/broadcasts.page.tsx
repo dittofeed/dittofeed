@@ -47,8 +47,8 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
   BroadcastResourceV2,
-  BroadcastV2Status,
   ChannelType,
+  CompletionStatus,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -77,13 +77,13 @@ export const getServerSideProps: GetServerSideProps<BroadcastsProps> =
     };
   });
 
-// Use BroadcastResourceV2 directly as the Row type
-type Row = BroadcastResourceV2;
+// Use the union type for the table row data
+type Row = BroadcastResource | BroadcastResourceV2;
 
 // Cell renderer for Actions column
 function ActionsCell({ row }: CellContext<Row, unknown>) {
   const theme = useTheme();
-  const rowId = row.id;
+  const rowId = row.original.id;
   // TODO: Implement actions menu (e.g., View, Edit, Delete)
   // rowId is currently unused but kept for future implementation
   console.log("Rendering actions for row:", rowId);
@@ -114,6 +114,7 @@ function NameCell({ getValue }: CellContext<Row, unknown>) {
 // Cell renderer for Status column
 function StatusCell({ getValue }: CellContext<Row, unknown>) {
   // TODO: Add styling/chip based on status value
+  // Display the status string directly, works for both V1 and V2 for now
   const value = getValue<string>();
   return <Typography variant="body2">{value}</Typography>;
 }
@@ -182,11 +183,14 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 }
 
 // ScheduledAtCell for displaying the naive scheduledAt string
-function ScheduledAtCell({ getValue }: CellContext<Row, unknown>) {
-  const value = getValue<string | undefined>();
+// This cell needs to handle the case where the property might not exist (V1)
+function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
+  // Access scheduledAt only if it's a V2 resource
+  const value =
+    "scheduledAt" in row.original ? row.original.scheduledAt : undefined;
 
   if (!value) {
-    return null;
+    return null; // V1 broadcasts or V2 without schedule won't show anything
   }
 
   // Simple display of the naive string, maybe format slightly if needed
@@ -230,13 +234,8 @@ export default function Broadcasts() {
 
   const query = useBroadcastsQuery();
 
-  // query.data is potentially (BroadcastResource | BroadcastResourceV2)[]
-  const rawData: (BroadcastResource | BroadcastResourceV2)[] = query.data ?? [];
-
-  // Filter for V2 broadcasts before passing to the table
-  const broadcastsData: BroadcastResourceV2[] = useMemo(() => {
-    return rawData.filter((b): b is BroadcastResourceV2 => "config" in b);
-  }, [rawData]);
+  // query.data is (BroadcastResource | BroadcastResourceV2)[]
+  const broadcastsData: Row[] = query.data ?? [];
 
   const [pagination, setPagination] = useState({
     pageIndex: 0, // initial page index
@@ -292,14 +291,13 @@ export default function Broadcasts() {
 
   const createBroadcastMutation = useMutation({
     mutationFn: async (name: string) => {
-      if (!workspace || workspace.type !== "Successful") {
+      if (!workspace || workspace.type !== CompletionStatus.Successful) {
         throw new Error("Workspace not available");
       }
       const requestData: UpsertBroadcastV2Request = {
         workspaceId: workspace.value.id,
         // id is omitted for creation
         name,
-        status: BroadcastV2Status.Draft, // Default status
         config: {
           // Minimal default config
           type: "V2",
