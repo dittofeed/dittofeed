@@ -55,7 +55,7 @@ import {
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 import DashboardContent from "../components/dashboardContent";
 // FIXME pull out greyButtonStyle
@@ -261,6 +261,8 @@ export default function Broadcasts() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [broadcastName, setBroadcastName] = useState("");
@@ -544,11 +546,11 @@ export default function Broadcasts() {
         onClose={() => setDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        TransitionProps={{ onEntered: () => nameInputRef.current?.focus() }}
       >
         <DialogTitle>Create New Broadcast</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
             margin="dense"
             id="name"
             label="Broadcast Name"
@@ -557,6 +559,7 @@ export default function Broadcasts() {
             variant="standard"
             value={broadcastName}
             onChange={(e) => setBroadcastName(e.target.value)}
+            inputRef={nameInputRef}
             onKeyPress={(e) => {
               if (e.key === "Enter") {
                 handleCreateBroadcast();
