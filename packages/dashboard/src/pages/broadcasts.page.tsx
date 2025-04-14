@@ -4,6 +4,7 @@ import {
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
+  KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import {
@@ -29,64 +30,77 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { eq } from "drizzle-orm";
+import { BroadcastResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 import DashboardContent from "../components/dashboardContent";
-// import { BroadcastResourceV2 } from "isomorphic-lib/src/types"; // Removed unused import
 import { greyButtonStyle } from "../components/usersTableV2"; // Assuming greyButtonStyle is exported
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
-import { AppState, PropsWithInitialState } from "../lib/types";
+import { PropsWithInitialState } from "../lib/types";
 
-export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+// Define component-specific props
+interface BroadcastsProps extends PropsWithInitialState {
+  broadcasts: BroadcastResource[];
+}
+
+export const getServerSideProps: GetServerSideProps<BroadcastsProps> =
   requestContext(async (_ctx, dfContext) => {
     const { workspace } = dfContext;
+    if (!workspace)
+      return {
+        notFound: true,
+      };
 
-    const appState: Partial<AppState> = {};
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const broadcasts = await db().query.broadcast.findMany({
       where: eq(schema.broadcast.workspaceId, workspace.id),
       orderBy: (broadcast, { desc }) => [desc(broadcast.createdAt)],
-      // TODO: Filter for V2 broadcasts when the schema differentiates them
+      // TODO: Filter for V2 broadcasts when the schema differentiates them?
+      // Or assume toBroadcastResource handles this
     });
 
-    // TODO: Replace with actual BroadcastResourceV2 mapping when available
-    // For now, filter out V1 broadcasts if possible or handle potential type mismatch
-    // appState.broadcasts = broadcasts
-    //   .map((b) => (b.version === "V2" ? toBroadcastResource(b) : null)) // Adjust based on actual schema
-    //   .filter((b): b is BroadcastResourceV2 => b !== null);
-    appState.broadcasts = []; // Use empty array for now
+    // Map DB results to the correct resource type
+    const broadcastResources: BroadcastResource[] = broadcasts
+      .map((b) => {
+        try {
+          // Need to handle potential errors during mapping
+          return toBroadcastResource(b);
+        } catch (e) {
+          console.error(
+            `Failed to map broadcast ${b.id} to BroadcastResource:`,
+            e,
+          );
+          return null;
+        }
+      })
+      .filter((b): b is BroadcastResource => b !== null);
 
     return {
       props: addInitialStateToProps({
-        props: {},
-        serverInitialState: appState,
+        props: {
+          broadcasts: broadcastResources,
+        },
         dfContext,
       }),
     };
   });
 
-// TODO: Define Row type based on BroadcastResourceV2
-interface Row {
-  id: string;
-  name: string;
-  status: string; // Assuming status is a string for now
-  createdAt: number;
-  scheduledAt?: string;
-  // Add other relevant fields from BroadcastResourceV2 as needed
-}
+// Use BroadcastResource directly as the Row type
+type Row = BroadcastResource;
 
 // Cell renderer for Actions column
 function ActionsCell({ row }: CellContext<Row, unknown>) {
   const theme = useTheme();
-  const rowId = row.original.id;
+  const rowId = row.id;
   // TODO: Implement actions menu (e.g., View, Edit, Delete)
   // rowId is currently unused but kept for future implementation
   console.log("Rendering actions for row:", rowId);
@@ -220,10 +234,14 @@ function GreyButton(props: ButtonProps) {
   );
 }
 
-export default function Broadcasts() {
+export default function Broadcasts({ broadcasts }: BroadcastsProps) {
   const theme = useTheme();
-  // TODO: Load actual broadcast data using useQuery or similar
-  const broadcastsData: Row[] = useMemo(() => [], []); // Empty data for now
+  const broadcastsData = broadcasts;
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, // initial page index
+    pageSize: 10, // default page size
+  });
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
@@ -264,15 +282,13 @@ export default function Broadcasts() {
   const table = useReactTable({
     columns,
     data: broadcastsData,
-    manualPagination: true, // Set to true as we'll handle pagination externally
     getCoreRowModel: getCoreRowModel(),
-    // TODO: Add state management for pagination if needed later
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: setPagination,
+    state: {
+      pagination,
+    },
   });
-
-  // TODO: Implement pagination handlers
-  const onNextPage = () => console.log("Next Page Clicked");
-  const onPreviousPage = () => console.log("Previous Page Clicked");
-  const onFirstPage = () => console.log("First Page Clicked");
 
   return (
     <DashboardContent>
@@ -368,36 +384,48 @@ export default function Broadcasts() {
                   <Stack
                     direction="row"
                     spacing={2}
-                    justifyContent="space-between"
+                    justifyContent="flex-end"
                     alignItems="center"
                   >
                     <Stack direction="row" alignItems="center" spacing={2}>
                       <GreyButton
-                        onClick={onFirstPage}
-                        disabled // Disabled for now
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
                         startIcon={<KeyboardDoubleArrowLeft />}
                       >
                         First
                       </GreyButton>
                       <GreyButton
-                        onClick={onPreviousPage}
-                        disabled // Disabled for now
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
                         startIcon={<KeyboardArrowLeft />}
                       >
                         Previous
                       </GreyButton>
                       <GreyButton
-                        onClick={onNextPage}
-                        disabled // Disabled for now
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
                         endIcon={<KeyboardArrowRight />}
                       >
                         Next
                       </GreyButton>
+                      <GreyButton
+                        onClick={() =>
+                          table.setPageIndex(table.getPageCount() - 1)
+                        }
+                        disabled={!table.getCanNextPage()}
+                        endIcon={<KeyboardDoubleArrowRight />}
+                      >
+                        Last
+                      </GreyButton>
                     </Stack>
-                    {/* TODO: Add total count display when data loading is implemented */}
-                    {/* <Typography variant="body2" color="text.secondary">
-                      Total broadcasts: {totalCount}
-                    </Typography> */}
+                    <Typography variant="body2" color="text.secondary">
+                      Page{" "}
+                      <strong>
+                        {table.getState().pagination.pageIndex + 1} of{" "}
+                        {table.getPageCount()}
+                      </strong>
+                    </Typography>
                   </Stack>
                 </TableCell>
               </TableRow>
