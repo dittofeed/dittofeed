@@ -1,4 +1,6 @@
 import {
+  Computer,
+  Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
@@ -31,6 +33,7 @@ import {
 } from "@tanstack/react-table";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import React, { useMemo } from "react";
@@ -75,6 +78,8 @@ interface Row {
   id: string;
   name: string;
   status: string; // Assuming status is a string for now
+  createdAt: number;
+  scheduledAt?: string;
   // Add other relevant fields from BroadcastResourceV2 as needed
 }
 
@@ -116,6 +121,92 @@ function StatusCell({ getValue }: CellContext<Row, unknown>) {
   return <Typography variant="body2">{value}</Typography>;
 }
 
+// TimeCell for displaying timestamps like createdAt
+function TimeCell({ getValue }: CellContext<Row, unknown>) {
+  const timestamp = getValue<number>();
+  if (!timestamp) {
+    return null; // Or some placeholder
+  }
+  const date = new Date(timestamp);
+
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography variant="body2">{formatted}</Typography>
+    </Tooltip>
+  );
+}
+
+// ScheduledAtCell for displaying the naive scheduledAt string
+function ScheduledAtCell({ getValue }: CellContext<Row, unknown>) {
+  const value = getValue<string | undefined>();
+
+  if (!value) {
+    return null;
+  }
+
+  // Simple display of the naive string, maybe format slightly if needed
+  // Example: Remove seconds if present 'YYYY-MM-DD HH:MM:SS' -> 'YYYY-MM-DD HH:MM'
+  const formattedValue = value.substring(0, 16);
+
+  return (
+    <Tooltip
+      title={`Scheduled (naive time): ${value}`}
+      placement="bottom-start"
+      arrow
+    >
+      <Typography variant="body2">{formattedValue}</Typography>
+    </Tooltip>
+  );
+}
+
 function GreyButton(props: ButtonProps) {
   const { sx, ...rest } = props;
   return (
@@ -147,6 +238,18 @@ export default function Broadcasts() {
         header: "Status",
         accessorKey: "status",
         cell: StatusCell,
+      },
+      {
+        id: "createdAt",
+        header: "Created At",
+        accessorKey: "createdAt",
+        cell: TimeCell,
+      },
+      {
+        id: "scheduledAt",
+        header: "Scheduled At",
+        accessorKey: "scheduledAt",
+        cell: ScheduledAtCell,
       },
       {
         id: "actions",
