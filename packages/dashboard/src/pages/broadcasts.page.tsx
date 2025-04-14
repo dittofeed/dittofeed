@@ -7,6 +7,7 @@ import {
   KeyboardDoubleArrowLeft,
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
+  OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -54,6 +55,7 @@ import {
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 
 import DashboardContent from "../components/dashboardContent";
 import { greyButtonStyle } from "../components/usersTableV2"; // Assuming greyButtonStyle is exported
@@ -106,9 +108,37 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
 }
 
 // Cell renderer for Name column
-function NameCell({ getValue }: CellContext<Row, unknown>) {
-  const value = getValue<string>();
-  return <Typography variant="body2">{value}</Typography>;
+function NameCell({ row, getValue }: CellContext<Row, unknown>) {
+  const name = getValue<string>();
+  const broadcastId = row.original.id;
+  const href = `/broadcasts/v2?id=${broadcastId}`;
+
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      sx={{ maxWidth: "350px" }}
+    >
+      <Tooltip title={name} placement="bottom-start">
+        <Typography
+          variant="body2"
+          sx={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name}
+        </Typography>
+      </Tooltip>
+      <Tooltip title="View Broadcast Details">
+        <IconButton size="small" component={Link} href={href}>
+          <OpenInNewIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Stack>
+  );
 }
 
 // Cell renderer for Status column
