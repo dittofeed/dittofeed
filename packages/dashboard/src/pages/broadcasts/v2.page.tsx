@@ -1,5 +1,6 @@
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import logger from "backend-lib/src/logger";
 import { and, eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -14,8 +15,13 @@ import { PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const broadcastId = ctx.params?.id;
+    const broadcastId = ctx.query.id;
+    logger().debug(
+      { broadcastId, params: ctx.params, query: ctx.query },
+      "loc1 getServerSideProps",
+    );
     if (typeof broadcastId !== "string") {
+      logger().debug("loc1 getServerSideProps no id");
       return {
         notFound: true,
       };
@@ -31,6 +37,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         eq(schema.workspace.id, dfContext.workspace.id),
       ),
     });
+    logger().debug({ broadcastId, broadcast }, "loc2 getServerSideProps");
     if (!broadcast) {
       return {
         notFound: true,
