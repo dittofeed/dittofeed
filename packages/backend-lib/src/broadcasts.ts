@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, SQL } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -684,11 +684,14 @@ export async function upsertBroadcastV2({
 
 export async function getBroadcastsV2({
   workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<GetBroadcastsResponse> {
+  ids,
+}: GetBroadcastsV2Request): Promise<GetBroadcastsResponse> {
+  const conditions: SQL[] = [eq(dbBroadcast.workspaceId, workspaceId)];
+  if (ids) {
+    conditions.push(inArray(dbBroadcast.id, ids));
+  }
   const broadcasts = await db().query.broadcast.findMany({
-    where: eq(dbBroadcast.workspaceId, workspaceId),
+    where: and(...conditions),
     orderBy: [desc(dbBroadcast.createdAt)],
   });
   // eslint-disable-next-line array-callback-return

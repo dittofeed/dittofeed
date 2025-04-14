@@ -5027,6 +5027,7 @@ export type GetBroadcastsResponse = Static<typeof GetBroadcastsResponse>;
 
 export const GetBroadcastsV2Request = Type.Object({
   workspaceId: Type.String(),
+  ids: Type.Optional(Type.Array(Type.String())),
 });
 
 export type GetBroadcastsV2Request = Static<typeof GetBroadcastsV2Request>;
