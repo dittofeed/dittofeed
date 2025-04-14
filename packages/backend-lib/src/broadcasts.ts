@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -95,6 +95,7 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     status: broadcast.status,
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
+    version: broadcast.version ?? undefined,
   };
   return resource;
 }
@@ -428,6 +429,9 @@ export function broadcastV2ToResource(
   if (broadcast.statusV2 === null) {
     throw new Error("Broadcast statusV2 is null");
   }
+  if (broadcast.version && broadcast.version !== "V2") {
+    throw new Error("Broadcast version is not V2");
+  }
   const config = unwrap(
     schemaValidateWithErr(broadcast.config, BroadcastV2Config),
   );
@@ -438,6 +442,7 @@ export function broadcastV2ToResource(
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
     workspaceId: broadcast.workspaceId,
+    version: broadcast.version ?? undefined,
     config,
     scheduledAt: broadcast.scheduledAt ?? undefined,
     segmentId: broadcast.segmentId ?? undefined,
@@ -684,6 +689,7 @@ export async function getBroadcastsV2({
 }): Promise<GetBroadcastsResponse> {
   const broadcasts = await db().query.broadcast.findMany({
     where: eq(dbBroadcast.workspaceId, workspaceId),
+    orderBy: [desc(dbBroadcast.createdAt)],
   });
   // eslint-disable-next-line array-callback-return
   return broadcasts.map((b) => {

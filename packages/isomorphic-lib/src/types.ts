@@ -1177,6 +1177,17 @@ export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource
 >;
 
+export const BroadcastResourceVersionEnum = {
+  V1: "V1",
+  V2: "V2",
+} as const;
+
+export const BroadcastResourceVersion = Type.KeyOf(
+  Type.Const(BroadcastResourceVersionEnum),
+);
+
+export type BroadcastResourceVersion = Static<typeof BroadcastResourceVersion>;
+
 export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1193,6 +1204,7 @@ export const BroadcastResource = Type.Object({
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
+  version: Type.Optional(BroadcastResourceVersion),
 });
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
@@ -4956,6 +4968,7 @@ export const BroadcastResourceV2 = Type.Object({
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   archived: Type.Optional(Type.Boolean()),
+  version: Type.Optional(BroadcastResourceVersion),
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;

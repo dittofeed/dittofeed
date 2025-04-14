@@ -12,6 +12,7 @@ import DashboardContent from "../../components/dashboardContent";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
+import { Stack } from "@mui/material";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -55,7 +56,15 @@ export default function BroadcastPage() {
   const router = useRouter();
   return (
     <DashboardContent>
-      {router.isReady && <BroadcastPageContent />}
+      <Stack
+        sx={{
+          pt: 2,
+          px: 1,
+          pb: 1,
+        }}
+      >
+        {router.isReady && <BroadcastPageContent />}
+      </Stack>
     </DashboardContent>
   );
 }
