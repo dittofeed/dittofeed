@@ -1,4 +1,5 @@
 import {
+  Add as AddIcon,
   Computer,
   Home,
   KeyboardArrowLeft,
@@ -12,8 +13,13 @@ import {
   Button,
   ButtonProps,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -22,10 +28,12 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  TextField,
   Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CellContext,
   ColumnDef,
@@ -34,17 +42,23 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import axios from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
   BroadcastResourceV2,
+  BroadcastV2Status,
+  ChannelType,
+  UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
 import React, { useMemo, useState } from "react";
 
 import DashboardContent from "../components/dashboardContent";
 import { greyButtonStyle } from "../components/usersTableV2"; // Assuming greyButtonStyle is exported
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
+import { useAppStorePick } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
 import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
@@ -205,6 +219,14 @@ function GreyButton(props: ButtonProps) {
 
 export default function Broadcasts() {
   const theme = useTheme();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [broadcastName, setBroadcastName] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const query = useBroadcastsQuery();
 
@@ -268,6 +290,51 @@ export default function Broadcasts() {
     },
   });
 
+  const createBroadcastMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!workspace || workspace.type !== "Successful") {
+        throw new Error("Workspace not available");
+      }
+      const requestData: UpsertBroadcastV2Request = {
+        workspaceId: workspace.value.id,
+        // id is omitted for creation
+        name,
+        status: BroadcastV2Status.Draft, // Default status
+        config: {
+          // Minimal default config
+          type: "V2",
+          message: {
+            type: ChannelType.Email, // Default to Email, adjust as needed
+          },
+        },
+      };
+      const response = await axios.put<BroadcastResourceV2>(
+        `${apiBase}/api/broadcasts/v2`,
+        requestData,
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      setSnackbarMessage("Broadcast created successfully!");
+      setSnackbarOpen(true);
+      setDialogOpen(false);
+      setBroadcastName("");
+      router.push(`/broadcasts/v2?id=${data.id}`); // Redirect to the edit page
+    },
+    onError: (error) => {
+      console.error("Failed to create broadcast:", error);
+      setSnackbarMessage("Failed to create broadcast.");
+      setSnackbarOpen(true);
+    },
+  });
+
+  const handleCreateBroadcast = () => {
+    if (broadcastName.trim() && !createBroadcastMutation.isPending) {
+      createBroadcastMutation.mutate(broadcastName.trim());
+    }
+  };
+
   return (
     <DashboardContent>
       <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
@@ -277,14 +344,14 @@ export default function Broadcasts() {
           alignItems="center"
         >
           <Typography variant="h4">Broadcasts</Typography>
-          {/* TODO: Add "New Broadcast" button with link */}
-          {/* <Button
+          <Button
             variant="contained"
-            component={Link}
-            href="/broadcasts/v2/recipients/new" // Adjust href as needed
+            sx={greyButtonStyle}
+            onClick={() => setDialogOpen(true)}
+            startIcon={<AddIcon />}
           >
             New Broadcast
-          </Button> */}
+          </Button>
         </Stack>
         <TableContainer component={Paper}>
           {/* Always render table structure */}
@@ -437,6 +504,54 @@ export default function Broadcasts() {
           </Table>
         </TableContainer>
       </Stack>
+
+      {/* Create Broadcast Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create New Broadcast</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Broadcast Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={broadcastName}
+            onChange={(e) => setBroadcastName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleCreateBroadcast();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleCreateBroadcast}
+            disabled={
+              !broadcastName.trim() || createBroadcastMutation.isPending
+            }
+          >
+            {createBroadcastMutation.isPending ? "Creating..." : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </DashboardContent>
   );
 }

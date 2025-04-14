@@ -500,10 +500,7 @@ export async function upsertBroadcastV2({
             })
           : null,
       ]);
-      if (
-        messageTemplateId === undefined ||
-        subscriptionGroupId === undefined
-      ) {
+      if (messageTemplate === undefined || subscriptionGroup === undefined) {
         return err({
           type: UpsertBroadcastV2ErrorTypeEnum.ConstraintViolation,
           message:
