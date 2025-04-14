@@ -23,6 +23,7 @@ import {
   useTheme,
 } from "@mui/material";
 import {
+  CellContext,
   ColumnDef,
   flexRender,
   getCoreRowModel,
@@ -78,8 +79,9 @@ interface Row {
 }
 
 // Cell renderer for Actions column
-function ActionsCell({ rowId }: { rowId: string }) {
+function ActionsCell({ row }: CellContext<Row, unknown>) {
   const theme = useTheme();
+  const rowId = row.original.id;
   // TODO: Implement actions menu (e.g., View, Edit, Delete)
   // rowId is currently unused but kept for future implementation
   console.log("Rendering actions for row:", rowId);
@@ -99,6 +101,19 @@ function ActionsCell({ rowId }: { rowId: string }) {
       </IconButton>
     </Tooltip>
   );
+}
+
+// Cell renderer for Name column
+function NameCell({ getValue }: CellContext<Row, unknown>) {
+  const value = getValue<string>();
+  return <Typography variant="body2">{value}</Typography>;
+}
+
+// Cell renderer for Status column
+function StatusCell({ getValue }: CellContext<Row, unknown>) {
+  // TODO: Add styling/chip based on status value
+  const value = getValue<string>();
+  return <Typography variant="body2">{value}</Typography>;
 }
 
 function GreyButton(props: ButtonProps) {
@@ -125,24 +140,19 @@ export default function Broadcasts() {
         id: "name",
         header: "Name",
         accessorKey: "name",
-        cell: (info) => (
-          <Typography variant="body2">{info.getValue<string>()}</Typography>
-        ),
+        cell: NameCell,
       },
       {
         id: "status",
         header: "Status",
         accessorKey: "status",
-        cell: (info) => (
-          // TODO: Add styling/chip based on status value
-          <Typography variant="body2">{info.getValue<string>()}</Typography>
-        ),
+        cell: StatusCell,
       },
       {
         id: "actions",
         header: "",
         size: 70, // Adjust size as needed
-        cell: (info) => <ActionsCell rowId={info.row.original.id} />,
+        cell: ActionsCell,
       },
     ],
     [],
@@ -163,7 +173,7 @@ export default function Broadcasts() {
 
   return (
     <DashboardContent>
-      <Stack spacing={2} sx={{ padding: theme.spacing(3) }}>
+      <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
         <Stack
           direction="row"
           justifyContent="space-between"
