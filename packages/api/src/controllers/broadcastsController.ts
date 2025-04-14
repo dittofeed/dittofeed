@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+  getBroadcastsV2,
   toBroadcastResource,
   triggerBroadcast,
   upsertBroadcastV2,
@@ -10,6 +11,8 @@ import {
   BaseMessageResponse,
   BroadcastResource,
   BroadcastResourceV2,
+  GetBroadcastsResponse,
+  GetBroadcastsV2Request,
   TriggerBroadcastRequest,
   UpdateBroadcastRequest,
   UpsertBroadcastV2Request,
@@ -19,6 +22,25 @@ import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function broadcastsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all broadcasts.",
+        tags: ["Broadcasts"],
+        querystring: GetBroadcastsV2Request,
+        response: {
+          200: GetBroadcastsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const broadcasts = await getBroadcastsV2({
+        workspaceId: request.query.workspaceId,
+      });
+      return reply.status(200).send(broadcasts);
+    },
+  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/v2",
     {

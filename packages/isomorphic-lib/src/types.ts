@@ -5003,3 +5003,15 @@ export const UpsertBroadcastV2Request = Type.Intersect([
 ]);
 
 export type UpsertBroadcastV2Request = Static<typeof UpsertBroadcastV2Request>;
+
+export const GetBroadcastsResponse = Type.Array(
+  Type.Union([BroadcastResourceV2, BroadcastResource]),
+);
+
+export type GetBroadcastsResponse = Static<typeof GetBroadcastsResponse>;
+
+export const GetBroadcastsV2Request = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetBroadcastsV2Request = Static<typeof GetBroadcastsV2Request>;

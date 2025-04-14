@@ -1,17 +1,18 @@
 import { and, asc, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BroadcastResource,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
   EmailContentsType,
+  GetBroadcastsResponse,
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  MessageVariant,
   SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
@@ -673,4 +674,27 @@ export async function upsertBroadcastV2({
       return ok(broadcastV2ToResource(broadcast));
     });
   return result;
+}
+
+export async function getBroadcastsV2({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<GetBroadcastsResponse> {
+  const broadcasts = await db().query.broadcast.findMany({
+    where: eq(dbBroadcast.workspaceId, workspaceId),
+  });
+  // eslint-disable-next-line array-callback-return
+  return broadcasts.map((b) => {
+    const { version } = b;
+    switch (version) {
+      case null:
+      case "V1":
+        return toBroadcastResource(b);
+      case "V2":
+        return broadcastV2ToResource(b);
+      default:
+        assertUnreachable(version);
+    }
+  });
 }
