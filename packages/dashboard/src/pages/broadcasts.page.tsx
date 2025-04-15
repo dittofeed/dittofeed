@@ -11,7 +11,6 @@ import {
   OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -35,6 +34,8 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
   useTheme,
@@ -46,14 +47,15 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
-  RowData,
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
+import { Broadcast } from "backend-lib/src/types";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
   BroadcastResourceV2,
+  BroadcastV2Config,
   ChannelType,
   CompletionStatus,
   UpdateBroadcastArchiveRequest,
@@ -331,6 +333,9 @@ export default function Broadcasts() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [broadcastName, setBroadcastName] = useState("");
+  const [selectedChannel, setSelectedChannel] = useState<
+    BroadcastV2Config["message"]["type"]
+  >(ChannelType.Email);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -446,6 +451,24 @@ export default function Broadcasts() {
       if (!workspace || workspace.type !== CompletionStatus.Successful) {
         throw new Error("Workspace not available");
       }
+      let broadcastConfigMessage: BroadcastV2Config["message"];
+      switch (selectedChannel) {
+        case ChannelType.Email:
+          broadcastConfigMessage = {
+            type: ChannelType.Email,
+          };
+          break;
+        case ChannelType.Sms:
+          broadcastConfigMessage = {
+            type: ChannelType.Sms,
+          };
+          break;
+        case ChannelType.Webhook:
+          broadcastConfigMessage = {
+            type: ChannelType.Webhook,
+          };
+          break;
+      }
       const requestData: UpsertBroadcastV2Request = {
         workspaceId: workspace.value.id,
         // id is omitted for creation
@@ -453,9 +476,7 @@ export default function Broadcasts() {
         config: {
           // Minimal default config
           type: "V2",
-          message: {
-            type: ChannelType.Email, // Default to Email, adjust as needed
-          },
+          message: broadcastConfigMessage,
         },
       };
       const response = await axios.put<BroadcastResourceV2>(
@@ -483,6 +504,23 @@ export default function Broadcasts() {
     if (broadcastName.trim() && !createBroadcastMutation.isPending) {
       createBroadcastMutation.mutate(broadcastName.trim());
     }
+  };
+
+  // Handle channel type selection
+  const handleChannelChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newChannel: BroadcastV2Config["message"]["type"] | null,
+  ) => {
+    if (newChannel !== null) {
+      setSelectedChannel(newChannel);
+    }
+  };
+
+  // Handle dialog close with reset
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setBroadcastName("");
+    setSelectedChannel(ChannelType.Email);
   };
 
   return (
@@ -671,7 +709,7 @@ export default function Broadcasts() {
       {/* Create Broadcast Dialog */}
       <Dialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeDialog}
         maxWidth="sm"
         fullWidth
         TransitionProps={{ onEntered: () => nameInputRef.current?.focus() }}
@@ -694,9 +732,29 @@ export default function Broadcasts() {
               }
             }}
           />
+          <Typography variant="overline" display="block" sx={{ mt: 2, mb: 1 }}>
+            Channel Type
+          </Typography>
+          <ToggleButtonGroup
+            value={selectedChannel}
+            exclusive
+            onChange={handleChannelChange}
+            aria-label="channel type"
+            size="small"
+          >
+            <ToggleButton value={ChannelType.Email} aria-label="Email">
+              Email
+            </ToggleButton>
+            <ToggleButton value={ChannelType.Sms} aria-label="SMS">
+              SMS
+            </ToggleButton>
+            <ToggleButton value={ChannelType.Webhook} aria-label="Webhook">
+              Webhook
+            </ToggleButton>
+          </ToggleButtonGroup>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={closeDialog}>Cancel</Button>
           <Button
             onClick={handleCreateBroadcast}
             disabled={
@@ -722,7 +780,8 @@ export default function Broadcasts() {
 
 // Add type definition for table meta
 declare module "@tanstack/react-table" {
-  interface TableMeta {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData = unknown> {
     archiveBroadcast?: (broadcastId: string) => void;
   }
 }

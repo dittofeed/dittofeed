@@ -145,12 +145,11 @@ export default function Recipients({
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
       (sg) => {
-        console.log("handleSubscriptionGroupChange", sg);
         const newSubscriptionGroupId = sg?.id ?? null;
 
         // Persist the change via mutation
         broadcastMutation.mutate({
-          subscriptionGroupId: newSubscriptionGroupId ?? undefined,
+          subscriptionGroupId: newSubscriptionGroupId,
         });
       },
       [broadcastMutation],
@@ -158,18 +157,7 @@ export default function Recipients({
 
   // Data is available now, assign to const for type narrowing
   const broadcast = broadcastQuery.data;
-
-  let channel: ChannelType | undefined;
-
-  if (broadcast && "config" in broadcast) {
-    const messageType = broadcast.config.message.type;
-    if (
-      messageType &&
-      Object.values(ChannelType).includes(messageType as ChannelType)
-    ) {
-      channel = messageType as ChannelType;
-    }
-  }
+  const channel = broadcast?.config.message.type;
 
   let subscriptionGroupAutocomplete: React.ReactNode = null;
   if (channel) {

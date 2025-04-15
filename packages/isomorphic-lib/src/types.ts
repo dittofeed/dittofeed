@@ -36,7 +36,7 @@ export const Nullable = <T extends TSchema>(type: T) =>
   Type.Union([type, Type.Null()]);
 
 export const NullableAndOptional = <T extends TSchema>(type: T) =>
-  Type.Union([Type.Null(), Type.Optional(type)]);
+  Type.Optional(Type.Union([Type.Null(), type]));
 
 export type JSONValue =
   | string
@@ -5009,9 +5009,9 @@ export const UpsertBroadcastV2Request = Type.Intersect([
     workspaceId: Type.String(),
     id: Type.Optional(Type.String()),
     name: Type.Optional(Type.String()),
-    segmentId: Type.Optional(Type.String()),
-    messageTemplateId: Type.Optional(Type.String()),
-    subscriptionGroupId: Type.Optional(Type.String()),
+    segmentId: NullableAndOptional(Type.String()),
+    messageTemplateId: NullableAndOptional(Type.String()),
+    subscriptionGroupId: NullableAndOptional(Type.String()),
     config: Type.Optional(BroadcastV2Config),
   }),
   IdOrName,

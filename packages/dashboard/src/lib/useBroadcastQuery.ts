@@ -1,13 +1,14 @@
 import { UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
 import {
   BroadcastResourceAllVersions,
+  BroadcastResourceV2,
   GetBroadcastsV2Request,
 } from "isomorphic-lib/src/types";
 
 import { useBroadcastsQuery } from "./useBroadcastsQuery"; // Import the existing hook
 
 // Define the specific desired output type for the data property
-type SelectedData = BroadcastResourceAllVersions | null;
+type SelectedData = BroadcastResourceV2 | null;
 
 // Define the type fetched by the underlying query
 type FetchedData = BroadcastResourceAllVersions[];
@@ -45,7 +46,10 @@ export function useBroadcastQuery(
       }
       // Since we queried by ID, we expect at most one result
       const broadcast = data.find((b) => b.id === broadcastId);
-      return broadcast ?? null;
+      if (broadcast?.version !== "V2") {
+        return null;
+      }
+      return broadcast;
     },
   });
 
