@@ -2,12 +2,13 @@ import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
+  BroadcastResourceAllVersions,
   BroadcastResourceV2,
   ChannelType,
   CompletionStatus,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -16,6 +17,11 @@ import {
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+
+// Context type for mutation rollback
+interface MutationContext {
+  previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
+}
 
 // Mutation hook for updating broadcasts
 function useBroadcastMutation(broadcastId: string) {
@@ -43,27 +49,85 @@ function useBroadcastMutation(broadcastId: string) {
     return response.data;
   };
 
-  return useMutation({
+  return useMutation<
+    BroadcastResourceV2,
+    Error,
+    Partial<Omit<UpsertBroadcastV2Request, "workspaceId" | "id">>,
+    MutationContext
+  >({
     mutationFn,
-    onSuccess: (data) => {
-      // Invalidate and refetch the specific broadcast query
+    onMutate: async (newData) => {
+      if (workspace.type !== CompletionStatus.Successful) {
+        console.error("Workspace not ready for optimistic update");
+        // Optionally throw or handle differently
+        return; // Skip optimistic update if workspace isn't ready
+      }
+      const workspaceId = workspace.value.id;
+      const queryKey = ["broadcasts", { ids: [broadcastId], workspaceId }];
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousBroadcastData =
+        queryClient.getQueryData<BroadcastResourceAllVersions | null>(queryKey);
+
+      // Optimistically update to the new value in the cache
+      const optimisticSubscriptionGroupId = newData.subscriptionGroupId;
+
+      queryClient.setQueryData<BroadcastResourceAllVersions | null>(
+        queryKey,
+        (oldData) => {
+          if (!oldData || oldData.version !== "V2") {
+            // Don't update if old data doesn't exist or isn't V2
+            return oldData;
+          }
+          // Create a new object with the updated field
+          return {
+            ...oldData,
+            subscriptionGroupId:
+              optimisticSubscriptionGroupId === undefined
+                ? oldData.subscriptionGroupId
+                : optimisticSubscriptionGroupId,
+          };
+        },
+      );
+
+      // Return context object with the snapshotted value
+      return { previousBroadcastData };
+    },
+    onError: (err, variables, context) => {
+      console.error("Mutation failed:", err);
+      // Rollback cache using the value from onMutate context
+      if (
+        context?.previousBroadcastData !== undefined &&
+        workspace.type === CompletionStatus.Successful
+      ) {
+        const workspaceId = workspace.value.id;
+        const queryKey = ["broadcasts", { ids: [broadcastId], workspaceId }];
+        queryClient.setQueryData(queryKey, context.previousBroadcastData);
+      }
+      // TODO: Add user-facing error feedback (e.g., snackbar)
+    },
+    // Always refetch after error or success to ensure consistency
+    onSettled: (data, error) => {
+      console.log("onSettled, data:", data, "error:", error);
+      if (workspace.type !== CompletionStatus.Successful) {
+        console.warn(
+          "Workspace not available, skipping query invalidation on settle.",
+        );
+        return;
+      }
+      const workspaceId = workspace.value.id;
       const queryKey = [
         "broadcasts",
-        { ids: [broadcastId], workspaceId: data.workspaceId },
+        {
+          ids: [broadcastId],
+          workspaceId,
+        },
       ];
+      console.log("Invalidating queryKey:", queryKey);
       queryClient.invalidateQueries({ queryKey });
-      // Optionally update the list query if relevant
-      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
-
-      // Optionally update the query cache directly for faster UI updates
-      queryClient.setQueryData(["broadcast", broadcastId], data);
-
-      // TODO: Add snackbar feedback
-      console.log("Broadcast updated successfully:", data);
-    },
-    onError: (error) => {
-      // TODO: Add snackbar feedback
-      console.error("Failed to update broadcast:", error);
     },
   });
 }
@@ -77,26 +141,12 @@ export default function Recipients({
 }) {
   const broadcastQuery = useBroadcastQuery(state.id);
   const broadcastMutation = useBroadcastMutation(state.id);
-  // Local state for optimistic UI updates
-  const [selectedSubscriptionGroupId, setSelectedSubscriptionGroupId] =
-    useState<string | null | undefined>(undefined); // undefined means loading
-
-  // Initialize local state when broadcast data loads or changes
-  useEffect(() => {
-    if (!broadcastQuery.data || broadcastQuery.data.version !== "V2") {
-      return;
-    }
-    const subId = broadcastQuery.data.subscriptionGroupId ?? null;
-    setSelectedSubscriptionGroupId(subId);
-  }, [broadcastQuery.data]);
 
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
       (sg) => {
         console.log("handleSubscriptionGroupChange", sg);
         const newSubscriptionGroupId = sg?.id ?? null;
-        // Optimistically update local state
-        setSelectedSubscriptionGroupId(newSubscriptionGroupId);
 
         // Persist the change via mutation
         broadcastMutation.mutate({
@@ -110,8 +160,6 @@ export default function Recipients({
   const broadcast = broadcastQuery.data;
 
   let channel: ChannelType | undefined;
-  // Use local state for currentSubscriptionGroupId
-  // let currentSubscriptionGroupId: string | undefined;
 
   if (broadcast && "config" in broadcast) {
     const messageType = broadcast.config.message.type;
@@ -121,8 +169,6 @@ export default function Recipients({
     ) {
       channel = messageType as ChannelType;
     }
-    // No longer needed, use local state selectedSubscriptionGroupId
-    // currentSubscriptionGroupId = broadcastQuery.data.subscriptionGroupId ?? undefined;
   }
 
   let subscriptionGroupAutocomplete: React.ReactNode = null;
@@ -130,7 +176,11 @@ export default function Recipients({
     subscriptionGroupAutocomplete = (
       <SubscriptionGroupAutocompleteV2
         channel={channel}
-        subscriptionGroupId={selectedSubscriptionGroupId ?? undefined}
+        subscriptionGroupId={
+          broadcastQuery.data?.version === "V2"
+            ? broadcastQuery.data.subscriptionGroupId ?? undefined
+            : undefined
+        }
         handler={handleSubscriptionGroupChange}
       />
     );
