@@ -106,37 +106,6 @@ export default function Recipients({
       [broadcastMutation],
     );
 
-  // --- Loading and Error States ---
-  if (broadcastQuery.isLoading || broadcastQuery.isFetching) {
-    console.log("Loading broadcast details...");
-    return (
-      <Stack spacing={1} alignItems="center" sx={{ padding: 2 }}>
-        <CircularProgress />
-        <Typography>Loading broadcast details...</Typography>
-      </Stack>
-    );
-  }
-
-  if (broadcastQuery.isError) {
-    console.error("Error loading broadcast details:", broadcastQuery.error);
-    return (
-      <Typography sx={{ padding: 2 }} color="error">
-        Failed to load broadcast details.
-      </Typography>
-    );
-  }
-
-  if (!broadcastQuery.data) {
-    console.error("Broadcast not found.");
-    return (
-      <Typography sx={{ padding: 2 }} color="error">
-        Broadcast not found.
-      </Typography>
-    );
-  }
-
-  // --- End Loading and Error States ---
-
   // Data is available now, assign to const for type narrowing
   const broadcast = broadcastQuery.data;
 
@@ -156,20 +125,15 @@ export default function Recipients({
     // currentSubscriptionGroupId = broadcastQuery.data.subscriptionGroupId ?? undefined;
   }
 
-  return (
-    <div>
-      {channel ? (
-        <SubscriptionGroupAutocompleteV2
-          channel={channel}
-          // Use local state for the value, handle undefined loading state
-          subscriptionGroupId={selectedSubscriptionGroupId ?? undefined}
-          handler={handleSubscriptionGroupChange}
-        />
-      ) : (
-        <Typography color="error">
-          Could not determine broadcast channel.
-        </Typography>
-      )}
-    </div>
-  );
+  let subscriptionGroupAutocomplete: React.ReactNode = null;
+  if (channel) {
+    subscriptionGroupAutocomplete = (
+      <SubscriptionGroupAutocompleteV2
+        channel={channel}
+        subscriptionGroupId={selectedSubscriptionGroupId ?? undefined}
+        handler={handleSubscriptionGroupChange}
+      />
+    );
+  }
+  return <div>{subscriptionGroupAutocomplete}</div>;
 }
