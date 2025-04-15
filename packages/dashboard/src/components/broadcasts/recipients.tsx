@@ -179,22 +179,21 @@ export default function Recipients({
     [broadcastMutation],
   );
 
+  if (broadcastQuery.isLoading) {
+    return null;
+  }
+
   // Data is available now, assign to const for type narrowing
   const broadcast = broadcastQuery.data;
+  const disabled = broadcast?.status !== "Draft";
   const channel = broadcast?.config.message.type;
 
   if (!broadcast || broadcast.version !== "V2") {
-    // Handle case where broadcast is not loaded or not V2
-    // TODO: Add more specific error handling or loading state if needed
-    return <Typography>Broadcast data not available or invalid.</Typography>;
+    throw new Error("Broadcast not found");
   }
 
   const currentSegmentId = broadcast.segmentId ?? undefined;
   const currentSubscriptionGroupId = broadcast.subscriptionGroupId ?? undefined;
-
-  // Disable segment selection if subscription group is selected, and vice-versa
-  const isSegmentDisabled = Boolean(currentSubscriptionGroupId);
-  const isSubscriptionGroupDisabled = Boolean(currentSegmentId);
 
   let subscriptionGroupAutocomplete: React.ReactNode = null;
   if (channel) {
@@ -203,17 +202,23 @@ export default function Recipients({
         channel={channel}
         subscriptionGroupId={currentSubscriptionGroupId}
         handler={handleSubscriptionGroupChange}
-        disabled={isSubscriptionGroupDisabled}
+        disabled={disabled}
       />
     );
   }
   return (
     <Stack spacing={2}>
+      <Typography variant="caption" sx={{ mb: -1 }}>
+        Subscription Group (Required)
+      </Typography>
       {subscriptionGroupAutocomplete}
+      <Typography variant="caption" sx={{ mb: -1 }}>
+        Segment (Optional)
+      </Typography>
       <SegmentsAutocomplete
         segmentId={currentSegmentId}
         handler={handleSegmentChange}
-        disabled={isSegmentDisabled}
+        disabled={disabled}
       />
     </Stack>
   );
