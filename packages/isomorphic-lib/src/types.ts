@@ -5019,9 +5019,16 @@ export const UpsertBroadcastV2Request = Type.Intersect([
 
 export type UpsertBroadcastV2Request = Static<typeof UpsertBroadcastV2Request>;
 
-export const GetBroadcastsResponse = Type.Array(
-  Type.Union([BroadcastResourceV2, BroadcastResource]),
-);
+export const BroadcastResourceAllVersions = Type.Union([
+  BroadcastResourceV2,
+  BroadcastResource,
+]);
+
+export type BroadcastResourceAllVersions = Static<
+  typeof BroadcastResourceAllVersions
+>;
+
+export const GetBroadcastsResponse = Type.Array(BroadcastResourceAllVersions);
 
 export type GetBroadcastsResponse = Static<typeof GetBroadcastsResponse>;
 
