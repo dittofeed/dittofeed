@@ -88,7 +88,7 @@ function useBroadcastMutation(broadcastId: string) {
             subscriptionGroupId:
               optimisticSubscriptionGroupId === undefined
                 ? oldData.subscriptionGroupId
-                : optimisticSubscriptionGroupId,
+                : optimisticSubscriptionGroupId ?? undefined,
           };
         },
       );
