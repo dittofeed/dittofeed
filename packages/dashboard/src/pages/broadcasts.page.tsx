@@ -732,7 +732,7 @@ export default function Broadcasts() {
               }
             }}
           />
-          <Typography variant="overline" display="block" sx={{ mt: 2, mb: 1 }}>
+          <Typography display="block" sx={{ mt: 2, mb: 1 }}>
             Channel Type
           </Typography>
           <ToggleButtonGroup
