@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useSegmentsQuery } from "../lib/useSegmentsQuery";
 
 // Define a simpler type based on observed/inferred data structure
-interface SimpleSegment {
+export interface SimpleSegment {
   id: string;
   name: string;
 }

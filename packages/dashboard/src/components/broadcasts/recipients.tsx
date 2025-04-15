@@ -13,6 +13,11 @@ import { useCallback } from "react";
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import {
+  SegmentChangeHandler,
+  SegmentsAutocomplete,
+  SimpleSegment,
+} from "../segmentsAutocomplete";
+import {
   SubscriptionGroupAutocompleteV2,
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
@@ -89,6 +94,10 @@ function useBroadcastMutation(broadcastId: string) {
               optimisticSubscriptionGroupId === undefined
                 ? oldData.subscriptionGroupId
                 : optimisticSubscriptionGroupId ?? undefined,
+            segmentId:
+              newData.segmentId === undefined
+                ? oldData.segmentId
+                : newData.segmentId ?? undefined,
           };
         },
       );
@@ -150,28 +159,62 @@ export default function Recipients({
         // Persist the change via mutation
         broadcastMutation.mutate({
           subscriptionGroupId: newSubscriptionGroupId,
+          segmentId: null,
         });
       },
       [broadcastMutation],
     );
 
+  // Added handler for segment changes
+  const handleSegmentChange: SegmentChangeHandler = useCallback(
+    (segment: SimpleSegment | null) => {
+      const newSegmentId = segment?.id ?? null;
+
+      // Persist the change via mutation
+      broadcastMutation.mutate({
+        segmentId: newSegmentId,
+        subscriptionGroupId: null,
+      });
+    },
+    [broadcastMutation],
+  );
+
   // Data is available now, assign to const for type narrowing
   const broadcast = broadcastQuery.data;
   const channel = broadcast?.config.message.type;
+
+  if (!broadcast || broadcast.version !== "V2") {
+    // Handle case where broadcast is not loaded or not V2
+    // TODO: Add more specific error handling or loading state if needed
+    return <Typography>Broadcast data not available or invalid.</Typography>;
+  }
+
+  const currentSegmentId = broadcast.segmentId ?? undefined;
+  const currentSubscriptionGroupId = broadcast.subscriptionGroupId ?? undefined;
+
+  // Disable segment selection if subscription group is selected, and vice-versa
+  const isSegmentDisabled = Boolean(currentSubscriptionGroupId);
+  const isSubscriptionGroupDisabled = Boolean(currentSegmentId);
 
   let subscriptionGroupAutocomplete: React.ReactNode = null;
   if (channel) {
     subscriptionGroupAutocomplete = (
       <SubscriptionGroupAutocompleteV2
         channel={channel}
-        subscriptionGroupId={
-          broadcastQuery.data?.version === "V2"
-            ? broadcastQuery.data.subscriptionGroupId ?? undefined
-            : undefined
-        }
+        subscriptionGroupId={currentSubscriptionGroupId}
         handler={handleSubscriptionGroupChange}
+        disabled={isSubscriptionGroupDisabled}
       />
     );
   }
-  return <div>{subscriptionGroupAutocomplete}</div>;
+  return (
+    <Stack spacing={2}>
+      {subscriptionGroupAutocomplete}
+      <SegmentsAutocomplete
+        segmentId={currentSegmentId}
+        handler={handleSegmentChange}
+        disabled={isSegmentDisabled}
+      />
+    </Stack>
+  );
 }
