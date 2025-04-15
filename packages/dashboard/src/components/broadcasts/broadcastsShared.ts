@@ -46,7 +46,6 @@ export const BROADCAST_STEPS = [
 export interface BroadcastState {
   step: BroadcastStepKey;
   id: string;
-  subscriptionGroupId: string | null;
 }
 
 export type ExposedBroadcastState = Pick<BroadcastState, "step">;

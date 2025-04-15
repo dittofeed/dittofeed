@@ -1204,7 +1204,7 @@ export const BroadcastResource = Type.Object({
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
-  version: Type.Optional(BroadcastResourceVersion),
+  version: Type.Optional(Type.Literal(BroadcastResourceVersionEnum.V1)),
 });
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
@@ -4968,7 +4968,7 @@ export const BroadcastResourceV2 = Type.Object({
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   archived: Type.Optional(Type.Boolean()),
-  version: Type.Optional(BroadcastResourceVersion),
+  version: Type.Optional(Type.Literal(BroadcastResourceVersionEnum.V2)),
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;

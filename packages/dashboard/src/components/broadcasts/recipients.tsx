@@ -1,14 +1,13 @@
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ChannelType } from "isomorphic-lib/src/types";
 import {
   BroadcastResourceV2,
+  ChannelType,
   CompletionStatus,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { useCallback } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -91,14 +90,12 @@ export default function Recipients({
 
   // Initialize local state when broadcast data loads or changes
   useEffect(() => {
-    if (broadcastQuery?.data) {
-      const subId = broadcastQuery.data.subscriptionGroupId ?? null;
-      setSelectedSubscriptionGroupId(subId);
-    } else {
-      // Set to undefined if data is null or undefined initially
-      setSelectedSubscriptionGroupId(undefined);
+    if (!broadcastQuery.data || broadcastQuery.data.version !== "V2") {
+      return;
     }
-  }, [broadcastQuery.data?.subscriptionGroupId]); // Depend on the specific field
+    const subId = broadcastQuery.data.subscriptionGroupId ?? null;
+    setSelectedSubscriptionGroupId(subId);
+  }, [broadcastQuery.data]);
 
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
@@ -109,16 +106,10 @@ export default function Recipients({
 
         // Persist the change via mutation
         broadcastMutation.mutate({
-          subscriptionGroupId: newSubscriptionGroupId,
+          subscriptionGroupId: newSubscriptionGroupId ?? undefined,
         });
-
-        // Also update the shared state if necessary (depends on usage)
-        // updateState((draft) => {
-        //   if (!draft) return;
-        //   draft.subscriptionGroupId = newSubscriptionGroupId;
-        // });
       },
-      [broadcastMutation /*, updateState */], // Remove updateState if not used here
+      [broadcastMutation],
     );
 
   // --- Loading and Error States ---
