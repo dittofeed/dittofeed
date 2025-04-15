@@ -96,7 +96,7 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     status: broadcast.status,
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
-    version: broadcast.version ?? undefined,
+    version: "V1",
   };
   return resource;
 }
@@ -447,6 +447,7 @@ export function broadcastV2ToResource(
     config,
     scheduledAt: broadcast.scheduledAt ?? undefined,
     segmentId: broadcast.segmentId ?? undefined,
+    subscriptionGroupId: broadcast.subscriptionGroupId ?? undefined,
     messageTemplateId: broadcast.messageTemplateId ?? undefined,
     archived: broadcast.archived,
   };

@@ -25,6 +25,7 @@ function useBroadcastMutation(broadcastId: string) {
   const mutationFn = async (
     updateData: Partial<Omit<UpsertBroadcastV2Request, "workspaceId" | "id">>,
   ) => {
+    console.log("mutationFn", updateData);
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
     }
@@ -34,18 +35,6 @@ function useBroadcastMutation(broadcastId: string) {
       workspaceId,
       id: broadcastId,
     };
-
-    // We need to send the full config, so we'll fetch the current one first
-    // Alternatively, the backend could support partial updates
-    const currentBroadcast = await queryClient.fetchQuery<
-      BroadcastResourceV2 | undefined | null
-    >({
-      queryKey: ["broadcast", broadcastId],
-    });
-
-    if (!currentBroadcast?.config) {
-      throw new Error("Could not fetch current broadcast config to update.");
-    }
 
     const response = await axios.put<BroadcastResourceV2>(
       `${apiBase}/api/broadcasts/v2`,
@@ -58,7 +47,11 @@ function useBroadcastMutation(broadcastId: string) {
     mutationFn,
     onSuccess: (data) => {
       // Invalidate and refetch the specific broadcast query
-      queryClient.invalidateQueries({ queryKey: ["broadcast", broadcastId] });
+      const queryKey = [
+        "broadcasts",
+        { ids: [broadcastId], workspaceId: data.workspaceId },
+      ];
+      queryClient.invalidateQueries({ queryKey });
       // Optionally update the list query if relevant
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
 
@@ -100,6 +93,7 @@ export default function Recipients({
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
       (sg) => {
+        console.log("handleSubscriptionGroupChange", sg);
         const newSubscriptionGroupId = sg?.id ?? null;
         // Optimistically update local state
         setSelectedSubscriptionGroupId(newSubscriptionGroupId);
@@ -114,6 +108,7 @@ export default function Recipients({
 
   // --- Loading and Error States ---
   if (broadcastQuery.isLoading || broadcastQuery.isFetching) {
+    console.log("Loading broadcast details...");
     return (
       <Stack spacing={1} alignItems="center" sx={{ padding: 2 }}>
         <CircularProgress />
@@ -123,6 +118,7 @@ export default function Recipients({
   }
 
   if (broadcastQuery.isError) {
+    console.error("Error loading broadcast details:", broadcastQuery.error);
     return (
       <Typography sx={{ padding: 2 }} color="error">
         Failed to load broadcast details.
@@ -131,6 +127,7 @@ export default function Recipients({
   }
 
   if (!broadcastQuery.data) {
+    console.error("Broadcast not found.");
     return (
       <Typography sx={{ padding: 2 }} color="error">
         Broadcast not found.
