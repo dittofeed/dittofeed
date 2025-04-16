@@ -37,16 +37,15 @@ export default function BroadcastLayout({
   return (
     <Box sx={{ width: "100%" }}>
       <Stepper
+        sx={{
+          width: "100%",
+        }}
         nonLinear
         activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
       >
         {BROADCAST_STEPS.map((step) => (
           <Step key={step.key}>
-            <StepButton
-              color="inherit"
-              component="a"
-              onClick={() => updateStep(step.key)}
-            >
+            <StepButton color="inherit" onClick={() => updateStep(step.key)}>
               {step.name}
             </StepButton>
           </Step>
