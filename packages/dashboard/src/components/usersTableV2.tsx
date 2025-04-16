@@ -598,22 +598,23 @@ function ActionsCell({
   );
 }
 
-const actionsCellRenderer = ({
-  row,
-  table,
+const actionsCellRendererFactory = ({
+  onOptimisticDelete,
 }: {
-  row: { original: { id: string } };
-  table: {
-    options: { meta?: { performOptimisticDelete?: (userId: string) => void } };
-  };
+  onOptimisticDelete: (userId: string) => void;
 }) => {
-  const onOptimisticDelete = table.options.meta?.performOptimisticDelete;
-  return (
-    <ActionsCell
-      userId={row.original.id}
-      onOptimisticDelete={onOptimisticDelete}
-    />
-  );
+  return function ActionsCellRenderer({
+    row,
+  }: {
+    row: { original: { id: string } };
+  }) {
+    return (
+      <ActionsCell
+        userId={row.original.id}
+        onOptimisticDelete={onOptimisticDelete}
+      />
+    );
+  };
 };
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
@@ -888,6 +889,35 @@ export default function UsersTableV2({
     });
   }, [state.currentPageUserIds, state.users]);
 
+  // Function to optimistically delete a user from the table
+  const performOptimisticDelete = useCallback(
+    (userId: string) => {
+      setState((draft) => {
+        // Remove user from currentPageUserIds array
+        draft.currentPageUserIds = draft.currentPageUserIds.filter(
+          (id) => id !== userId,
+        );
+
+        // Remove user from users object
+        if (draft.users[userId]) {
+          delete draft.users[userId];
+        }
+
+        // Decrement the count if it exists
+        if (draft.usersCount !== null) {
+          draft.usersCount -= 1;
+        }
+      });
+    },
+    [setState],
+  );
+
+  const actionsCellRenderer = useMemo(() => {
+    return actionsCellRendererFactory({
+      onOptimisticDelete: performOptimisticDelete,
+    });
+  }, [performOptimisticDelete]);
+
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       {
@@ -918,37 +948,11 @@ export default function UsersTableV2({
     [userUriTemplate],
   );
 
-  // Function to optimistically delete a user from the table
-  const performOptimisticDelete = useCallback(
-    (userId: string) => {
-      setState((draft) => {
-        // Remove user from currentPageUserIds array
-        draft.currentPageUserIds = draft.currentPageUserIds.filter(
-          (id) => id !== userId,
-        );
-
-        // Remove user from users object
-        if (draft.users[userId]) {
-          delete draft.users[userId];
-        }
-
-        // Decrement the count if it exists
-        if (draft.usersCount !== null) {
-          draft.usersCount -= 1;
-        }
-      });
-    },
-    [setState],
-  );
-
   const table = useReactTable({
     columns,
     data: usersData,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
-    meta: {
-      performOptimisticDelete,
-    },
   });
 
   const onNextPage = useCallback(() => {
