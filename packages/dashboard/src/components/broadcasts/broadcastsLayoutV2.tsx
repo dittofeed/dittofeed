@@ -1,4 +1,5 @@
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
+import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
@@ -22,6 +23,37 @@ interface BroadcastLayoutProps {
   updateState: BroadcastStateUpdater;
 }
 
+function PreviewHeader({
+  previewOpen,
+  setPreviewOpen,
+}: {
+  previewOpen: boolean;
+  setPreviewOpen: (open: boolean) => void;
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        p: 1,
+        borderBottom: 1,
+        borderColor: "divider",
+      }}
+    >
+      {previewOpen ? (
+        <IconButton onClick={() => setPreviewOpen(false)} size="small">
+          <KeyboardDoubleArrowDownRoundedIcon />
+        </IconButton>
+      ) : (
+        <IconButton onClick={() => setPreviewOpen(true)} size="small">
+          <KeyboardDoubleArrowUpRoundedIcon />
+        </IconButton>
+      )}
+    </Box>
+  );
+}
+
 export default function BroadcastLayout({
   children,
   state,
@@ -42,7 +74,7 @@ export default function BroadcastLayout({
   );
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Stack sx={{ width: "100%", height: "100%" }}>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -79,6 +111,26 @@ export default function BroadcastLayout({
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
       <Drawer
         anchor="bottom"
+        open={!previewOpen}
+        ModalProps={{
+          BackdropProps: {
+            invisible: true,
+          },
+        }}
+        PaperProps={{
+          sx: {
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+          },
+        }}
+      >
+        <PreviewHeader
+          previewOpen={previewOpen}
+          setPreviewOpen={setPreviewOpen}
+        />
+      </Drawer>
+      <Drawer
+        anchor="bottom"
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         ModalProps={{
@@ -95,23 +147,13 @@ export default function BroadcastLayout({
         }}
       >
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              p: 1,
-              borderBottom: 1,
-              borderColor: "divider",
-            }}
-          >
-            <IconButton onClick={() => setPreviewOpen(false)} size="small">
-              <CloseOutlinedIcon />
-            </IconButton>
-          </Box>
+          <PreviewHeader
+            previewOpen={previewOpen}
+            setPreviewOpen={setPreviewOpen}
+          />
           <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>drawer content</Box>
         </Box>
       </Drawer>
-    </Box>
+    </Stack>
   );
 }
