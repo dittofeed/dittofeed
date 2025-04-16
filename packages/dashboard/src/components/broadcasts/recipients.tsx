@@ -207,11 +207,12 @@ export default function Recipients({
     );
   }
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ maxWidth: 600 }}>
       <Typography variant="caption" sx={{ mb: -1 }}>
         Subscription Group (Required)
       </Typography>
       {subscriptionGroupAutocomplete}
+
       <Typography variant="caption" sx={{ mb: -1 }}>
         Segment (Optional)
       </Typography>
@@ -220,6 +221,11 @@ export default function Recipients({
         handler={handleSegmentChange}
         disabled={disabled}
       />
+      <Typography variant="body2" sx={{ mt: 1 }}>
+        Select a Subscription Group (required). Optionally, you can select an
+        additional segment which will further restrict the set of messaged users
+        to those both in the selected subscription group and the segment.
+      </Typography>
     </Stack>
   );
 }

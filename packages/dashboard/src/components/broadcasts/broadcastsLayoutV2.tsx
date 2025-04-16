@@ -52,9 +52,7 @@ export default function BroadcastLayout({
           </Step>
         ))}
       </Stepper>
-      <div>
-        <Box sx={{ mt: 2, mb: 1, py: 1 }}>{children}</Box>
-      </div>
+      <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
     </Box>
   );
 }
