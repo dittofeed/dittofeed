@@ -17,6 +17,7 @@ import {
 } from "./types";
 
 const BaseRawConfigProps = {
+  useGlobalComputedProperties: Type.Optional(BoolStr),
   databaseUrl: Type.Optional(Type.String()),
   databaseUser: Type.Optional(Type.String()),
   databasePassword: Type.Optional(Type.String()),
@@ -190,6 +191,7 @@ export type Config = Overwrite<
   RawConfig,
   {
     allowedOrigins: string[];
+    assignmentSequentialConsistency: boolean;
     authMode: AuthMode;
     blobStorageAccessKeyId: string;
     blobStorageBucket: string;
@@ -202,18 +204,25 @@ export type Config = Overwrite<
     bootstrapWorker: boolean;
     clickhouseDatabase: string;
     clickhouseHost: string;
+    computedPropertiesActivityTaskQueue: string;
+    computedPropertiesTaskQueue: string;
+    computedPropertiesTopicName: string;
     computePropertiesAttempts: number;
     computePropertiesInterval: number;
+    computePropertiesQueueCapacity: number;
+    computePropertiesQueueConcurrency: number;
+    computePropertiesSchedulerInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
-    computedPropertiesTopicName: string;
     dashboardUrl: string;
-    databaseUrl: string;
     databaseParams: Record<string, string>;
+    databaseUrl: string;
     dittofeedTelemetryDisabled: boolean;
+    enableAdditionalDashboardSettings: boolean;
     enableBlobStorage: boolean;
     enableMobilePush: boolean;
     enableSourceControl: boolean;
     exportLogsHyperDx: boolean;
+    globalCronTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
     kafkaSaslMechanism: KafkaSaslMechanism;
@@ -234,16 +243,9 @@ export type Config = Overwrite<
     temporalAddress: string;
     temporalNamespace: string;
     trackDashboard: boolean;
+    useGlobalComputedProperties?: boolean;
     userEventsTopicName: string;
     writeMode: WriteMode;
-    globalCronTaskQueue: string;
-    computedPropertiesTaskQueue: string;
-    computedPropertiesActivityTaskQueue: string;
-    assignmentSequentialConsistency: boolean;
-    computePropertiesQueueConcurrency: number;
-    computePropertiesQueueCapacity: number;
-    computePropertiesSchedulerInterval: number;
-    enableAdditionalDashboardSettings: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -570,6 +572,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         : 10 * 1000,
     enableAdditionalDashboardSettings:
       rawConfig.enableAdditionalDashboardSettings === "true",
+    useGlobalComputedProperties:
+      rawConfig.useGlobalComputedProperties === undefined
+        ? undefined
+        : rawConfig.useGlobalComputedProperties === "true",
   };
 
   return parsedConfig;
