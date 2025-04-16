@@ -51,6 +51,9 @@ export default function BroadcastLayout({
         <Stepper
           sx={{
             minWidth: "720px",
+            "& .MuiStepIcon-root.Mui-active": {
+              color: "grey.600",
+            },
           }}
           nonLinear
           activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
