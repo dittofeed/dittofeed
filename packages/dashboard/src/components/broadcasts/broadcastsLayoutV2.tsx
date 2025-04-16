@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Drawer from "@mui/material/Drawer";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 
 import {
   BROADCAST_STEPS,
@@ -24,6 +25,8 @@ export default function BroadcastLayout({
   state,
   updateState,
 }: BroadcastLayoutProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   const updateStep = useCallback(
     (step: BroadcastStepKey) => {
       updateState((draft) => {
@@ -59,12 +62,37 @@ export default function BroadcastLayout({
           ))}
         </Stepper>
         <Stack direction="row" spacing={2}>
-          <Button variant="contained" color="primary">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setPreviewOpen(true)}
+          >
             Show Preview
           </Button>
         </Stack>
       </Stack>
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
+      <Drawer
+        anchor="bottom"
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        ModalProps={{
+          BackdropProps: {
+            invisible: true,
+          },
+        }}
+        PaperProps={{
+          sx: {
+            height: "50vh",
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+          },
+        }}
+      >
+        <Box sx={{ p: 2, height: "100%", overflow: "auto" }}>
+          drawer content
+        </Box>
+      </Drawer>
     </Box>
   );
 }
