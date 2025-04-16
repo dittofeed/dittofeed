@@ -21,6 +21,7 @@ import {
   segment as dbSegment,
   userProperty as dbUserProperty,
 } from "../db/schema";
+import { getFeature } from "../features";
 import logger from "../logger";
 import {
   ComputedPropertyPeriod,
@@ -420,4 +421,16 @@ export async function getComputedPropertyPeriods({
       lastRecomputed: p.maxTo.toISOString(),
     })),
   };
+}
+
+export async function triggerWorkspaceRecompute({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const feature = await getFeature({
+    name: FeatureNamesEnum.ComputePropertiesGlobal,
+    workspaceId,
+  });
+  throw new Error("Not implemented");
 }
