@@ -16,6 +16,7 @@ import {
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
+import Typography from "@mui/material/Typography";
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
@@ -31,16 +32,17 @@ function PreviewHeader({
   setPreviewOpen: (open: boolean) => void;
 }) {
   return (
-    <Box
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="center"
       sx={{
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
         p: 1,
         borderBottom: 1,
         borderColor: "divider",
       }}
     >
+      <Box>Preview</Box>
       {previewOpen ? (
         <IconButton onClick={() => setPreviewOpen(false)} size="small">
           <KeyboardDoubleArrowDownRoundedIcon />
@@ -50,7 +52,7 @@ function PreviewHeader({
           <KeyboardDoubleArrowUpRoundedIcon />
         </IconButton>
       )}
-    </Box>
+    </Stack>
   );
 }
 
@@ -115,6 +117,7 @@ export default function BroadcastLayout({
         hideBackdrop
         sx={{
           pointerEvents: "none", // Make the modal container ignore clicks
+          zIndex: 2000,
         }}
         PaperProps={{
           sx: {
@@ -136,6 +139,7 @@ export default function BroadcastLayout({
         hideBackdrop
         sx={{
           pointerEvents: "none", // Make the modal container ignore clicks
+          zIndex: 2000,
         }}
         PaperProps={{
           sx: {
