@@ -13,6 +13,7 @@ import {
   computePropertiesQueueWorkflow,
 } from "../computePropertiesQueueWorkflow";
 import {
+  computePropertiesEarlySignal,
   computePropertiesWorkflow,
   generateComputePropertiesId,
 } from "../computePropertiesWorkflow";
@@ -259,5 +260,34 @@ export async function startComputePropertiesWorkflowGlobal() {
       throw e;
     }
     logger().info("Compute properties queue workflow already started.");
+  }
+}
+
+export async function signalComputePropertiesEarly({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        workspaceId,
+      },
+      "Sending compute properties early signal",
+    );
+    await client
+      .getHandle(generateComputePropertiesId(workspaceId))
+      .signal(computePropertiesEarlySignal);
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+        workspaceId,
+      },
+      "Failed to send compute properties early signal",
+    );
+    // Optionally re-throw or handle the error as needed
+    throw e;
   }
 }
