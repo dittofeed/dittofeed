@@ -9,8 +9,10 @@ import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
+  addWorkspacesSignalV2,
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
   computePropertiesQueueWorkflow,
+  WorkspaceQueueSignal,
 } from "../computePropertiesQueueWorkflow";
 import {
   computePropertiesEarlySignal,
@@ -286,6 +288,35 @@ export async function signalComputePropertiesEarly({
         workspaceId,
       },
       "Failed to send compute properties early signal",
+    );
+    // Optionally re-throw or handle the error as needed
+    throw e;
+  }
+}
+
+export async function signalAddWorkspacesV2({
+  items,
+}: {
+  items: WorkspaceQueueSignal["workspaces"];
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        itemCount: items.length,
+      },
+      "Sending add workspaces v2 signal",
+    );
+    await client
+      .getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID)
+      .signal(addWorkspacesSignalV2, { workspaces: items });
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+        itemCount: items.length,
+      },
+      "Failed to send add workspaces v2 signal",
     );
     // Optionally re-throw or handle the error as needed
     throw e;

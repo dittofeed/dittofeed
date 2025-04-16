@@ -35,6 +35,10 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "../types";
+import {
+  signalAddWorkspacesV2,
+  signalComputePropertiesEarly,
+} from "./computePropertiesWorkflow/lifecycle";
 
 export type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
@@ -432,5 +436,13 @@ export async function triggerWorkspaceRecompute({
     name: FeatureNamesEnum.ComputePropertiesGlobal,
     workspaceId,
   });
-  throw new Error("Not implemented");
+  if (feature) {
+    await signalAddWorkspacesV2({
+      // choosing a priority of 10 to be higher than the default of 0 but with
+      // some room to add lower priority items
+      items: [{ id: workspaceId, priority: 10 }],
+    });
+  } else {
+    await signalComputePropertiesEarly({ workspaceId });
+  }
 }
