@@ -159,7 +159,6 @@ export default function Recipients({
         // Persist the change via mutation
         broadcastMutation.mutate({
           subscriptionGroupId: newSubscriptionGroupId,
-          segmentId: null,
         });
       },
       [broadcastMutation],
@@ -173,7 +172,6 @@ export default function Recipients({
       // Persist the change via mutation
       broadcastMutation.mutate({
         segmentId: newSegmentId,
-        subscriptionGroupId: null,
       });
     },
     [broadcastMutation],
