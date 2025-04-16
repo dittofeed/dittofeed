@@ -4,7 +4,6 @@ import {
   LoggerSinks,
   proxyActivities,
   proxySinks,
-  sleep,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
@@ -24,6 +23,10 @@ const {
 
 export const userJourneyInitialize = wf.defineSignal<[string]>(
   "userJourneyInitialize",
+);
+
+export const computePropertiesEarlySignal = wf.defineSignal<[]>(
+  "computePropertiesEarlySignal",
 );
 
 export function generateComputePropertiesId(workspaceId: string) {
@@ -98,14 +101,30 @@ export async function computePropertiesWorkflow({
     const period =
       basePollingInterval + Math.random() * pollingJitterCoefficient;
 
+    let wokeUpEarly = false;
+    wf.setHandler(computePropertiesEarlySignal, () => {
+      logger.info("computePropertiesWorkflow woke up early", { workspaceId });
+      wokeUpEarly = true;
+    });
+
     logger.debug("segmentsNotificationWorkflow sleeping started", {
       period,
       i,
       maxPollingAttempts,
       workspaceId,
     });
+
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
-    await sleep(period);
+    // or until computePropertiesEarlySignal is received
+    await wf.condition(() => wokeUpEarly, period);
+
+    if (wokeUpEarly) {
+      logger.info("computePropertiesWorkflow woke up early, computing now.", {
+        workspaceId,
+      });
+      // Reset the flag for the next iteration
+      wokeUpEarly = false;
+    }
 
     i += 1;
     if (i >= maxPollingAttempts) {

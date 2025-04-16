@@ -1,9 +1,14 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { getComputedPropertyPeriods } from "backend-lib/src/computedProperties/periods";
+import {
+  getComputedPropertyPeriods,
+  triggerWorkspaceRecompute,
+} from "backend-lib/src/computedProperties/periods";
 import { FastifyInstance } from "fastify";
 import {
+  EmptyResponse,
   GetComputedPropertyPeriodsRequest,
   GetComputedPropertyPeriodsResponse,
+  TriggerRecomputeRequest,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -27,4 +32,20 @@ export default async function computedPropertiesController(
       return reply.status(200).send(periods);
     },
   );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post("/trigger-recompute", {
+    schema: {
+      description: "Trigger a computed property recomputation.",
+      body: TriggerRecomputeRequest,
+      response: {
+        200: EmptyResponse,
+      },
+    },
+    handler: async (request, reply) => {
+      await triggerWorkspaceRecompute({
+        workspaceId: request.body.workspaceId,
+      });
+      return reply.status(200).send();
+    },
+  });
 }

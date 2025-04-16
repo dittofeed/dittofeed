@@ -28,7 +28,6 @@ export interface WorkspaceQueueSignal {
   workspaces: WorkspaceQueueItem[];
 }
 
-// TODO handle this signal
 export const addWorkspacesSignalV2 = defineSignal<[WorkspaceQueueSignal]>(
   "addWorkspacesSignalV2",
 );

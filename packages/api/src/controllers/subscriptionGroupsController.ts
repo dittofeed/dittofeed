@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import { triggerWorkspaceRecompute } from "backend-lib/src/computedProperties/periods";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
@@ -70,6 +71,9 @@ export default async function subscriptionGroupsController(
           message: result.error.message,
         });
       }
+      await triggerWorkspaceRecompute({
+        workspaceId: result.value.workspaceId,
+      });
       const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
     },

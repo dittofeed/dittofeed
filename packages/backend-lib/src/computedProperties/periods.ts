@@ -21,6 +21,7 @@ import {
   segment as dbSegment,
   userProperty as dbUserProperty,
 } from "../db/schema";
+import { getFeature } from "../features";
 import logger from "../logger";
 import {
   ComputedPropertyPeriod,
@@ -34,6 +35,10 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "../types";
+import {
+  signalAddWorkspacesV2,
+  signalComputePropertiesEarly,
+} from "./computePropertiesWorkflow/lifecycle";
 
 export type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
@@ -420,4 +425,25 @@ export async function getComputedPropertyPeriods({
       lastRecomputed: p.maxTo.toISOString(),
     })),
   };
+}
+
+export async function triggerWorkspaceRecompute({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  logger().info({ workspaceId }, "Triggering workspace recompute");
+  const feature = await getFeature({
+    name: FeatureNamesEnum.ComputePropertiesGlobal,
+    workspaceId,
+  });
+  if (feature) {
+    await signalAddWorkspacesV2({
+      // choosing a priority of 10 to be higher than the default of 0 but with
+      // some room to add lower priority items
+      items: [{ id: workspaceId, priority: 10 }],
+    });
+  } else {
+    await signalComputePropertiesEarly({ workspaceId });
+  }
 }
