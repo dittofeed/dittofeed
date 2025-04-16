@@ -1,4 +1,5 @@
 import connectClient from "../../../temporal/client";
+import { WorkspaceQueueItem } from "../../../types";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
   computePropertiesQueueWorkflow,
@@ -12,6 +13,18 @@ export async function findDueWorkspaces(
   const maxTos = await findDueWorkspaceMaxTos(params);
   return {
     workspaceIds: maxTos.map(({ workspaceId }) => workspaceId),
+  };
+}
+
+export async function findDueWorkspacesV2(
+  params: FindDueWorkspacesParams,
+): Promise<{ workspaces: WorkspaceQueueItem[] }> {
+  const maxTos = await findDueWorkspaceMaxTos(params);
+  return {
+    workspaces: maxTos.map(({ workspaceId, max }) => ({
+      id: workspaceId,
+      maxPeriod: max?.getTime(),
+    })),
   };
 }
 
