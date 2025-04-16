@@ -102,7 +102,7 @@ export default function BroadcastLayout({
           <GreyButton
             variant="contained"
             color="primary"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => setPreviewOpen(!previewOpen)}
           >
             Toggle Preview
           </GreyButton>
@@ -112,13 +112,13 @@ export default function BroadcastLayout({
       <Drawer
         anchor="bottom"
         open={!previewOpen}
-        ModalProps={{
-          BackdropProps: {
-            invisible: true,
-          },
+        hideBackdrop
+        sx={{
+          pointerEvents: "none", // Make the modal container ignore clicks
         }}
         PaperProps={{
           sx: {
+            pointerEvents: "auto",
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
           },
@@ -133,13 +133,13 @@ export default function BroadcastLayout({
         anchor="bottom"
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        ModalProps={{
-          BackdropProps: {
-            invisible: true,
-          },
+        hideBackdrop
+        sx={{
+          pointerEvents: "none", // Make the modal container ignore clicks
         }}
         PaperProps={{
           sx: {
+            pointerEvents: "auto",
             height: "50vh",
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
