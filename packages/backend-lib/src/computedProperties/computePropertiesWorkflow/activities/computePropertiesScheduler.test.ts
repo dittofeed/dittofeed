@@ -5,7 +5,7 @@ import { db, insert } from "../../../db";
 import * as schema from "../../../db/schema";
 import { toSegmentResource } from "../../../segments";
 import {
-  ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   FeatureNamesEnum,
   SavedSegmentResource,
   SegmentDefinition,
@@ -115,14 +115,14 @@ describe("computePropertiesScheduler activities", () => {
             userProperties: [],
             segments: segments1,
             now,
-            step: ComputedPropertyStep.ComputeAssignments,
+            step: ComputedPropertyStepEnum.ComputeAssignments,
           }),
           createPeriods({
             workspaceId: workspace2.id,
             userProperties: [],
             segments: segments2,
             now,
-            step: ComputedPropertyStep.ComputeAssignments,
+            step: ComputedPropertyStepEnum.ComputeAssignments,
           }),
           db().insert(schema.feature).values({
             workspaceId: workspace.id,
@@ -143,7 +143,7 @@ describe("computePropertiesScheduler activities", () => {
           userProperties: [],
           segments: segments2,
           now,
-          step: ComputedPropertyStep.ComputeAssignments,
+          step: ComputedPropertyStepEnum.ComputeAssignments,
         });
       });
       it("should return the workspace", async () => {

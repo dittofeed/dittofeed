@@ -25,7 +25,10 @@ import logger from "../logger";
 import {
   ComputedPropertyPeriod,
   ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   FeatureNamesEnum,
+  GetComputedPropertyPeriodsRequest,
+  GetComputedPropertyPeriodsResponse,
   SavedSegmentResource,
   SavedUserPropertyResource,
   WorkspaceStatusDbEnum,
@@ -42,7 +45,7 @@ export type AggregatedComputedPropertyPeriod = Omit<
 export type Period = Overwrite<
   Pick<
     AggregatedComputedPropertyPeriod,
-    "maxTo" | "computedPropertyId" | "version"
+    "maxTo" | "computedPropertyId" | "version" | "type"
   >,
   {
     maxTo: Date;
@@ -54,6 +57,8 @@ export type PeriodByComputedPropertyIdMap = Map<string, Period>;
 export class PeriodByComputedPropertyId {
   readonly map: PeriodByComputedPropertyIdMap;
 
+  readonly versionsById: Map<string, Set<string>>;
+
   static getKey({
     computedPropertyId,
     version,
@@ -64,8 +69,9 @@ export class PeriodByComputedPropertyId {
     return `${computedPropertyId}-${version}`;
   }
 
-  constructor(map: PeriodByComputedPropertyIdMap) {
-    this.map = map;
+  constructor() {
+    this.map = new Map();
+    this.versionsById = new Map();
   }
 
   get({
@@ -81,6 +87,45 @@ export class PeriodByComputedPropertyId {
     });
     const value = this.map.get(key);
     return value;
+  }
+
+  set({
+    computedPropertyId,
+    version,
+    period,
+  }: {
+    computedPropertyId: string;
+    version: string;
+    period: Period;
+  }) {
+    this.map.set(
+      PeriodByComputedPropertyId.getKey({ computedPropertyId, version }),
+      period,
+    );
+    const existingVersions =
+      this.versionsById.get(computedPropertyId) ?? new Set();
+    existingVersions.add(version);
+    this.versionsById.set(computedPropertyId, existingVersions);
+  }
+
+  setPeriods(periods: Period[]) {
+    for (const period of periods) {
+      this.set({
+        computedPropertyId: period.computedPropertyId,
+        version: period.version,
+        period,
+      });
+    }
+  }
+
+  getForComputedPropertyId(computedPropertyId: string): Period[] {
+    return Array.from(this.versionsById.get(computedPropertyId) ?? []).flatMap(
+      (version) => this.get({ computedPropertyId, version }) ?? [],
+    );
+  }
+
+  getAll(): Period[] {
+    return Array.from(this.map.values());
   }
 }
 
@@ -111,19 +156,15 @@ export async function getPeriodsByComputedPropertyId({
       ${dbComputedPropertyPeriod.to} DESC`)
   ).rows;
 
-  const periodByComputedPropertyId =
-    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
-      const { maxTo } = period;
-      const key = PeriodByComputedPropertyId.getKey(period);
-      acc.set(key, {
-        maxTo: new Date(`${maxTo}+0000`),
-        computedPropertyId: period.computedPropertyId,
-        version: period.version,
-      });
-      return acc;
-    }, new Map());
-
-  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
+  const transformedPeriods = periods.map((p) => ({
+    maxTo: new Date(`${p.maxTo}+0000`),
+    computedPropertyId: p.computedPropertyId,
+    version: p.version,
+    type: p.type,
+  }));
+  const pbcpp = new PeriodByComputedPropertyId();
+  pbcpp.setPeriods(transformedPeriods);
+  return pbcpp;
 }
 
 export async function createPeriods({
@@ -201,7 +242,8 @@ export async function createPeriods({
   });
 }
 
-const EARLIEST_COMPUTE_PROPERTY_STEP = ComputedPropertyStep.ComputeAssignments;
+const EARLIEST_COMPUTE_PROPERTY_STEP =
+  ComputedPropertyStepEnum.ComputeAssignments;
 
 export async function getEarliestComputePropertyPeriod({
   workspaceId,
@@ -323,7 +365,7 @@ export async function findDueWorkspaceMaxTos({
       cpp,
       and(
         eq(cpp.workspaceId, w.id),
-        eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
+        eq(cpp.step, ComputedPropertyStepEnum.ComputeAssignments),
       ),
     )
     .where(
@@ -359,4 +401,23 @@ export async function findDueWorkspaceMaxTos({
     .limit(limit);
 
   return periodsQuery;
+}
+
+export async function getComputedPropertyPeriods({
+  workspaceId,
+  step,
+}: GetComputedPropertyPeriodsRequest): Promise<GetComputedPropertyPeriodsResponse> {
+  const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step,
+  });
+  const all = periodByComputedPropertyId.getAll();
+  return {
+    periods: all.map((p) => ({
+      id: p.computedPropertyId,
+      workspaceId,
+      type: p.type,
+      lastRecomputed: p.maxTo.toISOString(),
+    })),
+  };
 }

@@ -5,9 +5,11 @@ import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperti
 import * as schema from "backend-lib/src/db/schema";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findManyPartialSegments } from "backend-lib/src/segments";
-import { ComputedPropertyStep } from "backend-lib/src/types";
 import { and, eq } from "drizzle-orm";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  ComputedPropertyStepEnum,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { pick } from "remeda";
 
@@ -34,7 +36,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     ]);
     const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
       workspaceId,
-      step: ComputedPropertyStep.ProcessAssignments,
+      step: ComputedPropertyStepEnum.ProcessAssignments,
     });
 
     const segments: AppState["segments"] = {

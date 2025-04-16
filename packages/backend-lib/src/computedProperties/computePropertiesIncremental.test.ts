@@ -26,6 +26,7 @@ import {
   ComputedPropertyAssignment,
   ComputedPropertyPeriod,
   ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   EventType,
   InternalEventType,
   JourneyDefinition,
@@ -632,7 +633,7 @@ interface TestJourney {
   entrySegmentName: string;
 }
 
-interface UpdateComputedPropertyStep {
+interface UpdateComputedPropertyStepEnum {
   type: EventsStepType.UpdateComputedProperty;
   userProperties?: TestUserProperty[];
   segments?: TestSegment[];
@@ -653,7 +654,7 @@ type TableStep =
   | AssertStep
   | SleepStep
   | DebugAssignmentsStep
-  | UpdateComputedPropertyStep
+  | UpdateComputedPropertyStepEnum
   | UpdateJourneyStep;
 
 interface TableTest {
@@ -1019,15 +1020,15 @@ describe("computeProperties", () => {
           periods: [
             {
               to: 0,
-              step: ComputedPropertyStep.ComputeState,
+              step: ComputedPropertyStepEnum.ComputeState,
             },
             {
               to: 0,
-              step: ComputedPropertyStep.ComputeAssignments,
+              step: ComputedPropertyStepEnum.ComputeAssignments,
             },
             {
               to: 0,
-              step: ComputedPropertyStep.ProcessAssignments,
+              step: ComputedPropertyStepEnum.ProcessAssignments,
             },
           ],
         },
@@ -1075,30 +1076,30 @@ describe("computeProperties", () => {
           periods: [
             {
               to: -1000,
-              step: ComputedPropertyStep.ComputeState,
+              step: ComputedPropertyStepEnum.ComputeState,
             },
             {
               to: -1000,
-              step: ComputedPropertyStep.ComputeAssignments,
+              step: ComputedPropertyStepEnum.ComputeAssignments,
             },
             {
               to: -1000,
-              step: ComputedPropertyStep.ProcessAssignments,
+              step: ComputedPropertyStepEnum.ProcessAssignments,
             },
             {
               from: -1000,
               to: 0,
-              step: ComputedPropertyStep.ComputeState,
+              step: ComputedPropertyStepEnum.ComputeState,
             },
             {
               from: -1000,
               to: 0,
-              step: ComputedPropertyStep.ComputeAssignments,
+              step: ComputedPropertyStepEnum.ComputeAssignments,
             },
             {
               from: -1000,
               to: 0,
-              step: ComputedPropertyStep.ProcessAssignments,
+              step: ComputedPropertyStepEnum.ProcessAssignments,
             },
           ],
         },

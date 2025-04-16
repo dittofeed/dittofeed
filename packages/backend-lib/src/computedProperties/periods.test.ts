@@ -5,7 +5,7 @@ import { db, insert } from "../db";
 import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
 import { toSegmentResource } from "../segments";
 import {
-  ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   SavedSegmentResource,
   SegmentNodeType,
   SegmentOperatorType,
@@ -90,7 +90,7 @@ describe("periods", () => {
         segments: [unwrap(toSegmentResource(segment1))],
         userProperties: [],
         now: date1,
-        step: ComputedPropertyStep.ComputeAssignments,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
       });
 
       date2 = date1 + 1000 * 60 * 3;
@@ -99,7 +99,7 @@ describe("periods", () => {
         segments: [unwrap(toSegmentResource(segment2))],
         userProperties: [],
         now: date2,
-        step: ComputedPropertyStep.ComputeAssignments,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
       });
     });
 
@@ -140,11 +140,11 @@ describe("periods", () => {
         segments: [segment],
         userProperties: [],
         now,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStepEnum.ProcessAssignments,
       });
       let periodsById = await getPeriodsByComputedPropertyId({
         workspaceId: workspace.id,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStepEnum.ProcessAssignments,
       });
       expect(
         periodsById.get({
@@ -178,12 +178,12 @@ describe("periods", () => {
         userProperties: [],
         now,
         periodByComputedPropertyId: periodsById,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStepEnum.ProcessAssignments,
       });
 
       periodsById = await getPeriodsByComputedPropertyId({
         workspaceId: workspace.id,
-        step: ComputedPropertyStep.ProcessAssignments,
+        step: ComputedPropertyStepEnum.ProcessAssignments,
       });
       expect(
         periodsById.get({

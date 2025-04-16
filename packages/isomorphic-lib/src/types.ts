@@ -4985,3 +4985,39 @@ export const UpsertBroadcastV2Error = Type.Object({
 });
 
 export type UpsertBroadcastV2Error = Static<typeof UpsertBroadcastV2Error>;
+
+export const ComputedPropertyStepEnum = {
+  ComputeState: "ComputeState",
+  ComputeAssignments: "ComputeAssignments",
+  ProcessAssignments: "ProcessAssignments",
+} as const;
+
+export const ComputedPropertyStep = Type.KeyOf(
+  Type.Const(ComputedPropertyStepEnum),
+);
+
+export type ComputedPropertyStep = Static<typeof ComputedPropertyStep>;
+
+export const GetComputedPropertyPeriodsRequest = Type.Object({
+  workspaceId: Type.String(),
+  step: ComputedPropertyStep,
+});
+
+export type GetComputedPropertyPeriodsRequest = Static<
+  typeof GetComputedPropertyPeriodsRequest
+>;
+
+export const ComputedPropertyPeriod = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Enum(Type.Literal("Segment"), Type.Literal("UserProperty")),
+  lastRecomputed: Type.String(),
+});
+
+export const GetComputedPropertyPeriodsResponse = Type.Object({
+  periods: Type.Array(ComputedPropertyPeriod),
+});
+
+export type GetComputedPropertyPeriodsResponse = Static<
+  typeof GetComputedPropertyPeriodsResponse
+>;

@@ -710,12 +710,6 @@ export type DittofeedFastifyInstance = FastifyInstance<
   TypeBoxTypeProvider
 >;
 
-export enum ComputedPropertyStep {
-  ComputeState = "ComputeState",
-  ComputeAssignments = "ComputeAssignments",
-  ProcessAssignments = "ProcessAssignments",
-}
-
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
   NotOnboarded = "NotOnboarded",

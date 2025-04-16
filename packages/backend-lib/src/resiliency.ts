@@ -13,7 +13,7 @@ import {
 import logger, { publicLogger } from "./logger";
 import { getMeter } from "./openTelemetry";
 import {
-  ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   Workspace,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
@@ -165,7 +165,7 @@ export async function findActiveWorkspaces(): Promise<{
     .innerJoin(w, eq(cpp.workspaceId, w.id))
     .where(
       and(
-        eq(cpp.step, ComputedPropertyStep.ComputeAssignments),
+        eq(cpp.step, ComputedPropertyStepEnum.ComputeAssignments),
         eq(w.status, WorkspaceStatusDbEnum.Active),
         not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
         or(
