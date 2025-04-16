@@ -9,6 +9,7 @@ import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
+import config from "./config";
 import { db } from "./db";
 import { feature as dbFeature } from "./db/schema";
 import logger from "./logger";
@@ -27,6 +28,13 @@ export async function getFeature({
   workspaceId: string;
   name: FeatureName;
 }): Promise<boolean> {
+  const { useGlobalComputedProperties } = config();
+  if (
+    name === FeatureNamesEnum.ComputePropertiesGlobal &&
+    useGlobalComputedProperties !== undefined
+  ) {
+    return useGlobalComputedProperties;
+  }
   const feature = await db().query.feature.findFirst({
     where: and(
       eq(dbFeature.workspaceId, workspaceId),
