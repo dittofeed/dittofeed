@@ -432,6 +432,7 @@ export async function triggerWorkspaceRecompute({
 }: {
   workspaceId: string;
 }) {
+  logger().info({ workspaceId }, "Triggering workspace recompute");
   const feature = await getFeature({
     name: FeatureNamesEnum.ComputePropertiesGlobal,
     workspaceId,

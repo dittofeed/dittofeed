@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { triggerWorkspaceRecompute } from "backend-lib/src/computedProperties/periods";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
@@ -42,6 +43,11 @@ export default async function userPropertiesController(
       }
       const resource = result.value;
 
+      if (request.body.definition) {
+        await triggerWorkspaceRecompute({
+          workspaceId: resource.workspaceId,
+        });
+      }
       return reply.status(200).send(resource);
     },
   );
