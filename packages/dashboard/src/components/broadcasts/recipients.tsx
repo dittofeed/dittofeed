@@ -198,6 +198,7 @@ export default function Recipients({
         subscriptionGroupId={currentSubscriptionGroupId}
         handler={handleSubscriptionGroupChange}
         disabled={disabled}
+        disableClearable
       />
     );
   }

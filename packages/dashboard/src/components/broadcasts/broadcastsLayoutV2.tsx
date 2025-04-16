@@ -1,12 +1,14 @@
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
 import React, { useCallback, useState } from "react";
 
+import { GreyButton } from "../greyButtonStyle";
 import {
   BROADCAST_STEPS,
   BroadcastState,
@@ -25,7 +27,7 @@ export default function BroadcastLayout({
   state,
   updateState,
 }: BroadcastLayoutProps) {
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(true);
 
   const updateStep = useCallback(
     (step: BroadcastStepKey) => {
@@ -62,13 +64,13 @@ export default function BroadcastLayout({
           ))}
         </Stepper>
         <Stack direction="row" spacing={2}>
-          <Button
+          <GreyButton
             variant="contained"
             color="primary"
             onClick={() => setPreviewOpen(true)}
           >
-            Show Preview
-          </Button>
+            Toggle Preview
+          </GreyButton>
         </Stack>
       </Stack>
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
@@ -89,8 +91,22 @@ export default function BroadcastLayout({
           },
         }}
       >
-        <Box sx={{ p: 2, height: "100%", overflow: "auto" }}>
-          drawer content
+        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              p: 1,
+              borderBottom: 1,
+              borderColor: "divider",
+            }}
+          >
+            <IconButton onClick={() => setPreviewOpen(false)} size="small">
+              <CloseOutlinedIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>drawer content</Box>
         </Box>
       </Drawer>
     </Box>

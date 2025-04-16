@@ -59,11 +59,13 @@ export function SubscriptionGroupAutocompleteV2({
   subscriptionGroupId,
   disabled,
   handler,
+  disableClearable,
 }: {
   subscriptionGroupId?: string;
   disabled?: boolean;
   channel: ChannelType;
   handler: SubscriptionGroupChangeHandler;
+  disableClearable?: boolean;
 }) {
   const { data: queryData, isLoading } = useSubscriptionGroupsQuery();
 
@@ -90,6 +92,7 @@ export function SubscriptionGroupAutocompleteV2({
       value={subscriptionGroup}
       options={subscriptionGroupItems}
       disabled={disabled || isLoading}
+      disableClearable={disableClearable}
       getOptionLabel={getSubscriptionGroupLabel}
       onChange={(_event, sg) => {
         handler(sg);
