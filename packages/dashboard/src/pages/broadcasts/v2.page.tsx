@@ -61,6 +61,8 @@ export default function BroadcastPage() {
           pt: 2,
           px: 1,
           pb: 1,
+          width: "100%",
+          height: "100%",
         }}
       >
         {router.isReady && <BroadcastPageContent />}
