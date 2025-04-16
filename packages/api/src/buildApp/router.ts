@@ -7,6 +7,7 @@ import adminBroadcastsController from "../controllers/adminBroadcastsController"
 import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
 import componentConfigurationsController from "../controllers/componentConfigurationsController";
+import computedPropertiesController from "../controllers/computedPropertiesController";
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import deliveriesController from "../controllers/deliveriesController";
@@ -67,6 +68,9 @@ export default async function router(
         f.register(usersController, { prefix: "/users" }),
         f.register(groupsController, { prefix: "/groups" }),
         f.register(resourcesController, { prefix: "/resources" }),
+        f.register(computedPropertiesController, {
+          prefix: "/computed-properties",
+        }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.
         f.register(webhooksController, { prefix: "/webhooks" }),
@@ -118,6 +122,9 @@ export default async function router(
           prefix: "/broadcasts",
         }),
         f.register(groupsController, { prefix: "/groups" }),
+        f.register(computedPropertiesController, {
+          prefix: "/computed-properties",
+        }),
       ]);
     },
     { prefix: "/api/admin" },

@@ -31,7 +31,7 @@ import {
   BroadcastSegmentNode,
   ComputedAssignment,
   ComputedPropertyAssignment,
-  ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   ComputedPropertyUpdate,
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
@@ -2869,7 +2869,7 @@ export async function computeState({
 
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
       workspaceId,
-      step: ComputedPropertyStep.ComputeState,
+      step: ComputedPropertyStepEnum.ComputeState,
     });
 
     const subQueriesWithPeriods = subQueryData.reduce<
@@ -2964,7 +2964,7 @@ export async function computeState({
       segments,
       now,
       periodByComputedPropertyId,
-      step: ComputedPropertyStep.ComputeState,
+      step: ComputedPropertyStepEnum.ComputeState,
     });
   });
 }
@@ -3013,7 +3013,7 @@ export async function computeAssignments({
 
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
       workspaceId,
-      step: ComputedPropertyStep.ComputeAssignments,
+      step: ComputedPropertyStepEnum.ComputeAssignments,
     });
     const segmentQueries: AssignmentQueryGroup[] = [];
     const userPropertyQueries: AssignmentQueryGroup[] = [];
@@ -3304,7 +3304,7 @@ export async function computeAssignments({
       segments,
       now,
       periodByComputedPropertyId,
-      step: ComputedPropertyStep.ComputeAssignments,
+      step: ComputedPropertyStepEnum.ComputeAssignments,
     });
   });
 }
@@ -3846,7 +3846,7 @@ export async function processAssignments({
 
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
       workspaceId,
-      step: ComputedPropertyStep.ProcessAssignments,
+      step: ComputedPropertyStepEnum.ProcessAssignments,
     });
 
     const assignmentProcessors: AssignmentProcessor[] = [];
@@ -3979,7 +3979,7 @@ export async function processAssignments({
       segments,
       now,
       periodByComputedPropertyId,
-      step: ComputedPropertyStep.ProcessAssignments,
+      step: ComputedPropertyStepEnum.ProcessAssignments,
     });
   });
 }

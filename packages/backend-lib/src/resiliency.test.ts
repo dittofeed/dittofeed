@@ -12,11 +12,10 @@ import {
   observeWorkspaceComputeLatency,
 } from "./resiliency";
 import {
-  ComputedPropertyStep,
+  ComputedPropertyStepEnum,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
-  Workspace,
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
@@ -80,7 +79,7 @@ describe("resiliency", () => {
       table: dbComputedPropertyPeriod,
       values: {
         id: randomUUID(),
-        step: ComputedPropertyStep.ComputeAssignments,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
         from: new Date(Date.now() - 1000 * 60),
         to: new Date(),
         type: "Segment",
@@ -154,7 +153,7 @@ describe("resiliency", () => {
             version: Date.now().toString(),
             from: new Date(Date.now() - 1000 * 60),
             to: new Date(Date.now() - 1000 * 55),
-            step: ComputedPropertyStep.ComputeAssignments,
+            step: ComputedPropertyStepEnum.ComputeAssignments,
           },
         });
       });
