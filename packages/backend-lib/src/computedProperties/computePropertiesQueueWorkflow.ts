@@ -48,6 +48,11 @@ export interface ComputePropertiesQueueWorkflowParams {
   queueStateV2?: WorkspaceQueueItem[];
 }
 
+interface InFlightTask {
+  task: Promise<void>;
+  id: string;
+}
+
 /**
  * Comparator function for WorkspaceQueueItems that implements priority ordering:
  * 1. Higher priority (higher number) comes first
@@ -159,7 +164,7 @@ export async function computePropertiesQueueWorkflow(
   // We'll track how many items we've processed in this run
   let totalProcessed = 0;
   // Keep track of in-flight tasks so we can wait before continueAsNew
-  const inFlight: Promise<void>[] = [];
+  const inFlight: InFlightTask[] = [];
 
   //
   // SIGNAL HANDLER: Add new workspaces (backward compatible)
@@ -190,14 +195,13 @@ export async function computePropertiesQueueWorkflow(
       workspaceIdsCount: signal.workspaces.length,
     });
 
-    const now = Date.now();
     for (const item of signal.workspaces) {
       if (priorityQueue.length < capacity && !membership.has(item.id)) {
         const queueItem: WorkspaceQueueItem = {
           id: item.id,
           priority: item.priority,
           maxPeriod: item.maxPeriod,
-          insertedAt: now, // Use timestamp
+          insertedAt: item.insertedAt,
         };
         priorityQueue.push(queueItem);
         membership.add(item.id);
@@ -223,7 +227,6 @@ export async function computePropertiesQueueWorkflow(
     // B) Sort and dequeue the highest priority item
     priorityQueue.sort(compareWorkspaceItems);
     const item = priorityQueue.shift()!;
-    membership.delete(item.id);
 
     logger.info("Queue: Dequeued workspace", {
       workspaceId: item.id,
@@ -235,12 +238,14 @@ export async function computePropertiesQueueWorkflow(
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
 
+    membership.delete(item.id);
+
     logger.info("Queue: Acquired semaphore slot", {
       workspaceId: item.id,
     });
 
     // D) Launch the activity in a background task
-    const task = (async () => {
+    const taskPromise = (async () => {
       try {
         await computePropertiesContained({
           workspaceId: item.id,
@@ -248,6 +253,7 @@ export async function computePropertiesQueueWorkflow(
         });
         totalProcessed += 1;
         logger.info("Queue: Processed workspace", {
+          itemId: item.id,
           workspaceId: item.id,
         });
       } catch (err) {
@@ -256,15 +262,19 @@ export async function computePropertiesQueueWorkflow(
           err,
         });
       } finally {
+        inFlight.splice(
+          inFlight.findIndex((t) => t.id === item.id),
+          1,
+        );
         semaphore.release();
       }
     })();
-    inFlight.push(task);
+    inFlight.push({ task: taskPromise, id: item.id });
 
     // E) Check if we've processed enough items to continueAsNew
     if (totalProcessed >= maxLoopIterations) {
       // Wait for all in-flight tasks to settle
-      await Promise.allSettled(inFlight);
+      await Promise.allSettled(inFlight.map((t) => t.task));
 
       // Prepare next run with the V2 queue state
       const nextParams: ComputePropertiesQueueWorkflowParams = {
