@@ -36,7 +36,6 @@ function useBroadcastMutation(broadcastId: string) {
   const mutationFn = async (
     updateData: Partial<Omit<UpsertBroadcastV2Request, "workspaceId" | "id">>,
   ) => {
-    console.log("mutationFn", updateData);
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
     }
@@ -63,8 +62,6 @@ function useBroadcastMutation(broadcastId: string) {
     mutationFn,
     onMutate: async (newData) => {
       if (workspace.type !== CompletionStatus.Successful) {
-        console.error("Workspace not ready for optimistic update");
-        // Optionally throw or handle differently
         return; // Skip optimistic update if workspace isn't ready
       }
       const workspaceId = workspace.value.id;

@@ -35,7 +35,7 @@ export default function BroadcastLayout({
   );
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%", minWidth: "720px" }}>
       <Stepper
         sx={{
           width: "100%",
