@@ -1,4 +1,10 @@
-import { CircularProgress, Stack, Typography } from "@mui/material";
+import {
+  CircularProgress,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
@@ -8,7 +14,7 @@ import {
   CompletionStatus,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -147,6 +153,9 @@ export default function Recipients({
 }) {
   const broadcastQuery = useBroadcastQuery(state.id);
   const broadcastMutation = useBroadcastMutation(state.id);
+  const [selectExistingSegment, setSelectExistingSegment] = useState<
+    "existing" | "new"
+  >("existing");
 
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
@@ -212,6 +221,20 @@ export default function Recipients({
       <Typography variant="caption" sx={{ mb: -1 }}>
         Segment (Optional)
       </Typography>
+      <Stack direction="row" spacing={1}>
+        <ToggleButtonGroup
+          value={selectExistingSegment}
+          exclusive
+          onChange={(_, newValue) => {
+            if (newValue !== null) {
+              setSelectExistingSegment(newValue);
+            }
+          }}
+        >
+          <ToggleButton value="existing">Existing Segment</ToggleButton>
+          <ToggleButton value="new">New Segment</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
       <SegmentsAutocomplete
         segmentId={currentSegmentId}
         handler={handleSegmentChange}
