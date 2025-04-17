@@ -1,5 +1,4 @@
 import {
-  CircularProgress,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -10,7 +9,6 @@ import axios from "axios";
 import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
-  ChannelType,
   CompletionStatus,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
@@ -18,6 +16,7 @@ import { useCallback, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { SegmentEditorInner } from "../segmentEditor";
 import {
   SegmentChangeHandler,
   SegmentsAutocomplete,
@@ -32,6 +31,11 @@ import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
 // Context type for mutation rollback
 interface MutationContext {
   previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
+}
+
+function BroadcastSegmentEditor() {
+  // return <SegmentEditorInner />;
+  return <>Segment Editor</>;
 }
 
 // Mutation hook for updating broadcasts
@@ -217,7 +221,11 @@ export default function Recipients({
         Subscription Group (Required)
       </Typography>
       {subscriptionGroupAutocomplete}
-
+      <Typography variant="body2" sx={{ mt: 1 }}>
+        Select a Subscription Group (required). Optionally, you can select an
+        additional segment which will further restrict the set of messaged users
+        to those both in the selected subscription group and the segment.
+      </Typography>
       <Typography variant="caption" sx={{ mb: -1 }}>
         Segment (Optional)
       </Typography>
@@ -225,6 +233,7 @@ export default function Recipients({
         <ToggleButtonGroup
           value={selectExistingSegment}
           exclusive
+          disabled={disabled}
           onChange={(_, newValue) => {
             if (newValue !== null) {
               setSelectExistingSegment(newValue);
@@ -235,16 +244,15 @@ export default function Recipients({
           <ToggleButton value="new">New Segment</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
-      <SegmentsAutocomplete
-        segmentId={currentSegmentId}
-        handler={handleSegmentChange}
-        disabled={disabled}
-      />
-      <Typography variant="body2" sx={{ mt: 1 }}>
-        Select a Subscription Group (required). Optionally, you can select an
-        additional segment which will further restrict the set of messaged users
-        to those both in the selected subscription group and the segment.
-      </Typography>
+      {selectExistingSegment === "existing" ? (
+        <SegmentsAutocomplete
+          segmentId={currentSegmentId}
+          handler={handleSegmentChange}
+          disabled={disabled}
+        />
+      ) : (
+        <BroadcastSegmentEditor />
+      )}
     </Stack>
   );
 }

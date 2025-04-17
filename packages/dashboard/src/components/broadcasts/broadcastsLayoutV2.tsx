@@ -1,5 +1,6 @@
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
+import { Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
@@ -45,7 +46,7 @@ function PreviewHeader({
         borderColor: "divider",
       }}
     >
-      <Box>Preview</Box>
+      <Typography variant="h6">Broadcast Preview</Typography>
       {previewOpen ? (
         <IconButton onClick={() => setPreviewOpen(false)} size="small">
           <KeyboardDoubleArrowDownRoundedIcon />
