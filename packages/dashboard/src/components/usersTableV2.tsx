@@ -669,7 +669,7 @@ export type OnPaginationChangeProps = Pick<
 >;
 
 export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
-  onPaginationChange: (args: OnPaginationChangeProps) => void;
+  onPaginationChange?: (args: OnPaginationChangeProps) => void;
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
@@ -845,7 +845,7 @@ export default function UsersTableV2({
             draft.query.cursor = null;
             draft.query.direction = null;
           });
-          onPaginationChange({});
+          onPaginationChange?.({});
         }
       } else {
         setState((draft) => {
@@ -957,7 +957,7 @@ export default function UsersTableV2({
 
   const onNextPage = useCallback(() => {
     if (state.nextCursor) {
-      onPaginationChange({
+      onPaginationChange?.({
         cursor: state.nextCursor,
         direction: CursorDirectionEnum.After,
       });
@@ -970,7 +970,7 @@ export default function UsersTableV2({
 
   const onPreviousPage = useCallback(() => {
     if (state.previousCursor) {
-      onPaginationChange({
+      onPaginationChange?.({
         cursor: state.previousCursor,
         direction: CursorDirectionEnum.Before,
       });
@@ -982,7 +982,7 @@ export default function UsersTableV2({
   }, [state.previousCursor, onPaginationChange, setState]);
 
   const onFirstPage = useCallback(() => {
-    onPaginationChange({});
+    onPaginationChange?.({});
     setState((draft) => {
       draft.query.cursor = null;
     });

@@ -7,16 +7,19 @@ import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useState } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
+import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { GreyButton } from "../greyButtonStyle";
+import UsersTableV2 from "../usersTableV2";
 import {
   BROADCAST_STEPS,
   BroadcastState,
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
-import Typography from "@mui/material/Typography";
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
@@ -56,11 +59,37 @@ function PreviewHeader({
   );
 }
 
+function PreviewContent({
+  workspaceId,
+  id,
+}: {
+  workspaceId: string;
+  id: string;
+}) {
+  const { data: broadcast, isLoading, isError } = useBroadcastQuery(id);
+  if (isLoading || isError) {
+    return null;
+  }
+  return (
+    <Box sx={{ flex: 1, overflow: "auto" }}>
+      <UsersTableV2
+        workspaceId={workspaceId}
+        subscriptionGroupFilter={
+          broadcast?.subscriptionGroupId
+            ? [broadcast.subscriptionGroupId]
+            : undefined
+        }
+      />
+    </Box>
+  );
+}
+
 export default function BroadcastLayout({
   children,
   state,
   updateState,
 }: BroadcastLayoutProps) {
+  const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
 
   const updateStep = useCallback(
@@ -74,6 +103,9 @@ export default function BroadcastLayout({
   const activeStepIndex: number = BROADCAST_STEPS.findIndex(
     (step) => step.key === state.step,
   );
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
 
   return (
     <Stack sx={{ width: "100%", height: "100%" }}>
@@ -155,7 +187,9 @@ export default function BroadcastLayout({
             previewOpen={previewOpen}
             setPreviewOpen={setPreviewOpen}
           />
-          <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>drawer content</Box>
+          <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>
+            <PreviewContent workspaceId={workspace.value.id} id={state.id} />
+          </Box>
         </Box>
       </Drawer>
     </Stack>
