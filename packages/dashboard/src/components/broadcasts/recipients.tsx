@@ -34,6 +34,11 @@ interface MutationContext {
 }
 
 function BroadcastSegmentEditor() {
+  // use query to read the segment
+  // use mutation to update the segment
+  // use immer to with a copy of the segment
+  // debounce updates to the copy of the segment
+  // use effect to trigger a mutation when the debounced updates are changed relative to the original
   // return <SegmentEditorInner />;
   return <>Segment Editor</>;
 }
