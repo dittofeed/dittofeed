@@ -74,6 +74,8 @@ function PreviewContent({
     <Box sx={{ flex: 1, overflow: "auto" }}>
       <UsersTableV2
         workspaceId={workspaceId}
+        hideControls
+        segmentFilter={broadcast?.segmentId ? [broadcast.segmentId] : undefined}
         subscriptionGroupFilter={
           broadcast?.subscriptionGroupId
             ? [broadcast.subscriptionGroupId]
@@ -187,7 +189,7 @@ export default function BroadcastLayout({
             previewOpen={previewOpen}
             setPreviewOpen={setPreviewOpen}
           />
-          <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>
+          <Box sx={{ flex: 1, overflow: "auto" }}>
             <PreviewContent workspaceId={workspace.value.id} id={state.id} />
           </Box>
         </Box>

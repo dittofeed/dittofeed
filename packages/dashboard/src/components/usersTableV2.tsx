@@ -673,6 +673,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
+  hideControls?: boolean;
 };
 
 interface TableState {
@@ -719,6 +720,7 @@ export default function UsersTableV2({
   autoReloadByDefault = false,
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
+  hideControls = false,
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
 
@@ -1000,17 +1002,9 @@ export default function UsersTableV2({
   }, [setState]);
 
   const isLoading = query.isPending || query.isFetching;
-
-  return (
-    <Stack
-      spacing={1}
-      sx={{
-        width: "100%",
-        height: "100%",
-        minWidth: 0,
-        alignItems: "stretch",
-      }}
-    >
+  let controls: React.ReactNode = null;
+  if (!hideControls) {
+    controls = (
       <Stack
         direction="row"
         alignItems="center"
@@ -1050,6 +1044,19 @@ export default function UsersTableV2({
           </IconButton>
         </Tooltip>
       </Stack>
+    );
+  }
+
+  return (
+    <Stack
+      spacing={1}
+      sx={{
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        alignItems: "stretch",
+      }}
+    >
       <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
