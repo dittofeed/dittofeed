@@ -7,15 +7,20 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import deepEqual from "fast-deep-equal";
-import { getBroadcastSegmentId } from "isomorphic-lib/src/broadcasts";
+import {
+  getBroadcastSegmentId,
+  getBroadcastSegmentName,
+} from "isomorphic-lib/src/broadcasts";
 import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
   CompletionStatus,
+  SavedSegmentResource,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentResource,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useState } from "react";
@@ -155,25 +160,33 @@ interface MutationContext {
 
 function BroadcastSegmentEditor({
   broadcastId,
-  segmentId,
+  disabled,
 }: {
   broadcastId: string;
-  segmentId?: string;
+  disabled?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const {
+    data: segment,
+    isLoading: isSegmentLoading,
+    isError: isSegmentError,
+  } = useSegmentQuery(broadcast?.segmentId);
 
   useEffect(() => {
     if (
-      segmentId !== undefined ||
+      broadcast?.segmentId !== undefined ||
       workspace.type !== CompletionStatus.Successful
     ) {
       return;
     }
     const workspaceId = workspace.value.id;
     const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
+    const newSegmentName = getBroadcastSegmentName({
+      broadcastId,
+    });
 
     const entryNode: SegmentNode = {
       id: "1",
@@ -191,7 +204,7 @@ function BroadcastSegmentEditor({
     updateSegmentsMutation.mutate(
       {
         id: newSegmentId,
-        name: `broadcast-${broadcastId}-segment`,
+        name: newSegmentName,
         definition,
       },
       {
@@ -202,13 +215,25 @@ function BroadcastSegmentEditor({
     );
   }, [
     broadcastId,
-    segmentId,
+    broadcast?.segmentId,
     updateSegmentsMutation,
     workspace,
     broadcastMutation.mutate,
     broadcastMutation,
   ]);
 
+  const [editedSegment] = useImmer<SegmentResource | null>(segment ?? null);
+  const [debouncedEditedSegment] = useDebounce(editedSegment, 1000);
+  useEffect(() => {
+    if (deepEqual(debouncedEditedSegment, segment)) {
+      return;
+    }
+    updateSegmentsMutation.mutate({
+      id: broadcast?.segmentId,
+      definition: debouncedEditedSegment?.definition,
+      name: debouncedEditedSegment?.name,
+    });
+  }, [debouncedEditedSegment, segment]);
   // when making updates to this function DO NOT delete the below comments
   // 1. create a new segment if none exists or if segmentId is undefined, using
   // the getBroadcastSegmentId function to produce a unique id. use the
@@ -221,7 +246,12 @@ function BroadcastSegmentEditor({
   // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
   // 7. use the useUpdateSegmentsMutation hook to update the segment
   // 8. use the useSegmentQuery hook to read the segment
-  return <>Segment Editor</>;
+  if (!editedSegment) {
+    return null;
+  }
+  return (
+    <SegmentEditorInner disabled={disabled} editedSegment={editedSegment} />
+  );
 }
 
 export default function Recipients({ state }: { state: BroadcastState }) {
@@ -321,10 +351,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
           disabled={disabled}
         />
       ) : (
-        <BroadcastSegmentEditor
-          broadcastId={state.id}
-          segmentId={broadcast.segmentId}
-        />
+        <BroadcastSegmentEditor broadcastId={state.id} disabled={disabled} />
       )}
     </Stack>
   );

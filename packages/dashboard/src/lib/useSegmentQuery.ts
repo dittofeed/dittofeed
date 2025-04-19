@@ -20,7 +20,7 @@ type FetchedData = GetSegmentsResponse;
  */
 export function useSegmentQuery(
   // The ID of the segment to fetch (now required)
-  segmentId: string,
+  segmentId?: string,
   // Optional query options, excluding queryKey and queryFn.
   // Caller can now control 'enabled' directly.
   options?: Omit<
@@ -32,13 +32,15 @@ export function useSegmentQuery(
 ): UseQueryResult<SelectedData> {
   // Prepare the params for the underlying hook
   const params: Omit<GetSegmentsRequest, "workspaceId"> = {
-    ids: [segmentId],
+    ids: segmentId ? [segmentId] : [],
   };
+  const enabled = segmentId !== undefined && options?.enabled !== false;
 
   // Call the existing hook, explicitly providing generic types
   // TQueryFnData = FetchedData, TError = Error, TData = SelectedData
   const queryResult = useSegmentsQuery(params, {
     ...options,
+    enabled,
     // Use select to pick the single broadcast from the array
     select: (data: FetchedData | undefined): SelectedData => {
       if (!data) {
