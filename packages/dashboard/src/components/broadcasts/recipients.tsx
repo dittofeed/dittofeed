@@ -36,68 +36,7 @@ import {
   SubscriptionGroupAutocompleteV2,
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
-import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
-
-// Context type for mutation rollback
-interface MutationContext {
-  previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
-}
-
-function BroadcastSegmentEditor({
-  broadcastId,
-  segmentId,
-}: {
-  broadcastId: string;
-  segmentId?: string;
-}) {
-  const { workspace } = useAppStorePick(["workspace"]);
-  const updateSegmentsMutation = useUpdateSegmentsMutation();
-
-  useEffect(() => {
-    if (
-      segmentId !== undefined ||
-      workspace.type !== CompletionStatus.Successful
-    ) {
-      return;
-    }
-    const workspaceId = workspace.value.id;
-    const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
-
-    const entryNode: SegmentNode = {
-      id: "1",
-      type: SegmentNodeType.Trait,
-      path: "",
-      operator: {
-        type: SegmentOperatorType.Exists,
-      },
-    };
-    const definition: SegmentDefinition = {
-      entryNode,
-      nodes: [entryNode],
-    };
-
-    updateSegmentsMutation.mutate({
-      id: newSegmentId,
-      name: `broadcast-${broadcastId}-segment`,
-      definition,
-    });
-    // TODO potentially need to update the broadcast resource with the new segment id
-  }, [broadcastId, segmentId, updateSegmentsMutation, workspace]);
-
-  // when making updates to this function DO NOT delete the below comments
-  // 1. create a new segment if none exists or if segmentId is undefined, using
-  // the getBroadcastSegmentId function to produce a unique id. use the
-  // useUpdateSegmentsMutation hook to create the segment, which is an upsert
-  // operation.
-  // 2. use useSegmentQuery to read the segment
-  // 3. use mutation to update the segment
-  // 4. use useImmer to with a copy of the segment
-  // 5. debounce updates to the copy of the segment
-  // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
-  // 7. use the useUpdateSegmentsMutation hook to update the segment
-  // 8. use the useSegmentQuery hook to read the segment
-  return <>Segment Editor</>;
-}
+import { BroadcastState } from "./broadcastsShared";
 
 // Mutation hook for updating broadcasts
 function useBroadcastMutation(broadcastId: string) {
@@ -209,13 +148,82 @@ function useBroadcastMutation(broadcastId: string) {
   });
 }
 
-export default function Recipients({
-  state,
-  updateState,
+// Context type for mutation rollback
+interface MutationContext {
+  previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
+}
+
+function BroadcastSegmentEditor({
+  broadcastId,
+  segmentId,
 }: {
-  state: BroadcastState;
-  updateState: BroadcastStateUpdater;
+  broadcastId: string;
+  segmentId?: string;
 }) {
+  const { workspace } = useAppStorePick(["workspace"]);
+  const updateSegmentsMutation = useUpdateSegmentsMutation();
+  const broadcastMutation = useBroadcastMutation(broadcastId);
+
+  useEffect(() => {
+    if (
+      segmentId !== undefined ||
+      workspace.type !== CompletionStatus.Successful
+    ) {
+      return;
+    }
+    const workspaceId = workspace.value.id;
+    const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
+
+    const entryNode: SegmentNode = {
+      id: "1",
+      type: SegmentNodeType.Trait,
+      path: "firstName",
+      operator: {
+        type: SegmentOperatorType.Exists,
+      },
+    };
+    const definition: SegmentDefinition = {
+      entryNode,
+      nodes: [entryNode],
+    };
+
+    updateSegmentsMutation.mutate(
+      {
+        id: newSegmentId,
+        name: `broadcast-${broadcastId}-segment`,
+        definition,
+      },
+      {
+        onSuccess: () => {
+          broadcastMutation.mutate({ segmentId: newSegmentId });
+        },
+      },
+    );
+  }, [
+    broadcastId,
+    segmentId,
+    updateSegmentsMutation,
+    workspace,
+    broadcastMutation.mutate,
+    broadcastMutation,
+  ]);
+
+  // when making updates to this function DO NOT delete the below comments
+  // 1. create a new segment if none exists or if segmentId is undefined, using
+  // the getBroadcastSegmentId function to produce a unique id. use the
+  // useUpdateSegmentsMutation hook to create the segment, which is an upsert
+  // operation.
+  // 2. use useSegmentQuery to read the segment
+  // 3. use mutation to update the segment
+  // 4. use useImmer to with a copy of the segment
+  // 5. debounce updates to the copy of the segment
+  // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
+  // 7. use the useUpdateSegmentsMutation hook to update the segment
+  // 8. use the useSegmentQuery hook to read the segment
+  return <>Segment Editor</>;
+}
+
+export default function Recipients({ state }: { state: BroadcastState }) {
   const broadcastQuery = useBroadcastQuery(state.id);
   const broadcastMutation = useBroadcastMutation(state.id);
   const [selectExistingSegment, setSelectExistingSegment] = useState<
