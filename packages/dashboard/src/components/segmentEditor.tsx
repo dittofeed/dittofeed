@@ -2025,19 +2025,15 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
-  const { disabled } = useContext(SegmentEditorContext);
-  const { workspace, editedSegment, apiBase } = useAppStorePick([
-    "workspace",
-    "editedSegment",
-    "apiBase",
-  ]);
+  const { disabled, editedSegment } = useSegmentEditorContext();
+  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
   const [{ operation }] = useImmer<ManualUploadState>({
     operation: ManualSegmentOperationEnum.Add,
   });
 
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
-      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
+      if (workspace.type !== CompletionStatus.Successful) {
         return;
       }
 
