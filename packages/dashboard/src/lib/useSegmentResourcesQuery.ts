@@ -4,7 +4,7 @@ import { GetResourcesResponse } from "isomorphic-lib/src/types";
 import { useResourcesQuery } from "./useResourcesQuery";
 
 /**
- * Custom hook for fetching segments
+ * Custom hook for fetching segment resources
  *
  * @param options Any valid useQuery options
  * @returns A query result object containing the segments data

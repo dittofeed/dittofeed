@@ -15,7 +15,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import * as React from "react";
 
-import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
