@@ -22,19 +22,24 @@ type UpdateSegmentMutationFn = (
   data: UpsertSegmentResource,
 ) => Promise<SavedSegmentResource>;
 
+export type UpdateSegmentMutationVariables = Omit<
+  UpsertSegmentResource,
+  "workspaceId"
+>;
+
 export function useUpdateSegmentsMutation(
   options?: Omit<
     UseMutationOptions<
       SavedSegmentResource,
       AxiosError<UpsertSegmentValidationError>,
-      UpsertSegmentResource
+      UpdateSegmentMutationVariables
     >,
     "mutationFn"
   >,
 ): UseMutationResult<
   SavedSegmentResource,
   AxiosError<UpsertSegmentValidationError>,
-  UpsertSegmentResource
+  UpdateSegmentMutationVariables
 > {
   const queryClient = useQueryClient();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
@@ -50,7 +55,7 @@ export function useUpdateSegmentsMutation(
       {
         ...data,
         workspaceId,
-      },
+      } satisfies UpsertSegmentResource,
       {
         headers: {
           "Content-Type": "application/json",

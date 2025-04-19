@@ -12,9 +12,13 @@ import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
   CompletionStatus,
+  SegmentDefinition,
+  SegmentNode,
+  SegmentNodeType,
+  SegmentOperatorType,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -46,6 +50,40 @@ function BroadcastSegmentEditor({
   broadcastId: string;
   segmentId?: string;
 }) {
+  const { workspace } = useAppStorePick(["workspace"]);
+  const updateSegmentsMutation = useUpdateSegmentsMutation();
+
+  useEffect(() => {
+    if (
+      segmentId !== undefined ||
+      workspace.type !== CompletionStatus.Successful
+    ) {
+      return;
+    }
+    const workspaceId = workspace.value.id;
+    const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
+
+    const entryNode: SegmentNode = {
+      id: "1",
+      type: SegmentNodeType.Trait,
+      path: "",
+      operator: {
+        type: SegmentOperatorType.Exists,
+      },
+    };
+    const definition: SegmentDefinition = {
+      entryNode,
+      nodes: [entryNode],
+    };
+
+    updateSegmentsMutation.mutate({
+      id: newSegmentId,
+      name: `broadcast-${broadcastId}-segment`,
+      definition,
+    });
+    // TODO potentially need to update the broadcast resource with the new segment id
+  }, [broadcastId, segmentId, updateSegmentsMutation, workspace]);
+
   // when making updates to this function DO NOT delete the below comments
   // 1. create a new segment if none exists or if segmentId is undefined, using
   // the getBroadcastSegmentId function to produce a unique id. use the
