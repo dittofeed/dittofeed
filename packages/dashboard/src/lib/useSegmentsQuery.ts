@@ -8,6 +8,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
+  GetSegmentsRequest,
   GetSegmentsResponse,
 } from "isomorphic-lib/src/types";
 
@@ -17,7 +18,7 @@ import { useAppStorePick } from "./appStore";
  * Custom hook for fetching broadcasts using the GET /api/broadcasts endpoint
  */
 export function useSegmentsQuery<TData = GetSegmentsResponse>(
-  params?: Omit<GetSegmentsResponse, "workspaceId">, // Allow optional additional params if needed later
+  params?: Omit<GetSegmentsRequest, "workspaceId">, // Allow optional additional params if needed later
   options?: Omit<
     UseQueryOptions<GetSegmentsResponse, Error, TData>,
     "queryKey" | "queryFn"

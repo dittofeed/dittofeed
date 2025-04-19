@@ -1689,6 +1689,7 @@ export type GetMessageTemplatesResponse = Static<
 
 export const GetSegmentsRequest = Type.Object({
   workspaceId: Type.String(),
+  ids: Type.Optional(Type.Array(Type.String())),
 });
 
 export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;
