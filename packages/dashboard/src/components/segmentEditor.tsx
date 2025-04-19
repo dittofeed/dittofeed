@@ -73,9 +73,23 @@ type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
 
-const DisabledContext = React.createContext<{ disabled?: boolean }>({
-  disabled: false,
-});
+interface SegmentEditorContextType {
+  disabled?: boolean;
+}
+
+const SegmentEditorContext = React.createContext<
+  SegmentEditorContextType | undefined
+>(undefined);
+
+function useSegmentEditorContext() {
+  const context = useContext(SegmentEditorContext);
+  if (!context) {
+    throw new Error(
+      "useSegmentEditorContext must be used within a SegmentEditorContext.Provider",
+    );
+  }
+  return context;
+}
 
 const traitGroupedOption = {
   id: SegmentNodeType.Trait,
@@ -291,7 +305,7 @@ function ValueSelect({
     | SegmentNotEqualsOperator;
 }) {
   const { value } = operator;
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
@@ -330,7 +344,7 @@ function NumericValueSelect({
   operator: SegmentLessThanOperator | SegmentGreaterThanOrEqualOperator;
 }) {
   const { value } = operator;
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
@@ -399,7 +413,7 @@ function DurationValueSelect({
 }
 
 function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const { properties } = useAppStorePick(["properties"]);
 
   const updateSegmentNodeData = useAppStore(
@@ -908,7 +922,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
 }
 
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const { properties } = useAppStorePick(["properties"]);
 
   const updateSegmentNodeData = useAppStore(
@@ -1258,7 +1272,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 }
 
 function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const { properties } = useAppStorePick(["properties"]);
 
   const updateSegmentNodeData = useAppStore(
@@ -1631,7 +1645,7 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 ];
 
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
 
   const { updateEditableSegmentNodeData, messages } = useAppStore(
     (store) => ({
@@ -1717,7 +1731,7 @@ function SubscriptionGroupSelect({
 }: {
   node: SubscriptionGroupSegmentNode;
 }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
   );
@@ -1772,7 +1786,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
   );
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
 
   const traits = useAppStore((store) => store.traits);
   const operator = keyedOperatorOptions[node.operator.type];
@@ -1970,7 +1984,7 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   const { updateEditableSegmentNodeData } = useAppStorePick([
     "updateEditableSegmentNodeData",
   ]);
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
 
@@ -2009,7 +2023,7 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const { workspace, editedSegment, apiBase } = useAppStorePick([
     "workspace",
     "editedSegment",
@@ -2080,7 +2094,7 @@ function SegmentNodeComponent({
   const addChild = useAppStore((state) => state.addEditableSegmentChild);
   const removeChild = useAppStore((state) => state.removeEditableSegmentChild);
   const editedSegment = useAppStore((state) => state.editedSegment);
-  const { disabled } = useContext(DisabledContext);
+  const { disabled } = useContext(SegmentEditorContext);
   const nodeById = useMemo(
     () =>
       editedSegment?.definition.nodes.reduce<Record<string, SegmentNode>>(
@@ -2298,11 +2312,11 @@ function SegmentNodeComponent({
 export function SegmentEditorInner({
   sx,
   disabled,
-  editedSegment,
+  segmentId,
 }: {
   sx?: SxProps;
   disabled?: boolean;
-  editedSegment: SegmentResource;
+  segmentId: string;
 }) {
   const theme = useTheme();
 
@@ -2312,7 +2326,7 @@ export function SegmentEditorInner({
   useLoadProperties();
 
   return (
-    <DisabledContext.Provider value={memoizedDisabled}>
+    <SegmentEditorContext.Provider value={memoizedDisabled}>
       <Box
         sx={{
           backgroundColor: "white",
@@ -2330,18 +2344,17 @@ export function SegmentEditorInner({
           label="empty"
         />
       </Box>
-    </DisabledContext.Provider>
+    </SegmentEditorContext.Provider>
   );
 }
 
-export default function SegmentEditor({ disabled }: { disabled?: boolean }) {
-  const { editedSegment } = useAppStorePick(["editedSegment"]);
-
-  if (!editedSegment) {
-    return null;
-  }
-
-  return (
-    <SegmentEditorInner editedSegment={editedSegment} disabled={disabled} />
-  );
+export default function SegmentEditor({
+  disabled,
+  segmentId,
+}: {
+  disabled?: boolean;
+  segmentId: string;
+}) {
+  // FIXME refactor to get rid of this
+  return <SegmentEditorInner disabled={disabled} segmentId={segmentId} />;
 }

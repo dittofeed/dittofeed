@@ -389,8 +389,8 @@ export interface JourneyContent extends JourneyState {
   }) => void;
 }
 
-export type PageStoreContents = SegmentEditorContents &
-  SegmentIndexContent &
+// export type PageStoreContents = SegmentEditorContents &
+export type PageStoreContents = SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &
   UserIndexContent &
