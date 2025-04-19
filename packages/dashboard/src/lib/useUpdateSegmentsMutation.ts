@@ -17,29 +17,29 @@ import {
 import { useAppStorePick } from "./appStore";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
 
-// Define the mutation function type
-type UpdateSegmentMutationFn = (
-  data: UpsertSegmentResource,
-) => Promise<SavedSegmentResource>;
-
-export type UpdateSegmentMutationVariables = Omit<
+export type UpdateSegmentMutationParams = Omit<
   UpsertSegmentResource,
   "workspaceId"
 >;
+
+// Define the mutation function type
+type UpdateSegmentMutationFn = (
+  data: UpdateSegmentMutationParams,
+) => Promise<SavedSegmentResource>;
 
 export function useUpdateSegmentsMutation(
   options?: Omit<
     UseMutationOptions<
       SavedSegmentResource,
       AxiosError<UpsertSegmentValidationError>,
-      UpdateSegmentMutationVariables
+      UpdateSegmentMutationParams
     >,
     "mutationFn"
   >,
 ): UseMutationResult<
   SavedSegmentResource,
   AxiosError<UpsertSegmentValidationError>,
-  UpdateSegmentMutationVariables
+  UpdateSegmentMutationParams
 > {
   const queryClient = useQueryClient();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
@@ -74,7 +74,7 @@ export function useUpdateSegmentsMutation(
   const mutation = useMutation<
     SavedSegmentResource,
     AxiosError<UpsertSegmentValidationError>,
-    UpsertSegmentResource
+    UpdateSegmentMutationParams
   >({
     mutationFn,
     ...options,
