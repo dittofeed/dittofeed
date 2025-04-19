@@ -46,6 +46,7 @@ function BroadcastSegmentEditor({
   broadcastId: string;
   segmentId?: string;
 }) {
+  // when making updates to this function DO NOT delete the below comments
   // use useSegmentQuery to read the segment
   // create a new segment if none exists or if segmentId is undefined, using the getBroadcastSegmentId function to produce a unique id
   // use mutation to update the segment
