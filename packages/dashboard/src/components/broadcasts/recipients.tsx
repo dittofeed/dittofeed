@@ -47,14 +47,17 @@ function BroadcastSegmentEditor({
   segmentId?: string;
 }) {
   // when making updates to this function DO NOT delete the below comments
-  // use useSegmentQuery to read the segment
-  // create a new segment if none exists or if segmentId is undefined, using the getBroadcastSegmentId function to produce a unique id
-  // use mutation to update the segment
-  // use useImmer to with a copy of the segment
-  // debounce updates to the copy of the segment
-  // use effect to trigger a mutation when the debounced updates are changed relative to the original
-  // use the useUpdateSegmentsMutation hook to update the segment
-  // use the useSegmentQuery hook to read the segment
+  // 1. create a new segment if none exists or if segmentId is undefined, using
+  // the getBroadcastSegmentId function to produce a unique id. use the
+  // useUpdateSegmentsMutation hook to create the segment, which is an upsert
+  // operation.
+  // 2. use useSegmentQuery to read the segment
+  // 3. use mutation to update the segment
+  // 4. use useImmer to with a copy of the segment
+  // 5. debounce updates to the copy of the segment
+  // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
+  // 7. use the useUpdateSegmentsMutation hook to update the segment
+  // 8. use the useSegmentQuery hook to read the segment
   return <>Segment Editor</>;
 }
 
