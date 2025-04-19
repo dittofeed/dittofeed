@@ -54,7 +54,7 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useContext, useMemo } from "react";
+import React, { useCallback, useContext, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 import { shallow } from "zustand/shallow";
 
@@ -62,6 +62,7 @@ import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadProperties from "../lib/useLoadProperties";
 import useLoadTraits from "../lib/useLoadTraits";
+import { useSegmentQuery } from "../lib/useSegmentQuery";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
@@ -75,6 +76,7 @@ const secondarySelectorWidth = "128px";
 
 interface SegmentEditorContextType {
   disabled?: boolean;
+  editedSegment: SegmentResource;
 }
 
 const SegmentEditorContext = React.createContext<
@@ -2319,14 +2321,39 @@ export function SegmentEditorInner({
   segmentId: string;
 }) {
   const theme = useTheme();
+  const { data: segment, isError, isPending } = useSegmentQuery(segmentId);
 
-  const { entryNode } = editedSegment.definition;
-  const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
   useLoadTraits();
   useLoadProperties();
 
+  const [contextValue, setContextValue] = useImmer<
+    SegmentEditorContextType | undefined
+  >(
+    segment
+      ? {
+          disabled,
+          editedSegment: segment,
+        }
+      : undefined,
+  );
+
+  useEffect(() => {
+    if (segment) {
+      setContextValue({
+        disabled,
+        editedSegment: segment,
+      });
+    }
+  }, [disabled, segment, setContextValue]);
+
+  if (!segment || isError || isPending) {
+    return null;
+  }
+
+  const { entryNode } = segment.definition;
+
   return (
-    <SegmentEditorContext.Provider value={memoizedDisabled}>
+    <SegmentEditorContext.Provider value={contextValue}>
       <Box
         sx={{
           backgroundColor: "white",
