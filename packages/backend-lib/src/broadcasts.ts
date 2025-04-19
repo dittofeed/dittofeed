@@ -1,4 +1,9 @@
 import { and, asc, desc, eq, inArray, SQL } from "drizzle-orm";
+import {
+  getBroadcastJourneyName,
+  getBroadcastSegmentName,
+  getBroadcastTemplateName,
+} from "isomorphic-lib/src/broadcasts";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -47,30 +52,6 @@ import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
 import { Broadcast } from "./types";
-
-export function getBroadcastSegmentName({
-  broadcastId,
-}: {
-  broadcastId: string;
-}): string {
-  return `Broadcast - ${broadcastId}`;
-}
-
-export function getBroadcastTemplateName({
-  broadcastId,
-}: {
-  broadcastId: string;
-}): string {
-  return `Broadcast - ${broadcastId}`;
-}
-
-export function getBroadcastJourneyName({
-  broadcastId,
-}: {
-  broadcastId: string;
-}): string {
-  return `Broadcast - ${broadcastId}`;
-}
 
 export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
   if (broadcast.status === null) {

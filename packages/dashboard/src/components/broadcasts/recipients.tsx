@@ -16,6 +16,8 @@ import { useCallback, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useSegmentQuery } from "../../lib/useSegmentQuery";
+import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { SegmentEditorInner } from "../segmentEditor";
 import {
   SegmentChangeHandler,
@@ -33,13 +35,15 @@ interface MutationContext {
   previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
 }
 
-function BroadcastSegmentEditor() {
+function BroadcastSegmentEditor({ segmentId }: { segmentId?: string }) {
   // use query to read the segment
+  // create a new segment if none exists or if segmentId is undefined
   // use mutation to update the segment
   // use immer to with a copy of the segment
   // debounce updates to the copy of the segment
   // use effect to trigger a mutation when the debounced updates are changed relative to the original
-  // return <SegmentEditorInner />;
+  // use the useUpdateSegmentsMutation hook to update the segment
+  // use the useSegmentQuery hook to read the segment
   return <>Segment Editor</>;
 }
 
