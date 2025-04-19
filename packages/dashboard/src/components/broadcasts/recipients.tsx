@@ -163,6 +163,7 @@ function BroadcastSegmentEditor({
   const { workspace } = useAppStorePick(["workspace"]);
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
 
   useEffect(() => {
     if (
