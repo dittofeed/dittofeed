@@ -6,6 +6,8 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import deepEqual from "fast-deep-equal";
+import { getBroadcastSegmentId } from "isomorphic-lib/src/broadcasts";
 import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
@@ -13,6 +15,8 @@ import {
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { useCallback, useState } from "react";
+import { useDebounce } from "use-debounce";
+import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -39,7 +43,7 @@ function BroadcastSegmentEditor({ segmentId }: { segmentId?: string }) {
   // use query to read the segment
   // create a new segment if none exists or if segmentId is undefined
   // use mutation to update the segment
-  // use immer to with a copy of the segment
+  // use useImmer to with a copy of the segment
   // debounce updates to the copy of the segment
   // use effect to trigger a mutation when the debounced updates are changed relative to the original
   // use the useUpdateSegmentsMutation hook to update the segment

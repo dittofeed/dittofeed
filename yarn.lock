@@ -14364,6 +14364,7 @@ __metadata:
     eslint-plugin-react: "npm:^7.32.2"
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-simple-import-sort: "npm:^10.0.0"
+    fast-deep-equal: "npm:^3.1.3"
     file-saver: "npm:^2.0.5"
     fnv1a: "npm:^1.1.1"
     humanize-duration: "npm:^3.27.3"
