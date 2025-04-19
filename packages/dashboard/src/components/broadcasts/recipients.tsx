@@ -39,9 +39,15 @@ interface MutationContext {
   previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
 }
 
-function BroadcastSegmentEditor({ segmentId }: { segmentId?: string }) {
-  // use query to read the segment
-  // create a new segment if none exists or if segmentId is undefined
+function BroadcastSegmentEditor({
+  broadcastId,
+  segmentId,
+}: {
+  broadcastId: string;
+  segmentId?: string;
+}) {
+  // use useSegmentQuery to read the segment
+  // create a new segment if none exists or if segmentId is undefined, using the getBroadcastSegmentId function to produce a unique id
   // use mutation to update the segment
   // use useImmer to with a copy of the segment
   // debounce updates to the copy of the segment
@@ -264,7 +270,10 @@ export default function Recipients({
           disabled={disabled}
         />
       ) : (
-        <BroadcastSegmentEditor />
+        <BroadcastSegmentEditor
+          broadcastId={state.id}
+          segmentId={broadcast.segmentId}
+        />
       )}
     </Stack>
   );
