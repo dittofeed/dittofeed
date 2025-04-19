@@ -14,6 +14,8 @@ import {
 
 import { useAppStorePick } from "./appStore";
 
+export const SEGMENTS_QUERY_KEY = "segments";
+
 /**
  * Custom hook for fetching broadcasts using the GET /api/broadcasts endpoint
  */
