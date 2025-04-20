@@ -72,6 +72,7 @@ import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 import TraitAutocomplete from "./traitAutocomplete";
+import { Draft } from "immer";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -95,7 +96,7 @@ const SegmentEditorContext = React.createContext<
 function updateEditableSegmentNodeData(
   setState: Updater<SegmentEditorState>,
   nodeId: string,
-  updateNode: Updater<SegmentNode>,
+  updateNode: (currentValue: Draft<SegmentNode>) => void,
 ) {
   setState((draft) => {
     const { definition } = draft.editedSegment;
@@ -370,6 +371,81 @@ function updateEditableSegmentNodeType(
       });
     }
 
+    removeOrphanedSegmentNodes(definition);
+    return draft;
+  });
+}
+
+function setEditableSegmentName(
+  setState: Updater<SegmentEditorState>,
+  name: string,
+) {
+  setState((draft) => {
+    draft.editedSegment.name = name;
+    return draft;
+  });
+}
+
+function addEditableSegmentChild(
+  setState: Updater<SegmentEditorState>,
+  parentId: string,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    const parent =
+      parentId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === parentId);
+
+    if (
+      !parent ||
+      !(
+        parent.type === SegmentNodeType.And ||
+        parent.type === SegmentNodeType.Or
+      )
+    ) {
+      return draft;
+    }
+
+    const child: SegmentNode = {
+      type: SegmentNodeType.Trait,
+      id: uuid(),
+      path: "",
+      operator: {
+        type: SegmentOperatorType.Equals,
+        value: "",
+      },
+    };
+    parent.children.push(child.id);
+    definition.nodes.push(child);
+    return draft;
+  });
+}
+
+function removeEditableSegmentChild(
+  setState: Updater<SegmentEditorState>,
+  parentId: string,
+  nodeId: string,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    const parent =
+      parentId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === parentId);
+
+    if (
+      !parent ||
+      !(
+        parent.type === SegmentNodeType.And ||
+        parent.type === SegmentNodeType.Or
+      )
+    ) {
+      return draft;
+    }
+
+    parent.children = parent.children.filter((c) => c !== nodeId);
+    definition.nodes = definition.nodes.filter((n) => n.id !== nodeId);
     removeOrphanedSegmentNodes(definition);
     return draft;
   });
@@ -2275,15 +2351,12 @@ interface ManualUploadState {
 }
 
 function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
-  const { updateEditableSegmentNodeData } = useAppStorePick([
-    "updateEditableSegmentNodeData",
-  ]);
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
   const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
 
-    updateEditableSegmentNodeData(node.id, (segmentNode) => {
+    updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
       if (segmentNode.type !== SegmentNodeType.RandomBucket) {
         return;
       }
