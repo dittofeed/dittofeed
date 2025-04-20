@@ -93,12 +93,12 @@ const SegmentEditorContext = React.createContext<
 >(undefined);
 
 function updateEditableSegmentNodeData(
-  setState: Updater<SegmentEditorContextType>,
+  setState: Updater<SegmentEditorState>,
   nodeId: string,
   updateNode: Updater<SegmentNode>,
 ) {
   setState((draft) => {
-    const { definition } = draft.state.editedSegment;
+    const { definition } = draft.editedSegment;
     const node =
       nodeId === definition.entryNode.id
         ? definition.entryNode
@@ -326,12 +326,12 @@ function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
 }
 
 function updateEditableSegmentNodeType(
-  updater: Updater<SegmentEditorContextType>,
+  setState: Updater<SegmentEditorState>,
   nodeId: string,
   nodeType: SegmentNodeType,
 ) {
-  updater((draft) => {
-    const { definition } = draft.state.editedSegment;
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
     // update entry node
     if (nodeId === definition.entryNode.id) {
       const node = definition.entryNode;
@@ -2379,17 +2379,15 @@ function SegmentNodeComponent({
   parentId?: string;
   label?: Label;
 }) {
-  const updateNodeType = useAppStore(
-    (state) => state.updateEditableSegmentNodeType,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled, editedSegment } = state;
   const theme = useTheme();
   const addChild = useAppStore((state) => state.addEditableSegmentChild);
   const removeChild = useAppStore((state) => state.removeEditableSegmentChild);
-  const editedSegment = useAppStore((state) => state.editedSegment);
-  const { disabled } = useContext(SegmentEditorContext);
+
   const nodeById = useMemo(
     () =>
-      editedSegment?.definition.nodes.reduce<Record<string, SegmentNode>>(
+      editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(
         (memo, segmentNode) => {
           memo[segmentNode.id] = segmentNode;
           return memo;
@@ -2426,7 +2424,7 @@ function SegmentNodeComponent({
         value={condition}
         groupBy={(option) => option.group}
         onChange={(_event: unknown, newValue: SegmentGroupedOption) => {
-          updateNodeType(node.id, newValue.id);
+          updateEditableSegmentNodeType(setState, node.id, newValue.id);
         }}
         disableClearable
         options={segmentOptions}
