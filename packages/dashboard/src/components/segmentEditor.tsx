@@ -2015,18 +2015,12 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 ];
 
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
-  const { disabled } = useContext(SegmentEditorContext);
-
-  const { updateEditableSegmentNodeData, messages } = useAppStore(
-    (store) => ({
-      updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
-      messages: store.messages,
-    }),
-    shallow,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+  const { messages } = useAppStorePick(["messages"]);
 
   const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
-    updateEditableSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       const event = e.target.value;
       if (n.type === SegmentNodeType.Email && isEmailEvent(event)) {
         n.event = event;
@@ -2075,11 +2069,15 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
             value={message}
             disabled={disabled}
             onChange={(_event, newValue) => {
-              updateEditableSegmentNodeData(node.id, (segmentNode) => {
-                if (newValue && segmentNode.type === SegmentNodeType.Email) {
-                  segmentNode.templateId = newValue.id;
-                }
-              });
+              updateEditableSegmentNodeData(
+                setState,
+                node.id,
+                (segmentNode) => {
+                  if (newValue && segmentNode.type === SegmentNodeType.Email) {
+                    segmentNode.templateId = newValue.id;
+                  }
+                },
+              );
             }}
             options={messageOptions}
             renderInput={(params) => (
@@ -2101,11 +2099,9 @@ function SubscriptionGroupSelect({
 }: {
   node: SubscriptionGroupSegmentNode;
 }) {
-  const { disabled } = useContext(SegmentEditorContext);
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-  const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+  const subscriptionGroups = useAppStore((s) => s.subscriptionGroups);
   const subscriptionGroupOptions = useMemo(
     () =>
       subscriptionGroups.map((sg) => ({
@@ -2129,7 +2125,7 @@ function SubscriptionGroupSelect({
         disabled={disabled}
         value={subscriptionGroup}
         onChange={(_event, newValue) => {
-          updateSegmentNodeData(node.id, (segmentNode) => {
+          updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
             if (
               newValue &&
               segmentNode.type === SegmentNodeType.SubscriptionGroup
@@ -2153,10 +2149,8 @@ function SubscriptionGroupSelect({
 
 function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const traitPath = node.path;
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-  const { disabled } = useContext(SegmentEditorContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
 
   const traits = useAppStore((store) => store.traits);
   const operator = keyedOperatorOptions[node.operator.type];
@@ -2186,14 +2180,18 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             disableClearable
             options={hasBeenComparatorOptions}
             onChange={(_event, newValue) => {
-              updateSegmentNodeData(node.id, (segmentNode) => {
-                if (
-                  segmentNode.type === SegmentNodeType.Trait &&
-                  segmentNode.operator.type === SegmentOperatorType.HasBeen
-                ) {
-                  segmentNode.operator.comparator = newValue.id;
-                }
-              });
+              updateEditableSegmentNodeData(
+                setState,
+                node.id,
+                (segmentNode) => {
+                  if (
+                    segmentNode.type === SegmentNodeType.Trait &&
+                    segmentNode.operator.type === SegmentOperatorType.HasBeen
+                  ) {
+                    segmentNode.operator.comparator = newValue.id;
+                  }
+                },
+              );
             }}
             renderInput={(params) => (
               <TextField label="Comparator" {...params} variant="outlined" />
@@ -2240,7 +2238,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   }
 
   const traitOnChange = (newValue: string) => {
-    updateSegmentNodeData(node.id, (segmentNode) => {
+    updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
       if (segmentNode.type === SegmentNodeType.Trait) {
         segmentNode.path = newValue;
       }
@@ -2261,7 +2259,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           value={operator}
           disabled={disabled}
           onChange={(_event: unknown, newValue: Option) => {
-            updateSegmentNodeData(node.id, (segmentNode) => {
+            updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
               if (
                 segmentNode.type === SegmentNodeType.Trait &&
                 newValue.id !== segmentNode.operator.type
@@ -2455,9 +2453,6 @@ function SegmentNodeComponent({
   const { state, setState } = useSegmentEditorContext();
   const { disabled, editedSegment } = state;
   const theme = useTheme();
-  const addChild = useAppStore((state) => state.addEditableSegmentChild);
-  const removeChild = useAppStore((state) => state.removeEditableSegmentChild);
-
   const nodeById = useMemo(
     () =>
       editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(
@@ -2519,7 +2514,7 @@ function SegmentNodeComponent({
         color="error"
         size="large"
         disabled={disabled}
-        onClick={() => removeChild(parentId, node.id)}
+        onClick={() => removeEditableSegmentChild(setState, parentId, node.id)}
       >
         <Delete />
       </IconButton>
@@ -2576,7 +2571,7 @@ function SegmentNodeComponent({
             color="primary"
             disabled={disabled}
             size="large"
-            onClick={() => addChild(node.id)}
+            onClick={() => addEditableSegmentChild(setState, node.id)}
           >
             <AddCircleOutlineOutlined />
           </IconButton>
