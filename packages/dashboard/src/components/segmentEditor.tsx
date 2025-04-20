@@ -1642,15 +1642,12 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 }
 
 function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
-  const { disabled } = useContext(SegmentEditorContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const { properties } = useAppStorePick(["properties"]);
 
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-
   const handleEventNameChange = (newEvent: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.event = newEvent;
       }
@@ -1658,7 +1655,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.timesOperator = e.target.value as RelationalOperators;
       }
@@ -1666,7 +1663,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleEventTimesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       const times = parseInt(e.target.value, 10);
       if (n.type === SegmentNodeType.KeyedPerformed && !Number.isNaN(times)) {
         n.times = times;
@@ -1675,7 +1672,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleAddProperty = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         let propertyPath: string | null = null;
         // put arbtitrary limit on the number of properties
@@ -1703,7 +1700,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
 
   const propertyRows = node.properties?.map((property, i) => {
     const handlePropertyPathChange = (newPath: string) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
@@ -1715,7 +1712,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     };
     const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           if (!n.properties) {
             return;
@@ -1728,7 +1725,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     const handleOperatorChange = (
       e: SelectChangeEvent<SegmentOperatorType>,
     ) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           const newOperator = e.target
             .value as KeyedPerformedPropertiesOperator["type"];
@@ -1750,7 +1747,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.properties?.[i];
@@ -1777,7 +1774,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1809,7 +1806,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1900,7 +1897,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   });
 
   const handleKeyChange = (newKey: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.key = newKey;
       }
