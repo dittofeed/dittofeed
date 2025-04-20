@@ -27,6 +27,7 @@ import { round } from "isomorphic-lib/src/numbers";
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  BodySegmentNode,
   CompletionStatus,
   EmailSegmentNode,
   InternalEventType,
@@ -39,6 +40,7 @@ import {
   PerformedSegmentNode,
   RandomBucketSegmentNode,
   RelationalOperators,
+  SegmentDefinition,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
@@ -52,10 +54,12 @@ import {
   SegmentResource,
   SegmentWithinOperator,
   SubscriptionGroupSegmentNode,
+  SubscriptionGroupType,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useCallback, useContext, useEffect, useMemo } from "react";
-import { useImmer } from "use-immer";
+import { Updater, useImmer } from "use-immer";
+import { v4 as uuid } from "uuid";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -74,14 +78,302 @@ type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
 
-interface SegmentEditorContextType {
+interface SegmentEditorState {
   disabled?: boolean;
   editedSegment: SegmentResource;
+}
+
+interface SegmentEditorContextType {
+  state: SegmentEditorState;
+  setState: Updater<SegmentEditorState>;
 }
 
 const SegmentEditorContext = React.createContext<
   SegmentEditorContextType | undefined
 >(undefined);
+
+function updateEditableSegmentNodeData(
+  setState: Updater<SegmentEditorContextType>,
+  nodeId: string,
+  updateNode: Updater<SegmentNode>,
+) {
+  setState((draft) => {
+    const { definition } = draft.state.editedSegment;
+    const node =
+      nodeId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === nodeId);
+
+    if (!node) {
+      return draft;
+    }
+    updateNode(node);
+    return draft;
+  });
+}
+
+function mapSegmentNodeToNewType(
+  node: SegmentNode,
+  type: SegmentNodeType,
+): { primary: SegmentNode; secondary: BodySegmentNode[] } {
+  switch (type) {
+    case SegmentNodeType.And: {
+      let children: string[];
+      let secondary: BodySegmentNode[];
+
+      if (node.type === SegmentNodeType.Or) {
+        children = node.children;
+        secondary = [];
+      } else {
+        const child: SegmentNode = {
+          type: SegmentNodeType.Trait,
+          id: uuid(),
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        };
+
+        children = [child.id];
+        secondary = [child];
+      }
+
+      return {
+        primary: {
+          type: SegmentNodeType.And,
+          id: node.id,
+          children,
+        },
+        secondary,
+      };
+    }
+    case SegmentNodeType.Or: {
+      let children: string[];
+      let secondary: BodySegmentNode[];
+
+      if (node.type === SegmentNodeType.And) {
+        children = node.children;
+        secondary = [];
+      } else {
+        const child: SegmentNode = {
+          type: SegmentNodeType.Trait,
+          id: uuid(),
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        };
+
+        children = [child.id];
+        secondary = [child];
+      }
+
+      return {
+        primary: {
+          type: SegmentNodeType.Or,
+          id: node.id,
+          children,
+        },
+        secondary,
+      };
+    }
+    case SegmentNodeType.Trait: {
+      return {
+        primary: {
+          type: SegmentNodeType.Trait,
+          id: node.id,
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Broadcast: {
+      return {
+        primary: {
+          type: SegmentNodeType.Broadcast,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      return {
+        primary: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: node.id,
+          subscriptionGroupId: "",
+          subscriptionGroupType: SubscriptionGroupType.OptIn,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Performed: {
+      return {
+        primary: {
+          type: SegmentNodeType.Performed,
+          id: node.id,
+          event: "",
+          times: 1,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Email: {
+      return {
+        primary: {
+          type: SegmentNodeType.Email,
+          id: node.id,
+          templateId: "",
+          event: InternalEventType.MessageSent,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Manual: {
+      return {
+        primary: {
+          type: SegmentNodeType.Manual,
+          version: Math.floor(Date.now() / 1000),
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.RandomBucket: {
+      return {
+        primary: {
+          type: SegmentNodeType.RandomBucket,
+          id: node.id,
+          percent: 0.5,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.KeyedPerformed: {
+      return {
+        primary: {
+          type: SegmentNodeType.KeyedPerformed,
+          id: node.id,
+          event: "",
+          key: "",
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.LastPerformed: {
+      return {
+        primary: {
+          type: SegmentNodeType.LastPerformed,
+          id: node.id,
+          event: "",
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Everyone: {
+      return {
+        primary: {
+          type: SegmentNodeType.Everyone,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    default: {
+      assertUnreachable(type);
+    }
+  }
+}
+
+function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
+  const nonOrphanNodes = new Set<string>();
+  const nodesById = new Map<string, SegmentNode>();
+  for (const node of segmentDefinition.nodes) {
+    nodesById.set(node.id, node);
+  }
+
+  const currentNodes: SegmentNode[] = [segmentDefinition.entryNode];
+
+  while (currentNodes.length) {
+    const currentNode = currentNodes.pop();
+    if (currentNode) {
+      nonOrphanNodes.add(currentNode.id);
+
+      if (
+        currentNode.type === SegmentNodeType.And ||
+        currentNode.type === SegmentNodeType.Or
+      ) {
+        for (const childId of currentNode.children) {
+          const child = nodesById.get(childId);
+          if (child) {
+            currentNodes.push(child);
+          }
+        }
+      }
+    }
+  }
+
+  segmentDefinition.nodes = segmentDefinition.nodes.filter((n) =>
+    nonOrphanNodes.has(n.id),
+  );
+}
+
+function updateEditableSegmentNodeType(
+  updater: Updater<SegmentEditorContextType>,
+  nodeId: string,
+  nodeType: SegmentNodeType,
+) {
+  updater((draft) => {
+    const { definition } = draft.state.editedSegment;
+    // update entry node
+    if (nodeId === definition.entryNode.id) {
+      const node = definition.entryNode;
+      // No need to update node, already desired type
+      if (node.type === nodeType) {
+        return draft;
+      }
+      const newType = mapSegmentNodeToNewType(node, nodeType);
+      definition.entryNode = newType.primary;
+      definition.nodes = newType.secondary.concat(definition.nodes);
+      // update body node
+    } else {
+      definition.nodes.forEach((node) => {
+        if (node.id !== nodeId) {
+          return;
+        }
+
+        // No need to update node, already desired type
+        if (node.type === nodeType) {
+          return;
+        }
+
+        const newType = mapSegmentNodeToNewType(node, nodeType);
+        const { primary } = newType;
+        if (!isBodySegmentNode(primary)) {
+          console.error(
+            `Unexpected segment node type ${nodeType} for body node.`,
+          );
+          return;
+        }
+
+        definition.nodes = newType.secondary.concat(definition.nodes);
+        definition.nodes = definition.nodes.map((n) =>
+          n.id === nodeId ? primary : n,
+        );
+      });
+    }
+
+    removeOrphanedSegmentNodes(definition);
+    return draft;
+  });
+}
 
 function useSegmentEditorContext() {
   const context = useContext(SegmentEditorContext);
@@ -307,7 +599,7 @@ function ValueSelect({
     | SegmentNotEqualsOperator;
 }) {
   const { value } = operator;
-  const { disabled } = useContext(SegmentEditorContext);
+  const { disabled } = useSegmentEditorContext();
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData,
@@ -1986,7 +2278,8 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   const { updateEditableSegmentNodeData } = useAppStorePick([
     "updateEditableSegmentNodeData",
   ]);
-  const { disabled } = useContext(SegmentEditorContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
 
@@ -2025,7 +2318,8 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
-  const { disabled, editedSegment } = useSegmentEditorContext();
+  const { state } = useSegmentEditorContext();
+  const { disabled, editedSegment } = state;
   const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
   const [{ operation }] = useImmer<ManualUploadState>({
     operation: ManualSegmentOperationEnum.Add,
@@ -2322,27 +2616,47 @@ export function SegmentEditorInner({
   useLoadTraits();
   useLoadProperties();
 
-  const [contextValue, setContextValue] = useImmer<
-    SegmentEditorContextType | undefined
-  >(
+  const [state, setState] = useImmer<SegmentEditorState | null>(
     segment
       ? {
           disabled,
           editedSegment: segment,
         }
-      : undefined,
+      : null,
   );
 
   useEffect(() => {
     if (segment) {
-      setContextValue({
+      setState({
         disabled,
         editedSegment: segment,
       });
     }
-  }, [disabled, segment, setContextValue]);
+  }, [disabled, segment, setState]);
 
-  if (!segment || isError || isPending) {
+  const contextValue: SegmentEditorContextType | null = useMemo(() => {
+    if (!state) {
+      return null;
+    }
+    const setNonNullState: Updater<SegmentEditorState> = (update) => {
+      setState((draft) => {
+        if (draft === null) {
+          return draft;
+        }
+        if (typeof update === "function") {
+          return update(draft);
+        }
+        return update;
+      });
+    };
+
+    return {
+      state,
+      setState: setNonNullState,
+    };
+  }, [state, setState]);
+
+  if (!segment || isError || isPending || !contextValue) {
     return null;
   }
 
