@@ -1,6 +1,16 @@
+import {
+  AccessTime,
+  Autorenew,
+  HelpOutline,
+  Refresh,
+} from "@mui/icons-material";
+import { CircularProgress, Tooltip } from "@mui/material";
+import { useIsMutating } from "@tanstack/react-query";
+import { differenceInSeconds } from "date-fns";
 import { useMemo } from "react";
 
 import { useComputePropertiesQuery } from "../lib/useComputePropertiesQuery";
+import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
 
 export function RecomputedRecentlyIcon({
   type,
@@ -9,7 +19,7 @@ export function RecomputedRecentlyIcon({
   type: "Segment" | "UserProperty";
   id: string;
 }) {
-  const { data, isPending } = useComputePropertiesQuery({
+  const { data, isPending, isError } = useComputePropertiesQuery({
     step: "ComputeAssignments",
   });
 
@@ -17,12 +27,77 @@ export function RecomputedRecentlyIcon({
     () => data?.periods.find((p) => p.type === type && p.id === id),
     [data, type, id],
   );
-  const lastRecomputed = period ? new Date(period.lastRecomputed) : undefined;
+  const lastRecomputed = useMemo(
+    () => (period ? new Date(period.lastRecomputed) : undefined),
+    [period],
+  );
 
-  // FIXME if pending, show a spinner
-  // FIXME if error, return null
-  // FIXME if no data return icon representing that the data has never been recomputed
-  // FIXME if updated in last 30 seconds show an icon representing that the data is fresh
-  // FIXME if updated more than 30 seconds ago, show an icon representing that the data is stale
-  return <div>Recomputed Recently</div>;
+  const secondsSinceRecompute = useMemo(() => {
+    if (!lastRecomputed) {
+      return null;
+    }
+    return differenceInSeconds(new Date(), lastRecomputed);
+  }, [lastRecomputed]);
+
+  const roundedSecondsSinceRecompute = useMemo(() => {
+    if (secondsSinceRecompute === null) {
+      return null;
+    }
+    return Math.round(secondsSinceRecompute);
+  }, [secondsSinceRecompute]);
+
+  const isRecomputing = useIsMutating({
+    mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
+  });
+
+  if (isRecomputing > 0) {
+    return (
+      <Tooltip title="Recomputing...">
+        <Autorenew
+          fontSize="small"
+          sx={{
+            animation: "spin 2s linear infinite",
+            "@keyframes spin": {
+              "0%": {
+                transform: "rotate(0deg)",
+              },
+              "100%": {
+                transform: "rotate(360deg)",
+              },
+            },
+          }}
+        />
+      </Tooltip>
+    );
+  }
+
+  if (isPending) {
+    return <CircularProgress size={20} />;
+  }
+
+  if (isError) {
+    return null;
+  }
+
+  if (secondsSinceRecompute === null || roundedSecondsSinceRecompute === null) {
+    return (
+      <Tooltip title="Not computed yet">
+        <HelpOutline fontSize="small" />
+      </Tooltip>
+    );
+  }
+
+  if (secondsSinceRecompute < 30) {
+    return (
+      <Tooltip title={`Recomputed ${roundedSecondsSinceRecompute} seconds ago`}>
+        <Refresh fontSize="small" />
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip title={`Recomputed ${roundedSecondsSinceRecompute} seconds ago`}>
+      <AccessTime fontSize="small" />
+    </Tooltip>
+  );
 }

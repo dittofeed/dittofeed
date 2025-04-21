@@ -14,6 +14,10 @@ import {
 import { useAppStorePick } from "./appStore";
 import { COMPUTED_PROPERTY_PERIODS_QUERY_KEY } from "./useComputePropertiesQuery";
 
+export const TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY = [
+  "triggerRecomputeProperties",
+];
+
 export function useTriggerRecomputePropertiesMutation(
   options?: UseMutationOptions<
     EmptyResponse,
@@ -50,6 +54,7 @@ export function useTriggerRecomputePropertiesMutation(
     Omit<TriggerRecomputeRequest, "workspaceId">
   >({
     mutationFn,
+    mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
     ...options,
     onSuccess: (...args) => {
       // Invalidate the computed properties query on success

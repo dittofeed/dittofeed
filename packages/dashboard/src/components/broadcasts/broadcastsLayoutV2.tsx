@@ -47,15 +47,18 @@ function PreviewHeader({
       }}
     >
       <Typography variant="h6">Broadcast Preview</Typography>
-      {previewOpen ? (
-        <IconButton onClick={() => setPreviewOpen(false)} size="small">
-          <KeyboardDoubleArrowDownRoundedIcon />
-        </IconButton>
-      ) : (
-        <IconButton onClick={() => setPreviewOpen(true)} size="small">
-          <KeyboardDoubleArrowUpRoundedIcon />
-        </IconButton>
-      )}
+      <Stack direction="row" spacing={2}>
+        <RecomputedRecentlyIcon type="Segment" id={state.segmentId} />
+        {previewOpen ? (
+          <IconButton onClick={() => setPreviewOpen(false)} size="small">
+            <KeyboardDoubleArrowDownRoundedIcon />
+          </IconButton>
+        ) : (
+          <IconButton onClick={() => setPreviewOpen(true)} size="small">
+            <KeyboardDoubleArrowUpRoundedIcon />
+          </IconButton>
+        )}
+      </Stack>
     </Stack>
   );
 }
