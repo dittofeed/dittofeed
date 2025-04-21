@@ -22,7 +22,7 @@ import {
   SegmentOperatorType,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -165,14 +165,19 @@ function BroadcastSegmentEditor({
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const segmentId = useMemo<string | undefined>(
+    () => broadcast?.segmentId,
+    [broadcast?.segmentId],
+  );
 
   useEffect(() => {
     if (
-      broadcast?.segmentId !== undefined ||
+      segmentId !== undefined ||
       workspace.type !== CompletionStatus.Successful
     ) {
       return;
     }
+    debugger;
     const workspaceId = workspace.value.id;
     const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
     const newSegmentName = getBroadcastSegmentName({
@@ -200,19 +205,27 @@ function BroadcastSegmentEditor({
         definition,
       },
       {
+        onError: (error) => {
+          console.error("Error creating segment:", error);
+          debugger;
+        },
         onSuccess: () => {
-          broadcastMutation.mutate({ segmentId: newSegmentId });
+          broadcastMutation.mutate(
+            { segmentId: newSegmentId },
+            {
+              onError: (error) => {
+                console.error(
+                  "Error updating broadcast with new segment:",
+                  error,
+                );
+                debugger;
+              },
+            },
+          );
         },
       },
     );
-  }, [
-    broadcastId,
-    broadcast?.segmentId,
-    updateSegmentsMutation,
-    workspace,
-    broadcastMutation.mutate,
-    broadcastMutation,
-  ]);
+  }, [workspace, segmentId]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation();
   const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
@@ -236,13 +249,13 @@ function BroadcastSegmentEditor({
   // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
   // 7. use the useUpdateSegmentsMutation hook to update the segment
   // 8. use the useSegmentQuery hook to read the segment
-  if (!broadcast?.segmentId) {
+  if (segmentId === undefined) {
     return null;
   }
   return (
     <SegmentEditor
       disabled={disabled}
-      segmentId={broadcast.segmentId}
+      segmentId={segmentId}
       onSegmentChange={updateSegmentCallback}
     />
   );

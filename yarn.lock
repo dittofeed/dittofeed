@@ -18995,6 +18995,7 @@ __metadata:
     remeda: "npm:^1.56.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:5.6.3"
+    uuid: "npm:^9.0.0"
   languageName: unknown
   linkType: soft
 
