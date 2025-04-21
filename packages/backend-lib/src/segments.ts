@@ -359,6 +359,7 @@ export async function upsertSegment(
     workspaceId: params.workspaceId,
     name: params.name,
     definition: params.definition,
+    resourceType: params.resourceType,
   };
 
   const result = await queryResult(
@@ -373,6 +374,7 @@ export async function upsertSegment(
         set: {
           definition: params.definition,
           name: params.name,
+          resourceType: params.resourceType,
           definitionUpdatedAt: params.definition ? new Date() : undefined,
         },
       })
@@ -418,6 +420,7 @@ export async function upsertSegment(
     definitionUpdatedAt: insertedSegment.definitionUpdatedAt.getTime(),
     updatedAt: insertedSegment.updatedAt.getTime(),
     createdAt: insertedSegment.createdAt.getTime(),
+    resourceType: insertedSegment.resourceType,
   });
 }
 
@@ -597,6 +600,7 @@ export async function findManyPartialSegments({
       updatedAt,
       definitionUpdatedAt,
       createdAt,
+      resourceType,
     } = segment;
     return {
       id,
@@ -606,6 +610,7 @@ export async function findManyPartialSegments({
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
       createdAt: createdAt.getTime(),
+      resourceType,
     } satisfies PartialSegmentResource;
   });
 }

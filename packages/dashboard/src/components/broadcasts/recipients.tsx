@@ -162,6 +162,7 @@ function BroadcastSegmentEditor({
   disabled?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
+  const queryClient = useQueryClient();
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
@@ -185,23 +186,19 @@ function BroadcastSegmentEditor({
 
     const entryNode: SegmentNode = {
       id: "1",
-      type: SegmentNodeType.Trait,
-      path: "firstName",
-      operator: {
-        type: SegmentOperatorType.Exists,
-      },
+      type: SegmentNodeType.Everyone,
     };
     const definition: SegmentDefinition = {
       entryNode,
-      nodes: [entryNode],
+      nodes: [],
     };
 
-    // FIXME make internal
     updateSegmentsMutation.mutate(
       {
         id: newSegmentId,
         name: newSegmentName,
         definition,
+        resourceType: "Internal",
       },
       {
         onSuccess: () => {
@@ -209,13 +206,7 @@ function BroadcastSegmentEditor({
         },
       },
     );
-  }, [
-    workspace,
-    segmentId,
-    broadcastId,
-    updateSegmentsMutation,
-    broadcastMutation,
-  ]);
+  }, [workspace, segmentId]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation();
   const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
@@ -357,6 +348,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
           onChange={(_, newValue) => {
             if (newValue !== null) {
               setSelectExistingSegment(newValue);
+              broadcastMutation.mutate({ segmentId: null });
             }
           }}
         >
@@ -366,7 +358,6 @@ export default function Recipients({ state }: { state: BroadcastState }) {
       </Stack>
       {selectExistingSegment === "existing" ? (
         <Box sx={{ maxWidth: 600 }}>
-          {/* FIXME restrict to declarative */}
           <SegmentsAutocomplete
             segmentId={currentSegmentId}
             handler={handleSegmentChange}

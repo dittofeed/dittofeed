@@ -2,6 +2,7 @@ import { Autocomplete, CircularProgress, TextField } from "@mui/material";
 import { useMemo } from "react";
 
 import { useSegmentsQuery } from "../lib/useSegmentResourcesQuery";
+import { ResourceTypeEnum } from "isomorphic-lib/src/types";
 
 // Define a simpler type based on observed/inferred data structure
 export interface SimpleSegment {

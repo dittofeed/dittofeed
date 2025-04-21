@@ -46,6 +46,15 @@ export type JSONValue =
   | { [x: string]: JSONValue }
   | JSONValue[];
 
+export const ResourceTypeEnum = {
+  Declarative: "Declarative",
+  Internal: "Internal",
+} as const;
+
+export const ResourceType = Type.KeyOf(Type.Const(ResourceTypeEnum));
+
+export type ResourceType = Static<typeof ResourceType>;
+
 export enum EventType {
   Identify = "identify",
   Track = "track",
@@ -1142,6 +1151,7 @@ export const SegmentResource = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
+  resourceType: Type.Optional(ResourceType),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;
@@ -1690,6 +1700,7 @@ export type GetMessageTemplatesResponse = Static<
 export const GetSegmentsRequest = Type.Object({
   workspaceId: Type.String(),
   ids: Type.Optional(Type.Array(Type.String())),
+  resourceType: Type.Optional(ResourceType),
 });
 
 export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;

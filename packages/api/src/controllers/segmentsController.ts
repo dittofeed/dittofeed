@@ -71,6 +71,11 @@ export default async function segmentsController(fastify: FastifyInstance) {
       if (request.query.ids) {
         conditions.push(inArray(schema.segment.id, request.query.ids));
       }
+      if (request.query.resourceType) {
+        conditions.push(
+          eq(schema.segment.resourceType, request.query.resourceType),
+        );
+      }
       const segmentModels = await db().query.segment.findMany({
         where: and(...conditions),
       });
