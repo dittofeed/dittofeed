@@ -2641,14 +2641,16 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
-export function SegmentEditorInner({
+export default function SegmentEditor({
   sx,
   disabled,
   segmentId,
+  onSegmentChange,
 }: {
   sx?: SxProps;
   disabled?: boolean;
   segmentId: string;
+  onSegmentChange?: (segment: SegmentResource) => void;
 }) {
   const theme = useTheme();
   const { data: segment, isError, isPending } = useSegmentQuery(segmentId);
@@ -2664,6 +2666,12 @@ export function SegmentEditorInner({
         }
       : null,
   );
+
+  useEffect(() => {
+    if (state?.editedSegment) {
+      onSegmentChange?.(state.editedSegment);
+    }
+  }, [state?.editedSegment, onSegmentChange]);
 
   useEffect(() => {
     if (segment) {
@@ -2723,15 +2731,4 @@ export function SegmentEditorInner({
       </Box>
     </SegmentEditorContext.Provider>
   );
-}
-
-export default function SegmentEditor({
-  disabled,
-  segmentId,
-}: {
-  disabled?: boolean;
-  segmentId: string;
-}) {
-  // FIXME refactor to get rid of this
-  return <SegmentEditorInner disabled={disabled} segmentId={segmentId} />;
 }

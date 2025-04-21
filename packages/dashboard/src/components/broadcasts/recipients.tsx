@@ -15,7 +15,6 @@ import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
   CompletionStatus,
-  SavedSegmentResource,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -31,7 +30,7 @@ import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
-import { SegmentEditorInner } from "../segmentEditor";
+import SegmentEditor from "../segmentEditor";
 import {
   SegmentChangeHandler,
   SegmentsAutocomplete,
@@ -225,15 +224,18 @@ function BroadcastSegmentEditor({
   const [editedSegment] = useImmer<SegmentResource | null>(segment ?? null);
   const [debouncedEditedSegment] = useDebounce(editedSegment, 1000);
   useEffect(() => {
+    if (!debouncedEditedSegment) {
+      return;
+    }
     if (deepEqual(debouncedEditedSegment, segment)) {
       return;
     }
     updateSegmentsMutation.mutate({
-      id: broadcast?.segmentId,
+      id: debouncedEditedSegment.id,
       definition: debouncedEditedSegment?.definition,
       name: debouncedEditedSegment?.name,
     });
-  }, [debouncedEditedSegment, segment]);
+  }, [debouncedEditedSegment, segment, updateSegmentsMutation]);
   // when making updates to this function DO NOT delete the below comments
   // 1. create a new segment if none exists or if segmentId is undefined, using
   // the getBroadcastSegmentId function to produce a unique id. use the
@@ -249,9 +251,8 @@ function BroadcastSegmentEditor({
   if (!editedSegment) {
     return null;
   }
-  return (
-    <SegmentEditorInner disabled={disabled} editedSegment={editedSegment} />
-  );
+  // FIXME debounced not being used
+  return <SegmentEditor disabled={disabled} segmentId={editedSegment.id} />;
 }
 
 export default function Recipients({ state }: { state: BroadcastState }) {
