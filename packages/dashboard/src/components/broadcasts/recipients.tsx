@@ -23,14 +23,14 @@ import {
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useState } from "react";
-import { useDebounce } from "use-debounce";
+import { useDebounce, useDebouncedCallback } from "use-debounce";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
-import SegmentEditor from "../segmentEditor";
+import SegmentEditor, { SegmentEditorProps } from "../segmentEditor";
 import {
   SegmentChangeHandler,
   SegmentsAutocomplete,
@@ -168,11 +168,6 @@ function BroadcastSegmentEditor({
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
-  const {
-    data: segment,
-    isLoading: isSegmentLoading,
-    isError: isSegmentError,
-  } = useSegmentQuery(broadcast?.segmentId);
 
   useEffect(() => {
     if (
@@ -221,21 +216,16 @@ function BroadcastSegmentEditor({
     broadcastMutation,
   ]);
 
-  const [editedSegment] = useImmer<SegmentResource | null>(segment ?? null);
-  const [debouncedEditedSegment] = useDebounce(editedSegment, 1000);
-  useEffect(() => {
-    if (!debouncedEditedSegment) {
-      return;
-    }
-    if (deepEqual(debouncedEditedSegment, segment)) {
-      return;
-    }
-    updateSegmentsMutation.mutate({
-      id: debouncedEditedSegment.id,
-      definition: debouncedEditedSegment?.definition,
-      name: debouncedEditedSegment?.name,
-    });
-  }, [debouncedEditedSegment, segment, updateSegmentsMutation]);
+  const segmentsUpdateMutation = useUpdateSegmentsMutation();
+  const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
+    useDebouncedCallback((s) => {
+      segmentsUpdateMutation.mutate({
+        id: s.id,
+        definition: s.definition,
+        name: s.name,
+      });
+    }, 1000);
+
   // when making updates to this function DO NOT delete the below comments
   // 1. create a new segment if none exists or if segmentId is undefined, using
   // the getBroadcastSegmentId function to produce a unique id. use the
@@ -248,11 +238,16 @@ function BroadcastSegmentEditor({
   // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
   // 7. use the useUpdateSegmentsMutation hook to update the segment
   // 8. use the useSegmentQuery hook to read the segment
-  if (!editedSegment) {
+  if (!broadcast?.segmentId) {
     return null;
   }
-  // FIXME debounced not being used
-  return <SegmentEditor disabled={disabled} segmentId={editedSegment.id} />;
+  return (
+    <SegmentEditor
+      disabled={disabled}
+      segmentId={broadcast.segmentId}
+      onSegmentChange={updateSegmentCallback}
+    />
+  );
 }
 
 export default function Recipients({ state }: { state: BroadcastState }) {

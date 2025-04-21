@@ -2641,17 +2641,19 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
+export interface SegmentEditorProps {
+  sx?: SxProps;
+  disabled?: boolean;
+  segmentId: string;
+  onSegmentChange?: (segment: SegmentResource) => void;
+}
+
 export default function SegmentEditor({
   sx,
   disabled,
   segmentId,
   onSegmentChange,
-}: {
-  sx?: SxProps;
-  disabled?: boolean;
-  segmentId: string;
-  onSegmentChange?: (segment: SegmentResource) => void;
-}) {
+}: SegmentEditorProps) {
   const theme = useTheme();
   const { data: segment, isError, isPending } = useSegmentQuery(segmentId);
 
