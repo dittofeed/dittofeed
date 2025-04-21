@@ -54,6 +54,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
+import deepEqual from "fast-deep-equal";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -67,7 +68,7 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -723,7 +724,6 @@ export default function UsersTableV2({
   hideControls = false,
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
-
   const [userFilterState, userFilterUpdater] = useUserFilterState({
     segments: segmentIds ? new Set(segmentIds) : undefined,
     staticSegments: segmentIds ? new Set(segmentIds) : undefined,
@@ -734,6 +734,45 @@ export default function UsersTableV2({
       ? new Set(subscriptionGroupIds)
       : undefined,
   });
+
+  useEffect(() => {
+    userFilterUpdater((draft) => {
+      const oldStaticSegments = draft.staticSegments;
+      const newStaticSegments = new Set(segmentIds);
+      if (
+        deepEqual(Array.from(oldStaticSegments), Array.from(newStaticSegments))
+      ) {
+        return draft;
+      }
+
+      for (const segmentId of oldStaticSegments) {
+        draft.segments.delete(segmentId);
+        draft.staticSegments.delete(segmentId);
+      }
+
+      for (const segmentId of newStaticSegments) {
+        draft.segments.add(segmentId);
+        draft.staticSegments.add(segmentId);
+      }
+      return draft;
+    });
+  }, [segmentIds]);
+
+  useEffect(() => {
+    userFilterUpdater((draft) => {
+      const oldStaticSubscriptionGroups = draft.staticSegments;
+      for (const segmentId of oldStaticSubscriptionGroups) {
+        draft.segments.delete(segmentId);
+        draft.staticSubscriptionGroups.delete(segmentId);
+      }
+
+      const newStaticSubscriptionGroups = new Set(segmentIds);
+      for (const segmentId of newStaticSubscriptionGroups) {
+        draft.segments.add(segmentId);
+        draft.staticSubscriptionGroups.add(segmentId);
+      }
+    });
+  }, [segmentIds]);
 
   const [state, setState] = useImmer<TableState>({
     autoReload: autoReloadByDefault,

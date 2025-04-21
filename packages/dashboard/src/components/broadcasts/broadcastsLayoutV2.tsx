@@ -75,7 +75,6 @@ function PreviewContent({
   if (isLoading || isError) {
     return null;
   }
-  console.log("loc1", broadcast?.segmentId);
   return (
     <Box sx={{ flex: 1, overflow: "auto" }}>
       <UsersTableV2
