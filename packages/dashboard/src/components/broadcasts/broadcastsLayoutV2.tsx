@@ -22,6 +22,7 @@ import {
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
+import { InlineDrawer } from "../inlineDrawer";
 
 const PREVIEW_HEIGHT = "40vh";
 
@@ -152,6 +153,17 @@ export default function BroadcastLayout({
         </Stack>
       </Stack>
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
+      <InlineDrawer
+        open={!previewOpen}
+        header={
+          <PreviewHeader
+            previewOpen={previewOpen}
+            setPreviewOpen={setPreviewOpen}
+          />
+        }
+      >
+        <PreviewContent workspaceId={workspace.value.id} id={state.id} />
+      </InlineDrawer>
       {/* <Drawer
         anchor="bottom"
         open={!previewOpen}

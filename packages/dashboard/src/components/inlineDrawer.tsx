@@ -1,3 +1,6 @@
+import { Box, Collapse, Slide, Stack } from "@mui/material";
+import React from "react";
+
 /**
  * A drawer that is inline with the content of the page. Uses the mui slider
  * component to slide in the drawer. Does not reuse the mui drawer component in
@@ -14,5 +17,25 @@ export function InlineDrawer({
   header: React.ReactNode;
   children: React.ReactNode;
 }) {
-  return <></>;
+  return (
+    <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+      <Stack
+        sx={{
+          position: "absolute", // Allows containing absolute elements if needed later
+          overflow: "hidden", // Clip collapsing content
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          zIndex: 1000,
+        }}
+      >
+        {header}
+        <Box sx={{ flex: 1 }}>
+          <Slide direction="up" in={open} mountOnEnter unmountOnExit>
+            <Box>{children}</Box>
+          </Slide>
+        </Box>
+      </Stack>
+    </Box>
+  );
 }
