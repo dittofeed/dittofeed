@@ -1,4 +1,5 @@
 import {
+  Box,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -191,6 +192,7 @@ function BroadcastSegmentEditor({
       nodes: [entryNode],
     };
 
+    // FIXME make internal
     updateSegmentsMutation.mutate(
       {
         id: newSegmentId,
@@ -247,11 +249,34 @@ function BroadcastSegmentEditor({
 }
 
 export default function Recipients({ state }: { state: BroadcastState }) {
+  const { workspace } = useAppStorePick(["workspace"]);
   const broadcastQuery = useBroadcastQuery(state.id);
   const broadcastMutation = useBroadcastMutation(state.id);
   const [selectExistingSegment, setSelectExistingSegment] = useState<
-    "existing" | "new"
-  >("existing");
+    "existing" | "new" | null
+  >(null);
+
+  useEffect(() => {
+    if (
+      !broadcastQuery.data ||
+      workspace.type !== CompletionStatus.Successful ||
+      selectExistingSegment !== null
+    ) {
+      return;
+    }
+    if (
+      broadcastQuery.data.segmentId &&
+      broadcastQuery.data.segmentId ===
+        getBroadcastSegmentId({
+          broadcastId: state.id,
+          workspaceId: workspace.value.id,
+        })
+    ) {
+      setSelectExistingSegment("new");
+      return;
+    }
+    setSelectExistingSegment("existing");
+  }, [broadcastQuery.data, state.id, workspace, selectExistingSegment]);
 
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
@@ -308,11 +333,11 @@ export default function Recipients({ state }: { state: BroadcastState }) {
     );
   }
   return (
-    <Stack spacing={2} sx={{ maxWidth: 600 }}>
+    <Stack spacing={2}>
       <Typography variant="caption" sx={{ mb: -1 }}>
         Subscription Group (Required)
       </Typography>
-      {subscriptionGroupAutocomplete}
+      <Box sx={{ maxWidth: 600 }}>{subscriptionGroupAutocomplete}</Box>
       <Typography variant="body2" sx={{ mt: 1 }}>
         Select a Subscription Group (required). Optionally, you can select an
         additional segment which will further restrict the set of messaged users
@@ -325,7 +350,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
         <ToggleButtonGroup
           value={selectExistingSegment}
           exclusive
-          disabled={disabled}
+          disabled={disabled || selectExistingSegment === null}
           onChange={(_, newValue) => {
             if (newValue !== null) {
               setSelectExistingSegment(newValue);
@@ -337,11 +362,14 @@ export default function Recipients({ state }: { state: BroadcastState }) {
         </ToggleButtonGroup>
       </Stack>
       {selectExistingSegment === "existing" ? (
-        <SegmentsAutocomplete
-          segmentId={currentSegmentId}
-          handler={handleSegmentChange}
-          disabled={disabled}
-        />
+        <Box sx={{ maxWidth: 600 }}>
+          {/* FIXME restrict to declarative */}
+          <SegmentsAutocomplete
+            segmentId={currentSegmentId}
+            handler={handleSegmentChange}
+            disabled={disabled}
+          />
+        </Box>
       ) : (
         <BroadcastSegmentEditor broadcastId={state.id} disabled={disabled} />
       )}

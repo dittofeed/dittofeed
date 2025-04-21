@@ -57,9 +57,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const broadcasts = await getBroadcastsV2({
-        workspaceId: request.query.workspaceId,
-      });
+      const broadcasts = await getBroadcastsV2(request.query);
       return reply.status(200).send(broadcasts);
     },
   );
