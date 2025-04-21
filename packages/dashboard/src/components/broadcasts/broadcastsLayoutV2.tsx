@@ -154,7 +154,8 @@ export default function BroadcastLayout({
       </Stack>
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
       <InlineDrawer
-        open={!previewOpen}
+        open={previewOpen}
+        maxHeight={PREVIEW_HEIGHT}
         header={
           <PreviewHeader
             previewOpen={previewOpen}
