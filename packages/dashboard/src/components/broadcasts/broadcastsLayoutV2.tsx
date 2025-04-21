@@ -23,6 +23,8 @@ import {
   BroadcastStepKey,
 } from "./broadcastsShared";
 
+const PREVIEW_HEIGHT = "40vh";
+
 interface BroadcastLayoutProps {
   children: React.ReactNode;
   state: BroadcastState;
@@ -150,7 +152,7 @@ export default function BroadcastLayout({
         </Stack>
       </Stack>
       <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
-      <Drawer
+      {/* <Drawer
         anchor="bottom"
         open={!previewOpen}
         hideBackdrop
@@ -183,7 +185,7 @@ export default function BroadcastLayout({
         PaperProps={{
           sx: {
             pointerEvents: "auto",
-            height: "50vh",
+            height: PREVIEW_HEIGHT,
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
           },
@@ -198,7 +200,7 @@ export default function BroadcastLayout({
             <PreviewContent workspaceId={workspace.value.id} id={state.id} />
           </Box>
         </Box>
-      </Drawer>
+      </Drawer> */}
     </Stack>
   );
 }

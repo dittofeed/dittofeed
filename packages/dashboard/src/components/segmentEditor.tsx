@@ -2676,13 +2676,13 @@ export default function SegmentEditor({
   }, [state?.editedSegment, onSegmentChange]);
 
   useEffect(() => {
-    if (segment) {
+    if (segment && state === null) {
       setState({
         disabled,
         editedSegment: segment,
       });
     }
-  }, [disabled, segment, setState]);
+  }, [disabled, segment, setState, state]);
 
   const contextValue: SegmentEditorContextType | null = useMemo(() => {
     if (!state) {
@@ -2693,10 +2693,9 @@ export default function SegmentEditor({
         if (draft === null) {
           return draft;
         }
-        if (typeof update === "function") {
-          return update(draft);
-        }
-        return update;
+        const newState = typeof update === "function" ? update(draft) : update;
+        console.log("newState", JSON.stringify(newState, null, 2));
+        return newState;
       });
     };
 
@@ -2706,11 +2705,11 @@ export default function SegmentEditor({
     };
   }, [state, setState]);
 
-  if (!segment || isError || isPending || !contextValue) {
+  if (!segment || isError || isPending || !contextValue || !state) {
     return null;
   }
 
-  const { entryNode } = segment.definition;
+  const { entryNode } = state.editedSegment.definition;
 
   return (
     <SegmentEditorContext.Provider value={contextValue}>

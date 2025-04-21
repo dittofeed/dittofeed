@@ -15,15 +15,15 @@
     "json-bigint": "^1.0.0",
     "json-stable-stringify": "^1.1.1",
     "neverthrow": "^6.0.0",
-    "uuid": "^9.0.0",
-    "remeda": "^1.56.0"
+    "remeda": "^1.56.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.2.6",
-    "@types/uuid": "^9.0.0",
     "@types/json-bigint": "^1.0.4",
     "@types/json-stable-stringify": "^1.0.36",
     "@types/jsonpath": "^0.2.0",
+    "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.60.0",
     "@typescript-eslint/parser": "^5.60.0",
     "eslint": "^8.43.0",
