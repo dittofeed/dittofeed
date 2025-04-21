@@ -7,7 +7,7 @@ import {
 import { Box, CircularProgress, Tooltip } from "@mui/material";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 
 import { useComputePropertiesQuery } from "../lib/useComputePropertiesQuery";
@@ -99,12 +99,8 @@ export function RecomputedRecentlyIcon() {
     currentState = "upToDate";
   }
 
-  if (currentState === "error") {
-    return null;
-  }
-
   // Refactored rendering logic to avoid nested ternaries
-  const renderContent = () => {
+  const renderContent = useCallback(() => {
     switch (currentState) {
       case "recomputing":
         return (
@@ -147,7 +143,11 @@ export function RecomputedRecentlyIcon() {
           </Tooltip>
         );
     }
-  };
+  }, [currentState]);
+
+  if (currentState === "error") {
+    return null;
+  }
 
   return (
     <Box sx={transitionStyles}>
