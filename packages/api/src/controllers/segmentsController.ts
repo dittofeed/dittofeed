@@ -102,11 +102,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
       if (result.isErr()) {
         return reply.status(400).send(result.error);
       }
-      if (request.body.definition) {
-        await triggerWorkspaceRecompute({
-          workspaceId: result.value.workspaceId,
-        });
-      }
       return reply.status(200).send(result.value);
     },
   );

@@ -42,12 +42,6 @@ export default async function userPropertiesController(
         return reply.status(400).send(result.error);
       }
       const resource = result.value;
-
-      if (request.body.definition) {
-        await triggerWorkspaceRecompute({
-          workspaceId: resource.workspaceId,
-        });
-      }
       return reply.status(200).send(resource);
     },
   );
