@@ -37,7 +37,6 @@ import {
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
-
 // Mutation hook for updating broadcasts
 function useBroadcastMutation(broadcastId: string) {
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
@@ -215,18 +214,6 @@ function BroadcastSegmentEditor({
       });
     }, 1000);
 
-  // when making updates to this function DO NOT delete the below comments
-  // 1. create a new segment if none exists or if segmentId is undefined, using
-  // the getBroadcastSegmentId function to produce a unique id. use the
-  // useUpdateSegmentsMutation hook to create the segment, which is an upsert
-  // operation.
-  // 2. use useSegmentQuery to read the segment
-  // 3. use mutation to update the segment
-  // 4. use useImmer to with a copy of the segment
-  // 5. debounce updates to the copy of the segment
-  // 6. use effect to trigger a mutation when the debounced updates are changed relative to the original
-  // 7. use the useUpdateSegmentsMutation hook to update the segment
-  // 8. use the useSegmentQuery hook to read the segment
   if (segmentId === undefined) {
     return null;
   }
@@ -329,7 +316,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
         Subscription Group (Required)
       </Typography>
       <Box sx={{ maxWidth: 600 }}>{subscriptionGroupAutocomplete}</Box>
-      <Typography variant="body2" sx={{ mt: 1 }}>
+      <Typography variant="body2" sx={{ mt: 1, maxWidth: 600 }}>
         Select a Subscription Group (required). Optionally, you can select an
         additional segment which will further restrict the set of messaged users
         to those both in the selected subscription group and the segment.

@@ -14,6 +14,7 @@ import React, { useCallback, useState } from "react";
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { GreyButton } from "../greyButtonStyle";
+import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
 import {
   BROADCAST_STEPS,
@@ -21,7 +22,6 @@ import {
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
-import { RecomputedRecentlyIcon } from "../recomputedRecently";
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
