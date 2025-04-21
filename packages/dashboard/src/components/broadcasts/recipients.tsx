@@ -16,6 +16,7 @@ import {
   BroadcastResourceAllVersions,
   BroadcastResourceV2,
   CompletionStatus,
+  GetBroadcastsResponse,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -88,15 +89,14 @@ function useBroadcastMutation(broadcastId: string) {
       // Optimistically update to the new value in the cache
       const optimisticSubscriptionGroupId = newData.subscriptionGroupId;
 
-      queryClient.setQueryData<BroadcastResourceAllVersions | null>(
-        queryKey,
-        (oldData) => {
-          if (!oldData || oldData.version !== "V2") {
-            // Don't update if old data doesn't exist or isn't V2
-            return oldData;
-          }
-          // Create a new object with the updated field
-          return {
+      queryClient.setQueryData<GetBroadcastsResponse>(queryKey, (response) => {
+        const oldData = response?.[0] ?? null;
+        if (!oldData || oldData.version !== "V2") {
+          return response;
+        }
+        // Create a new object with the updated field
+        return [
+          {
             ...oldData,
             subscriptionGroupId:
               optimisticSubscriptionGroupId === undefined
@@ -106,9 +106,9 @@ function useBroadcastMutation(broadcastId: string) {
               newData.segmentId === undefined
                 ? oldData.segmentId
                 : newData.segmentId ?? undefined,
-          };
-        },
-      );
+          },
+        ] satisfies GetBroadcastsResponse;
+      });
 
       // Return context object with the snapshotted value
       return { previousBroadcastData };
@@ -162,7 +162,6 @@ function BroadcastSegmentEditor({
   disabled?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
-  const queryClient = useQueryClient();
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
