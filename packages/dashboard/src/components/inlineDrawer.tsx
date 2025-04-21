@@ -1,4 +1,4 @@
-import { Box, Paper, Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 
 const drawerTransitionDuration = 200;
 
@@ -23,14 +23,15 @@ export function InlineDrawer({
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
       <Stack
-        component={Paper}
         sx={{
           position: "absolute", // Allows containing absolute elements if needed later
-          overflow: "scroll", // Clip collapsing content
+          overflow: "scroll",
           bottom: 0,
           left: 0,
           width: "100%",
           zIndex: 1000,
+          // Custom top shadow, minimizing side spread
+          boxShadow: "0px -5px 6px -4px rgba(0,0,0,0.2)",
         }}
       >
         {header}
