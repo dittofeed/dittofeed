@@ -622,6 +622,7 @@ export async function upsertBroadcastV2({
           tx
             .insert(dbBroadcast)
             .values({
+              id,
               name,
               workspaceId,
               segmentId,

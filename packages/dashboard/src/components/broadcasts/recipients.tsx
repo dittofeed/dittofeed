@@ -177,7 +177,6 @@ function BroadcastSegmentEditor({
     ) {
       return;
     }
-    debugger;
     const workspaceId = workspace.value.id;
     const newSegmentId = getBroadcastSegmentId({ broadcastId, workspaceId });
     const newSegmentName = getBroadcastSegmentName({
@@ -205,27 +204,18 @@ function BroadcastSegmentEditor({
         definition,
       },
       {
-        onError: (error) => {
-          console.error("Error creating segment:", error);
-          debugger;
-        },
         onSuccess: () => {
-          broadcastMutation.mutate(
-            { segmentId: newSegmentId },
-            {
-              onError: (error) => {
-                console.error(
-                  "Error updating broadcast with new segment:",
-                  error,
-                );
-                debugger;
-              },
-            },
-          );
+          broadcastMutation.mutate({ segmentId: newSegmentId });
         },
       },
     );
-  }, [workspace, segmentId]);
+  }, [
+    workspace,
+    segmentId,
+    broadcastId,
+    updateSegmentsMutation,
+    broadcastMutation,
+  ]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation();
   const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
