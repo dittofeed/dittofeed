@@ -540,6 +540,12 @@ export async function updateUserSubscriptions({
     },
   );
 
+  logger().debug(
+    {
+      segmentAssignmentUpdates,
+    },
+    "loc2",
+  );
   await Promise.all([
     insertSegmentAssignments(segmentAssignmentUpdates),
     insertUserEvents({

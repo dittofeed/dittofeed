@@ -49,24 +49,25 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 function BroadcastPageContent() {
   const router = useRouter();
   const queryParams = router.query;
-  return <Broadcasts queryParams={queryParams} />;
+  return (
+    <Broadcasts
+      queryParams={queryParams}
+      sx={{
+        pt: 2,
+        px: 1,
+        pb: 1,
+        width: "100%",
+        height: "100%",
+      }}
+    />
+  );
 }
 
 export default function BroadcastPage() {
   const router = useRouter();
   return (
     <DashboardContent>
-      <Stack
-        sx={{
-          pt: 2,
-          px: 1,
-          pb: 1,
-          width: "100%",
-          height: "100%",
-        }}
-      >
-        {router.isReady && <BroadcastPageContent />}
-      </Stack>
+      {router.isReady && <BroadcastPageContent />}
     </DashboardContent>
   );
 }

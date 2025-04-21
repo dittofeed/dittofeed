@@ -96,7 +96,7 @@ export class ClickHouseQueryBuilder {
    * @returns {string} A clickhouse safe variable name.
    */
   getVariableName(): string {
-    const variable = `v${this.variableCount}`;
+    const variable = `vn${this.variableCount}`;
     this.variableCount += 1;
     return variable;
   }

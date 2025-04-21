@@ -1,6 +1,6 @@
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
-import { Typography } from "@mui/material";
+import { SxProps, Theme, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
@@ -14,6 +14,7 @@ import React, { useCallback, useState } from "react";
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { GreyButton } from "../greyButtonStyle";
+import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
 import {
@@ -22,7 +23,6 @@ import {
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
-import { InlineDrawer } from "../inlineDrawer";
 
 const PREVIEW_HEIGHT = "40vh";
 
@@ -30,6 +30,7 @@ interface BroadcastLayoutProps {
   children: React.ReactNode;
   state: BroadcastState;
   updateState: BroadcastStateUpdater;
+  sx?: SxProps<Theme>;
 }
 
 function PreviewHeader({
@@ -98,6 +99,7 @@ export default function BroadcastLayout({
   children,
   state,
   updateState,
+  sx,
 }: BroadcastLayoutProps) {
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
@@ -119,40 +121,45 @@ export default function BroadcastLayout({
 
   return (
     <Stack sx={{ width: "100%", height: "100%" }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        sx={{ width: "100%" }}
-      >
-        <Stepper
-          sx={{
-            minWidth: "720px",
-            "& .MuiStepIcon-root.Mui-active": {
-              color: "grey.600",
-            },
-          }}
-          nonLinear
-          activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
+      <Stack sx={{ width: "100%", height: "100%", ...sx }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          sx={{ width: "100%" }}
         >
-          {BROADCAST_STEPS.map((step) => (
-            <Step key={step.key}>
-              <StepButton color="inherit" onClick={() => updateStep(step.key)}>
-                {step.name}
-              </StepButton>
-            </Step>
-          ))}
-        </Stepper>
-        <Stack direction="row" spacing={2}>
-          <GreyButton
-            variant="contained"
-            color="primary"
-            onClick={() => setPreviewOpen(!previewOpen)}
+          <Stepper
+            sx={{
+              minWidth: "720px",
+              "& .MuiStepIcon-root.Mui-active": {
+                color: "grey.600",
+              },
+            }}
+            nonLinear
+            activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
           >
-            Toggle Preview
-          </GreyButton>
+            {BROADCAST_STEPS.map((step) => (
+              <Step key={step.key}>
+                <StepButton
+                  color="inherit"
+                  onClick={() => updateStep(step.key)}
+                >
+                  {step.name}
+                </StepButton>
+              </Step>
+            ))}
+          </Stepper>
+          <Stack direction="row" spacing={2}>
+            <GreyButton
+              variant="contained"
+              color="primary"
+              onClick={() => setPreviewOpen(!previewOpen)}
+            >
+              Toggle Preview
+            </GreyButton>
+          </Stack>
         </Stack>
+        <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
       </Stack>
-      <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
       <InlineDrawer
         open={previewOpen}
         maxHeight={PREVIEW_HEIGHT}
@@ -165,55 +172,6 @@ export default function BroadcastLayout({
       >
         <PreviewContent workspaceId={workspace.value.id} id={state.id} />
       </InlineDrawer>
-      {/* <Drawer
-        anchor="bottom"
-        open={!previewOpen}
-        hideBackdrop
-        sx={{
-          pointerEvents: "none", // Make the modal container ignore clicks
-          zIndex: 2000,
-        }}
-        PaperProps={{
-          sx: {
-            pointerEvents: "auto",
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-          },
-        }}
-      >
-        <PreviewHeader
-          previewOpen={previewOpen}
-          setPreviewOpen={setPreviewOpen}
-        />
-      </Drawer>
-      <Drawer
-        anchor="bottom"
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        hideBackdrop
-        sx={{
-          pointerEvents: "none", // Make the modal container ignore clicks
-          zIndex: 2000,
-        }}
-        PaperProps={{
-          sx: {
-            pointerEvents: "auto",
-            height: PREVIEW_HEIGHT,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-          },
-        }}
-      >
-        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <PreviewHeader
-            previewOpen={previewOpen}
-            setPreviewOpen={setPreviewOpen}
-          />
-          <Box sx={{ flex: 1, overflow: "auto" }}>
-            <PreviewContent workspaceId={workspace.value.id} id={state.id} />
-          </Box>
-        </Box>
-      </Drawer> */}
     </Stack>
   );
 }

@@ -185,7 +185,7 @@ async function readUpdatedComputedPropertyState({
   return values.data;
 }
 
-async function readAssignments({
+export async function readAssignments({
   workspaceId,
 }: {
   workspaceId: string;

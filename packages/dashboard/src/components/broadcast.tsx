@@ -16,6 +16,8 @@ import Content from "./broadcasts/content";
 import Preview from "./broadcasts/preview";
 import Recipients from "./broadcasts/recipients";
 import Review from "./broadcasts/review";
+import { Theme } from "@mui/material";
+import { SxProps } from "@mui/material";
 
 function queryParamsToState(
   queryParams: Record<string, string | string[] | undefined>,
@@ -33,9 +35,11 @@ function queryParamsToState(
 export default function Broadcasts({
   queryParams,
   onStateChange,
+  sx,
 }: {
   queryParams: Record<string, string | string[] | undefined>;
   onStateChange?: (state: ExposedBroadcastState) => void;
+  sx?: SxProps<Theme>;
 }) {
   const stateFromQueryParams = useMemo(
     () => queryParamsToState(queryParams),
@@ -123,7 +127,7 @@ export default function Broadcasts({
   }
 
   return (
-    <BroadcastLayout state={state} updateState={updateStateWithoutNull}>
+    <BroadcastLayout state={state} updateState={updateStateWithoutNull} sx={sx}>
       {content}
     </BroadcastLayout>
   );

@@ -62,6 +62,12 @@ export function useTriggerRecomputePropertiesMutation(
       queryClient.invalidateQueries({
         queryKey: [COMPUTED_PROPERTY_PERIODS_QUERY_KEY],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["usersCount"],
+      });
       options?.onSuccess?.(...args);
     },
   });

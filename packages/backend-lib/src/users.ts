@@ -31,6 +31,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  Segment,
   SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinition,
@@ -167,6 +168,7 @@ export async function getUsers(
         continue;
       }
       const { type, segmentId } = sg;
+      logger().debug({ type, segmentId }, "loc4");
       const varName = qb.getVariableName();
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
@@ -174,6 +176,7 @@ export async function getUsers(
       if (type === SubscriptionGroupType.OptOut) {
         havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
       } else {
+        // FIXME this filter broken
         havingSubClauses.push(`${varName} == True`);
       }
     }
@@ -231,6 +234,13 @@ export async function getUsers(
     ORDER BY
       assignments.user_id ASC
   `;
+  logger().debug(
+    {
+      query,
+      junk: "asdfasdfasdfasdfasdfasdfasdf asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf",
+    },
+    "loc1",
+  );
   const userPropertyCondition: SQL[] = [
     eq(dbUserProperty.workspaceId, workspaceId),
   ];
@@ -241,11 +251,6 @@ export async function getUsers(
   }
 
   const segmentCondition: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
-  if (!allowInternalSegment) {
-    segmentCondition.push(
-      eq(dbSegment.resourceType, DBResourceTypeEnum.Declarative),
-    );
-  }
   const [results, userProperties, segments] = await Promise.all([
     chQuery({
       query,
@@ -260,17 +265,13 @@ export async function getUsers(
       .from(dbUserProperty)
       .where(and(...userPropertyCondition)),
     db()
-      .select({
-        name: dbSegment.name,
-        id: dbSegment.id,
-        definition: dbSegment.definition,
-      })
+      .select()
       .from(dbSegment)
       .where(and(...segmentCondition)),
   ]);
-  const segmentNameById = new Map<string, string>();
+  const segmentNameById = new Map<string, Segment>();
   for (const segment of segments) {
-    segmentNameById.set(segment.id, segment.name);
+    segmentNameById.set(segment.id, segment);
   }
   const userPropertyById = new Map<
     string,
@@ -306,11 +307,12 @@ export async function getUsers(
     segments: [string, string][];
     user_properties: [string, string][];
   }>();
+  logger().debug({ rows, asdfasdf: "afasdfasdfasdfasdfasdfasdffsa" }, "loc5");
   const users: GetUsersResponseItem[] = rows.map((row) => {
     const userSegments: GetUsersResponseItem["segments"] = row.segments.flatMap(
       ([id, value]) => {
-        const name = segmentNameById.get(id);
-        if (!name || !value) {
+        const segment = segmentNameById.get(id);
+        if (!segment || !value) {
           logger().error(
             {
               id,
@@ -320,9 +322,12 @@ export async function getUsers(
           );
           return [];
         }
+        if (!allowInternalSegment && segment.resourceType === "Internal") {
+          return [];
+        }
         return {
           id,
-          name,
+          name: segment.name,
         };
       },
     );

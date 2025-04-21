@@ -2694,7 +2694,6 @@ export default function SegmentEditor({
           return draft;
         }
         const newState = typeof update === "function" ? update(draft) : update;
-        console.log("newState", JSON.stringify(newState, null, 2));
         return newState;
       });
     };
