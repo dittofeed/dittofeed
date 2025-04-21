@@ -7,7 +7,6 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import deepEqual from "fast-deep-equal";
 import {
   getBroadcastSegmentId,
   getBroadcastSegmentName,
@@ -20,7 +19,6 @@ import {
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
-  SegmentOperatorType,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
