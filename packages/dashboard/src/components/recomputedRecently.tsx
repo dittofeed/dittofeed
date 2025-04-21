@@ -12,39 +12,46 @@ import { useMemo } from "react";
 import { useComputePropertiesQuery } from "../lib/useComputePropertiesQuery";
 import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
 
-export function RecomputedRecentlyIcon({
-  type,
-  id,
-}: {
-  type: "Segment" | "UserProperty";
-  id: string;
-}) {
-  const { data, isPending, isError } = useComputePropertiesQuery({
-    step: "ComputeAssignments",
-  });
-
-  const period = useMemo(
-    () => data?.periods.find((p) => p.type === type && p.id === id),
-    [data, type, id],
-  );
-  const lastRecomputed = useMemo(
-    () => (period ? new Date(period.lastRecomputed) : undefined),
-    [period],
+export function RecomputedRecentlyIcon() {
+  const { data, isPending, isError } = useComputePropertiesQuery(
+    { step: "ComputeAssignments" }, // Fetch periods for the assignments step
   );
 
-  const secondsSinceRecompute = useMemo(() => {
-    if (!lastRecomputed) {
-      return null;
+  const { mostRecentRecomputeTime, isAnyStale } = useMemo(() => {
+    if (!data?.periods || data.periods.length === 0) {
+      return { mostRecentRecomputeTime: null, isAnyStale: false };
     }
-    return differenceInSeconds(new Date(), lastRecomputed);
-  }, [lastRecomputed]);
 
-  const roundedSecondsSinceRecompute = useMemo(() => {
-    if (secondsSinceRecompute === null) {
+    let maxTime: Date | null = null;
+    let anyStale = false;
+    const now = new Date();
+
+    for (const p of data.periods) {
+      if (!p.lastRecomputed) continue;
+      const computedTime = new Date(p.lastRecomputed);
+      if (maxTime === null || computedTime > maxTime) {
+        maxTime = computedTime;
+      }
+      if (differenceInSeconds(now, computedTime) >= 30) {
+        anyStale = true;
+      }
+    }
+    return { mostRecentRecomputeTime: maxTime, isAnyStale: anyStale };
+  }, [data]);
+
+  const secondsSinceMostRecent = useMemo(() => {
+    if (!mostRecentRecomputeTime) {
       return null;
     }
-    return Math.round(secondsSinceRecompute);
-  }, [secondsSinceRecompute]);
+    return differenceInSeconds(new Date(), mostRecentRecomputeTime);
+  }, [mostRecentRecomputeTime]);
+
+  const roundedSecondsSinceMostRecent = useMemo(() => {
+    if (secondsSinceMostRecent === null) {
+      return null;
+    }
+    return Math.round(secondsSinceMostRecent);
+  }, [secondsSinceMostRecent]);
 
   const isRecomputing = useIsMutating({
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
@@ -79,7 +86,10 @@ export function RecomputedRecentlyIcon({
     return null;
   }
 
-  if (secondsSinceRecompute === null || roundedSecondsSinceRecompute === null) {
+  if (
+    mostRecentRecomputeTime === null ||
+    roundedSecondsSinceMostRecent === null
+  ) {
     return (
       <Tooltip title="Not computed yet">
         <HelpOutline fontSize="small" />
@@ -87,17 +97,21 @@ export function RecomputedRecentlyIcon({
     );
   }
 
-  if (secondsSinceRecompute < 30) {
+  if (isAnyStale) {
     return (
-      <Tooltip title={`Recomputed ${roundedSecondsSinceRecompute} seconds ago`}>
-        <Refresh fontSize="small" />
+      <Tooltip
+        title={`Last computed ${roundedSecondsSinceMostRecent} seconds ago`}
+      >
+        <AccessTime fontSize="small" />
       </Tooltip>
     );
   }
 
   return (
-    <Tooltip title={`Recomputed ${roundedSecondsSinceRecompute} seconds ago`}>
-      <AccessTime fontSize="small" />
+    <Tooltip
+      title={`Last computed ${roundedSecondsSinceMostRecent} seconds ago`}
+    >
+      <Refresh fontSize="small" />
     </Tooltip>
   );
 }

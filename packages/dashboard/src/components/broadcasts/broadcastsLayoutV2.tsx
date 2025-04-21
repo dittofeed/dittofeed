@@ -21,6 +21,7 @@ import {
   BroadcastStateUpdater,
   BroadcastStepKey,
 } from "./broadcastsShared";
+import { RecomputedRecentlyIcon } from "../recomputedRecently";
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
@@ -47,8 +48,8 @@ function PreviewHeader({
       }}
     >
       <Typography variant="h6">Broadcast Preview</Typography>
-      <Stack direction="row" spacing={2}>
-        <RecomputedRecentlyIcon type="Segment" id={state.segmentId} />
+      <Stack direction="row" spacing={2} alignItems="center">
+        <RecomputedRecentlyIcon />
         {previewOpen ? (
           <IconButton onClick={() => setPreviewOpen(false)} size="small">
             <KeyboardDoubleArrowDownRoundedIcon />
