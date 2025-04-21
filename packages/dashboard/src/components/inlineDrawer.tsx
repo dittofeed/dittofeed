@@ -1,4 +1,4 @@
-import { Box, Collapse, Slide, Stack } from "@mui/material";
+import { Box, Collapse, Paper, Slide, Stack } from "@mui/material";
 import React from "react";
 
 /**
@@ -20,9 +20,10 @@ export function InlineDrawer({
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
       <Stack
+        component={Paper}
         sx={{
           position: "absolute", // Allows containing absolute elements if needed later
-          overflow: "hidden", // Clip collapsing content
+          overflow: "scroll", // Clip collapsing content
           bottom: 0,
           left: 0,
           width: "100%",
@@ -31,7 +32,7 @@ export function InlineDrawer({
       >
         {header}
         <Box sx={{ flex: 1 }}>
-          <Slide direction="up" in={open} mountOnEnter unmountOnExit>
+          <Slide direction="up" in={!open} mountOnEnter unmountOnExit>
             <Box>{children}</Box>
           </Slide>
         </Box>
