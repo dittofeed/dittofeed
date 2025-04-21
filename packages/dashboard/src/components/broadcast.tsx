@@ -106,9 +106,7 @@ export default function Broadcasts({
   let content: React.ReactNode;
   switch (state.step) {
     case BroadcastStepKeys.RECIPIENTS:
-      content = (
-        <Recipients state={state} updateState={updateStateWithoutNull} />
-      );
+      content = <Recipients state={state} />;
       break;
     case BroadcastStepKeys.CONTENT:
       content = <Content />;

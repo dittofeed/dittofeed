@@ -19,22 +19,18 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentResource,
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useState } from "react";
-import { useDebounce, useDebouncedCallback } from "use-debounce";
-import { useImmer } from "use-immer";
+import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
-import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import SegmentEditor, { SegmentEditorProps } from "../segmentEditor";
 import {
   SegmentChangeHandler,
   SegmentsAutocomplete,
-  SimpleSegment,
 } from "../segmentsAutocomplete";
 import {
   SubscriptionGroupAutocompleteV2,
@@ -272,7 +268,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
 
   // Added handler for segment changes
   const handleSegmentChange: SegmentChangeHandler = useCallback(
-    (segment: SimpleSegment | null) => {
+    (segment: { id: string } | null) => {
       const newSegmentId = segment?.id ?? null;
 
       // Persist the change via mutation
@@ -283,14 +279,14 @@ export default function Recipients({ state }: { state: BroadcastState }) {
     [broadcastMutation],
   );
 
-  if (broadcastQuery.isLoading) {
-    return null;
-  }
-
   // Data is available now, assign to const for type narrowing
   const broadcast = broadcastQuery.data;
   const disabled = broadcast?.status !== "Draft";
   const channel = broadcast?.config.message.type;
+
+  if (broadcastQuery.isLoading) {
+    return null;
+  }
 
   if (!broadcast || broadcast.version !== "V2") {
     throw new Error("Broadcast not found");
