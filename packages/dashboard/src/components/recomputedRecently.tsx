@@ -4,7 +4,7 @@ import {
   HelpOutline,
   Refresh,
 } from "@mui/icons-material";
-import { Box, CircularProgress, Tooltip } from "@mui/material";
+import { CircularProgress, Tooltip } from "@mui/material";
 import { useIsMutating } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
 import { useMemo } from "react";
@@ -60,22 +60,20 @@ export function RecomputedRecentlyIcon() {
   if (isRecomputing > 0) {
     return (
       <Tooltip title="Recomputing...">
-        <Box component="span" sx={{ display: "inline-flex" }}>
-          <Autorenew
-            fontSize="small"
-            sx={{
-              animation: "spin 2s linear infinite",
-              "@keyframes spin": {
-                "0%": {
-                  transform: "rotate(0deg)",
-                },
-                "100%": {
-                  transform: "rotate(360deg)",
-                },
+        <Autorenew
+          fontSize="small"
+          sx={{
+            animation: "spin 2s linear infinite",
+            "@keyframes spin": {
+              "0%": {
+                transform: "rotate(0deg)",
               },
-            }}
-          />
-        </Box>
+              "100%": {
+                transform: "rotate(360deg)",
+              },
+            },
+          }}
+        />
       </Tooltip>
     );
   }
@@ -94,9 +92,7 @@ export function RecomputedRecentlyIcon() {
   ) {
     return (
       <Tooltip title="Not computed yet">
-        <Box component="span" sx={{ display: "inline-flex" }}>
-          <HelpOutline fontSize="small" />
-        </Box>
+        <HelpOutline fontSize="small" />
       </Tooltip>
     );
   }
@@ -104,18 +100,14 @@ export function RecomputedRecentlyIcon() {
   if (isAnyStale) {
     return (
       <Tooltip title="Last computed more than 30 seconds ago">
-        <Box component="span">
-          <AccessTime fontSize="small" />
-        </Box>
+        <AccessTime fontSize="small" />
       </Tooltip>
     );
   }
 
   return (
     <Tooltip title="Last computed more than 30 seconds ago">
-      <Box component="span" sx={{ display: "inline-flex" }}>
-        <Refresh fontSize="small" />
-      </Box>
+      <Refresh fontSize="small" />
     </Tooltip>
   );
 }
