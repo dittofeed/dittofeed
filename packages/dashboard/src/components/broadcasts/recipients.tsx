@@ -26,6 +26,7 @@ import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useTriggerRecomputePropertiesMutation } from "../../lib/useTriggerRecomputePropertiesMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import SegmentEditor, { SegmentEditorProps } from "../segmentEditor";
 import {
@@ -124,8 +125,7 @@ function useBroadcastMutation(broadcastId: string) {
       // TODO: Add user-facing error feedback (e.g., snackbar)
     },
     // Always refetch after error or success to ensure consistency
-    onSettled: (data, error) => {
-      console.log("onSettled, data:", data, "error:", error);
+    onSettled: () => {
       if (workspace.type !== CompletionStatus.Successful) {
         console.warn(
           "Workspace not available, skipping query invalidation on settle.",
@@ -140,7 +140,6 @@ function useBroadcastMutation(broadcastId: string) {
           workspaceId,
         },
       ];
-      console.log("Invalidating queryKey:", queryKey);
       queryClient.invalidateQueries({ queryKey });
     },
   });
@@ -159,6 +158,8 @@ function BroadcastSegmentEditor({
   disabled?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
+  const triggerRecomputePropertiesMutation =
+    useTriggerRecomputePropertiesMutation();
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
@@ -199,19 +200,28 @@ function BroadcastSegmentEditor({
       {
         onSuccess: () => {
           broadcastMutation.mutate({ segmentId: newSegmentId });
+          triggerRecomputePropertiesMutation.mutate({});
         },
       },
     );
   }, [workspace, segmentId]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation();
+
   const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
     useDebouncedCallback((s) => {
-      segmentsUpdateMutation.mutate({
-        id: s.id,
-        definition: s.definition,
-        name: s.name,
-      });
+      segmentsUpdateMutation.mutate(
+        {
+          id: s.id,
+          definition: s.definition,
+          name: s.name,
+        },
+        {
+          onSuccess: () => {
+            triggerRecomputePropertiesMutation.mutate({});
+          },
+        },
+      );
     }, 1000);
 
   if (segmentId === undefined) {

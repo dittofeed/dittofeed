@@ -1,20 +1,24 @@
 import {
   AccessTime,
   Autorenew,
+  CheckCircle,
   HelpOutline,
-  Refresh,
 } from "@mui/icons-material";
 import { CircularProgress, Tooltip } from "@mui/material";
-import { useIsMutating } from "@tanstack/react-query";
+import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useComputePropertiesQuery } from "../lib/useComputePropertiesQuery";
 import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
 
 export function RecomputedRecentlyIcon() {
+  const queryClient = useQueryClient();
   const { data, isPending, isError } = useComputePropertiesQuery(
     { step: "ComputeAssignments" }, // Fetch periods for the assignments step
+    {
+      refetchInterval: 5 * 1000,
+    },
   );
 
   const { mostRecentRecomputeTime, isAnyStale } = useMemo(() => {
@@ -39,19 +43,17 @@ export function RecomputedRecentlyIcon() {
     return { mostRecentRecomputeTime: maxTime, isAnyStale: anyStale };
   }, [data]);
 
-  const secondsSinceMostRecent = useMemo(() => {
-    if (!mostRecentRecomputeTime) {
-      return null;
+  useEffect(() => {
+    // If periods are no longer stale, but were previously, invalidate user data.
+    if (!isAnyStale) {
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["usersCount"],
+      });
     }
-    return differenceInSeconds(new Date(), mostRecentRecomputeTime);
-  }, [mostRecentRecomputeTime]);
-
-  const roundedSecondsSinceMostRecent = useMemo(() => {
-    if (secondsSinceMostRecent === null) {
-      return null;
-    }
-    return Math.round(secondsSinceMostRecent);
-  }, [secondsSinceMostRecent]);
+  }, [isAnyStale]);
 
   const isRecomputing = useIsMutating({
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
@@ -86,10 +88,7 @@ export function RecomputedRecentlyIcon() {
     return null;
   }
 
-  if (
-    mostRecentRecomputeTime === null ||
-    roundedSecondsSinceMostRecent === null
-  ) {
+  if (mostRecentRecomputeTime === null) {
     return (
       <Tooltip title="Not computed yet">
         <HelpOutline fontSize="small" />
@@ -106,8 +105,8 @@ export function RecomputedRecentlyIcon() {
   }
 
   return (
-    <Tooltip title="Last computed more than 30 seconds ago">
-      <Refresh fontSize="small" />
+    <Tooltip title="Data is up to date">
+      <CheckCircle fontSize="small" />
     </Tooltip>
   );
 }
