@@ -93,19 +93,10 @@ export async function getUsers(
       } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
     : "";
 
-  const userPropertyWhereClause = userPropertyFilter
-    ? `AND computed_property_id IN ${qb.addQueryValue(
-        userPropertyFilter.map((property) => property.id),
-        "Array(String)",
-      )}`
-    : "";
-  const segmentWhereClause = segmentFilter
-    ? `AND computed_property_id IN ${qb.addQueryValue(
-        segmentFilter,
-        "Array(String)",
-      )}`
-    : "";
-
+  const computedPropertyIds = [
+    ...(userPropertyFilter?.map((property) => property.id) ?? []),
+    ...(segmentFilter ?? []),
+  ];
   const selectUserIdColumns = ["user_id"];
 
   const havingSubClauses: string[] = [];
@@ -168,6 +159,9 @@ export async function getUsers(
         continue;
       }
       const { type, segmentId } = sg;
+
+      computedPropertyIds.push(segmentId);
+
       logger().debug({ type, segmentId }, "loc4");
       const varName = qb.getVariableName();
       selectUserIdColumns.push(
@@ -186,12 +180,16 @@ export async function getUsers(
     havingSubClauses.length > 0
       ? `HAVING ${havingSubClauses.join(" AND ")}`
       : "";
-  const selectUserIdStr = selectUserIdColumns.join(", ");
+  const selectedStr = selectUserIdColumns.join(", ");
   const userIdsClause = userIds
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
 
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const computedPropertyIdsClause =
+    computedPropertyIds.length > 0
+      ? `AND computed_property_id IN (${qb.addQueryValue(computedPropertyIds, "Array(String)")})`
+      : "";
 
   const debugQuery1 = `
       SELECT
@@ -205,13 +203,12 @@ export async function getUsers(
         cp.workspace_id = ${workspaceIdParam}
         AND cp.user_id IN (SELECT user_id FROM (
           SELECT
-            ${selectUserIdStr}
+            ${selectedStr}
           FROM computed_property_assignments_v2
           WHERE
             workspace_id = ${workspaceIdParam}
             ${cursorClause}
-            ${userPropertyWhereClause}
-            ${segmentWhereClause}
+            ${computedPropertyIdsClause}
             ${userIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
@@ -223,16 +220,30 @@ export async function getUsers(
   `;
   const debugQuery0 = `
     SELECT
-      ${selectUserIdStr}
+      ${selectedStr}
     FROM computed_property_assignments_v2
     WHERE
       workspace_id = ${workspaceIdParam}
       ${cursorClause}
-      ${userPropertyWhereClause}
-      ${segmentWhereClause}
+      ${computedPropertyIdsClause}
       ${userIdsClause}
     GROUP BY workspace_id, user_id
     ${havingClause}
+    ORDER BY
+      user_id ASC
+    LIMIT ${limit}
+  `;
+
+  const debugQuery2 = `
+    SELECT
+      ${selectedStr}
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      ${cursorClause}
+      ${computedPropertyIdsClause}
+      ${userIdsClause}
+    GROUP BY workspace_id, user_id
     ORDER BY
       user_id ASC
     LIMIT ${limit}
@@ -260,13 +271,12 @@ export async function getUsers(
         cp.workspace_id = ${workspaceIdParam}
         AND cp.user_id IN (SELECT user_id FROM (
           SELECT
-            ${selectUserIdStr}
+            ${selectedStr}
           FROM computed_property_assignments_v2
           WHERE
             workspace_id = ${workspaceIdParam}
             ${cursorClause}
-            ${userPropertyWhereClause}
-            ${segmentWhereClause}
+            ${computedPropertyIdsClause}
             ${userIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
@@ -297,33 +307,43 @@ export async function getUsers(
   }
 
   const segmentCondition: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
-  const [results, userProperties, segments, debugResults0, debugResults1] =
-    await Promise.all([
-      chQuery({
-        query,
-        query_params: qb.getQueries(),
-      }),
-      db()
-        .select({
-          name: dbUserProperty.name,
-          id: dbUserProperty.id,
-          definition: dbUserProperty.definition,
-        })
-        .from(dbUserProperty)
-        .where(and(...userPropertyCondition)),
-      db()
-        .select()
-        .from(dbSegment)
-        .where(and(...segmentCondition)),
-      chQuery({
-        query: debugQuery0,
-        query_params: qb.getQueries(),
-      }),
-      chQuery({
-        query: debugQuery1,
-        query_params: qb.getQueries(),
-      }),
-    ]);
+  const [
+    results,
+    userProperties,
+    segments,
+    debugResults0,
+    debugResults1,
+    debugResults2,
+  ] = await Promise.all([
+    chQuery({
+      query,
+      query_params: qb.getQueries(),
+    }),
+    db()
+      .select({
+        name: dbUserProperty.name,
+        id: dbUserProperty.id,
+        definition: dbUserProperty.definition,
+      })
+      .from(dbUserProperty)
+      .where(and(...userPropertyCondition)),
+    db()
+      .select()
+      .from(dbSegment)
+      .where(and(...segmentCondition)),
+    chQuery({
+      query: debugQuery0,
+      query_params: qb.getQueries(),
+    }),
+    chQuery({
+      query: debugQuery1,
+      query_params: qb.getQueries(),
+    }),
+    chQuery({
+      query: debugQuery2,
+      query_params: qb.getQueries(),
+    }),
+  ]);
   const segmentNameById = new Map<string, Segment>();
   for (const segment of segments) {
     segmentNameById.set(segment.id, segment);
@@ -362,18 +382,18 @@ export async function getUsers(
     segments: [string, string][];
     user_properties: [string, string][];
   }>();
-  const debugRows0 = await debugResults0.json<{
-    user_id: string;
-  }>();
-  const debugRows1 = await debugResults1.json<{
-    user_id: string;
-  }>();
+  const debugRows0 = await debugResults0.json();
+  const debugRows1 = await debugResults1.json();
+  const debugRows2 = await debugResults2.json();
   // empty
   logger().debug(
     {
       rows,
       debugRows0,
       debugRows1,
+      debugQuery2,
+      queries: qb.getQueries(),
+      debugRows2,
       asdfasdf: "afasdfasdfasdfasdfasdfasdffsa",
     },
     "loc5",
@@ -560,6 +580,7 @@ export async function getUsersCount({
 > {
   const qb = new ClickHouseQueryBuilder();
 
+  // FIXME
   const userPropertyWhereClause = userPropertyFilter
     ? `AND computed_property_id IN ${qb.addQueryValue(
         userPropertyFilter.map((property) => property.id),
@@ -636,6 +657,7 @@ export async function getUsersCount({
         continue;
       }
       const { type, segmentId } = sg;
+      logger().debug({ type, segmentId, subscriptionGroup }, "loc6");
       const varName = qb.getVariableName();
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
