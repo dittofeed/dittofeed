@@ -1095,6 +1095,7 @@ export default function UsersTableV2({
         alignItems: "stretch",
       }}
     >
+      {controls}
       <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
