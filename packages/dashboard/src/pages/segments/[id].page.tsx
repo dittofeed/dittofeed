@@ -127,6 +127,7 @@ export default function NewSegment() {
     return null;
   }
   console.log("loc3");
+  // FIXME create new segment from modal in index pagek
   return (
     <SegmentLayout segmentId={id} tab="configure">
       <Stack
