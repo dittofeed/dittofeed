@@ -25,7 +25,7 @@ export function InlineDrawer({
       <Stack
         sx={{
           position: "absolute", // Allows containing absolute elements if needed later
-          overflow: "scroll",
+          overflow: "hidden",
           bottom: 0,
           left: 0,
           width: "100%",
