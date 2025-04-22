@@ -21,20 +21,24 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
         notFound: true,
       };
     }
-    let name: string | undefined;
-    if (typeof ctx.query.name === "string") {
-      name = ctx.query.name;
-    }
 
     const workspaceId = dfContext.workspace.id;
-    const [subscriptionGroups, messageTemplates] = await Promise.all([
+    const [subscriptionGroups, messageTemplates, segment] = await Promise.all([
       db().query.subscriptionGroup.findMany({
         where: eq(schema.subscriptionGroup.workspaceId, workspaceId),
       }),
       findMessageTemplates({
         workspaceId,
       }),
+      db().query.segment.findFirst({
+        where: eq(schema.segment.id, id),
+      }),
     ]);
+    if (!segment) {
+      return {
+        notFound: true,
+      };
+    }
     const serverInitialState = getSegmentConfigState({
       subscriptionGroups: subscriptionGroups.map((sg) =>
         subscriptionGroupToResource(sg),

@@ -117,14 +117,16 @@ export default function NewSegment() {
       [setEditedSegment],
     );
 
+  console.log("loc1");
   if (!segment) {
     return null;
   }
+  console.log("loc2");
   const { name } = segment;
   if (!id) {
     return null;
   }
-
+  console.log("loc3");
   return (
     <SegmentLayout segmentId={id} tab="configure">
       <Stack

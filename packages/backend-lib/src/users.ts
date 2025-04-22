@@ -185,10 +185,6 @@ export async function getUsers(
     : "";
 
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const computedPropertyIdsClause =
-    computedPropertyIds.length > 0
-      ? `AND computed_property_id IN (${qb.addQueryValue(computedPropertyIds, "Array(String)")})`
-      : "";
 
   const query = `
     SELECT
@@ -218,7 +214,6 @@ export async function getUsers(
           WHERE
             workspace_id = ${workspaceIdParam}
             ${cursorClause}
-            ${computedPropertyIdsClause}
             ${userIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
@@ -568,13 +563,6 @@ export async function getUsersCount({
   const userIdsClause = userIds
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
-  const computedPropertyIdsClause =
-    computedPropertyIds.length > 0
-      ? `AND computed_property_id IN (${qb.addQueryValue(
-          computedPropertyIds,
-          "Array(String)",
-        )})`
-      : "";
 
   // Using a similar nested query approach as getUsers
   const query = `
@@ -586,7 +574,6 @@ export async function getUsersCount({
       FROM computed_property_assignments_v2
       WHERE
         workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        ${computedPropertyIdsClause}
         ${userIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
