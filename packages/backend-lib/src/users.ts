@@ -232,13 +232,6 @@ export async function getUsers(
     ORDER BY
       assignments.user_id ASC
   `;
-  logger().debug(
-    {
-      query,
-      junk: "asdfasdfasdfasdfasdfasdfasdf asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf",
-    },
-    "loc1",
-  );
   const userPropertyCondition: SQL[] = [
     eq(dbUserProperty.workspaceId, workspaceId),
   ];
