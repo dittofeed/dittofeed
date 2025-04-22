@@ -2,7 +2,6 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "./apps/batch";
-import { readAssignments } from "./computedProperties/computePropertiesIncremental.test";
 import { db, insert } from "./db";
 import {
   segment as dbSegment,
@@ -10,7 +9,6 @@ import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
-import logger from "./logger";
 import { insertSegmentAssignments } from "./segments";
 import {
   updateUserSubscriptions,
@@ -29,7 +27,7 @@ import {
   Workspace,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
-import { deleteUsers, getUsers } from "./users";
+import { deleteUsers, getUsers, getUsersCount } from "./users";
 
 describe("users", () => {
   let workspace: Workspace;
@@ -520,7 +518,7 @@ describe("users", () => {
       });
     });
 
-    describe.only("when a segmentId and subscriptionGroupFilter are passed", () => {
+    describe("when a segmentId and subscriptionGroupFilter are passed", () => {
       let userIds: [string, string, string];
       let segmentId1: string;
       let subscriptionGroupId: string;
@@ -609,17 +607,6 @@ describe("users", () => {
             subscriptionGroupFilter: [subscriptionGroupId],
           }),
         );
-        const assignments = await readAssignments({
-          workspaceId: workspace.id,
-        });
-        logger().debug(
-          {
-            assignments,
-            foobar:
-              "aasdfasdfasdf;laskdfja;sdfasdfasdfasdf;laskdfja;sdfasdfasdfasdf;laskdfja;sdfasdfasdfasdf;laskdfja;sdfasdfasdfasdf;laskdfja;sdfasdfasdfasdf;laskdfja;sdfsdfasdfasdf;laskdfja;sdf",
-          },
-          "loc3",
-        );
 
         expect(
           result,
@@ -640,6 +627,14 @@ describe("users", () => {
             ],
           }),
         );
+        const { userCount } = unwrap(
+          await getUsersCount({
+            workspaceId: workspace.id,
+            segmentFilter: [segmentId1],
+            subscriptionGroupFilter: [subscriptionGroupId],
+          }),
+        );
+        expect(userCount).toEqual(1);
       });
     });
   });

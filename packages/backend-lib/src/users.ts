@@ -162,7 +162,6 @@ export async function getUsers(
 
       computedPropertyIds.push(segmentId);
 
-      logger().debug({ type, segmentId }, "loc4");
       const varName = qb.getVariableName();
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
@@ -191,63 +190,6 @@ export async function getUsers(
       ? `AND computed_property_id IN (${qb.addQueryValue(computedPropertyIds, "Array(String)")})`
       : "";
 
-  const debugQuery1 = `
-      SELECT
-          cp.user_id,
-          cp.computed_property_id,
-          cp.type,
-          argMax(user_property_value, assigned_at) AS last_user_property_value,
-          argMax(segment_value, assigned_at) AS last_segment_value
-      FROM computed_property_assignments_v2 cp
-      WHERE
-        cp.workspace_id = ${workspaceIdParam}
-        AND cp.user_id IN (SELECT user_id FROM (
-          SELECT
-            ${selectedStr}
-          FROM computed_property_assignments_v2
-          WHERE
-            workspace_id = ${workspaceIdParam}
-            ${cursorClause}
-            ${computedPropertyIdsClause}
-            ${userIdsClause}
-          GROUP BY workspace_id, user_id
-          ${havingClause}
-          ORDER BY
-            user_id ASC
-          LIMIT ${limit}
-        ))
-      GROUP BY cp.user_id, cp.computed_property_id, cp.type
-  `;
-  const debugQuery0 = `
-    SELECT
-      ${selectedStr}
-    FROM computed_property_assignments_v2
-    WHERE
-      workspace_id = ${workspaceIdParam}
-      ${cursorClause}
-      ${computedPropertyIdsClause}
-      ${userIdsClause}
-    GROUP BY workspace_id, user_id
-    ${havingClause}
-    ORDER BY
-      user_id ASC
-    LIMIT ${limit}
-  `;
-
-  const debugQuery2 = `
-    SELECT
-      ${selectedStr}
-    FROM computed_property_assignments_v2
-    WHERE
-      workspace_id = ${workspaceIdParam}
-      ${cursorClause}
-      ${computedPropertyIdsClause}
-      ${userIdsClause}
-    GROUP BY workspace_id, user_id
-    ORDER BY
-      user_id ASC
-    LIMIT ${limit}
-  `;
   const query = `
     SELECT
       assignments.user_id,
@@ -307,14 +249,7 @@ export async function getUsers(
   }
 
   const segmentCondition: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
-  const [
-    results,
-    userProperties,
-    segments,
-    debugResults0,
-    debugResults1,
-    debugResults2,
-  ] = await Promise.all([
+  const [results, userProperties, segments] = await Promise.all([
     chQuery({
       query,
       query_params: qb.getQueries(),
@@ -331,18 +266,6 @@ export async function getUsers(
       .select()
       .from(dbSegment)
       .where(and(...segmentCondition)),
-    chQuery({
-      query: debugQuery0,
-      query_params: qb.getQueries(),
-    }),
-    chQuery({
-      query: debugQuery1,
-      query_params: qb.getQueries(),
-    }),
-    chQuery({
-      query: debugQuery2,
-      query_params: qb.getQueries(),
-    }),
   ]);
   const segmentNameById = new Map<string, Segment>();
   for (const segment of segments) {
@@ -382,22 +305,6 @@ export async function getUsers(
     segments: [string, string][];
     user_properties: [string, string][];
   }>();
-  const debugRows0 = await debugResults0.json();
-  const debugRows1 = await debugResults1.json();
-  const debugRows2 = await debugResults2.json();
-  // empty
-  logger().debug(
-    {
-      rows,
-      debugRows0,
-      debugRows1,
-      debugQuery2,
-      queries: qb.getQueries(),
-      debugRows2,
-      asdfasdf: "afasdfasdfasdfasdfasdfasdffsa",
-    },
-    "loc5",
-  );
   const users: GetUsersResponseItem[] = rows.map((row) => {
     const userSegments: GetUsersResponseItem["segments"] = row.segments.flatMap(
       ([id, value]) => {
@@ -580,19 +487,10 @@ export async function getUsersCount({
 > {
   const qb = new ClickHouseQueryBuilder();
 
-  // FIXME
-  const userPropertyWhereClause = userPropertyFilter
-    ? `AND computed_property_id IN ${qb.addQueryValue(
-        userPropertyFilter.map((property) => property.id),
-        "Array(String)",
-      )}`
-    : "";
-  const segmentWhereClause = segmentFilter
-    ? `AND computed_property_id IN ${qb.addQueryValue(
-        segmentFilter,
-        "Array(String)",
-      )}`
-    : "";
+  const computedPropertyIds = [
+    ...(userPropertyFilter?.map((property) => property.id) ?? []),
+    ...(segmentFilter ?? []),
+  ];
 
   const selectUserIdColumns = ["user_id"];
 
@@ -657,8 +555,8 @@ export async function getUsersCount({
         continue;
       }
       const { type, segmentId } = sg;
-      logger().debug({ type, segmentId, subscriptionGroup }, "loc6");
       const varName = qb.getVariableName();
+      computedPropertyIds.push(segmentId);
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
@@ -677,6 +575,13 @@ export async function getUsersCount({
   const userIdsClause = userIds
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
+  const computedPropertyIdsClause =
+    computedPropertyIds.length > 0
+      ? `AND computed_property_id IN (${qb.addQueryValue(
+          computedPropertyIds,
+          "Array(String)",
+        )})`
+      : "";
 
   // Using a similar nested query approach as getUsers
   const query = `
@@ -688,8 +593,7 @@ export async function getUsersCount({
       FROM computed_property_assignments_v2
       WHERE
         workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        ${userPropertyWhereClause}
-        ${segmentWhereClause}
+        ${computedPropertyIdsClause}
         ${userIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
@@ -704,7 +608,7 @@ export async function getUsersCount({
   const rows = await results.json<{ user_count: number }>();
 
   // If no rows returned, count is 0
-  const userCount = rows.length > 0 ? Number(rows[0]?.user_count || 0) : 0;
+  const userCount = rows.length > 0 ? Number(rows[0]?.user_count ?? 0) : 0;
 
   return ok({
     userCount,
