@@ -1,6 +1,8 @@
 import {
   Add as AddIcon,
   Archive as ArchiveIcon,
+  ArrowDownward,
+  ArrowUpward,
   Computer,
   Home,
   KeyboardArrowLeft,
@@ -9,6 +11,7 @@ import {
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
+  UnfoldMore,
 } from "@mui/icons-material";
 import {
   Box,
@@ -47,10 +50,11 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
-import { Broadcast } from "backend-lib/src/types";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
@@ -339,6 +343,7 @@ export default function Broadcasts() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const query = useBroadcastsQuery();
 
@@ -431,11 +436,14 @@ export default function Broadcasts() {
   const table = useReactTable({
     columns,
     data: broadcastsData,
+    getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
     // Pass the archive function via meta
     meta: {
@@ -575,12 +583,46 @@ export default function Broadcasts() {
                             ? header.getSize()
                             : undefined,
                       }}
+                      sortDirection={header.column.getIsSorted() || false}
                     >
                       {header.isPlaceholder ? null : (
-                        <Box>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            cursor: header.column.getCanSort()
+                              ? "pointer"
+                              : "default",
+                            userSelect: header.column.getCanSort()
+                              ? "none"
+                              : "auto",
+                          }}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
+                          )}
+                          {header.column.getCanSort() && (
+                            <Box
+                              component="span"
+                              sx={{
+                                ml: 0.5,
+                                display: "inline-flex",
+                                verticalAlign: "middle",
+                              }}
+                            >
+                              {{
+                                asc: <ArrowUpward fontSize="inherit" />,
+                                desc: <ArrowDownward fontSize="inherit" />,
+                              }[header.column.getIsSorted() as string] ?? (
+                                <UnfoldMore
+                                  fontSize="inherit"
+                                  sx={{ opacity: 0.5 }}
+                                /> // Default icon when not sorted
+                              )}
+                            </Box>
                           )}
                         </Box>
                       )}
