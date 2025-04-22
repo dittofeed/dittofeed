@@ -4826,14 +4826,33 @@ export const GetGroupsForUserResponse = Type.Object({
 
 export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;
 
+export const GetJourneysResourcesConfig = Type.Object({
+  segments: Type.Optional(Type.Boolean()),
+});
+
+export type GetJourneysResourcesConfig = Static<
+  typeof GetJourneysResourcesConfig
+>;
+
 export const GetResourcesRequest = Type.Object({
   workspaceId: Type.String(),
   segments: Type.Optional(Type.Boolean()),
   userProperties: Type.Optional(Type.Boolean()),
   subscriptionGroups: Type.Optional(Type.Boolean()),
+  journeys: Type.Optional(
+    Type.Union([Type.Boolean(), GetJourneysResourcesConfig]),
+  ),
 });
 
 export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
+
+export const JourneysResources = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  segments: Type.Optional(Type.Array(Type.String())),
+});
+
+export type JourneysResources = Static<typeof JourneysResources>;
 
 export const GetResourcesResponse = Type.Object({
   segments: Type.Optional(
@@ -4861,6 +4880,7 @@ export const GetResourcesResponse = Type.Object({
       }),
     ),
   ),
+  journeys: Type.Optional(Type.Array(JourneysResources)),
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;

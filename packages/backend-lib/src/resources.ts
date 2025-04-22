@@ -1,23 +1,76 @@
 import { and, asc, eq } from "drizzle-orm";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { getSubscribedSegments } from "./journeys";
+import logger from "./logger";
 import {
   ChannelType,
+  GetJourneysResourcesConfig,
   GetResourcesRequest,
   GetResourcesResponse,
+  JourneyDefinition,
+  JourneysResources,
 } from "./types";
+
+async function getJourneysResources({
+  workspaceId,
+  config,
+}: {
+  workspaceId: string;
+  config?: GetJourneysResourcesConfig;
+}): Promise<JourneysResources[]> {
+  const journeys = await db().query.journey.findMany({
+    columns: {
+      id: true,
+      name: true,
+      definition: true,
+    },
+    where: eq(schema.journey.workspaceId, workspaceId),
+    orderBy: [asc(schema.journey.name)],
+  });
+  return journeys.flatMap((journey) => {
+    const resource: JourneysResources = {
+      id: journey.id,
+      name: journey.name,
+    };
+    if (config?.segments) {
+      const definitionResult = schemaValidateWithErr(
+        journey.definition,
+        JourneyDefinition,
+      );
+      if (definitionResult.isErr()) {
+        logger().error(
+          {
+            journeyId: journey.id,
+            error: definitionResult.error,
+          },
+          "Invalid journey definition",
+        );
+        return [];
+      }
+      const segments = Array.from(
+        getSubscribedSegments(definitionResult.value),
+      );
+      resource.segments = segments;
+    }
+    return resource;
+  });
+}
 
 export async function getResources({
   workspaceId,
   segments: shouldGetSegments,
   userProperties: shouldGetUserProperties,
   subscriptionGroups: shouldGetSubscriptionGroups,
+  journeys: journeysConfig,
 }: GetResourcesRequest): Promise<GetResourcesResponse> {
   const promises: [
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string; channel: string }[]>,
+    null | Promise<JourneysResources[]>,
   ] = [
     shouldGetSegments
       ? db().query.segment.findMany({
@@ -57,9 +110,16 @@ export async function getResources({
           orderBy: [asc(schema.subscriptionGroup.name)],
         })
       : null,
+    journeysConfig
+      ? getJourneysResources({
+          workspaceId,
+          config:
+            typeof journeysConfig === "boolean" ? undefined : journeysConfig,
+        })
+      : null,
   ];
 
-  const [segments, userProperties, subscriptionGroups] =
+  const [segments, userProperties, subscriptionGroups, journeys] =
     await Promise.all(promises);
 
   const response: GetResourcesResponse = {};
@@ -83,6 +143,9 @@ export async function getResources({
         channel: subscriptionGroup.channel as ChannelType,
       }),
     );
+  }
+  if (journeys) {
+    response.journeys = journeys;
   }
   return response;
 }
