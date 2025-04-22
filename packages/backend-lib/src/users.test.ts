@@ -10,6 +10,7 @@ import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
+import logger from "./logger";
 import { insertSegmentAssignments } from "./segments";
 import {
   updateUserSubscriptions,
@@ -29,7 +30,6 @@ import {
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 import { deleteUsers, getUsers } from "./users";
-import logger from "./logger";
 
 describe("users", () => {
   let workspace: Workspace;
@@ -526,11 +526,7 @@ describe("users", () => {
       let subscriptionGroupId: string;
       beforeEach(async () => {
         subscriptionGroupId = randomUUID();
-        userIds = [
-          "185410bb-60e0-407a-95bb-4568ad450ff9",
-          "787ec382-1f3a-4375-ae7d-2dae8b863991",
-          "41ca3e31-0bed-4d48-9306-d3a2d4acc025",
-        ];
+        userIds = ["user-1", "user-2", "user-3"];
         const segmentDefinition1: SegmentDefinition = {
           entryNode: {
             type: SegmentNodeType.Trait,

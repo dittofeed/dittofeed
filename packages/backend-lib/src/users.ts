@@ -307,6 +307,7 @@ export async function getUsers(
     segments: [string, string][];
     user_properties: [string, string][];
   }>();
+  // empty
   logger().debug({ rows, asdfasdf: "afasdfasdfasdfasdfasdfasdffsa" }, "loc5");
   const users: GetUsersResponseItem[] = rows.map((row) => {
     const userSegments: GetUsersResponseItem["segments"] = row.segments.flatMap(
