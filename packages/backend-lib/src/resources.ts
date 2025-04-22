@@ -11,7 +11,7 @@ import {
   GetResourcesRequest,
   GetResourcesResponse,
   JourneyDefinition,
-  JourneysResources,
+  MinimalJourneysResource,
 } from "./types";
 
 async function getJourneysResources({
@@ -20,7 +20,7 @@ async function getJourneysResources({
 }: {
   workspaceId: string;
   config?: GetJourneysResourcesConfig;
-}): Promise<JourneysResources[]> {
+}): Promise<MinimalJourneysResource[]> {
   const journeys = await db().query.journey.findMany({
     columns: {
       id: true,
@@ -31,7 +31,7 @@ async function getJourneysResources({
     orderBy: [asc(schema.journey.name)],
   });
   return journeys.flatMap((journey) => {
-    const resource: JourneysResources = {
+    const resource: MinimalJourneysResource = {
       id: journey.id,
       name: journey.name,
     };

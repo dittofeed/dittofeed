@@ -4846,13 +4846,13 @@ export const GetResourcesRequest = Type.Object({
 
 export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
 
-export const JourneysResources = Type.Object({
+export const MinimalJourneysResource = Type.Object({
   id: Type.String(),
   name: Type.String(),
   segments: Type.Optional(Type.Array(Type.String())),
 });
 
-export type JourneysResources = Static<typeof JourneysResources>;
+export type MinimalJourneysResource = Static<typeof MinimalJourneysResource>;
 
 export const GetResourcesResponse = Type.Object({
   segments: Type.Optional(
@@ -4880,7 +4880,7 @@ export const GetResourcesResponse = Type.Object({
       }),
     ),
   ),
-  journeys: Type.Optional(Type.Array(JourneysResources)),
+  journeys: Type.Optional(Type.Array(MinimalJourneysResource)),
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;

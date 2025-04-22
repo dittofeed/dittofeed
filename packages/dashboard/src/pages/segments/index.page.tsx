@@ -60,7 +60,7 @@ import { DEFAULT_SEGMENT_DEFINITION } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
-  JourneyResource,
+  MinimalJourneysResource,
   SegmentDefinition,
   SegmentResource,
 } from "isomorphic-lib/src/types";
@@ -95,9 +95,9 @@ export const getServerSideProps: GetServerSideProps<SegmentsProps> =
     };
   });
 
-type Row = SegmentResource & {
-  lastRecomputed: number;
-  journeysUsedBy: JourneyResource[];
+type Row = Omit<SegmentResource, "lastRecomputedAt"> & {
+  lastRecomputed?: number;
+  journeysUsedBy: MinimalJourneysResource[];
 };
 
 // Helper function to format timestamp using date-fns
@@ -357,10 +357,23 @@ export default function SegmentList() {
 
   const segmentsQuery = useSegmentsQuery();
 
-  const segmentsData: Row[] = useMemo(
-    () => segmentsQuery.data?.segments ?? [],
-    [segmentsQuery.data],
-  );
+  const segmentsData: Row[] = useMemo(() => {
+    if (!segmentsQuery.data?.segments) {
+      return [];
+    }
+    const journeysBySegmentId = new Map<string, MinimalJourneysResource[]>();
+    for (const journey of resources?.journeys ?? []) {
+      for (const journeySegment of journey.segments ?? []) {
+        const existingJourneys = journeysBySegmentId.get(journeySegment) ?? [];
+        existingJourneys.push(journey);
+        journeysBySegmentId.set(journeySegment, existingJourneys);
+      }
+    }
+    return segmentsQuery.data.segments.map((segment) => ({
+      ...segment,
+      journeysUsedBy: journeysBySegmentId.get(segment.id) ?? [],
+    }));
+  }, [segmentsQuery.data, resources?.journeys]);
 
   const [pagination, setPagination] = useState({
     pageIndex: 0, // initial page index
