@@ -76,6 +76,7 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import {
   SEGMENTS_QUERY_KEY,
   useSegmentsQuery,
@@ -348,6 +349,11 @@ export default function SegmentList() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const { data: resources } = useResourcesQuery({
+    journeys: {
+      segments: true,
+    },
+  });
 
   const segmentsQuery = useSegmentsQuery();
 
