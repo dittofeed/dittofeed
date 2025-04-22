@@ -1,135 +1,729 @@
-import { DownloadForOffline } from "@mui/icons-material";
-import { LoadingButton } from "@mui/lab";
-import { Tooltip } from "@mui/material";
-import { getPeriodsByComputedPropertyId } from "backend-lib/src/computedProperties/periods";
-import * as schema from "backend-lib/src/db/schema";
-import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
-import { findManyPartialSegments } from "backend-lib/src/segments";
-import { and, eq } from "drizzle-orm";
+import {
+  Add as AddIcon,
+  ArrowDownward,
+  ArrowUpward,
+  Computer,
+  Delete as DeleteIcon,
+  Home,
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+  KeyboardDoubleArrowLeft,
+  KeyboardDoubleArrowRight,
+  MoreVert as MoreVertIcon,
+  OpenInNew as OpenInNewIcon,
+  UnfoldMore,
+} from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Menu,
+  MenuItem,
+  Paper,
+  Snackbar,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  CellContext,
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import axios, { AxiosError } from "axios";
+import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { DEFAULT_SEGMENT_DEFINITION } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
-  ComputedPropertyStepEnum,
+  DeleteSegmentRequest,
+  JourneyResource,
+  SegmentDefinition,
+  SegmentResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import { pick } from "remeda";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
-import { ResourceListContainer } from "../../components/resourceList";
-import SegmentsTable from "../../components/segmentsTable";
+import { GreyButton } from "../../components/greyButtonStyle";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
-import { AppState, PropsWithInitialState } from "../../lib/types";
+import { PropsWithInitialState } from "../../lib/types";
+import {
+  SEGMENTS_QUERY_KEY,
+  useSegmentsQuery,
+} from "../../lib/useSegmentsQuery";
+import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 
-export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+type SegmentsProps = PropsWithInitialState;
+
+export const getServerSideProps: GetServerSideProps<SegmentsProps> =
   requestContext(async (_ctx, dfContext) => {
-    const workspaceId = dfContext.workspace.id;
-    const [segmentResources, journeyResources] = await Promise.all([
-      findManyPartialSegments({ workspaceId }),
-      findManyJourneyResourcesUnsafe(
-        and(
-          eq(schema.journey.workspaceId, workspaceId),
-          eq(schema.journey.resourceType, "Declarative"),
-        ),
-      ),
-    ]);
-    const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
-      workspaceId,
-      step: ComputedPropertyStepEnum.ProcessAssignments,
-    });
-
-    const segments: AppState["segments"] = {
-      type: CompletionStatus.Successful,
-      value: segmentResources.map((segment) => ({
-        ...segment,
-        lastRecomputed: computedPropertyPeriods
-          .get({
-            computedPropertyId: segment.id,
-            version: segment.definitionUpdatedAt.toString(),
-          })
-          ?.maxTo.getTime(),
-      })),
-    };
-    const journeys: AppState["journeys"] = {
-      type: CompletionStatus.Successful,
-      value: journeyResources,
-    };
     return {
       props: addInitialStateToProps({
         props: {},
         dfContext,
-        serverInitialState: {
-          segments,
-          journeys,
-        },
       }),
     };
   });
 
-export default function SegmentList() {
-  const {
-    segmentDownloadRequest,
-    setSegmentDownloadRequest,
-    workspace: workspaceRequest,
-    apiBase,
-  } = useAppStore((store) =>
-    pick(store, [
-      "segments",
-      "segmentDownloadRequest",
-      "setSegmentDownloadRequest",
-      "apiBase",
-      "workspace",
-    ]),
+type Row = SegmentResource & {
+  lastRecomputed: number;
+  journeysUsedBy: JourneyResource[];
+};
+
+// Helper function to format timestamp using date-fns
+function formatTimestamp(timestamp: number | undefined): string {
+  if (timestamp === undefined) {
+    return "N/A"; // Or some placeholder
+  }
+  return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+}
+
+// TimeCell for displaying timestamps like createdAt
+function TimeCell({ getValue }: CellContext<Row, unknown>) {
+  const timestamp = getValue<number>();
+  if (!timestamp) {
+    return null; // Or some placeholder
+  }
+  const date = new Date(timestamp);
+
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 
-  const workspace =
-    workspaceRequest.type === CompletionStatus.Successful
-      ? workspaceRequest.value
-      : null;
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography variant="body2">{formatted}</Typography>
+    </Tooltip>
+  );
+}
 
-  if (!workspace) {
-    console.error("No workspace found");
-    return null;
+// Cell renderer for Actions column
+function ActionsCell({ row, table }: CellContext<Row, unknown>) {
+  const theme = useTheme();
+  const rowId = row.original.id;
+
+  // Access delete function from table meta
+  const deleteSegment = table.options.meta?.deleteSegment;
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDelete = () => {
+    if (!deleteSegment) {
+      console.error("deleteSegment function not found in table meta");
+      return;
+    }
+    deleteSegment(rowId);
+    handleClose();
+  };
+
+  return (
+    <>
+      <Tooltip title="Actions">
+        <IconButton aria-label="actions" onClick={handleClick} size="small">
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          "aria-labelledby": "actions-button",
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            boxShadow: theme.shadows[2],
+          },
+        }}
+      >
+        <MenuItem
+          onClick={handleDelete}
+          sx={{ color: theme.palette.error.main }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
+// Cell renderer for Name column
+function NameCell({ row, getValue }: CellContext<Row, unknown>) {
+  const name = getValue<string>();
+  const segmentId = row.original.id;
+  const href = `/segments/${segmentId}`;
+
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      sx={{ maxWidth: "350px" }}
+    >
+      <Tooltip title={name} placement="bottom-start">
+        <Typography
+          variant="body2"
+          sx={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name}
+        </Typography>
+      </Tooltip>
+      <Tooltip title="View Segment Details">
+        <IconButton size="small" component={Link} href={href}>
+          <OpenInNewIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Stack>
+  );
+}
+
+function JourneysCell({ getValue }: CellContext<Row, unknown>) {
+  const journeys = getValue<Row["journeysUsedBy"]>();
+  const count = journeys?.length ?? 0;
+
+  if (count === 0) {
+    return <Typography variant="body2">-</Typography>;
   }
 
-  const handleDownload = downloadFileFactory({
-    request: segmentDownloadRequest,
-    setRequest: setSegmentDownloadRequest,
-    onSuccessNotice: `Downloaded user segment assignments.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to download user segment assignments.`,
-    requestConfig: {
-      method: "GET",
-      url: `${apiBase}/api/segments/download`,
-      params: {
-        workspaceId: workspace.id,
+  const tooltipContent = (
+    <Stack spacing={1}>
+      <Typography variant="body2" fontWeight="bold">
+        Journeys using this segment:
+      </Typography>
+      {journeys?.map((j) => <Typography key={j.id}>{j.name}</Typography>)}
+    </Stack>
+  );
+
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography variant="body2">{count}</Typography>
+    </Tooltip>
+  );
+}
+
+// Delete Segment Mutation Hook (Simplified example)
+interface DeleteSegmentMutationParams {
+  segmentId: string;
+}
+
+const useDeleteSegmentMutation = (
+  options?: UseMutationOptions<
+    void, // Assuming API returns nothing on success
+    AxiosError,
+    DeleteSegmentMutationParams
+  >,
+) => {
+  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError, DeleteSegmentMutationParams>({
+    mutationFn: async ({ segmentId }) => {
+      if (workspace.type !== CompletionStatus.Successful) {
+        throw new Error("Workspace not available");
+      }
+      const workspaceId = workspace.value.id;
+      const requestData: DeleteSegmentRequest = {
+        id: segmentId,
+        workspaceId,
+      };
+      // Assuming a DELETE endpoint exists
+      await axios.delete(`${apiBase}/api/segments`, { data: requestData });
+    },
+    ...options,
+    onSuccess: (data, variables, context) => {
+      options?.onSuccess?.(data, variables, context);
+      if (workspace.type === CompletionStatus.Successful) {
+        // Invalidate the main segments query to refresh the list
+        queryClient.invalidateQueries({
+          queryKey: [SEGMENTS_QUERY_KEY, workspace.value.id],
+        });
+      }
+    },
+  });
+};
+
+export default function SegmentList() {
+  const theme = useTheme();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [segmentName, setSegmentName] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+
+  const segmentsQuery = useSegmentsQuery();
+
+  const segmentsData: Row[] = useMemo(
+    () => segmentsQuery.data?.segments ?? [],
+    [segmentsQuery.data],
+  );
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, // initial page index
+    pageSize: 10, // default page size
+  });
+
+  useEffect(() => {
+    if (segmentsQuery.isError) {
+      setSnackbarMessage("Failed to load segments.");
+      setSnackbarOpen(true);
+    }
+  }, [segmentsQuery.isError]);
+
+  const deleteSegmentMutation = useDeleteSegmentMutation({
+    onSuccess: (_, { segmentId }) => {
+      console.log("Deleted segment:", segmentId);
+      setSnackbarMessage("Segment deleted successfully!");
+      setSnackbarOpen(true);
+    },
+    onError: (error, { segmentId }) => {
+      console.error(`Failed to delete segment ${segmentId}:`, error);
+      setSnackbarMessage("Failed to delete segment.");
+      setSnackbarOpen(true);
+    },
+  });
+
+  const createSegmentMutation = useUpdateSegmentsMutation({
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [SEGMENTS_QUERY_KEY] });
+      setSnackbarMessage("Segment created successfully!");
+      setSnackbarOpen(true);
+      setDialogOpen(false);
+      setSegmentName("");
+      router.push(`/segments/${data.id}`); // Redirect to the edit page
+    },
+    onError: (error) => {
+      console.error("Failed to create segment:", error);
+      const errorMsg = error.response?.data?.message ?? "API Error";
+      setSnackbarMessage(`Failed to create segment: ${errorMsg}`);
+      setSnackbarOpen(true);
+    },
+  });
+
+  const handleCreateSegment = () => {
+    if (segmentName.trim() && !createSegmentMutation.isPending) {
+      const newSegmentId = uuid();
+      const definition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
+      createSegmentMutation.mutate({
+        id: newSegmentId,
+        name: segmentName.trim(),
+        definition,
+      });
+    }
+  };
+
+  // Handle dialog close with reset
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setSegmentName("");
+  };
+
+  const columns = useMemo<ColumnDef<Row>[]>(() => {
+    return [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        cell: NameCell,
+      },
+      {
+        id: "journeysUsedBy",
+        header: "Journeys Used By",
+        accessorKey: "journeysUsedBy",
+        cell: JourneysCell,
+        enableSorting: false,
+      },
+      {
+        id: "lastRecomputed",
+        header: "Last Recomputed",
+        accessorKey: "lastRecomputedAt", // Assuming this key exists from API
+        cell: TimeCell, // Use TimeCell or a custom formatter
+      },
+      {
+        id: "updatedAt",
+        header: "Updated At",
+        accessorKey: "updatedAt",
+        cell: TimeCell,
+      },
+      {
+        id: "actions",
+        header: "",
+        size: 70, // Adjust size as needed
+        cell: ActionsCell,
+        enableSorting: false,
+      },
+    ];
+  }, []); // Dependencies will be added if needed
+
+  const table = useReactTable({
+    columns,
+    data: segmentsData,
+    getSortedRowModel: getSortedRowModel(),
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: setPagination,
+    onSortingChange: setSorting,
+    state: {
+      pagination,
+      sorting,
+    },
+    // Pass the delete function via meta
+    meta: {
+      deleteSegment: (segmentId: string) => {
+        if (deleteSegmentMutation.isPending) return;
+        // Optional: Add confirmation dialog here
+        deleteSegmentMutation.mutate({ segmentId });
       },
     },
   });
 
-  const controls = (
-    <Tooltip title="download user segments" placement="right" arrow>
-      <LoadingButton
-        loading={segmentDownloadRequest.type === CompletionStatus.InProgress}
-        variant="outlined"
-        startIcon={<DownloadForOffline />}
-        onClick={handleDownload}
-      >
-        Download User Segments
-      </LoadingButton>
-    </Tooltip>
-  );
+  const isFetching = segmentsQuery.isFetching || segmentsQuery.isLoading;
+
   return (
     <DashboardContent>
-      <ResourceListContainer
-        title="Segments"
-        titleSingular="Segment"
-        newItemHref={(newItemId) => `/segments/${newItemId}`}
-        controls={controls}
+      <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Typography variant="h4">Segments</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              variant="contained"
+              onClick={() => setDialogOpen(true)}
+              startIcon={<AddIcon />}
+            >
+              New Segment
+            </Button>
+          </Stack>
+        </Stack>
+        <TableContainer component={Paper}>
+          <Table stickyHeader>
+            <TableHead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableCell
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      style={{
+                        width:
+                          header.getSize() !== 150
+                            ? header.getSize()
+                            : undefined,
+                      }}
+                      sortDirection={header.column.getIsSorted() || false}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            cursor: header.column.getCanSort()
+                              ? "pointer"
+                              : "default",
+                          }}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {header.column.getCanSort() && (
+                            <IconButton
+                              size="small"
+                              sx={{ ml: 0.5 }}
+                              aria-label={`Sort by ${header.column.columnDef.header}`}
+                            >
+                              {{
+                                asc: <ArrowUpward fontSize="inherit" />,
+                                desc: <ArrowDownward fontSize="inherit" />,
+                              }[header.column.getIsSorted() as string] ?? (
+                                <UnfoldMore
+                                  fontSize="inherit"
+                                  sx={{ opacity: 0.5 }}
+                                /> // Default icon when not sorted
+                              )}
+                            </IconButton>
+                          )}
+                        </Box>
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHead>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  hover
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                    },
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {/* Handle empty state only when not loading and data is truly empty */}
+              {!isFetching && segmentsData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={columns.length} align="center">
+                    No segments found.{" "}
+                    <Button size="small" onClick={() => setDialogOpen(true)}>
+                      Create One
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+            <TableFooter
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                zIndex: 1, // Ensure footer is above table content
+              }}
+            >
+              <TableRow>
+                <TableCell
+                  colSpan={table.getAllColumns().length}
+                  sx={{
+                    bgcolor: "background.paper",
+                    borderTop: (t) => `1px solid ${t.palette.divider}`,
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <GreyButton
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
+                        startIcon={<KeyboardDoubleArrowLeft />}
+                      >
+                        First
+                      </GreyButton>
+                      <GreyButton
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                        startIcon={<KeyboardArrowLeft />}
+                      >
+                        Previous
+                      </GreyButton>
+                      <GreyButton
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                        endIcon={<KeyboardArrowRight />}
+                      >
+                        Next
+                      </GreyButton>
+                      <GreyButton
+                        onClick={() =>
+                          table.setPageIndex(table.getPageCount() - 1)
+                        }
+                        disabled={!table.getCanNextPage()}
+                        endIcon={<KeyboardDoubleArrowRight />}
+                      >
+                        Last
+                      </GreyButton>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <Box
+                        sx={{
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          minWidth: "40px", // Prevent layout shift
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isFetching && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Page{" "}
+                        <strong>
+                          {table.getState().pagination.pageIndex + 1} of{" "}
+                          {Math.max(1, table.getPageCount())}
+                        </strong>
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </TableContainer>
+      </Stack>
+
+      {/* Create Segment Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={{ onEntered: () => nameInputRef.current?.focus() }}
       >
-        <SegmentsTable />
-      </ResourceListContainer>
+        <DialogTitle>Create New Segment</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Segment Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={segmentName}
+            onChange={(e) => setSegmentName(e.target.value)}
+            inputRef={nameInputRef}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleCreateSegment();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialog}>Cancel</Button>
+          <Button
+            onClick={handleCreateSegment}
+            disabled={!segmentName.trim() || createSegmentMutation.isPending}
+          >
+            {createSegmentMutation.isPending ? "Creating..." : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </DashboardContent>
   );
+}
+
+// Add type definition for table meta
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData = unknown> {
+    deleteSegment?: (segmentId: string) => void;
+  }
 }

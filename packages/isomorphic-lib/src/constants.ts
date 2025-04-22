@@ -3,6 +3,9 @@ import {
   EmailProviderType,
   InternalEventType,
   JourneyNodeType,
+  SegmentDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
   SmsProviderType,
 } from "./types";
 
@@ -86,3 +89,25 @@ export enum SourceType {
 }
 
 export const WORKSPACE_TOMBSTONE_PREFIX = "DfTombstoned";
+
+const ENTRY_ID = "entry";
+const INIT_TRAIT_ID = "initTraitId";
+
+export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
+  entryNode: {
+    type: SegmentNodeType.And,
+    children: [INIT_TRAIT_ID],
+    id: ENTRY_ID,
+  },
+  nodes: [
+    {
+      type: SegmentNodeType.Trait,
+      id: INIT_TRAIT_ID,
+      path: "",
+      operator: {
+        type: SegmentOperatorType.Equals,
+        value: "",
+      },
+    },
+  ],
+};
