@@ -594,24 +594,18 @@ export default function Broadcasts() {
                             cursor: header.column.getCanSort()
                               ? "pointer"
                               : "default",
-                            userSelect: header.column.getCanSort()
-                              ? "none"
-                              : "auto",
                           }}
-                          onClick={header.column.getToggleSortingHandler()}
                         >
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
                           )}
                           {header.column.getCanSort() && (
-                            <Box
-                              component="span"
-                              sx={{
-                                ml: 0.5,
-                                display: "inline-flex",
-                                verticalAlign: "middle",
-                              }}
+                            <IconButton
+                              onClick={header.column.getToggleSortingHandler()}
+                              size="small"
+                              sx={{ ml: 0.5 }}
+                              aria-label={`Sort by ${header.column.columnDef.header}`}
                             >
                               {{
                                 asc: <ArrowUpward fontSize="inherit" />,
@@ -622,7 +616,7 @@ export default function Broadcasts() {
                                   sx={{ opacity: 0.5 }}
                                 /> // Default icon when not sorted
                               )}
-                            </Box>
+                            </IconButton>
                           )}
                         </Box>
                       )}
