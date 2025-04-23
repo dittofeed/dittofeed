@@ -4,6 +4,7 @@ import {
   ArrowUpward,
   Computer,
   Delete as DeleteIcon,
+  DownloadForOffline,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -13,6 +14,7 @@ import {
   OpenInNew as OpenInNewIcon,
   UnfoldMore,
 } from "@mui/icons-material";
+import { LoadingButton } from "@mui/lab";
 import {
   Box,
   Button,
@@ -74,6 +76,7 @@ import DashboardContent from "../../components/dashboardContent";
 import { GreyButton } from "../../components/greyButtonStyle";
 import { RelatedResourceSelect } from "../../components/resourceTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
+import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
@@ -83,8 +86,6 @@ import {
   useSegmentsQuery,
 } from "../../lib/useSegmentsQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
-
-// FIXME recover download segments button
 
 type SegmentsProps = PropsWithInitialState;
 
@@ -336,6 +337,17 @@ export default function SegmentList() {
   const theme = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const {
+    apiBase,
+    workspace,
+    segmentDownloadRequest,
+    setSegmentDownloadRequest,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "segmentDownloadRequest",
+    "setSegmentDownloadRequest",
+  ]);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -408,6 +420,24 @@ export default function SegmentList() {
       const errorMsg = error.response?.data?.message ?? "API Error";
       setSnackbarMessage(`Failed to create segment: ${errorMsg}`);
       setSnackbarOpen(true);
+    },
+  });
+
+  const handleDownload = downloadFileFactory({
+    request: segmentDownloadRequest,
+    setRequest: setSegmentDownloadRequest,
+    onSuccessNotice: `Downloaded user segment assignments.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to download user segment assignments.`,
+    requestConfig: {
+      method: "GET",
+      url: `${apiBase}/api/segments/download`,
+      params: {
+        workspaceId:
+          workspace.type === CompletionStatus.Successful
+            ? workspace.value.id
+            : undefined,
+      },
     },
   });
 
@@ -500,6 +530,19 @@ export default function SegmentList() {
         >
           <Typography variant="h4">Segments</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
+            <Tooltip title="download user segments" placement="right" arrow>
+              <LoadingButton
+                loading={
+                  segmentDownloadRequest.type === CompletionStatus.InProgress
+                }
+                variant="outlined"
+                startIcon={<DownloadForOffline />}
+                onClick={handleDownload}
+                disabled={workspace.type !== CompletionStatus.Successful}
+              >
+                Download User Segments
+              </LoadingButton>
+            </Tooltip>
             <Button
               variant="contained"
               onClick={() => setDialogOpen(true)}
