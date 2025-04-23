@@ -70,7 +70,7 @@ export async function getResources({
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string; channel: string }[]>,
-    null | Promise<JourneysResources[]>,
+    null | Promise<MinimalJourneysResource[]>,
   ] = [
     shouldGetSegments
       ? db().query.segment.findMany({

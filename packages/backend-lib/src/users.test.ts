@@ -538,26 +538,16 @@ describe("users", () => {
           nodes: [],
         };
         segmentId1 = randomUUID();
-
-        await Promise.all([
-          insert({
-            table: dbSegment,
-            values: {
-              id: segmentId1,
-              workspaceId: workspace.id,
-              name: "segment1",
-              updatedAt: new Date(),
-              definition: segmentDefinition1,
-            },
-          }),
-          upsertSubscriptionGroup({
-            id: subscriptionGroupId,
+        await insert({
+          table: dbSegment,
+          values: {
+            id: segmentId1,
             workspaceId: workspace.id,
-            name: "subscriptionGroup1",
-            type: SubscriptionGroupType.OptIn,
-            channel: ChannelType.Email,
-          }),
-        ]);
+            name: "segment1",
+            updatedAt: new Date(),
+            definition: segmentDefinition1,
+          },
+        });
 
         await insertSegmentAssignments([
           {
@@ -579,62 +569,72 @@ describe("users", () => {
             workspaceId: workspace.id,
           },
         ]);
-
-        await updateUserSubscriptions({
-          workspaceId: workspace.id,
-          userUpdates: [
-            {
-              userId: userIds[0],
-              changes: {
-                [subscriptionGroupId]: true,
-              },
-            },
-            {
-              userId: userIds[1],
-              changes: {
-                [subscriptionGroupId]: true,
-              },
-            },
-          ],
-        });
       });
 
-      it("filters users by segment id and subscription group id", async () => {
-        const result = unwrap(
-          await getUsers({
+      describe("when the subscription group is opt-in", () => {
+        beforeEach(async () => {
+          await upsertSubscriptionGroup({
+            id: subscriptionGroupId,
             workspaceId: workspace.id,
-            segmentFilter: [segmentId1],
-            subscriptionGroupFilter: [subscriptionGroupId],
-          }),
-        );
-
-        expect(
-          result,
-          "only includes user that has both segment and subscription group",
-        ).toEqual(
-          expect.objectContaining({
-            users: [
+            name: "subscriptionGroup1",
+            type: SubscriptionGroupType.OptIn,
+            channel: ChannelType.Email,
+          });
+          await updateUserSubscriptions({
+            workspaceId: workspace.id,
+            userUpdates: [
               {
-                id: userIds[0],
-                segments: [
-                  {
-                    id: segmentId1,
-                    name: "segment1",
-                  },
-                ],
-                properties: {},
+                userId: userIds[0],
+                changes: {
+                  [subscriptionGroupId]: true,
+                },
+              },
+              {
+                userId: userIds[1],
+                changes: {
+                  [subscriptionGroupId]: true,
+                },
               },
             ],
-          }),
-        );
-        const { userCount } = unwrap(
-          await getUsersCount({
-            workspaceId: workspace.id,
-            segmentFilter: [segmentId1],
-            subscriptionGroupFilter: [subscriptionGroupId],
-          }),
-        );
-        expect(userCount).toEqual(1);
+          });
+        });
+        it("filters users by segment id and subscription group id", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+
+          expect(
+            result,
+            "only includes user that has both segment and subscription group",
+          ).toEqual(
+            expect.objectContaining({
+              users: [
+                {
+                  id: userIds[0],
+                  segments: [
+                    {
+                      id: segmentId1,
+                      name: "segment1",
+                    },
+                  ],
+                  properties: {},
+                },
+              ],
+            }),
+          );
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toEqual(1);
+        });
       });
     });
   });
