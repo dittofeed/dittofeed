@@ -636,6 +636,41 @@ describe("users", () => {
           expect(userCount).toEqual(1);
         });
       });
+
+      describe.only("when the subscription group is opt-out", () => {
+        beforeEach(async () => {
+          await upsertSubscriptionGroup({
+            id: subscriptionGroupId,
+            workspaceId: workspace.id,
+            name: "subscriptionGroup1",
+            type: SubscriptionGroupType.OptOut,
+            channel: ChannelType.Email,
+          });
+        });
+        it("filters users by segment id and subscription group id", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+
+          expect(result.users).toHaveLength(2);
+          expect(result.users.map((user) => user.id).sort()).toEqual([
+            userIds[0],
+            userIds[2],
+          ]);
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toEqual(2);
+        });
+      });
     });
   });
 
