@@ -39,7 +39,11 @@ spec:
           command: 
             - node
             - --max-old-space-size={{ .Values.maxOldSpaceSize | default 412 }}
+            {{- if .Values.ee.enabled }}
+            - packages/ee/dist/scripts/startLite.js
+            {{- else }}
             - packages/lite/dist/scripts/startLite.js
+            {{- end }}
             - --workspace-name={{ .Values.workspaceName | quote }}
           ports:
             - name: http
