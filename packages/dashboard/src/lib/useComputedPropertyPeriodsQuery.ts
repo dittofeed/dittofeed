@@ -19,7 +19,7 @@ export const COMPUTED_PROPERTY_PERIODS_QUERY_KEY = "computed-property-periods";
 /**
  * Custom hook for fetching computed property periods using the GET /api/computed-properties/periods endpoint
  */
-export function useComputePropertiesQuery<
+export function useComputedPropertyPeriodsQuery<
   TData = GetComputedPropertyPeriodsResponse,
 >(
   params: Omit<GetComputedPropertyPeriodsRequest, "workspaceId">,

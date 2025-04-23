@@ -1,6 +1,6 @@
 import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
 import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
-import { Button, Stack, useTheme } from "@mui/material";
+import { Button, Snackbar, Stack, useTheme } from "@mui/material";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -44,7 +44,16 @@ export default function NewSegment() {
   const theme = useTheme();
   const router = useRouter();
   const id = typeof router.query.id === "string" ? router.query.id : undefined;
-  const segmentsUpdateMutation = useUpdateSegmentsMutation();
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const segmentsUpdateMutation = useUpdateSegmentsMutation({
+    onSuccess: () => {
+      setSnackbarMessage("Segment saved successfully!");
+      setSnackbarOpen(true);
+    },
+  });
   const { data: segment } = useSegmentQuery(id);
   const [editedSegment, setEditedSegment] = useState<SegmentResource | null>(
     null,
@@ -85,6 +94,7 @@ export default function NewSegment() {
       },
     ];
   }, [segment]);
+
   const handleNameSave: EditableNameProps["onSubmit"] = useDebouncedCallback(
     (name) => {
       if (!id) {
@@ -117,17 +127,13 @@ export default function NewSegment() {
       [setEditedSegment],
     );
 
-  console.log("loc1");
   if (!segment) {
     return null;
   }
-  console.log("loc2");
   const { name } = segment;
   if (!id) {
     return null;
   }
-  console.log("loc3");
-  // FIXME create new segment from modal in index pagek
   return (
     <SegmentLayout segmentId={id} tab="configure">
       <Stack
@@ -156,6 +162,14 @@ export default function NewSegment() {
           onSegmentChange={handleDefinitionUpdate}
         />
       </Stack>
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </SegmentLayout>
   );
 }

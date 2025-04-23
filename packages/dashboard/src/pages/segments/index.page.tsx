@@ -361,7 +361,9 @@ export default function SegmentList() {
     },
   });
 
-  const segmentsQuery = useSegmentsQuery();
+  const segmentsQuery = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
 
   const segmentsData: Row[] = useMemo(() => {
     if (!segmentsQuery.data?.segments) {
@@ -729,7 +731,7 @@ export default function SegmentList() {
       <Dialog
         open={dialogOpen}
         onClose={closeDialog}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
         TransitionProps={{ onEntered: () => nameInputRef.current?.focus() }}
       >

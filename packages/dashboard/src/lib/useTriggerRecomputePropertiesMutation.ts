@@ -12,7 +12,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
-import { COMPUTED_PROPERTY_PERIODS_QUERY_KEY } from "./useComputePropertiesQuery";
+import { COMPUTED_PROPERTY_PERIODS_QUERY_KEY } from "./useComputedPropertyPeriodsQuery";
 
 export const TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY = [
   "triggerRecomputeProperties",

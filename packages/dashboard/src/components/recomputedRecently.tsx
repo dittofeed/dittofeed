@@ -10,7 +10,7 @@ import { differenceInSeconds } from "date-fns";
 import { useCallback, useEffect, useMemo } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 
-import { useComputePropertiesQuery } from "../lib/useComputePropertiesQuery";
+import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
 
 const transitionStyles = {
@@ -39,7 +39,7 @@ const transitionStyles = {
 
 export function RecomputedRecentlyIcon() {
   const queryClient = useQueryClient();
-  const { data, isPending, isError } = useComputePropertiesQuery(
+  const { data, isPending, isError } = useComputedPropertyPeriodsQuery(
     { step: "ComputeAssignments" }, // Fetch periods for the assignments step
     {
       refetchInterval: 5 * 1000,
