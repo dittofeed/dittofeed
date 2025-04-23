@@ -7,11 +7,12 @@ import {
 import { Box, CircularProgress, Tooltip } from "@mui/material";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
+import { useUpdateEffect } from "../lib/useUpdateEffect";
 
 const transitionStyles = {
   ".fade-enter": {
@@ -39,46 +40,44 @@ const transitionStyles = {
 
 export function RecomputedRecentlyIcon() {
   const queryClient = useQueryClient();
+
   const { data, isPending, isError } = useComputedPropertyPeriodsQuery(
     { step: "ComputeAssignments" }, // Fetch periods for the assignments step
     {
+      select: (d) => {
+        if (d.periods.length === 0) {
+          return { mostRecentRecomputeTime: null, isAnyStale: false };
+        }
+
+        let maxTime: Date | null = null;
+        let anyStale = false;
+        const now = new Date();
+
+        for (const p of d.periods) {
+          if (!p.lastRecomputed) continue;
+          const computedTime = new Date(p.lastRecomputed);
+          if (maxTime === null || computedTime > maxTime) {
+            maxTime = computedTime;
+          }
+          if (differenceInSeconds(now, computedTime) >= 30) {
+            anyStale = true;
+          }
+        }
+        return { mostRecentRecomputeTime: maxTime, isAnyStale: anyStale };
+      },
       refetchInterval: 5 * 1000,
     },
   );
 
-  const { mostRecentRecomputeTime, isAnyStale } = useMemo(() => {
-    if (!data?.periods || data.periods.length === 0) {
-      return { mostRecentRecomputeTime: null, isAnyStale: false };
-    }
-
-    let maxTime: Date | null = null;
-    let anyStale = false;
-    const now = new Date();
-
-    for (const p of data.periods) {
-      if (!p.lastRecomputed) continue;
-      const computedTime = new Date(p.lastRecomputed);
-      if (maxTime === null || computedTime > maxTime) {
-        maxTime = computedTime;
-      }
-      if (differenceInSeconds(now, computedTime) >= 30) {
-        anyStale = true;
-      }
-    }
-    return { mostRecentRecomputeTime: maxTime, isAnyStale: anyStale };
-  }, [data]);
-
-  useEffect(() => {
-    // If periods are no longer stale, but were previously, invalidate user data.
-    if (!isAnyStale) {
-      queryClient.invalidateQueries({
-        queryKey: ["users"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["usersCount"],
-      });
-    }
-  }, [isAnyStale, queryClient]);
+  // FIXME
+  useUpdateEffect(() => {
+    queryClient.invalidateQueries({
+      queryKey: ["users"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["usersCount"],
+    });
+  }, []);
 
   const isRecomputing = useIsMutating({
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
@@ -91,9 +90,9 @@ export function RecomputedRecentlyIcon() {
     currentState = "pending";
   } else if (isError) {
     currentState = "error";
-  } else if (mostRecentRecomputeTime === null) {
+  } else if (data?.mostRecentRecomputeTime === null) {
     currentState = "notComputed";
-  } else if (isAnyStale) {
+  } else if (data?.isAnyStale) {
     currentState = "stale";
   } else {
     currentState = "upToDate";
