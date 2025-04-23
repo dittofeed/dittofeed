@@ -223,7 +223,7 @@ function BroadcastSegmentEditor({
           },
         },
       );
-    }, 1000);
+    }, 1500);
 
   if (segmentId === undefined) {
     return null;

@@ -58,7 +58,13 @@ import {
   SubscriptionGroupType,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useContext, useEffect, useMemo } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
@@ -2669,11 +2675,20 @@ export default function SegmentEditor({
       : null,
   );
 
-  // FIXME don't call on initial
+  const prevEditedSegmentRef = useRef<SegmentResource | null>(null);
+
+  // Call onSegmentChange only if the segment has changed from a non-null value to another non-null value
   useEffect(() => {
-    if (state?.editedSegment) {
-      onSegmentChange?.(state.editedSegment);
+    const currentSegment = state?.editedSegment;
+    const prevSegment = prevEditedSegmentRef.current;
+
+    // Call only if changed from a non-null value to another non-null value
+    if (currentSegment && prevSegment && currentSegment !== prevSegment) {
+      onSegmentChange?.(currentSegment);
     }
+
+    // Update the ref to store the current segment for the next render
+    prevEditedSegmentRef.current = currentSegment ?? null;
   }, [state?.editedSegment, onSegmentChange]);
 
   useEffect(() => {
