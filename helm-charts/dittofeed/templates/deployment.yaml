@@ -1,3 +1,10 @@
+
+{{- $imageRepository := .Values.image.repository -}}
+{{- if .Values.ee.enabled -}}
+  {{- if not (and .Values.image.repository (ne .Values.image.repository "dittofeed/dittofeed-lite")) -}}
+    {{- $imageRepository = "dittofeed/dittofeed-ee" -}}
+  {{- end -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,7 +41,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ $imageRepository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: 
             - node
