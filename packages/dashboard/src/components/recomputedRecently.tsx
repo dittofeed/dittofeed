@@ -7,12 +7,11 @@ import {
 import { Box, CircularProgress, Tooltip } from "@mui/material";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY } from "../lib/useTriggerRecomputePropertiesMutation";
-import { useUpdateEffect } from "../lib/useUpdateEffect";
 
 const transitionStyles = {
   ".fade-enter": {
@@ -69,15 +68,27 @@ export function RecomputedRecentlyIcon() {
     },
   );
 
-  // FIXME
-  useUpdateEffect(() => {
-    queryClient.invalidateQueries({
-      queryKey: ["users"],
-    });
-    queryClient.invalidateQueries({
-      queryKey: ["usersCount"],
-    });
-  }, []);
+  const previousMostRecentRecomputeTimeRef = useRef<Date | null | undefined>();
+
+  // Runs only when mostRecentRecomputeTime changes from a non-null value
+  useEffect(() => {
+    const currentTime = data?.mostRecentRecomputeTime;
+    const previousTime = previousMostRecentRecomputeTimeRef.current;
+
+    // Run only if the previous time existed (was not null/undefined)
+    // and the current time is different from the previous time.
+    // Compare using getTime() for reliability.
+    if (previousTime && currentTime?.getTime() !== previousTime?.getTime()) {
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["usersCount"],
+      });
+    }
+    // Update the ref *after* the check for the next render
+    previousMostRecentRecomputeTimeRef.current = currentTime;
+  }, [data?.mostRecentRecomputeTime, queryClient]); // Depend on the time and queryClient
 
   const isRecomputing = useIsMutating({
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
