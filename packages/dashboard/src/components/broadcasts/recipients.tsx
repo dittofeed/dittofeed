@@ -196,6 +196,7 @@ function BroadcastSegmentEditor({
         name: newSegmentName,
         definition,
         resourceType: "Internal",
+        createOnly: true,
       },
       {
         onSuccess: () => {

@@ -78,7 +78,7 @@ export function RecomputedRecentlyIcon() {
         queryKey: ["usersCount"],
       });
     }
-  }, [isAnyStale]);
+  }, [isAnyStale, queryClient]);
 
   const isRecomputing = useIsMutating({
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,

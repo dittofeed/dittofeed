@@ -19,7 +19,7 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { assignmentSequentialConsistency } from "./config";
-import { db, queryResult } from "./db";
+import { db, QueryError, queryResult } from "./db";
 import {
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
@@ -362,24 +362,44 @@ export async function upsertSegment(
     resourceType: params.resourceType,
   };
 
-  const result = await queryResult(
-    db()
-      .insert(dbSegment)
-      .values(value)
-      .onConflictDoUpdate({
-        target: params.id
-          ? [dbSegment.id]
-          : [dbSegment.workspaceId, dbSegment.name],
-        setWhere: eq(dbSegment.workspaceId, params.workspaceId),
-        set: {
-          definition: params.definition,
-          name: params.name,
-          resourceType: params.resourceType,
-          definitionUpdatedAt: params.definition ? new Date() : undefined,
-        },
-      })
-      .returning(),
-  );
+  let result: Result<Segment[], QueryError>;
+  if (params.createOnly) {
+    result = await queryResult(
+      db().insert(dbSegment).values(value).onConflictDoNothing().returning(),
+    );
+    if (result.isOk() && result.value.length === 0) {
+      result = await queryResult(
+        db()
+          .select()
+          .from(dbSegment)
+          .where(
+            and(
+              eq(dbSegment.name, params.name),
+              eq(dbSegment.workspaceId, params.workspaceId),
+            ),
+          ),
+      );
+    }
+  } else {
+    result = await queryResult(
+      db()
+        .insert(dbSegment)
+        .values(value)
+        .onConflictDoUpdate({
+          target: params.id
+            ? [dbSegment.id]
+            : [dbSegment.workspaceId, dbSegment.name],
+          setWhere: eq(dbSegment.workspaceId, params.workspaceId),
+          set: {
+            definition: params.definition,
+            name: params.name,
+            resourceType: params.resourceType,
+            definitionUpdatedAt: params.definition ? new Date() : undefined,
+          },
+        })
+        .returning(),
+    );
+  }
   if (result.isErr()) {
     if (
       result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
