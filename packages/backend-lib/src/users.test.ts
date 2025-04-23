@@ -637,7 +637,7 @@ describe("users", () => {
         });
       });
 
-      describe.only("when the subscription group is opt-out", () => {
+      describe("when the subscription group is opt-out", () => {
         beforeEach(async () => {
           await upsertSubscriptionGroup({
             id: subscriptionGroupId,
