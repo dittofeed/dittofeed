@@ -72,6 +72,7 @@ import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
 import { GreyButton } from "../../components/greyButtonStyle";
+import { RelatedResourceSelect } from "../../components/resourceTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
@@ -82,6 +83,8 @@ import {
   useSegmentsQuery,
 } from "../../lib/useSegmentsQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
+
+// FIXME recover download segments button
 
 type SegmentsProps = PropsWithInitialState;
 
@@ -100,17 +103,9 @@ type Row = Omit<SegmentResource, "lastRecomputedAt"> & {
   journeysUsedBy: MinimalJourneysResource[];
 };
 
-// Helper function to format timestamp using date-fns
-function formatTimestamp(timestamp: number | undefined): string {
-  if (timestamp === undefined) {
-    return "N/A"; // Or some placeholder
-  }
-  return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-}
-
 // TimeCell for displaying timestamps like createdAt
 function TimeCell({ getValue }: CellContext<Row, unknown>) {
-  const timestamp = getValue<number>();
+  const timestamp = getValue<number | undefined>();
   if (!timestamp) {
     return null; // Or some placeholder
   }
@@ -274,26 +269,25 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
 }
 
 function JourneysCell({ getValue }: CellContext<Row, unknown>) {
-  const journeys = getValue<Row["journeysUsedBy"]>();
-  const count = journeys?.length ?? 0;
+  const journeys = getValue<MinimalJourneysResource[]>();
 
-  if (count === 0) {
-    return <Typography variant="body2">-</Typography>;
+  if (!journeys || journeys.length === 0) {
+    return null; // Or return <Typography variant="body2">-</Typography>; if preferred
   }
 
-  const tooltipContent = (
-    <Stack spacing={1}>
-      <Typography variant="body2" fontWeight="bold">
-        Journeys using this segment:
-      </Typography>
-      {journeys?.map((j) => <Typography key={j.id}>{j.name}</Typography>)}
-    </Stack>
-  );
+  const relatedLabel = `${journeys.length} ${journeys.length === 1 ? "Journey" : "Journeys"}`;
+
+  // Restore the relatedResources variable
+  const relatedResources = journeys.map((journey) => ({
+    href: `/journeys/${journey.id}`,
+    name: journey.name,
+  }));
 
   return (
-    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
-      <Typography variant="body2">{count}</Typography>
-    </Tooltip>
+    <RelatedResourceSelect
+      label={relatedLabel}
+      relatedResources={relatedResources}
+    />
   );
 }
 
