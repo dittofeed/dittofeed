@@ -2669,6 +2669,7 @@ export default function SegmentEditor({
       : null,
   );
 
+  // FIXME don't call on initial
   useEffect(() => {
     if (state?.editedSegment) {
       onSegmentChange?.(state.editedSegment);

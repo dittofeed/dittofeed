@@ -33,6 +33,27 @@ if (typeof globalThis.POOL_ENDED === "undefined") globalThis.POOL_ENDED = false;
 
 export { PostgresError };
 
+export type TxQueryError = { code: PostgresError };
+
+export function isTxQueryError(e: unknown): e is TxQueryError {
+  return typeof e === "object" && e !== null && "code" in e;
+}
+
+export async function txQueryResult<D, P extends Promise<D>>(
+  promise: P,
+): Promise<Result<Awaited<P>, TxQueryError>> {
+  try {
+    const result = await promise;
+    return ok(result);
+  } catch (e) {
+    if (isTxQueryError(e)) {
+      return err(e);
+    }
+    logger().debug({ err: e }, "Unexpected error in txQueryResult");
+    throw e;
+  }
+}
+
 export type QueryError = Error & { code: PostgresError };
 
 export function isQueryError(e: unknown): e is QueryError {
@@ -49,7 +70,7 @@ export async function queryResult<D, P extends Promise<D>>(
     if (isQueryError(e)) {
       return err(e);
     }
-    logger().debug({ e }, "Unexpected error in queryResult");
+    logger().debug({ err: e }, "Unexpected error in queryResult");
     throw e;
   }
 }
