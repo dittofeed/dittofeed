@@ -86,6 +86,7 @@ import {
   useSegmentsQuery,
 } from "../../lib/useSegmentsQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
+import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 
 type SegmentsProps = PropsWithInitialState;
 
@@ -355,6 +356,9 @@ export default function SegmentList() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const { data: computedProperties } = useComputedPropertyPeriodsQuery({
+    step: "ComputeAssignments",
+  });
   const { data: resources } = useResourcesQuery({
     journeys: {
       segments: true,
