@@ -73,20 +73,20 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
-import { GreyButton } from "../../components/greyButtonStyle";
+import { GreyButton, greyButtonStyle } from "../../components/greyButtonStyle";
 import { RelatedResourceSelect } from "../../components/resourceTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
+import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import {
   SEGMENTS_QUERY_KEY,
   useSegmentsQuery,
 } from "../../lib/useSegmentsQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
-import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 
 type SegmentsProps = PropsWithInitialState;
 
@@ -541,10 +541,11 @@ export default function SegmentList() {
                 loading={
                   segmentDownloadRequest.type === CompletionStatus.InProgress
                 }
-                variant="outlined"
+                variant="contained"
                 startIcon={<DownloadForOffline />}
                 onClick={handleDownload}
                 disabled={workspace.type !== CompletionStatus.Successful}
+                sx={greyButtonStyle}
               >
                 Download User Segments
               </LoadingButton>
@@ -553,6 +554,7 @@ export default function SegmentList() {
               variant="contained"
               onClick={() => setDialogOpen(true)}
               startIcon={<AddIcon />}
+              sx={greyButtonStyle}
             >
               New Segment
             </Button>
@@ -641,7 +643,11 @@ export default function SegmentList() {
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
                     No segments found.{" "}
-                    <Button size="small" onClick={() => setDialogOpen(true)}>
+                    <Button
+                      size="small"
+                      onClick={() => setDialogOpen(true)}
+                      sx={greyButtonStyle}
+                    >
                       Create One
                     </Button>
                   </TableCell>
