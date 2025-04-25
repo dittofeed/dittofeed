@@ -41,11 +41,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import {
-  useMutation,
-  UseMutationOptions,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CellContext,
   ColumnDef,
@@ -56,13 +52,12 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { DEFAULT_SEGMENT_DEFINITION } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
   ComputedPropertyPeriod,
-  DeleteSegmentRequest,
   MinimalJourneysResource,
   SegmentDefinition,
   SegmentResource,
@@ -77,11 +72,12 @@ import DashboardContent from "../../components/dashboardContent";
 import { GreyButton, greyButtonStyle } from "../../components/greyButtonStyle";
 import { RelatedResourceSelect } from "../../components/resourceTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
+import { useDeleteSegmentMutation } from "../../lib/useDeleteSegmentMutation";
+import { useDownloadSegmentsMutation } from "../../lib/useDownloadSegmentsMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import {
   SEGMENTS_QUERY_KEY,
@@ -294,62 +290,11 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
-// Delete Segment Mutation Hook (Simplified example)
-interface DeleteSegmentMutationParams {
-  segmentId: string;
-}
-
-const useDeleteSegmentMutation = (
-  options?: UseMutationOptions<
-    void, // Assuming API returns nothing on success
-    AxiosError,
-    DeleteSegmentMutationParams
-  >,
-) => {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
-  const queryClient = useQueryClient();
-
-  return useMutation<void, AxiosError, DeleteSegmentMutationParams>({
-    mutationFn: async ({ segmentId }) => {
-      if (workspace.type !== CompletionStatus.Successful) {
-        throw new Error("Workspace not available");
-      }
-      const workspaceId = workspace.value.id;
-      const requestData: DeleteSegmentRequest = {
-        id: segmentId,
-        workspaceId,
-      };
-      // Assuming a DELETE endpoint exists
-      await axios.delete(`${apiBase}/api/segments`, { data: requestData });
-    },
-    ...options,
-    onSuccess: (data, variables, context) => {
-      options?.onSuccess?.(data, variables, context);
-      if (workspace.type === CompletionStatus.Successful) {
-        // Invalidate the main segments query to refresh the list
-        queryClient.invalidateQueries({
-          queryKey: [SEGMENTS_QUERY_KEY, workspace.value.id],
-        });
-      }
-    },
-  });
-};
-
 export default function SegmentList() {
   const theme = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const {
-    apiBase,
-    workspace,
-    segmentDownloadRequest,
-    setSegmentDownloadRequest,
-  } = useAppStorePick([
-    "apiBase",
-    "workspace",
-    "segmentDownloadRequest",
-    "setSegmentDownloadRequest",
-  ]);
+  const { workspace } = useAppStorePick(["apiBase", "workspace"]);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -412,13 +357,11 @@ export default function SegmentList() {
   }, [segmentsQuery.isError]);
 
   const deleteSegmentMutation = useDeleteSegmentMutation({
-    onSuccess: (_, { segmentId }) => {
-      console.log("Deleted segment:", segmentId);
+    onSuccess: () => {
       setSnackbarMessage("Segment deleted successfully!");
       setSnackbarOpen(true);
     },
-    onError: (error, { segmentId }) => {
-      console.error(`Failed to delete segment ${segmentId}:`, error);
+    onError: () => {
       setSnackbarMessage("Failed to delete segment.");
       setSnackbarOpen(true);
     },
@@ -441,21 +384,20 @@ export default function SegmentList() {
     },
   });
 
-  const handleDownload = downloadFileFactory({
-    request: segmentDownloadRequest,
-    setRequest: setSegmentDownloadRequest,
-    onSuccessNotice: `Downloaded user segment assignments.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to download user segment assignments.`,
-    requestConfig: {
-      method: "GET",
-      url: `${apiBase}/api/segments/download`,
-      params: {
-        workspaceId:
-          workspace.type === CompletionStatus.Successful
-            ? workspace.value.id
-            : undefined,
-      },
+  const downloadMutation = useDownloadSegmentsMutation({
+    onSuccess: () => {
+      setSnackbarMessage("Downloaded user segment assignments.");
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      console.error("Failed to download segments:", error);
+      const errorMsg =
+        (error as AxiosError<{ message?: string }>)?.response?.data?.message ??
+        "API Error";
+      setSnackbarMessage(
+        `Failed to download user segment assignments: ${errorMsg}`,
+      );
+      setSnackbarOpen(true);
     },
   });
 
@@ -531,7 +473,7 @@ export default function SegmentList() {
       deleteSegment: (segmentId: string) => {
         if (deleteSegmentMutation.isPending) return;
         // Optional: Add confirmation dialog here
-        deleteSegmentMutation.mutate({ segmentId });
+        deleteSegmentMutation.mutate(segmentId);
       },
     },
   });
@@ -550,12 +492,10 @@ export default function SegmentList() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Tooltip title="download user segments" placement="right" arrow>
               <LoadingButton
-                loading={
-                  segmentDownloadRequest.type === CompletionStatus.InProgress
-                }
+                loading={downloadMutation.isPending}
                 variant="contained"
                 startIcon={<DownloadForOffline />}
-                onClick={handleDownload}
+                onClick={() => downloadMutation.mutate()}
                 disabled={workspace.type !== CompletionStatus.Successful}
                 sx={greyButtonStyle}
               >

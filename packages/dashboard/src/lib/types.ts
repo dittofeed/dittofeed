@@ -46,8 +46,6 @@ import {
   SavedSubscriptionGroupResource,
   SecretAvailabilityResource,
   SecretResource,
-  SegmentNode,
-  SegmentNodeType,
   SegmentResource,
   SegmentSplitUiNodeProps,
   SourceControlProviderEnum,
@@ -224,13 +222,6 @@ export interface AppActions {
   }) => void;
 }
 
-export interface SegmentIndexContent {
-  segmentDeleteRequest: EphemeralRequestStatus<Error>;
-  setSegmentDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
-  segmentDownloadRequest: EphemeralRequestStatus<Error>;
-  setSegmentDownloadRequest: (request: EphemeralRequestStatus<Error>) => void;
-}
-
 export interface UserPropertyIndexContent {
   userPropertyDeleteRequest: EphemeralRequestStatus<Error>;
   setUserPropertyDeleteRequest: (
@@ -305,21 +296,6 @@ export interface SegmentEditorState {
   segmentUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
-export interface SegmentEditorContents extends SegmentEditorState {
-  setEditableSegmentName: (name: string) => void;
-  addEditableSegmentChild: (parentId: string) => void;
-  removeEditableSegmentChild: (parentId: string, nodeId: string) => void;
-  updateEditableSegmentNodeType: (
-    nodeId: string,
-    nodeType: SegmentNodeType,
-  ) => void;
-  updateEditableSegmentNodeData: (
-    nodeId: string,
-    updater: (currentValue: Draft<SegmentNode>) => void,
-  ) => void;
-  setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
-}
-
 export type JourneyNodesIndex = Record<string, number>;
 
 export type DefinitionJourneyNode = Node<
@@ -389,9 +365,7 @@ export interface JourneyContent extends JourneyState {
   }) => void;
 }
 
-// export type PageStoreContents = SegmentEditorContents &
-export type PageStoreContents = SegmentIndexContent &
-  UserPropertyIndexContent &
+export type PageStoreContents = UserPropertyIndexContent &
   JourneyIndexContent &
   UserIndexContent &
   MessageTemplateIndexContent &
