@@ -80,6 +80,7 @@ function BroadcastSegmentEditor({
         name: newSegmentName,
         definition,
         resourceType: "Internal",
+        status: "NotStarted",
         createOnly: true,
       },
       {

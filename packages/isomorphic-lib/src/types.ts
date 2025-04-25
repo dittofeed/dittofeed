@@ -1143,6 +1143,16 @@ export const JourneyDefinition = Type.Object({
 
 export type JourneyDefinition = Static<typeof JourneyDefinition>;
 
+export const SegmentStatusEnum = {
+  NotStarted: "NotStarted",
+  Running: "Running",
+  Paused: "Paused",
+} as const;
+
+export const SegmentStatus = Type.KeyOf(Type.Const(SegmentStatusEnum));
+
+export type SegmentStatus = Static<typeof SegmentStatus>;
+
 export const SegmentResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1152,6 +1162,7 @@ export const SegmentResource = Type.Object({
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
   resourceType: Type.Optional(ResourceType),
+  status: Type.Optional(SegmentStatus),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;

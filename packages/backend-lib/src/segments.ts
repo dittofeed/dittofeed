@@ -20,7 +20,7 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { assignmentSequentialConsistency } from "./config";
-import { db, QueryError, queryResult, TxQueryError, txQueryResult } from "./db";
+import { db, TxQueryError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
@@ -198,6 +198,7 @@ export function toSegmentResource(
     updatedAt: segment.updatedAt.getTime(),
     definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
+    status: segment.status,
   });
 }
 
@@ -361,6 +362,7 @@ export async function upsertSegment(
     name: params.name,
     definition: params.definition,
     resourceType: params.resourceType,
+    status: params.status,
   };
 
   const txResult: Result<Segment, TxQueryError> = await db().transaction(
