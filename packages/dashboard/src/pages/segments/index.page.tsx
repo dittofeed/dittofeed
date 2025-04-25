@@ -61,6 +61,7 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { DEFAULT_SEGMENT_DEFINITION } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
+  ComputedPropertyPeriod,
   DeleteSegmentRequest,
   MinimalJourneysResource,
   SegmentDefinition,
@@ -356,7 +357,7 @@ export default function SegmentList() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const { data: computedProperties } = useComputedPropertyPeriodsQuery({
+  const { data: computedPropertyPeriods } = useComputedPropertyPeriodsQuery({
     step: "ComputeAssignments",
   });
   const { data: resources } = useResourcesQuery({
@@ -373,6 +374,12 @@ export default function SegmentList() {
     if (!segmentsQuery.data?.segments) {
       return [];
     }
+    const periodBySegmentId = new Map<string, ComputedPropertyPeriod>();
+    for (const period of computedPropertyPeriods?.periods ?? []) {
+      if (period.type === "Segment") {
+        periodBySegmentId.set(period.id, period);
+      }
+    }
     const journeysBySegmentId = new Map<string, MinimalJourneysResource[]>();
     for (const journey of resources?.journeys ?? []) {
       for (const journeySegment of journey.segments ?? []) {
@@ -383,9 +390,14 @@ export default function SegmentList() {
     }
     return segmentsQuery.data.segments.map((segment) => ({
       ...segment,
+      lastRecomputedAt: periodBySegmentId.get(segment.id)?.lastRecomputed,
       journeysUsedBy: journeysBySegmentId.get(segment.id) ?? [],
     }));
-  }, [segmentsQuery.data, resources?.journeys]);
+  }, [
+    segmentsQuery.data?.segments,
+    computedPropertyPeriods?.periods,
+    resources?.journeys,
+  ]);
 
   const [pagination, setPagination] = useState({
     pageIndex: 0, // initial page index

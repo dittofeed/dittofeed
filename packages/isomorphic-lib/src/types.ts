@@ -5077,6 +5077,8 @@ export const ComputedPropertyPeriod = Type.Object({
   lastRecomputed: Type.String(),
 });
 
+export type ComputedPropertyPeriod = Static<typeof ComputedPropertyPeriod>;
+
 export const GetComputedPropertyPeriodsResponse = Type.Object({
   periods: Type.Array(ComputedPropertyPeriod),
 });
