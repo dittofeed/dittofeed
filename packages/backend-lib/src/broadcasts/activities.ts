@@ -6,6 +6,8 @@ import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { ComputePropertiesArgs } from "../computedProperties/computePropertiesIncremental";
+import { computePropertiesIncremental } from "../computedProperties/computePropertiesWorkflow/activities/computeProperties";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
@@ -17,6 +19,7 @@ import {
   SendMessageParametersBase,
 } from "../messaging";
 import { withSpan } from "../openTelemetry";
+import { toSegmentResource } from "../segments";
 import {
   BackendMessageSendResult,
   BatchTrackData,
@@ -27,6 +30,7 @@ import {
   EventType,
   GetUsersResponseItem,
   InternalEventType,
+  SavedSegmentResource,
   TrackData,
 } from "../types";
 import { getUsers } from "../users";
@@ -456,4 +460,57 @@ export async function getBroadcastStatus({
     return null;
   }
   return model.statusV2;
+}
+
+export async function recomputeBroadcastSegment({
+  workspaceId,
+  broadcastId,
+  now,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+  now: number;
+}): Promise<boolean> {
+  const broadcast = await db().query.broadcast.findFirst({
+    where: and(
+      eq(schema.broadcast.id, broadcastId),
+      eq(schema.broadcast.workspaceId, workspaceId),
+    ),
+    with: {
+      segment: true,
+    },
+  });
+  if (!broadcast) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast not found",
+    );
+    return false;
+  }
+  if (!broadcast.segment) {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast segment not found",
+    );
+    return false;
+  }
+  const segmentResource: SavedSegmentResource = unwrap(
+    toSegmentResource(broadcast.segment),
+  );
+  const args: ComputePropertiesArgs = {
+    workspaceId,
+    segments: [segmentResource],
+    userProperties: [],
+    journeys: [],
+    integrations: [],
+    now,
+  };
+  await computePropertiesIncremental(args);
+  return true;
 }
