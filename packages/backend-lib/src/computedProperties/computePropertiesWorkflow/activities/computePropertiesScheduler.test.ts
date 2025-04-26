@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import config from "../../../config";
 import { db, insert } from "../../../db";
 import * as schema from "../../../db/schema";
 import { toSegmentResource } from "../../../segments";
@@ -16,6 +17,11 @@ import {
 import { createWorkspace } from "../../../workspaces";
 import { createPeriods } from "../../periods";
 import { findDueWorkspaces } from "../activities";
+
+jest.mock("../../../config");
+// Keep a reference to the actual implementation
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+const actualConfig = jest.requireActual("../../../config").default;
 
 describe("computePropertiesScheduler activities", () => {
   let workspace: Workspace;
@@ -146,6 +152,123 @@ describe("computePropertiesScheduler activities", () => {
           step: ComputedPropertyStepEnum.ComputeAssignments,
         });
       });
+      it("should return the workspace", async () => {
+        const dueWorkspaces = await findDueWorkspaces({
+          now,
+          interval: 2 * 60 * 1000,
+        });
+
+        expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
+      });
+    });
+
+    describe("when a workspace's latest re-computed property period is older than the interval and the global computed properties feature is enabled", () => {
+      let dueSegmentId: string;
+      let notDueSegmentId: string;
+      let workspace2: Workspace;
+      let now: number;
+
+      beforeEach(async () => {
+        (config as jest.MockedFunction<typeof config>).mockImplementation(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          () => ({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            ...actualConfig(),
+            useGlobalComputedProperties: true,
+          }),
+        );
+
+        now = new Date().getTime();
+
+        workspace2 = unwrap(
+          await createWorkspace({
+            name: randomUUID(),
+          }),
+        );
+
+        dueSegmentId = randomUUID();
+        notDueSegmentId = randomUUID();
+
+        const segments1: SavedSegmentResource[] = [
+          unwrap(
+            (
+              await insert({
+                table: schema.segment,
+                values: {
+                  id: dueSegmentId,
+                  name: randomUUID(),
+                  createdAt: new Date(now - 1000),
+                  updatedAt: new Date(now - 1000),
+                  workspaceId: workspace.id,
+                  definitionUpdatedAt: new Date(now - 1000),
+                  definition: createSegmentDefinition(),
+                },
+              })
+            ).andThen((s) => {
+              if (s === null) {
+                throw new Error("Segment not found");
+              }
+              return toSegmentResource(s);
+            }),
+          ),
+        ];
+
+        const segments2: SavedSegmentResource[] = [
+          unwrap(
+            (
+              await insert({
+                table: schema.segment,
+                values: {
+                  id: notDueSegmentId,
+                  name: randomUUID(),
+                  createdAt: new Date(now - 1000),
+                  updatedAt: new Date(now - 1000),
+                  workspaceId: workspace.id,
+                  definitionUpdatedAt: new Date(now - 1000),
+                  definition: createSegmentDefinition(),
+                },
+              })
+            ).andThen((s) => {
+              if (s === null) {
+                throw new Error("Segment not found");
+              }
+              return toSegmentResource(s);
+            }),
+          ),
+        ];
+
+        await Promise.all([
+          createPeriods({
+            workspaceId: workspace.id,
+            userProperties: [],
+            segments: segments1,
+            now,
+            step: ComputedPropertyStepEnum.ComputeAssignments,
+          }),
+          createPeriods({
+            workspaceId: workspace2.id,
+            userProperties: [],
+            segments: segments2,
+            now,
+            step: ComputedPropertyStepEnum.ComputeAssignments,
+          }),
+        ]);
+
+        now += 2 * 61 * 1000;
+
+        await createPeriods({
+          workspaceId: workspace2.id,
+          userProperties: [],
+          segments: segments2,
+          now,
+          step: ComputedPropertyStepEnum.ComputeAssignments,
+        });
+      });
+
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
       it("should return the workspace", async () => {
         const dueWorkspaces = await findDueWorkspaces({
           now,
