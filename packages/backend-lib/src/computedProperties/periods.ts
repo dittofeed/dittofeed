@@ -357,10 +357,13 @@ export async function findDueWorkspaceMaxTos({
     ),
   ];
   if (!config().useGlobalComputedProperties) {
+    logger().debug("Not using global computed properties");
     whereConditions.push(
       eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
     );
     whereConditions.push(eq(schema.feature.enabled, true));
+  } else {
+    logger().debug("Using global computed properties");
   }
 
   /**
@@ -382,7 +385,7 @@ export async function findDueWorkspaceMaxTos({
       max: aggregatedMax,
     })
     .from(w)
-    .innerJoin(schema.feature, eq(schema.feature.workspaceId, w.id))
+    .leftJoin(schema.feature, eq(schema.feature.workspaceId, w.id))
     // Only left join on computedPropertyPeriod for step=ComputeAssignments
     .leftJoin(
       cpp,
