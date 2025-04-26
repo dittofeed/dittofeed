@@ -9,6 +9,7 @@ import {
   min,
   not,
   or,
+  SQL,
   sql,
 } from "drizzle-orm";
 import { Overwrite } from "utility-types";
@@ -344,6 +345,23 @@ export async function findDueWorkspaceMaxTos({
 
   const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
   const timestampNow = Math.floor(now / 1000);
+  const whereConditions: (SQL | undefined)[] = [
+    eq(w.status, WorkspaceStatusDbEnum.Active),
+    not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
+    or(
+      inArray(w.id, db().select({ id: dbSegment.workspaceId }).from(dbSegment)),
+      inArray(
+        w.id,
+        db().select({ id: dbUserProperty.workspaceId }).from(dbUserProperty),
+      ),
+    ),
+  ];
+  if (!config().useGlobalComputedProperties) {
+    whereConditions.push(
+      eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
+    );
+    whereConditions.push(eq(schema.feature.enabled, true));
+  }
 
   /**
    * Explanation:
@@ -373,26 +391,7 @@ export async function findDueWorkspaceMaxTos({
         eq(cpp.step, ComputedPropertyStepEnum.ComputeAssignments),
       ),
     )
-    .where(
-      and(
-        eq(w.status, WorkspaceStatusDbEnum.Active),
-        not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
-        eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
-        eq(schema.feature.enabled, true),
-        or(
-          inArray(
-            w.id,
-            db().select({ id: dbSegment.workspaceId }).from(dbSegment),
-          ),
-          inArray(
-            w.id,
-            db()
-              .select({ id: dbUserProperty.workspaceId })
-              .from(dbUserProperty),
-          ),
-        ),
-      ),
-    )
+    .where(and(...whereConditions))
     .groupBy(w.id)
     .having(
       or(
