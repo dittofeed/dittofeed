@@ -69,10 +69,11 @@ export function compareWorkspaceItems(
     if (a.priority !== b.priority) return b.priority - a.priority; // Reverse the order so higher numbers come first
   }
 
-  // Next, compare by maxPeriod (undefined is lowest priority)
-  if (a.maxPeriod !== undefined && b.maxPeriod === undefined) return -1;
-  if (a.maxPeriod === undefined && b.maxPeriod !== undefined) return 1;
+  // Next, compare by maxPeriod (undefined comes FIRST)
+  if (a.maxPeriod === undefined && b.maxPeriod !== undefined) return -1; // a (undefined) comes first
+  if (a.maxPeriod !== undefined && b.maxPeriod === undefined) return 1; // b (undefined) comes first
   if (a.maxPeriod !== undefined && b.maxPeriod !== undefined) {
+    // If both are defined, longer maxPeriod comes first
     if (a.maxPeriod !== b.maxPeriod) return b.maxPeriod - a.maxPeriod;
   }
 
