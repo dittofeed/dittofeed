@@ -58,7 +58,7 @@ interface InFlightTask {
  * 2. Longer maxPeriod comes first
  * 3. Earlier insertion order comes first
  */
-function compareWorkspaceItems(
+export function compareWorkspaceItems(
   a: WorkspaceQueueItem,
   b: WorkspaceQueueItem,
 ): number {
