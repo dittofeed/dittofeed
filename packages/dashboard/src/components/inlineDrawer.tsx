@@ -38,7 +38,7 @@ export function InlineDrawer({
         <Box
           sx={{
             maxHeight: open ? maxHeight : 0,
-            transition: `max-height ${drawerTransitionDuration}ms ease-in-out, opacity ${drawerTransitionDuration}ms ease-in-out`,
+            transition: `height ${drawerTransitionDuration}ms ease-in-out, max-height ${drawerTransitionDuration}ms ease-in-out, opacity ${drawerTransitionDuration}ms ease-in-out`,
             opacity: open ? 1 : 0,
           }}
         >

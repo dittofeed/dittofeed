@@ -235,7 +235,9 @@ export default function Recipients({ state }: { state: BroadcastState }) {
           onChange={(_, newValue) => {
             if (newValue !== null) {
               setSelectExistingSegment(newValue);
-              broadcastMutation.mutate({ segmentId: null });
+              if (newValue === "existing") {
+                broadcastMutation.mutate({ segmentId: null });
+              }
             }
           }}
         >
