@@ -3,16 +3,14 @@ import { LoggerSinks, proxyActivities, proxySinks } from "@temporalio/workflow";
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 
-const { recomputeBroadcastSegment } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "5 minutes",
+/**
+ * Activities
+ */
+const { config } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "1 minutes",
 });
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
-
-export interface RecomputeBroadcastSegmentWorkflowParams {
-  workspaceId: string;
-  broadcastId: string;
-}
 
 export function generateRecomputeBroadcastSegmentWorkflowId({
   workspaceId,
@@ -31,6 +29,20 @@ export async function recomputeBroadcastSegmentWorkflow({
   broadcastId,
 }: RecomputeBroadcastSegmentWorkflowParams) {
   const now = Date.now();
+
+  const { computedPropertiesActivityTaskQueue } = await config([
+    "computedPropertiesActivityTaskQueue",
+  ]);
+  const { recomputeBroadcastSegment } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "5 minutes",
+    taskQueue: computedPropertiesActivityTaskQueue,
+  });
+  logger.info("Recomputing broadcast segment", {
+    workspaceId,
+    broadcastId,
+    now,
+    taskQueue: computedPropertiesActivityTaskQueue,
+  });
   const success = await recomputeBroadcastSegment({
     workspaceId,
     broadcastId,
