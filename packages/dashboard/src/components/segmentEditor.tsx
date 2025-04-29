@@ -941,6 +941,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -973,6 +976,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1005,6 +1011,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1149,6 +1158,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1176,6 +1188,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1416,6 +1431,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1448,6 +1466,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1480,6 +1501,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1758,6 +1782,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1790,6 +1817,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1822,6 +1852,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -2129,6 +2162,9 @@ function SubscriptionGroupSelect({
             {...params}
             label="subscription group"
             variant="outlined"
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         )}
       />
@@ -2183,7 +2219,14 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
               );
             }}
             renderInput={(params) => (
-              <TextField label="Comparator" {...params} variant="outlined" />
+              <TextField
+                label="Comparator"
+                {...params}
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
             )}
           />
         </Box>
@@ -2322,7 +2365,14 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           disableClearable
           options={traitOperatorOptions}
           renderInput={(params) => (
-            <TextField label="Operator" {...params} variant="outlined" />
+            <TextField
+              label="Operator"
+              {...params}
+              variant="outlined"
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
           )}
         />
       </Box>
@@ -2372,6 +2422,9 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
       }}
       value={percentString}
       onChange={handlePercentChange}
+      InputLabelProps={{
+        shrink: true,
+      }}
     />
   );
 }
