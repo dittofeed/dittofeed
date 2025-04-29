@@ -26,6 +26,10 @@ const {
   startToCloseTimeout: "5 minutes",
 });
 
+const { config } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "1 minutes",
+});
+
 const { sendMessages } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
   retry: {
@@ -131,6 +135,18 @@ export async function broadcastWorkflowV2({
     batchSize: number;
   }) {
     let cursor: string | null = null;
+    const { computedPropertiesActivityTaskQueue } = await config([
+      "computedPropertiesActivityTaskQueue",
+    ]);
+    const { recomputeBroadcastSegment } = proxyActivities<typeof activities>({
+      startToCloseTimeout: "5 minutes",
+      taskQueue: computedPropertiesActivityTaskQueue,
+    });
+    await recomputeBroadcastSegment({
+      workspaceId,
+      broadcastId,
+      now: Date.now(),
+    });
     do {
       await refreshStatus();
 
@@ -232,9 +248,9 @@ export async function broadcastWorkflowV2({
     } while (cursor != null);
   };
 
-  const { scheduledAt, config } = broadcast;
-  const { defaultTimezone } = config;
-  const batchSize = config.batchSize ?? 100;
+  const { scheduledAt, config: broadcastConfig } = broadcast;
+  const { defaultTimezone } = broadcastConfig;
+  const batchSize = broadcastConfig.batchSize ?? 100;
 
   if (scheduledAt) {
     logger.debug("sending scheduled broadcast", {
@@ -250,7 +266,7 @@ export async function broadcastWorkflowV2({
       });
       return;
     }
-    if (config.useIndividualTimezone) {
+    if (broadcastConfig.useIndividualTimezone) {
       const { timezones } = await computeTimezones({
         workspaceId,
         defaultTimezone,

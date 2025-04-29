@@ -693,6 +693,9 @@ function ValueSelect({
         label="Value"
         value={value}
         onChange={handleChange}
+        InputLabelProps={{
+          shrink: true,
+        }}
       />
     </Box>
   );
@@ -729,6 +732,9 @@ function NumericValueSelect({
         value={value}
         InputProps={{
           type: "number",
+        }}
+        InputLabelProps={{
+          shrink: true,
         }}
         onChange={handleChange}
       />
@@ -905,6 +911,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -2481,6 +2490,10 @@ function SegmentNodeComponent({
           <TextField
             label="Condition or Group"
             {...params}
+            InputLabelProps={{
+              ...params.InputLabelProps,
+              shrink: true,
+            }}
             variant="outlined"
           />
         )}

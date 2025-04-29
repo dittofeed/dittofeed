@@ -51,6 +51,13 @@ function BroadcastSegmentEditor({
     () => broadcast?.segmentId,
     [broadcast?.segmentId],
   );
+  const isInternalSegment = useMemo(() => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return false;
+    }
+    const workspaceId = workspace.value.id;
+    return segmentId === getBroadcastSegmentId({ broadcastId, workspaceId });
+  }, [segmentId, broadcastId, workspace]);
 
   useEffect(() => {
     if (
@@ -110,7 +117,7 @@ function BroadcastSegmentEditor({
       );
     }, 1500);
 
-  if (segmentId === undefined) {
+  if (segmentId === undefined || !isInternalSegment) {
     return null;
   }
   return (
