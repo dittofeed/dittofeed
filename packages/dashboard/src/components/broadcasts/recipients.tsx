@@ -60,10 +60,7 @@ function BroadcastSegmentEditor({
   }, [segmentId, broadcastId, workspace]);
 
   useEffect(() => {
-    if (
-      segmentId !== undefined ||
-      workspace.type !== CompletionStatus.Successful
-    ) {
+    if (isInternalSegment || workspace.type !== CompletionStatus.Successful) {
       return;
     }
     const workspaceId = workspace.value.id;
