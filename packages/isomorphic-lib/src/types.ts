@@ -5156,3 +5156,12 @@ export const UpdateBroadcastArchiveRequest = Type.Object({
 export type UpdateBroadcastArchiveRequest = Static<
   typeof UpdateBroadcastArchiveRequest
 >;
+
+export const RecomputeBroadcastSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type RecomputeBroadcastSegmentRequest = Static<
+  typeof RecomputeBroadcastSegmentRequest
+>;

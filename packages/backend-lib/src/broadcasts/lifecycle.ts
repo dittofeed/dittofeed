@@ -9,12 +9,19 @@ import {
   RecomputeBroadcastSegmentWorkflowParams,
 } from "./recomputeBroadcastSegmentWorkflow";
 
-export async function recomputeBroadcastSegmentWorkflowGlobal({
+export async function startRecomputeBroadcastSegmentWorkflow({
   workspaceId,
   broadcastId,
 }: RecomputeBroadcastSegmentWorkflowParams) {
   const client = await connectWorkflowClient();
   try {
+    logger().info(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Starting recompute broadcast segment workflow",
+    );
     await client.start(recomputeBroadcastSegmentWorkflow, {
       workflowId: generateRecomputeBroadcastSegmentWorkflowId({
         workspaceId,

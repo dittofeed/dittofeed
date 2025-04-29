@@ -6,6 +6,7 @@ import {
   triggerBroadcast,
   upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
+import { startRecomputeBroadcastSegmentWorkflow } from "backend-lib/src/broadcasts/lifecycle";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
@@ -14,6 +15,7 @@ import {
   BroadcastResourceV2,
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
+  RecomputeBroadcastSegmentRequest,
   TriggerBroadcastRequest,
   UpdateBroadcastArchiveRequest,
   UpdateBroadcastRequest,
@@ -131,6 +133,29 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         workspaceId,
       });
       return reply.status(200).send(broadcast);
+    },
+  );
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/recompute-segment",
+    {
+      schema: {
+        description: "Recompute a broadcast segment.",
+        tags: ["Broadcasts"],
+        body: RecomputeBroadcastSegmentRequest,
+        response: {
+          204: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, broadcastId } = request.body;
+      await startRecomputeBroadcastSegmentWorkflow({
+        workspaceId,
+        broadcastId,
+      });
+      return reply
+        .status(204)
+        .send({ message: "Broadcast segment recomputed" });
     },
   );
 }
