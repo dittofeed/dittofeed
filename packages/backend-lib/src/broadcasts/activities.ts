@@ -500,6 +500,16 @@ export async function recomputeBroadcastSegment({
     );
     return false;
   }
+  if (broadcast.segment.resourceType !== "Internal") {
+    logger().info(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast segment is not internal skipping recompute",
+    );
+    return false;
+  }
   const segmentResource: SavedSegmentResource = unwrap(
     toSegmentResource(broadcast.segment),
   );
