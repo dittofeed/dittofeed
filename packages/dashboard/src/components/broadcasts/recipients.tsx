@@ -21,7 +21,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
-import { useTriggerRecomputePropertiesMutation } from "../../lib/useTriggerRecomputePropertiesMutation";
+import { useRecomputeBroadcastSegmentMutation } from "../../lib/useRecomputeBroadcastSegmentMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import SegmentEditor, { SegmentEditorProps } from "../segmentEditor";
 import {
@@ -42,8 +42,8 @@ function BroadcastSegmentEditor({
   disabled?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
-  const triggerRecomputePropertiesMutation =
-    useTriggerRecomputePropertiesMutation();
+  const recomputeBroadcastSegmentMutation =
+    useRecomputeBroadcastSegmentMutation();
   const updateSegmentsMutation = useUpdateSegmentsMutation();
   const broadcastMutation = useBroadcastMutation(broadcastId);
   const { data: broadcast } = useBroadcastQuery(broadcastId);
@@ -90,11 +90,13 @@ function BroadcastSegmentEditor({
       {
         onSuccess: () => {
           broadcastMutation.mutate({ segmentId: newSegmentId });
-          triggerRecomputePropertiesMutation.mutate({});
+          recomputeBroadcastSegmentMutation.mutate({
+            broadcastId,
+          });
         },
       },
     );
-  }, [workspace, segmentId]);
+  }, [workspace, segmentId, broadcastId]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation();
 
@@ -108,7 +110,9 @@ function BroadcastSegmentEditor({
         },
         {
           onSuccess: () => {
-            triggerRecomputePropertiesMutation.mutate({});
+            recomputeBroadcastSegmentMutation.mutate({
+              broadcastId,
+            });
           },
         },
       );

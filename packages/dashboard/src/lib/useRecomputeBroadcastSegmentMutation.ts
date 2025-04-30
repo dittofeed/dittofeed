@@ -1,4 +1,8 @@
-import { useMutation, UseMutationOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from "@tanstack/react-query";
 import axios from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -20,6 +24,7 @@ export function useRecomputeBroadcastSegmentMutation(
     Omit<RecomputeBroadcastSegmentRequest, "workspaceId">
   >,
 ) {
+  const queryClient = useQueryClient();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
 
   const mutationFn = async (
@@ -50,5 +55,19 @@ export function useRecomputeBroadcastSegmentMutation(
     mutationFn,
     mutationKey: RECOMPUTE_BROADCAST_SEGMENT_MUTATION_KEY,
     ...options,
+    onSuccess: (...args) => {
+      // Invalidate the computed properties query on success
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      queryClient.invalidateQueries({
+        queryKey: [RECOMPUTE_BROADCAST_SEGMENT_MUTATION_KEY],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["usersCount"],
+      });
+      options?.onSuccess?.(...args);
+    },
   });
 }
