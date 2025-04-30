@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
   CompletionStatus,
+  GetMessageTemplatesResponse,
   MessageTemplateResource,
-  MessageTemplateResourceDefinition,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 
@@ -67,46 +67,26 @@ export function useMessageTemplateUpdateMutation(templateId: string) {
         MessageTemplateResource[] | null
       >(queryKey);
 
-      queryClient.setQueryData<MessageTemplateResource[] | undefined>(
+      queryClient.setQueryData<GetMessageTemplatesResponse["templates"]>(
         queryKey,
         (oldDataArray) => {
-          if (!oldDataArray || oldDataArray.length === 0) {
+          const oldData: MessageTemplateResource | undefined =
+            oldDataArray?.[0];
+
+          if (!oldData) {
             return oldDataArray;
           }
 
-          return oldDataArray.map((template) => {
-            if (template.id === templateId) {
-              // Perform a type-safe merge for optimistic update
-              const updatedTemplate: MessageTemplateResource = {
-                ...template,
-                type: newData.type,
-                ...(newData.name && { name: newData.name }),
-                ...(newData.definition && { definition: newData.definition }),
-                draft:
-                  newData.draft === null
-                    ? template.draft
-                    : newData.draft ?? template.draft,
-                ...(newData.journeyId && { journeyId: newData.journeyId }),
-                ...(newData.from && { from: newData.from }),
-                ...(newData.replyTo && { replyTo: newData.replyTo }),
-                ...(newData.subject && { subject: newData.subject }),
-                ...(newData.body && { body: newData.body }),
-                ...(newData.title && { title: newData.title }),
-                ...(newData.webhookUrl && { webhookUrl: newData.webhookUrl }),
-                ...(newData.webhookHeaders && {
-                  webhookHeaders: newData.webhookHeaders,
-                }),
-                ...(newData.webhookBody && {
-                  webhookBody: newData.webhookBody,
-                }),
-                ...(newData.webhookMethod && {
-                  webhookMethod: newData.webhookMethod,
-                }),
-              };
-              return updatedTemplate;
-            }
-            return template;
-          });
+          return [
+            {
+              ...oldData,
+              ...newData,
+              draft:
+                newData.draft === undefined
+                  ? oldData.draft
+                  : newData.draft ?? oldData.draft,
+            } satisfies MessageTemplateResource,
+          ];
         },
       );
 
