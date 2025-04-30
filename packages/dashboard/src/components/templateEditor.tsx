@@ -77,6 +77,7 @@ import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
 } from "../lib/notices";
+import { useMessageTemplateQuery } from "../lib/useMessageTemplateQuery";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
@@ -95,6 +96,7 @@ import {
 } from "./publisher";
 import { SettingsCommand, SettingsMenu } from "./settingsMenu";
 import TemplatePreview from "./templatePreview";
+import { useMessageTemplateUpdateMutation } from "../lib/useMessageTemplateUpdateMutation";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -403,7 +405,6 @@ export default function TemplateEditor({
   const router = useRouter();
   const {
     apiBase,
-    messages,
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
     upsertTemplate,
@@ -412,7 +413,6 @@ export default function TemplateEditor({
     setViewDraft,
   } = useAppStorePick([
     "apiBase",
-    "messages",
     "workspace",
     "userProperties",
     "upsertTemplate",
@@ -420,13 +420,9 @@ export default function TemplateEditor({
     "setViewDraft",
     "inTransition",
   ]);
-  const template = useMemo(
-    () =>
-      messages.type === CompletionStatus.Successful
-        ? messages.value.find((m) => m.id === templateId)
-        : undefined,
-    [messages, templateId],
-  );
+  const { data: template } = useMessageTemplateQuery(templateId);
+  const { mutate: updateTemplate } =
+    useMessageTemplateUpdateMutation(templateId);
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
