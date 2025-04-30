@@ -73,9 +73,10 @@ export function useBroadcastMutation(broadcastId: string) {
         return [
           {
             ...oldData,
-            subscriptionGroupId: !optimisticSubscriptionGroupId
-              ? oldData.subscriptionGroupId
-              : optimisticSubscriptionGroupId ?? undefined,
+            subscriptionGroupId:
+              optimisticSubscriptionGroupId === undefined
+                ? oldData.subscriptionGroupId
+                : optimisticSubscriptionGroupId ?? undefined,
             segmentId:
               newData.segmentId === undefined
                 ? oldData.segmentId
