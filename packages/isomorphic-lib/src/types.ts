@@ -1688,6 +1688,7 @@ export type UpsertMessageTemplateValidationError = Static<
 export const GetMessageTemplatesRequest = Type.Object(
   {
     workspaceId: Type.String(),
+    ids: Type.Optional(Type.Array(Type.String())),
   },
   {
     $id: "GetMessageTemplatesRequest",
