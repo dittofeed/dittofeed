@@ -535,6 +535,7 @@ export default function TemplateEditor({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
+      // FIXME
       onPublish: () => {
         if (!workspace) {
           return;
@@ -566,6 +567,7 @@ export default function TemplateEditor({
           },
         })();
       },
+      // FIXME
       onRevert: () => {
         if (!workspace) {
           return;
@@ -653,6 +655,7 @@ export default function TemplateEditor({
       updateData.definition = definitionFromDraft;
     }
 
+    // FIXME
     apiRequestHandlerFactory({
       request: updateRequest,
       setRequest: (request) =>
