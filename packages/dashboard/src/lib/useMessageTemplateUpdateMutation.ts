@@ -15,7 +15,7 @@ interface MutationContext {
 }
 
 // Define the type for the variables passed to the mutation function explicitly
-type MutationVariables = Omit<
+export type UpsertMessageTemplateParams = Omit<
   UpsertMessageTemplateResource,
   "workspaceId" | "id"
 >;
@@ -26,7 +26,7 @@ export function useMessageTemplateUpdateMutation(templateId: string) {
   const queryClient = useQueryClient();
 
   const mutationFn = async (
-    updateData: MutationVariables,
+    updateData: UpsertMessageTemplateParams,
   ): Promise<MessageTemplateResource> => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
@@ -50,7 +50,7 @@ export function useMessageTemplateUpdateMutation(templateId: string) {
   return useMutation<
     MessageTemplateResource, // Type of data returned by mutationFn
     Error, // Type of error
-    MutationVariables, // Type of variables passed to mutate()
+    UpsertMessageTemplateParams, // Type of variables passed to mutate()
     MutationContext // Type of context used between onMutate and onError/onSettled
   >({
     mutationFn,

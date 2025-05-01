@@ -39,7 +39,6 @@ export interface PublisherUnpublishedStatus {
 
 export interface PublisherOutOfDateBaseStatus {
   type: PublisherStatusType.OutOfDate;
-  updateRequest: EphemeralRequestStatus<Error>;
 }
 
 export interface PublisherUpToDateStatus {

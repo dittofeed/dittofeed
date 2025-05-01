@@ -70,7 +70,6 @@ import React, { useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
 import { copyToClipboard } from "../lib/copyToClipboard";
 import {
@@ -78,6 +77,10 @@ import {
   noticeAnchorOrigin,
 } from "../lib/notices";
 import { useMessageTemplateQuery } from "../lib/useMessageTemplateQuery";
+import {
+  UpsertMessageTemplateParams,
+  useMessageTemplateUpdateMutation,
+} from "../lib/useMessageTemplateUpdateMutation";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
@@ -96,7 +99,7 @@ import {
 } from "./publisher";
 import { SettingsCommand, SettingsMenu } from "./settingsMenu";
 import TemplatePreview from "./templatePreview";
-import { useMessageTemplateUpdateMutation } from "../lib/useMessageTemplateUpdateMutation";
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -185,7 +188,6 @@ export interface BaseTemplateState {
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
   testResponse: MessageTemplateTestResponse | null;
-  updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
   isUserPropertiesMinimised: boolean;
 }
@@ -444,13 +446,10 @@ export default function TemplateEditor({
     userProperties: initialUserProperties,
     userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
     errors: new Map(),
-    testResponse: null,
     testRequest: {
       type: CompletionStatus.NotStarted,
     },
-    updateRequest: {
-      type: CompletionStatus.NotStarted,
-    },
+    testResponse: null,
     providerOverride: null,
     channel,
     rendered: {},
@@ -462,7 +461,6 @@ export default function TemplateEditor({
     rendered,
     testResponse,
     testRequest,
-    updateRequest,
     editedTemplate,
     userProperties,
     userPropertiesJSON,
@@ -488,6 +486,7 @@ export default function TemplateEditor({
   ]);
 
   useEffect(() => {
+    // FIXME
     setState((draft) => {
       if (!template?.definition) {
         return;
@@ -531,75 +530,23 @@ export default function TemplateEditor({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
-      // FIXME
       onPublish: () => {
-        if (!workspace) {
-          return;
-        }
-        apiRequestHandlerFactory({
-          request: updateRequest,
-          setRequest: (request) =>
-            setState((draft) => {
-              draft.updateRequest = request;
-            }),
-          responseSchema: MessageTemplateResource,
-          setResponse: upsertTemplate,
-          onSuccessNotice: "Published template draft.",
-          onFailureNoticeHandler: () =>
-            `API Error: Failed to publish template draft.`,
-          requestConfig: {
-            method: "PUT",
-            url: `${apiBase}/api/content/templates`,
-            data: {
-              workspaceId: workspace.id,
-              name: template.name,
-              id: template.id,
-              draft: null,
-              definition: definitionFromDraft,
-            } satisfies UpsertMessageTemplateResource,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        })();
+        updateTemplate({
+          name: template.name,
+          draft: null,
+          definition: definitionFromDraft,
+        });
       },
-      // FIXME
       onRevert: () => {
-        if (!workspace) {
-          return;
-        }
-        apiRequestHandlerFactory({
-          request: updateRequest,
-          setRequest: (request) =>
-            setState((draft) => {
-              draft.updateRequest = request;
-            }),
-          responseSchema: MessageTemplateResource,
-          setResponse: upsertTemplate,
-          onSuccessNotice: "Reverted template draft.",
-          onFailureNoticeHandler: () =>
-            `API Error: Failed to revert template draft.`,
-          requestConfig: {
-            method: "PUT",
-            url: `${apiBase}/api/content/templates`,
-            data: {
-              workspaceId: workspace.id,
-              name: template.name,
-              id: template.id,
-              draft: null,
-            } satisfies UpsertMessageTemplateResource,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        })();
+        updateTemplate({
+          name: template.name,
+          draft: null,
+        });
       },
-      updateRequest,
     };
 
     const draftToggle: PublisherOutOfDateToggleStatus = {
       type: PublisherStatusType.OutOfDate,
-      updateRequest,
       isDraft: viewDraft,
       onToggle: ({ isDraft: newIsDraft }) => {
         setViewDraft(newIsDraft);
@@ -612,7 +559,6 @@ export default function TemplateEditor({
     editedTemplate,
     viewDraft,
     errors.size,
-    updateRequest,
     workspace,
     upsertTemplate,
     apiBase,
@@ -627,10 +573,7 @@ export default function TemplateEditor({
     if (disabled || !workspace || !debouncedTitle) {
       return;
     }
-    const workspaceId = workspace.id;
-    const updateData: UpsertMessageTemplateResource = {
-      id: templateId,
-      workspaceId,
+    const updateData: UpsertMessageTemplateParams = {
       name: debouncedTitle,
     };
     if (!hidePublisher) {
@@ -651,25 +594,7 @@ export default function TemplateEditor({
       updateData.definition = definitionFromDraft;
     }
 
-    // FIXME
-    apiRequestHandlerFactory({
-      request: updateRequest,
-      setRequest: (request) =>
-        setState((draft) => {
-          draft.updateRequest = request;
-        }),
-      responseSchema: MessageTemplateResource,
-      setResponse: upsertTemplate,
-      onFailureNoticeHandler: () => `API Error: Failed to update template.`,
-      requestConfig: {
-        method: "PUT",
-        url: `${apiBase}/api/content/templates`,
-        data: updateData,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    })();
+    updateTemplate(updateData);
   }, [debouncedDraft, debouncedTitle]);
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
