@@ -1,12 +1,21 @@
-import { Box, Button, Stack, useTheme } from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+import { Box, Stack, useTheme } from "@mui/material";
 import { useMemo } from "react";
 
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
-import { BroadcastState } from "./broadcastsShared";
+import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
 
-export default function Configuration({ state }: { state: BroadcastState }) {
+export default function Configuration({
+  state,
+  updateState,
+}: {
+  state: BroadcastState;
+  updateState: BroadcastStateUpdater;
+}) {
   const { data: broadcast } = useBroadcastQuery(state.id);
+  const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const theme = useTheme();
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -21,6 +30,7 @@ export default function Configuration({ state }: { state: BroadcastState }) {
   if (!broadcast) {
     return null;
   }
+  const disabled = broadcast.status !== "Draft";
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       {errors.length > 0 && (
@@ -32,9 +42,26 @@ export default function Configuration({ state }: { state: BroadcastState }) {
           </ul>
         </Box>
       )}
-      <Button variant="outlined" color="primary">
+      <LoadingButton
+        variant="outlined"
+        color="primary"
+        loading={isPending}
+        disabled={disabled}
+        onClick={() => {
+          startBroadcast(
+            { broadcastId: state.id },
+            {
+              onSuccess: () => {
+                updateState((draft) => {
+                  draft.step = "REVIEW";
+                });
+              },
+            },
+          );
+        }}
+      >
         Start Broadcast
-      </Button>
+      </LoadingButton>
     </Stack>
   );
 }

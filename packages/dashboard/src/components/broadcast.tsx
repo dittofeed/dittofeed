@@ -114,7 +114,9 @@ export default function Broadcasts({
       content = <Content state={state} />;
       break;
     case BroadcastStepKeys.CONFIGURATION:
-      content = <Configuration state={state} />;
+      content = (
+        <Configuration state={state} updateState={updateStateWithoutNull} />
+      );
       break;
     case BroadcastStepKeys.REVIEW:
       content = <Review />;

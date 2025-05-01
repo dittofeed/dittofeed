@@ -155,7 +155,14 @@ export default function BroadcastLayout({
                     !broadcast ||
                     (step.afterDraft && broadcast.status === "Draft")
                   }
-                  onClick={() => updateStep(step.key)}
+                  onClick={() => {
+                    updateStep(step.key);
+                    if (step.key === "CONTENT") {
+                      setPreviewOpen(false);
+                    } else {
+                      setPreviewOpen(true);
+                    }
+                  }}
                 >
                   {step.name}
                 </StepButton>

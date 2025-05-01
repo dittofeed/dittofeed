@@ -197,7 +197,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
   }
 
   if (!broadcast || broadcast.version !== "V2") {
-    throw new Error("Broadcast not found");
+    return null;
   }
 
   const currentSegmentId = broadcast.segmentId ?? undefined;
@@ -223,6 +223,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
           <SegmentsAutocomplete
             segmentId={currentSegmentId}
             handler={handleSegmentChange}
+            disabled={disabled}
           />
         </Box>
       );

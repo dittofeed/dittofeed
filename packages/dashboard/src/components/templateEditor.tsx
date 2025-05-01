@@ -85,7 +85,6 @@ import {
 } from "../lib/useMessageTemplateUpdateMutation";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import { useUserPropertiesQuery } from "../lib/useUserPropertiesQuery";
-import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
@@ -1243,10 +1242,7 @@ export default function TemplateEditor({
               : "Minimize user properties pane"
           }
         >
-          <IconButton
-            onClick={() => handleUserPropertiesToggle()}
-            disabled={disabled}
-          >
+          <IconButton onClick={() => handleUserPropertiesToggle()}>
             {!isUserPropertiesMinimised && (
               <KeyboardDoubleArrowLeftOutlined
                 sx={{
