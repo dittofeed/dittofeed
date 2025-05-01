@@ -422,7 +422,7 @@ export default function TemplateEditor({
   ]);
   const { data: template } = useMessageTemplateQuery(templateId);
   const { mutate: updateTemplate, isPending: isUpdating } =
-    useMessageTemplateUpdateMutation(templateId);
+    useMessageTemplateUpdateMutation();
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
@@ -531,6 +531,7 @@ export default function TemplateEditor({
       isUpdating,
       onPublish: () => {
         updateTemplate({
+          id: templateId,
           name: template.name,
           draft: null,
           definition: definitionFromDraft,
@@ -538,6 +539,7 @@ export default function TemplateEditor({
       },
       onRevert: () => {
         updateTemplate({
+          id: templateId,
           name: template.name,
           draft: null,
         });
@@ -575,6 +577,7 @@ export default function TemplateEditor({
       return;
     }
     const updateData: UpsertMessageTemplateParams = {
+      id: templateId,
       name: debouncedTitle,
     };
     if (!hidePublisher) {

@@ -7,17 +7,26 @@ import {
 } from "@mui/material";
 import { getBroadcastMessageTemplateId } from "isomorphic-lib/src/broadcasts";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus } from "isomorphic-lib/src/types";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ChannelType,
+  CompletionStatus,
+  MessageTemplateDefinition,
+} from "isomorphic-lib/src/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useMessageTemplateUpdateMutation } from "../../lib/useMessageTemplateUpdateMutation";
 import {
   MessageTemplateAutocomplete,
   MessageTemplateChangeHandler,
   SimpleMessageTemplate,
 } from "../messageTemplateAutocomplete";
+import MessageTemplateEditor, {
+  MessageTemplateEditorState,
+} from "../messageTemplateEditor";
 import { BroadcastState } from "./broadcastsShared";
 
 function BroadcastMessageTemplateEditor({
@@ -27,12 +36,114 @@ function BroadcastMessageTemplateEditor({
   broadcastId: string;
   disabled: boolean;
 }) {
+  const { workspace } = useAppStorePick(["workspace"]);
+  const broadcastMutation = useBroadcastMutation(broadcastId);
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const messageTemplateId = useMemo<string | undefined>(
+    () => broadcast?.messageTemplateId,
+    [broadcast?.messageTemplateId],
+  );
+
+  const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
+
+  const isInternalTemplate = useMemo(() => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return false;
+    }
+    const workspaceId = workspace.value.id;
+    return (
+      messageTemplateId ===
+      getBroadcastMessageTemplateId({ broadcastId, workspaceId })
+    );
+  }, [messageTemplateId, broadcastId, workspace]);
+
+  useEffect(() => {
+    if (
+      isInternalTemplate ||
+      workspace.type !== CompletionStatus.Successful ||
+      !broadcast ||
+      broadcast.version !== "V2"
+    ) {
+      return;
+    }
+    const workspaceId = workspace.value.id;
+    const newMessageTemplateId = getBroadcastMessageTemplateId({
+      broadcastId,
+      workspaceId,
+    });
+    const newMessageTemplateName = `Broadcast - ${broadcastId}`;
+
+    let definition: MessageTemplateDefinition;
+    switch (broadcast.config.message.type) {
+      case ChannelType.Email:
+        definition = {
+          type: ChannelType.Email,
+          from: "test@test.com",
+          subject: "test",
+          body: "test",
+        };
+        break;
+      case ChannelType.Sms:
+        definition = {
+          type: ChannelType.Sms,
+          body: "test",
+        };
+        break;
+      default:
+        return;
+    }
+
+    updateMessageTemplatesMutation.mutate(
+      {
+        id: newMessageTemplateId,
+        name: newMessageTemplateName,
+        definition,
+        resourceType: "Internal",
+        workspaceId,
+        createOnly: true,
+      },
+      {
+        onSuccess: () => {
+          broadcastMutation.mutate({ messageTemplateId: newMessageTemplateId });
+        },
+      },
+    );
+  }, [
+    workspace,
+    messageTemplateId,
+    broadcastId,
+    isInternalTemplate,
+    broadcast,
+    broadcastMutation,
+    updateMessageTemplatesMutation,
+  ]);
+
+  const messageTemplatesUpdateMutation = useUpdateMessageTemplatesMutation();
+
+  const updateTemplateCallback = useDebouncedCallback(
+    (state: MessageTemplateEditorState) => {
+      if (!state.definition || !state.name) {
+        return;
+      }
+      messageTemplatesUpdateMutation.mutate({
+        id: state.id,
+        definition: state.definition,
+        name: state.name,
+      });
+    },
+    1500,
+  );
+
+  if (messageTemplateId === undefined || !isInternalTemplate) {
+    return null;
+  }
+
   return (
-    <Stack spacing={2}>
-      <Typography variant="caption" sx={{ mb: -1 }}>
-        New Message Template
-      </Typography>
-    </Stack>
+    <MessageTemplateEditor
+      disabled={disabled}
+      templateId={messageTemplateId}
+      onChange={updateTemplateCallback}
+    />
   );
 }
 
