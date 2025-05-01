@@ -648,7 +648,6 @@ export default function TemplateEditor({
         !workspace ||
         inTransition ||
         !draftToRender ||
-        // FIXME user properties not present
         Object.keys(debouncedUserProperties).length === 0
       ) {
         return;
@@ -719,7 +718,13 @@ export default function TemplateEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedUserProperties, debouncedDraft, inTransition, viewDraft]);
+  }, [
+    debouncedUserProperties,
+    debouncedDraft,
+    inTransition,
+    viewDraft,
+    draftToRender,
+  ]);
 
   useEffect(() => {
     const exitingFunction = () => {
