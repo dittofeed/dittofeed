@@ -32,23 +32,23 @@ import { BroadcastState } from "./broadcastsShared";
 const DEFAULT_EMAIL_CONTENTS_TYPE = EmailContentsType.LowCode;
 
 function EmailControls({
-  emailContentsType,
-  setEmailContentsType,
+  emailContentType,
+  setEmailContentType,
   broadcastId,
 }: {
   broadcastId: string;
-  emailContentsType: EmailContentsType;
-  setEmailContentsType: (emailContentsType: EmailContentsType) => void;
+  emailContentType: EmailContentsType | null;
+  setEmailContentType: (emailContentType: EmailContentsType | null) => void;
 }) {
   const { data: broadcast } = useBroadcastQuery(broadcastId);
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
   return (
     <ToggleButtonGroup
-      value={emailContentsType}
+      value={emailContentType}
       exclusive
       disabled={broadcast?.status !== "Draft"}
       onChange={(_, newValue) => {
-        setEmailContentsType(newValue);
+        setEmailContentType(newValue);
         if (broadcast?.messageTemplateId) {
           updateMessageTemplateMutation.mutate({
             id: broadcast.messageTemplateId,
@@ -176,10 +176,41 @@ export default function Content({ state }: { state: BroadcastState }) {
   const [selectExistingTemplate, setSelectExistingTemplate] = useState<
     "existing" | "new" | null
   >(null);
-  const [emailContentsType, setEmailContentsType] = useState<EmailContentsType>(
-    DEFAULT_EMAIL_CONTENTS_TYPE,
-  );
+  const [emailContentType, setEmailContentType] =
+    useState<EmailContentsType | null>(null);
   const disabled = broadcast?.status !== "Draft";
+  const { data: messageTemplate } = useMessageTemplateQuery(
+    broadcast?.messageTemplateId,
+  );
+
+  useEffect(() => {
+    if (
+      emailContentType !== null ||
+      selectExistingTemplate !== "new" ||
+      messageTemplate?.definition?.type !== "Email" ||
+      workspace.type !== CompletionStatus.Successful ||
+      messageTemplate.id !==
+        getBroadcastMessageTemplateId({
+          broadcastId: state.id,
+          workspaceId: workspace.value.id,
+        })
+    ) {
+      return;
+    }
+
+    const contentType =
+      "emailContentsType" in messageTemplate.definition
+        ? messageTemplate.definition.emailContentsType
+        : EmailContentsType.Code;
+    setEmailContentType(contentType);
+  }, [
+    emailContentType,
+    broadcast,
+    messageTemplate,
+    selectExistingTemplate,
+    workspace,
+    state.id,
+  ]);
 
   useEffect(() => {
     if (
@@ -197,10 +228,10 @@ export default function Content({ state }: { state: BroadcastState }) {
           workspaceId: workspace.value.id,
         })
     ) {
-      setSelectExistingTemplate("existing");
+      setSelectExistingTemplate("new");
       return;
     }
-    setSelectExistingTemplate("new");
+    setSelectExistingTemplate("existing");
   }, [broadcast, state.id, workspace, selectExistingTemplate]);
 
   const handleMessageTemplateChange: MessageTemplateChangeHandler = useCallback(
@@ -246,8 +277,8 @@ export default function Content({ state }: { state: BroadcastState }) {
         controls = (
           <EmailControls
             broadcastId={broadcast.id}
-            emailContentsType={emailContentsType}
-            setEmailContentsType={setEmailContentsType}
+            emailContentType={emailContentType}
+            setEmailContentType={setEmailContentType}
           />
         );
         break;
