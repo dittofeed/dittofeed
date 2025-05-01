@@ -1690,6 +1690,7 @@ export const GetMessageTemplatesRequest = Type.Object(
   {
     workspaceId: Type.String(),
     ids: Type.Optional(Type.Array(Type.String())),
+    resourceType: Type.Optional(ResourceType),
   },
   {
     $id: "GetMessageTemplatesRequest",

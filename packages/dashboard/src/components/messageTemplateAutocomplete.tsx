@@ -1,5 +1,8 @@
 import { Autocomplete, CircularProgress, TextField } from "@mui/material";
-import { MessageTemplateResource } from "isomorphic-lib/src/types";
+import {
+  MessageTemplateResource,
+  ResourceTypeEnum,
+} from "isomorphic-lib/src/types";
 import { useMemo } from "react";
 
 import { useMessageTemplatesQuery } from "../lib/useMessageTemplatesQuery";
@@ -27,7 +30,9 @@ export function MessageTemplateAutocomplete({
   disabled?: boolean;
   handler: MessageTemplateChangeHandler;
 }) {
-  const { data: queryData, isLoading } = useMessageTemplatesQuery();
+  const { data: queryData, isLoading } = useMessageTemplatesQuery({
+    resourceType: ResourceTypeEnum.Declarative,
+  });
 
   const messageTemplateItems: SimpleMessageTemplate[] = useMemo(() => {
     // Adapt based on the actual structure returned by useMessageTemplatesQuery

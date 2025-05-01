@@ -188,6 +188,11 @@ export default async function contentController(fastify: FastifyInstance) {
       if (request.query.ids) {
         conditions.push(inArray(schema.messageTemplate.id, request.query.ids));
       }
+      if (request.query.resourceType) {
+        conditions.push(
+          eq(schema.messageTemplate.resourceType, request.query.resourceType),
+        );
+      }
       const templateModels = await db().query.messageTemplate.findMany({
         where: and(...conditions),
       });
