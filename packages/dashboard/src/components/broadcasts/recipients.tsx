@@ -252,24 +252,22 @@ export default function Recipients({ state }: { state: BroadcastState }) {
       <Typography variant="caption" sx={{ mb: -1 }}>
         Segment (Optional)
       </Typography>
-      <Stack direction="row" spacing={1}>
-        <ToggleButtonGroup
-          value={selectExistingSegment}
-          exclusive
-          disabled={disabled || selectExistingSegment === null}
-          onChange={(_, newValue) => {
-            if (newValue !== null) {
-              setSelectExistingSegment(newValue);
-              if (newValue === "existing") {
-                broadcastMutation.mutate({ segmentId: null });
-              }
+      <ToggleButtonGroup
+        value={selectExistingSegment}
+        exclusive
+        disabled={disabled || selectExistingSegment === null}
+        onChange={(_, newValue) => {
+          if (newValue !== null) {
+            setSelectExistingSegment(newValue);
+            if (newValue === "existing") {
+              broadcastMutation.mutate({ segmentId: null });
             }
-          }}
-        >
-          <ToggleButton value="existing">Existing Segment</ToggleButton>
-          <ToggleButton value="new">New Segment</ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
+          }
+        }}
+      >
+        <ToggleButton value="existing">Existing Segment</ToggleButton>
+        <ToggleButton value="new">New Segment</ToggleButton>
+      </ToggleButtonGroup>
       {segmentSelect}
     </Stack>
   );

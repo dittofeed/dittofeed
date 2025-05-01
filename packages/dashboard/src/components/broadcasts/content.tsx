@@ -1,6 +1,14 @@
-import { Box, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
+import { getBroadcastMessageTemplateId } from "isomorphic-lib/src/broadcasts";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { useCallback, useState } from "react";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
@@ -37,6 +45,28 @@ export default function Content({ state }: { state: BroadcastState }) {
   >(null);
   const disabled = broadcast?.status !== "Draft";
 
+  useEffect(() => {
+    if (
+      !broadcast ||
+      workspace.type !== CompletionStatus.Successful ||
+      selectExistingTemplate !== null
+    ) {
+      return;
+    }
+    if (
+      broadcast.messageTemplateId &&
+      broadcast.messageTemplateId ===
+        getBroadcastMessageTemplateId({
+          broadcastId: state.id,
+          workspaceId: workspace.value.id,
+        })
+    ) {
+      setSelectExistingTemplate("existing");
+      return;
+    }
+    setSelectExistingTemplate("new");
+  }, [broadcast, state.id, workspace, selectExistingTemplate]);
+
   const handleMessageTemplateChange: MessageTemplateChangeHandler = useCallback(
     (template: SimpleMessageTemplate | null) => {
       setSelectExistingTemplate(template ? "existing" : "new");
@@ -48,20 +78,20 @@ export default function Content({ state }: { state: BroadcastState }) {
   switch (selectExistingTemplate) {
     case "existing":
       templateSelect = (
-        <MessageTemplateAutocomplete
-          messageTemplateId={broadcast?.messageTemplateId}
-          handler={handleMessageTemplateChange}
-        />
+        <Box sx={{ maxWidth: 600 }}>
+          <MessageTemplateAutocomplete
+            messageTemplateId={broadcast?.messageTemplateId}
+            handler={handleMessageTemplateChange}
+          />
+        </Box>
       );
       break;
     case "new":
       templateSelect = (
-        <Box sx={{ maxWidth: 600 }}>
-          <BroadcastMessageTemplateEditor
-            broadcastId={state.id}
-            disabled={disabled}
-          />
-        </Box>
+        <BroadcastMessageTemplateEditor
+          broadcastId={state.id}
+          disabled={disabled}
+        />
       );
       break;
     case null:
@@ -70,11 +100,27 @@ export default function Content({ state }: { state: BroadcastState }) {
     default:
       assertUnreachable(selectExistingTemplate);
   }
+  if (!broadcast) {
+    return null;
+  }
   return (
     <Stack spacing={2}>
-      <Typography variant="caption" sx={{ mb: -1 }}>
-        Message Template
-      </Typography>
+      <ToggleButtonGroup
+        value={selectExistingTemplate}
+        exclusive
+        disabled={disabled || selectExistingTemplate === null}
+        onChange={(_, newValue) => {
+          if (newValue !== null) {
+            setSelectExistingTemplate(newValue);
+          }
+          if (newValue === "existing") {
+            broadcastMutation.mutate({ messageTemplateId: null });
+          }
+        }}
+      >
+        <ToggleButton value="existing">Existing Template</ToggleButton>
+        <ToggleButton value="new">New Template</ToggleButton>
+      </ToggleButtonGroup>
       {templateSelect}
     </Stack>
   );
