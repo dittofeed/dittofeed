@@ -6,7 +6,10 @@ import {
   triggerBroadcast,
   upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
-import { startRecomputeBroadcastSegmentWorkflow } from "backend-lib/src/broadcasts/lifecycle";
+import {
+  startBroadcastWorkflow,
+  startRecomputeBroadcastSegmentWorkflow,
+} from "backend-lib/src/broadcasts/lifecycle";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
@@ -16,6 +19,7 @@ import {
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
   RecomputeBroadcastSegmentRequest,
+  StartBroadcastRequest,
   TriggerBroadcastRequest,
   UpdateBroadcastArchiveRequest,
   UpdateBroadcastRequest,
@@ -156,6 +160,28 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       return reply
         .status(204)
         .send({ message: "Broadcast segment recomputed" });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/start",
+    {
+      schema: {
+        description: "Start a broadcast.",
+        tags: ["Broadcasts"],
+        body: StartBroadcastRequest,
+        response: {
+          200: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, broadcastId } = request.body;
+      await startBroadcastWorkflow({
+        workspaceId,
+        broadcastId,
+      });
+      return reply.status(200).send({ message: "Broadcast started" });
     },
   );
 }

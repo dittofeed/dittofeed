@@ -5168,3 +5168,10 @@ export const RecomputeBroadcastSegmentRequest = Type.Object({
 export type RecomputeBroadcastSegmentRequest = Static<
   typeof RecomputeBroadcastSegmentRequest
 >;
+
+export const StartBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;

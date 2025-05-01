@@ -1,5 +1,9 @@
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 
+import {
+  broadcastWorkflow,
+  generateBroadcastWorkflowId,
+} from "../computedProperties/broadcastWorkflow";
 import config from "../config";
 import logger from "../logger";
 import connectWorkflowClient from "../temporal/connectWorkflowClient";
@@ -45,5 +49,45 @@ export async function startRecomputeBroadcastSegmentWorkflow({
         "Recompute broadcast segment workflow already started.",
       );
     }
+  }
+}
+
+export async function startBroadcastWorkflow({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Starting broadcast workflow",
+    );
+    await client.start(broadcastWorkflow, {
+      workflowId: generateBroadcastWorkflowId({
+        workspaceId,
+        broadcastId,
+      }),
+      args: [
+        {
+          workspaceId,
+          broadcastId,
+        },
+      ],
+      taskQueue: config().computedPropertiesTaskQueue,
+    });
+  } catch (e) {
+    logger().error(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Error starting broadcast workflow",
+    );
   }
 }
