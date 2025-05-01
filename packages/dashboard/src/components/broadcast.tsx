@@ -1,5 +1,4 @@
-import { Theme } from "@mui/material";
-import { SxProps } from "@mui/material";
+import { SxProps, Theme } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
@@ -15,7 +14,6 @@ import {
 } from "./broadcasts/broadcastsShared";
 import Configuration from "./broadcasts/configuration";
 import Content from "./broadcasts/content";
-import Preview from "./broadcasts/preview";
 import Recipients from "./broadcasts/recipients";
 import Review from "./broadcasts/review";
 
@@ -116,10 +114,7 @@ export default function Broadcasts({
       content = <Content state={state} />;
       break;
     case BroadcastStepKeys.CONFIGURATION:
-      content = <Configuration />;
-      break;
-    case BroadcastStepKeys.PREVIEW:
-      content = <Preview />;
+      content = <Configuration state={state} />;
       break;
     case BroadcastStepKeys.REVIEW:
       content = <Review />;
