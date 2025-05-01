@@ -32,6 +32,8 @@ interface BroadcastLayoutProps {
   sx?: SxProps<Theme>;
 }
 
+export const PREVIEW_HEADER_HEIGHT = "48px";
+
 function PreviewHeader({
   previewOpen,
   setPreviewOpen,
@@ -48,6 +50,8 @@ function PreviewHeader({
         p: 1,
         borderBottom: 1,
         borderColor: "divider",
+        backgroundColor: "background.paper",
+        height: PREVIEW_HEADER_HEIGHT,
       }}
     >
       <Typography variant="h6">Broadcast Preview</Typography>
@@ -119,7 +123,10 @@ export default function BroadcastLayout({
   }
 
   return (
-    <Stack sx={{ width: "100%", height: "100%" }} className="broadcast-layout">
+    <Box
+      sx={{ position: "relative", width: "100%", height: "100%" }}
+      className="broadcast-layout"
+    >
       <Stack
         sx={{ width: "100%", height: "100%", ...sx, flex: 1 }}
         className="broadcast-layout-content"
@@ -160,9 +167,13 @@ export default function BroadcastLayout({
             </GreyButton>
           </Stack>
         </Stack>
-        <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
+        <Box sx={{ pt: 3, pb: 1, pl: 2, flex: 1 }}>{children}</Box>
+        <Box
+          sx={{
+            height: PREVIEW_HEADER_HEIGHT,
+          }}
+        />
       </Stack>
-      {/* FIXME taking up remaining space would ideally overlap the content above it without taking up any space in broadcast-layout */}
       <InlineDrawer
         open={previewOpen}
         maxHeight={PREVIEW_HEIGHT}
@@ -175,6 +186,6 @@ export default function BroadcastLayout({
       >
         <PreviewContent workspaceId={workspace.value.id} id={state.id} />
       </InlineDrawer>
-    </Stack>
+    </Box>
   );
 }

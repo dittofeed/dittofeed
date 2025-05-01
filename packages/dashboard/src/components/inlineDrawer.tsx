@@ -21,30 +21,28 @@ export function InlineDrawer({
   maxHeight: string;
 }) {
   return (
-    <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-      <Stack
+    <Stack
+      sx={{
+        position: "absolute", // Allows containing absolute elements if needed later
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        zIndex: 1000,
+        // Custom top shadow, minimizing side spread
+        boxShadow: "0px -5px 6px -4px rgba(0,0,0,0.2)",
+      }}
+    >
+      {header}
+      <Box
         sx={{
-          position: "absolute", // Allows containing absolute elements if needed later
+          maxHeight: open ? maxHeight : 0,
           overflow: "hidden",
-          bottom: 0,
-          left: 0,
-          width: "100%",
-          zIndex: 1000,
-          // Custom top shadow, minimizing side spread
-          boxShadow: "0px -5px 6px -4px rgba(0,0,0,0.2)",
+          transition: `height ${drawerTransitionDuration}ms ease-in-out, max-height ${drawerTransitionDuration}ms ease-in-out, opacity ${drawerTransitionDuration}ms ease-in-out`,
+          opacity: open ? 1 : 0,
         }}
       >
-        {header}
-        <Box
-          sx={{
-            maxHeight: open ? maxHeight : 0,
-            transition: `height ${drawerTransitionDuration}ms ease-in-out, max-height ${drawerTransitionDuration}ms ease-in-out, opacity ${drawerTransitionDuration}ms ease-in-out`,
-            opacity: open ? 1 : 0,
-          }}
-        >
-          {children}
-        </Box>
-      </Stack>
-    </Box>
+        {children}
+      </Box>
+    </Stack>
   );
 }
