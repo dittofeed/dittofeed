@@ -33,3 +33,21 @@ export function getBroadcastSegmentId({
 }): string {
   return uuidv5(`${broadcastId}-segment`, workspaceId);
 }
+
+export function getBroadcastMessageTemplateId({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}): string {
+  return uuidv5(`${broadcastId}-message-template`, workspaceId);
+}
+
+export function getBroadcastMessageTemplateName({
+  broadcastId,
+}: {
+  broadcastId: string;
+}): string {
+  return `Broadcast - ${broadcastId}`;
+}
