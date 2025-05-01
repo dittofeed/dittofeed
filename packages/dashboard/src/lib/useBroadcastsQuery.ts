@@ -14,6 +14,7 @@ import {
 
 import { useAppStorePick } from "./appStore";
 
+export const BROADCASTS_QUERY_KEY = "broadcasts";
 /**
  * Custom hook for fetching broadcasts using the GET /api/broadcasts endpoint
  */
@@ -31,7 +32,7 @@ export function useBroadcastsQuery<TData = GetBroadcastsResponse>(
   }
 
   const workspaceId = workspace.value.id;
-  const queryKey = ["broadcasts", { ...params, workspaceId }];
+  const queryKey = [BROADCASTS_QUERY_KEY, { ...params, workspaceId }];
 
   const queryResult = useQuery<GetBroadcastsResponse, Error, TData>({
     queryKey,

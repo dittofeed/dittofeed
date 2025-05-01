@@ -2483,6 +2483,8 @@ export const BaseMessageResponse = Type.Object({
   message: Type.String(),
 });
 
+export type BaseMessageResponse = Static<typeof BaseMessageResponse>;
+
 export const BadRequestResponse = BaseMessageResponse;
 
 export enum SourceControlProviderEnum {
