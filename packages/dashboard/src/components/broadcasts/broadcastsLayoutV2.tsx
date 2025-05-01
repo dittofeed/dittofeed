@@ -122,6 +122,7 @@ export default function BroadcastLayout({
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
+  const isDraft = broadcast?.status === "Draft";
 
   return (
     <Box
@@ -151,10 +152,7 @@ export default function BroadcastLayout({
               <Step key={step.key}>
                 <StepButton
                   color="inherit"
-                  disabled={
-                    !broadcast ||
-                    (step.afterDraft && broadcast.status === "Draft")
-                  }
+                  disabled={!broadcast || (step.afterDraft && isDraft)}
                   onClick={() => {
                     updateStep(step.key);
                     if (step.key === "CONTENT") {
@@ -173,6 +171,7 @@ export default function BroadcastLayout({
             <GreyButton
               variant="contained"
               color="primary"
+              disabled={broadcast?.status !== "Draft"}
               onClick={() => setPreviewOpen(!previewOpen)}
             >
               Toggle Preview
@@ -186,18 +185,20 @@ export default function BroadcastLayout({
           }}
         />
       </Stack>
-      <InlineDrawer
-        open={previewOpen}
-        maxHeight={PREVIEW_HEIGHT}
-        header={
-          <PreviewHeader
-            previewOpen={previewOpen}
-            setPreviewOpen={setPreviewOpen}
-          />
-        }
-      >
-        <PreviewContent workspaceId={workspace.value.id} id={state.id} />
-      </InlineDrawer>
+      {isDraft && (
+        <InlineDrawer
+          open={previewOpen}
+          maxHeight={PREVIEW_HEIGHT}
+          header={
+            <PreviewHeader
+              previewOpen={previewOpen}
+              setPreviewOpen={setPreviewOpen}
+            />
+          }
+        >
+          <PreviewContent workspaceId={workspace.value.id} id={state.id} />
+        </InlineDrawer>
+      )}
     </Box>
   );
 }
