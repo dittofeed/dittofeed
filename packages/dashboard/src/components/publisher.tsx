@@ -39,6 +39,7 @@ export interface PublisherUnpublishedStatus {
 
 export interface PublisherOutOfDateBaseStatus {
   type: PublisherStatusType.OutOfDate;
+  isUpdating: boolean;
 }
 
 export interface PublisherUpToDateStatus {
@@ -211,7 +212,7 @@ export function Publisher({ status, title, isMinimised }: PublisherProps) {
     let timeoutId: ReturnType<typeof setTimeout>;
     if (
       status.type === PublisherStatusType.OutOfDate &&
-      status.updateRequest.type === CompletionStatus.InProgress &&
+      status.isUpdating &&
       !showProgress
     ) {
       setShowProgress(true);
@@ -267,8 +268,7 @@ export function Publisher({ status, title, isMinimised }: PublisherProps) {
     );
   }
 
-  const operationInProgress =
-    status.updateRequest.type === CompletionStatus.InProgress;
+  const { isUpdating } = status;
 
   return (
     <PublisherInner
@@ -277,8 +277,8 @@ export function Publisher({ status, title, isMinimised }: PublisherProps) {
       onPublish={status.onPublish}
       onRevert={status.onRevert}
       showUnpublishedWarning
-      disablePublish={operationInProgress || Boolean(status.disabled)}
-      disableRevert={operationInProgress}
+      disablePublish={isUpdating || Boolean(status.disabled)}
+      disableRevert={isUpdating}
       isMinimised={isMinimised}
     />
   );

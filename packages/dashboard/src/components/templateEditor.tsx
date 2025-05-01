@@ -49,7 +49,6 @@ import {
   EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
-  MessageTemplateResource,
   MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
@@ -58,7 +57,6 @@ import {
   RenderMessageTemplateRequestContents,
   RenderMessageTemplateResponse,
   SmsProviderType,
-  UpsertMessageTemplateResource,
   UserPropertyAssignments,
   UserPropertyResource,
   WorkspaceMemberResource,
@@ -70,6 +68,7 @@ import React, { useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
 import { copyToClipboard } from "../lib/copyToClipboard";
 import {
@@ -99,7 +98,6 @@ import {
 } from "./publisher";
 import { SettingsCommand, SettingsMenu } from "./settingsMenu";
 import TemplatePreview from "./templatePreview";
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -423,7 +421,7 @@ export default function TemplateEditor({
     "inTransition",
   ]);
   const { data: template } = useMessageTemplateQuery(templateId);
-  const { mutate: updateTemplate } =
+  const { mutate: updateTemplate, isPending: isUpdating } =
     useMessageTemplateUpdateMutation(templateId);
 
   const workspace =
@@ -530,6 +528,7 @@ export default function TemplateEditor({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
+      isUpdating,
       onPublish: () => {
         updateTemplate({
           name: template.name,
@@ -548,6 +547,7 @@ export default function TemplateEditor({
     const draftToggle: PublisherOutOfDateToggleStatus = {
       type: PublisherStatusType.OutOfDate,
       isDraft: viewDraft,
+      isUpdating,
       onToggle: ({ isDraft: newIsDraft }) => {
         setViewDraft(newIsDraft);
       },
@@ -563,6 +563,7 @@ export default function TemplateEditor({
     upsertTemplate,
     apiBase,
     setState,
+    isUpdating,
     setViewDraft,
   ]);
 
