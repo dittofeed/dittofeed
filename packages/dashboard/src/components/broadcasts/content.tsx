@@ -42,14 +42,12 @@ function EmailControls({
 }) {
   const { data: broadcast } = useBroadcastQuery(broadcastId);
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
-  console.log("broadcast", broadcast);
   return (
     <ToggleButtonGroup
       value={emailContentsType}
       exclusive
       disabled={broadcast?.status !== "Draft"}
       onChange={(_, newValue) => {
-        // FIXME update definition
         setEmailContentsType(newValue);
         if (broadcast?.messageTemplateId) {
           updateMessageTemplateMutation.mutate({

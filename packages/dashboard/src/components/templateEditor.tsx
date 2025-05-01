@@ -406,7 +406,6 @@ export default function TemplateEditor({
   const {
     apiBase,
     workspace: workspaceResult,
-    userProperties: userPropertiesResult,
     upsertTemplate,
     viewDraft,
     inTransition,
@@ -414,7 +413,6 @@ export default function TemplateEditor({
   } = useAppStorePick([
     "apiBase",
     "workspace",
-    "userProperties",
     "upsertTemplate",
     "viewDraft",
     "setViewDraft",
@@ -460,7 +458,6 @@ export default function TemplateEditor({
     testResponse,
     testRequest,
     editedTemplate,
-    userProperties,
     userPropertiesJSON,
     isUserPropertiesMinimised,
   } = state;
@@ -623,6 +620,7 @@ export default function TemplateEditor({
         !workspace ||
         inTransition ||
         !draftToRender ||
+        // FIXME user properties not present
         Object.keys(debouncedUserProperties).length === 0
       ) {
         return;
