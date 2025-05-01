@@ -31,7 +31,10 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { emailProviderLabel } from "isomorphic-lib/src/email";
+import {
+  emailProviderLabel,
+  getEmailContentsType,
+} from "isomorphic-lib/src/email";
 import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   messageTemplateDefinitionToDraft,
@@ -454,6 +457,29 @@ export default function TemplateEditor({
     rendered: {},
     isUserPropertiesMinimised: defaultIsUserPropertiesMinimised,
   });
+  useEffect(() => {
+    if (
+      !template?.definition ||
+      state.editedTemplate?.draft?.type !== "Email" ||
+      template.definition.type !== "Email"
+    ) {
+      return;
+    }
+    const currentEmailContentsType = getEmailContentsType(
+      state.editedTemplate.draft,
+    );
+    const newEmailContentsType = getEmailContentsType(template.definition);
+    if (currentEmailContentsType !== newEmailContentsType) {
+      setState((d) => {
+        if (!d.editedTemplate) {
+          return d;
+        }
+        d.editedTemplate.draft = template.draft;
+        return d;
+      });
+    }
+  }, [template, state.editedTemplate, setState]);
+
   const {
     fullscreen,
     errors,

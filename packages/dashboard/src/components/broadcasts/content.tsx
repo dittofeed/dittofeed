@@ -9,7 +9,6 @@ import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
-  EmailTemplateResource,
   MessageTemplateResourceDefinition,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
