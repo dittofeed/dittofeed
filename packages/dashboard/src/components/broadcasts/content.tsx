@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { useCallback, useState } from "react";
 
@@ -56,10 +56,12 @@ export default function Content({ state }: { state: BroadcastState }) {
       break;
     case "new":
       templateSelect = (
-        <BroadcastMessageTemplateEditor
-          broadcastId={state.id}
-          disabled={disabled}
-        />
+        <Box sx={{ maxWidth: 600 }}>
+          <BroadcastMessageTemplateEditor
+            broadcastId={state.id}
+            disabled={disabled}
+          />
+        </Box>
       );
       break;
     case null:

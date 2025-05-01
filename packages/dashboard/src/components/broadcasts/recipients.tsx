@@ -9,6 +9,7 @@ import {
   getBroadcastSegmentId,
   getBroadcastSegmentName,
 } from "isomorphic-lib/src/broadcasts";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   SegmentDefinition,
@@ -33,7 +34,6 @@ import {
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 function BroadcastSegmentEditor({
   broadcastId,
@@ -219,10 +219,12 @@ export default function Recipients({ state }: { state: BroadcastState }) {
   switch (selectExistingSegment) {
     case "existing":
       segmentSelect = (
-        <SegmentsAutocomplete
-          segmentId={currentSegmentId}
-          handler={handleSegmentChange}
-        />
+        <Box sx={{ maxWidth: 600 }}>
+          <SegmentsAutocomplete
+            segmentId={currentSegmentId}
+            handler={handleSegmentChange}
+          />
+        </Box>
       );
       break;
     case "new":

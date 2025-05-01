@@ -1,3 +1,5 @@
+import { Theme } from "@mui/material";
+import { SxProps } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
@@ -16,8 +18,6 @@ import Content from "./broadcasts/content";
 import Preview from "./broadcasts/preview";
 import Recipients from "./broadcasts/recipients";
 import Review from "./broadcasts/review";
-import { Theme } from "@mui/material";
-import { SxProps } from "@mui/material";
 
 function queryParamsToState(
   queryParams: Record<string, string | string[] | undefined>,
@@ -113,7 +113,7 @@ export default function Broadcasts({
       content = <Recipients state={state} />;
       break;
     case BroadcastStepKeys.CONTENT:
-      content = <Content />;
+      content = <Content state={state} />;
       break;
     case BroadcastStepKeys.CONFIGURATION:
       content = <Configuration />;
