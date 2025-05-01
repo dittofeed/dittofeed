@@ -119,7 +119,7 @@ export default function Broadcasts({
       );
       break;
     case BroadcastStepKeys.REVIEW:
-      content = <Review />;
+      content = <Review state={state} />;
       break;
   }
 

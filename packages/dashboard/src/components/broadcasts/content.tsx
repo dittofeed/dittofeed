@@ -252,7 +252,8 @@ export default function Content({ state }: { state: BroadcastState }) {
 
   const handleMessageTemplateChange: MessageTemplateChangeHandler = useCallback(
     (template: SimpleMessageTemplate | null) => {
-      setSelectExistingTemplate(template ? "existing" : "new");
+      const newTemplateId = template?.id ?? null;
+      broadcastMutation.mutate({ messageTemplateId: newTemplateId });
     },
     [setSelectExistingTemplate],
   );

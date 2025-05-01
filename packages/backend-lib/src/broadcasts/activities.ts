@@ -30,6 +30,7 @@ import {
   EventType,
   GetUsersResponseItem,
   InternalEventType,
+  JSONValue,
   SavedSegmentResource,
   TrackData,
 } from "../types";
@@ -251,12 +252,19 @@ export function sendMessagesFactory(sender: Sender) {
             subscriptionGroupId: broadcast.subscriptionGroupId,
           });
 
+          const userPropertyAssignments = Object.entries(
+            user.properties,
+          ).reduce<Record<string, JSONValue>>((acc, [_id, { value, name }]) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            acc[name] = value;
+            return acc;
+          }, {});
           const baseParams: SendMessageParametersBase = {
             userId: user.id,
             workspaceId: params.workspaceId,
             templateId: messageTemplateId,
             useDraft: false,
-            userPropertyAssignments: user.properties,
+            userPropertyAssignments,
           };
           let messageVariant: SendMessageParameters;
           switch (config.message.type) {
@@ -282,6 +290,7 @@ export function sendMessagesFactory(sender: Sender) {
               };
               break;
           }
+          logger().debug({ messageVariant }, "Sending broadcast message");
           const result = await sender(messageVariant);
           return {
             userId: user.id,

@@ -534,6 +534,7 @@ interface DeliveriesTableV2Props {
   columnAllowList?: DeliveriesAllowedColumn[];
   userId?: string[] | string;
   groupId?: string[] | string;
+  broadcastId?: string;
   journeyId?: string;
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
   autoReloadByDefault?: boolean;
@@ -607,6 +608,7 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   triggeringProperties,
+  broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
 }: DeliveriesTableV2Props) {
@@ -709,6 +711,7 @@ export function DeliveriesTableV2({
         userId,
         groupId,
         journeyId,
+        broadcastId,
       };
       const response = await getDeliveriesRequest({
         params,
