@@ -81,6 +81,8 @@ import {
   useMessageTemplateUpdateMutation,
 } from "../lib/useMessageTemplateUpdateMutation";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
+import { useUserPropertiesQuery } from "../lib/useUserPropertiesQuery";
+import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
@@ -403,6 +405,7 @@ export default function TemplateEditor({
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
+  const { data: userPropertiesResult } = useUserPropertiesQuery();
   const {
     apiBase,
     workspace: workspaceResult,
@@ -427,12 +430,12 @@ export default function TemplateEditor({
       ? workspaceResult.value
       : null;
   const initialUserProperties = useMemo(() => {
-    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+    if (!userPropertiesResult) {
       return {};
     }
     return getUserPropertyValues({
       member,
-      userProperties: userPropertiesResult.value,
+      userProperties: userPropertiesResult.userProperties,
     });
   }, [userPropertiesResult, member]);
 
@@ -481,7 +484,6 @@ export default function TemplateEditor({
   ]);
 
   useEffect(() => {
-    // FIXME
     setState((draft) => {
       if (!template?.definition) {
         return;
@@ -598,7 +600,7 @@ export default function TemplateEditor({
     updateTemplate(updateData);
   }, [debouncedDraft, debouncedTitle]);
 
-  const [debouncedUserProperties] = useDebounce(userProperties, 300);
+  const [debouncedUserProperties] = useDebounce(state.userProperties, 300);
 
   const draftToRender = useMemo(() => {
     if (debouncedDraft) {
@@ -711,8 +713,8 @@ export default function TemplateEditor({
   useEffect(() => {
     let missingUserProperty: string | null = null;
     const userPropertySet = new Set(
-      userPropertiesResult.type === CompletionStatus.Successful
-        ? userPropertiesResult.value.map((p) => p.name)
+      userPropertiesResult
+        ? userPropertiesResult.userProperties.map((p) => p.name)
         : [],
     );
     for (const userProperty in debouncedUserProperties) {
