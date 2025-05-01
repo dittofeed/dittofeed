@@ -24,9 +24,6 @@ import {
   MessageTemplateChangeHandler,
   SimpleMessageTemplate,
 } from "../messageTemplateAutocomplete";
-import MessageTemplateEditor, {
-  MessageTemplateEditorState,
-} from "../messageTemplateEditor";
 import { BroadcastState } from "./broadcastsShared";
 
 function BroadcastMessageTemplateEditor({
@@ -93,13 +90,12 @@ function BroadcastMessageTemplateEditor({
         return;
     }
 
-    updateMessageTemplatesMutation.mutate(
+    updateMessageTemplateMutation.mutate(
       {
         id: newMessageTemplateId,
         name: newMessageTemplateName,
         definition,
         resourceType: "Internal",
-        workspaceId,
         createOnly: true,
       },
       {
@@ -115,10 +111,8 @@ function BroadcastMessageTemplateEditor({
     isInternalTemplate,
     broadcast,
     broadcastMutation,
-    updateMessageTemplatesMutation,
+    updateMessageTemplateMutation,
   ]);
-
-  const messageTemplatesUpdateMutation = useUpdateMessageTemplatesMutation();
 
   const updateTemplateCallback = useDebouncedCallback(
     (state: MessageTemplateEditorState) => {

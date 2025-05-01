@@ -1649,6 +1649,7 @@ export const UpsertMessageTemplateResource = Type.Object({
   name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
+  resourceType: Type.Optional(ResourceType),
 });
 
 export type UpsertMessageTemplateResource = Static<
