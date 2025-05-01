@@ -61,12 +61,12 @@ function BroadcastMessageTemplateEditor({
     );
   }, [messageTemplateId, broadcastId, workspace]);
 
+  const messageType = broadcast?.config.message.type;
   useEffect(() => {
     if (
       isInternalTemplate ||
       workspace.type !== CompletionStatus.Successful ||
-      !broadcast ||
-      broadcast.version !== "V2"
+      !messageType
     ) {
       return;
     }
@@ -80,7 +80,7 @@ function BroadcastMessageTemplateEditor({
     });
 
     let definition: MessageTemplateResourceDefinition;
-    switch (broadcast.config.message.type) {
+    switch (messageType) {
       case ChannelType.Email:
         // FIXME add email provider
         definition = defaultEmailDefinition({
@@ -110,16 +110,7 @@ function BroadcastMessageTemplateEditor({
         },
       },
     );
-  }, [
-    workspace,
-    messageTemplateId,
-    broadcastId,
-    isInternalTemplate,
-    broadcast,
-    broadcastMutation,
-    updateMessageTemplateMutation,
-    emailContentsType,
-  ]);
+  }, [workspace, isInternalTemplate, messageType]);
 
   if (!messageTemplate || !messageTemplateId || !isInternalTemplate) {
     return null;
@@ -133,6 +124,7 @@ function BroadcastMessageTemplateEditor({
             value={emailContentsType}
             exclusive
             onChange={(_, newValue) => {
+              // FIXME update definition
               setEmailContentsType(newValue);
             }}
           >

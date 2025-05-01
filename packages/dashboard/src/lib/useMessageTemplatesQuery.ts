@@ -48,7 +48,7 @@ export function useMessageTemplatesQuery<
     queryKey,
     queryFn: async (): Promise<GetMessageTemplatesResponse["templates"]> => {
       try {
-        const response = await axios.get(`${apiBase}/api/templates`, {
+        const response = await axios.get(`${apiBase}/api/content/templates`, {
           params: {
             ...params,
             workspaceId,

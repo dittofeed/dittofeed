@@ -40,7 +40,7 @@ export function useMessageTemplateUpdateMutation() {
     };
 
     const response = await axios.put<MessageTemplateResource>(
-      `${apiBase}/api/templates`,
+      `${apiBase}/api/content/templates`,
       requestData,
     );
     return response.data;
