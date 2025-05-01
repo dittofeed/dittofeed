@@ -219,7 +219,7 @@ export default function Content({ state }: { state: BroadcastState }) {
     return null;
   }
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ height: "100%", width: "100%" }}>
       <ToggleButtonGroup
         value={selectExistingTemplate}
         exclusive
@@ -236,7 +236,13 @@ export default function Content({ state }: { state: BroadcastState }) {
         <ToggleButton value="existing">Existing Template</ToggleButton>
         <ToggleButton value="new">New Template</ToggleButton>
       </ToggleButtonGroup>
-      {templateSelect}
+      <Box
+        sx={{
+          flex: 1,
+        }}
+      >
+        {templateSelect}
+      </Box>
     </Stack>
   );
 }

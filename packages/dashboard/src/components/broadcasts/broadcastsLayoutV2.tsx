@@ -119,8 +119,11 @@ export default function BroadcastLayout({
   }
 
   return (
-    <Stack sx={{ width: "100%", height: "100%" }}>
-      <Stack sx={{ width: "100%", height: "100%", ...sx }}>
+    <Stack sx={{ width: "100%", height: "100%" }} className="broadcast-layout">
+      <Stack
+        sx={{ width: "100%", height: "100%", ...sx, flex: 1 }}
+        className="broadcast-layout-content"
+      >
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -159,6 +162,7 @@ export default function BroadcastLayout({
         </Stack>
         <Box sx={{ pt: 3, pb: 1, pl: 2 }}>{children}</Box>
       </Stack>
+      {/* FIXME taking up remaining space would ideally overlap the content above it without taking up any space in broadcast-layout */}
       <InlineDrawer
         open={previewOpen}
         maxHeight={PREVIEW_HEIGHT}
