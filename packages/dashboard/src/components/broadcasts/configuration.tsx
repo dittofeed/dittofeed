@@ -30,7 +30,7 @@ export default function Configuration({
   if (!broadcast) {
     return null;
   }
-  const disabled = broadcast.status !== "Draft";
+  const disabled = broadcast.status !== "Draft" || errors.length !== 0;
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       {errors.length > 0 && (

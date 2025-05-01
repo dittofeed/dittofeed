@@ -30,6 +30,7 @@ function queryParamsToState(
   };
 }
 
+// FIXME sync query params
 export default function Broadcasts({
   queryParams,
   onStateChange,
