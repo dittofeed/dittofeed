@@ -33,6 +33,7 @@ import {
   SubscriptionGroupChangeHandler,
 } from "../subscriptionGroupAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 function BroadcastSegmentEditor({
   broadcastId,
@@ -214,6 +215,27 @@ export default function Recipients({ state }: { state: BroadcastState }) {
       />
     );
   }
+  let segmentSelect: React.ReactNode;
+  switch (selectExistingSegment) {
+    case "existing":
+      segmentSelect = (
+        <SegmentsAutocomplete
+          segmentId={currentSegmentId}
+          handler={handleSegmentChange}
+        />
+      );
+      break;
+    case "new":
+      segmentSelect = (
+        <BroadcastSegmentEditor broadcastId={state.id} disabled={disabled} />
+      );
+      break;
+    case null:
+      segmentSelect = null;
+      break;
+    default:
+      assertUnreachable(selectExistingSegment);
+  }
   return (
     <Stack spacing={2}>
       <Typography variant="caption" sx={{ mb: -1 }}>
@@ -246,17 +268,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
           <ToggleButton value="new">New Segment</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
-      {selectExistingSegment === "existing" ? (
-        <Box sx={{ maxWidth: 600 }}>
-          <SegmentsAutocomplete
-            segmentId={currentSegmentId}
-            handler={handleSegmentChange}
-            disabled={disabled}
-          />
-        </Box>
-      ) : (
-        <BroadcastSegmentEditor broadcastId={state.id} disabled={disabled} />
-      )}
+      {segmentSelect}
     </Stack>
   );
 }
