@@ -5,7 +5,6 @@ export const BroadcastStepKeys = {
   RECIPIENTS: "RECIPIENTS",
   CONTENT: "CONTENT",
   CONFIGURATION: "CONFIGURATION",
-  PREVIEW: "PREVIEW",
   REVIEW: "REVIEW",
 } as const;
 
@@ -31,10 +30,6 @@ export const BROADCAST_STEPS = [
   {
     key: BroadcastStepKeys.CONFIGURATION,
     name: "Configuration",
-  },
-  {
-    key: BroadcastStepKeys.PREVIEW,
-    name: "Preview",
   },
   {
     key: BroadcastStepKeys.REVIEW,

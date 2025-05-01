@@ -20,6 +20,7 @@ import {
   BROADCAST_STEPS,
   BroadcastState,
   BroadcastStateUpdater,
+  BroadcastStep,
   BroadcastStepKey,
 } from "./broadcastsShared";
 
@@ -106,7 +107,7 @@ export default function BroadcastLayout({
 }: BroadcastLayoutProps) {
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
-
+  const { data: broadcast } = useBroadcastQuery(state.id);
   const updateStep = useCallback(
     (step: BroadcastStepKey) => {
       updateState((draft) => {
@@ -146,10 +147,14 @@ export default function BroadcastLayout({
             nonLinear
             activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
           >
-            {BROADCAST_STEPS.map((step) => (
+            {BROADCAST_STEPS.map((step: BroadcastStep) => (
               <Step key={step.key}>
                 <StepButton
                   color="inherit"
+                  disabled={
+                    !broadcast ||
+                    (step.afterDraft && broadcast.status === "Draft")
+                  }
                   onClick={() => updateStep(step.key)}
                 >
                   {step.name}

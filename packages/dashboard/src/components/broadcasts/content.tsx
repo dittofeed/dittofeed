@@ -151,15 +151,32 @@ function BroadcastMessageTemplateEditor({
   switch (messageTemplate.definition?.type) {
     case ChannelType.Email:
       editor = (
-        <EmailEditor templateId={messageTemplateId} disabled={disabled} />
+        <EmailEditor
+          templateId={messageTemplateId}
+          disabled={disabled}
+          hidePublisher
+          hideTitle
+        />
       );
       break;
     case ChannelType.Sms:
-      editor = <SmsEditor templateId={messageTemplateId} disabled={disabled} />;
+      editor = (
+        <SmsEditor
+          templateId={messageTemplateId}
+          disabled={disabled}
+          hidePublisher
+          hideTitle
+        />
+      );
       break;
     case ChannelType.Webhook:
       editor = (
-        <WebhookEditor templateId={messageTemplateId} disabled={disabled} />
+        <WebhookEditor
+          templateId={messageTemplateId}
+          disabled={disabled}
+          hidePublisher
+          hideTitle
+        />
       );
       break;
     default:
