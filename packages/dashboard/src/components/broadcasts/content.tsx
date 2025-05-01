@@ -1,24 +1,25 @@
+import { Box, Stack, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import {
-  Box,
-  Stack,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from "@mui/material";
-import { getBroadcastMessageTemplateId } from "isomorphic-lib/src/broadcasts";
+  getBroadcastMessageTemplateId,
+  getBroadcastMessageTemplateName,
+} from "isomorphic-lib/src/broadcasts";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
-  MessageTemplateDefinition,
+  EmailContentsType,
+  MessageTemplateResourceDefinition,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useMessageTemplateQuery } from "../../lib/useMessageTemplateQuery";
 import { useMessageTemplateUpdateMutation } from "../../lib/useMessageTemplateUpdateMutation";
+import EmailEditor from "../messages/emailEditor";
+import SmsEditor from "../messages/smsEditor";
+import WebhookEditor from "../messages/webhookEditor";
 import {
   MessageTemplateAutocomplete,
   MessageTemplateChangeHandler,
@@ -40,6 +41,10 @@ function BroadcastMessageTemplateEditor({
     () => broadcast?.messageTemplateId,
     [broadcast?.messageTemplateId],
   );
+  const [emailContentsType, setEmailContentsType] = useState<EmailContentsType>(
+    EmailContentsType.LowCode,
+  );
+  const { data: messageTemplate } = useMessageTemplateQuery(messageTemplateId);
 
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
 
@@ -68,17 +73,20 @@ function BroadcastMessageTemplateEditor({
       broadcastId,
       workspaceId,
     });
-    const newMessageTemplateName = `Broadcast - ${broadcastId}`;
+    const newMessageTemplateName = getBroadcastMessageTemplateName({
+      broadcastId,
+    });
 
-    let definition: MessageTemplateDefinition;
+    let definition: MessageTemplateResourceDefinition;
     switch (broadcast.config.message.type) {
+      // FIXME default
       case ChannelType.Email:
-        definition = {
-          type: ChannelType.Email,
-          from: "test@test.com",
-          subject: "test",
-          body: "test",
-        };
+        definition = defaultEmailDefinition({
+          emailContentsType,
+          emailProvider: defaultEmailProvider as
+            | DefaultEmailProviderResource
+            | undefined,
+        }) satisfies EmailTemplateResource;
         break;
       case ChannelType.Sms:
         definition = {
@@ -96,7 +104,6 @@ function BroadcastMessageTemplateEditor({
         name: newMessageTemplateName,
         definition,
         resourceType: "Internal",
-        createOnly: true,
       },
       {
         onSuccess: () => {
@@ -114,31 +121,28 @@ function BroadcastMessageTemplateEditor({
     updateMessageTemplateMutation,
   ]);
 
-  const updateTemplateCallback = useDebouncedCallback(
-    (state: MessageTemplateEditorState) => {
-      if (!state.definition || !state.name) {
-        return;
-      }
-      messageTemplatesUpdateMutation.mutate({
-        id: state.id,
-        definition: state.definition,
-        name: state.name,
-      });
-    },
-    1500,
-  );
-
-  if (messageTemplateId === undefined || !isInternalTemplate) {
+  if (!messageTemplate || !messageTemplateId || !isInternalTemplate) {
     return null;
   }
-
-  return (
-    <MessageTemplateEditor
-      disabled={disabled}
-      templateId={messageTemplateId}
-      onChange={updateTemplateCallback}
-    />
-  );
+  let editor: React.ReactNode;
+  switch (messageTemplate.definition?.type) {
+    case ChannelType.Email:
+      editor = (
+        <EmailEditor templateId={messageTemplateId} disabled={disabled} />
+      );
+      break;
+    case ChannelType.Sms:
+      editor = <SmsEditor templateId={messageTemplateId} disabled={disabled} />;
+      break;
+    case ChannelType.Webhook:
+      editor = (
+        <WebhookEditor templateId={messageTemplateId} disabled={disabled} />
+      );
+      break;
+    default:
+      return null;
+  }
+  return editor;
 }
 
 export default function Content({ state }: { state: BroadcastState }) {

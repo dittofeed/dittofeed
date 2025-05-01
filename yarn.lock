@@ -15202,7 +15202,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emailo@npm:0.0.1, emailo@workspace:packages/emailo":
+"emailo@npm:0.0.1, emailo@workspace:*, emailo@workspace:packages/emailo":
   version: 0.0.0-use.local
   resolution: "emailo@workspace:packages/emailo"
   dependencies:
@@ -18979,6 +18979,7 @@ __metadata:
     "@types/uuid": "npm:^9.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
+    emailo: "workspace:*"
     eslint: "npm:^8.43.0"
     eslint-config-airbnb: "npm:^19.0.4"
     eslint-config-airbnb-typescript: "npm:^17.0.0"
