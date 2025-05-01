@@ -3,11 +3,13 @@ import {
   getBroadcastMessageTemplateId,
   getBroadcastMessageTemplateName,
 } from "isomorphic-lib/src/broadcasts";
+import { defaultEmailDefinition } from "isomorphic-lib/src/email";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
+  EmailTemplateResource,
   MessageTemplateResourceDefinition,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -79,13 +81,10 @@ function BroadcastMessageTemplateEditor({
 
     let definition: MessageTemplateResourceDefinition;
     switch (broadcast.config.message.type) {
-      // FIXME default
       case ChannelType.Email:
+        // FIXME add email provider
         definition = defaultEmailDefinition({
           emailContentsType,
-          emailProvider: defaultEmailProvider as
-            | DefaultEmailProviderResource
-            | undefined,
         }) satisfies EmailTemplateResource;
         break;
       case ChannelType.Sms:
@@ -119,6 +118,7 @@ function BroadcastMessageTemplateEditor({
     broadcast,
     broadcastMutation,
     updateMessageTemplateMutation,
+    emailContentsType,
   ]);
 
   if (!messageTemplate || !messageTemplateId || !isInternalTemplate) {
@@ -128,7 +128,21 @@ function BroadcastMessageTemplateEditor({
   switch (messageTemplate.definition?.type) {
     case ChannelType.Email:
       editor = (
-        <EmailEditor templateId={messageTemplateId} disabled={disabled} />
+        <Stack spacing={2}>
+          <ToggleButtonGroup
+            value={emailContentsType}
+            exclusive
+            onChange={(_, newValue) => {
+              setEmailContentsType(newValue);
+            }}
+          >
+            <ToggleButton value={EmailContentsType.LowCode}>
+              Low Code
+            </ToggleButton>
+            <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
+          </ToggleButtonGroup>
+          <EmailEditor templateId={messageTemplateId} disabled={disabled} />
+        </Stack>
       );
       break;
     case ChannelType.Sms:
