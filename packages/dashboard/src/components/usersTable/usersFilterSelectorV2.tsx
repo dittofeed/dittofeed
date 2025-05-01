@@ -17,7 +17,7 @@ import * as React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
-import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
+import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 import {
@@ -177,7 +177,7 @@ function SubscriptionGroupSelector({
 }
 
 function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
-  const userPropertiesQuery = useUserPropertiesQuery();
+  const userPropertiesQuery = useUserPropertyResourcesQuery();
 
   const options: Option[] = React.useMemo(() => {
     if (userPropertiesQuery.status !== "success") {

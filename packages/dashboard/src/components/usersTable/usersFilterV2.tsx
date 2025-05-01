@@ -3,7 +3,7 @@ import React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
-import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
+import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 import {
   removeSegment,
   removeSubscriptionGroup,
@@ -20,7 +20,7 @@ export function UsersFilterV2({
   state: UserFilterState;
   updater: UserFilterUpdater;
 }) {
-  const userPropertiesQuery = useUserPropertiesQuery();
+  const userPropertiesQuery = useUserPropertyResourcesQuery();
   const segmentsQuery = useSegmentsQuery();
   const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
 
