@@ -29,6 +29,45 @@ import {
 } from "../messageTemplateAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
 
+const DEFAULT_EMAIL_CONTENTS_TYPE = EmailContentsType.LowCode;
+
+function EmailControls({
+  emailContentsType,
+  setEmailContentsType,
+  broadcastId,
+}: {
+  broadcastId: string;
+  emailContentsType: EmailContentsType;
+  setEmailContentsType: (emailContentsType: EmailContentsType) => void;
+}) {
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
+  console.log("broadcast", broadcast);
+  return (
+    <ToggleButtonGroup
+      value={emailContentsType}
+      exclusive
+      disabled={broadcast?.status !== "Draft"}
+      onChange={(_, newValue) => {
+        // FIXME update definition
+        setEmailContentsType(newValue);
+        if (broadcast?.messageTemplateId) {
+          updateMessageTemplateMutation.mutate({
+            id: broadcast.messageTemplateId,
+            name: broadcast.name,
+            definition: defaultEmailDefinition({
+              emailContentsType: newValue,
+            }),
+          });
+        }
+      }}
+    >
+      <ToggleButton value={EmailContentsType.LowCode}>Low Code</ToggleButton>
+      <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
+    </ToggleButtonGroup>
+  );
+}
+
 function BroadcastMessageTemplateEditor({
   broadcastId,
   disabled,
@@ -42,9 +81,6 @@ function BroadcastMessageTemplateEditor({
   const messageTemplateId = useMemo<string | undefined>(
     () => broadcast?.messageTemplateId,
     [broadcast?.messageTemplateId],
-  );
-  const [emailContentsType, setEmailContentsType] = useState<EmailContentsType>(
-    EmailContentsType.LowCode,
   );
   const { data: messageTemplate } = useMessageTemplateQuery(messageTemplateId);
 
@@ -82,10 +118,9 @@ function BroadcastMessageTemplateEditor({
     let definition: MessageTemplateResourceDefinition;
     switch (messageType) {
       case ChannelType.Email:
-        // FIXME add email provider
         definition = defaultEmailDefinition({
-          emailContentsType,
-        }) satisfies EmailTemplateResource;
+          emailContentsType: DEFAULT_EMAIL_CONTENTS_TYPE,
+        });
         break;
       case ChannelType.Sms:
         definition = {
@@ -119,22 +154,7 @@ function BroadcastMessageTemplateEditor({
   switch (messageTemplate.definition?.type) {
     case ChannelType.Email:
       editor = (
-        <Stack spacing={2} sx={{ flex: 1 }} className="broadcast-email-editor">
-          <ToggleButtonGroup
-            value={emailContentsType}
-            exclusive
-            onChange={(_, newValue) => {
-              // FIXME update definition
-              setEmailContentsType(newValue);
-            }}
-          >
-            <ToggleButton value={EmailContentsType.LowCode}>
-              Low Code
-            </ToggleButton>
-            <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
-          </ToggleButtonGroup>
-          <EmailEditor templateId={messageTemplateId} disabled={disabled} />
-        </Stack>
+        <EmailEditor templateId={messageTemplateId} disabled={disabled} />
       );
       break;
     case ChannelType.Sms:
@@ -158,6 +178,9 @@ export default function Content({ state }: { state: BroadcastState }) {
   const [selectExistingTemplate, setSelectExistingTemplate] = useState<
     "existing" | "new" | null
   >(null);
+  const [emailContentsType, setEmailContentsType] = useState<EmailContentsType>(
+    DEFAULT_EMAIL_CONTENTS_TYPE,
+  );
   const disabled = broadcast?.status !== "Draft";
 
   useEffect(() => {
@@ -218,24 +241,43 @@ export default function Content({ state }: { state: BroadcastState }) {
   if (!broadcast) {
     return null;
   }
+  let controls: React.ReactNode;
+  if (selectExistingTemplate === "new" && broadcast.messageTemplateId) {
+    switch (broadcast.config.message.type) {
+      case ChannelType.Email:
+        controls = (
+          <EmailControls
+            broadcastId={broadcast.id}
+            emailContentsType={emailContentsType}
+            setEmailContentsType={setEmailContentsType}
+          />
+        );
+        break;
+      default:
+        controls = null;
+    }
+  }
   return (
     <Stack spacing={2} sx={{ height: "100%", width: "100%", flex: 1 }}>
-      <ToggleButtonGroup
-        value={selectExistingTemplate}
-        exclusive
-        disabled={disabled || selectExistingTemplate === null}
-        onChange={(_, newValue) => {
-          if (newValue !== null) {
-            setSelectExistingTemplate(newValue);
-          }
-          if (newValue === "existing") {
-            broadcastMutation.mutate({ messageTemplateId: null });
-          }
-        }}
-      >
-        <ToggleButton value="existing">Existing Template</ToggleButton>
-        <ToggleButton value="new">New Template</ToggleButton>
-      </ToggleButtonGroup>
+      <Stack direction="row" spacing={2}>
+        <ToggleButtonGroup
+          value={selectExistingTemplate}
+          exclusive
+          disabled={disabled || selectExistingTemplate === null}
+          onChange={(_, newValue) => {
+            if (newValue !== null) {
+              setSelectExistingTemplate(newValue);
+            }
+            if (newValue === "existing") {
+              broadcastMutation.mutate({ messageTemplateId: null });
+            }
+          }}
+        >
+          <ToggleButton value="existing">Existing Template</ToggleButton>
+          <ToggleButton value="new">New Template</ToggleButton>
+        </ToggleButtonGroup>
+        {controls}
+      </Stack>
       {templateSelect}
     </Stack>
   );

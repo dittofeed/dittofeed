@@ -32,7 +32,7 @@ interface BroadcastLayoutProps {
   sx?: SxProps<Theme>;
 }
 
-export const PREVIEW_HEADER_HEIGHT = "48px";
+const PREVIEW_HEADER_HEIGHT = "48px";
 
 function PreviewHeader({
   previewOpen,
