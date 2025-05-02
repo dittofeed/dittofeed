@@ -170,10 +170,7 @@ export default function Configuration({
             >
               {scheduledAtDateString}
             </GreyButton>
-            <TimeField<CalendarDateTime>
-              value={datePickerValue}
-              onChange={handleDateChange}
-            />
+            <TimeField value={datePickerValue} onChange={handleDateChange} />
           </Stack>
           <Popover
             id={id}
