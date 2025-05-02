@@ -3527,15 +3527,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@internationalized/date@npm:^3.7.0":
-  version: 3.7.0
-  resolution: "@internationalized/date@npm:3.7.0"
-  dependencies:
-    "@swc/helpers": "npm:^0.5.0"
-  checksum: 10/59adffb57f1391e17bfe9b2e9b1a71c0957a1835b0176a86ad5a99fd2f2919f094d3f553fb39be157d84c315a88917e0eda779c9101026e3bfac217ace18a559
-  languageName: node
-  linkType: hard
-
 "@internationalized/date@npm:^3.8.0":
   version: 3.8.0
   resolution: "@internationalized/date@npm:3.8.0"
@@ -14375,7 +14366,7 @@ __metadata:
     "@emotion/server": "npm:^11.10.0"
     "@emotion/styled": "npm:^11.10.5"
     "@handlewithcare/react-prosemirror": "npm:^2.2.1"
-    "@internationalized/date": "npm:^3.7.0"
+    "@internationalized/date": "npm:^3.8.0"
     "@mui/icons-material": "npm:^5.15.15"
     "@mui/lab": "npm:^5.0.0-alpha.170"
     "@mui/material": "npm:^5.15.5"

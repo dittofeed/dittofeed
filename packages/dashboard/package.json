@@ -34,7 +34,7 @@
     "@emotion/server": "^11.10.0",
     "@emotion/styled": "^11.10.5",
     "@handlewithcare/react-prosemirror": "^2.2.1",
-    "@internationalized/date": "^3.7.0",
+    "@internationalized/date": "^3.8.0",
     "@mui/icons-material": "^5.15.15",
     "@mui/lab": "^5.0.0-alpha.170",
     "@mui/material": "^5.15.5",
