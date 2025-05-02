@@ -26,7 +26,7 @@ import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
 import { Calendar } from "../calendar";
-import { GreyButton } from "../greyButtonStyle";
+import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
 
@@ -189,7 +189,12 @@ export default function Configuration({
             <GreyButton
               aria-describedby={id}
               onClick={handleOpenPopover}
-              sx={{ justifyContent: "flex-start" }}
+              sx={{
+                justifyContent: "flex-start",
+                borderColor: "grey.400",
+                borderStyle: "solid",
+                borderWidth: "1px",
+              }}
             >
               {scheduledAtDateString}
             </GreyButton>
@@ -223,6 +228,14 @@ export default function Configuration({
         color="primary"
         loading={isPending}
         disabled={disabled}
+        sx={{
+          ...greyButtonStyle,
+          borderColor: "grey.400",
+          "&:hover": {
+            backgroundColor: "grey.300",
+            borderColor: "grey.400",
+          },
+        }}
         onClick={() => {
           startBroadcast(
             { broadcastId: state.id },
