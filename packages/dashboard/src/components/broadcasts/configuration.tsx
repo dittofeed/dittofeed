@@ -1,5 +1,5 @@
 // External libraries
-import { CalendarDateTime, parseDateTime } from "@internationalized/date";
+import { CalendarDateTime, parseDateTime, Time } from "@internationalized/date";
 import { LoadingButton } from "@mui/lab";
 import {
   Box,
@@ -19,7 +19,6 @@ import {
   setSeconds,
 } from "date-fns";
 import { useMemo, useState } from "react";
-import { TimeValue } from "react-aria-components";
 
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
@@ -39,9 +38,7 @@ function stringToCalendarDateTime(
     return null;
   }
   try {
-    // Replace space with 'T' to fit ISO-like format for parseDateTime
     const parseableString = dateString.replace(" ", "T");
-    // Append seconds if missing, as parseDateTime expects them
     const secondsIncluded =
       parseableString.length === 16 ? `${parseableString}:00` : parseableString;
     return parseDateTime(secondsIncluded);
@@ -58,7 +55,6 @@ function calendarDateTimeToString(
   if (!dateValue) {
     return null;
   }
-  // Format CalendarDateTime manually to 'yyyy-MM-dd HH:mm'
   const year = dateValue.year.toString().padStart(4, "0");
   const month = dateValue.month.toString().padStart(2, "0");
   const day = dateValue.day.toString().padStart(2, "0");
@@ -88,7 +84,7 @@ export default function Configuration({
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null); // Popover state
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -106,15 +102,11 @@ export default function Configuration({
     [broadcast?.scheduledAt],
   );
 
-  const timePickerValue = useMemo(
-    // FIXME
-    () => stringToTimeValue(broadcast?.scheduledAt),
-    [broadcast?.scheduledAt],
-  );
-
   const scheduledAtDateString = useMemo(() => {
-    return broadcast?.scheduledAt?.split(" ")[0];
-  }, [broadcast?.scheduledAt]);
+    return datePickerValue
+      ? datePickerValue.toString().split("T")[0]
+      : "Set Date";
+  }, [datePickerValue]);
 
   if (!broadcast) {
     return null;
@@ -125,15 +117,34 @@ export default function Configuration({
     ? "scheduled"
     : "immediate";
 
-  // Explicitly type the parameter
   const handleDateChange = (newDateValue: CalendarDateTime | null) => {
-    updateBroadcast({ scheduledAt: calendarDateTimeToString(newDateValue) });
-    setAnchorEl(null); // Close popover on date selection
+    if (!newDateValue) {
+      updateBroadcast({ scheduledAt: null });
+      setAnchorEl(null);
+      return;
+    }
+    const currentTime = datePickerValue
+      ? new Time(datePickerValue.hour, datePickerValue.minute)
+      : new Time(0, 0);
+    const combinedDateTime = newDateValue.set(currentTime);
+    updateBroadcast({
+      scheduledAt: calendarDateTimeToString(combinedDateTime),
+    });
+    setAnchorEl(null);
   };
 
-  const handleTimeChange = (newTimeValue: TimeValue | null) => {
-    // FIXME
-    // updateBroadcast({ scheduledAt:  });
+  const handleTimeChange = (newCalDateTimeValue: CalendarDateTime | null) => {
+    if (!newCalDateTimeValue || !datePickerValue) {
+      return;
+    }
+    const newTime = new Time(
+      newCalDateTimeValue.hour,
+      newCalDateTimeValue.minute,
+    );
+    const combinedDateTime = datePickerValue.set(newTime);
+    updateBroadcast({
+      scheduledAt: calendarDateTimeToString(combinedDateTime),
+    });
   };
 
   const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -178,25 +189,25 @@ export default function Configuration({
             <GreyButton
               aria-describedby={id}
               onClick={handleOpenPopover}
-              sx={{ justifyContent: "flex-start" }} // Align text left
+              sx={{ justifyContent: "flex-start" }}
             >
               {scheduledAtDateString}
             </GreyButton>
-            <TimeField value={datePickerValue} onChange={handleDateChange} />
+            <TimeField<CalendarDateTime>
+              aria-label="Scheduled time"
+              value={datePickerValue}
+              onChange={handleTimeChange}
+              granularity="minute"
+              isDisabled={!datePickerValue}
+            />
           </Stack>
           <Popover
             id={id}
             open={open}
             anchorEl={anchorEl}
             onClose={handleClosePopover}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "left",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "left",
-            }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
           >
             <Calendar<CalendarDateTime>
               value={datePickerValue}

@@ -1,5 +1,5 @@
 .react-aria-TimeField {
-  color: var(--text-color);
+  /* color: var(--text-color); */
   display: flex;
   flex-direction: column;
 }
@@ -7,7 +7,8 @@
 .react-aria-DateInput {
   display: inline;
   padding: 4px;
-  border: 1px solid var(--border-color);
+  /* border: 1px solid var(--border-color); */
+  border: 1px solid var(--gray-200);
   border-radius: 6px;
   background: var(--field-background);
   width: fit-content;
@@ -16,7 +17,7 @@
   forced-color-adjust: none;
 
   &[data-focus-within] {
-    outline: 2px solid var(--focus-ring-color);
+    outline: 2px solid var(--gray-300);
     outline-offset: -1px;
   }
 }
@@ -38,7 +39,7 @@
 
   &:focus {
     color: var(--highlight-foreground);
-    background: var(--highlight-background);
+    background: var(--gray-400);
     outline: none;
     border-radius: 4px;
     caret-color: transparent;

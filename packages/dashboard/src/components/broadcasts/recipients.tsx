@@ -208,6 +208,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
     subscriptionGroupAutocomplete = (
       <SubscriptionGroupAutocompleteV2
         channel={channel}
+        selectInitialDefault
         subscriptionGroupId={currentSubscriptionGroupId}
         handler={handleSubscriptionGroupChange}
         disabled={disabled}

@@ -1,6 +1,6 @@
 import { Autocomplete, CircularProgress, TextField } from "@mui/material";
 import { ChannelType } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useSubscriptionGroupsQuery } from "../lib/useSubscriptionGroupsQuery";
@@ -60,23 +60,23 @@ export function SubscriptionGroupAutocompleteV2({
   disabled,
   handler,
   disableClearable,
+  selectInitialDefault,
 }: {
   subscriptionGroupId?: string;
   disabled?: boolean;
   channel: ChannelType;
   handler: SubscriptionGroupChangeHandler;
   disableClearable?: boolean;
+  selectInitialDefault?: boolean;
 }) {
   const { data: queryData, isLoading } = useSubscriptionGroupsQuery();
 
-  const subscriptionGroupItems: SimpleSubscriptionGroup[] = useMemo(() => {
+  const subscriptionGroupItems = useMemo(() => {
     const groups = queryData?.subscriptionGroups;
     if (!groups) {
       return [];
     }
-    return groups.filter(
-      (sg: SimpleSubscriptionGroup) => sg.channel === channel,
-    );
+    return groups.filter((sg) => sg.channel === channel);
   }, [queryData, channel]);
 
   const subscriptionGroup = useMemo(() => {
@@ -86,6 +86,25 @@ export function SubscriptionGroupAutocompleteV2({
       ) ?? null
     );
   }, [subscriptionGroupItems, subscriptionGroupId]);
+
+  // When data loads and selectInitialDefault is true, select the first item
+  useEffect(() => {
+    const firstItem = subscriptionGroupItems[0];
+    if (
+      selectInitialDefault &&
+      !subscriptionGroupId &&
+      firstItem &&
+      !isLoading
+    ) {
+      handler(firstItem);
+    }
+  }, [
+    subscriptionGroupItems,
+    subscriptionGroupId,
+    selectInitialDefault,
+    handler,
+    isLoading,
+  ]);
 
   return (
     <Autocomplete

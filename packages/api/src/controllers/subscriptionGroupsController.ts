@@ -29,7 +29,7 @@ import {
   insertUserEvents,
 } from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
