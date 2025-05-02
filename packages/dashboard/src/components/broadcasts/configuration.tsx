@@ -141,11 +141,7 @@ export default function Configuration({
       </ToggleButtonGroup>
 
       {scheduledStatus === "scheduled" && (
-        <DatePicker
-          value={datePickerValue}
-          onChange={handleDateChange}
-          granularity="minute"
-        />
+        <DatePicker value={datePickerValue} onChange={handleDateChange} />
       )}
 
       <LoadingButton
