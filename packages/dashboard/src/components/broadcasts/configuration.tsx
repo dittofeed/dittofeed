@@ -3,9 +3,12 @@ import { CalendarDateTime, parseDateTime } from "@internationalized/date";
 import { LoadingButton } from "@mui/lab";
 import {
   Box,
+  Button,
+  Popover,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
   useTheme,
 } from "@mui/material";
 import {
@@ -16,19 +19,16 @@ import {
   setMinutes,
   setSeconds,
 } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
-import {
-  DatePicker,
-  DatePickerGenerated,
-  DatePickerProps,
-} from "../datePicker";
+import { DatePicker } from "../datePicker";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import { GreyButton } from "../greyButtonStyle";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -40,7 +40,10 @@ function stringToCalendarDateTime(
   try {
     // Replace space with 'T' to fit ISO-like format for parseDateTime
     const parseableString = dateString.replace(" ", "T");
-    return parseDateTime(parseableString);
+    // Append seconds if missing, as parseDateTime expects them
+    const secondsIncluded =
+      parseableString.length === 16 ? `${parseableString}:00` : parseableString;
+    return parseDateTime(secondsIncluded);
   } catch (e) {
     console.error("Failed to parse date string:", dateString, e);
     return null;
@@ -70,7 +73,7 @@ function getTomorrowAt8AM(currentDate: Date = new Date()): string {
   tomorrowAt8AM = setSeconds(tomorrowAt8AM, 0);
   tomorrowAt8AM = setMilliseconds(tomorrowAt8AM, 0);
   // Return original 'yyyy-MM-dd HH:mm' format
-  return format(tomorrowAt8AM, "yyyy-MM-dd HH:mm"); // Use original format function
+  return format(tomorrowAt8AM, "yyyy-MM-dd HH:mm");
 }
 
 export default function Configuration({
@@ -84,6 +87,7 @@ export default function Configuration({
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null); // Popover state
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -110,11 +114,22 @@ export default function Configuration({
     ? "scheduled"
     : "immediate";
 
-  const handleDateChange: DatePickerProps<CalendarDateTime>["onChange"] = (
-    newDateValue,
-  ) => {
+  // Explicitly type the parameter
+  const handleDateChange = (newDateValue: CalendarDateTime | null) => {
     updateBroadcast({ scheduledAt: calendarDateTimeToString(newDateValue) });
+    setAnchorEl(null); // Close popover on date selection
   };
+
+  const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? "date-picker-popover" : undefined;
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
@@ -141,7 +156,38 @@ export default function Configuration({
       </ToggleButtonGroup>
 
       {scheduledStatus === "scheduled" && (
-        <DatePicker value={datePickerValue} onChange={handleDateChange} />
+        <>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Typography variant="subtitle1">Scheduled at</Typography>
+            <GreyButton
+              aria-describedby={id}
+              onClick={handleOpenPopover}
+              sx={{ justifyContent: "flex-start" }} // Align text left
+            >
+              {broadcast.scheduledAt}
+            </GreyButton>
+          </Stack>
+          <Popover
+            id={id}
+            open={open}
+            anchorEl={anchorEl}
+            onClose={handleClosePopover}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+          >
+            <DatePicker<CalendarDateTime>
+              value={datePickerValue}
+              onChange={handleDateChange}
+              style={{ padding: 8 }}
+            />
+          </Popover>
+        </>
       )}
 
       <LoadingButton
