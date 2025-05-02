@@ -56,11 +56,11 @@ export default function Configuration({
       <ToggleButtonGroup
         value={scheduledStatus}
         exclusive
-        onChange={(_, newValue) =>
+        onChange={(_, newValue) => {
           updateBroadcast({
-            scheduledAt: newValue === "scheduled" ? "" : null,
-          })
-        }
+            scheduledAt: newValue === "scheduled" ? "2025-07-01 08:00" : null,
+          });
+        }}
       >
         <ToggleButton value="immediate">Immediate</ToggleButton>
         <ToggleButton value="scheduled">Scheduled</ToggleButton>
