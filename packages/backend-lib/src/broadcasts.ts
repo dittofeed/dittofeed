@@ -442,6 +442,7 @@ export async function upsertBroadcastV2({
   messageTemplateId,
   subscriptionGroupId,
   config,
+  scheduledAt,
 }: UpsertBroadcastV2Request): Promise<
   Result<BroadcastResourceV2, UpsertBroadcastV2Error>
 > {
@@ -530,6 +531,7 @@ export async function upsertBroadcastV2({
               messageTemplateId,
               subscriptionGroupId,
               config,
+              scheduledAt,
             })
             .where(
               and(
@@ -630,6 +632,7 @@ export async function upsertBroadcastV2({
               subscriptionGroupId,
               version: "V2",
               config: insertedConfig,
+              scheduledAt,
             })
             .returning(),
         );

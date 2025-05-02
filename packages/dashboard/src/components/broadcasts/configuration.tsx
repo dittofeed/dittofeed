@@ -1,7 +1,14 @@
 import { LoadingButton } from "@mui/lab";
-import { Box, Stack, useTheme } from "@mui/material";
+import {
+  Box,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  useTheme,
+} from "@mui/material";
 import { useMemo } from "react";
 
+import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
@@ -16,6 +23,7 @@ export default function Configuration({
 }) {
   const { data: broadcast } = useBroadcastQuery(state.id);
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
+  const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -31,6 +39,9 @@ export default function Configuration({
     return null;
   }
   const disabled = broadcast.status !== "Draft" || errors.length !== 0;
+  const scheduledStatus: "scheduled" | "immediate" = broadcast.scheduledAt
+    ? "scheduled"
+    : "immediate";
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       {errors.length > 0 && (
@@ -42,6 +53,18 @@ export default function Configuration({
           </ul>
         </Box>
       )}
+      <ToggleButtonGroup
+        value={scheduledStatus}
+        exclusive
+        onChange={(_, newValue) =>
+          updateBroadcast({
+            scheduledAt: newValue === "scheduled" ? "" : null,
+          })
+        }
+      >
+        <ToggleButton value="immediate">Immediate</ToggleButton>
+        <ToggleButton value="scheduled">Scheduled</ToggleButton>
+      </ToggleButtonGroup>
       <LoadingButton
         variant="outlined"
         color="primary"

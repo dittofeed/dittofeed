@@ -5126,6 +5126,7 @@ export const UpsertBroadcastV2Request = Type.Intersect([
     messageTemplateId: NullableAndOptional(Type.String()),
     subscriptionGroupId: NullableAndOptional(Type.String()),
     config: Type.Optional(BroadcastV2Config),
+    scheduledAt: NullableAndOptional(Type.String()),
   }),
   IdOrName,
 ]);
