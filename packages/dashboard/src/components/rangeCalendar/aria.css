@@ -1,4 +1,48 @@
-.react-aria-RangeCalendar {
+.react-aria-DatePicker {
+  color: var(--text-color);
+
+  .react-aria-Group {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+  }
+
+  .react-aria-Button {
+    background: var(--highlight-background);
+    color: var(--highlight-foreground);
+    border: 2px solid var(--field-background);
+    forced-color-adjust: none;
+    border-radius: 4px;
+    border: none;
+    margin-left: -1.929rem;
+    width: 1.429rem;
+    height: 1.429rem;
+    padding: 0;
+    font-size: 0.857rem;
+    box-sizing: content-box;
+
+    &[data-pressed] {
+      box-shadow: none;
+      background: var(--highlight-background);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring-color);
+      outline-offset: 2px;
+    }
+  }
+
+  .react-aria-DateInput {
+    padding: 4px 2.5rem 4px 8px;
+  }
+}
+
+.react-aria-Popover[data-trigger="DatePicker"] {
+  max-width: unset;
+}
+
+.react-aria-RangeCalendar,
+.react-aria-Calendar {
   width: fit-content;
   max-width: 100%;
   color: var(--text-color);
