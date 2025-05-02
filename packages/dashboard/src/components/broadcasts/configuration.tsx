@@ -29,6 +29,7 @@ import { Calendar } from "../calendar";
 import { GreyButton } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import { TimeValue } from "react-aria-components";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -105,6 +106,12 @@ export default function Configuration({
     [broadcast?.scheduledAt],
   );
 
+  const timePickerValue = useMemo(
+    // FIXME
+    () => stringToTimeValue(broadcast?.scheduledAt),
+    [broadcast?.scheduledAt],
+  );
+
   const scheduledAtDateString = useMemo(() => {
     return broadcast?.scheduledAt?.split(" ")[0];
   }, [broadcast?.scheduledAt]);
@@ -122,6 +129,11 @@ export default function Configuration({
   const handleDateChange = (newDateValue: CalendarDateTime | null) => {
     updateBroadcast({ scheduledAt: calendarDateTimeToString(newDateValue) });
     setAnchorEl(null); // Close popover on date selection
+  };
+
+  const handleTimeChange = (newTimeValue: TimeValue | null) => {
+    // FIXME
+    // updateBroadcast({ scheduledAt:  });
   };
 
   const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
