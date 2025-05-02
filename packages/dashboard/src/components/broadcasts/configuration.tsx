@@ -3,7 +3,6 @@ import { CalendarDateTime, parseDateTime } from "@internationalized/date";
 import { LoadingButton } from "@mui/lab";
 import {
   Box,
-  Button,
   Popover,
   Stack,
   ToggleButton,
@@ -26,9 +25,10 @@ import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
-import { DatePicker } from "../datePicker";
-import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import { Calendar } from "../calendar";
 import { GreyButton } from "../greyButtonStyle";
+import { TimeField } from "../timeField";
+import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -105,6 +105,10 @@ export default function Configuration({
     [broadcast?.scheduledAt],
   );
 
+  const scheduledAtDateString = useMemo(() => {
+    return broadcast?.scheduledAt?.split(" ")[0];
+  }, [broadcast?.scheduledAt]);
+
   if (!broadcast) {
     return null;
   }
@@ -164,8 +168,12 @@ export default function Configuration({
               onClick={handleOpenPopover}
               sx={{ justifyContent: "flex-start" }} // Align text left
             >
-              {broadcast.scheduledAt}
+              {scheduledAtDateString}
             </GreyButton>
+            <TimeField<CalendarDateTime>
+              value={datePickerValue}
+              onChange={handleDateChange}
+            />
           </Stack>
           <Popover
             id={id}
@@ -181,7 +189,7 @@ export default function Configuration({
               horizontal: "left",
             }}
           >
-            <DatePicker<CalendarDateTime>
+            <Calendar<CalendarDateTime>
               value={datePickerValue}
               onChange={handleDateChange}
               style={{ padding: 8 }}

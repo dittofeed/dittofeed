@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import React from "react";
 import {
   Button,
-  Calendar,
+  Calendar as AriaCalendar,
   CalendarCell,
   CalendarGrid,
   CalendarProps,
@@ -11,11 +11,10 @@ import {
   Heading,
 } from "react-aria-components";
 
-// FIXME date and time picker
-export function DatePicker<T extends DateValue>(props: CalendarProps<T>) {
+export function Calendar<T extends DateValue>(props: CalendarProps<T>) {
   return (
     <Box className="react-aria">
-      <Calendar {...props}>
+      <AriaCalendar {...props}>
         <header>
           <Button slot="previous">
             <ChevronLeft />
@@ -26,7 +25,7 @@ export function DatePicker<T extends DateValue>(props: CalendarProps<T>) {
           </Button>
         </header>
         <CalendarGrid>{(date) => <CalendarCell date={date} />}</CalendarGrid>
-      </Calendar>
+      </AriaCalendar>
     </Box>
   );
 }
