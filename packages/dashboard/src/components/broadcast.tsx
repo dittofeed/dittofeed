@@ -1,5 +1,6 @@
 import { SxProps, Theme } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
@@ -30,6 +31,16 @@ function queryParamsToState(
   };
 }
 
+type QueryState = Partial<Pick<BroadcastState, "step">>;
+
+function stateToQueryParams(state: QueryState): Record<string, string> {
+  const queryParams: Record<string, string> = {};
+  if (state.step) {
+    queryParams[BroadcastQueryKeys.STEP] = state.step;
+  }
+  return queryParams;
+}
+
 // FIXME sync query params
 export default function Broadcasts({
   queryParams,
@@ -40,6 +51,7 @@ export default function Broadcasts({
   onStateChange?: (state: ExposedBroadcastState) => void;
   sx?: SxProps<Theme>;
 }) {
+  const router = useRouter();
   const stateFromQueryParams = useMemo(
     () => queryParamsToState(queryParams),
     [queryParams],
@@ -86,6 +98,22 @@ export default function Broadcasts({
       onStateChange(exposedState);
     }
   }, [exposedState, onStateChange]);
+
+  const queryHash = useMemo(() => {
+    return JSON.stringify(router.query);
+  }, [router.query]);
+
+  const newQuery = useMemo(() => {
+    const queryState: QueryState = {
+      step: state?.step,
+    };
+    const qp = stateToQueryParams(queryState);
+    return { ...router.query, ...qp };
+  }, [state?.step, queryHash]);
+
+  useEffect(() => {
+    router.push({ query: newQuery });
+  }, [newQuery]);
 
   const updateStateWithoutNull: BroadcastStateUpdater = useCallback(
     (updater) => {
