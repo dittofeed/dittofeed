@@ -266,6 +266,7 @@ export default function Content({ state }: { state: BroadcastState }) {
           <MessageTemplateAutocomplete
             messageTemplateId={broadcast?.messageTemplateId}
             handler={handleMessageTemplateChange}
+            disabled={disabled}
           />
         </Box>
       );
@@ -294,6 +295,7 @@ export default function Content({ state }: { state: BroadcastState }) {
         controls = (
           <EmailControls
             broadcastId={broadcast.id}
+            disabled={disabled}
             emailContentType={emailContentType}
             setEmailContentType={setEmailContentType}
           />

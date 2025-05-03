@@ -94,7 +94,8 @@ export function SubscriptionGroupAutocompleteV2({
       selectInitialDefault &&
       !subscriptionGroupId &&
       firstItem &&
-      !isLoading
+      !isLoading &&
+      subscriptionGroup === null
     ) {
       handler(firstItem);
     }
@@ -102,8 +103,8 @@ export function SubscriptionGroupAutocompleteV2({
     subscriptionGroupItems,
     subscriptionGroupId,
     selectInitialDefault,
-    handler,
     isLoading,
+    subscriptionGroup,
   ]);
 
   return (

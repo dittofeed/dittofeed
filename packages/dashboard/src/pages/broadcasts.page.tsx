@@ -307,6 +307,8 @@ function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
   // Access scheduledAt only if it's a V2 resource
   const value =
     "scheduledAt" in row.original ? row.original.scheduledAt : undefined;
+  const timezone =
+    "config" in row.original ? row.original.config.defaultTimezone : undefined;
 
   if (!value) {
     return null; // V1 broadcasts or V2 without schedule won't show anything
@@ -317,11 +319,7 @@ function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
   const formattedValue = value.substring(0, 16);
 
   return (
-    <Tooltip
-      title={`Scheduled (naive time): ${value}`}
-      placement="bottom-start"
-      arrow
-    >
+    <Tooltip title={`${value} (${timezone})`} placement="bottom-start" arrow>
       <Typography variant="body2">{formattedValue}</Typography>
     </Tooltip>
   );

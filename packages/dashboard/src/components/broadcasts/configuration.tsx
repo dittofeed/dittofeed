@@ -28,6 +28,7 @@ import { getWarningStyles } from "../../lib/warningTheme";
 import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
+import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
@@ -147,6 +148,18 @@ export default function Configuration({
     });
   };
 
+  const handleTimezoneChange = (timezone: string | null) => {
+    if (!broadcast) {
+      return;
+    }
+    updateBroadcast({
+      config: {
+        ...broadcast.config,
+        defaultTimezone: timezone ?? undefined,
+      },
+    });
+  };
+
   const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -172,6 +185,7 @@ export default function Configuration({
       <ToggleButtonGroup
         value={scheduledStatus}
         exclusive
+        disabled={disabled}
         onChange={(_, newValue) => {
           updateBroadcast({
             scheduledAt: newValue === "scheduled" ? getTomorrowAt8AM() : null,
@@ -188,6 +202,7 @@ export default function Configuration({
             <Typography variant="subtitle1">Scheduled at</Typography>
             <GreyButton
               aria-describedby={id}
+              disabled={disabled}
               onClick={handleOpenPopover}
               sx={{
                 justifyContent: "flex-start",
@@ -203,7 +218,7 @@ export default function Configuration({
               value={datePickerValue}
               onChange={handleTimeChange}
               granularity="minute"
-              isDisabled={!datePickerValue}
+              isDisabled={!datePickerValue || disabled}
             />
           </Stack>
           <Popover
@@ -220,6 +235,12 @@ export default function Configuration({
               style={{ padding: 8 }}
             />
           </Popover>
+          <TimezoneAutocomplete
+            defaultToLocal
+            value={broadcast.config?.defaultTimezone}
+            handler={handleTimezoneChange}
+            disabled={broadcast.status !== "Draft"}
+          />
         </>
       )}
 
@@ -249,7 +270,7 @@ export default function Configuration({
           );
         }}
       >
-        Start Broadcast
+        {scheduledStatus === "scheduled" ? "Schedule" : "Start"} Broadcast
       </LoadingButton>
     </Stack>
   );

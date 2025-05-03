@@ -156,10 +156,13 @@ export default function Recipients({ state }: { state: BroadcastState }) {
         })
     ) {
       setSelectExistingSegment("new");
-      return;
+    } else {
+      // Default to 'existing' if there's a segmentId that isn't the internal one,
+      // or if there's no segmentId at all (implying user might want to pick one)
+      setSelectExistingSegment("existing");
     }
-    setSelectExistingSegment("existing");
-  }, [broadcastQuery.data, state.id, workspace, selectExistingSegment]);
+    // Only include external dependencies that determine the initial state
+  }, [broadcastQuery.data, state.id, workspace]);
 
   const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
     useCallback(
