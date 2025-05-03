@@ -349,7 +349,7 @@ interface BaseDelivery {
   body: string;
   status: string;
   originId?: string;
-  originType?: "broadcast" | "journey";
+  originType?: "broadcast" | "journey" | "broadcastV2";
   originName?: string;
   templateId: string;
   templateName?: string;
@@ -401,10 +401,19 @@ function getOrigin({
   broadcasts: BroadcastResource[];
 }): Pick<Delivery, "originId" | "originType" | "originName"> | null {
   for (const broadcast of broadcasts) {
+    // for broadcast v1
     if (broadcast.journeyId === item.journeyId) {
       return {
         originId: broadcast.id,
         originType: "broadcast",
+        originName: broadcast.name,
+      };
+    }
+    // for broadcast v2
+    if (broadcast.messageTemplateId === item.templateId) {
+      return {
+        originId: broadcast.id,
+        originType: "broadcastV2",
         originName: broadcast.name,
       };
     }

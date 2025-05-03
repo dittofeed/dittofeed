@@ -1,7 +1,6 @@
 import { Stack } from "@mui/material";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
-import logger from "backend-lib/src/logger";
 import { and, eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";

@@ -14447,6 +14447,7 @@ __metadata:
     prosemirror-trailing-node: "npm:3.0.0"
     prosemirror-transform: "npm:1.10.0"
     prosemirror-view: "npm:1.37.1"
+    qs: "npm:6.11.0"
     react: "npm:18.3.1"
     react-aria-components: "npm:^1.8.0"
     react-device-detect: "npm:^2.2.2"
@@ -24359,6 +24360,15 @@ __metadata:
     proxy-from-env: "npm:1.1.0"
     puppeteer-core: "npm:19.11.1"
   checksum: 10/f7ca1aa2804f5a4aff5abe828aeb9dd2a18565b6b9bc31646abc5fe327656cc87749f9b60c5b15c70ec28bb93a510bf1f1bc61b9da1688b401d55783835d998e
+  languageName: node
+  linkType: hard
+
+"qs@npm:6.11.0":
+  version: 6.11.0
+  resolution: "qs@npm:6.11.0"
+  dependencies:
+    side-channel: "npm:^1.0.4"
+  checksum: 10/5a3bfea3e2f359ede1bfa5d2f0dbe54001aa55e40e27dc3e60fab814362d83a9b30758db057c2011b6f53a2d4e4e5150194b5bac45372652aecb3e3c0d4b256e
   languageName: node
   linkType: hard
 
