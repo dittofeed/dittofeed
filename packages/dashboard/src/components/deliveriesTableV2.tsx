@@ -58,6 +58,7 @@ import {
   ChannelType,
   CompletionStatus,
   DeliveriesAllowedColumn,
+  JSONValue,
   SavedJourneyResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
@@ -68,6 +69,7 @@ import {
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
+import qs from "qs";
 import { useCallback, useMemo, useRef, useState } from "react";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
@@ -216,51 +218,66 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   );
 }
 
+type BuildParams = (row: Delivery) => Record<string, JSONValue>;
+type SelectUriTemplate = (row: Delivery) => string;
+
+function renderRowUrl({
+  uriTemplate,
+  delivery,
+  buildParams,
+}: {
+  uriTemplate?: string;
+  delivery: Delivery;
+  buildParams?: BuildParams;
+}): string | null {
+  if (!uriTemplate) {
+    return null;
+  }
+  const template = uriTemplates(uriTemplate);
+
+  const values: Record<string, string> = {
+    userId: delivery.userId,
+    messageId: delivery.messageId,
+    templateId: delivery.templateId,
+    channel: delivery.channel.toLowerCase(),
+  };
+  if (delivery.originId) {
+    values.originId = delivery.originId;
+  }
+  if (delivery.originType) {
+    values.originType = delivery.originType;
+  }
+  if (delivery.originName) {
+    values.originName = delivery.originName;
+  }
+  if (delivery.templateName) {
+    values.templateName = delivery.templateName;
+  }
+  let uriWithoutQueryParams = template.fillFromObject(values);
+  if (buildParams) {
+    const params = buildParams(delivery);
+    if (Object.keys(params).length > 0) {
+      uriWithoutQueryParams = `${uriWithoutQueryParams}?${qs.stringify(params)}`;
+    }
+  }
+  return uriWithoutQueryParams;
+}
+
+type RenderUrl = (row: Delivery) => string | null;
+
 function LinkCell({
   row,
   column,
-  uriTemplate,
+  renderUrl,
 }: {
   row: Row<Delivery>;
   column: ColumnDef<Delivery>;
-  uriTemplate?: string;
+  renderUrl: RenderUrl;
 }) {
   const value = column.id ? (row.getValue(column.id) as string) : null;
   const uri = useMemo(() => {
-    if (!uriTemplate) {
-      return null;
-    }
-    const template = uriTemplates(uriTemplate);
-    const values: Record<string, string> = {
-      userId: row.original.userId,
-      messageId: row.original.messageId,
-      templateId: row.original.templateId,
-      channel: row.original.channel.toLowerCase(),
-    };
-    if (row.original.originId) {
-      values.originId = row.original.originId;
-    }
-    if (row.original.originType) {
-      values.originType = row.original.originType;
-    }
-    if (row.original.originName) {
-      values.originName = row.original.originName;
-    }
-    if (row.original.templateName) {
-      values.templateName = row.original.templateName;
-    }
-    return template.fillFromObject(values);
-  }, [
-    uriTemplate,
-    row.original.userId,
-    row.original.messageId,
-    row.original.originId,
-    row.original.templateId,
-    row.original.channel,
-    row.original.originType,
-    row.original.originName,
-    row.original.templateName,
-  ]);
+    return renderUrl(row.original);
+  }, [renderUrl, row.original]);
 
   if (!value) {
     return null;
@@ -295,7 +312,7 @@ function LinkCell({
   );
 }
 
-function linkCellFactory(uriTemplate?: string) {
+function linkCellFactory(renderUrl: RenderUrl) {
   return function linkCell({
     row,
     column,
@@ -303,7 +320,7 @@ function linkCellFactory(uriTemplate?: string) {
     row: Row<Delivery>;
     column: ColumnDef<Delivery>;
   }) {
-    return <LinkCell row={row} column={column} uriTemplate={uriTemplate} />;
+    return <LinkCell row={row} column={column} renderUrl={renderUrl} />;
   };
 }
 
@@ -737,7 +754,21 @@ export function DeliveriesTableV2({
     [setState],
   );
   const templateLinkCell = useMemo(
-    () => linkCellFactory(templateUriTemplate),
+    () =>
+      linkCellFactory((delivery) => {
+        let uriTemplate: string;
+        // const isInternalTemplate = delivery.templateId ===
+        if (delivery.originType !== "broadcastV2" || ) {
+          uriTemplate = templateUriTemplate;
+        } else {
+
+        
+        }
+        return renderRowUrl({
+          uriTemplate: templateUriTemplate,
+          delivery,
+        });
+      }),
     [templateUriTemplate],
   );
   const originLinkCell = useMemo(

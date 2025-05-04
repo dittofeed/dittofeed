@@ -41,7 +41,6 @@ function stateToQueryParams(state: QueryState): Record<string, string> {
   return queryParams;
 }
 
-// FIXME sync query params
 export default function Broadcasts({
   queryParams,
   onStateChange,
