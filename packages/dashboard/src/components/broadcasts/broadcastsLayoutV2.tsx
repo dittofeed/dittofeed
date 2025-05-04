@@ -179,11 +179,13 @@ export default function BroadcastLayout({
           </Stack>
         </Stack>
         <Box sx={{ pt: 3, pb: 1, pl: 2, flex: 1 }}>{children}</Box>
-        <Box
-          sx={{
-            height: PREVIEW_HEADER_HEIGHT,
-          }}
-        />
+        {isDraft && (
+          <Box
+            sx={{
+              height: PREVIEW_HEADER_HEIGHT,
+            }}
+          />
+        )}
       </Stack>
       {isDraft && (
         <InlineDrawer

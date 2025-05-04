@@ -787,8 +787,8 @@ export function DeliveriesTableV2({
           uriTemplate = broadcastUriTemplate;
           if (delivery.broadcastId) {
             queryParams.id = delivery.broadcastId;
-            queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.CONTENT;
           }
+          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.CONTENT;
         }
         return renderRowUrl({
           uriTemplate,
@@ -800,14 +800,25 @@ export function DeliveriesTableV2({
   );
   const originLinkCell = useMemo(
     () =>
-      linkCellFactory((delivery) =>
-        // FIXME render broadcast v2 review link
-        renderRowUrl({
-          uriTemplate: originUriTemplate,
+      linkCellFactory((delivery) => {
+        let uriTemplate: string | undefined;
+        const queryParams: QueryParams = {};
+        if (delivery.originType === "broadcastV2") {
+          uriTemplate = broadcastUriTemplate;
+          if (delivery.broadcastId) {
+            queryParams.id = delivery.broadcastId;
+          }
+          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.REVIEW;
+        } else {
+          uriTemplate = originUriTemplate;
+        }
+        return renderRowUrl({
+          uriTemplate,
           delivery,
-        }),
-      ),
-    [originUriTemplate],
+          queryParams,
+        });
+      }),
+    [originUriTemplate, broadcastUriTemplate],
   );
   const maxWidthCell = useMemo(() => maxWidthCellFactory(), []);
 
@@ -891,10 +902,11 @@ export function DeliveriesTableV2({
     return columnAllowList.map((columnId) => columnDefinitions[columnId]);
   }, [
     renderPreviewCell,
-    templateLinkCell,
-    originLinkCell,
-    columnAllowList,
+    maxWidthCell,
     userIdCellRenderer,
+    originLinkCell,
+    templateLinkCell,
+    columnAllowList,
   ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
