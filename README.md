@@ -51,7 +51,7 @@
 
 <details>
   <summary><b>Visual Diagram</b></summary>
-  <img alt="Architecture" src="packages/docs/images/architecture-readme.png">
+  <img alt="Architecture" src="https://storage.googleapis.com/dittofeed-public/Architecture%20Diagram%20-%20Dark.png">
 </details>
 
 For the full dashboard experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).

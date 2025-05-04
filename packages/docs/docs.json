@@ -248,7 +248,9 @@
               "api-reference/auto/sessions/post-api-lsessions",
               "api-reference/auto/groups/get-apiadmingroupsuser-groups",
               "api-reference/auto/groups/get-apiadmingroupsusers",
-              "api-reference/auto/deliveries/get-apiadmindeliveries"
+              "api-reference/auto/deliveries/get-apiadmindeliveries",
+              "api-reference/auto/settings/put-apisettingsemail-providers",
+              "api-reference/auto/settings/put-apisettingssms-providers"
             ]
           }
         ]

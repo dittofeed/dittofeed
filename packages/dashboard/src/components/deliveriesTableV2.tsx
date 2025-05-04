@@ -553,6 +553,12 @@ const timeOptions: TimeOption[] = [
     minutes: 30 * 24 * 60,
     label: "Last 30 days",
   },
+  {
+    type: "minutes",
+    id: "last-90-days",
+    minutes: 90 * 24 * 60,
+    label: "Last 90 days",
+  },
   { type: "custom", id: "custom", label: "Custom Date Range" },
 ];
 
