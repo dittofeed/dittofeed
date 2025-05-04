@@ -36,7 +36,7 @@ export const BROADCAST_STEPS = [
     name: "Review",
     afterDraft: true,
   },
-] as const satisfies BroadcastStep[];
+] as const satisfies readonly BroadcastStep[];
 
 export interface BroadcastState {
   step: BroadcastStepKey;
