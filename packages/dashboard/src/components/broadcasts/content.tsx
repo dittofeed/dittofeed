@@ -34,10 +34,12 @@ function EmailControls({
   emailContentType,
   setEmailContentType,
   broadcastId,
+  disabled,
 }: {
   broadcastId: string;
   emailContentType: EmailContentsType | null;
   setEmailContentType: (emailContentType: EmailContentsType | null) => void;
+  disabled?: boolean;
 }) {
   const { data: broadcast } = useBroadcastQuery(broadcastId);
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
@@ -45,7 +47,7 @@ function EmailControls({
     <ToggleButtonGroup
       value={emailContentType}
       exclusive
-      disabled={broadcast?.status !== "Draft"}
+      disabled={disabled}
       onChange={(_, newValue) => {
         setEmailContentType(newValue);
         if (broadcast?.messageTemplateId) {

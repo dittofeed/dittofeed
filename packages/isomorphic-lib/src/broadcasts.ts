@@ -51,3 +51,19 @@ export function getBroadcastMessageTemplateName({
 }): string {
   return `Broadcast - ${broadcastId}`;
 }
+
+export function isInternalBroadcastTemplate({
+  templateId,
+  broadcastId,
+  workspaceId,
+}: {
+  templateId: string;
+  broadcastId: string;
+  workspaceId: string;
+}): boolean {
+  const id = getBroadcastMessageTemplateId({
+    workspaceId,
+    broadcastId,
+  });
+  return templateId === id;
+}

@@ -417,6 +417,9 @@ export function broadcastV2ToResource(
   const config = unwrap(
     schemaValidateWithErr(broadcast.config, BroadcastV2Config),
   );
+  if (broadcast.version !== "V2") {
+    throw new Error("Broadcast version is not V2");
+  }
   return {
     id: broadcast.id,
     name: broadcast.name,
@@ -424,7 +427,7 @@ export function broadcastV2ToResource(
     createdAt: broadcast.createdAt.getTime(),
     updatedAt: broadcast.updatedAt.getTime(),
     workspaceId: broadcast.workspaceId,
-    version: broadcast.version ?? undefined,
+    version: broadcast.version,
     config,
     scheduledAt: broadcast.scheduledAt ?? undefined,
     segmentId: broadcast.segmentId ?? undefined,

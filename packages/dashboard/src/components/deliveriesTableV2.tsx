@@ -50,16 +50,18 @@ import {
 } from "@tanstack/react-table";
 import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { isInternalBroadcastTemplate } from "isomorphic-lib/src/broadcasts";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  BroadcastResource,
+  BroadcastResourceAllVersions,
+  BroadcastResourceVersionEnum,
   ChannelType,
   CompletionStatus,
   DeliveriesAllowedColumn,
   JSONValue,
-  SavedJourneyResource,
+  MinimalJourneysResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
   SearchDeliveriesRequestSortByEnum,
@@ -77,6 +79,12 @@ import { useInterval } from "usehooks-ts";
 
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
+import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
+import { useResourcesQuery } from "../lib/useResourcesQuery";
+import {
+  BroadcastQueryKeys,
+  BroadcastStepKeys,
+} from "./broadcasts/broadcastsShared";
 import {
   getFilterValues,
   NewDeliveriesFilterButton,
@@ -218,17 +226,16 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   );
 }
 
-type BuildParams = (row: Delivery) => Record<string, JSONValue>;
-type SelectUriTemplate = (row: Delivery) => string;
+type QueryParams = Record<string, JSONValue>;
 
 function renderRowUrl({
   uriTemplate,
   delivery,
-  buildParams,
+  queryParams,
 }: {
   uriTemplate?: string;
   delivery: Delivery;
-  buildParams?: BuildParams;
+  queryParams?: QueryParams;
 }): string | null {
   if (!uriTemplate) {
     return null;
@@ -254,11 +261,8 @@ function renderRowUrl({
     values.templateName = delivery.templateName;
   }
   let uriWithoutQueryParams = template.fillFromObject(values);
-  if (buildParams) {
-    const params = buildParams(delivery);
-    if (Object.keys(params).length > 0) {
-      uriWithoutQueryParams = `${uriWithoutQueryParams}?${qs.stringify(params)}`;
-    }
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    uriWithoutQueryParams = `${uriWithoutQueryParams}?${qs.stringify(queryParams)}`;
   }
   return uriWithoutQueryParams;
 }
@@ -272,11 +276,11 @@ function LinkCell({
 }: {
   row: Row<Delivery>;
   column: ColumnDef<Delivery>;
-  renderUrl: RenderUrl;
+  renderUrl?: RenderUrl;
 }) {
   const value = column.id ? (row.getValue(column.id) as string) : null;
   const uri = useMemo(() => {
-    return renderUrl(row.original);
+    return renderUrl ? renderUrl(row.original) : null;
   }, [renderUrl, row.original]);
 
   if (!value) {
@@ -312,7 +316,7 @@ function LinkCell({
   );
 }
 
-function linkCellFactory(renderUrl: RenderUrl) {
+function linkCellFactory(renderUrl?: RenderUrl) {
   return function linkCell({
     row,
     column,
@@ -368,6 +372,7 @@ interface BaseDelivery {
   originId?: string;
   originType?: "broadcast" | "journey" | "broadcastV2";
   originName?: string;
+  broadcastId?: string;
   templateId: string;
   templateName?: string;
   sentAt: number;
@@ -414,12 +419,17 @@ function getOrigin({
   item,
 }: {
   item: SearchDeliveriesResponseItem;
-  journeys: SavedJourneyResource[];
-  broadcasts: BroadcastResource[];
+  journeys: MinimalJourneysResource[];
+  broadcasts: BroadcastResourceAllVersions[];
 }): Pick<Delivery, "originId" | "originType" | "originName"> | null {
   for (const broadcast of broadcasts) {
     // for broadcast v1
-    if (broadcast.journeyId === item.journeyId) {
+    if (
+      (!broadcast.version ||
+        broadcast.version === BroadcastResourceVersionEnum.V1) &&
+      broadcast.journeyId &&
+      broadcast.journeyId === item.journeyId
+    ) {
       return {
         originId: broadcast.id,
         originType: "broadcast",
@@ -427,7 +437,10 @@ function getOrigin({
       };
     }
     // for broadcast v2
-    if (broadcast.messageTemplateId === item.templateId) {
+    if (
+      broadcast.version === BroadcastResourceVersionEnum.V2 &&
+      broadcast.messageTemplateId === item.templateId
+    ) {
       return {
         originId: broadcast.id,
         originType: "broadcastV2",
@@ -545,6 +558,7 @@ const timeOptions: TimeOption[] = [
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   templateUriTemplate: "/templates/{channel}/{templateId}",
+  broadcastUriTemplate: "/broadcasts/v2",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
   autoReloadByDefault: false,
@@ -554,6 +568,7 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
 interface DeliveriesTableV2Props {
   getDeliveriesRequest?: GetDeliveriesRequest;
   templateUriTemplate?: string;
+  broadcastUriTemplate?: string;
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
   userId?: string[] | string;
@@ -635,15 +650,14 @@ export function DeliveriesTableV2({
   broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
+  broadcastUriTemplate,
 }: DeliveriesTableV2Props) {
-  const { workspace, apiBase, messages, journeys, broadcasts } =
-    useAppStorePick([
-      "workspace",
-      "messages",
-      "apiBase",
-      "journeys",
-      "broadcasts",
-    ]);
+  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
+  const { data: resources } = useResourcesQuery({
+    journeys: true,
+    messageTemplates: true,
+  });
+  const { data: broadcasts } = useBroadcastsQuery();
 
   const [deliveriesFilterState, setDeliveriesFilterState] =
     useDeliveriesFilterState();
@@ -756,23 +770,43 @@ export function DeliveriesTableV2({
   const templateLinkCell = useMemo(
     () =>
       linkCellFactory((delivery) => {
-        let uriTemplate: string;
-        // const isInternalTemplate = delivery.templateId ===
-        if (delivery.originType !== "broadcastV2" || ) {
+        const isInternalTemplate =
+          delivery.broadcastId &&
+          workspace.type === CompletionStatus.Successful &&
+          isInternalBroadcastTemplate({
+            templateId: delivery.templateId,
+            broadcastId: delivery.broadcastId,
+            workspaceId: workspace.value.id,
+          });
+
+        let uriTemplate: string | undefined;
+        const queryParams: QueryParams = {};
+        if (delivery.originType !== "broadcastV2" || !isInternalTemplate) {
           uriTemplate = templateUriTemplate;
         } else {
-
-        
+          uriTemplate = broadcastUriTemplate;
+          if (delivery.broadcastId) {
+            queryParams.id = delivery.broadcastId;
+            queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.CONTENT;
+          }
         }
         return renderRowUrl({
-          uriTemplate: templateUriTemplate,
+          uriTemplate,
           delivery,
+          queryParams,
         });
       }),
-    [templateUriTemplate],
+    [workspace, templateUriTemplate, broadcastUriTemplate],
   );
   const originLinkCell = useMemo(
-    () => linkCellFactory(originUriTemplate),
+    () =>
+      linkCellFactory((delivery) =>
+        // FIXME render broadcast v2 review link
+        renderRowUrl({
+          uriTemplate: originUriTemplate,
+          delivery,
+        }),
+      ),
     [originUriTemplate],
   );
   const maxWidthCell = useMemo(() => maxWidthCellFactory(), []);
@@ -864,22 +898,21 @@ export function DeliveriesTableV2({
   ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
-      query.isPending ||
       !query.data ||
-      workspace.type !== CompletionStatus.Successful ||
-      journeys.type !== CompletionStatus.Successful ||
-      messages.type !== CompletionStatus.Successful
+      !resources ||
+      !broadcasts ||
+      workspace.type !== CompletionStatus.Successful
     ) {
       return null;
     }
     return query.data.items.flatMap((item) => {
       const origin = getOrigin({
-        journeys: journeys.value,
+        journeys: resources.journeys ?? [],
         broadcasts,
         item,
       });
-      const template = messages.value.find(
-        (message) => message.id === item.templateId,
+      const template = (resources.messageTemplates ?? []).find(
+        (messageTemplate) => messageTemplate.id === item.templateId,
       );
       if (!("variant" in item)) {
         return [];
@@ -897,6 +930,7 @@ export function DeliveriesTableV2({
         originName: origin?.originName,
         templateId: item.templateId,
         templateName: template?.name,
+        broadcastId: item.broadcastId,
         sentAt: new Date(item.sentAt).getTime(),
         updatedAt: new Date(item.updatedAt).getTime(),
       };
@@ -940,7 +974,7 @@ export function DeliveriesTableV2({
       }
       return delivery;
     });
-  }, [query, workspace, journeys, broadcasts, messages]);
+  }, [query, workspace, resources, broadcasts]);
   const customDateRef = useRef<HTMLInputElement | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 

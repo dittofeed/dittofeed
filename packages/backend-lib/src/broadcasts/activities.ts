@@ -93,6 +93,16 @@ export async function getBroadcast({
     );
     return null;
   }
+  if (model.version !== "V2") {
+    logger().error(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast version is not V2",
+    );
+    return null;
+  }
   return {
     workspaceId: model.workspaceId,
     config: configResult.value,
@@ -105,6 +115,7 @@ export async function getBroadcast({
     subscriptionGroupId: model.subscriptionGroupId ?? undefined,
     createdAt: model.createdAt.getTime(),
     updatedAt: model.updatedAt.getTime(),
+    version: model.version,
   };
 }
 

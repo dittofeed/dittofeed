@@ -6,6 +6,7 @@ import * as schema from "./db/schema";
 import { getSubscribedSegments } from "./journeys";
 import logger from "./logger";
 import {
+  BroadcastResourceVersion,
   ChannelType,
   GetJourneysResourcesConfig,
   GetResourcesRequest,
@@ -65,12 +66,18 @@ export async function getResources({
   userProperties: shouldGetUserProperties,
   subscriptionGroups: shouldGetSubscriptionGroups,
   journeys: journeysConfig,
+  messageTemplates: shouldGetMessageTemplates,
+  broadcasts: shouldGetBroadcasts,
 }: GetResourcesRequest): Promise<GetResourcesResponse> {
   const promises: [
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string; channel: string }[]>,
     null | Promise<MinimalJourneysResource[]>,
+    null | Promise<{ id: string; name: string }[]>,
+    null | Promise<
+      { id: string; name: string; version: BroadcastResourceVersion | null }[]
+    >,
   ] = [
     shouldGetSegments
       ? db().query.segment.findMany({
@@ -117,10 +124,37 @@ export async function getResources({
             typeof journeysConfig === "boolean" ? undefined : journeysConfig,
         })
       : null,
+    shouldGetMessageTemplates
+      ? db().query.messageTemplate.findMany({
+          columns: {
+            id: true,
+            name: true,
+          },
+          where: eq(schema.messageTemplate.workspaceId, workspaceId),
+          orderBy: [asc(schema.messageTemplate.name)],
+        })
+      : null,
+    shouldGetBroadcasts
+      ? db().query.broadcast.findMany({
+          columns: {
+            id: true,
+            name: true,
+            version: true,
+          },
+          where: eq(schema.broadcast.workspaceId, workspaceId),
+          orderBy: [asc(schema.broadcast.name)],
+        })
+      : null,
   ];
 
-  const [segments, userProperties, subscriptionGroups, journeys] =
-    await Promise.all(promises);
+  const [
+    segments,
+    userProperties,
+    subscriptionGroups,
+    journeys,
+    messageTemplates,
+    broadcasts,
+  ] = await Promise.all(promises);
 
   const response: GetResourcesResponse = {};
   if (segments) {
@@ -146,6 +180,20 @@ export async function getResources({
   }
   if (journeys) {
     response.journeys = journeys;
+  }
+  if (messageTemplates) {
+    response.messageTemplates = messageTemplates.map((messageTemplate) => ({
+      id: messageTemplate.id,
+      name: messageTemplate.name,
+    }));
+  }
+
+  if (broadcasts) {
+    response.broadcasts = broadcasts.map((broadcast) => ({
+      id: broadcast.id,
+      name: broadcast.name,
+      version: broadcast.version ?? undefined,
+    }));
   }
   return response;
 }

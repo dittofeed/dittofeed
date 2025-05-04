@@ -4858,9 +4858,11 @@ export const GetResourcesRequest = Type.Object({
   segments: Type.Optional(Type.Boolean()),
   userProperties: Type.Optional(Type.Boolean()),
   subscriptionGroups: Type.Optional(Type.Boolean()),
+  broadcasts: Type.Optional(Type.Boolean()),
   journeys: Type.Optional(
     Type.Union([Type.Boolean(), GetJourneysResourcesConfig]),
   ),
+  messageTemplates: Type.Optional(Type.Boolean()),
 });
 
 export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
@@ -4872,6 +4874,16 @@ export const MinimalJourneysResource = Type.Object({
 });
 
 export type MinimalJourneysResource = Static<typeof MinimalJourneysResource>;
+
+export const MinimalBroadcastsResource = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  version: Type.Optional(BroadcastResourceVersion),
+});
+
+export type MinimalBroadcastsResource = Static<
+  typeof MinimalBroadcastsResource
+>;
 
 export const GetResourcesResponse = Type.Object({
   segments: Type.Optional(
@@ -4900,6 +4912,15 @@ export const GetResourcesResponse = Type.Object({
     ),
   ),
   journeys: Type.Optional(Type.Array(MinimalJourneysResource)),
+  messageTemplates: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      }),
+    ),
+  ),
+  broadcasts: Type.Optional(Type.Array(MinimalBroadcastsResource)),
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
@@ -5027,7 +5048,7 @@ export const BroadcastResourceV2 = Type.Object({
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   archived: Type.Optional(Type.Boolean()),
-  version: Type.Optional(Type.Literal(BroadcastResourceVersionEnum.V2)),
+  version: Type.Literal(BroadcastResourceVersionEnum.V2),
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
