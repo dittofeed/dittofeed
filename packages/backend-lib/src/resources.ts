@@ -1,23 +1,83 @@
 import { and, asc, eq } from "drizzle-orm";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { getSubscribedSegments } from "./journeys";
+import logger from "./logger";
 import {
+  BroadcastResourceVersion,
   ChannelType,
+  GetJourneysResourcesConfig,
   GetResourcesRequest,
   GetResourcesResponse,
+  JourneyDefinition,
+  MinimalJourneysResource,
 } from "./types";
+
+async function getJourneysResources({
+  workspaceId,
+  config,
+}: {
+  workspaceId: string;
+  config?: GetJourneysResourcesConfig;
+}): Promise<MinimalJourneysResource[]> {
+  const journeys = await db().query.journey.findMany({
+    columns: {
+      id: true,
+      name: true,
+      definition: true,
+    },
+    where: eq(schema.journey.workspaceId, workspaceId),
+    orderBy: [asc(schema.journey.name)],
+  });
+  return journeys.flatMap((journey) => {
+    const resource: MinimalJourneysResource = {
+      id: journey.id,
+      name: journey.name,
+    };
+    if (config?.segments) {
+      const definitionResult = schemaValidateWithErr(
+        journey.definition,
+        JourneyDefinition,
+      );
+      if (definitionResult.isErr()) {
+        logger().error(
+          {
+            journeyId: journey.id,
+            error: definitionResult.error,
+          },
+          "Invalid journey definition",
+        );
+        return [];
+      }
+      const segments = Array.from(
+        getSubscribedSegments(definitionResult.value),
+      );
+      resource.segments = segments;
+    }
+    return resource;
+  });
+}
 
 export async function getResources({
   workspaceId,
   segments: shouldGetSegments,
   userProperties: shouldGetUserProperties,
   subscriptionGroups: shouldGetSubscriptionGroups,
+  journeys: journeysConfig,
+  messageTemplates: shouldGetMessageTemplates,
+  broadcasts: shouldGetBroadcasts,
 }: GetResourcesRequest): Promise<GetResourcesResponse> {
   const promises: [
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string; channel: string }[]>,
+    null | Promise<MinimalJourneysResource[]>,
+    null | Promise<{ id: string; name: string }[]>,
+    null | Promise<
+      { id: string; name: string; version: BroadcastResourceVersion | null }[]
+    >,
   ] = [
     shouldGetSegments
       ? db().query.segment.findMany({
@@ -57,10 +117,44 @@ export async function getResources({
           orderBy: [asc(schema.subscriptionGroup.name)],
         })
       : null,
+    journeysConfig
+      ? getJourneysResources({
+          workspaceId,
+          config:
+            typeof journeysConfig === "boolean" ? undefined : journeysConfig,
+        })
+      : null,
+    shouldGetMessageTemplates
+      ? db().query.messageTemplate.findMany({
+          columns: {
+            id: true,
+            name: true,
+          },
+          where: eq(schema.messageTemplate.workspaceId, workspaceId),
+          orderBy: [asc(schema.messageTemplate.name)],
+        })
+      : null,
+    shouldGetBroadcasts
+      ? db().query.broadcast.findMany({
+          columns: {
+            id: true,
+            name: true,
+            version: true,
+          },
+          where: eq(schema.broadcast.workspaceId, workspaceId),
+          orderBy: [asc(schema.broadcast.name)],
+        })
+      : null,
   ];
 
-  const [segments, userProperties, subscriptionGroups] =
-    await Promise.all(promises);
+  const [
+    segments,
+    userProperties,
+    subscriptionGroups,
+    journeys,
+    messageTemplates,
+    broadcasts,
+  ] = await Promise.all(promises);
 
   const response: GetResourcesResponse = {};
   if (segments) {
@@ -83,6 +177,23 @@ export async function getResources({
         channel: subscriptionGroup.channel as ChannelType,
       }),
     );
+  }
+  if (journeys) {
+    response.journeys = journeys;
+  }
+  if (messageTemplates) {
+    response.messageTemplates = messageTemplates.map((messageTemplate) => ({
+      id: messageTemplate.id,
+      name: messageTemplate.name,
+    }));
+  }
+
+  if (broadcasts) {
+    response.broadcasts = broadcasts.map((broadcast) => ({
+      id: broadcast.id,
+      name: broadcast.name,
+      version: broadcast.version ?? undefined,
+    }));
   }
   return response;
 }

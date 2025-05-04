@@ -18,8 +18,6 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Button,
-  ButtonProps,
   CircularProgress,
   Divider,
   Drawer,
@@ -52,15 +50,18 @@ import {
 } from "@tanstack/react-table";
 import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { isInternalBroadcastTemplate } from "isomorphic-lib/src/broadcasts";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  BroadcastResource,
+  BroadcastResourceAllVersions,
+  BroadcastResourceVersionEnum,
   ChannelType,
   CompletionStatus,
   DeliveriesAllowedColumn,
-  SavedJourneyResource,
+  JSONValue,
+  MinimalJourneysResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
   SearchDeliveriesRequestSortByEnum,
@@ -70,6 +71,7 @@ import {
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
+import qs from "qs";
 import { useCallback, useMemo, useRef, useState } from "react";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
@@ -77,6 +79,12 @@ import { useInterval } from "usehooks-ts";
 
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
+import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
+import { useResourcesQuery } from "../lib/useResourcesQuery";
+import {
+  BroadcastQueryKeys,
+  BroadcastStepKeys,
+} from "./broadcasts/broadcastsShared";
 import {
   getFilterValues,
   NewDeliveriesFilterButton,
@@ -89,6 +97,7 @@ import {
   humanizeStatus,
 } from "./deliveriesTable";
 import EmailPreviewHeader from "./emailPreviewHeader";
+import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
@@ -147,34 +156,6 @@ function formatDate(date: Date) {
 function formatCalendarDate(date: CalendarDate) {
   return formatDate(
     date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
-  );
-}
-
-export const greyButtonStyle = {
-  bgcolor: "grey.200",
-  color: "grey.700",
-  "&:hover": {
-    bgcolor: "grey.300",
-  },
-  "&:active": {
-    bgcolor: "grey.400",
-  },
-  "&.Mui-disabled": {
-    bgcolor: "grey.100",
-    color: "grey.400",
-  },
-} as const;
-
-function GreyButton(props: ButtonProps) {
-  const { sx, ...rest } = props;
-  return (
-    <Button
-      {...rest}
-      sx={{
-        ...greyButtonStyle,
-        ...sx,
-      }}
-    />
   );
 }
 
@@ -245,51 +226,62 @@ function TimeCell({ row }: { row: Row<Delivery> }) {
   );
 }
 
+type QueryParams = Record<string, JSONValue>;
+
+function renderRowUrl({
+  uriTemplate,
+  delivery,
+  queryParams,
+}: {
+  uriTemplate?: string;
+  delivery: Delivery;
+  queryParams?: QueryParams;
+}): string | null {
+  if (!uriTemplate) {
+    return null;
+  }
+  const template = uriTemplates(uriTemplate);
+
+  const values: Record<string, string> = {
+    userId: delivery.userId,
+    messageId: delivery.messageId,
+    templateId: delivery.templateId,
+    channel: delivery.channel.toLowerCase(),
+  };
+  if (delivery.originId) {
+    values.originId = delivery.originId;
+  }
+  if (delivery.originType) {
+    values.originType = delivery.originType;
+  }
+  if (delivery.originName) {
+    values.originName = delivery.originName;
+  }
+  if (delivery.templateName) {
+    values.templateName = delivery.templateName;
+  }
+  let uriWithoutQueryParams = template.fillFromObject(values);
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    uriWithoutQueryParams = `${uriWithoutQueryParams}?${qs.stringify(queryParams)}`;
+  }
+  return uriWithoutQueryParams;
+}
+
+type RenderUrl = (row: Delivery) => string | null;
+
 function LinkCell({
   row,
   column,
-  uriTemplate,
+  renderUrl,
 }: {
   row: Row<Delivery>;
   column: ColumnDef<Delivery>;
-  uriTemplate?: string;
+  renderUrl?: RenderUrl;
 }) {
   const value = column.id ? (row.getValue(column.id) as string) : null;
   const uri = useMemo(() => {
-    if (!uriTemplate) {
-      return null;
-    }
-    const template = uriTemplates(uriTemplate);
-    const values: Record<string, string> = {
-      userId: row.original.userId,
-      messageId: row.original.messageId,
-      templateId: row.original.templateId,
-      channel: row.original.channel.toLowerCase(),
-    };
-    if (row.original.originId) {
-      values.originId = row.original.originId;
-    }
-    if (row.original.originType) {
-      values.originType = row.original.originType;
-    }
-    if (row.original.originName) {
-      values.originName = row.original.originName;
-    }
-    if (row.original.templateName) {
-      values.templateName = row.original.templateName;
-    }
-    return template.fillFromObject(values);
-  }, [
-    uriTemplate,
-    row.original.userId,
-    row.original.messageId,
-    row.original.originId,
-    row.original.templateId,
-    row.original.channel,
-    row.original.originType,
-    row.original.originName,
-    row.original.templateName,
-  ]);
+    return renderUrl ? renderUrl(row.original) : null;
+  }, [renderUrl, row.original]);
 
   if (!value) {
     return null;
@@ -324,7 +316,7 @@ function LinkCell({
   );
 }
 
-function linkCellFactory(uriTemplate?: string) {
+function linkCellFactory(renderUrl?: RenderUrl) {
   return function linkCell({
     row,
     column,
@@ -332,7 +324,7 @@ function linkCellFactory(uriTemplate?: string) {
     row: Row<Delivery>;
     column: ColumnDef<Delivery>;
   }) {
-    return <LinkCell row={row} column={column} uriTemplate={uriTemplate} />;
+    return <LinkCell row={row} column={column} renderUrl={renderUrl} />;
   };
 }
 
@@ -378,8 +370,9 @@ interface BaseDelivery {
   body: string;
   status: string;
   originId?: string;
-  originType?: "broadcast" | "journey";
+  originType?: "broadcast" | "journey" | "broadcastV2";
   originName?: string;
+  broadcastId?: string;
   templateId: string;
   templateName?: string;
   sentAt: number;
@@ -426,14 +419,31 @@ function getOrigin({
   item,
 }: {
   item: SearchDeliveriesResponseItem;
-  journeys: SavedJourneyResource[];
-  broadcasts: BroadcastResource[];
+  journeys: MinimalJourneysResource[];
+  broadcasts: BroadcastResourceAllVersions[];
 }): Pick<Delivery, "originId" | "originType" | "originName"> | null {
   for (const broadcast of broadcasts) {
-    if (broadcast.journeyId === item.journeyId) {
+    // for broadcast v1
+    if (
+      (!broadcast.version ||
+        broadcast.version === BroadcastResourceVersionEnum.V1) &&
+      broadcast.journeyId &&
+      broadcast.journeyId === item.journeyId
+    ) {
       return {
         originId: broadcast.id,
         originType: "broadcast",
+        originName: broadcast.name,
+      };
+    }
+    // for broadcast v2
+    if (
+      broadcast.version === BroadcastResourceVersionEnum.V2 &&
+      broadcast.messageTemplateId === item.templateId
+    ) {
+      return {
+        originId: broadcast.id,
+        originType: "broadcastV2",
         originName: broadcast.name,
       };
     }
@@ -554,6 +564,7 @@ const timeOptions: TimeOption[] = [
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   templateUriTemplate: "/templates/{channel}/{templateId}",
+  broadcastUriTemplate: "/broadcasts/v2",
   originUriTemplate: "/{originType}s/{originId}",
   columnAllowList: DEFAULT_ALLOWED_COLUMNS,
   autoReloadByDefault: false,
@@ -563,10 +574,12 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
 interface DeliveriesTableV2Props {
   getDeliveriesRequest?: GetDeliveriesRequest;
   templateUriTemplate?: string;
+  broadcastUriTemplate?: string;
   originUriTemplate?: string;
   columnAllowList?: DeliveriesAllowedColumn[];
   userId?: string[] | string;
   groupId?: string[] | string;
+  broadcastId?: string;
   journeyId?: string;
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
   autoReloadByDefault?: boolean;
@@ -640,17 +653,17 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   triggeringProperties,
+  broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
+  broadcastUriTemplate,
 }: DeliveriesTableV2Props) {
-  const { workspace, apiBase, messages, journeys, broadcasts } =
-    useAppStorePick([
-      "workspace",
-      "messages",
-      "apiBase",
-      "journeys",
-      "broadcasts",
-    ]);
+  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
+  const { data: resources } = useResourcesQuery({
+    journeys: true,
+    messageTemplates: true,
+  });
+  const { data: broadcasts } = useBroadcastsQuery();
 
   const [deliveriesFilterState, setDeliveriesFilterState] =
     useDeliveriesFilterState();
@@ -742,6 +755,7 @@ export function DeliveriesTableV2({
         userId,
         groupId,
         journeyId,
+        broadcastId,
       };
       const response = await getDeliveriesRequest({
         params,
@@ -760,12 +774,57 @@ export function DeliveriesTableV2({
     [setState],
   );
   const templateLinkCell = useMemo(
-    () => linkCellFactory(templateUriTemplate),
-    [templateUriTemplate],
+    () =>
+      linkCellFactory((delivery) => {
+        const isInternalTemplate =
+          delivery.broadcastId &&
+          workspace.type === CompletionStatus.Successful &&
+          isInternalBroadcastTemplate({
+            templateId: delivery.templateId,
+            broadcastId: delivery.broadcastId,
+            workspaceId: workspace.value.id,
+          });
+
+        let uriTemplate: string | undefined;
+        const queryParams: QueryParams = {};
+        if (delivery.originType !== "broadcastV2" || !isInternalTemplate) {
+          uriTemplate = templateUriTemplate;
+        } else {
+          uriTemplate = broadcastUriTemplate;
+          if (delivery.broadcastId) {
+            queryParams.id = delivery.broadcastId;
+          }
+          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.CONTENT;
+        }
+        return renderRowUrl({
+          uriTemplate,
+          delivery,
+          queryParams,
+        });
+      }),
+    [workspace, templateUriTemplate, broadcastUriTemplate],
   );
   const originLinkCell = useMemo(
-    () => linkCellFactory(originUriTemplate),
-    [originUriTemplate],
+    () =>
+      linkCellFactory((delivery) => {
+        let uriTemplate: string | undefined;
+        const queryParams: QueryParams = {};
+        if (delivery.originType === "broadcastV2") {
+          uriTemplate = broadcastUriTemplate;
+          if (delivery.broadcastId) {
+            queryParams.id = delivery.broadcastId;
+          }
+          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.REVIEW;
+        } else {
+          uriTemplate = originUriTemplate;
+        }
+        return renderRowUrl({
+          uriTemplate,
+          delivery,
+          queryParams,
+        });
+      }),
+    [originUriTemplate, broadcastUriTemplate],
   );
   const maxWidthCell = useMemo(() => maxWidthCellFactory(), []);
 
@@ -849,29 +908,29 @@ export function DeliveriesTableV2({
     return columnAllowList.map((columnId) => columnDefinitions[columnId]);
   }, [
     renderPreviewCell,
-    templateLinkCell,
-    originLinkCell,
-    columnAllowList,
+    maxWidthCell,
     userIdCellRenderer,
+    originLinkCell,
+    templateLinkCell,
+    columnAllowList,
   ]);
   const data = useMemo<Delivery[] | null>(() => {
     if (
-      query.isPending ||
       !query.data ||
-      workspace.type !== CompletionStatus.Successful ||
-      journeys.type !== CompletionStatus.Successful ||
-      messages.type !== CompletionStatus.Successful
+      !resources ||
+      !broadcasts ||
+      workspace.type !== CompletionStatus.Successful
     ) {
       return null;
     }
     return query.data.items.flatMap((item) => {
       const origin = getOrigin({
-        journeys: journeys.value,
+        journeys: resources.journeys ?? [],
         broadcasts,
         item,
       });
-      const template = messages.value.find(
-        (message) => message.id === item.templateId,
+      const template = (resources.messageTemplates ?? []).find(
+        (messageTemplate) => messageTemplate.id === item.templateId,
       );
       if (!("variant" in item)) {
         return [];
@@ -889,6 +948,7 @@ export function DeliveriesTableV2({
         originName: origin?.originName,
         templateId: item.templateId,
         templateName: template?.name,
+        broadcastId: item.broadcastId,
         sentAt: new Date(item.sentAt).getTime(),
         updatedAt: new Date(item.updatedAt).getTime(),
       };
@@ -932,7 +992,7 @@ export function DeliveriesTableV2({
       }
       return delivery;
     });
-  }, [query, workspace, journeys, broadcasts, messages]);
+  }, [query, workspace, resources, broadcasts]);
   const customDateRef = useRef<HTMLInputElement | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 

@@ -5,25 +5,23 @@ import * as schema from "backend-lib/src/db/schema";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { eq } from "drizzle-orm";
-import {
-  CompletionStatus,
-  SavedSegmentResource,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { useDebounce } from "use-debounce";
+import { useDebouncedCallback } from "use-debounce";
 import { validate } from "uuid";
 
-import { SegmentEditorInner } from "../../../components/segmentEditor";
+import SegmentEditor, {
+  SegmentEditorProps,
+} from "../../../components/segmentEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
 import { getSegmentConfigState } from "../../../lib/segments";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
-import { useUpdateEffect } from "../../../lib/useUpdateEffect";
+import { useUpdateSegmentsMutation } from "../../../lib/useUpdateSegmentsMutation";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
 
@@ -69,9 +67,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const baseAppState = getBroadcastAppState({ broadcast });
     const segmentAppState = getSegmentConfigState({
-      segment,
-      segmentId: id,
-      workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>
         subscriptionGroupToResource(sg),
       ),
@@ -106,60 +101,29 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
 export default function BroadcastSegment() {
   const router = useRouter();
-  const {
-    segmentUpdateRequest,
-    setSegmentUpdateRequest,
-    upsertSegment,
-    editedSegment,
-    apiBase,
-    broadcasts,
-  } = useAppStorePick([
+  const { broadcasts } = useAppStorePick([
     "broadcasts",
-    "segmentUpdateRequest",
-    "setSegmentUpdateRequest",
     "upsertSegment",
-    "editedSegment",
     "apiBase",
   ]);
   const { id } = router.query;
-  const [debouncedSegment] = useDebounce(editedSegment, 1000);
   const broadcast = useMemo(
     () => broadcasts.find((b) => b.id === id) ?? null,
     [broadcasts, id],
   );
+  const segmentsUpdateMutation = useUpdateSegmentsMutation();
   const started = broadcast?.status !== "NotStarted";
 
-  useUpdateEffect(() => {
-    if (!debouncedSegment || !broadcast || started) {
-      return;
-    }
-    apiRequestHandlerFactory({
-      request: segmentUpdateRequest,
-      setRequest: setSegmentUpdateRequest,
-      responseSchema: SavedSegmentResource,
-      setResponse: upsertSegment,
-      onSuccessNotice: `Saved broadcast segment`,
-      onFailureNoticeHandler: () =>
-        `API Error: Failed to save broadcast segment`,
-      requestConfig: {
-        method: "PUT",
-        url: `${apiBase}/api/segments`,
-        data: debouncedSegment,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    // Don't want to re-render on segmentUpdateRequest updating.
-    apiBase,
-    debouncedSegment,
-    setSegmentUpdateRequest,
-    upsertSegment,
-  ]);
+  const updateSegmentCallback: SegmentEditorProps["onSegmentChange"] =
+    useDebouncedCallback((s) => {
+      segmentsUpdateMutation.mutate({
+        id: s.id,
+        definition: s.definition,
+        name: s.name,
+      });
+    }, 1000);
 
-  if (typeof id !== "string" || !editedSegment) {
+  if (typeof id !== "string") {
     return null;
   }
 
@@ -179,11 +143,14 @@ export default function BroadcastSegment() {
           Next
         </Button>
       </Stack>
-      <SegmentEditorInner
-        sx={{ width: "100%" }}
-        disabled={started}
-        editedSegment={editedSegment}
-      />
+      {broadcast?.segmentId && (
+        <SegmentEditor
+          sx={{ width: "100%" }}
+          disabled={started}
+          segmentId={broadcast.segmentId}
+          onSegmentChange={updateSegmentCallback}
+        />
+      )}
     </BroadcastLayout>
   );
 }

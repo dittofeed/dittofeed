@@ -2,7 +2,6 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitBatchWithTriggers } from "backend-lib/src/apps";
 import { SubmitBatchOptions } from "backend-lib/src/apps/batch";
-import { triggerWorkspaceRecompute } from "backend-lib/src/computedProperties/periods";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
@@ -13,7 +12,7 @@ import {
 } from "backend-lib/src/segments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   DataSources,
@@ -65,8 +64,19 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const conditions = [
+        eq(schema.segment.workspaceId, request.query.workspaceId),
+      ];
+      if (request.query.ids) {
+        conditions.push(inArray(schema.segment.id, request.query.ids));
+      }
+      if (request.query.resourceType) {
+        conditions.push(
+          eq(schema.segment.resourceType, request.query.resourceType),
+        );
+      }
       const segmentModels = await db().query.segment.findMany({
-        where: eq(schema.segment.workspaceId, request.query.workspaceId),
+        where: and(...conditions),
       });
       const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
       return reply.status(200).send({ segments });
@@ -90,11 +100,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const result = await upsertSegment(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
-      }
-      if (request.body.definition) {
-        await triggerWorkspaceRecompute({
-          workspaceId: result.value.workspaceId,
-        });
       }
       return reply.status(200).send(result.value);
     },

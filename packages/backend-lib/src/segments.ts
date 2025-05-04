@@ -3,6 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
 import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
+import deepEqual from "fast-deep-equal";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
   schemaValidate,
@@ -19,7 +20,7 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { assignmentSequentialConsistency } from "./config";
-import { db, queryResult } from "./db";
+import { db, TxQueryError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
@@ -197,6 +198,7 @@ export function toSegmentResource(
     updatedAt: segment.updatedAt.getTime(),
     definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
+    status: segment.status,
   });
 }
 
@@ -359,29 +361,85 @@ export async function upsertSegment(
     workspaceId: params.workspaceId,
     name: params.name,
     definition: params.definition,
+    resourceType: params.resourceType,
+    status: params.status,
   };
 
-  const result = await queryResult(
-    db()
-      .insert(dbSegment)
-      .values(value)
-      .onConflictDoUpdate({
-        target: params.id
-          ? [dbSegment.id]
-          : [dbSegment.workspaceId, dbSegment.name],
-        setWhere: eq(dbSegment.workspaceId, params.workspaceId),
-        set: {
-          definition: params.definition,
-          name: params.name,
-          definitionUpdatedAt: params.definition ? new Date() : undefined,
-        },
-      })
-      .returning(),
+  const txResult: Result<Segment, TxQueryError> = await db().transaction(
+    async (tx) => {
+      const findFirstConditions: SQL[] = [
+        eq(dbSegment.workspaceId, params.workspaceId),
+      ];
+      if (params.id) {
+        findFirstConditions.push(eq(dbSegment.id, params.id));
+      } else {
+        findFirstConditions.push(eq(dbSegment.name, params.name));
+      }
+      const existingSegment = await tx.query.segment.findFirst({
+        where: and(...findFirstConditions),
+      });
+      if (existingSegment) {
+        if (params.createOnly) {
+          return ok(existingSegment);
+        }
+        const wasDefinitionUpdated =
+          params.definition &&
+          !deepEqual(existingSegment.definition, params.definition);
+
+        const updateResult = await txQueryResult(
+          tx
+            .update(dbSegment)
+            .set({
+              definition: params.definition,
+              name: params.name,
+              resourceType: params.resourceType,
+              definitionUpdatedAt: wasDefinitionUpdated
+                ? new Date()
+                : existingSegment.definitionUpdatedAt,
+            })
+            .where(eq(dbSegment.id, existingSegment.id))
+            .returning(),
+        );
+        if (updateResult.isErr()) {
+          return err(updateResult.error);
+        }
+        const updatedSegment = updateResult.value[0];
+        if (!updatedSegment) {
+          logger().error(
+            {
+              workspaceId: params.workspaceId,
+              segmentId: existingSegment.id,
+            },
+            "segment not found",
+          );
+          throw new Error("segment not found");
+        }
+        return ok(updatedSegment);
+      }
+      const createResult = await txQueryResult(
+        tx.insert(dbSegment).values(value).returning(),
+      );
+      if (createResult.isErr()) {
+        return err(createResult.error);
+      }
+      const createdSegment = createResult.value[0];
+      if (!createdSegment) {
+        logger().error(
+          {
+            workspaceId: params.workspaceId,
+            name: params.name,
+          },
+          "segment not found",
+        );
+        throw new Error("segment not found");
+      }
+      return ok(createdSegment);
+    },
   );
-  if (result.isErr()) {
+  if (txResult.isErr()) {
     if (
-      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
-      result.error.code === PostgresError.UNIQUE_VIOLATION
+      txResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
+      txResult.error.code === PostgresError.UNIQUE_VIOLATION
     ) {
       return err({
         type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
@@ -391,33 +449,24 @@ export async function upsertSegment(
     }
     logger().error(
       {
-        result,
+        err: txResult.error,
         params,
-        err: result.error,
-        workspaceId: params.workspaceId,
       },
       "Failed to upsert segment",
     );
-    throw result.error;
+    throw txResult.error;
   }
-
-  const insertedSegment = result.value[0];
-  if (!insertedSegment) {
-    return err({
-      type: UpsertSegmentValidationErrorType.UniqueConstraintViolation,
-      message:
-        "Names must be unique in workspace. Id's must be globally unique.",
-    });
-  }
+  const segment = txResult.value;
 
   return ok({
-    id: insertedSegment.id,
-    workspaceId: insertedSegment.workspaceId,
-    name: insertedSegment.name,
-    definition: insertedSegment.definition as SegmentDefinition,
-    definitionUpdatedAt: insertedSegment.definitionUpdatedAt.getTime(),
-    updatedAt: insertedSegment.updatedAt.getTime(),
-    createdAt: insertedSegment.createdAt.getTime(),
+    id: segment.id,
+    workspaceId: segment.workspaceId,
+    name: segment.name,
+    definition: segment.definition as SegmentDefinition,
+    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
+    updatedAt: segment.updatedAt.getTime(),
+    createdAt: segment.createdAt.getTime(),
+    resourceType: segment.resourceType,
   });
 }
 
@@ -597,6 +646,7 @@ export async function findManyPartialSegments({
       updatedAt,
       definitionUpdatedAt,
       createdAt,
+      resourceType,
     } = segment;
     return {
       id,
@@ -606,6 +656,7 @@ export async function findManyPartialSegments({
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
       createdAt: createdAt.getTime(),
+      resourceType,
     } satisfies PartialSegmentResource;
   });
 }

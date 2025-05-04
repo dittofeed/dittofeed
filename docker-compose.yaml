@@ -118,6 +118,22 @@ services:
       - 7233:7233
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-ui:
+    profiles: ["temporal-ui"]
+    container_name: temporal-ui
+    restart: always
+    logging:
+      driver: "local"
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:${TEMPORAL_UI_VERSION:-2.22.1}
+    networks:
+      - dittofeed-network-dev
+    ports:
+      - 8080:8080
   postgres:
     image: "postgres:15"
     restart: always

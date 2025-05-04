@@ -13,7 +13,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  ButtonProps,
   Chip,
   CircularProgress,
   Dialog,
@@ -54,6 +53,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
+import deepEqual from "fast-deep-equal";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -67,10 +67,11 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import {
@@ -597,22 +598,23 @@ function ActionsCell({
   );
 }
 
-const actionsCellRenderer = ({
-  row,
-  table,
+const actionsCellRendererFactory = ({
+  onOptimisticDelete,
 }: {
-  row: { original: { id: string } };
-  table: {
-    options: { meta?: { performOptimisticDelete?: (userId: string) => void } };
-  };
+  onOptimisticDelete: (userId: string) => void;
 }) => {
-  const onOptimisticDelete = table.options.meta?.performOptimisticDelete;
-  return (
-    <ActionsCell
-      userId={row.original.id}
-      onOptimisticDelete={onOptimisticDelete}
-    />
-  );
+  return function ActionsCellRenderer({
+    row,
+  }: {
+    row: { original: { id: string } };
+  }) {
+    return (
+      <ActionsCell
+        userId={row.original.id}
+        onOptimisticDelete={onOptimisticDelete}
+      />
+    );
+  };
 };
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
@@ -661,44 +663,17 @@ interface Row {
   }[];
 }
 
-export const greyButtonStyle = {
-  bgcolor: "grey.200",
-  color: "grey.700",
-  "&:hover": {
-    bgcolor: "grey.300",
-  },
-  "&:active": {
-    bgcolor: "grey.400",
-  },
-  "&.Mui-disabled": {
-    bgcolor: "grey.100",
-    color: "grey.400",
-  },
-} as const;
-
-function GreyButton(props: ButtonProps) {
-  const { sx, ...rest } = props;
-  return (
-    <Button
-      {...rest}
-      sx={{
-        ...greyButtonStyle,
-        ...sx,
-      }}
-    />
-  );
-}
-
 export type OnPaginationChangeProps = Pick<
   GetUsersRequest,
   "direction" | "cursor"
 >;
 
 export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
-  onPaginationChange: (args: OnPaginationChangeProps) => void;
+  onPaginationChange?: (args: OnPaginationChangeProps) => void;
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
+  hideControls?: boolean;
 };
 
 interface TableState {
@@ -745,9 +720,9 @@ export default function UsersTableV2({
   autoReloadByDefault = false,
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
+  hideControls = false,
 }: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
-
   const [userFilterState, userFilterUpdater] = useUserFilterState({
     segments: segmentIds ? new Set(segmentIds) : undefined,
     staticSegments: segmentIds ? new Set(segmentIds) : undefined,
@@ -758,6 +733,45 @@ export default function UsersTableV2({
       ? new Set(subscriptionGroupIds)
       : undefined,
   });
+
+  useEffect(() => {
+    userFilterUpdater((draft) => {
+      const oldStaticSegments = draft.staticSegments;
+      const newStaticSegments = new Set(segmentIds);
+      if (
+        deepEqual(Array.from(oldStaticSegments), Array.from(newStaticSegments))
+      ) {
+        return draft;
+      }
+
+      for (const segmentId of oldStaticSegments) {
+        draft.segments.delete(segmentId);
+        draft.staticSegments.delete(segmentId);
+      }
+
+      for (const segmentId of newStaticSegments) {
+        draft.segments.add(segmentId);
+        draft.staticSegments.add(segmentId);
+      }
+      return draft;
+    });
+  }, [segmentIds]);
+
+  useEffect(() => {
+    userFilterUpdater((draft) => {
+      const oldStaticSubscriptionGroups = draft.staticSegments;
+      for (const segmentId of oldStaticSubscriptionGroups) {
+        draft.segments.delete(segmentId);
+        draft.staticSubscriptionGroups.delete(segmentId);
+      }
+
+      const newStaticSubscriptionGroups = new Set(segmentIds);
+      for (const segmentId of newStaticSubscriptionGroups) {
+        draft.segments.add(segmentId);
+        draft.staticSubscriptionGroups.add(segmentId);
+      }
+    });
+  }, [segmentIds]);
 
   const [state, setState] = useImmer<TableState>({
     autoReload: autoReloadByDefault,
@@ -871,7 +885,7 @@ export default function UsersTableV2({
             draft.query.cursor = null;
             draft.query.direction = null;
           });
-          onPaginationChange({});
+          onPaginationChange?.({});
         }
       } else {
         setState((draft) => {
@@ -915,6 +929,35 @@ export default function UsersTableV2({
     });
   }, [state.currentPageUserIds, state.users]);
 
+  // Function to optimistically delete a user from the table
+  const performOptimisticDelete = useCallback(
+    (userId: string) => {
+      setState((draft) => {
+        // Remove user from currentPageUserIds array
+        draft.currentPageUserIds = draft.currentPageUserIds.filter(
+          (id) => id !== userId,
+        );
+
+        // Remove user from users object
+        if (draft.users[userId]) {
+          delete draft.users[userId];
+        }
+
+        // Decrement the count if it exists
+        if (draft.usersCount !== null) {
+          draft.usersCount -= 1;
+        }
+      });
+    },
+    [setState],
+  );
+
+  const actionsCellRenderer = useMemo(() => {
+    return actionsCellRendererFactory({
+      onOptimisticDelete: performOptimisticDelete,
+    });
+  }, [performOptimisticDelete]);
+
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       {
@@ -945,42 +988,16 @@ export default function UsersTableV2({
     [userUriTemplate],
   );
 
-  // Function to optimistically delete a user from the table
-  const performOptimisticDelete = useCallback(
-    (userId: string) => {
-      setState((draft) => {
-        // Remove user from currentPageUserIds array
-        draft.currentPageUserIds = draft.currentPageUserIds.filter(
-          (id) => id !== userId,
-        );
-
-        // Remove user from users object
-        if (draft.users[userId]) {
-          delete draft.users[userId];
-        }
-
-        // Decrement the count if it exists
-        if (draft.usersCount !== null) {
-          draft.usersCount -= 1;
-        }
-      });
-    },
-    [setState],
-  );
-
   const table = useReactTable({
     columns,
     data: usersData,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
-    meta: {
-      performOptimisticDelete,
-    },
   });
 
   const onNextPage = useCallback(() => {
     if (state.nextCursor) {
-      onPaginationChange({
+      onPaginationChange?.({
         cursor: state.nextCursor,
         direction: CursorDirectionEnum.After,
       });
@@ -993,7 +1010,7 @@ export default function UsersTableV2({
 
   const onPreviousPage = useCallback(() => {
     if (state.previousCursor) {
-      onPaginationChange({
+      onPaginationChange?.({
         cursor: state.previousCursor,
         direction: CursorDirectionEnum.Before,
       });
@@ -1005,7 +1022,7 @@ export default function UsersTableV2({
   }, [state.previousCursor, onPaginationChange, setState]);
 
   const onFirstPage = useCallback(() => {
-    onPaginationChange({});
+    onPaginationChange?.({});
     setState((draft) => {
       draft.query.cursor = null;
     });
@@ -1023,17 +1040,9 @@ export default function UsersTableV2({
   }, [setState]);
 
   const isLoading = query.isPending || query.isFetching;
-
-  return (
-    <Stack
-      spacing={1}
-      sx={{
-        width: "100%",
-        height: "100%",
-        minWidth: 0,
-        alignItems: "stretch",
-      }}
-    >
+  let controls: React.ReactNode = null;
+  if (!hideControls) {
+    controls = (
       <Stack
         direction="row"
         alignItems="center"
@@ -1073,6 +1082,20 @@ export default function UsersTableV2({
           </IconButton>
         </Tooltip>
       </Stack>
+    );
+  }
+
+  return (
+    <Stack
+      spacing={1}
+      sx={{
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        alignItems: "stretch",
+      }}
+    >
+      {controls}
       <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>

@@ -31,7 +31,10 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { emailProviderLabel } from "isomorphic-lib/src/email";
+import {
+  emailProviderLabel,
+  getEmailContentsType,
+} from "isomorphic-lib/src/email";
 import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   messageTemplateDefinitionToDraft,
@@ -49,7 +52,6 @@ import {
   EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
-  MessageTemplateResource,
   MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
@@ -58,7 +60,6 @@ import {
   RenderMessageTemplateRequestContents,
   RenderMessageTemplateResponse,
   SmsProviderType,
-  UpsertMessageTemplateResource,
   UserPropertyAssignments,
   UserPropertyResource,
   WorkspaceMemberResource,
@@ -77,7 +78,13 @@ import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
 } from "../lib/notices";
+import { useMessageTemplateQuery } from "../lib/useMessageTemplateQuery";
+import {
+  UpsertMessageTemplateParams,
+  useMessageTemplateUpdateMutation,
+} from "../lib/useMessageTemplateUpdateMutation";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
+import { useUserPropertiesQuery } from "../lib/useUserPropertiesQuery";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
@@ -183,7 +190,6 @@ export interface BaseTemplateState {
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
   testResponse: MessageTemplateTestResponse | null;
-  updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
   isUserPropertiesMinimised: boolean;
 }
@@ -401,44 +407,37 @@ export default function TemplateEditor({
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
+  const { data: userPropertiesResult } = useUserPropertiesQuery();
   const {
     apiBase,
-    messages,
     workspace: workspaceResult,
-    userProperties: userPropertiesResult,
     upsertTemplate,
     viewDraft,
     inTransition,
     setViewDraft,
   } = useAppStorePick([
     "apiBase",
-    "messages",
     "workspace",
-    "userProperties",
     "upsertTemplate",
     "viewDraft",
     "setViewDraft",
     "inTransition",
   ]);
-  const template = useMemo(
-    () =>
-      messages.type === CompletionStatus.Successful
-        ? messages.value.find((m) => m.id === templateId)
-        : undefined,
-    [messages, templateId],
-  );
+  const { data: template } = useMessageTemplateQuery(templateId);
+  const { mutate: updateTemplate, isPending: isUpdating } =
+    useMessageTemplateUpdateMutation();
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value
       : null;
   const initialUserProperties = useMemo(() => {
-    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+    if (!userPropertiesResult) {
       return {};
     }
     return getUserPropertyValues({
       member,
-      userProperties: userPropertiesResult.value,
+      userProperties: userPropertiesResult.userProperties,
     });
   }, [userPropertiesResult, member]);
 
@@ -448,27 +447,45 @@ export default function TemplateEditor({
     userProperties: initialUserProperties,
     userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
     errors: new Map(),
-    testResponse: null,
     testRequest: {
       type: CompletionStatus.NotStarted,
     },
-    updateRequest: {
-      type: CompletionStatus.NotStarted,
-    },
+    testResponse: null,
     providerOverride: null,
     channel,
     rendered: {},
     isUserPropertiesMinimised: defaultIsUserPropertiesMinimised,
   });
+  useEffect(() => {
+    if (
+      !template?.definition ||
+      state.editedTemplate?.draft?.type !== "Email" ||
+      template.definition.type !== "Email"
+    ) {
+      return;
+    }
+    const currentEmailContentsType = getEmailContentsType(
+      state.editedTemplate.draft,
+    );
+    const newEmailContentsType = getEmailContentsType(template.definition);
+    if (currentEmailContentsType !== newEmailContentsType) {
+      setState((d) => {
+        if (!d.editedTemplate) {
+          return d;
+        }
+        d.editedTemplate.draft = template.draft;
+        return d;
+      });
+    }
+  }, [template, state.editedTemplate, setState]);
+
   const {
     fullscreen,
     errors,
     rendered,
     testResponse,
     testRequest,
-    updateRequest,
     editedTemplate,
-    userProperties,
     userPropertiesJSON,
     isUserPropertiesMinimised,
   } = state;
@@ -535,74 +552,28 @@ export default function TemplateEditor({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
+      isUpdating,
       onPublish: () => {
-        if (!workspace) {
-          return;
-        }
-        apiRequestHandlerFactory({
-          request: updateRequest,
-          setRequest: (request) =>
-            setState((draft) => {
-              draft.updateRequest = request;
-            }),
-          responseSchema: MessageTemplateResource,
-          setResponse: upsertTemplate,
-          onSuccessNotice: "Published template draft.",
-          onFailureNoticeHandler: () =>
-            `API Error: Failed to publish template draft.`,
-          requestConfig: {
-            method: "PUT",
-            url: `${apiBase}/api/content/templates`,
-            data: {
-              workspaceId: workspace.id,
-              name: template.name,
-              id: template.id,
-              draft: null,
-              definition: definitionFromDraft,
-            } satisfies UpsertMessageTemplateResource,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        })();
+        updateTemplate({
+          id: templateId,
+          name: template.name,
+          draft: null,
+          definition: definitionFromDraft,
+        });
       },
       onRevert: () => {
-        if (!workspace) {
-          return;
-        }
-        apiRequestHandlerFactory({
-          request: updateRequest,
-          setRequest: (request) =>
-            setState((draft) => {
-              draft.updateRequest = request;
-            }),
-          responseSchema: MessageTemplateResource,
-          setResponse: upsertTemplate,
-          onSuccessNotice: "Reverted template draft.",
-          onFailureNoticeHandler: () =>
-            `API Error: Failed to revert template draft.`,
-          requestConfig: {
-            method: "PUT",
-            url: `${apiBase}/api/content/templates`,
-            data: {
-              workspaceId: workspace.id,
-              name: template.name,
-              id: template.id,
-              draft: null,
-            } satisfies UpsertMessageTemplateResource,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        })();
+        updateTemplate({
+          id: templateId,
+          name: template.name,
+          draft: null,
+        });
       },
-      updateRequest,
     };
 
     const draftToggle: PublisherOutOfDateToggleStatus = {
       type: PublisherStatusType.OutOfDate,
-      updateRequest,
       isDraft: viewDraft,
+      isUpdating,
       onToggle: ({ isDraft: newIsDraft }) => {
         setViewDraft(newIsDraft);
       },
@@ -614,11 +585,11 @@ export default function TemplateEditor({
     editedTemplate,
     viewDraft,
     errors.size,
-    updateRequest,
     workspace,
     upsertTemplate,
     apiBase,
     setState,
+    isUpdating,
     setViewDraft,
   ]);
 
@@ -629,10 +600,8 @@ export default function TemplateEditor({
     if (disabled || !workspace || !debouncedTitle) {
       return;
     }
-    const workspaceId = workspace.id;
-    const updateData: UpsertMessageTemplateResource = {
+    const updateData: UpsertMessageTemplateParams = {
       id: templateId,
-      workspaceId,
       name: debouncedTitle,
     };
     if (!hidePublisher) {
@@ -653,27 +622,10 @@ export default function TemplateEditor({
       updateData.definition = definitionFromDraft;
     }
 
-    apiRequestHandlerFactory({
-      request: updateRequest,
-      setRequest: (request) =>
-        setState((draft) => {
-          draft.updateRequest = request;
-        }),
-      responseSchema: MessageTemplateResource,
-      setResponse: upsertTemplate,
-      onFailureNoticeHandler: () => `API Error: Failed to update template.`,
-      requestConfig: {
-        method: "PUT",
-        url: `${apiBase}/api/content/templates`,
-        data: updateData,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    })();
+    updateTemplate(updateData);
   }, [debouncedDraft, debouncedTitle]);
 
-  const [debouncedUserProperties] = useDebounce(userProperties, 300);
+  const [debouncedUserProperties] = useDebounce(state.userProperties, 300);
 
   const draftToRender = useMemo(() => {
     if (debouncedDraft) {
@@ -765,7 +717,13 @@ export default function TemplateEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedUserProperties, debouncedDraft, inTransition, viewDraft]);
+  }, [
+    debouncedUserProperties,
+    debouncedDraft,
+    inTransition,
+    viewDraft,
+    draftToRender,
+  ]);
 
   useEffect(() => {
     const exitingFunction = () => {
@@ -785,8 +743,8 @@ export default function TemplateEditor({
   useEffect(() => {
     let missingUserProperty: string | null = null;
     const userPropertySet = new Set(
-      userPropertiesResult.type === CompletionStatus.Successful
-        ? userPropertiesResult.value.map((p) => p.name)
+      userPropertiesResult
+        ? userPropertiesResult.userProperties.map((p) => p.name)
         : [],
     );
     for (const userProperty in debouncedUserProperties) {
@@ -1284,10 +1242,7 @@ export default function TemplateEditor({
               : "Minimize user properties pane"
           }
         >
-          <IconButton
-            onClick={() => handleUserPropertiesToggle()}
-            disabled={disabled}
-          >
+          <IconButton onClick={() => handleUserPropertiesToggle()}>
             {!isUserPropertiesMinimised && (
               <KeyboardDoubleArrowLeftOutlined
                 sx={{

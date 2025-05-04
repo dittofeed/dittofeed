@@ -14,7 +14,7 @@ import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
 import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import { Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -182,11 +182,19 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const conditions: SQL[] = [
+        eq(schema.messageTemplate.workspaceId, request.query.workspaceId),
+      ];
+      if (request.query.ids) {
+        conditions.push(inArray(schema.messageTemplate.id, request.query.ids));
+      }
+      if (request.query.resourceType) {
+        conditions.push(
+          eq(schema.messageTemplate.resourceType, request.query.resourceType),
+        );
+      }
       const templateModels = await db().query.messageTemplate.findMany({
-        where: eq(
-          schema.messageTemplate.workspaceId,
-          request.query.workspaceId,
-        ),
+        where: and(...conditions),
       });
       const templates = templateModels.map((t) =>
         unwrap(enrichMessageTemplate(t)),

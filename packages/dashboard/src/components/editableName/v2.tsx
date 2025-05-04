@@ -17,7 +17,7 @@ import styles from "./editableName.module.css";
 // ============================================
 // 1) Define props interface
 // ============================================
-interface EditableNameProps {
+export interface EditableNameProps {
   /** Initial text for the title */
   text: string;
   /** Called when editing is finished (on blur) */

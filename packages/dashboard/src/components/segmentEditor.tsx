@@ -18,6 +18,7 @@ import {
   useTheme,
 } from "@mui/material";
 import axios from "axios";
+import { Draft } from "immer";
 import {
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
@@ -27,6 +28,7 @@ import { round } from "isomorphic-lib/src/numbers";
 import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  BodySegmentNode,
   CompletionStatus,
   EmailSegmentNode,
   InternalEventType,
@@ -39,6 +41,7 @@ import {
   PerformedSegmentNode,
   RandomBucketSegmentNode,
   RelationalOperators,
+  SegmentDefinition,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
@@ -52,16 +55,24 @@ import {
   SegmentResource,
   SegmentWithinOperator,
   SubscriptionGroupSegmentNode,
+  SubscriptionGroupType,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useContext, useMemo } from "react";
-import { useImmer } from "use-immer";
-import { shallow } from "zustand/shallow";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+import { Updater, useImmer } from "use-immer";
+import { v4 as uuid } from "uuid";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadProperties from "../lib/useLoadProperties";
 import useLoadTraits from "../lib/useLoadTraits";
+import { useSegmentQuery } from "../lib/useSegmentQuery";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
 import { SubtleHeader } from "./headers";
@@ -73,9 +84,377 @@ type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
 
-const DisabledContext = React.createContext<{ disabled?: boolean }>({
-  disabled: false,
-});
+interface SegmentEditorState {
+  disabled?: boolean;
+  editedSegment: SegmentResource;
+}
+
+interface SegmentEditorContextType {
+  state: SegmentEditorState;
+  setState: Updater<SegmentEditorState>;
+}
+
+const SegmentEditorContext = React.createContext<
+  SegmentEditorContextType | undefined
+>(undefined);
+
+function updateEditableSegmentNodeData(
+  setState: Updater<SegmentEditorState>,
+  nodeId: string,
+  updateNode: (currentValue: Draft<SegmentNode>) => void,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    const node =
+      nodeId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === nodeId);
+
+    if (!node) {
+      return draft;
+    }
+    updateNode(node);
+    return draft;
+  });
+}
+
+function mapSegmentNodeToNewType(
+  node: SegmentNode,
+  type: SegmentNodeType,
+): { primary: SegmentNode; secondary: BodySegmentNode[] } {
+  switch (type) {
+    case SegmentNodeType.And: {
+      let children: string[];
+      let secondary: BodySegmentNode[];
+
+      if (node.type === SegmentNodeType.Or) {
+        children = node.children;
+        secondary = [];
+      } else {
+        const child: SegmentNode = {
+          type: SegmentNodeType.Trait,
+          id: uuid(),
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        };
+
+        children = [child.id];
+        secondary = [child];
+      }
+
+      return {
+        primary: {
+          type: SegmentNodeType.And,
+          id: node.id,
+          children,
+        },
+        secondary,
+      };
+    }
+    case SegmentNodeType.Or: {
+      let children: string[];
+      let secondary: BodySegmentNode[];
+
+      if (node.type === SegmentNodeType.And) {
+        children = node.children;
+        secondary = [];
+      } else {
+        const child: SegmentNode = {
+          type: SegmentNodeType.Trait,
+          id: uuid(),
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        };
+
+        children = [child.id];
+        secondary = [child];
+      }
+
+      return {
+        primary: {
+          type: SegmentNodeType.Or,
+          id: node.id,
+          children,
+        },
+        secondary,
+      };
+    }
+    case SegmentNodeType.Trait: {
+      return {
+        primary: {
+          type: SegmentNodeType.Trait,
+          id: node.id,
+          path: "",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "",
+          },
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Broadcast: {
+      return {
+        primary: {
+          type: SegmentNodeType.Broadcast,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      return {
+        primary: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: node.id,
+          subscriptionGroupId: "",
+          subscriptionGroupType: SubscriptionGroupType.OptIn,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Performed: {
+      return {
+        primary: {
+          type: SegmentNodeType.Performed,
+          id: node.id,
+          event: "",
+          times: 1,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Email: {
+      return {
+        primary: {
+          type: SegmentNodeType.Email,
+          id: node.id,
+          templateId: "",
+          event: InternalEventType.MessageSent,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Manual: {
+      return {
+        primary: {
+          type: SegmentNodeType.Manual,
+          version: Math.floor(Date.now() / 1000),
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.RandomBucket: {
+      return {
+        primary: {
+          type: SegmentNodeType.RandomBucket,
+          id: node.id,
+          percent: 0.5,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.KeyedPerformed: {
+      return {
+        primary: {
+          type: SegmentNodeType.KeyedPerformed,
+          id: node.id,
+          event: "",
+          key: "",
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.LastPerformed: {
+      return {
+        primary: {
+          type: SegmentNodeType.LastPerformed,
+          id: node.id,
+          event: "",
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Everyone: {
+      return {
+        primary: {
+          type: SegmentNodeType.Everyone,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    default: {
+      assertUnreachable(type);
+    }
+  }
+}
+
+function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
+  const nonOrphanNodes = new Set<string>();
+  const nodesById = new Map<string, SegmentNode>();
+  for (const node of segmentDefinition.nodes) {
+    nodesById.set(node.id, node);
+  }
+
+  const currentNodes: SegmentNode[] = [segmentDefinition.entryNode];
+
+  while (currentNodes.length) {
+    const currentNode = currentNodes.pop();
+    if (currentNode) {
+      nonOrphanNodes.add(currentNode.id);
+
+      if (
+        currentNode.type === SegmentNodeType.And ||
+        currentNode.type === SegmentNodeType.Or
+      ) {
+        for (const childId of currentNode.children) {
+          const child = nodesById.get(childId);
+          if (child) {
+            currentNodes.push(child);
+          }
+        }
+      }
+    }
+  }
+
+  segmentDefinition.nodes = segmentDefinition.nodes.filter((n) =>
+    nonOrphanNodes.has(n.id),
+  );
+}
+
+function updateEditableSegmentNodeType(
+  setState: Updater<SegmentEditorState>,
+  nodeId: string,
+  nodeType: SegmentNodeType,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    // update entry node
+    if (nodeId === definition.entryNode.id) {
+      const node = definition.entryNode;
+      // No need to update node, already desired type
+      if (node.type === nodeType) {
+        return draft;
+      }
+      const newType = mapSegmentNodeToNewType(node, nodeType);
+      definition.entryNode = newType.primary;
+      definition.nodes = newType.secondary.concat(definition.nodes);
+      // update body node
+    } else {
+      definition.nodes.forEach((node) => {
+        if (node.id !== nodeId) {
+          return;
+        }
+
+        // No need to update node, already desired type
+        if (node.type === nodeType) {
+          return;
+        }
+
+        const newType = mapSegmentNodeToNewType(node, nodeType);
+        const { primary } = newType;
+        if (!isBodySegmentNode(primary)) {
+          console.error(
+            `Unexpected segment node type ${nodeType} for body node.`,
+          );
+          return;
+        }
+
+        definition.nodes = newType.secondary.concat(definition.nodes);
+        definition.nodes = definition.nodes.map((n) =>
+          n.id === nodeId ? primary : n,
+        );
+      });
+    }
+
+    removeOrphanedSegmentNodes(definition);
+    return draft;
+  });
+}
+
+function addEditableSegmentChild(
+  setState: Updater<SegmentEditorState>,
+  parentId: string,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    const parent =
+      parentId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === parentId);
+
+    if (
+      !parent ||
+      !(
+        parent.type === SegmentNodeType.And ||
+        parent.type === SegmentNodeType.Or
+      )
+    ) {
+      return draft;
+    }
+
+    const child: SegmentNode = {
+      type: SegmentNodeType.Trait,
+      id: uuid(),
+      path: "",
+      operator: {
+        type: SegmentOperatorType.Equals,
+        value: "",
+      },
+    };
+    parent.children.push(child.id);
+    definition.nodes.push(child);
+    return draft;
+  });
+}
+
+function removeEditableSegmentChild(
+  setState: Updater<SegmentEditorState>,
+  parentId: string,
+  nodeId: string,
+) {
+  setState((draft) => {
+    const { definition } = draft.editedSegment;
+    const parent =
+      parentId === definition.entryNode.id
+        ? definition.entryNode
+        : definition.nodes.find((n) => n.id === parentId);
+
+    if (
+      !parent ||
+      !(
+        parent.type === SegmentNodeType.And ||
+        parent.type === SegmentNodeType.Or
+      )
+    ) {
+      return draft;
+    }
+
+    parent.children = parent.children.filter((c) => c !== nodeId);
+    definition.nodes = definition.nodes.filter((n) => n.id !== nodeId);
+    removeOrphanedSegmentNodes(definition);
+    return draft;
+  });
+}
+
+function useSegmentEditorContext() {
+  const context = useContext(SegmentEditorContext);
+  if (!context) {
+    throw new Error(
+      "useSegmentEditorContext must be used within a SegmentEditorContext.Provider",
+    );
+  }
+  return context;
+}
 
 const traitGroupedOption = {
   id: SegmentNodeType.Trait,
@@ -291,14 +670,11 @@ function ValueSelect({
     | SegmentNotEqualsOperator;
 }) {
   const { value } = operator;
-  const { disabled } = useContext(DisabledContext);
-
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSegmentNodeData(nodeId, (node) => {
+    updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Equals ||
@@ -317,6 +693,9 @@ function ValueSelect({
         label="Value"
         value={value}
         onChange={handleChange}
+        InputLabelProps={{
+          shrink: true,
+        }}
       />
     </Box>
   );
@@ -330,14 +709,11 @@ function NumericValueSelect({
   operator: SegmentLessThanOperator | SegmentGreaterThanOrEqualOperator;
 }) {
   const { value } = operator;
-  const { disabled } = useContext(DisabledContext);
-
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSegmentNodeData(nodeId, (node) => {
+    updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.LessThan ||
@@ -357,6 +733,9 @@ function NumericValueSelect({
         InputProps={{
           type: "number",
         }}
+        InputLabelProps={{
+          shrink: true,
+        }}
         onChange={handleChange}
       />
     </Box>
@@ -372,12 +751,11 @@ function DurationValueSelect({
 }) {
   const value = operator.windowSeconds;
 
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
 
   const handleChange = (seconds: number) => {
-    updateSegmentNodeData(nodeId, (node) => {
+    updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Within ||
@@ -391,6 +769,7 @@ function DurationValueSelect({
   return (
     <DurationSelect
       value={value}
+      disabled={disabled}
       timeFieldSx={{ width: secondarySelectorWidth }}
       onChange={handleChange}
       inputLabel="Time Value"
@@ -399,15 +778,12 @@ function DurationValueSelect({
 }
 
 function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const { properties } = useAppStorePick(["properties"]);
 
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-
   const handleEventNameChange = (newEvent: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.LastPerformed) {
         n.event = newEvent;
       }
@@ -415,7 +791,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
   };
 
   const handleAddHasProperty = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.LastPerformed) {
         let propertyPath: string | null = null;
         // put arbtitrary limit on the number of properties
@@ -442,7 +818,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
   };
 
   const handleAddWhereProperty = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.LastPerformed) {
         let propertyPath: string | null = null;
         // put arbtitrary limit on the number of properties
@@ -469,7 +845,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
   };
   const hasPropertyRows = node.hasProperties?.map((property, i) => {
     const handlePropertyPathChange = (newPath: string) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           const existingProperty = n.hasProperties?.[i];
           if (!existingProperty) {
@@ -481,7 +857,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     };
     const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           if (!n.hasProperties) {
             return;
@@ -496,7 +872,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     const handleOperatorChange = (
       e: SelectChangeEvent<SegmentOperatorType>,
     ) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.hasProperties?.[i];
@@ -516,7 +892,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.hasProperties?.[i];
@@ -535,6 +911,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -543,7 +922,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.hasProperties?.[i];
@@ -562,6 +941,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -570,7 +952,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.hasProperties?.[i];
@@ -594,6 +976,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -602,7 +987,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.hasProperties?.[i];
@@ -626,6 +1011,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -704,7 +1092,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
 
   const wherePropertyRows = node.whereProperties?.map((property, i) => {
     const handlePropertyPathChange = (newPath: string) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           const existingProperty = n.whereProperties?.[i];
           if (!existingProperty) {
@@ -716,7 +1104,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     };
     const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           if (!n.whereProperties) {
             return;
@@ -731,7 +1119,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     const handleOperatorChange = (
       e: SelectChangeEvent<SegmentOperatorType>,
     ) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.whereProperties?.[i];
@@ -751,7 +1139,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.whereProperties?.[i];
@@ -770,6 +1158,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -778,7 +1169,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.LastPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.whereProperties?.[i];
@@ -797,6 +1188,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -908,15 +1302,12 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
 }
 
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const { properties } = useAppStorePick(["properties"]);
 
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-
   const handleEventNameChange = (newEvent: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
         n.event = newEvent;
       }
@@ -924,7 +1315,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   };
 
   const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
         n.timesOperator = e.target.value as RelationalOperators;
       }
@@ -932,7 +1323,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   };
 
   const handleEventTimesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       const times = parseInt(e.target.value, 10);
       if (n.type === SegmentNodeType.Performed && !Number.isNaN(times)) {
         n.times = times;
@@ -941,7 +1332,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   };
 
   const handleAddProperty = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
         let propertyPath: string | null = null;
         // put arbtitrary limit on the number of properties
@@ -967,7 +1358,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     });
   };
   const handleAddTimeWindow = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
         n.withinSeconds = n.withinSeconds ?? 5 * 60;
       }
@@ -976,7 +1367,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 
   const propertyRows = node.properties?.map((property, i) => {
     const handlePropertyPathChange = (newPath: string) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
@@ -988,7 +1379,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     };
     const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
           if (!n.properties) {
             return;
@@ -1001,7 +1392,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     const handleOperatorChange = (
       e: SelectChangeEvent<SegmentOperatorType>,
     ) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.properties?.[i];
@@ -1021,7 +1412,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.Performed) {
               const newValue = e.target.value;
               const existingProperty = n.properties?.[i];
@@ -1040,6 +1431,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1048,7 +1442,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.Performed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1072,6 +1466,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1080,7 +1477,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.Performed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1104,6 +1501,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1179,7 +1579,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             value={node.withinSeconds}
             inputLabel="Event Occurred Within The Last"
             onChange={(seconds) => {
-              updateSegmentNodeData(node.id, (n) => {
+              updateEditableSegmentNodeData(setState, node.id, (n) => {
                 if (n.type === SegmentNodeType.Performed) {
                   n.withinSeconds = seconds;
                 }
@@ -1191,7 +1591,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
             size="large"
             disabled={disabled}
             onClick={() => {
-              updateSegmentNodeData(node.id, (n) => {
+              updateEditableSegmentNodeData(setState, node.id, (n) => {
                 if (n.type === SegmentNodeType.Performed) {
                   n.withinSeconds = undefined;
                 }
@@ -1258,15 +1658,12 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 }
 
 function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const { properties } = useAppStorePick(["properties"]);
 
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-
   const handleEventNameChange = (newEvent: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.event = newEvent;
       }
@@ -1274,7 +1671,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.timesOperator = e.target.value as RelationalOperators;
       }
@@ -1282,7 +1679,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleEventTimesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       const times = parseInt(e.target.value, 10);
       if (n.type === SegmentNodeType.KeyedPerformed && !Number.isNaN(times)) {
         n.times = times;
@@ -1291,7 +1688,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   };
 
   const handleAddProperty = () => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         let propertyPath: string | null = null;
         // put arbtitrary limit on the number of properties
@@ -1319,7 +1716,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
 
   const propertyRows = node.properties?.map((property, i) => {
     const handlePropertyPathChange = (newPath: string) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
@@ -1331,7 +1728,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     };
     const operator = keyedOperatorOptions[property.operator.type];
     const handleDelete = () => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           if (!n.properties) {
             return;
@@ -1344,7 +1741,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     const handleOperatorChange = (
       e: SelectChangeEvent<SegmentOperatorType>,
     ) => {
-      updateSegmentNodeData(node.id, (n) => {
+      updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
           const newOperator = e.target
             .value as KeyedPerformedPropertiesOperator["type"];
@@ -1366,7 +1763,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = e.target.value;
               const existingProperty = n.properties?.[i];
@@ -1385,6 +1782,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             label="Property Value"
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1393,7 +1793,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1417,6 +1817,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1425,7 +1828,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
         ) => {
-          updateSegmentNodeData(node.id, (n) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
             if (n.type === SegmentNodeType.KeyedPerformed) {
               const newValue = Number(e.target.value);
               const existingProperty = n.properties?.[i];
@@ -1449,6 +1852,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
             }}
             onChange={handlePropertyValueChange}
             value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         );
         break;
@@ -1516,7 +1922,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   });
 
   const handleKeyChange = (newKey: string) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
         n.key = newKey;
       }
@@ -1631,18 +2037,12 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 ];
 
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
-
-  const { updateEditableSegmentNodeData, messages } = useAppStore(
-    (store) => ({
-      updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
-      messages: store.messages,
-    }),
-    shallow,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+  const { messages } = useAppStorePick(["messages"]);
 
   const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
-    updateEditableSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
       const event = e.target.value;
       if (n.type === SegmentNodeType.Email && isEmailEvent(event)) {
         n.event = event;
@@ -1691,11 +2091,15 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
             value={message}
             disabled={disabled}
             onChange={(_event, newValue) => {
-              updateEditableSegmentNodeData(node.id, (segmentNode) => {
-                if (newValue && segmentNode.type === SegmentNodeType.Email) {
-                  segmentNode.templateId = newValue.id;
-                }
-              });
+              updateEditableSegmentNodeData(
+                setState,
+                node.id,
+                (segmentNode) => {
+                  if (newValue && segmentNode.type === SegmentNodeType.Email) {
+                    segmentNode.templateId = newValue.id;
+                  }
+                },
+              );
             }}
             options={messageOptions}
             renderInput={(params) => (
@@ -1717,11 +2121,9 @@ function SubscriptionGroupSelect({
 }: {
   node: SubscriptionGroupSegmentNode;
 }) {
-  const { disabled } = useContext(DisabledContext);
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-  const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+  const subscriptionGroups = useAppStore((s) => s.subscriptionGroups);
   const subscriptionGroupOptions = useMemo(
     () =>
       subscriptionGroups.map((sg) => ({
@@ -1745,7 +2147,7 @@ function SubscriptionGroupSelect({
         disabled={disabled}
         value={subscriptionGroup}
         onChange={(_event, newValue) => {
-          updateSegmentNodeData(node.id, (segmentNode) => {
+          updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
             if (
               newValue &&
               segmentNode.type === SegmentNodeType.SubscriptionGroup
@@ -1760,6 +2162,9 @@ function SubscriptionGroupSelect({
             {...params}
             label="subscription group"
             variant="outlined"
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
         )}
       />
@@ -1769,10 +2174,8 @@ function SubscriptionGroupSelect({
 
 function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const traitPath = node.path;
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData,
-  );
-  const { disabled } = useContext(DisabledContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
 
   const traits = useAppStore((store) => store.traits);
   const operator = keyedOperatorOptions[node.operator.type];
@@ -1802,17 +2205,28 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             disableClearable
             options={hasBeenComparatorOptions}
             onChange={(_event, newValue) => {
-              updateSegmentNodeData(node.id, (segmentNode) => {
-                if (
-                  segmentNode.type === SegmentNodeType.Trait &&
-                  segmentNode.operator.type === SegmentOperatorType.HasBeen
-                ) {
-                  segmentNode.operator.comparator = newValue.id;
-                }
-              });
+              updateEditableSegmentNodeData(
+                setState,
+                node.id,
+                (segmentNode) => {
+                  if (
+                    segmentNode.type === SegmentNodeType.Trait &&
+                    segmentNode.operator.type === SegmentOperatorType.HasBeen
+                  ) {
+                    segmentNode.operator.comparator = newValue.id;
+                  }
+                },
+              );
             }}
             renderInput={(params) => (
-              <TextField label="Comparator" {...params} variant="outlined" />
+              <TextField
+                label="Comparator"
+                {...params}
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
             )}
           />
         </Box>
@@ -1856,7 +2270,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   }
 
   const traitOnChange = (newValue: string) => {
-    updateSegmentNodeData(node.id, (segmentNode) => {
+    updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
       if (segmentNode.type === SegmentNodeType.Trait) {
         segmentNode.path = newValue;
       }
@@ -1877,7 +2291,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           value={operator}
           disabled={disabled}
           onChange={(_event: unknown, newValue: Option) => {
-            updateSegmentNodeData(node.id, (segmentNode) => {
+            updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
               if (
                 segmentNode.type === SegmentNodeType.Trait &&
                 newValue.id !== segmentNode.operator.type
@@ -1951,7 +2365,14 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           disableClearable
           options={traitOperatorOptions}
           renderInput={(params) => (
-            <TextField label="Operator" {...params} variant="outlined" />
+            <TextField
+              label="Operator"
+              {...params}
+              variant="outlined"
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
           )}
         />
       </Box>
@@ -1967,14 +2388,12 @@ interface ManualUploadState {
 }
 
 function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
-  const { updateEditableSegmentNodeData } = useAppStorePick([
-    "updateEditableSegmentNodeData",
-  ]);
-  const { disabled } = useContext(DisabledContext);
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
   const handlePercentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
 
-    updateEditableSegmentNodeData(node.id, (segmentNode) => {
+    updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
       if (segmentNode.type !== SegmentNodeType.RandomBucket) {
         return;
       }
@@ -2003,25 +2422,25 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
       }}
       value={percentString}
       onChange={handlePercentChange}
+      InputLabelProps={{
+        shrink: true,
+      }}
     />
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
-  const { disabled } = useContext(DisabledContext);
-  const { workspace, editedSegment, apiBase } = useAppStorePick([
-    "workspace",
-    "editedSegment",
-    "apiBase",
-  ]);
+  const { state } = useSegmentEditorContext();
+  const { disabled, editedSegment } = state;
+  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
   const [{ operation }] = useImmer<ManualUploadState>({
     operation: ManualSegmentOperationEnum.Add,
   });
 
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
-      if (workspace.type !== CompletionStatus.Successful || !editedSegment) {
+      if (workspace.type !== CompletionStatus.Successful) {
         return;
       }
 
@@ -2073,17 +2492,12 @@ function SegmentNodeComponent({
   parentId?: string;
   label?: Label;
 }) {
-  const updateNodeType = useAppStore(
-    (state) => state.updateEditableSegmentNodeType,
-  );
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled, editedSegment } = state;
   const theme = useTheme();
-  const addChild = useAppStore((state) => state.addEditableSegmentChild);
-  const removeChild = useAppStore((state) => state.removeEditableSegmentChild);
-  const editedSegment = useAppStore((state) => state.editedSegment);
-  const { disabled } = useContext(DisabledContext);
   const nodeById = useMemo(
     () =>
-      editedSegment?.definition.nodes.reduce<Record<string, SegmentNode>>(
+      editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(
         (memo, segmentNode) => {
           memo[segmentNode.id] = segmentNode;
           return memo;
@@ -2120,7 +2534,7 @@ function SegmentNodeComponent({
         value={condition}
         groupBy={(option) => option.group}
         onChange={(_event: unknown, newValue: SegmentGroupedOption) => {
-          updateNodeType(node.id, newValue.id);
+          updateEditableSegmentNodeType(setState, node.id, newValue.id);
         }}
         disableClearable
         options={segmentOptions}
@@ -2129,6 +2543,10 @@ function SegmentNodeComponent({
           <TextField
             label="Condition or Group"
             {...params}
+            InputLabelProps={{
+              ...params.InputLabelProps,
+              shrink: true,
+            }}
             variant="outlined"
           />
         )}
@@ -2142,7 +2560,7 @@ function SegmentNodeComponent({
         color="error"
         size="large"
         disabled={disabled}
-        onClick={() => removeChild(parentId, node.id)}
+        onClick={() => removeEditableSegmentChild(setState, parentId, node.id)}
       >
         <Delete />
       </IconButton>
@@ -2199,7 +2617,7 @@ function SegmentNodeComponent({
             color="primary"
             disabled={disabled}
             size="large"
-            onClick={() => addChild(node.id)}
+            onClick={() => addEditableSegmentChild(setState, node.id)}
           >
             <AddCircleOutlineOutlined />
           </IconButton>
@@ -2295,24 +2713,87 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
-export function SegmentEditorInner({
-  sx,
-  disabled,
-  editedSegment,
-}: {
+export interface SegmentEditorProps {
   sx?: SxProps;
   disabled?: boolean;
-  editedSegment: SegmentResource;
-}) {
-  const theme = useTheme();
+  segmentId: string;
+  onSegmentChange?: (segment: SegmentResource) => void;
+}
 
-  const { entryNode } = editedSegment.definition;
-  const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
+export default function SegmentEditor({
+  sx,
+  disabled,
+  segmentId,
+  onSegmentChange,
+}: SegmentEditorProps) {
+  const theme = useTheme();
+  const { data: segment, isError, isPending } = useSegmentQuery(segmentId);
+
   useLoadTraits();
   useLoadProperties();
 
+  const [state, setState] = useImmer<SegmentEditorState | null>(
+    segment
+      ? {
+          disabled,
+          editedSegment: segment,
+        }
+      : null,
+  );
+
+  const prevEditedSegmentRef = useRef<SegmentResource | null>(null);
+
+  // Call onSegmentChange only if the segment has changed from a non-null value to another non-null value
+  useEffect(() => {
+    const currentSegment = state?.editedSegment;
+    const prevSegment = prevEditedSegmentRef.current;
+
+    // Call only if changed from a non-null value to another non-null value
+    if (currentSegment && prevSegment && currentSegment !== prevSegment) {
+      onSegmentChange?.(currentSegment);
+    }
+
+    // Update the ref to store the current segment for the next render
+    prevEditedSegmentRef.current = currentSegment ?? null;
+  }, [state?.editedSegment, onSegmentChange]);
+
+  useEffect(() => {
+    if (segment && state === null) {
+      setState({
+        disabled,
+        editedSegment: segment,
+      });
+    }
+  }, [disabled, segment, setState, state]);
+
+  const contextValue: SegmentEditorContextType | null = useMemo(() => {
+    if (!state) {
+      return null;
+    }
+    const setNonNullState: Updater<SegmentEditorState> = (update) => {
+      setState((draft) => {
+        if (draft === null) {
+          return draft;
+        }
+        const newState = typeof update === "function" ? update(draft) : update;
+        return newState;
+      });
+    };
+
+    return {
+      state,
+      setState: setNonNullState,
+    };
+  }, [state, setState]);
+
+  if (!segment || isError || isPending || !contextValue || !state) {
+    return null;
+  }
+
+  const { entryNode } = state.editedSegment.definition;
+
   return (
-    <DisabledContext.Provider value={memoizedDisabled}>
+    <SegmentEditorContext.Provider value={contextValue}>
       <Box
         sx={{
           backgroundColor: "white",
@@ -2330,18 +2811,6 @@ export function SegmentEditorInner({
           label="empty"
         />
       </Box>
-    </DisabledContext.Provider>
-  );
-}
-
-export default function SegmentEditor({ disabled }: { disabled?: boolean }) {
-  const { editedSegment } = useAppStorePick(["editedSegment"]);
-
-  if (!editedSegment) {
-    return null;
-  }
-
-  return (
-    <SegmentEditorInner editedSegment={editedSegment} disabled={disabled} />
+    </SegmentEditorContext.Provider>
   );
 }

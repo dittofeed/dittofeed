@@ -1,22 +1,62 @@
-import { UseQueryOptions } from "@tanstack/react-query";
-import { GetResourcesResponse } from "isomorphic-lib/src/types";
+import {
+  useQuery,
+  UseQueryOptions,
+  UseQueryResult,
+} from "@tanstack/react-query";
+import axios from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  CompletionStatus,
+  ReadAllUserPropertiesRequest,
+  ReadAllUserPropertiesResponse,
+} from "isomorphic-lib/src/types";
 
-import { useResourcesQuery } from "./useResourcesQuery";
+import { useAppStorePick } from "./appStore";
+
+export const USER_PROPERTIES_QUERY_KEY = "userProperties";
 
 /**
- * Custom hook for fetching user properties
- *
- * @param options Any valid useQuery options
- * @returns A query result object containing the user properties data
- * @throws Error if workspaceId is not available (handled by useResourcesQuery)
+ * Custom hook for fetching user properties using the GET /api/user-properties endpoint
  */
-export function useUserPropertiesQuery(
-  options?: Omit<UseQueryOptions<GetResourcesResponse>, "queryKey" | "queryFn">,
-) {
-  return useResourcesQuery(
-    {
-      userProperties: true,
+export function useUserPropertiesQuery<TData = ReadAllUserPropertiesResponse>(
+  params?: Omit<ReadAllUserPropertiesRequest, "workspaceId">, // Allow optional additional params if needed later
+  options?: Omit<
+    UseQueryOptions<ReadAllUserPropertiesResponse, Error, TData>,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<TData> {
+  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+
+  if (workspace.type !== CompletionStatus.Successful) {
+    throw new Error("Workspace not available for user properties query");
+  }
+
+  const workspaceId = workspace.value.id;
+  const queryKey = [USER_PROPERTIES_QUERY_KEY, { ...params, workspaceId }];
+
+  const queryResult = useQuery<ReadAllUserPropertiesResponse, Error, TData>({
+    queryKey,
+    queryFn: async (): Promise<ReadAllUserPropertiesResponse> => {
+      try {
+        const response = await axios.get(`${apiBase}/api/user-properties`, {
+          params: {
+            ...params,
+            workspaceId,
+          },
+        });
+
+        return unwrap(
+          schemaValidateWithErr(response.data, ReadAllUserPropertiesResponse),
+        );
+      } catch (error) {
+        console.error("Failed to fetch user properties", error);
+        // Re-throw or handle error as appropriate for your application
+        throw error;
+      }
     },
-    options,
-  );
+    ...options,
+  });
+
+  return queryResult;
 }

@@ -189,6 +189,7 @@ export async function upsertMessageTemplate(
         name: data.name,
         definition: data.definition,
         draft: data.draft,
+        resourceType: data.resourceType,
       })
       .onConflictDoUpdate({
         target: data.id
@@ -198,6 +199,7 @@ export async function upsertMessageTemplate(
           name: data.name,
           definition: data.definition,
           draft: data.draft,
+          resourceType: data.resourceType,
         },
         setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
       })

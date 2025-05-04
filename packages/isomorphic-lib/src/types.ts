@@ -36,7 +36,7 @@ export const Nullable = <T extends TSchema>(type: T) =>
   Type.Union([type, Type.Null()]);
 
 export const NullableAndOptional = <T extends TSchema>(type: T) =>
-  Type.Union([Type.Null(), Type.Optional(type)]);
+  Type.Optional(Type.Union([Type.Null(), type]));
 
 export type JSONValue =
   | string
@@ -45,6 +45,15 @@ export type JSONValue =
   | boolean
   | { [x: string]: JSONValue }
   | JSONValue[];
+
+export const ResourceTypeEnum = {
+  Declarative: "Declarative",
+  Internal: "Internal",
+} as const;
+
+export const ResourceType = Type.KeyOf(Type.Const(ResourceTypeEnum));
+
+export type ResourceType = Static<typeof ResourceType>;
 
 export enum EventType {
   Identify = "identify",
@@ -1134,6 +1143,16 @@ export const JourneyDefinition = Type.Object({
 
 export type JourneyDefinition = Static<typeof JourneyDefinition>;
 
+export const SegmentStatusEnum = {
+  NotStarted: "NotStarted",
+  Running: "Running",
+  Paused: "Paused",
+} as const;
+
+export const SegmentStatus = Type.KeyOf(Type.Const(SegmentStatusEnum));
+
+export type SegmentStatus = Static<typeof SegmentStatus>;
+
 export const SegmentResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1142,6 +1161,8 @@ export const SegmentResource = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
+  resourceType: Type.Optional(ResourceType),
+  status: Type.Optional(SegmentStatus),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;
@@ -1177,6 +1198,17 @@ export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource
 >;
 
+export const BroadcastResourceVersionEnum = {
+  V1: "V1",
+  V2: "V2",
+} as const;
+
+export const BroadcastResourceVersion = Type.KeyOf(
+  Type.Const(BroadcastResourceVersionEnum),
+);
+
+export type BroadcastResourceVersion = Static<typeof BroadcastResourceVersion>;
+
 export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1189,9 +1221,11 @@ export const BroadcastResource = Type.Object({
     Type.Literal("InProgress"),
     Type.Literal("Triggered"),
   ]),
+  archived: Type.Optional(Type.Boolean()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
+  version: Type.Optional(Type.Literal(BroadcastResourceVersionEnum.V1)),
 });
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
@@ -1214,6 +1248,9 @@ export type TriggerBroadcastRequest = Static<typeof TriggerBroadcastRequest>;
 export const UpsertSegmentResource = Type.Intersect([
   Type.Omit(Type.Partial(SegmentResource), ["workspaceId", "name"]),
   Type.Pick(SegmentResource, ["workspaceId", "name"]),
+  Type.Object({
+    createOnly: Type.Optional(Type.Boolean()),
+  }),
 ]);
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
@@ -1612,6 +1649,7 @@ export const UpsertMessageTemplateResource = Type.Object({
   name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
+  resourceType: Type.Optional(ResourceType),
 });
 
 export type UpsertMessageTemplateResource = Static<
@@ -1651,6 +1689,8 @@ export type UpsertMessageTemplateValidationError = Static<
 export const GetMessageTemplatesRequest = Type.Object(
   {
     workspaceId: Type.String(),
+    ids: Type.Optional(Type.Array(Type.String())),
+    resourceType: Type.Optional(ResourceType),
   },
   {
     $id: "GetMessageTemplatesRequest",
@@ -1676,6 +1716,8 @@ export type GetMessageTemplatesResponse = Static<
 
 export const GetSegmentsRequest = Type.Object({
   workspaceId: Type.String(),
+  ids: Type.Optional(Type.Array(Type.String())),
+  resourceType: Type.Optional(ResourceType),
 });
 
 export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;
@@ -2440,6 +2482,8 @@ export type GetUsersCountRequest = Static<typeof GetUsersCountRequest>;
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
 });
+
+export type BaseMessageResponse = Static<typeof BaseMessageResponse>;
 
 export const BadRequestResponse = BaseMessageResponse;
 
@@ -4801,14 +4845,45 @@ export const GetGroupsForUserResponse = Type.Object({
 
 export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;
 
+export const GetJourneysResourcesConfig = Type.Object({
+  segments: Type.Optional(Type.Boolean()),
+});
+
+export type GetJourneysResourcesConfig = Static<
+  typeof GetJourneysResourcesConfig
+>;
+
 export const GetResourcesRequest = Type.Object({
   workspaceId: Type.String(),
   segments: Type.Optional(Type.Boolean()),
   userProperties: Type.Optional(Type.Boolean()),
   subscriptionGroups: Type.Optional(Type.Boolean()),
+  broadcasts: Type.Optional(Type.Boolean()),
+  journeys: Type.Optional(
+    Type.Union([Type.Boolean(), GetJourneysResourcesConfig]),
+  ),
+  messageTemplates: Type.Optional(Type.Boolean()),
 });
 
 export type GetResourcesRequest = Static<typeof GetResourcesRequest>;
+
+export const MinimalJourneysResource = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  segments: Type.Optional(Type.Array(Type.String())),
+});
+
+export type MinimalJourneysResource = Static<typeof MinimalJourneysResource>;
+
+export const MinimalBroadcastsResource = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  version: Type.Optional(BroadcastResourceVersion),
+});
+
+export type MinimalBroadcastsResource = Static<
+  typeof MinimalBroadcastsResource
+>;
 
 export const GetResourcesResponse = Type.Object({
   segments: Type.Optional(
@@ -4836,6 +4911,16 @@ export const GetResourcesResponse = Type.Object({
       }),
     ),
   ),
+  journeys: Type.Optional(Type.Array(MinimalJourneysResource)),
+  messageTemplates: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      }),
+    ),
+  ),
+  broadcasts: Type.Optional(Type.Array(MinimalBroadcastsResource)),
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
@@ -4962,6 +5047,8 @@ export const BroadcastResourceV2 = Type.Object({
   scheduledAt: Type.Optional(Type.String()),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
+  archived: Type.Optional(Type.Boolean()),
+  version: Type.Literal(BroadcastResourceVersionEnum.V2),
 });
 
 export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
@@ -4969,6 +5056,8 @@ export type BroadcastResourceV2 = Static<typeof BroadcastResourceV2>;
 export const UpsertBroadcastV2ErrorTypeEnum = {
   IdError: "IdError",
   UniqueConstraintViolation: "UniqueConstraintViolation",
+  MissingRequiredFields: "MissingRequiredFields",
+  ConstraintViolation: "ConstraintViolation",
 } as const;
 
 export const UpsertBroadcastV2ErrorType = Type.KeyOf(
@@ -5025,6 +5114,8 @@ export const ComputedPropertyPeriod = Type.Object({
   lastRecomputed: Type.String(),
 });
 
+export type ComputedPropertyPeriod = Static<typeof ComputedPropertyPeriod>;
+
 export const GetComputedPropertyPeriodsResponse = Type.Object({
   periods: Type.Array(ComputedPropertyPeriod),
 });
@@ -5038,3 +5129,73 @@ export const TriggerRecomputeRequest = Type.Object({
 });
 
 export type TriggerRecomputeRequest = Static<typeof TriggerRecomputeRequest>;
+export const IdOrName = Type.Union([
+  Type.Object({
+    id: Type.String(),
+  }),
+  Type.Object({
+    name: Type.String(),
+  }),
+]);
+
+export const UpsertBroadcastV2Request = Type.Intersect([
+  Type.Object({
+    workspaceId: Type.String(),
+    id: Type.Optional(Type.String()),
+    name: Type.Optional(Type.String()),
+    segmentId: NullableAndOptional(Type.String()),
+    messageTemplateId: NullableAndOptional(Type.String()),
+    subscriptionGroupId: NullableAndOptional(Type.String()),
+    config: Type.Optional(BroadcastV2Config),
+    scheduledAt: NullableAndOptional(Type.String()),
+  }),
+  IdOrName,
+]);
+
+export type UpsertBroadcastV2Request = Static<typeof UpsertBroadcastV2Request>;
+
+export const BroadcastResourceAllVersions = Type.Union([
+  BroadcastResourceV2,
+  BroadcastResource,
+]);
+
+export type BroadcastResourceAllVersions = Static<
+  typeof BroadcastResourceAllVersions
+>;
+
+export const GetBroadcastsResponse = Type.Array(BroadcastResourceAllVersions);
+
+export type GetBroadcastsResponse = Static<typeof GetBroadcastsResponse>;
+
+export const GetBroadcastsV2Request = Type.Object({
+  workspaceId: Type.String(),
+  ids: Type.Optional(Type.Array(Type.String())),
+});
+
+export type GetBroadcastsV2Request = Static<typeof GetBroadcastsV2Request>;
+
+export const UpdateBroadcastArchiveRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+  archived: Type.Optional(Type.Boolean()),
+});
+
+export type UpdateBroadcastArchiveRequest = Static<
+  typeof UpdateBroadcastArchiveRequest
+>;
+
+export const RecomputeBroadcastSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type RecomputeBroadcastSegmentRequest = Static<
+  typeof RecomputeBroadcastSegmentRequest
+>;
+
+export const StartBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;

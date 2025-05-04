@@ -1,19 +1,23 @@
 import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
 import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
-import { Button, Stack, useTheme } from "@mui/material";
-import {
-  SavedSegmentResource,
-  SegmentResource,
-} from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import { Button, Snackbar, Stack, useTheme } from "@mui/material";
+import { SegmentResource } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
+import React, { useCallback, useMemo, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
-import { EditableTitle } from "../../components/editableName/v2";
-import SegmentEditor from "../../components/segmentEditor";
+import {
+  EditableNameProps,
+  EditableTitle,
+} from "../../components/editableName/v2";
+import SegmentEditor, {
+  SegmentEditorProps,
+} from "../../components/segmentEditor";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStorePick } from "../../lib/appStore";
 import { copyToClipboard } from "../../lib/copyToClipboard";
 import formatCurl from "../../lib/formatCurl";
+import { useSegmentQuery } from "../../lib/useSegmentQuery";
+import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
 import SegmentLayout from "./[id]/segmentLayout";
 
@@ -37,35 +41,36 @@ function formatSegmentCurl(segment: SegmentResource) {
 }
 
 export default function NewSegment() {
-  const {
-    editedSegment,
-    setEditableSegmentName: setName,
-    apiBase,
-    setSegmentUpdateRequest,
-    segmentUpdateRequest,
-    upsertSegment,
-  } = useAppStorePick([
-    "editedSegment",
-    "setEditableSegmentName",
-    "apiBase",
-    "setSegmentUpdateRequest",
-    "upsertSegment",
-    "segmentUpdateRequest",
-  ]);
   const theme = useTheme();
+  const router = useRouter();
+  const id = typeof router.query.id === "string" ? router.query.id : undefined;
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const segmentsUpdateMutation = useUpdateSegmentsMutation({
+    onSuccess: () => {
+      setSnackbarMessage("Segment saved successfully!");
+      setSnackbarOpen(true);
+    },
+  });
+  const { data: segment } = useSegmentQuery(id);
+  const [editedSegment, setEditedSegment] = useState<SegmentResource | null>(
+    null,
+  );
 
   const commands: SettingsCommand[] = useMemo(() => {
     return [
       {
         label: "Copy segment definition as JSON",
         icon: <ContentCopyOutlined />,
-        disabled: !editedSegment?.definition,
+        disabled: !segment,
         action: () => {
-          if (!editedSegment) {
+          if (!segment) {
             return;
           }
           copyToClipboard({
-            value: JSON.stringify(editedSegment.definition),
+            value: JSON.stringify(segment.definition),
             successNotice: "Segment definition copied to clipboard as JSON.",
             failureNotice: "Failed to copy segment definition.",
           });
@@ -74,12 +79,12 @@ export default function NewSegment() {
       {
         label: "Copy segment definition as CURL",
         icon: <ContentCopyTwoTone />,
-        disabled: !editedSegment?.definition,
+        disabled: !segment,
         action: () => {
-          if (!editedSegment) {
+          if (!segment) {
             return;
           }
-          const curl = formatSegmentCurl(editedSegment);
+          const curl = formatSegmentCurl(segment);
           copyToClipboard({
             value: curl,
             successNotice: "Segment definition copied to clipboard as CURL.",
@@ -88,33 +93,49 @@ export default function NewSegment() {
         },
       },
     ];
-  }, [editedSegment]);
+  }, [segment]);
 
-  if (!editedSegment) {
+  const handleNameSave: EditableNameProps["onSubmit"] = useDebouncedCallback(
+    (name) => {
+      if (!id) {
+        return;
+      }
+      segmentsUpdateMutation.mutate({
+        id,
+        name,
+      });
+    },
+    500,
+  );
+
+  const handleDefinitionSave = useCallback(() => {
+    if (!id || !editedSegment) {
+      return;
+    }
+    segmentsUpdateMutation.mutate({
+      id,
+      definition: editedSegment.definition,
+      name: editedSegment.name,
+    });
+  }, [id, segmentsUpdateMutation, editedSegment]);
+
+  const handleDefinitionUpdate: SegmentEditorProps["onSegmentChange"] =
+    useCallback(
+      (s: SegmentResource) => {
+        setEditedSegment(s);
+      },
+      [setEditedSegment],
+    );
+
+  if (!segment) {
     return null;
   }
-  const { name } = editedSegment;
-
-  const handleSave = apiRequestHandlerFactory({
-    request: segmentUpdateRequest,
-    setRequest: setSegmentUpdateRequest,
-    responseSchema: SavedSegmentResource,
-    setResponse: upsertSegment,
-    onSuccessNotice: `Saved segment ${editedSegment.name}`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save segment ${editedSegment.name}`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/segments`,
-      data: editedSegment,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
+  const { name } = segment;
+  if (!id) {
+    return null;
+  }
   return (
-    <SegmentLayout segmentId={editedSegment.id} tab="configure">
+    <SegmentLayout segmentId={id} tab="configure">
       <Stack
         spacing={1}
         sx={{
@@ -128,16 +149,27 @@ export default function NewSegment() {
           justifyContent="space-between"
           alignContent="center"
         >
-          <EditableTitle text={name} onSubmit={(val) => setName(val)} />
+          <EditableTitle text={name} onSubmit={handleNameSave} />
           <Stack direction="row" spacing={1}>
-            <Button variant="contained" onClick={handleSave}>
+            <Button variant="contained" onClick={handleDefinitionSave}>
               Save
             </Button>
             <SettingsMenu commands={commands} />
           </Stack>
         </Stack>
-        <SegmentEditor />
+        <SegmentEditor
+          segmentId={id}
+          onSegmentChange={handleDefinitionUpdate}
+        />
       </Stack>
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </SegmentLayout>
   );
 }

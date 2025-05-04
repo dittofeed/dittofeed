@@ -9,6 +9,15 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 
+interface EditableNameProps {
+  name: string;
+  disabled?: boolean;
+  sx?: SxProps<Theme>;
+  variant?: React.ComponentProps<typeof Typography>["variant"];
+  onChange: React.ComponentProps<typeof TextField>["onChange"];
+  onEscape?: () => void;
+}
+
 export default function EditableName({
   name,
   variant,
@@ -16,14 +25,7 @@ export default function EditableName({
   sx,
   onChange,
   onEscape,
-}: {
-  name: string;
-  disabled?: boolean;
-  sx?: SxProps<Theme>;
-  variant?: React.ComponentProps<typeof Typography>["variant"];
-  onChange: React.ComponentProps<typeof TextField>["onChange"];
-  onEscape?: () => void;
-}) {
+}: EditableNameProps) {
   const [isNameFocused, setIsNamedFocused] = useState(false);
 
   function handleEscape() {

@@ -48,7 +48,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const workspaceId = dfContext.workspace.id;
     const [
-      { broadcast, segment, journey, messageTemplate },
+      { broadcast, journey, messageTemplate },
       subscriptionGroups,
       messageTemplates,
     ] = await Promise.all([
@@ -73,9 +73,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const baseAppState = getBroadcastAppState({ broadcast });
     const segmentAppState = getSegmentConfigState({
-      segment,
-      segmentId: id,
-      workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>
         subscriptionGroupToResource(sg),
       ),

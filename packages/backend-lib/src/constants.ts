@@ -20,28 +20,6 @@ export const HUBSPOT_INTEGRATION_DEFINITION: IntegrationCreateDefinition = {
   },
 };
 
-const ENTRY_ID = "entry";
-const INIT_TRAIT_ID = "initTraitId";
-
-export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
-  entryNode: {
-    type: SegmentNodeType.And,
-    children: [INIT_TRAIT_ID],
-    id: ENTRY_ID,
-  },
-  nodes: [
-    {
-      type: SegmentNodeType.Trait,
-      id: INIT_TRAIT_ID,
-      path: "",
-      operator: {
-        type: SegmentOperatorType.Equals,
-        value: "",
-      },
-    },
-  ],
-};
-
 export const FEATURE_INCREMENTAL_COMP = "incremental-comp" as const;
 
 export const WORKSPACE_COMPUTE_LATENCY_METRIC =

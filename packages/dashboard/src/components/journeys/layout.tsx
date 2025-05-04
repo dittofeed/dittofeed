@@ -195,7 +195,7 @@ export default function JourneyLayout({
     });
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
-      updateRequest: journeyUpdateRequest,
+      isUpdating: journeyUpdateRequest.type === CompletionStatus.InProgress,
       disabled:
         globalJourneyErrors.size > 0 ||
         definitionFromState.isErr() ||
@@ -277,7 +277,7 @@ export default function JourneyLayout({
     };
     const draftToggle: PublisherOutOfDateToggleStatus = {
       type: PublisherStatusType.OutOfDate,
-      updateRequest: journeyUpdateRequest,
+      isUpdating: journeyUpdateRequest.type === CompletionStatus.InProgress,
       isDraft: viewDraft,
       onToggle: ({ isDraft: newIsDraft }) => {
         setViewDraft(newIsDraft);

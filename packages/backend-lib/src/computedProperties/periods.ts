@@ -228,6 +228,16 @@ export async function createPeriods({
       createdAt: nowD,
     });
   }
+  if (newPeriods.length === 0) {
+    logger().debug(
+      {
+        workspaceId,
+        step,
+      },
+      "No new periods to create",
+    );
+    return;
+  }
 
   await db().transaction(async (tx) => {
     logger().debug({ newPeriods }, "Creating periods");

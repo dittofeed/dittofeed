@@ -79,35 +79,48 @@ export async function computePropertiesIncremental({
   now,
 }: ComputePropertiesArgs) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
-    span.setAttributes({
+    const commonAttributes = {
       workspaceId,
       segments: segments.map((s) => s.id),
       userProperties: userProperties.map((up) => up.id),
       journeys: journeys.map((j) => j.id),
       integrations: integrations.map((i) => i.id),
       now: new Date(now).toISOString(),
-    });
+    };
+    span.setAttributes(commonAttributes);
 
-    await computeState({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-    });
-    await computeAssignments({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-    });
-    await processAssignments({
-      workspaceId,
-      segments,
-      userProperties,
-      now,
-      journeys,
-      integrations,
-    });
+    try {
+      await computeState({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+      });
+      await computeAssignments({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+      });
+      await processAssignments({
+        workspaceId,
+        segments,
+        userProperties,
+        now,
+        journeys,
+        integrations,
+      });
+    } catch (e) {
+      logger().error(
+        {
+          ...commonAttributes,
+          err: e,
+        },
+        "Failed to recompute properties",
+      );
+
+      throw e;
+    }
   });
 }
 
