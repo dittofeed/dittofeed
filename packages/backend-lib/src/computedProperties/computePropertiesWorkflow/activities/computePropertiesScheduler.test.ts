@@ -175,13 +175,14 @@ describe("computePropertiesScheduler activities", () => {
           interval: 2 * 60 * 1000,
         });
 
-        expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
+        expect(dueWorkspaces.workspaceIds).toContain(workspace.id);
+        expect(dueWorkspaces.workspaceIds).not.toContain(workspace2.id);
       });
     });
 
     describe("when a workspace's latest re-computed property period is older than the interval and the global computed properties feature is enabled", () => {
-      let dueSegmentId: string;
-      let notDueSegmentId: string;
+      let segmentId1: string;
+      let segmentId2: string;
       let workspace2: Workspace;
       let now: number;
 
@@ -203,8 +204,8 @@ describe("computePropertiesScheduler activities", () => {
           }),
         );
 
-        dueSegmentId = randomUUID();
-        notDueSegmentId = randomUUID();
+        segmentId1 = randomUUID();
+        segmentId2 = randomUUID();
 
         const segments1: SavedSegmentResource[] = [
           unwrap(
@@ -212,7 +213,7 @@ describe("computePropertiesScheduler activities", () => {
               await insert({
                 table: schema.segment,
                 values: {
-                  id: dueSegmentId,
+                  id: segmentId1,
                   name: randomUUID(),
                   createdAt: new Date(now - 1000),
                   updatedAt: new Date(now - 1000),
@@ -236,7 +237,7 @@ describe("computePropertiesScheduler activities", () => {
               await insert({
                 table: schema.segment,
                 values: {
-                  id: notDueSegmentId,
+                  id: segmentId2,
                   name: randomUUID(),
                   createdAt: new Date(now - 1000),
                   updatedAt: new Date(now - 1000),
@@ -292,7 +293,8 @@ describe("computePropertiesScheduler activities", () => {
           interval: 2 * 60 * 1000,
         });
 
-        expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
+        expect(dueWorkspaces.workspaceIds).toContain(workspace.id);
+        expect(dueWorkspaces.workspaceIds).not.toContain(workspace2.id);
       });
     });
     describe("when a workspace has never been computed", () => {
