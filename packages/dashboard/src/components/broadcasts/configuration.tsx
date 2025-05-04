@@ -237,7 +237,7 @@ export default function Configuration({
           </Popover>
           <TimezoneAutocomplete
             defaultToLocal
-            value={broadcast.config?.defaultTimezone}
+            value={broadcast.config.defaultTimezone}
             handler={handleTimezoneChange}
             disabled={broadcast.status !== "Draft"}
           />

@@ -17,7 +17,7 @@ type DownloadSegmentsMutationFn = () => Promise<void>;
 
 export function useDownloadSegmentsMutation(
   options?: Omit<
-    UseMutationOptions<void, AxiosError, void>, // No specific params needed for mutate() call
+    UseMutationOptions<void, AxiosError>, // No specific params needed for mutate() call
     "mutationFn"
   >,
 ): UseMutationResult<void, AxiosError, void> {
@@ -68,7 +68,7 @@ export function useDownloadSegmentsMutation(
     window.URL.revokeObjectURL(url);
   };
 
-  const mutation = useMutation<void, AxiosError, void>({
+  const mutation = useMutation<void, AxiosError>({
     mutationFn,
     ...options,
     // onSuccess and onError are handled by the component using the hook

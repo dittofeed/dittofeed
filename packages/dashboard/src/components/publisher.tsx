@@ -19,10 +19,6 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import {
-  CompletionStatus,
-  EphemeralRequestStatus,
-} from "isomorphic-lib/src/types";
 import { useEffect, useState } from "react";
 
 import { getWarningStyles } from "../lib/warningTheme";

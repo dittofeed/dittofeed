@@ -378,7 +378,7 @@ export default function SegmentList() {
     },
     onError: (error) => {
       console.error("Failed to create segment:", error);
-      const errorMsg = error.response?.data?.message ?? "API Error";
+      const errorMsg = error.response?.data.message ?? "API Error";
       setSnackbarMessage(`Failed to create segment: ${errorMsg}`);
       setSnackbarOpen(true);
     },
@@ -392,7 +392,7 @@ export default function SegmentList() {
     onError: (error) => {
       console.error("Failed to download segments:", error);
       const errorMsg =
-        (error as AxiosError<{ message?: string }>)?.response?.data?.message ??
+        (error as AxiosError<{ message?: string }>).response?.data.message ??
         "API Error";
       setSnackbarMessage(
         `Failed to download user segment assignments: ${errorMsg}`,

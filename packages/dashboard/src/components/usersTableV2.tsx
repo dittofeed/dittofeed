@@ -71,7 +71,7 @@ import React, { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
-import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
+import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import {

@@ -7,7 +7,7 @@ import {
 import { Box, CircularProgress, Tooltip } from "@mui/material";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
@@ -78,7 +78,7 @@ export function RecomputedRecentlyIcon() {
     // Run only if the previous time existed (was not null/undefined)
     // and the current time is different from the previous time.
     // Compare using getTime() for reliability.
-    if (previousTime && currentTime?.getTime() !== previousTime?.getTime()) {
+    if (previousTime && currentTime?.getTime() !== previousTime.getTime()) {
       queryClient.invalidateQueries({
         queryKey: ["users"],
       });
@@ -101,9 +101,9 @@ export function RecomputedRecentlyIcon() {
     currentState = "pending";
   } else if (isError) {
     currentState = "error";
-  } else if (data?.mostRecentRecomputeTime === null) {
+  } else if (data.mostRecentRecomputeTime === null) {
     currentState = "notComputed";
-  } else if (data?.isAnyStale) {
+  } else if (data.isAnyStale) {
     currentState = "stale";
   } else {
     currentState = "upToDate";
