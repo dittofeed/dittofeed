@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import config from "../../../config";
+import config, { type Config } from "../../../config";
 import { db, insert } from "../../../db";
 import * as schema from "../../../db/schema";
 import { toSegmentResource } from "../../../segments";
@@ -18,10 +18,27 @@ import { createWorkspace } from "../../../workspaces";
 import { createPeriods } from "../../periods";
 import { findDueWorkspaces } from "../activities";
 
-jest.mock("../../../config");
-// Keep a reference to the actual implementation
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-const actualConfig = jest.requireActual("../../../config").default;
+// Define the type for the actual config module
+type ActualConfigModule = { default: () => Config };
+
+// Load the actual config module with the defined type
+// const actualConfigModule: ActualConfigModule = jest.requireActual("../../../config");
+
+jest.mock("../../../config", () => ({
+  __esModule: true, // this property makes it work correctly with ESM imports
+  default: jest.fn().mockImplementation(() => {
+    // Require the actual module inside the mock factory
+    const actualModule: ActualConfigModule =
+      jest.requireActual("../../../config");
+    return actualModule.default();
+  }),
+}));
+
+// Keep a reference to the actual implementation's default export
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const actualConfig: () => Config =
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  jest.requireActual("../../../config").default;
 
 describe("computePropertiesScheduler activities", () => {
   let workspace: Workspace;
