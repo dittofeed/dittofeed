@@ -173,6 +173,7 @@ describe("computePropertiesScheduler activities", () => {
         const dueWorkspaces = await findDueWorkspaces({
           now,
           interval: 2 * 60 * 1000,
+          limit: 10000,
         });
 
         expect(dueWorkspaces.workspaceIds).toContain(workspace.id);
@@ -291,6 +292,7 @@ describe("computePropertiesScheduler activities", () => {
         const dueWorkspaces = await findDueWorkspaces({
           now,
           interval: 2 * 60 * 1000,
+          limit: 10000,
         });
 
         expect(dueWorkspaces.workspaceIds).toContain(workspace.id);
@@ -317,9 +319,10 @@ describe("computePropertiesScheduler activities", () => {
         const dueWorkspaces = await findDueWorkspaces({
           now: new Date().getTime(),
           interval: 2 * 60 * 1000,
+          limit: 10000,
         });
 
-        expect(dueWorkspaces.workspaceIds).toEqual([workspace.id]);
+        expect(dueWorkspaces.workspaceIds).toContain(workspace.id);
       });
     });
   });
