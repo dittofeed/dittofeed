@@ -113,7 +113,7 @@ export default function Configuration({
     return null;
   }
 
-  const disabled = broadcast.status !== "Draft" || errors.length !== 0;
+  const disabled = broadcast.status !== "Draft";
   const scheduledStatus: "scheduled" | "immediate" = broadcast.scheduledAt
     ? "scheduled"
     : "immediate";
@@ -174,7 +174,7 @@ export default function Configuration({
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       {errors.length > 0 && (
-        <Box sx={getWarningStyles(theme)}>
+        <Box sx={{ ...getWarningStyles(theme), p: 1 }}>
           <ul>
             {errors.map((error) => (
               <li key={error}>{error}</li>
@@ -248,7 +248,7 @@ export default function Configuration({
         variant="outlined"
         color="primary"
         loading={isPending}
-        disabled={disabled}
+        disabled={disabled || errors.length !== 0}
         sx={{
           ...greyButtonStyle,
           borderColor: "grey.400",

@@ -81,6 +81,18 @@ export function useBroadcastMutation(broadcastId: string) {
               newData.segmentId === undefined
                 ? oldData.segmentId
                 : newData.segmentId ?? undefined,
+            scheduledAt:
+              newData.scheduledAt === undefined
+                ? oldData.scheduledAt
+                : newData.scheduledAt ?? undefined,
+            messageTemplateId:
+              newData.messageTemplateId === undefined
+                ? oldData.messageTemplateId
+                : newData.messageTemplateId ?? undefined,
+            config:
+              newData.config === undefined
+                ? oldData.config
+                : newData.config ?? undefined,
           },
         ] satisfies GetBroadcastsResponse;
       });
