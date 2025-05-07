@@ -18,7 +18,7 @@ import {
   setMinutes,
   setSeconds,
 } from "date-fns";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
@@ -109,6 +109,68 @@ export default function Configuration({
       : "Set Date";
   }, [datePickerValue]);
 
+  const handleTimezoneChange = useCallback(
+    (timezone: string | null) => {
+      if (!broadcast) {
+        return;
+      }
+      updateBroadcast({
+        config: {
+          ...broadcast.config,
+          defaultTimezone: timezone ?? undefined,
+        },
+      });
+    },
+    [broadcast, updateBroadcast],
+  );
+
+  const handleDateChange = useCallback(
+    (newDateValue: CalendarDateTime | null) => {
+      if (!newDateValue) {
+        updateBroadcast({ scheduledAt: null });
+        setAnchorEl(null);
+        return;
+      }
+      const currentTime = datePickerValue
+        ? new Time(datePickerValue.hour, datePickerValue.minute)
+        : new Time(0, 0);
+      const combinedDateTime = newDateValue.set(currentTime);
+      updateBroadcast({
+        scheduledAt: calendarDateTimeToString(combinedDateTime),
+      });
+      setAnchorEl(null);
+    },
+    [datePickerValue, updateBroadcast],
+  );
+
+  const handleTimeChange = useCallback(
+    (newCalDateTimeValue: CalendarDateTime | null) => {
+      if (!newCalDateTimeValue || !datePickerValue) {
+        return;
+      }
+      const newTime = new Time(
+        newCalDateTimeValue.hour,
+        newCalDateTimeValue.minute,
+      );
+      const combinedDateTime = datePickerValue.set(newTime);
+      updateBroadcast({
+        scheduledAt: calendarDateTimeToString(combinedDateTime),
+      });
+    },
+    [datePickerValue, updateBroadcast],
+  );
+
+  const handleOpenPopover = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(event.currentTarget);
+    },
+    [],
+  );
+
+  const handleClosePopover = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
+
   if (!broadcast) {
     return null;
   }
@@ -118,63 +180,13 @@ export default function Configuration({
     ? "scheduled"
     : "immediate";
 
-  const handleDateChange = (newDateValue: CalendarDateTime | null) => {
-    if (!newDateValue) {
-      updateBroadcast({ scheduledAt: null });
-      setAnchorEl(null);
-      return;
-    }
-    const currentTime = datePickerValue
-      ? new Time(datePickerValue.hour, datePickerValue.minute)
-      : new Time(0, 0);
-    const combinedDateTime = newDateValue.set(currentTime);
-    updateBroadcast({
-      scheduledAt: calendarDateTimeToString(combinedDateTime),
-    });
-    setAnchorEl(null);
-  };
-
-  const handleTimeChange = (newCalDateTimeValue: CalendarDateTime | null) => {
-    if (!newCalDateTimeValue || !datePickerValue) {
-      return;
-    }
-    const newTime = new Time(
-      newCalDateTimeValue.hour,
-      newCalDateTimeValue.minute,
-    );
-    const combinedDateTime = datePickerValue.set(newTime);
-    updateBroadcast({
-      scheduledAt: calendarDateTimeToString(combinedDateTime),
-    });
-  };
-
-  const handleTimezoneChange = (timezone: string | null) => {
-    if (!broadcast) {
-      return;
-    }
-    updateBroadcast({
-      config: {
-        ...broadcast.config,
-        defaultTimezone: timezone ?? undefined,
-      },
-    });
-  };
-
-  const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClosePopover = () => {
-    setAnchorEl(null);
-  };
-
   const open = Boolean(anchorEl);
   const id = open ? "date-picker-popover" : undefined;
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       {errors.length > 0 && (
-        <Box sx={{ ...getWarningStyles(theme), p: 1 }}>
+        <Box sx={{ ...getWarningStyles(theme) }}>
           <ul>
             {errors.map((error) => (
               <li key={error}>{error}</li>
