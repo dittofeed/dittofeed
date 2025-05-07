@@ -1,16 +1,18 @@
 import { randomBytes, randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 
 import { db, queryResult } from "./db";
 import { adminApiKey as dbAdminApiKey, secret as dbSecret } from "./db/schema";
 import {
+  AdminApiKey,
   AdminApiKeyPermission,
   AdminApiKeyResource,
   AdminApiKeyType,
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
+  Secret,
 } from "./types";
 
 export enum AdminApiKeyCreateErrorType {
@@ -31,34 +33,59 @@ export async function createAdminApiKey(
 
   const result = await queryResult(
     db().transaction(async (tx) => {
-      const [secret] = await tx
-        .insert(dbSecret)
-        .values({
-          workspaceId: data.workspaceId,
-          name: `df-admin-api-key-${data.name}`,
-          configValue: {
-            type: AdminApiKeyType.AdminApiKey,
-            key,
-            permissions: [AdminApiKeyPermission.Admin],
-          },
-        })
-        .returning();
+      const name = `df-admin-api-key-${data.name}`;
+      const existingSecret = await tx.query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, data.workspaceId),
+          eq(dbSecret.name, name),
+        ),
+      });
+      let secret: Secret;
+      if (existingSecret) {
+        secret = existingSecret;
+      } else {
+        const [newSecret] = await tx
+          .insert(dbSecret)
+          .values({
+            workspaceId: data.workspaceId,
+            name: `df-admin-api-key-${data.name}`,
+            configValue: {
+              type: AdminApiKeyType.AdminApiKey,
+              key,
+              permissions: [AdminApiKeyPermission.Admin],
+            },
+          })
+          .returning();
 
-      if (!secret) {
-        throw new Error("Failed to create secret");
+        if (!newSecret) {
+          throw new Error("Failed to create secret");
+        }
+        secret = newSecret;
       }
-      const [adminApiKey] = await tx
-        .insert(dbAdminApiKey)
-        .values({
-          id,
-          name: data.name,
-          workspaceId: data.workspaceId,
-          secretId: secret.id,
-        })
-        .returning();
+      const existingAdminApiKey = await tx.query.adminApiKey.findFirst({
+        where: and(
+          eq(dbAdminApiKey.workspaceId, data.workspaceId),
+          eq(dbAdminApiKey.name, name),
+        ),
+      });
+      let adminApiKey: AdminApiKey;
+      if (existingAdminApiKey) {
+        adminApiKey = existingAdminApiKey;
+      } else {
+        const [newAdminApiKey] = await tx
+          .insert(dbAdminApiKey)
+          .values({
+            id,
+            name: data.name,
+            workspaceId: data.workspaceId,
+            secretId: secret.id,
+          })
+          .returning();
 
-      if (!adminApiKey) {
-        throw new Error("Failed to create admin api key");
+        if (!newAdminApiKey) {
+          throw new Error("Failed to create admin api key");
+        }
+        adminApiKey = newAdminApiKey;
       }
       return adminApiKey;
     }),
