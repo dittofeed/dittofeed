@@ -512,7 +512,7 @@ export default function BroadcastsTable() {
 
   return (
     <>
-      <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
+      <Stack spacing={2} sx={{ height: "100%", width: "100%" }}>
         <Stack
           direction="row"
           justifyContent="space-between"

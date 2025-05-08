@@ -1,3 +1,4 @@
+import { Box, useTheme } from "@mui/material";
 import { GetServerSideProps } from "next";
 import React from "react";
 
@@ -22,9 +23,12 @@ export const getServerSideProps: GetServerSideProps<BroadcastsProps> =
   });
 
 export default function Broadcasts() {
+  const theme = useTheme();
   return (
     <DashboardContent>
-      <BroadcastsTable />
+      <Box sx={{ padding: theme.spacing(3), height: "100%", width: "100%" }}>
+        <BroadcastsTable />
+      </Box>
     </DashboardContent>
   );
 }
