@@ -96,7 +96,10 @@ services:
     runtime: image
     autoDeploy: false
     image:
-      url: "dittofeed/dittofeed-admin-cli:v0.23.0"
+      url: "docker.io/dittofeed/dittofeed-admin-cli-licensed:v0.23.0-alpha.8-ee.1"
+      creds:
+        fromRegistryCreds:
+          name: dittofeed
     dockerCommand: tail -f /dev/null
     envVars:
       - fromGroup: backend-app-env
