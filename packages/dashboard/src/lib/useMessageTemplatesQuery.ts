@@ -12,7 +12,7 @@ import {
   GetMessageTemplatesResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
 
 /**

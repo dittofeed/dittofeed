@@ -12,7 +12,7 @@ import {
   GetSegmentsResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
 
 export const SEGMENTS_QUERY_KEY = "segments";

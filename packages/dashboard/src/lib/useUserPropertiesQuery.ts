@@ -12,7 +12,7 @@ import {
   ReadAllUserPropertiesResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
 
 export const USER_PROPERTIES_QUERY_KEY = "userProperties";

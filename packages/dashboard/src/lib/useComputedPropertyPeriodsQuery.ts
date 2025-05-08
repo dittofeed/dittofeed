@@ -12,7 +12,7 @@ import {
   GetComputedPropertyPeriodsResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
 
 export const COMPUTED_PROPERTY_PERIODS_QUERY_KEY = "computed-property-periods";

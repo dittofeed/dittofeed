@@ -12,7 +12,7 @@ import {
   GetBroadcastsV2Request,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
 
 export const BROADCASTS_QUERY_KEY = "broadcasts";

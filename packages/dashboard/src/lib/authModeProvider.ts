@@ -3,38 +3,38 @@ import { createContext, useContext } from "react";
 
 import { useAppStorePick } from "./appStore";
 
-export const ApiAuthContextTypeEnum = {
+export const AuthModeTypeEnum = {
   Embedded: "Embedded",
   Base: "Base",
 } as const;
 
-export type ApiAuthContextType =
-  (typeof ApiAuthContextTypeEnum)[keyof typeof ApiAuthContextTypeEnum];
+export type AuthModeType =
+  (typeof AuthModeTypeEnum)[keyof typeof AuthModeTypeEnum];
 
-export interface EmbeddedApiAuthContext {
-  type: typeof ApiAuthContextTypeEnum.Embedded;
+export interface EmbeddedAuthMode {
+  type: typeof AuthModeTypeEnum.Embedded;
   token: string;
 }
 
-export interface BaseApiAuthContext {
-  type: typeof ApiAuthContextTypeEnum.Base;
+export interface BaseAuthMode {
+  type: typeof AuthModeTypeEnum.Base;
 }
 
-export type ApiAuthContexts = EmbeddedApiAuthContext | BaseApiAuthContext;
+export type AuthContextMode = EmbeddedAuthMode | BaseAuthMode;
 
-export const ApiAuthContext = createContext<ApiAuthContexts>({
-  type: ApiAuthContextTypeEnum.Base,
+export const AuthContext = createContext<AuthContextMode>({
+  type: AuthModeTypeEnum.Base,
 });
 
 export function useBaseApiUrl({
   licensed = false,
 }: { licensed?: boolean } = {}) {
   const { apiBase } = useAppStorePick(["apiBase"]);
-  const authContext = useContext(ApiAuthContext);
+  const authContext = useContext(AuthContext);
   switch (authContext.type) {
-    case ApiAuthContextTypeEnum.Embedded:
+    case AuthModeTypeEnum.Embedded:
       return `${apiBase}/api-l/embedded`;
-    case ApiAuthContextTypeEnum.Base:
+    case AuthModeTypeEnum.Base:
       if (licensed) {
         return `${apiBase}/api-l`;
       }
@@ -45,11 +45,11 @@ export function useBaseApiUrl({
 }
 
 export function useAuthHeaders(): Record<string, string> {
-  const authContext = useContext(ApiAuthContext);
+  const authContext = useContext(AuthContext);
   switch (authContext.type) {
-    case ApiAuthContextTypeEnum.Embedded:
+    case AuthModeTypeEnum.Embedded:
       return { Authorization: `Bearer ${authContext.token}` };
-    case ApiAuthContextTypeEnum.Base:
+    case AuthModeTypeEnum.Base:
       return {};
     default:
       assertUnreachable(authContext);
