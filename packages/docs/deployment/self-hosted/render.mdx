@@ -35,3 +35,15 @@ DittofeedSdk.init({
  host: 'https://PLACEHOLDER.onrender.com',
 });
 ```
+
+## Admin CLI
+
+By default, the Admin CLI is deployed as a worker service. You can access the Admin CLI by accessing the service's shell `https://dashboard.render.com/worker/<service-id>/shell`.
+
+The admin-cli's primary use is in facilitating version upgrades to Dittofeed.
+
+<Frame>
+![Render Admin CLI](/images/render-admin-cli-shell.png)
+</Frame>
+
+You can delete the Admin CLI service in its settings when you don't need it anymore and redeploy it by manually resyncing Dittofeed's blueprint.
