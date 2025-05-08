@@ -12,6 +12,7 @@ import {
   GetMessageTemplatesResponse,
 } from "isomorphic-lib/src/types";
 
+import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
 import { useAppStorePick } from "./appStore";
 
 /**
@@ -30,7 +31,8 @@ export function useMessageTemplatesQuery<
     "queryKey" | "queryFn"
   >,
 ): UseQueryResult<TData> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
 
   if (workspace.type !== CompletionStatus.Successful) {
     throw new Error("Workspace not available for message templates query");
@@ -39,6 +41,7 @@ export function useMessageTemplatesQuery<
   const workspaceId = workspace.value.id;
   // Include workspaceId and any other params in the query key
   const queryKey = ["messageTemplates", { ...params, workspaceId }];
+  const baseApiUrl = useBaseApiUrl();
 
   const queryResult = useQuery<
     GetMessageTemplatesResponse["templates"], // Query function returns MessageTemplateResource[]
@@ -48,11 +51,12 @@ export function useMessageTemplatesQuery<
     queryKey,
     queryFn: async (): Promise<GetMessageTemplatesResponse["templates"]> => {
       try {
-        const response = await axios.get(`${apiBase}/api/content/templates`, {
+        const response = await axios.get(`${baseApiUrl}/content/templates`, {
           params: {
             ...params,
             workspaceId,
           },
+          headers: authHeaders,
         });
 
         const validatedResponse = unwrap(

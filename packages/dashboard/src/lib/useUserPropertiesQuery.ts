@@ -12,6 +12,7 @@ import {
   ReadAllUserPropertiesResponse,
 } from "isomorphic-lib/src/types";
 
+import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
 import { useAppStorePick } from "./appStore";
 
 export const USER_PROPERTIES_QUERY_KEY = "userProperties";
@@ -26,7 +27,8 @@ export function useUserPropertiesQuery<TData = ReadAllUserPropertiesResponse>(
     "queryKey" | "queryFn"
   >,
 ): UseQueryResult<TData> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
 
   if (workspace.type !== CompletionStatus.Successful) {
     throw new Error("Workspace not available for user properties query");
@@ -34,16 +36,18 @@ export function useUserPropertiesQuery<TData = ReadAllUserPropertiesResponse>(
 
   const workspaceId = workspace.value.id;
   const queryKey = [USER_PROPERTIES_QUERY_KEY, { ...params, workspaceId }];
+  const baseApiUrl = useBaseApiUrl();
 
   const queryResult = useQuery<ReadAllUserPropertiesResponse, Error, TData>({
     queryKey,
     queryFn: async (): Promise<ReadAllUserPropertiesResponse> => {
       try {
-        const response = await axios.get(`${apiBase}/api/user-properties`, {
+        const response = await axios.get(`${baseApiUrl}/user-properties`, {
           params: {
             ...params,
             workspaceId,
           },
+          headers: authHeaders,
         });
 
         return unwrap(

@@ -12,6 +12,7 @@ import {
   GetComputedPropertyPeriodsResponse,
 } from "isomorphic-lib/src/types";
 
+import { useAuthHeaders, useBaseApiUrl } from "./apiAuthProvider";
 import { useAppStorePick } from "./appStore";
 
 export const COMPUTED_PROPERTY_PERIODS_QUERY_KEY = "computed-property-periods";
@@ -28,7 +29,8 @@ export function useComputedPropertyPeriodsQuery<
     "queryKey" | "queryFn"
   >,
 ): UseQueryResult<TData> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
 
   if (workspace.type !== CompletionStatus.Successful) {
     throw new Error(
@@ -41,6 +43,7 @@ export function useComputedPropertyPeriodsQuery<
     COMPUTED_PROPERTY_PERIODS_QUERY_KEY,
     { ...params, workspaceId },
   ];
+  const baseApiUrl = useBaseApiUrl();
 
   const queryResult = useQuery<
     GetComputedPropertyPeriodsResponse,
@@ -51,12 +54,13 @@ export function useComputedPropertyPeriodsQuery<
     queryFn: async (): Promise<GetComputedPropertyPeriodsResponse> => {
       try {
         const response = await axios.get(
-          `${apiBase}/api/computed-properties/periods`,
+          `${baseApiUrl}/computed-properties/periods`,
           {
             params: {
               ...params,
               workspaceId,
             },
+            headers: authHeaders,
           },
         );
 
