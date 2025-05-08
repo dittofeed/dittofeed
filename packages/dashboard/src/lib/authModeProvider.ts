@@ -55,3 +55,15 @@ export function useAuthHeaders(): Record<string, string> {
       assertUnreachable(authContext);
   }
 }
+
+export function useDashboardBaseUrl() {
+  const authContext = useContext(AuthContext);
+  switch (authContext.type) {
+    case AuthModeTypeEnum.Embedded:
+      return "/dashboard-l/embedded";
+    case AuthModeTypeEnum.Base:
+      return "/dashboard";
+    default:
+      assertUnreachable(authContext);
+  }
+}
