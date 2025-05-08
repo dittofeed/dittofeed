@@ -15,7 +15,7 @@ interface MutationContext {
   previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
 }
 
-// Mutation hook for updating broadcasts
+// Mutation hook for upserting broadcasts
 export function useBroadcastMutation(broadcastId: string) {
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
   const queryClient = useQueryClient();

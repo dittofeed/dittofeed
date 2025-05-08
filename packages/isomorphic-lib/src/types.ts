@@ -5140,23 +5140,31 @@ export type TriggerRecomputeRequest = Static<typeof TriggerRecomputeRequest>;
 export const IdOrName = Type.Union([
   Type.Object({
     id: Type.String(),
+    name: Type.Optional(Type.String()),
   }),
   Type.Object({
     name: Type.String(),
+    id: Type.Optional(Type.String()),
   }),
 ]);
 
+export type IdOrName = Static<typeof IdOrName>;
+
+export const BaseUpsertBroadcastV2Request = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: NullableAndOptional(Type.String()),
+  messageTemplateId: NullableAndOptional(Type.String()),
+  subscriptionGroupId: NullableAndOptional(Type.String()),
+  config: Type.Optional(BroadcastV2Config),
+  scheduledAt: NullableAndOptional(Type.String()),
+});
+
+export type BaseUpsertBroadcastV2Request = Static<
+  typeof BaseUpsertBroadcastV2Request
+>;
+
 export const UpsertBroadcastV2Request = Type.Intersect([
-  Type.Object({
-    workspaceId: Type.String(),
-    id: Type.Optional(Type.String()),
-    name: Type.Optional(Type.String()),
-    segmentId: NullableAndOptional(Type.String()),
-    messageTemplateId: NullableAndOptional(Type.String()),
-    subscriptionGroupId: NullableAndOptional(Type.String()),
-    config: Type.Optional(BroadcastV2Config),
-    scheduledAt: NullableAndOptional(Type.String()),
-  }),
+  BaseUpsertBroadcastV2Request,
   IdOrName,
 ]);
 
