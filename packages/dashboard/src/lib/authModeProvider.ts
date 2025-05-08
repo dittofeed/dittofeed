@@ -16,6 +16,7 @@ export type AuthModeType =
 export interface EmbeddedAuthMode {
   type: typeof AuthModeTypeEnum.Embedded;
   token: string;
+  router: ReturnType<typeof useRouter>;
 }
 
 export interface BaseAuthMode {
@@ -70,9 +71,8 @@ export function useUniversalRouter() {
     switch (authContext.type) {
       case AuthModeTypeEnum.Embedded:
         push = (path: string, query?: Record<string, string>) => {
-          const queryString = query ? `?${qs.stringify(query)}` : "";
-          const fullPath = `${window.location.origin}/dashboard-l/embedded${path}${queryString}`;
-          window.location.href = fullPath;
+          const fullPath = `/embedded${path}`;
+          authContext.router.push({ pathname: fullPath, query });
         };
         break;
       case AuthModeTypeEnum.Base:
