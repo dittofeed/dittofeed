@@ -21,13 +21,7 @@ You can now visit the dashboard, whose URL is listed on the dashboard service pa
 
 ## Submit Data to the API
 
-You can submit data to your instance of the Dittofeed API by retrieving the API's url.
-
-<Frame>
-![Render API Url](/images/render-api-url.png)
-</Frame>
-
-Then you can provide this url to the Dittofeed SDK.
+You can submit data to your instance of the Dittofeed API by passing your instance's url to the Dittofeed SDK.
 
 ```javascript
 DittofeedSdk.init({
@@ -35,3 +29,15 @@ DittofeedSdk.init({
  host: 'https://PLACEHOLDER.onrender.com',
 });
 ```
+
+## Admin CLI
+
+By default, the Admin CLI is deployed as a worker service. You can access the Admin CLI by accessing the service's shell `https://dashboard.render.com/worker/<service-id>/shell`.
+
+The admin-cli's primary use is in facilitating version upgrades to Dittofeed.
+
+<Frame>
+![Render Admin CLI](/images/render-admin-cli-shell.png)
+</Frame>
+
+You can delete the Admin CLI service in its settings when you don't need it anymore and redeploy it by manually resyncing Dittofeed's blueprint.

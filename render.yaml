@@ -83,6 +83,42 @@ services:
       # comment out bootstrap env var after initial setup
       - key: BOOTSTRAP
         value: "true"
+  - type: worker
+    name: admin-cli
+    runtime: image
+    autoDeploy: false
+    image:
+      url: "dittofeed/dittofeed-admin-cli:v0.22.0"
+    dockerCommand: tail -f /dev/null
+    envVars:
+      - fromGroup: backend-app-env
+      - fromGroup: clickhouse-credentials
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: DATABASE_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+      - key: CLICKHOUSE_HOST
+        fromService:
+          type: pserv
+          name: dittofeed-ch
+          property: host
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: pserv
+          name: temporal
+          property: host
   - type: pserv
     name: dittofeed-ch
     env: docker
