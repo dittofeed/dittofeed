@@ -1,5 +1,6 @@
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { useRouter } from "next/router";
+import qs from "qs";
 import { createContext, useContext, useMemo } from "react";
 
 import { useAppStorePick } from "./appStore";
@@ -68,8 +69,9 @@ export function useUniversalRouter() {
     let push: UniversalRouter["push"];
     switch (authContext.type) {
       case AuthModeTypeEnum.Embedded:
-        push = (path: string) => {
-          const fullPath = `${window.location.origin}/dashboard-l/embedded${path}`;
+        push = (path: string, query?: Record<string, string>) => {
+          const queryString = query ? `?${qs.stringify(query)}` : "";
+          const fullPath = `${window.location.origin}/dashboard-l/embedded${path}${queryString}`;
           window.location.href = fullPath;
         };
         break;

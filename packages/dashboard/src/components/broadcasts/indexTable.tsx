@@ -66,10 +66,10 @@ import {
   UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useUniversalRouter } from "../../lib/authModeProvider";
 import { useBroadcastsQuery } from "../../lib/useBroadcastsQuery";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 
@@ -308,7 +308,7 @@ function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
 
 export default function BroadcastsTable() {
   const theme = useTheme();
-  const router = useRouter();
+  const universalRouter = useUniversalRouter();
   const queryClient = useQueryClient();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
 
@@ -478,7 +478,7 @@ export default function BroadcastsTable() {
       setSnackbarOpen(true);
       setDialogOpen(false);
       setBroadcastName("");
-      router.push(`/broadcasts/v2?id=${data.id}`); // Redirect to the edit page
+      universalRouter.push(`/broadcasts/v2`, { id: data.id });
     },
     onError: (error) => {
       console.error("Failed to create broadcast:", error);
