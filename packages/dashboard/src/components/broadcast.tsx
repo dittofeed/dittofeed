@@ -41,7 +41,7 @@ function stateToQueryParams(state: QueryState): Record<string, string> {
   return queryParams;
 }
 
-export default function Broadcasts({
+export default function Broadcast({
   queryParams,
   onStateChange,
   sx,

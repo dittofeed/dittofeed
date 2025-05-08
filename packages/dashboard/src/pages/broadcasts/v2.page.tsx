@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { validate as validateUuid } from "uuid";
 
-import Broadcasts from "../../components/broadcast";
+import Broadcast from "../../components/broadcast";
 import DashboardContent from "../../components/dashboardContent";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
@@ -48,7 +48,7 @@ function BroadcastPageContent() {
   const router = useRouter();
   const queryParams = router.query;
   return (
-    <Broadcasts
+    <Broadcast
       queryParams={queryParams}
       sx={{
         pt: 2,
