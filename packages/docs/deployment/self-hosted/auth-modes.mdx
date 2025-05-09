@@ -53,6 +53,6 @@ Single Tenant is the default auth mode for Dittofeed's [Render](/deployment/self
 
 ## Multi Tenant
 
-The Multi Tenant auth mode is a more complex authentication setup that allows you to integrate with any OIDC compliant identity provider e.g. auth0. This allows for multiple users to access your Dittofeed instance, each with their own credentials. This is the default authentication mode in [Dittofeed Cloud](/deployment/cloud).
+The multi-tenant auth mode allows you to integrate with any OIDC compliant identity provider e.g. auth0. This allows for multiple users to access your Dittofeed instance, each with their own credentials. It also allows you to host multiple workspaces on a single Dittofeed instance.
 
-We provide this auth mode in our cloud by using a proxy server, in our kubernetes cluster. Access to the kubernetes resources to set this up on your own are available on request. This is not something we recommend for most self-hosted deployments, due to the complexity of the setup.
+For more information on how to configure the multi-tenant auth mode, please refer to the [multi-tenant Auth Mode](/deployment/self-hosted/auth-modes/multi-tenant) documentation.
