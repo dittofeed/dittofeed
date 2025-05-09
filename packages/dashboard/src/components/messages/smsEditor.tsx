@@ -13,9 +13,7 @@ import React from "react";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplateEditor, {
   DraftToPreview,
-  RenderTemplateRequest,
   TemplateEditorMode,
-  TestTemplateRequest,
 } from "../templateEditor";
 
 function fieldToReadable(field: string) {
@@ -47,9 +45,7 @@ export default function SmsEditor({
   disabled,
   member,
   mode,
-  renderTemplateRequest,
   defaultIsUserPropertiesMinimised,
-  testTemplateRequest,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -57,9 +53,7 @@ export default function SmsEditor({
   disabled?: boolean;
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
-  renderTemplateRequest?: RenderTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
-  testTemplateRequest?: TestTemplateRequest;
 }) {
   const theme = useTheme();
 
@@ -109,8 +103,6 @@ export default function SmsEditor({
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
       mode={mode}
-      renderTemplateRequest={renderTemplateRequest}
-      testTemplateRequest={testTemplateRequest}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
     />
   );

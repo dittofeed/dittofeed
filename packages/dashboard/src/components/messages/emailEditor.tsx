@@ -374,9 +374,7 @@ export default function EmailEditor({
   disabled,
   member,
   mode,
-  renderTemplateRequest,
   defaultIsUserPropertiesMinimised,
-  testTemplateRequest,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -516,9 +514,7 @@ export default function EmailEditor({
       )}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
-      renderTemplateRequest={renderTemplateRequest}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
-      testTemplateRequest={testTemplateRequest}
     />
   );
 }

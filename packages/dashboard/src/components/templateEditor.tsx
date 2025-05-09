@@ -360,19 +360,17 @@ export interface TemplateEditorProps {
   draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
-  renderTemplateRequest?: RenderTemplateRequest;
-  testTemplateRequest?: TestTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
 }
 
-export const defaultRenderTemplateRequest: RenderTemplateRequest = ({
+export const renderTemplateRequest: RenderTemplateRequest = ({
   apiBase,
   params,
 }) => {
   return axios.post(`${apiBase}/api/content/templates/render`, params);
 };
 
-export const defaultTestTemplateRequest: TestTemplateRequest = ({
+export const testTemplateRequest: TestTemplateRequest = ({
   apiBase,
   params,
 }) => {
@@ -401,8 +399,6 @@ export default function TemplateEditor({
   draftToPreview,
   renderEditorOptions,
   mode = ModeEnum.Full,
-  renderTemplateRequest = defaultRenderTemplateRequest,
-  testTemplateRequest = defaultTestTemplateRequest,
   defaultIsUserPropertiesMinimised = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
