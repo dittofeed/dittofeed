@@ -23,6 +23,11 @@
 - 4️⃣ Automate user journeys with a powerful, easy-to-use GUI interface 🛩️
 - 5️⃣ Integrate with major ESPs like Sendgrid and Amazon SES 🏰
 - 6️⃣ Track and analyze message performance from the dashboard 🎯
+- 7️⃣ Embed any combination of our tools in your own app via iframe or headless react component!* 🤩
+
+<br>
+
+*[Email support](mailto:support@dittofeed.com) to learn more about our licensed closed-source codebase, which includes features like multi-tenancy, embedding, and white-labeling.
 
 <br>
 
