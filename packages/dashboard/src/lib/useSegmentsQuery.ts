@@ -13,6 +13,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 export const SEGMENTS_QUERY_KEY = "segments";
 
@@ -26,24 +27,27 @@ export function useSegmentsQuery<TData = GetSegmentsResponse>(
     "queryKey" | "queryFn"
   >,
 ): UseQueryResult<TData> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
 
   if (workspace.type !== CompletionStatus.Successful) {
     throw new Error("Workspace not available for broadcasts query");
   }
 
   const workspaceId = workspace.value.id;
-  const queryKey = ["broadcasts", { ...params, workspaceId }];
+  const queryKey = [SEGMENTS_QUERY_KEY, { ...params, workspaceId }];
+  const baseApiUrl = useBaseApiUrl();
 
   const queryResult = useQuery<GetSegmentsResponse, Error, TData>({
     queryKey,
     queryFn: async (): Promise<GetSegmentsResponse> => {
       try {
-        const response = await axios.get(`${apiBase}/api/segments`, {
+        const response = await axios.get(`${baseApiUrl}/segments`, {
           params: {
             ...params,
             workspaceId,
           },
+          headers: authHeaders,
         });
 
         return unwrap(

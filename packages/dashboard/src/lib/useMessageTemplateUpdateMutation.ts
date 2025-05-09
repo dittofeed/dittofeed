@@ -8,6 +8,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 // Context type for mutation rollback
 interface MutationContext {
@@ -22,8 +23,10 @@ export type UpsertMessageTemplateParams = Omit<
 
 // Mutation hook for updating message templates
 export function useMessageTemplateUpdateMutation() {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     updateData: UpsertMessageTemplateParams,
@@ -40,8 +43,9 @@ export function useMessageTemplateUpdateMutation() {
     };
 
     const response = await axios.put<MessageTemplateResource>(
-      `${apiBase}/api/content/templates`,
+      `${baseApiUrl}/content/templates`,
       requestData,
+      { headers: authHeaders },
     );
     return response.data;
   };
@@ -91,8 +95,8 @@ export function useMessageTemplateUpdateMutation() {
 
       return { previousTemplateDataArray };
     },
-    onError: (err, variables, context) => {
-      console.error("Message template update mutation failed:", err);
+    onError: (_err, variables, context) => {
+      // console.error("Message template update mutation failed:", err);
       if (
         context?.previousTemplateDataArray !== undefined &&
         workspace.type === CompletionStatus.Successful
@@ -107,9 +111,9 @@ export function useMessageTemplateUpdateMutation() {
     },
     onSettled: (_data, _error, variables, _context) => {
       if (workspace.type !== CompletionStatus.Successful) {
-        console.warn(
-          "Workspace not available, skipping query invalidation on settle.",
-        );
+        // console.warn(
+        //   "Workspace not available, skipping query invalidation on settle.",
+        // );
         return;
       }
       const workspaceId = workspace.value.id;

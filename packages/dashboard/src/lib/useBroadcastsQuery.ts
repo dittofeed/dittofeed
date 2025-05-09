@@ -13,6 +13,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 export const BROADCASTS_QUERY_KEY = "broadcasts";
 /**
@@ -25,7 +26,8 @@ export function useBroadcastsQuery<TData = GetBroadcastsResponse>(
     "queryKey" | "queryFn"
   >,
 ): UseQueryResult<TData> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
 
   if (workspace.type !== CompletionStatus.Successful) {
     throw new Error("Workspace not available for broadcasts query");
@@ -33,16 +35,18 @@ export function useBroadcastsQuery<TData = GetBroadcastsResponse>(
 
   const workspaceId = workspace.value.id;
   const queryKey = [BROADCASTS_QUERY_KEY, { ...params, workspaceId }];
+  const baseApiUrl = useBaseApiUrl();
 
   const queryResult = useQuery<GetBroadcastsResponse, Error, TData>({
     queryKey,
     queryFn: async (): Promise<GetBroadcastsResponse> => {
       try {
-        const response = await axios.get(`${apiBase}/api/broadcasts`, {
+        const response = await axios.get(`${baseApiUrl}/broadcasts`, {
           params: {
             ...params,
             workspaceId,
           },
+          headers: authHeaders,
         });
 
         return unwrap(

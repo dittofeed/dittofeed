@@ -131,34 +131,25 @@ function StatCell({ value }: { value: number | string }) {
 export default function MessagesPage() {
   const {
     journeyStats,
-    apiBase,
     journeys,
     upsertJourneyStats,
     setJourneyStatsRequest,
     messages,
-    workspace,
     broadcasts,
   } = useAppStorePick([
     "journeyStats",
     "broadcasts",
     "journeys",
-    "apiBase",
     "upsertJourneyStats",
     "setJourneyStatsRequest",
     "messages",
-    "workspace",
   ]);
   useJourneyStats({
-    workspaceId:
-      workspace.type === CompletionStatus.Successful
-        ? workspace.value.id
-        : undefined,
     upsertJourneyStats,
     journeyIds:
       journeys.type === CompletionStatus.Successful
         ? journeys.value.map((j) => j.id)
         : [],
-    apiBase,
     setJourneyStatsRequest,
   });
 

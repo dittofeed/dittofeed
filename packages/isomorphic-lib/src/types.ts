@@ -3916,26 +3916,51 @@ const BaseMessageTemplateTestRequest = {
   tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 } as const;
 
+export const EmailMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Email),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type EmailMessageTemplateTestRequest = Static<
+  typeof EmailMessageTemplateTestRequest
+>;
+
+export const SmsMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Sms),
+  provider: Type.Optional(Type.Enum(SmsProviderType)),
+});
+
+export type SmsMessageTemplateTestRequest = Static<
+  typeof SmsMessageTemplateTestRequest
+>;
+
+export const MobilePushMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.MobilePush),
+  provider: Type.Optional(Type.Enum(MobilePushProviderType)),
+});
+
+export type MobilePushMessageTemplateTestRequest = Static<
+  typeof MobilePushMessageTemplateTestRequest
+>;
+
+export const WebhookMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Webhook),
+  provider: Type.Optional(Type.Null()),
+});
+
+export type WebhookMessageTemplateTestRequest = Static<
+  typeof WebhookMessageTemplateTestRequest
+>;
+
 export const MessageTemplateTestRequest = Type.Union([
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Email),
-    provider: Type.Optional(Type.Enum(EmailProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Sms),
-    provider: Type.Optional(Type.Enum(SmsProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.MobilePush),
-    provider: Type.Optional(Type.Enum(MobilePushProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Webhook),
-  }),
+  EmailMessageTemplateTestRequest,
+  SmsMessageTemplateTestRequest,
+  MobilePushMessageTemplateTestRequest,
+  WebhookMessageTemplateTestRequest,
 ]);
 
 export type MessageTemplateTestRequest = Static<
@@ -4642,6 +4667,7 @@ export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
 
 export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
+  Broadcast: "Broadcast",
 } as const;
 
 export const DeliveriesAllowedColumnEnum = {
@@ -4691,8 +4717,15 @@ export type DeliveriesTableConfiguration = Static<
   typeof DeliveriesTableConfiguration
 >;
 
+export const BroadcastConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.Broadcast),
+});
+
+export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;
+
 export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
+  BroadcastConfiguration,
 ]);
 
 export type ComponentConfigurationDefinition = Static<
@@ -5132,23 +5165,31 @@ export type TriggerRecomputeRequest = Static<typeof TriggerRecomputeRequest>;
 export const IdOrName = Type.Union([
   Type.Object({
     id: Type.String(),
+    name: Type.Optional(Type.String()),
   }),
   Type.Object({
     name: Type.String(),
+    id: Type.Optional(Type.String()),
   }),
 ]);
 
+export type IdOrName = Static<typeof IdOrName>;
+
+export const BaseUpsertBroadcastV2Request = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: NullableAndOptional(Type.String()),
+  messageTemplateId: NullableAndOptional(Type.String()),
+  subscriptionGroupId: NullableAndOptional(Type.String()),
+  config: Type.Optional(BroadcastV2Config),
+  scheduledAt: NullableAndOptional(Type.String()),
+});
+
+export type BaseUpsertBroadcastV2Request = Static<
+  typeof BaseUpsertBroadcastV2Request
+>;
+
 export const UpsertBroadcastV2Request = Type.Intersect([
-  Type.Object({
-    workspaceId: Type.String(),
-    id: Type.Optional(Type.String()),
-    name: Type.Optional(Type.String()),
-    segmentId: NullableAndOptional(Type.String()),
-    messageTemplateId: NullableAndOptional(Type.String()),
-    subscriptionGroupId: NullableAndOptional(Type.String()),
-    config: Type.Optional(BroadcastV2Config),
-    scheduledAt: NullableAndOptional(Type.String()),
-  }),
+  BaseUpsertBroadcastV2Request,
   IdOrName,
 ]);
 

@@ -9,16 +9,19 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 // Context type for mutation rollback
 interface MutationContext {
   previousBroadcastData: BroadcastResourceAllVersions | null | undefined;
 }
 
-// Mutation hook for updating broadcasts
+// Mutation hook for upserting broadcasts
 export function useBroadcastMutation(broadcastId: string) {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     updateData: Partial<Omit<UpsertBroadcastV2Request, "workspaceId" | "id">>,
@@ -34,8 +37,9 @@ export function useBroadcastMutation(broadcastId: string) {
     };
 
     const response = await axios.put<BroadcastResourceV2>(
-      `${apiBase}/api/broadcasts/v2`,
+      `${baseApiUrl}/broadcasts/v2`,
       requestData,
+      { headers: authHeaders },
     );
     return response.data;
   };
@@ -100,8 +104,8 @@ export function useBroadcastMutation(broadcastId: string) {
       // Return context object with the snapshotted value
       return { previousBroadcastData };
     },
-    onError: (err, variables, context) => {
-      console.error("Mutation failed:", err);
+    onError: (_err, _variables, context) => {
+      // console.error("Mutation failed:", err);
       // Rollback cache using the value from onMutate context
       if (
         context?.previousBroadcastData !== undefined &&
@@ -116,9 +120,9 @@ export function useBroadcastMutation(broadcastId: string) {
     // Always refetch after error or success to ensure consistency
     onSettled: () => {
       if (workspace.type !== CompletionStatus.Successful) {
-        console.warn(
-          "Workspace not available, skipping query invalidation on settle.",
-        );
+        // console.warn(
+        //   "Workspace not available, skipping query invalidation on settle.",
+        // );
         return;
       }
       const workspaceId = workspace.value.id;

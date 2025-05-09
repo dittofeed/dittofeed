@@ -48,6 +48,7 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
+import axios from "axios";
 import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { isInternalBroadcastTemplate } from "isomorphic-lib/src/broadcasts";
@@ -78,6 +79,7 @@ import { Updater, useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
 import { useAppStorePick } from "../lib/appStore";
+import { useAuthHeaders, useBaseApiUrl } from "../lib/authModeProvider";
 import { toCalendarDate } from "../lib/dates";
 import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
 import { useResourcesQuery } from "../lib/useResourcesQuery";
@@ -91,11 +93,7 @@ import {
   SelectedDeliveriesFilters,
   useDeliveriesFilterState,
 } from "./deliveries/deliveriesFilter";
-import {
-  defaultGetDeliveriesRequest,
-  GetDeliveriesRequest,
-  humanizeStatus,
-} from "./deliveriesTable";
+import { humanizeStatus } from "./deliveriesTable";
 import EmailPreviewHeader from "./emailPreviewHeader";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
@@ -572,7 +570,6 @@ export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
 };
 
 interface DeliveriesTableV2Props {
-  getDeliveriesRequest?: GetDeliveriesRequest;
   templateUriTemplate?: string;
   broadcastUriTemplate?: string;
   originUriTemplate?: string;
@@ -645,7 +642,6 @@ function userIdCellFactory() {
 }
 
 export function DeliveriesTableV2({
-  getDeliveriesRequest = defaultGetDeliveriesRequest,
   templateUriTemplate,
   originUriTemplate,
   userId,
@@ -658,7 +654,9 @@ export function DeliveriesTableV2({
   reloadPeriodMs = 30000,
   broadcastUriTemplate,
 }: DeliveriesTableV2Props) {
-  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const baseApiUrl = useBaseApiUrl();
+  const authHeaders = useAuthHeaders();
   const { data: resources } = useResourcesQuery({
     journeys: true,
     messageTemplates: true,
@@ -723,7 +721,6 @@ export function DeliveriesTableV2({
       journeyId,
       triggeringProperties,
       workspace,
-      apiBase,
     ],
     queryFn: async () => {
       if (workspace.type !== CompletionStatus.Successful) {
@@ -757,9 +754,9 @@ export function DeliveriesTableV2({
         journeyId,
         broadcastId,
       };
-      const response = await getDeliveriesRequest({
+      const response = await axios.get(`${baseApiUrl}/deliveries`, {
         params,
-        apiBase,
+        headers: authHeaders,
       });
       const result = unwrap(
         schemaValidateWithErr(response.data, SearchDeliveriesResponse),

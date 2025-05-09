@@ -26,6 +26,7 @@ import { type Logger as PinoLogger } from "pino";
 import { Overwrite } from "utility-types";
 
 import {
+  adminApiKey as dbAdminApiKey,
   broadcast as dbBroadcast,
   componentConfiguration as dbComponentConfiguration,
   computedPropertyPeriod as dbComputedPropertyPeriod,
@@ -91,6 +92,8 @@ export type SmsProvider = InferSelectModel<typeof dbSmsProvider>;
 export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
 
 export type Secret = InferSelectModel<typeof dbSecret>;
+
+export type AdminApiKey = InferSelectModel<typeof dbAdminApiKey>;
 
 export type WriteKey = InferSelectModel<typeof dbWriteKey>;
 

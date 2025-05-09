@@ -8,6 +8,7 @@ import axios, { AxiosError } from "axios";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery"; // Assuming SEGMENTS_QUERY_KEY is exported from here
 
 export interface DeleteSegmentRequest {
@@ -25,7 +26,9 @@ export function useDeleteSegmentMutation(
   >,
 ): UseMutationResult<void, AxiosError, string> {
   const queryClient = useQueryClient();
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn: DeleteSegmentMutationFn = async (segmentId) => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -33,13 +36,14 @@ export function useDeleteSegmentMutation(
     }
     const workspaceId = workspace.value.id;
 
-    await axios.delete(`${apiBase}/api/segments`, {
+    await axios.delete(`${baseApiUrl}/segments`, {
       data: {
         workspaceId,
         segmentId,
       } satisfies DeleteSegmentRequest, // Assuming DELETE endpoint accepts body
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders,
       },
     });
   };

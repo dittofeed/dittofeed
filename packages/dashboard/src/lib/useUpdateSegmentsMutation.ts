@@ -15,6 +15,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
 
 export type UpdateSegmentMutationParams = Omit<
@@ -42,7 +43,9 @@ export function useUpdateSegmentsMutation(
   UpdateSegmentMutationParams
 > {
   const queryClient = useQueryClient();
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn: UpdateSegmentMutationFn = async (data) => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -51,7 +54,7 @@ export function useUpdateSegmentsMutation(
     const workspaceId = workspace.value.id;
 
     const response = await axios.put(
-      `${apiBase}/api/segments`,
+      `${baseApiUrl}/segments`,
       {
         ...data,
         workspaceId,
@@ -59,6 +62,7 @@ export function useUpdateSegmentsMutation(
       {
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders,
         },
       },
     );

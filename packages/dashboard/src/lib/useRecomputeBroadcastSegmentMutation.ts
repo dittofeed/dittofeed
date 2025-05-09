@@ -12,6 +12,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 export const RECOMPUTE_BROADCAST_SEGMENT_MUTATION_KEY = [
   "recomputeBroadcastSegment",
@@ -25,7 +26,9 @@ export function useRecomputeBroadcastSegmentMutation(
   >,
 ) {
   const queryClient = useQueryClient();
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     params: Omit<RecomputeBroadcastSegmentRequest, "workspaceId">,
@@ -36,11 +39,12 @@ export function useRecomputeBroadcastSegmentMutation(
 
     const { id: workspaceId } = workspace.value;
     const response = await axios.put(
-      `${apiBase}/api/broadcasts/recompute-segment`,
+      `${baseApiUrl}/broadcasts/recompute-segment`,
       {
         ...params,
         workspaceId,
       },
+      { headers: authHeaders },
     );
 
     schemaValidate(response.data, EmptyResponse);
