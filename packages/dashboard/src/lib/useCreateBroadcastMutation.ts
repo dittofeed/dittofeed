@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
-  BroadcastResourceAllVersions,
   BroadcastResourceV2,
   CompletionStatus,
   GetBroadcastsResponse,
@@ -55,16 +54,14 @@ export function useCreateBroadcastMutation() {
 
         // Add the newly created broadcast to the cache for its specific query key
         // GetBroadcastsResponse is BroadcastResourceAllVersions[]
-        queryClient.setQueryData<GetBroadcastsResponse>(queryKey, [
-          data as BroadcastResourceAllVersions,
-        ]);
+        queryClient.setQueryData<GetBroadcastsResponse>(queryKey, [data]);
       }
     },
     onError: (error) => {
       console.error("Create broadcast mutation failed:", error);
       // TODO: Add user-facing error feedback (e.g., snackbar)
     },
-    onSettled: (data, error) => {
+    onSettled: (data) => {
       // data is BroadcastResourceV2 | undefined (if successful)
       // error is Error | null (if failed)
       if (workspace.type !== CompletionStatus.Successful) {

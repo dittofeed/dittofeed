@@ -80,7 +80,7 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
           archived: payload.archived,
         };
         // Return as an array, consistent with GetBroadcastsResponse
-        return [updatedBroadcast] as GetBroadcastsResponse;
+        return [updatedBroadcast];
       });
 
       // Return context object with the snapshotted value
