@@ -48,12 +48,10 @@ import {
   ChannelType,
   CompletionStatus,
   EmailProviderType,
-  EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
   MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
-  MessageTemplateTestResponse,
   MobilePushProviderType,
   RenderMessageTemplateRequest,
   RenderMessageTemplateRequestContents,
@@ -364,16 +362,12 @@ export default function TemplateEditor({
   const router = useRouter();
   const { data: userPropertiesResult } = useUserPropertiesQuery();
   const {
-    apiBase,
     workspace: workspaceResult,
-    upsertTemplate,
     viewDraft,
     inTransition,
     setViewDraft,
   } = useAppStorePick([
-    "apiBase",
     "workspace",
-    "upsertTemplate",
     "viewDraft",
     "setViewDraft",
     "inTransition",
@@ -449,27 +443,18 @@ export default function TemplateEditor({
       draft.userProperties = initialUserProperties;
       draft.userPropertiesJSON = JSON.stringify(initialUserProperties, null, 2);
     });
-  }, [
-    initialUserProperties,
-    setState,
-    inTransition,
-    template,
-    viewDraft,
-    editedTemplate,
-  ]);
+  }, [initialUserProperties, setState, inTransition]);
 
   useEffect(() => {
     setState((draft) => {
       if (!template?.definition) {
         return;
       }
-      // initialize editedTemplate from store if not set
       if (!draft.editedTemplate) {
         draft.editedTemplate = {
           title: template.name,
           draft: template.draft,
         };
-        // handling reverts, otherwise don't overwrite draft
       } else if (!template.draft) {
         draft.editedTemplate.draft = undefined;
       }
@@ -535,12 +520,10 @@ export default function TemplateEditor({
     editedTemplate,
     viewDraft,
     errors.size,
-    workspace,
-    upsertTemplate,
-    apiBase,
-    setState,
     isUpdating,
     setViewDraft,
+    updateTemplate,
+    templateId,
   ]);
 
   const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
@@ -572,7 +555,13 @@ export default function TemplateEditor({
       updateData.definition = definitionFromDraft;
     }
 
-    updateTemplate(updateData);
+    if (
+      updateData.draft !== undefined ||
+      updateData.definition !== undefined ||
+      debouncedTitle !== template?.name
+    ) {
+      updateTemplate(updateData);
+    }
   }, [debouncedDraft, debouncedTitle]);
 
   const [debouncedUserProperties] = useDebounce(state.userProperties, 300);
@@ -581,7 +570,6 @@ export default function TemplateEditor({
     if (debouncedDraft) {
       return debouncedDraft;
     }
-    // important for rendering draft on first render if present
     if (template?.draft) {
       return template.draft;
     }
@@ -591,13 +579,12 @@ export default function TemplateEditor({
     return messageTemplateDefinitionToDraft(template.definition);
   }, [debouncedDraft, template?.draft, template?.definition]);
 
-  // useEffect for rendering template preview using the new hook
   const renderHookParams: Omit<
     RenderMessageTemplateRequest,
     "workspaceId"
   > | null = useMemo(() => {
     if (
-      !workspace || // workspace might be null initially
+      !workspace ||
       inTransition ||
       !draftToRender ||
       Object.keys(debouncedUserProperties).length === 0
@@ -610,7 +597,7 @@ export default function TemplateEditor({
       tags: buildTags({
         workspaceId: workspace.id,
         templateId,
-        userId: debouncedUserProperties.id as string | undefined,
+        userId: debouncedUserProperties.id,
       }),
       contents: draftToPreview(draftToRender),
     };
@@ -625,7 +612,6 @@ export default function TemplateEditor({
   ]);
 
   const renderQuery = useRenderTemplateQuery(renderHookParams, {
-    // Query is enabled if params are not null (meaning all conditions are met)
     enabled: !!renderHookParams,
   });
 
@@ -636,14 +622,13 @@ export default function TemplateEditor({
         autoHideDuration: 3000,
         anchorOrigin: noticeAnchorOrigin,
       });
-      // Potentially set an error state if needed elsewhere in the UI
       return;
     }
 
     if (renderQuery.data) {
       const { contents } = renderQuery.data;
       const newRendered: Record<string, string> = {};
-      const newErrors = new Map(errors); // Use existing errors to manage snackbars correctly
+      const newErrors = new Map(errors);
 
       for (const contentKey in contents) {
         const content = contents[contentKey];
@@ -664,7 +649,6 @@ export default function TemplateEditor({
           if (existingErr && existingErr !== message) {
             closeSnackbar(errorHash(contentKey, existingErr));
           }
-          // Only enqueue if it's a new message or different from existing
           if (existingErr !== message) {
             enqueueSnackbar(message, {
               variant: "error",
@@ -767,7 +751,6 @@ export default function TemplateEditor({
           if (stateDraft.editedTemplate?.draft) {
             currentDefinition = stateDraft.editedTemplate.draft;
           } else if (template.definition) {
-            // Read only object can't be passed into setter, so need to clone.
             currentDefinition = messageTemplateDefinitionToDraft({
               ...template.definition,
             });
@@ -808,7 +791,7 @@ export default function TemplateEditor({
         },
       },
     ];
-  }, []);
+  }, [template?.definition]);
 
   if (!workspace || !template || !renderEditorParams) {
     return null;
@@ -823,7 +806,7 @@ export default function TemplateEditor({
     tags: buildTags({
       workspaceId: workspace.id,
       templateId,
-      userId: debouncedUserProperties.id as string | undefined,
+      userId: debouncedUserProperties.id,
     }),
   };
   let submitTestDataVariables: TestTemplateVariables;
@@ -857,7 +840,6 @@ export default function TemplateEditor({
       break;
     default:
       assertUnreachable(state);
-      submitTestDataVariables = {} as TestTemplateVariables; // Should not be reached
   }
 
   let testModalContents: React.ReactNode = null;
@@ -911,6 +893,7 @@ export default function TemplateEditor({
             Failed to send test message. Suggestions:
           </Alert>
           {testResponseData.err.suggestions.map((suggestion, i) => (
+            // eslint-disable-next-line react/no-array-index-key
             <Alert key={i} severity="warning">
               {suggestion}
             </Alert>
@@ -937,7 +920,6 @@ export default function TemplateEditor({
       );
     }
   } else if (testTemplateMutation.isError && testTemplateMutation.error) {
-    // Generic error display if mutation fails before backend responds with structured error
     testModalContents = (
       <Alert severity="error">
         API Error: Failed to attempt test message.{" "}
@@ -945,7 +927,6 @@ export default function TemplateEditor({
       </Alert>
     );
   } else {
-    // Form for sending test message (when modal is opened initially or after reset)
     let to: string | null = null;
     if (channel === ChannelType.Webhook) {
       if (draftToRender?.type === ChannelType.Webhook) {
@@ -956,7 +937,7 @@ export default function TemplateEditor({
       }
     } else {
       const identiferKey = CHANNEL_IDENTIFIERS[channel];
-      to = (debouncedUserProperties[identiferKey] as string | null) ?? null;
+      to = debouncedUserProperties[identiferKey] ?? null;
     }
     let providerAutocomplete: React.ReactNode;
     switch (state.channel) {
@@ -969,7 +950,7 @@ export default function TemplateEditor({
             }));
           providerAutocomplete = (
             <ProviderOverrideSelector<EmailProviderType>
-              value={state.providerOverride} // Assuming state.providerOverride is still correct for Email
+              value={state.providerOverride}
               options={providerOptions}
               onChange={(value) => {
                 setState((draft) => {
@@ -991,7 +972,7 @@ export default function TemplateEditor({
 
           providerAutocomplete = (
             <ProviderOverrideSelector<SmsProviderType>
-              value={state.providerOverride as SmsProviderType | null} // Cast if state.providerOverride is union
+              value={state.providerOverride}
               options={providerOptions}
               onChange={(value) => {
                 setState((draft) => {
@@ -1014,7 +995,7 @@ export default function TemplateEditor({
           }));
           providerAutocomplete = (
             <ProviderOverrideSelector<MobilePushProviderType>
-              value={state.providerOverride as MobilePushProviderType | null} // Cast if state.providerOverride is union
+              value={state.providerOverride}
               options={providerOptions}
               onChange={(value) => {
                 setState((draft) => {
@@ -1241,22 +1222,39 @@ export default function TemplateEditor({
       <LoadingModal
         isMinimised={isUserPropertiesMinimised}
         openTitle="Send Test Message"
-        isSubmitting={testTemplateMutation.isPending}
+        loading={testTemplateMutation.isPending}
         onSubmit={() => {
           testTemplateMutation.mutate(submitTestDataVariables, {
-            // onSuccess and onError can be handled here for snackbars if needed,
-            // or rely on the modal content changing based on mutation.data/error
-            // For now, modal content will update based on hook state.
-            // onSuccess: (data) => setState(draft => { draft.testResponse = data; draft.testRequest = {type: CompletionStatus.Successful}}),
-            // onError: (err) => setState(draft => { draft.testRequest = {type: CompletionStatus.Failed, error: err as Error}}),
+            onSuccess: (data) => {
+              if (data.type === JsonResultType.Ok) {
+                if (data.value.type === InternalEventType.MessageSent) {
+                  enqueueSnackbar(
+                    `Test message sent successfully to ${data.value.variant.to}.`,
+                    { variant: "success", anchorOrigin },
+                  );
+                } else {
+                  enqueueSnackbar(
+                    "Test message processed (e.g., skipped). See modal for details.",
+                    { variant: "info", anchorOrigin },
+                  );
+                }
+              } else {
+                enqueueSnackbar(
+                  "Failed to send test message. See modal for details.",
+                  { variant: "error", anchorOrigin },
+                );
+              }
+            },
+            onError: (error) => {
+              enqueueSnackbar(`API Error sending test: ${error.message}`, {
+                variant: "error",
+                anchorOrigin,
+              });
+            },
           });
         }}
         onClose={() => {
-          testTemplateMutation.reset(); // Reset mutation state on close
-          // setState((draft) => { // Consider if local state reset for form is needed
-          //   draft.testResponse = null;
-          //   draft.testRequest = { type: CompletionStatus.NotStarted };
-          // });
+          testTemplateMutation.reset();
         }}
       >
         {testModalContents}

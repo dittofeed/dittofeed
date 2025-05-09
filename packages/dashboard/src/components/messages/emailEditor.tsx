@@ -33,9 +33,7 @@ import EmailPreviewHeader from "../emailPreviewHeader";
 import TemplateEditor, {
   DraftToPreview,
   RenderEditorParams,
-  RenderTemplateRequest,
   TemplateEditorMode,
-  TestTemplateRequest,
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
