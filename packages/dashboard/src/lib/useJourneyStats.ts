@@ -55,12 +55,5 @@ export function useJourneyStats(
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    args.workspaceId,
-    args.journeyIds,
-    args.setJourneyStatsRequest,
-    args.upsertJourneyStats,
-    authHeaders,
-    baseApiUrl,
-  ]);
+  }, []);
 }
