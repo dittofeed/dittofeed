@@ -3935,6 +3935,7 @@ export const MessageTemplateTestRequest = Type.Union([
   Type.Object({
     ...BaseMessageTemplateTestRequest,
     channel: Type.Literal(ChannelType.Webhook),
+    provider: Type.Optional(Type.Null()),
   }),
 ]);
 
