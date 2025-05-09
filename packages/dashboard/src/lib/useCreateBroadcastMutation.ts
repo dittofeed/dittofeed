@@ -8,6 +8,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 // Type for the variables passed to the mutation function when creating a broadcast
 type CreateBroadcastVariables = { name: string } & Partial<
@@ -15,8 +16,10 @@ type CreateBroadcastVariables = { name: string } & Partial<
 >;
 
 export function useCreateBroadcastMutation() {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     createData: CreateBroadcastVariables,
@@ -33,8 +36,9 @@ export function useCreateBroadcastMutation() {
     };
 
     const response = await axios.put<BroadcastResourceV2>(
-      `${apiBase}/api/broadcasts/v2`,
+      `${baseApiUrl}/broadcasts/v2`,
       requestData,
+      { headers: authHeaders },
     );
     return response.data;
   };
@@ -57,17 +61,17 @@ export function useCreateBroadcastMutation() {
         queryClient.setQueryData<GetBroadcastsResponse>(queryKey, [data]);
       }
     },
-    onError: (error) => {
-      console.error("Create broadcast mutation failed:", error);
+    onError: (_error) => {
+      // console.error("Create broadcast mutation failed:", error);
       // TODO: Add user-facing error feedback (e.g., snackbar)
     },
     onSettled: (data) => {
       // data is BroadcastResourceV2 | undefined (if successful)
       // error is Error | null (if failed)
       if (workspace.type !== CompletionStatus.Successful) {
-        console.warn(
-          "Workspace not available, skipping query invalidation on settle for create broadcast.",
-        );
+        // console.warn(
+        //   "Workspace not available, skipping query invalidation on settle for create broadcast.",
+        // );
         return;
       }
       const workspaceId = workspace.value.id;

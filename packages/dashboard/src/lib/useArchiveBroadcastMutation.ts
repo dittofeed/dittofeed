@@ -9,6 +9,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 // Context type for mutation rollback
 interface ArchiveMutationContext {
@@ -21,8 +22,10 @@ interface ArchiveBroadcastPayload {
 }
 
 export function useArchiveBroadcastMutation(broadcastId: string) {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (payload: ArchiveBroadcastPayload) => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -37,8 +40,9 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
 
     // API endpoint for archiving broadcasts
     const response = await axios.put<BroadcastResourceV2>(
-      `${apiBase}/api/broadcasts/archive`,
+      `${baseApiUrl}/broadcasts/archive`,
       requestData,
+      { headers: authHeaders },
     );
     return response.data;
   };
@@ -102,9 +106,9 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
     // Always refetch after error or success to ensure consistency
     onSettled: () => {
       if (workspace.type !== CompletionStatus.Successful) {
-        console.warn(
-          "Workspace not available, skipping query invalidation on settle.",
-        );
+        // console.warn(
+        //   "Workspace not available, skipping query invalidation on settle.",
+        // );
         return;
       }
       const workspaceId = workspace.value.id;
