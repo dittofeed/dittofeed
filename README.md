@@ -15,12 +15,12 @@
   <a href="https://app.dittofeed.com/dashboard">Start Cloud Trial</a> | <a href="https://docs.dittofeed.com/introduction">Docs</a> | <a href="https://discord.gg/HajPkCG4Mm">Discord</a> | <a href="https://docs.dittofeed.com/contributing/running-locally">Contributing</a>
 </p>
 
-[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, WhatsApp, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
+[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Send broadcasts or create automated user journeys to message users along any channel: email, mobile push notifications, SMS, WhatsApp, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
 
 - 1️⃣ Connect user data via Segment, Reverse ETL, or the Dittofeed API ⛓️
 - 2️⃣ Create highly customizable user segments with multiple operators 🧍🏽‍♀️🧍🏻‍♂️🧍🏾
 - 3️⃣ Design messaging templates using HTML/MJML, or our low-code editor 👨🏻‍🎨
-- 4️⃣ Automate user journeys with a powerful, easy-to-use GUI interface 🛩️
+- 4️⃣ Send one-off broadcasts or automated event-based journeys with an easy-to-use GUI interface 🛩️
 - 5️⃣ Integrate with major ESPs like Sendgrid and Amazon SES 🏰
 - 6️⃣ Track and analyze message performance from the dashboard 🎯
 - 7️⃣ Embed any combination of our tools in your own app via iframe or headless react component!* 🤩
