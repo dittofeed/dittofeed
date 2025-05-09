@@ -12,6 +12,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { BROADCASTS_QUERY_KEY } from "./useBroadcastsQuery";
 
 export const START_BROADCAST_MUTATION_KEY = ["startBroadcast"];
@@ -23,8 +24,10 @@ export function useStartBroadcastMutation(
     Omit<StartBroadcastRequest, "workspaceId">
   >,
 ) {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     params: Omit<StartBroadcastRequest, "workspaceId">,
@@ -34,10 +37,14 @@ export function useStartBroadcastMutation(
     }
 
     const { id: workspaceId } = workspace.value;
-    const response = await axios.post(`${apiBase}/api/broadcasts/start`, {
-      ...params,
-      workspaceId,
-    });
+    const response = await axios.post(
+      `${baseApiUrl}/broadcasts/start`,
+      {
+        ...params,
+        workspaceId,
+      },
+      { headers: authHeaders },
+    );
 
     const validatedResponse = schemaValidate(
       response.data,

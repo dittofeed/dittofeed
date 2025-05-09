@@ -7,9 +7,9 @@ import axios, { AxiosError } from "axios";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 // Define parameters if needed, for now, none seem required for the mutation call itself
-// as workspaceId is retrieved from the store.
 // type DownloadSegmentsParams = Record<string, never>;
 
 // The mutation function doesn't return anything specific on success other than triggering download
@@ -21,7 +21,9 @@ export function useDownloadSegmentsMutation(
     "mutationFn"
   >,
 ): UseMutationResult<void, AxiosError, void> {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn: DownloadSegmentsMutationFn = async () => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -29,10 +31,11 @@ export function useDownloadSegmentsMutation(
     }
     const workspaceId = workspace.value.id;
 
-    const response = await axios.get(`${apiBase}/api/segments/download`, {
+    const response = await axios.get(`${baseApiUrl}/segments/download`, {
       params: {
         workspaceId,
       },
+      headers: authHeaders,
       responseType: "blob", // Important for file downloads
     });
 

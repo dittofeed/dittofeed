@@ -12,6 +12,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { COMPUTED_PROPERTY_PERIODS_QUERY_KEY } from "./useComputedPropertyPeriodsQuery";
 
 export const TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY = [
@@ -25,8 +26,10 @@ export function useTriggerRecomputePropertiesMutation(
     Omit<TriggerRecomputeRequest, "workspaceId">
   >,
 ) {
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
     params: Omit<TriggerRecomputeRequest, "workspaceId">,
@@ -37,11 +40,12 @@ export function useTriggerRecomputePropertiesMutation(
 
     const { id: workspaceId } = workspace.value;
     const response = await axios.post(
-      `${apiBase}/api/computed-properties/trigger-recompute`,
+      `${baseApiUrl}/computed-properties/trigger-recompute`,
       {
         ...params,
         workspaceId,
       },
+      { headers: authHeaders },
     );
 
     schemaValidate(response.data, EmptyResponse);
