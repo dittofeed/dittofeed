@@ -192,10 +192,11 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
 function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   const name = getValue<string>();
   const broadcastId = row.original.id;
+  const universalRouter = useUniversalRouter();
 
   const isV2 = "version" in row.original && row.original.version === "V2";
   const href = isV2
-    ? `/broadcasts/v2?id=${broadcastId}`
+    ? universalRouter.mapUrl(`/broadcasts/v2`, { id: broadcastId })
     : `/broadcasts/${broadcastId}`;
 
   return (

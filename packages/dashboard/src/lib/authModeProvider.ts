@@ -1,4 +1,5 @@
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import qs from "qs";
 import { createContext, useContext, useMemo } from "react";
@@ -60,28 +61,43 @@ export function useAuthHeaders(): Record<string, string> {
 
 interface UniversalRouter {
   push: (path: string, query?: Record<string, string>) => void;
+  mapUrl: (path: string, query?: Record<string, string>) => string;
 }
 
 export function useUniversalRouter() {
+  const { workspace } = useAppStorePick(["workspace"]);
   const authContext = useContext(AuthContext);
   const router = useRouter();
   const universalRouter: UniversalRouter = useMemo(() => {
     let push: UniversalRouter["push"];
+    let mapUrl: UniversalRouter["mapUrl"];
+    const workspaceId =
+      workspace.type === CompletionStatus.Successful
+        ? workspace.value.id
+        : undefined;
     switch (authContext.type) {
       case AuthModeTypeEnum.Embedded:
+        mapUrl = (path: string, query?: Record<string, string>) => {
+          const fullPath = `/embedded${path}`;
+          const fullQuery = { token: authContext.token, workspaceId, ...query };
+          return `${fullPath}?${qs.stringify(fullQuery)}`;
+        };
         push = (path: string, query?: Record<string, string>) => {
           const fullPath = `/embedded${path}`;
-          router.push({ pathname: fullPath, query });
+          const fullQuery = { token: authContext.token, workspaceId, ...query };
+          router.push({ pathname: fullPath, query: fullQuery });
         };
         break;
       case AuthModeTypeEnum.Base:
+        mapUrl = (path: string, query?: Record<string, string>) =>
+          `${path}?${qs.stringify(query)}`;
         push = (path: string, query?: Record<string, string>) =>
           router.push({ pathname: path, query });
         break;
       default:
         assertUnreachable(authContext);
     }
-    return { push };
+    return { push, mapUrl };
   }, [authContext, router]);
   return universalRouter;
 }
