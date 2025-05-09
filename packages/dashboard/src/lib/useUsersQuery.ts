@@ -32,7 +32,7 @@ export type UseUsersQueryOptions = Omit<
 export function useUsersQuery(
   params?: Omit<GetUsersRequest, "workspaceId">,
   options?: UseUsersQueryOptions,
-): UseQueryResult<GetUsersResponse, Error> {
+): UseQueryResult<GetUsersResponse> {
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();

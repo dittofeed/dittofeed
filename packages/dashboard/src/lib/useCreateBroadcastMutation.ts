@@ -24,8 +24,7 @@ type CreateBroadcastHookOptions = Omit<
   UseMutationOptions<
     BroadcastResourceV2,
     Error,
-    CreateBroadcastVariables,
-    unknown // TContext for create mutation
+    CreateBroadcastVariables // TContext for create mutation
   >,
   "mutationFn"
 >;
@@ -70,8 +69,7 @@ export function useCreateBroadcastMutation(
   return useMutation<
     BroadcastResourceV2, // TData (data returned by mutationFn)
     Error, // TError
-    CreateBroadcastVariables, // TVariables (data passed to mutationFn)
-    unknown // TContext (not using context here)
+    CreateBroadcastVariables // TContext (not using context here)
   >({
     mutationFn,
     onSuccess: (data, variables, context) => {

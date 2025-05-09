@@ -39,7 +39,7 @@ export type UseUsersCountQueryOptions = Omit<
 export function useUsersCountQuery(
   params?: UsersCountQueryParams,
   options?: UseUsersCountQueryOptions,
-): UseQueryResult<number, Error> {
+): UseQueryResult<number> {
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();

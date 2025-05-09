@@ -12,8 +12,8 @@ import {
   GetMessageTemplatesResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 /**
  * Custom hook for fetching message templates using the GET /api/templates endpoint

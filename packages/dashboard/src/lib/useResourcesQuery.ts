@@ -8,8 +8,8 @@ import {
   GetResourcesResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 /**
  * Custom hook for fetching resources using the GET /api/resources endpoint

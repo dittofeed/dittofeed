@@ -12,8 +12,8 @@ import {
   GetComputedPropertyPeriodsResponse,
 } from "isomorphic-lib/src/types";
 
-import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
 export const COMPUTED_PROPERTY_PERIODS_QUERY_KEY = "computed-property-periods";
 

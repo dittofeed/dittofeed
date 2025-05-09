@@ -40,7 +40,7 @@ export function useRenderTemplateQuery(
   // workspaceId will be sourced from the store
   params: Omit<RenderMessageTemplateRequest, "workspaceId"> | null,
   options?: UseRenderTemplateQueryOptions,
-): UseQueryResult<RenderMessageTemplateResponse, Error> {
+): UseQueryResult<RenderMessageTemplateResponse> {
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
