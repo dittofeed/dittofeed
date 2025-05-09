@@ -380,9 +380,7 @@ export default function EmailEditor({
   disabled?: boolean;
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
-  renderTemplateRequest?: RenderTemplateRequest;
   defaultIsUserPropertiesMinimised?: boolean;
-  testTemplateRequest?: TestTemplateRequest;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
