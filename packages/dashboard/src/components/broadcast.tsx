@@ -111,7 +111,7 @@ export default function Broadcast({
   }, [state?.step, queryHash]);
 
   useEffect(() => {
-    router.push({ query: newQuery });
+    router.push({ query: newQuery }, undefined, { shallow: true });
   }, [newQuery]);
 
   const updateStateWithoutNull: BroadcastStateUpdater = useCallback(
