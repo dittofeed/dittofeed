@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from "@tanstack/react-query";
 import axios from "axios";
 import {
   BroadcastResourceV2,
@@ -15,7 +19,20 @@ type CreateBroadcastVariables = { name: string } & Partial<
   Omit<UpsertBroadcastV2Request, "workspaceId" | "id">
 >;
 
-export function useCreateBroadcastMutation() {
+// Options for the custom hook, omitting mutationFn as it's handled internally
+type CreateBroadcastHookOptions = Omit<
+  UseMutationOptions<
+    BroadcastResourceV2,
+    Error,
+    CreateBroadcastVariables,
+    unknown // TContext for create mutation
+  >,
+  "mutationFn"
+>;
+
+export function useCreateBroadcastMutation(
+  hookOpts?: CreateBroadcastHookOptions,
+) {
   const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
   const authHeaders = useAuthHeaders();
@@ -43,6 +60,13 @@ export function useCreateBroadcastMutation() {
     return response.data;
   };
 
+  // Destructure user-provided callbacks and the rest of the options
+  const {
+    onSuccess: userOnSuccess,
+    onSettled: userOnSettled,
+    ...restHookOpts
+  } = hookOpts ?? {};
+
   return useMutation<
     BroadcastResourceV2, // TData (data returned by mutationFn)
     Error, // TError
@@ -50,33 +74,22 @@ export function useCreateBroadcastMutation() {
     unknown // TContext (not using context here)
   >({
     mutationFn,
-    onSuccess: (data) => {
-      // data is the BroadcastResourceV2 returned by the server
+    onSuccess: (data, variables, context) => {
+      // Internal onSuccess logic: add to cache
       if (workspace.type === CompletionStatus.Successful) {
         const workspaceId = workspace.value.id;
         const queryKey = ["broadcasts", { ids: [data.id], workspaceId }];
-
-        // Add the newly created broadcast to the cache for its specific query key
-        // GetBroadcastsResponse is BroadcastResourceAllVersions[]
         queryClient.setQueryData<GetBroadcastsResponse>(queryKey, [data]);
       }
+      // Call user-provided onSuccess
+      userOnSuccess?.(data, variables, context);
     },
-    onError: (_error) => {
-      // console.error("Create broadcast mutation failed:", error);
-      // TODO: Add user-facing error feedback (e.g., snackbar)
-    },
-    onSettled: (data) => {
-      // data is BroadcastResourceV2 | undefined (if successful)
-      // error is Error | null (if failed)
+    onSettled: (data, error, variables, context) => {
+      // Internal onSettled logic: invalidate queries
       if (workspace.type !== CompletionStatus.Successful) {
-        // console.warn(
-        //   "Workspace not available, skipping query invalidation on settle for create broadcast.",
-        // );
         return;
       }
       const workspaceId = workspace.value.id;
-
-      // If creation was successful, invalidate the specific query for the new broadcast
       if (data?.id) {
         const specificQueryKey = [
           "broadcasts",
@@ -84,11 +97,12 @@ export function useCreateBroadcastMutation() {
         ];
         queryClient.invalidateQueries({ queryKey: specificQueryKey });
       }
-
-      // Always invalidate the general list of broadcasts for the workspace
-      // This ensures any list displaying broadcasts will refetch and show the new one.
       const listQueryKey = ["broadcasts", { workspaceId }];
       queryClient.invalidateQueries({ queryKey: listQueryKey });
+
+      // Call user-provided onSettled
+      userOnSettled?.(data, error, variables, context);
     },
+    ...restHookOpts, // Spread the rest of the options
   });
 }

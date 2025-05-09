@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from "@tanstack/react-query";
 import axios from "axios";
 import {
   BroadcastResourceAllVersions,
@@ -21,7 +25,21 @@ interface ArchiveBroadcastPayload {
   archived: boolean;
 }
 
-export function useArchiveBroadcastMutation(broadcastId: string) {
+// Options for the custom hook
+type ArchiveBroadcastHookOptions = Omit<
+  UseMutationOptions<
+    BroadcastResourceV2,
+    Error,
+    ArchiveBroadcastPayload,
+    ArchiveMutationContext // TContext for archive mutation
+  >,
+  "mutationFn" | "onMutate"
+>;
+
+export function useArchiveBroadcastMutation(
+  broadcastId: string,
+  hookOpts?: ArchiveBroadcastHookOptions,
+) {
   const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
   const authHeaders = useAuthHeaders();
@@ -47,6 +65,13 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
     return response.data;
   };
 
+  // Destructure user-provided callbacks and the rest of the options
+  const {
+    onError: userOnError,
+    onSettled: userOnSettled,
+    ...restHookOpts
+  } = hookOpts ?? {};
+
   return useMutation<
     BroadcastResourceV2, // Type of data returned by mutationFn
     Error, // Type of error
@@ -55,44 +80,34 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
   >({
     mutationFn,
     onMutate: async (payload: ArchiveBroadcastPayload) => {
+      // Internal onMutate logic for optimistic update
       if (workspace.type !== CompletionStatus.Successful) {
-        return undefined; // Skip optimistic update if workspace isn't ready
+        return undefined;
       }
       const workspaceId = workspace.value.id;
-      // Query key for the specific broadcast, assuming it's fetched as an array
       const queryKey = ["broadcasts", { ids: [broadcastId], workspaceId }];
 
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot the previous value
       const previousBroadcastsResponse =
         queryClient.getQueryData<GetBroadcastsResponse>(queryKey);
 
-      // Optimistically update to the new value
       queryClient.setQueryData<GetBroadcastsResponse>(queryKey, (response) => {
         const oldData = response?.[0] ?? null;
         if (!oldData) {
-          // If the broadcast is not in cache, or response is not as expected,
-          // return the current response to avoid errors.
-          // This scenario should ideally not happen if we are archiving an existing broadcast.
           return response;
         }
-        // Create a new object with the updated 'archived' field
         const updatedBroadcast: BroadcastResourceAllVersions = {
           ...oldData,
           archived: payload.archived,
         };
-        // Return as an array, consistent with GetBroadcastsResponse
         return [updatedBroadcast];
       });
 
-      // Return context object with the snapshotted value
       return { previousBroadcastsResponse };
     },
-    onError: (err, variables, context) => {
-      console.error("Archive mutation failed:", err);
-      // Rollback cache using the value from onMutate context
+    onError: (error, variables, context) => {
+      // Internal onError logic: Rollback cache
       if (
         context?.previousBroadcastsResponse !== undefined &&
         workspace.type === CompletionStatus.Successful
@@ -101,27 +116,25 @@ export function useArchiveBroadcastMutation(broadcastId: string) {
         const queryKey = ["broadcasts", { ids: [broadcastId], workspaceId }];
         queryClient.setQueryData(queryKey, context.previousBroadcastsResponse);
       }
-      // TODO: Add user-facing error feedback (e.g., snackbar)
+      userOnError?.(error, variables, context);
     },
-    // Always refetch after error or success to ensure consistency
-    onSettled: () => {
+    onSettled: (data, error, variables, context) => {
+      // Internal onSettled logic: invalidate queries
       if (workspace.type !== CompletionStatus.Successful) {
-        // console.warn(
-        //   "Workspace not available, skipping query invalidation on settle.",
-        // );
         return;
       }
       const workspaceId = workspace.value.id;
-      // Invalidate the query for the specific broadcast
       const singleBroadcastQueryKey = [
         "broadcasts",
         { ids: [broadcastId], workspaceId },
       ];
       queryClient.invalidateQueries({ queryKey: singleBroadcastQueryKey });
 
-      // Also invalidate the general list of broadcasts, as archive status can affect it
       const allBroadcastsQueryKey = ["broadcasts", { workspaceId }];
       queryClient.invalidateQueries({ queryKey: allBroadcastsQueryKey });
+
+      userOnSettled?.(data, error, variables, context);
     },
+    ...restHookOpts,
   });
 }
