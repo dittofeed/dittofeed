@@ -8,15 +8,17 @@ import {
 } from "isomorphic-lib/src/types";
 import React from "react";
 
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { AppContents } from "./types";
 
 export function useJourneyStats(
-  args: Partial<JourneyStatsRequest> &
-    Pick<
-      AppContents,
-      "apiBase" | "upsertJourneyStats" | "setJourneyStatsRequest"
-    >,
+  args: Partial<Omit<JourneyStatsRequest, "workspaceId">> &
+    Pick<JourneyStatsRequest, "workspaceId"> &
+    Pick<AppContents, "upsertJourneyStats" | "setJourneyStatsRequest">,
 ) {
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
+
   React.useEffect(() => {
     (async () => {
       if (!args.workspaceId) {
@@ -30,8 +32,9 @@ export function useJourneyStats(
           workspaceId: args.workspaceId,
           journeyIds: args.journeyIds,
         };
-        const response = await axios.get(`${args.apiBase}/api/journeys/stats`, {
+        const response = await axios.get(`${baseApiUrl}/journeys/stats`, {
           params,
+          headers: authHeaders,
         });
         const value = unwrap(
           schemaValidateWithErr(response.data, JourneyStatsResponse),
@@ -52,5 +55,12 @@ export function useJourneyStats(
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    args.workspaceId,
+    args.journeyIds,
+    args.setJourneyStatsRequest,
+    args.upsertJourneyStats,
+    authHeaders,
+    baseApiUrl,
+  ]);
 }
