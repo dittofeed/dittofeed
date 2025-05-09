@@ -8,17 +8,22 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
+  EmailMessageTemplateTestRequest,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
+  MobilePushMessageTemplateTestRequest,
+  SmsMessageTemplateTestRequest,
+  WebhookMessageTemplateTestRequest,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
-export type TestTemplateVariables = Omit<
-  MessageTemplateTestRequest,
-  "workspaceId"
->;
+export type TestTemplateVariables =
+  | Omit<EmailMessageTemplateTestRequest, "workspaceId">
+  | Omit<SmsMessageTemplateTestRequest, "workspaceId">
+  | Omit<MobilePushMessageTemplateTestRequest, "workspaceId">
+  | Omit<WebhookMessageTemplateTestRequest, "workspaceId">;
 
 export type UseTestTemplateMutationOptions = Omit<
   UseMutationOptions<

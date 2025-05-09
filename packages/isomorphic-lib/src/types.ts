@@ -3916,27 +3916,51 @@ const BaseMessageTemplateTestRequest = {
   tags: Type.Optional(Type.Record(Type.String(), Type.String())),
 } as const;
 
+export const EmailMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Email),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type EmailMessageTemplateTestRequest = Static<
+  typeof EmailMessageTemplateTestRequest
+>;
+
+export const SmsMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Sms),
+  provider: Type.Optional(Type.Enum(SmsProviderType)),
+});
+
+export type SmsMessageTemplateTestRequest = Static<
+  typeof SmsMessageTemplateTestRequest
+>;
+
+export const MobilePushMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.MobilePush),
+  provider: Type.Optional(Type.Enum(MobilePushProviderType)),
+});
+
+export type MobilePushMessageTemplateTestRequest = Static<
+  typeof MobilePushMessageTemplateTestRequest
+>;
+
+export const WebhookMessageTemplateTestRequest = Type.Object({
+  ...BaseMessageTemplateTestRequest,
+  channel: Type.Literal(ChannelType.Webhook),
+  provider: Type.Optional(Type.Null()),
+});
+
+export type WebhookMessageTemplateTestRequest = Static<
+  typeof WebhookMessageTemplateTestRequest
+>;
+
 export const MessageTemplateTestRequest = Type.Union([
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Email),
-    provider: Type.Optional(Type.Enum(EmailProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Sms),
-    provider: Type.Optional(Type.Enum(SmsProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.MobilePush),
-    provider: Type.Optional(Type.Enum(MobilePushProviderType)),
-  }),
-  Type.Object({
-    ...BaseMessageTemplateTestRequest,
-    channel: Type.Literal(ChannelType.Webhook),
-    provider: Type.Optional(Type.Null()),
-  }),
+  EmailMessageTemplateTestRequest,
+  SmsMessageTemplateTestRequest,
+  MobilePushMessageTemplateTestRequest,
+  WebhookMessageTemplateTestRequest,
 ]);
 
 export type MessageTemplateTestRequest = Static<
