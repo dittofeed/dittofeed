@@ -43,7 +43,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CellContext,
   ColumnDef,
@@ -54,23 +54,20 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import axios from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
-  CompletionStatus,
-  UpdateBroadcastArchiveRequest,
-  UpsertBroadcastV2Request,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { useAppStorePick } from "../../lib/appStore";
 import { useUniversalRouter } from "../../lib/authModeProvider";
+import { useArchiveBroadcastMutation } from "../../lib/useArchiveBroadcastMutation";
 import { useBroadcastsQuery } from "../../lib/useBroadcastsQuery";
+import { useCreateBroadcastMutation } from "../../lib/useCreateBroadcastMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 
 // Use the union type for the table row data
@@ -105,12 +102,14 @@ function humanizeBroadcastStatus(status: string): string {
 }
 
 // Cell renderer for Actions column
-function ActionsCell({ row, table }: CellContext<Row, unknown>) {
+function ActionsCell({ row }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
+  const isArchived = !!row.original.archived;
+  const queryClient = useQueryClient();
 
-  // Access archive function from table meta
-  const archiveBroadcast = table.options.meta?.archiveBroadcast;
+  // Instantiate the hook directly in the cell component for the specific broadcast
+  const archiveMutation = useArchiveBroadcastMutation(rowId);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -122,20 +121,35 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
     setAnchorEl(null);
   };
 
-  const handleArchive = () => {
-    if (!archiveBroadcast) {
-      console.error("archiveBroadcast function not found in table meta");
-      return;
-    }
-    archiveBroadcast(rowId);
+  const handleArchiveToggle = () => {
+    archiveMutation.mutate(
+      { archived: !isArchived },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+        },
+        onError: (_error) => {
+          // Show error feedback
+        },
+      },
+    );
     handleClose();
   };
 
   return (
     <>
       <Tooltip title="Actions">
-        <IconButton aria-label="actions" onClick={handleClick} size="small">
-          <MoreVertIcon fontSize="small" />
+        <IconButton
+          aria-label="actions"
+          onClick={handleClick}
+          size="small"
+          disabled={archiveMutation.isPending}
+        >
+          {archiveMutation.isPending ? (
+            <CircularProgress size={20} />
+          ) : (
+            <MoreVertIcon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
       <Menu
@@ -161,11 +175,12 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
         }}
       >
         <MenuItem
-          onClick={handleArchive}
+          onClick={handleArchiveToggle}
           sx={{ color: theme.palette.grey[700] }}
+          disabled={archiveMutation.isPending}
         >
           <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
-          Archive
+          {isArchived ? "Unarchive" : "Archive"}
         </MenuItem>
         {/* Add other actions like Edit, Delete, etc. here */}
       </Menu>
@@ -309,8 +324,8 @@ function ScheduledAtCell({ row }: CellContext<Row, unknown>) {
 export default function BroadcastsTable() {
   const theme = useTheme();
   const universalRouter = useUniversalRouter();
-  const queryClient = useQueryClient();
-  const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
+  // const queryClient = useQueryClient(); // Not used directly here anymore for mutations
+  // const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]); // Not used directly here anymore for mutations
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -325,6 +340,7 @@ export default function BroadcastsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const query = useBroadcastsQuery();
+  const createBroadcastMutation = useCreateBroadcastMutation();
 
   // query.data is (BroadcastResource | BroadcastResourceV2)[]
   const rawData: Row[] = query.data ?? [];
@@ -350,32 +366,6 @@ export default function BroadcastsTable() {
       setSnackbarOpen(true);
     }
   }, [query.isError]);
-
-  const archiveBroadcastMutation = useMutation({
-    mutationFn: async (broadcastId: string) => {
-      if (!workspace || workspace.type !== CompletionStatus.Successful) {
-        throw new Error("Workspace not available");
-      }
-      const requestData: UpdateBroadcastArchiveRequest = {
-        workspaceId: workspace.value.id,
-        broadcastId,
-        archived: true, // Explicitly set to true for archiving
-      };
-      await axios.put(`${apiBase}/api/broadcasts/archive`, requestData);
-    },
-    onSuccess: (_, broadcastId) => {
-      console.log("Archived broadcast:", broadcastId);
-      // Invalidate the broadcasts query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
-      setSnackbarMessage("Broadcast archived successfully!");
-      setSnackbarOpen(true);
-    },
-    onError: (error, broadcastId) => {
-      console.error(`Failed to archive broadcast ${broadcastId}:`, error);
-      setSnackbarMessage("Failed to archive broadcast.");
-      setSnackbarOpen(true);
-    },
-  });
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
     return [
@@ -424,20 +414,12 @@ export default function BroadcastsTable() {
       pagination,
       sorting,
     },
-    // Pass the archive function via meta
-    meta: {
-      archiveBroadcast: (broadcastId: string) => {
-        if (archiveBroadcastMutation.isPending) return;
-        archiveBroadcastMutation.mutate(broadcastId);
-      },
-    },
+    // meta is no longer needed for archive/unarchive as ActionsCell handles it
+    meta: {},
   });
 
-  const createBroadcastMutation = useMutation({
-    mutationFn: async (name: string) => {
-      if (!workspace || workspace.type !== CompletionStatus.Successful) {
-        throw new Error("Workspace not available");
-      }
+  const handleCreateBroadcast = () => {
+    if (broadcastName.trim() && !createBroadcastMutation.isPending) {
       let broadcastConfigMessage: BroadcastV2Config["message"];
       switch (selectedChannel) {
         case ChannelType.Email:
@@ -455,41 +437,32 @@ export default function BroadcastsTable() {
             type: ChannelType.Webhook,
           };
           break;
+        default:
+          // Should not happen with the ToggleButtonGroup
+          return;
       }
-      const requestData: UpsertBroadcastV2Request = {
-        workspaceId: workspace.value.id,
-        // id is omitted for creation
-        name,
+      const newBroadcastData = {
+        name: broadcastName.trim(),
         config: {
-          // Minimal default config
-          type: "V2",
+          type: "V2" as const, // Explicitly set type to 'V2'
           message: broadcastConfigMessage,
         },
       };
-      const response = await axios.put<BroadcastResourceV2>(
-        `${apiBase}/api/broadcasts/v2`,
-        requestData,
-      );
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
-      setSnackbarMessage("Broadcast created successfully!");
-      setSnackbarOpen(true);
-      setDialogOpen(false);
-      setBroadcastName("");
-      universalRouter.push(`/broadcasts/v2`, { id: data.id });
-    },
-    onError: (error) => {
-      console.error("Failed to create broadcast:", error);
-      setSnackbarMessage("Failed to create broadcast.");
-      setSnackbarOpen(true);
-    },
-  });
-
-  const handleCreateBroadcast = () => {
-    if (broadcastName.trim() && !createBroadcastMutation.isPending) {
-      createBroadcastMutation.mutate(broadcastName.trim());
+      createBroadcastMutation.mutate(newBroadcastData, {
+        onSuccess: (data) => {
+          // queryClient.invalidateQueries({ queryKey: ["broadcasts"] }); // Handled by the hook
+          setSnackbarMessage("Broadcast created successfully!");
+          setSnackbarOpen(true);
+          setDialogOpen(false);
+          setBroadcastName("");
+          universalRouter.push(`/broadcasts/v2`, { id: data.id });
+        },
+        onError: (_error) => {
+          // console.error("Failed to create broadcast:", error);
+          setSnackbarMessage("Failed to create broadcast.");
+          setSnackbarOpen(true);
+        },
+      });
     }
   };
 
@@ -773,6 +746,7 @@ export default function BroadcastsTable() {
           <Button
             onClick={handleCreateBroadcast}
             disabled={
+              // TODO: replace with createBroadcastMutation.isPending
               !broadcastName.trim() || createBroadcastMutation.isPending
             }
           >
@@ -793,10 +767,16 @@ export default function BroadcastsTable() {
   );
 }
 
-// Add type definition for table meta
+/* eslint-disable @typescript-eslint/no-empty-interface */
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
-    archiveBroadcast?: (broadcastId: string) => void;
+    // TableMeta is augmented globally by react-table itself,
+    // this empty interface was here because we previously added
+    // archiveBroadcast and unarchiveBroadcast.
+    // Since ActionsCell now handles its own mutations, this augmentation
+    // is no longer needed for those specific functions.
+    // If other meta properties are added elsewhere, this can be extended.
   }
 }
+/* eslint-enable @typescript-eslint/no-empty-interface */
