@@ -72,13 +72,7 @@ function PreviewHeader({
   );
 }
 
-function PreviewContent({
-  workspaceId,
-  id,
-}: {
-  workspaceId: string;
-  id: string;
-}) {
+function PreviewContent({ id }: { id: string }) {
   const { data: broadcast, isLoading, isError } = useBroadcastQuery(id);
   if (isLoading || isError) {
     return null;
@@ -86,7 +80,6 @@ function PreviewContent({
   return (
     <Box sx={{ flex: 1, overflow: "auto" }}>
       <UsersTableV2
-        workspaceId={workspaceId}
         hideControls
         segmentFilter={broadcast?.segmentId ? [broadcast.segmentId] : undefined}
         subscriptionGroupFilter={
@@ -198,7 +191,7 @@ export default function BroadcastLayout({
             />
           }
         >
-          <PreviewContent workspaceId={workspace.value.id} id={state.id} />
+          <PreviewContent id={state.id} />
         </InlineDrawer>
       )}
     </Box>

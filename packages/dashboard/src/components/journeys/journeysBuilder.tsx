@@ -15,7 +15,6 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import {
-  CompletionStatus,
   JourneyUiBodyNodeTypeProps,
   SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
@@ -78,22 +77,18 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     journeyNodes: nodes,
     journeyEdges: edges,
     journeyDraggedComponentType: draggedComponentType,
-    apiBase,
-    workspace,
     upsertJourneyStats,
     setJourneyStatsRequest,
     viewDraft,
     subscriptionGroups,
     setSelectedNodeId,
   } = useAppStorePick([
-    "apiBase",
     "setNodes",
     "addNodes",
     "setEdges",
     "journeyNodes",
     "journeyEdges",
     "journeyDraggedComponentType",
-    "workspace",
     "setJourneyStatsRequest",
     "upsertJourneyStats",
     "viewDraft",
@@ -103,11 +98,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
 
   useJourneyStats({
     journeyIds: [journeyId],
-    workspaceId:
-      workspace.type === CompletionStatus.Successful
-        ? workspace.value.id
-        : undefined,
-    apiBase,
     setJourneyStatsRequest,
     upsertJourneyStats,
   });

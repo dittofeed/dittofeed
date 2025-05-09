@@ -8,28 +8,30 @@ import {
 } from "isomorphic-lib/src/types";
 import React from "react";
 
+import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { AppContents } from "./types";
 
 export function useJourneyStats(
   args: Partial<Omit<JourneyStatsRequest, "workspaceId">> &
-    Pick<JourneyStatsRequest, "workspaceId"> &
     Pick<AppContents, "upsertJourneyStats" | "setJourneyStatsRequest">,
 ) {
+  const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
   React.useEffect(() => {
     (async () => {
-      if (!args.workspaceId) {
+      if (workspace.type !== CompletionStatus.Successful) {
         return;
       }
+      const workspaceId = workspace.value.id;
       args.setJourneyStatsRequest({
         type: CompletionStatus.InProgress,
       });
       try {
         const params: JourneyStatsRequest = {
-          workspaceId: args.workspaceId,
+          workspaceId,
           journeyIds: args.journeyIds,
         };
         const response = await axios.get(`${baseApiUrl}/journeys/stats`, {
