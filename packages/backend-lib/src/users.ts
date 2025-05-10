@@ -89,7 +89,7 @@ export async function getUsers(
   const qb = new ClickHouseQueryBuilder();
   const cursorClause = cursor
     ? `and user_id ${
-        direction === CursorDirectionEnum.After ? ">" : "<"
+        direction === CursorDirectionEnum.After ? ">" : "<="
       } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
     : "";
 
@@ -217,7 +217,7 @@ export async function getUsers(
           GROUP BY workspace_id, user_id
           ${havingClause}
           ORDER BY
-            user_id ASC
+            user_id ${direction === CursorDirectionEnum.After ? "ASC" : "DESC"}
           LIMIT ${limit}
         ))
       GROUP BY cp.user_id, cp.computed_property_id, cp.type

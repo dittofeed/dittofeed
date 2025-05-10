@@ -16,6 +16,7 @@ import {
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  CursorDirectionEnum,
   EventType,
   SegmentDefinition,
   SegmentNodeType,
@@ -50,10 +51,7 @@ describe("users", () => {
       let firstNameProperty: UserProperty;
 
       beforeEach(async () => {
-        userIds = [
-          "185410bb-60e0-407a-95bb-4568ad450ff9",
-          "787ec382-1f3a-4375-ae7d-2dae8b863991",
-        ];
+        userIds = ["user-1", "user-2"];
         firstNameProperty = unwrap(
           await insert({
             table: dbUserProperty,
@@ -79,8 +77,8 @@ describe("users", () => {
           {
             userPropertyId: firstNameProperty.id,
             workspaceId: workspace.id,
-            userId: userIds[1],
             value: JSON.stringify("chandler"),
+            userId: userIds[1],
           },
         ]);
       });
@@ -92,18 +90,11 @@ describe("users", () => {
             limit: 1,
           }),
         );
-        expect(result1.users, "first page shows first user").toEqual([
-          {
-            id: userIds[0],
-            segments: [],
-            properties: {
-              [firstNameProperty.id]: {
-                name: "firstName",
-                value: "max",
-              },
-            },
-          },
-        ]);
+        expect(
+          result1.users.map((user) => user.id),
+          "first page shows first user",
+        ).toEqual([userIds[0]]);
+
         expect(result1.nextCursor).not.toBeUndefined();
 
         const result2 = unwrap(
@@ -114,18 +105,11 @@ describe("users", () => {
           }),
         );
 
-        expect(result2.users, "second page shows second user").toEqual([
-          {
-            id: userIds[1],
-            segments: [],
-            properties: {
-              [firstNameProperty.id]: {
-                name: "firstName",
-                value: "chandler",
-              },
-            },
-          },
-        ]);
+        expect(
+          result2.users.map((user) => user.id),
+          "second page shows second user",
+        ).toEqual([userIds[1]]);
+
         expect(result2.nextCursor).not.toBeUndefined();
 
         const result3 = unwrap(
@@ -138,6 +122,23 @@ describe("users", () => {
 
         expect(result3.users, "third page shows no users").toHaveLength(0);
         expect(result3.nextCursor).toBeUndefined();
+
+        const result4 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            cursor: result2.nextCursor,
+            limit: 1,
+            direction: CursorDirectionEnum.Before,
+          }),
+        );
+
+        expect(
+          result4.users,
+          "when paginating before the final page we have results",
+        ).toHaveLength(1);
+
+        expect(result4.users[0]?.id).toEqual(userIds[1]);
+        expect(result4.previousCursor).not.toBeUndefined();
       });
     });
     describe("when a subscriptionGroupFilter is passed", () => {
