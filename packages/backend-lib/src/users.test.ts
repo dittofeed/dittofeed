@@ -83,7 +83,7 @@ describe("users", () => {
         ]);
       });
 
-      it.only("can be paginated", async () => {
+      it("can be paginated", async () => {
         const result1 = unwrap(
           await getUsers({
             workspaceId: workspace.id,

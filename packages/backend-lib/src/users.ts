@@ -217,7 +217,7 @@ export async function getUsers(
           GROUP BY workspace_id, user_id
           ${havingClause}
           ORDER BY
-            user_id ASC
+            user_id ${direction === CursorDirectionEnum.After ? "ASC" : "DESC"}
           LIMIT ${limit}
         ))
       GROUP BY cp.user_id, cp.computed_property_id, cp.type
@@ -383,22 +383,6 @@ export async function getUsers(
     users,
     userCount: 0,
   };
-
-  logger().debug(
-    {
-      cursor,
-      direction,
-      count: users.length,
-    },
-    "loc1 getUsers input cursors",
-  );
-  // producing the wrong results
-  // [21:32:17 UTC] DEBUG: loc1 getUsers input cursors
-  //     cursor: {
-  //       "u": "42C43CDA-D868-4D02-8948-2F990D241E93"
-  //     }
-  //     direction: "before"
-  // issue is that before is responding with an empty payload
 
   if (nextCursor) {
     val.nextCursor = serializeUserCursor(nextCursor);
