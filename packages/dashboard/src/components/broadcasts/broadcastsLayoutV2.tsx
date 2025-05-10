@@ -24,7 +24,7 @@ import {
   BroadcastStepKey,
 } from "./broadcastsShared";
 
-const PREVIEW_HEIGHT = "40vh";
+const PREVIEW_HEIGHT = "440px";
 
 interface BroadcastLayoutProps {
   children: React.ReactNode;
@@ -81,6 +81,7 @@ function PreviewContent({ id }: { id: string }) {
     <Box sx={{ flex: 1, overflow: "auto" }}>
       <UsersTableV2
         hideControls
+        limit={5}
         segmentFilter={broadcast?.segmentId ? [broadcast.segmentId] : undefined}
         subscriptionGroupFilter={
           broadcast?.subscriptionGroupId
