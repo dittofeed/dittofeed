@@ -830,6 +830,7 @@ export default function UsersTableV2({
     cursor,
     state.query.direction,
     state.query.cursor,
+    state.currentCursor,
   ]);
 
   useEffect(() => {
