@@ -89,7 +89,7 @@ export async function getUsers(
   const qb = new ClickHouseQueryBuilder();
   const cursorClause = cursor
     ? `and user_id ${
-        direction === CursorDirectionEnum.After ? ">" : "<"
+        direction === CursorDirectionEnum.After ? ">" : "<="
       } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
     : "";
 
@@ -383,6 +383,22 @@ export async function getUsers(
     users,
     userCount: 0,
   };
+
+  logger().debug(
+    {
+      cursor,
+      direction,
+      count: users.length,
+    },
+    "loc1 getUsers input cursors",
+  );
+  // producing the wrong results
+  // [21:32:17 UTC] DEBUG: loc1 getUsers input cursors
+  //     cursor: {
+  //       "u": "42C43CDA-D868-4D02-8948-2F990D241E93"
+  //     }
+  //     direction: "before"
+  // issue is that before is responding with an empty payload
 
   if (nextCursor) {
     val.nextCursor = serializeUserCursor(nextCursor);

@@ -923,13 +923,16 @@ export default function UsersTableV2({
 
   const onPreviousPage = useCallback(() => {
     if (state.previousCursor) {
-      onPaginationChange?.({
-        cursor: state.previousCursor,
-        direction: CursorDirectionEnum.Before,
-      });
       setState((draft) => {
-        draft.query.cursor = state.previousCursor;
-        draft.query.direction = CursorDirectionEnum.Before;
+        if (draft.query.direction === CursorDirectionEnum.Before) {
+          draft.query.cursor = state.previousCursor;
+        } else if (draft.query.direction === CursorDirectionEnum.After) {
+          draft.query.direction = CursorDirectionEnum.Before;
+        }
+        onPaginationChange?.({
+          cursor: draft.query.cursor ?? undefined,
+          direction: draft.query.direction ?? undefined,
+        });
       });
     }
   }, [state.previousCursor, onPaginationChange, setState]);
