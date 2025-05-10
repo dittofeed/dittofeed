@@ -785,7 +785,7 @@ export default function UsersTableV2({
     if (usersListQuery.data) {
       const result = usersListQuery.data;
       if (
-        result.users.length === 0 &&
+        result.users.length < state.query.limit &&
         state.query.direction === CursorDirectionEnum.Before
       ) {
         setState((draft) => {
