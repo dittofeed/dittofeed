@@ -629,6 +629,7 @@ interface TableState {
   users: Record<string, GetUsersResponseItem>;
   usersCount: number | null;
   currentPageUserIds: string[];
+  currentCursor: string | null;
   previousCursor: string | null;
   nextCursor: string | null;
   query: {
@@ -710,6 +711,7 @@ export default function UsersTableV2({
     },
     users: {},
     currentPageUserIds: [],
+    currentCursor: cursor ?? null,
     nextCursor: null,
     previousCursor: null,
     usersCount: null,
@@ -782,16 +784,29 @@ export default function UsersTableV2({
   useEffect(() => {
     if (usersListQuery.data) {
       const result = usersListQuery.data;
-      if (result.users.length === 0 && cursor) {
-        if (state.query.direction === CursorDirectionEnum.Before) {
-          setState((draft) => {
-            draft.nextCursor = null;
-            draft.previousCursor = null;
-            draft.query.cursor = null;
-            draft.query.direction = null;
-          });
-          onPaginationChange?.({});
-        }
+      if (
+        result.users.length === 0 &&
+        state.query.direction === CursorDirectionEnum.Before
+      ) {
+        setState((draft) => {
+          draft.nextCursor = null;
+          draft.previousCursor = null;
+          draft.query.cursor = null;
+          draft.query.direction = null;
+          draft.currentCursor = null;
+        });
+        onPaginationChange?.({});
+      } else if (
+        result.users.length === 0 &&
+        state.query.direction === CursorDirectionEnum.After
+      ) {
+        // Rollback to the last cursor if the next page is empty.
+        setState((draft) => {
+          draft.query.cursor = state.currentCursor;
+        });
+        onPaginationChange?.({
+          cursor: state.currentCursor ?? undefined,
+        });
       } else {
         setState((draft) => {
           const newUsersMap: Record<string, GetUsersResponseItem> = {};
@@ -804,6 +819,7 @@ export default function UsersTableV2({
           );
           draft.nextCursor = result.nextCursor ?? null;
           draft.previousCursor = result.previousCursor ?? null;
+          draft.currentCursor = state.query.cursor ?? null;
         });
       }
     }
@@ -813,6 +829,7 @@ export default function UsersTableV2({
     onPaginationChange,
     cursor,
     state.query.direction,
+    state.query.cursor,
   ]);
 
   useEffect(() => {
