@@ -302,7 +302,7 @@ export async function findManyEventsWithCount({
   ).map((o) => o.id);
 
   const workspaceIdClause = childWorkspaceIds.length
-    ? `workspace_id IN ${qb.addQueryValue(workspaceId, "Array(String)")}`
+    ? `workspace_id IN ${qb.addQueryValue(childWorkspaceIds, "Array(String)")}`
     : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
 
   const paginationClause = limit
