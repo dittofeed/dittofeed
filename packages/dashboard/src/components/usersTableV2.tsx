@@ -616,7 +616,7 @@ export type OnPaginationChangeProps = Pick<
   "direction" | "cursor"
 >;
 
-export type UsersTableProps = Omit<GetUsersRequest, "limit" | "workspaceId"> & {
+export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   onPaginationChange?: (args: OnPaginationChangeProps) => void;
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
@@ -647,6 +647,7 @@ export default function UsersTableV2({
   autoReloadByDefault = false,
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
+  limit,
   hideControls = false,
 }: UsersTableProps) {
   useAppStore();
@@ -705,7 +706,7 @@ export default function UsersTableV2({
     query: {
       cursor: cursor ?? null,
       direction: direction ?? null,
-      limit: 10,
+      limit: limit ?? 10,
     },
     users: {},
     currentPageUserIds: [],
