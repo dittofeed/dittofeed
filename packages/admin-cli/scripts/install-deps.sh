@@ -12,8 +12,5 @@ echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://package
     /etc/apt/sources.list.d/clickhouse.list
 
 apt-get update && apt-get install -y \
-    vim \
     postgresql-client \
     clickhouse-client
-
-curl -sSf https://temporal.download/cli.sh | sh
