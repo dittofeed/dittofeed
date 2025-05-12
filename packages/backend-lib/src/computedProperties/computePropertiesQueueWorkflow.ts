@@ -83,7 +83,7 @@ export function compareWorkspaceItems(
   if (a.maxPeriod !== undefined && b.maxPeriod === undefined) return 1; // b (undefined) comes first
   if (a.maxPeriod !== undefined && b.maxPeriod !== undefined) {
     // If both are defined, longer maxPeriod comes first
-    if (a.maxPeriod !== b.maxPeriod) return b.maxPeriod - a.maxPeriod;
+    if (a.maxPeriod !== b.maxPeriod) return a.maxPeriod - b.maxPeriod;
   }
 
   // Finally, compare by insertion order
