@@ -307,7 +307,7 @@ export default function TemplatesTable() {
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
     journeys: {
-      includeNodes: true, // Important to get node details for templateId
+      messageTemplates: true, // Important to get node details for templateId
     },
   });
 
