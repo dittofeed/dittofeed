@@ -74,6 +74,22 @@ This token can then be passed to your frontend, and used to embed Dittofeed comp
 
 Take your session token and pass it to the Dittofeed components which can be loaded via an iframe.
 
+### Templates Table
+
+The templates table displays all of the message templates for the child workspace.
+
+<Frame>
+![Embedded Templates Table](/images/embedded-templates.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/templates?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
 ### Template Editor
 
 The template editor allows you to create and edit message templates.
