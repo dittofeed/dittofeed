@@ -34,6 +34,15 @@ export const addWorkspacesSignalV2 = defineSignal<[WorkspaceQueueSignal]>(
 
 export const getQueueSizeQuery = defineQuery<number>("getQueueSizeQuery");
 
+export interface QueueState {
+  priorityQueue: WorkspaceQueueItem[];
+  membership: string[];
+  inFlightTaskIds: string[];
+  totalProcessed: number;
+}
+
+export const getQueueStateQuery = defineQuery<QueueState>("getQueueStateQuery");
+
 /**
  * Activities
  */
@@ -213,6 +222,19 @@ export async function computePropertiesQueueWorkflow(
   // QUERY HANDLER: Return how many items are in the queue
   //
   setHandler(getQueueSizeQuery, () => priorityQueue.length);
+
+  //
+  // QUERY HANDLER: Return detailed queue state
+  //
+  setHandler(
+    getQueueStateQuery,
+    (): QueueState => ({
+      priorityQueue,
+      membership: Array.from(membership),
+      inFlightTaskIds: inFlight.map((task) => task.id),
+      totalProcessed,
+    }),
+  );
 
   //
   // MAIN LOOP (streaming concurrency approach)
