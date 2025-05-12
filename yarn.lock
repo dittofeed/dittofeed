@@ -12152,6 +12152,7 @@ __metadata:
   resolution: "admin-cli@workspace:packages/admin-cli"
   dependencies:
     "@sinclair/typebox": "npm:0.32.29"
+    "@temporalio/client": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"
     "@types/yargs": "npm:^17.0.24"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"

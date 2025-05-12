@@ -1,6 +1,11 @@
 import { Type } from "@sinclair/typebox";
+import { Client, Connection } from "@temporalio/client";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
+import {
+  COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+  getQueueStateQuery,
+} from "backend-lib/src/computedProperties/computePropertiesQueueWorkflow";
 import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
@@ -972,6 +977,43 @@ export function createCommands(yargs: Argv): Argv {
         } catch (error) {
           logger().error({ error }, "Failed to delete workspace.");
         }
+      },
+    )
+    .command(
+      "get-queue-state",
+      "Retrieves the current state of the compute properties queue workflow.",
+      (cmd) => cmd, // No specific options needed for now
+      async () => {
+        logger().info("Getting compute properties queue state");
+        const connection = await Connection.connect({}); // Assumes default connection options
+        const client = new Client({
+          connection,
+          namespace: backendConfig().temporalNamespace,
+        });
+
+        logger().info(
+          {
+            workflowId: COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+          },
+          "Querying workflow",
+        );
+
+        const handle = client.workflow.getHandle(
+          COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+        );
+        const state = await handle.query(getQueueStateQuery);
+
+        logger().info(
+          {
+            queueSize: state.priorityQueue.length,
+            membershipSize: state.membership.length,
+            inFlightCount: state.inFlightTaskIds.length,
+            totalProcessed: state.totalProcessed,
+            inFlightTaskIdsSample: state.inFlightTaskIds,
+            priorityQueueSample: state.priorityQueue,
+          },
+          "Current compute properties queue state",
+        );
       },
     );
 }

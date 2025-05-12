@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@sinclair/typebox": "0.32.29",
+    "@temporalio/client": "1.11.6",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "cross-spawn": "^7.0.3",
