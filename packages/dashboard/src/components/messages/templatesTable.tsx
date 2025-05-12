@@ -1,4 +1,5 @@
 import {
+  Add as AddIcon,
   ArrowDownward,
   ArrowUpward,
   Computer,
@@ -14,7 +15,12 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
+  Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
@@ -28,6 +34,9 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
   useTheme,
@@ -52,16 +61,23 @@ import {
   ResourceTypeEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { getDefaultMessageTemplateDefinition } from "../../lib/defaultTemplateDefinition";
 import {
   DeleteMessageTemplateVariables,
   useDeleteMessageTemplateMutation,
 } from "../../lib/useDeleteMessageTemplateMutation";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
+import {
+  UpsertMessageTemplateParams,
+  useMessageTemplateUpdateMutation,
+} from "../../lib/useMessageTemplateUpdateMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
-import { GreyButton } from "../greyButtonStyle";
+import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
 
 // Row type for the table
@@ -299,11 +315,20 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 
 export default function TemplatesTable() {
   const theme = useTheme();
+  const router = useRouter();
   const { workspace } = useAppStorePick(["workspace"]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  // Dialog state for creating new templates
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [selectedChannel, setSelectedChannel] = useState<ChannelType>(
+    ChannelType.Email,
+  );
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch message templates
   const messageTemplatesQuery = useMessageTemplatesQuery({
@@ -328,6 +353,9 @@ export default function TemplatesTable() {
       setSnackbarOpen(true);
     },
   });
+
+  // Template update/create mutation
+  const updateTemplateMutation = useMessageTemplateUpdateMutation();
 
   const templatesData: Row[] = useMemo(() => {
     if (
@@ -370,6 +398,55 @@ export default function TemplatesTable() {
       setSnackbarOpen(true);
     }
   }, [messageTemplatesQuery.isError]);
+
+  // Handle dialog close
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setNewTemplateName("");
+    setSelectedChannel(ChannelType.Email);
+  };
+
+  // Handle channel change in dialog
+  const handleChannelChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newChannel: ChannelType | null,
+  ) => {
+    if (newChannel !== null) {
+      setSelectedChannel(newChannel);
+    }
+  };
+
+  // Handle template creation
+  const handleCreateTemplate = () => {
+    if (!newTemplateName.trim() || updateTemplateMutation.isPending) {
+      return;
+    }
+
+    const newTemplateId = uuid();
+    const definition = getDefaultMessageTemplateDefinition(selectedChannel);
+
+    const templateData: UpsertMessageTemplateParams = {
+      id: newTemplateId,
+      name: newTemplateName.trim(),
+      definition,
+      resourceType: ResourceTypeEnum.Declarative,
+    };
+
+    updateTemplateMutation.mutate(templateData, {
+      onSuccess: (data) => {
+        setSnackbarMessage("Template created successfully!");
+        setSnackbarOpen(true);
+        handleCloseDialog();
+        // Navigate to the new template edit page
+        router.push(`/templates/${data.id}`);
+      },
+      onError: (error) => {
+        const errorMsg = error.message || "Failed to create template.";
+        setSnackbarMessage(errorMsg);
+        setSnackbarOpen(true);
+      },
+    });
+  };
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
@@ -460,15 +537,14 @@ export default function TemplatesTable() {
     <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h4">Message Templates</Typography>
-        {/* Placeholder for "New Template" button if needed */}
-        {/* <Button
+        <Button
           variant="contained"
-          // onClick={() => setDialogOpen(true)} // If a create dialog is added
+          onClick={() => setDialogOpen(true)}
           startIcon={<AddIcon />}
           sx={greyButtonStyle}
         >
           New Template
-        </Button> */}
+        </Button>
       </Stack>
       <TableContainer component={Paper}>
         <Table stickyHeader>
@@ -553,14 +629,13 @@ export default function TemplatesTable() {
               <TableRow sx={{ height: ROW_HEIGHT }}>
                 <TableCell colSpan={columns.length} align="center">
                   No message templates found.
-                  {/* Placeholder for create button in empty state */}
-                  {/* <Button
+                  <Button
                     size="small"
-                    // onClick={() => setDialogOpen(true)}
-                    sx={greyButtonStyle}
+                    onClick={() => setDialogOpen(true)}
+                    sx={{ ml: 1 }}
                   >
                     Create One
-                  </Button> */}
+                  </Button>
                 </TableCell>
               </TableRow>
             )}
@@ -646,6 +721,74 @@ export default function TemplatesTable() {
           </TableFooter>
         </Table>
       </TableContainer>
+
+      {/* Create Template Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={{ onEntered: () => nameInputRef.current?.focus() }}
+      >
+        <DialogTitle>Create New Message Template</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Template Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={newTemplateName}
+            onChange={(e) => setNewTemplateName(e.target.value)}
+            inputRef={nameInputRef}
+            onKeyPress={(e) => {
+              if (e.key === "Enter" && newTemplateName.trim()) {
+                handleCreateTemplate();
+              }
+            }}
+          />
+          <Typography display="block" sx={{ mt: 2, mb: 1 }}>
+            Channel Type
+          </Typography>
+          <ToggleButtonGroup
+            value={selectedChannel}
+            exclusive
+            onChange={handleChannelChange}
+            aria-label="channel type"
+            size="small"
+          >
+            <ToggleButton value={ChannelType.Email} aria-label="Email">
+              Email
+            </ToggleButton>
+            <ToggleButton value={ChannelType.Sms} aria-label="SMS">
+              SMS
+            </ToggleButton>
+            <ToggleButton value={ChannelType.Webhook} aria-label="Webhook">
+              Webhook
+            </ToggleButton>
+            <ToggleButton
+              value={ChannelType.MobilePush}
+              aria-label="Mobile Push"
+            >
+              Mobile Push
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button
+            onClick={handleCreateTemplate}
+            disabled={
+              !newTemplateName.trim() || updateTemplateMutation.isPending
+            }
+          >
+            {updateTemplateMutation.isPending ? "Creating..." : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}

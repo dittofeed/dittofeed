@@ -1,4 +1,4 @@
-import { ChannelType, WebhookTemplateResource } from "../types";
+import { ChannelType, WebhookTemplateResource } from "./types";
 
 export const DEFAULT_WEBHOOK_BODY = `{
   "config": {
