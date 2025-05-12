@@ -334,7 +334,6 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 }
 
 export default function TemplatesTable() {
-  const theme = useTheme();
   const router = useRouter();
   const { workspace } = useAppStorePick(["workspace"]);
 
@@ -574,7 +573,7 @@ export default function TemplatesTable() {
   }
 
   return (
-    <Stack spacing={2} sx={{ padding: theme.spacing(3), width: "100%" }}>
+    <Stack spacing={2} sx={{ width: "100%", height: "100%" }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h4">Message Templates</Typography>
         <Button
