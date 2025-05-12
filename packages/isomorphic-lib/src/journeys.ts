@@ -107,6 +107,23 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
+/**
+ * Returns the set of message templates that this journey depends on.
+ * @param definition
+ * @returns
+ */
+export function getMessageTemplates(
+  definition: JourneyDefinition,
+): Set<string> {
+  const subscribedMessageTemplates = new Set<string>();
+  for (const node of definition.nodes) {
+    if (node.type === JourneyNodeType.MessageNode) {
+      subscribedMessageTemplates.add(node.variant.templateId);
+    }
+  }
+  return subscribedMessageTemplates;
+}
+
 const ENTRY_NODE_TYPES = new Set<string>([
   JourneyNodeType.EventEntryNode,
   JourneyNodeType.SegmentEntryNode,

@@ -3,7 +3,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { getSubscribedSegments } from "./journeys";
+import { getMessageTemplates, getSubscribedSegments } from "./journeys";
 import logger from "./logger";
 import {
   BroadcastResourceVersion,
@@ -36,25 +36,32 @@ async function getJourneysResources({
       id: journey.id,
       name: journey.name,
     };
-    if (config?.segments) {
-      const definitionResult = schemaValidateWithErr(
-        journey.definition,
-        JourneyDefinition,
+
+    const definitionResult = schemaValidateWithErr(
+      journey.definition,
+      JourneyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      logger().error(
+        {
+          journeyId: journey.id,
+          error: definitionResult.error,
+        },
+        "Invalid journey definition",
       );
-      if (definitionResult.isErr()) {
-        logger().error(
-          {
-            journeyId: journey.id,
-            error: definitionResult.error,
-          },
-          "Invalid journey definition",
-        );
-        return [];
-      }
+      return resource;
+    }
+    if (config?.segments) {
       const segments = Array.from(
         getSubscribedSegments(definitionResult.value),
       );
       resource.segments = segments;
+    }
+    if (config?.messageTemplates) {
+      const messageTemplates = Array.from(
+        getMessageTemplates(definitionResult.value),
+      );
+      resource.messageTemplates = messageTemplates;
     }
     return resource;
   });
