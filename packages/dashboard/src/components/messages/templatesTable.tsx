@@ -61,11 +61,11 @@ import {
   ResourceTypeEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useUniversalRouter } from "../../lib/authModeProvider";
 import { getDefaultMessageTemplateDefinition } from "../../lib/defaultTemplateDefinition";
 import {
   DeleteMessageTemplateVariables,
@@ -228,6 +228,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
 // Cell renderer for Name column
 function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   const name = getValue<string>();
+  const universalRouter = useUniversalRouter();
   const { id: templateId, definition } = row.original;
 
   let channelPath = "unknown";
@@ -251,7 +252,9 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   }
 
   // Construct channel-specific route
-  const href = `/templates/${channelPath}/${templateId}`;
+  const href = universalRouter.mapUrl(
+    `/templates/${channelPath}/${templateId}`,
+  );
 
   return (
     <Stack
@@ -334,7 +337,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 }
 
 export default function TemplatesTable() {
-  const router = useRouter();
+  const universalRouter = useUniversalRouter();
   const { workspace } = useAppStorePick(["workspace"]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -477,7 +480,7 @@ export default function TemplatesTable() {
         }
 
         // Navigate to channel-specific template edit page
-        router.push(`/templates/${channelPath}/${data.id}`);
+        universalRouter.push(`/templates/${channelPath}/${data.id}`);
       },
       onError: (error) => {
         const errorMsg = error.message || "Failed to create template.";
