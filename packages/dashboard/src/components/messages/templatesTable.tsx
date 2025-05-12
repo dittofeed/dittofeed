@@ -1,5 +1,4 @@
 import {
-  Add as AddIcon,
   ArrowDownward,
   ArrowUpward,
   Computer,
@@ -15,12 +14,7 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
@@ -34,7 +28,6 @@ import {
   TableFooter,
   TableHead,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
   useTheme,
@@ -56,22 +49,24 @@ import {
   ChannelType,
   CompletionStatus,
   MessageTemplateResource,
-  MinimalJourneysResource, // Assuming we'll need this
+  MinimalJourneysResource,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery"; // Correct hook for multiple templates
+import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 // import { useDeleteMessageTemplateMutation } from "../../lib/useDeleteMessageTemplateMutation"; // Placeholder for delete mutation
 import { useResourcesQuery } from "../../lib/useResourcesQuery"; // For journeys
-import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
+import { GreyButton } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable"; // For journeys used by
 
 // Row type for the table
 type Row = MessageTemplateResource & {
   journeysUsedBy: MinimalJourneysResource[];
 };
+
+const ROW_HEIGHT = "60px"; // Define a constant for row height
 
 // TimeCell for displaying timestamps like updatedAt
 // Adapted from packages/dashboard/src/pages/segments/index.page.tsx
@@ -138,7 +133,7 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 
 // Cell renderer for Actions column
 // Adapted from packages/dashboard/src/pages/segments/index.page.tsx
-function ActionsCell({ row, table }: CellContext<Row, unknown>) {
+function ActionsCell({ row, table: _table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
 
@@ -275,7 +270,9 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
     return <Typography variant="body2">-</Typography>;
   }
 
-  const relatedLabel = `${journeys.length} ${journeys.length === 1 ? "Journey" : "Journeys"}`;
+  const relatedLabel = `${journeys.length} ${
+    journeys.length === 1 ? "Journey" : "Journeys"
+  }`;
 
   const relatedResources = journeys.map((journey) => ({
     href: `/journeys/${journey.id}`, // Assuming journey detail page path
@@ -292,7 +289,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 
 export default function TemplatesTable() {
   const theme = useTheme();
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -300,9 +297,7 @@ export default function TemplatesTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   // Fetch message templates
-  const messageTemplatesQuery = useMessageTemplatesQuery(
-    {}, // No specific params for now, fetch all
-  );
+  const messageTemplatesQuery = useMessageTemplatesQuery({});
 
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
@@ -315,7 +310,7 @@ export default function TemplatesTable() {
   //   onSuccess: () => {
   //     setSnackbarMessage("Template deleted successfully!");
   //     setSnackbarOpen(true);
-  //     queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
+  //     _queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
   //   },
   //   onError: () => {
   //     setSnackbarMessage("Failed to delete template.");
@@ -338,11 +333,7 @@ export default function TemplatesTable() {
         if (journey.id && journey.name && journey.messageTemplates) {
           for (const templateId of journey.messageTemplates) {
             const existingJourneys = journeysByTemplateId.get(templateId) ?? [];
-            // Avoid adding duplicate journeys if a template is used multiple times by the same journey definition
-            // (though with messageTemplates: true, this might already be handled by the backend)
             if (!existingJourneys.find((j) => j.id === journey.id)) {
-              // MinimalJourneysResource may not have 'status', check its definition
-              // For now, only include id and name which are known to be present
               existingJourneys.push({ id: journey.id, name: journey.name });
             }
             journeysByTemplateId.set(templateId, existingJourneys);
@@ -383,10 +374,29 @@ export default function TemplatesTable() {
         enableSorting: false,
       },
       {
-        id: "channel", // Custom ID as it's derived
+        id: "channel",
         header: "Channel",
         cell: ChannelCell,
-        // accessorFn: (row) => row.definition?.type, // For sorting if needed
+        enableSorting: true,
+        accessorFn: (row) => {
+          // Provide a string value for sorting
+          if (row.definition) {
+            switch (row.definition.type) {
+              case ChannelType.Email:
+                return "Email";
+              case ChannelType.Sms:
+                return "SMS";
+              case ChannelType.MobilePush:
+                return "Mobile Push";
+              case ChannelType.Webhook:
+                return "Webhook";
+              default:
+                assertUnreachable(row.definition);
+                return "Unknown";
+            }
+          }
+          return "Unknown";
+        },
       },
       {
         accessorKey: "updatedAt",
@@ -481,7 +491,9 @@ export default function TemplatesTable() {
                           <IconButton
                             size="small"
                             sx={{ ml: 0.5 }}
-                            aria-label={`Sort by ${String(header.column.columnDef.header)}`}
+                            aria-label={`Sort by ${String(
+                              header.column.columnDef.header,
+                            )}`}
                           >
                             {{
                               asc: <ArrowUpward fontSize="inherit" />,
@@ -510,17 +522,21 @@ export default function TemplatesTable() {
                   "&:hover": {
                     backgroundColor: "action.hover",
                   },
+                  height: ROW_HEIGHT, // Apply fixed row height
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell
+                    key={cell.id}
+                    sx={{ height: "inherit" }} // Ensure cell respects row height
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
             ))}
             {!isFetching && templatesData.length === 0 && (
-              <TableRow>
+              <TableRow sx={{ height: ROW_HEIGHT }}>
                 <TableCell colSpan={columns.length} align="center">
                   No message templates found.
                   {/* Placeholder for create button in empty state */}
@@ -626,7 +642,6 @@ export default function TemplatesTable() {
     </Stack>
   );
 }
-
 // Add type definition for table meta for delete function
 // declare module "@tanstack/react-table" {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
