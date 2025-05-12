@@ -51,6 +51,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
@@ -66,7 +67,6 @@ import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery"; /
 import { useResourcesQuery } from "../../lib/useResourcesQuery"; // For journeys
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable"; // For journeys used by
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 // Row type for the table
 type Row = MessageTemplateResource & {
@@ -307,7 +307,7 @@ export default function TemplatesTable() {
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
     journeys: {
-      messageTemplates: true, // Important to get node details for templateId
+      messageTemplates: true, // User updated this
     },
   });
 
@@ -334,26 +334,18 @@ export default function TemplatesTable() {
     const journeysByTemplateId = new Map<string, MinimalJourneysResource[]>();
     if (resources?.journeys) {
       for (const journey of resources.journeys) {
-        if (journey.nodes && journey.id && journey.name) {
-          for (const node of journey.nodes) {
-            if (
-              node.type === "MessageNode" &&
-              node.variant.type === "Message" &&
-              node.variant.templateId
-            ) {
-              const templateId = node.variant.templateId;
-              const existingJourneys =
-                journeysByTemplateId.get(templateId) ?? [];
-              // Avoid adding duplicate journeys if a template is used multiple times in the same journey
-              if (!existingJourneys.find((j) => j.id === journey.id)) {
-                existingJourneys.push({
-                  id: journey.id,
-                  name: journey.name,
-                  status: journey.status,
-                });
-              }
-              journeysByTemplateId.set(templateId, existingJourneys);
+        // Ensure journey.id and journey.name are present
+        if (journey.id && journey.name && journey.messageTemplates) {
+          for (const templateId of journey.messageTemplates) {
+            const existingJourneys = journeysByTemplateId.get(templateId) ?? [];
+            // Avoid adding duplicate journeys if a template is used multiple times by the same journey definition
+            // (though with messageTemplates: true, this might already be handled by the backend)
+            if (!existingJourneys.find((j) => j.id === journey.id)) {
+              // MinimalJourneysResource may not have 'status', check its definition
+              // For now, only include id and name which are known to be present
+              existingJourneys.push({ id: journey.id, name: journey.name });
             }
+            journeysByTemplateId.set(templateId, existingJourneys);
           }
         }
       }
