@@ -575,7 +575,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     useGlobalComputedProperties:
       rawConfig.useGlobalComputedProperties === undefined
         ? undefined
-        : rawConfig.useGlobalComputedProperties === "true",
+        : rawConfig.useGlobalComputedProperties !== "false",
   };
 
   return parsedConfig;
