@@ -32,7 +32,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   CellContext,
   ColumnDef,
@@ -55,18 +54,18 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useDeleteMessageTemplateMutation } from "../../lib/useDeleteMessageTemplateMutation";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
-// import { useDeleteMessageTemplateMutation } from "../../lib/useDeleteMessageTemplateMutation"; // Placeholder for delete mutation
-import { useResourcesQuery } from "../../lib/useResourcesQuery"; // For journeys
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { GreyButton } from "../greyButtonStyle";
-import { RelatedResourceSelect } from "../resourceTable"; // For journeys used by
+import { RelatedResourceSelect } from "../resourceTable";
 
 // Row type for the table
 type Row = MessageTemplateResource & {
   journeysUsedBy: MinimalJourneysResource[];
 };
 
-const ROW_HEIGHT = "60px"; // Define a constant for row height
+const ROW_HEIGHT = "60px";
 
 // TimeCell for displaying timestamps like updatedAt
 // Adapted from packages/dashboard/src/pages/segments/index.page.tsx
@@ -133,11 +132,11 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 
 // Cell renderer for Actions column
 // Adapted from packages/dashboard/src/pages/segments/index.page.tsx
-function ActionsCell({ row, table: _table }: CellContext<Row, unknown>) {
+function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
-
-  // const deleteMessageTemplate = table.options.meta?.deleteMessageTemplate; // Placeholder
+  const deleteMessageTemplate = table.options.meta?.deleteMessageTemplate;
+  const isDeleting = table.options.meta?.isDeletingTemplateId === rowId;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -150,49 +149,49 @@ function ActionsCell({ row, table: _table }: CellContext<Row, unknown>) {
   };
 
   const handleDelete = () => {
-    // if (!deleteMessageTemplate) {
-    //   console.error("deleteMessageTemplate function not found in table meta");
-    //   return;
-    // }
-    // deleteMessageTemplate(rowId);
-    alert(`Delete action for template ID: ${rowId}`); // Placeholder action
+    if (!deleteMessageTemplate) {
+      console.error("deleteMessageTemplate function not found in table meta");
+      return;
+    }
+    deleteMessageTemplate(rowId);
     handleClose();
   };
 
   return (
     <>
       <Tooltip title="Actions">
-        <IconButton aria-label="actions" onClick={handleClick} size="small">
-          <MoreVertIcon fontSize="small" />
+        <IconButton
+          aria-label="actions"
+          onClick={handleClick}
+          size="small"
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <CircularProgress size={20} />
+          ) : (
+            <MoreVertIcon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
       <Menu
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "actions-button",
-        }}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
-        PaperProps={{
-          sx: {
-            borderRadius: 1,
-            boxShadow: theme.shadows[2],
-          },
-        }}
+        MenuListProps={{ "aria-labelledby": "actions-button" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ sx: { borderRadius: 1, boxShadow: theme.shadows[2] } }}
       >
         <MenuItem
           onClick={handleDelete}
           sx={{ color: theme.palette.error.main }}
+          disabled={isDeleting}
         >
-          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          {isDeleting ? (
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+          ) : (
+            <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          )}
           Delete
         </MenuItem>
       </Menu>
@@ -289,7 +288,6 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 
 export default function TemplatesTable() {
   const theme = useTheme();
-  const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -306,17 +304,17 @@ export default function TemplatesTable() {
     },
   });
 
-  // const deleteTemplateMutation = useDeleteMessageTemplateMutation({ // Placeholder
-  //   onSuccess: () => {
-  //     setSnackbarMessage("Template deleted successfully!");
-  //     setSnackbarOpen(true);
-  //     queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
-  //   },
-  //   onError: () => {
-  //     setSnackbarMessage("Failed to delete template.");
-  //     setSnackbarOpen(true);
-  //   },
-  // });
+  const deleteTemplateMutation = useDeleteMessageTemplateMutation({
+    onSuccess: () => {
+      setSnackbarMessage("Template deleted successfully!");
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      const errorMsg = error.message || "Failed to delete template.";
+      setSnackbarMessage(errorMsg);
+      setSnackbarOpen(true);
+    },
+  });
 
   const templatesData: Row[] = useMemo(() => {
     if (
@@ -427,10 +425,13 @@ export default function TemplatesTable() {
       sorting,
     },
     meta: {
-      // deleteMessageTemplate: (templateId: string) => { // Placeholder
-      //   if (deleteTemplateMutation.isPending) return;
-      //   deleteTemplateMutation.mutate(templateId);
-      // },
+      deleteMessageTemplate: (templateId: string) => {
+        if (deleteTemplateMutation.isPending) return;
+        deleteTemplateMutation.mutate(templateId);
+      },
+      isDeletingTemplateId: deleteTemplateMutation.isPending
+        ? deleteTemplateMutation.variables
+        : null,
     },
   });
 
@@ -642,10 +643,12 @@ export default function TemplatesTable() {
     </Stack>
   );
 }
+
 // Add type definition for table meta for delete function
-// declare module "@tanstack/react-table" {
-//   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//   interface TableMeta<TData = unknown> {
-//     deleteMessageTemplate?: (templateId: string) => void;
-//   }
-// }
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData = unknown> {
+    deleteMessageTemplate?: (templateId: string) => void;
+    isDeletingTemplateId?: string | null; // To track which template is being deleted
+  }
+}
