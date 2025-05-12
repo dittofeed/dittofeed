@@ -151,7 +151,6 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 }
 
 // Cell renderer for Actions column
-// Adapted from packages/dashboard/src/pages/segments/index.page.tsx
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const { id: rowId, definition } = row.original;
@@ -322,7 +321,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   }`;
 
   const relatedResources = journeys.map((journey) => ({
-    href: `/journeys/${journey.id}`, // Assuming journey detail page path
+    href: `/journeys/${journey.id}`,
     name: journey.name,
   }));
 
@@ -359,7 +358,7 @@ export default function TemplatesTable() {
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
     journeys: {
-      messageTemplates: true, // User updated this
+      messageTemplates: true,
     },
   });
 
