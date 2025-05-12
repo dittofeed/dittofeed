@@ -5,45 +5,51 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  DeleteMessageTemplateRequest as ApiDeleteMessageTemplateRequest,
+} from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
-export interface DeleteMessageTemplateRequest {
-  workspaceId: string;
-  // "id" is used for the template ID to align with MessageTemplateResource
+// Interface for the variables passed to the mutate function
+export interface DeleteMessageTemplateVariables {
   id: string;
+  channelType: ChannelType;
 }
 
 // Define the mutation function type
-// The input to the mutation function will be the templateId (string)
-type DeleteMessageTemplateMutationFn = (templateId: string) => Promise<void>;
+// The input to the mutation function will be DeleteMessageTemplateVariables
+type DeleteMessageTemplateMutationFn = (
+  variables: DeleteMessageTemplateVariables,
+) => Promise<void>;
 
 export function useDeleteMessageTemplateMutation(
   options?: Omit<
-    UseMutationOptions<void, AxiosError, string>, // string is templateId
+    UseMutationOptions<void, AxiosError, DeleteMessageTemplateVariables>,
     "mutationFn"
   >,
-): UseMutationResult<void, AxiosError, string> {
+): UseMutationResult<void, AxiosError, DeleteMessageTemplateVariables> {
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn: DeleteMessageTemplateMutationFn = async (templateId) => {
+  const mutationFn: DeleteMessageTemplateMutationFn = async (variables) => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available for template deletion");
     }
     const workspaceId = workspace.value.id;
+    const { id, channelType } = variables;
 
-    // Assuming the API endpoint is /content/templates and expects a body
-    // with workspaceId and the template id for deletion.
     await axios.delete(`${baseApiUrl}/content/templates`, {
       data: {
         workspaceId,
-        id: templateId, // Map templateId to "id" in the request body
-      } satisfies DeleteMessageTemplateRequest,
+        id,
+        type: channelType,
+      } satisfies ApiDeleteMessageTemplateRequest,
       headers: {
         "Content-Type": "application/json",
         ...authHeaders,
@@ -51,16 +57,16 @@ export function useDeleteMessageTemplateMutation(
     });
   };
 
-  const mutation = useMutation<void, AxiosError, string>({
+  const mutation = useMutation<
+    void,
+    AxiosError,
+    DeleteMessageTemplateVariables
+  >({
     mutationFn,
     ...options,
     onSuccess: (data, variables, context) => {
-      // Call the original onSuccess if provided
       options?.onSuccess?.(data, variables, context);
-
-      // Invalidate message template queries to refresh the list
       if (workspace.type === CompletionStatus.Successful) {
-        // More specific invalidation targeting the workspace
         queryClient.invalidateQueries({
           queryKey: ["messageTemplates", { workspaceId: workspace.value.id }],
         });

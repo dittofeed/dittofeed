@@ -49,12 +49,16 @@ import {
   CompletionStatus,
   MessageTemplateResource,
   MinimalJourneysResource,
+  ResourceTypeEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { useDeleteMessageTemplateMutation } from "../../lib/useDeleteMessageTemplateMutation";
+import {
+  DeleteMessageTemplateVariables,
+  useDeleteMessageTemplateMutation,
+} from "../../lib/useDeleteMessageTemplateMutation";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { GreyButton } from "../greyButtonStyle";
@@ -134,7 +138,7 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 // Adapted from packages/dashboard/src/pages/segments/index.page.tsx
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
-  const rowId = row.original.id;
+  const { id: rowId, definition } = row.original;
   const deleteMessageTemplate = table.options.meta?.deleteMessageTemplate;
   const isDeleting = table.options.meta?.isDeletingTemplateId === rowId;
 
@@ -153,7 +157,14 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
       console.error("deleteMessageTemplate function not found in table meta");
       return;
     }
-    deleteMessageTemplate(rowId);
+    if (!definition) {
+      console.error(
+        "Template definition not found, cannot determine channel type for delete.",
+      );
+      // Optionally show a snackbar message to the user here
+      return;
+    }
+    deleteMessageTemplate({ id: rowId, channelType: definition.type });
     handleClose();
   };
 
@@ -164,7 +175,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           aria-label="actions"
           onClick={handleClick}
           size="small"
-          disabled={isDeleting}
+          disabled={isDeleting || !definition} // Disable if no definition for safety
         >
           {isDeleting ? (
             <CircularProgress size={20} />
@@ -185,7 +196,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
         <MenuItem
           onClick={handleDelete}
           sx={{ color: theme.palette.error.main }}
-          disabled={isDeleting}
+          disabled={isDeleting || !definition} // Disable if no definition
         >
           {isDeleting ? (
             <CircularProgress size={16} sx={{ mr: 1 }} />
@@ -295,7 +306,9 @@ export default function TemplatesTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   // Fetch message templates
-  const messageTemplatesQuery = useMessageTemplatesQuery({});
+  const messageTemplatesQuery = useMessageTemplatesQuery({
+    resourceType: ResourceTypeEnum.Declarative,
+  });
 
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
@@ -425,12 +438,12 @@ export default function TemplatesTable() {
       sorting,
     },
     meta: {
-      deleteMessageTemplate: (templateId: string) => {
+      deleteMessageTemplate: (variables: DeleteMessageTemplateVariables) => {
         if (deleteTemplateMutation.isPending) return;
-        deleteTemplateMutation.mutate(templateId);
+        deleteTemplateMutation.mutate(variables);
       },
       isDeletingTemplateId: deleteTemplateMutation.isPending
-        ? deleteTemplateMutation.variables
+        ? deleteTemplateMutation.variables?.id // Access id from variables
         : null,
     },
   });
@@ -648,7 +661,7 @@ export default function TemplatesTable() {
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
-    deleteMessageTemplate?: (templateId: string) => void;
+    deleteMessageTemplate?: (variables: DeleteMessageTemplateVariables) => void;
     isDeletingTemplateId?: string | null; // To track which template is being deleted
   }
 }
