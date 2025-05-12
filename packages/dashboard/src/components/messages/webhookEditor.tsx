@@ -10,7 +10,6 @@ import {
   RenderMessageTemplateType,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import TemplateEditor, {
@@ -62,22 +61,11 @@ export default function WebhookEditor({
   defaultIsUserPropertiesMinimised?: boolean;
 }) {
   const theme = useTheme();
-  const { messages: templates, userProperties } = useAppStorePick([
+  const { userProperties } = useAppStorePick([
     "messages",
     "viewDraft",
     "userProperties",
   ]);
-  const template = useMemo(
-    () =>
-      templates.type === CompletionStatus.Successful
-        ? templates.value.find((t) => t.id === templateId)
-        : undefined,
-    [templates, templateId],
-  );
-
-  if (template?.type !== ChannelType.Webhook) {
-    return null;
-  }
 
   return (
     <TemplateEditor

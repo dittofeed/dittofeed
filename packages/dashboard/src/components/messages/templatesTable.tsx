@@ -229,9 +229,30 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
 // Cell renderer for Name column
 function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   const name = getValue<string>();
-  const templateId = row.original.id;
-  // TODO: determine the correct href for template details page
-  const href = `/templates/${templateId}`; // Placeholder Link
+  const { id: templateId, definition } = row.original;
+
+  let channelPath = "unknown";
+  if (definition) {
+    switch (definition.type) {
+      case ChannelType.Email:
+        channelPath = "email";
+        break;
+      case ChannelType.Sms:
+        channelPath = "sms";
+        break;
+      case ChannelType.MobilePush:
+        channelPath = "mobilepush";
+        break;
+      case ChannelType.Webhook:
+        channelPath = "webhook";
+        break;
+      default:
+        assertUnreachable(definition);
+    }
+  }
+
+  // Construct channel-specific route
+  const href = `/templates/${channelPath}/${templateId}`;
 
   return (
     <Stack
@@ -437,8 +458,28 @@ export default function TemplatesTable() {
         setSnackbarMessage("Template created successfully!");
         setSnackbarOpen(true);
         handleCloseDialog();
-        // Navigate to the new template edit page
-        router.push(`/templates/${data.id}`);
+
+        // Get channel path for navigation
+        let channelPath = "unknown";
+        switch (selectedChannel) {
+          case ChannelType.Email:
+            channelPath = "email";
+            break;
+          case ChannelType.Sms:
+            channelPath = "sms";
+            break;
+          case ChannelType.MobilePush:
+            channelPath = "mobilepush";
+            break;
+          case ChannelType.Webhook:
+            channelPath = "webhook";
+            break;
+          default:
+            assertUnreachable(selectedChannel);
+        }
+
+        // Navigate to channel-specific template edit page
+        router.push(`/templates/${channelPath}/${data.id}`);
       },
       onError: (error) => {
         const errorMsg = error.message || "Failed to create template.";
