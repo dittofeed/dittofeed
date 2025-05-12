@@ -289,7 +289,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 
 export default function TemplatesTable() {
   const theme = useTheme();
-  const _queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -310,7 +310,7 @@ export default function TemplatesTable() {
   //   onSuccess: () => {
   //     setSnackbarMessage("Template deleted successfully!");
   //     setSnackbarOpen(true);
-  //     _queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
+  //     queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
   //   },
   //   onError: () => {
   //     setSnackbarMessage("Failed to delete template.");
