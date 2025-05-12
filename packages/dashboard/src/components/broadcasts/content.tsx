@@ -28,8 +28,6 @@ import {
 } from "../messageTemplateAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
 
-const DEFAULT_EMAIL_CONTENTS_TYPE = EmailContentsType.LowCode;
-
 function EmailControls({
   emailContentType,
   setEmailContentType,
