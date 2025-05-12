@@ -1,5 +1,4 @@
 import { Type } from "@sinclair/typebox";
-import { Client, Connection } from "@temporalio/client";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
@@ -26,6 +25,7 @@ import logger from "backend-lib/src/logger";
 import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
+import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
 import { NodeEnvEnum, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
@@ -985,11 +985,7 @@ export function createCommands(yargs: Argv): Argv {
       (cmd) => cmd, // No specific options needed for now
       async () => {
         logger().info("Getting compute properties queue state");
-        const connection = await Connection.connect({}); // Assumes default connection options
-        const client = new Client({
-          connection,
-          namespace: backendConfig().temporalNamespace,
-        });
+        const client = await connectWorkflowClient();
 
         logger().info(
           {
@@ -998,9 +994,7 @@ export function createCommands(yargs: Argv): Argv {
           "Querying workflow",
         );
 
-        const handle = client.workflow.getHandle(
-          COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
-        );
+        const handle = client.getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID);
         const state = await handle.query(getQueueStateQuery);
 
         logger().info(
