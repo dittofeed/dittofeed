@@ -9,9 +9,6 @@ import {
   SendMessageParameters,
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
-import { defaultEmailDefinition } from "backend-lib/src/messaging/email";
-import { defaultSmsDefinition } from "backend-lib/src/messaging/sms";
-import { DEFAULT_WEBHOOK_DEFINITION } from "backend-lib/src/messaging/webhook";
 import { Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
 import { and, eq, inArray, SQL } from "drizzle-orm";
@@ -19,8 +16,10 @@ import { toMjml } from "emailo/src/toMjml";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { defaultEmailDefinition } from "isomorphic-lib/src/email";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { defaultSmsDefinition } from "isomorphic-lib/src/sms";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BadWorkspaceConfigurationType,
@@ -52,6 +51,7 @@ import {
   UpsertMessageTemplateValidationError,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
+import { DEFAULT_WEBHOOK_DEFINITION } from "isomorphic-lib/src/webhook";
 import * as R from "remeda";
 
 // eslint-disable-next-line @typescript-eslint/require-await
