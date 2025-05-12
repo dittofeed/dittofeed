@@ -9,11 +9,11 @@ import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
-  MessageTemplateResourceDefinition,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { getDefaultMessageTemplateDefinition } from "../../lib/defaultTemplateDefinition";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useMessageTemplateQuery } from "../../lib/useMessageTemplateQuery";
@@ -27,8 +27,6 @@ import {
   SimpleMessageTemplate,
 } from "../messageTemplateAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
-
-const DEFAULT_EMAIL_CONTENTS_TYPE = EmailContentsType.LowCode;
 
 function EmailControls({
   emailContentType,
@@ -114,22 +112,7 @@ function BroadcastMessageTemplateEditor({
       broadcastId,
     });
 
-    let definition: MessageTemplateResourceDefinition;
-    switch (messageType) {
-      case ChannelType.Email:
-        definition = defaultEmailDefinition({
-          emailContentsType: DEFAULT_EMAIL_CONTENTS_TYPE,
-        });
-        break;
-      case ChannelType.Sms:
-        definition = {
-          type: ChannelType.Sms,
-          body: "test",
-        };
-        break;
-      default:
-        return;
-    }
+    const definition = getDefaultMessageTemplateDefinition(messageType);
 
     updateMessageTemplateMutation.mutate(
       {

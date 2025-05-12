@@ -10,20 +10,11 @@ import {
 } from "../db/schema";
 import logger from "../logger";
 import {
-  ChannelType,
   PersistedSmsProvider,
   SmsProvider,
   SmsProviderType,
-  SmsTemplateResource,
   UpsertSmsProviderRequest,
 } from "../types";
-
-export function defaultSmsDefinition(): SmsTemplateResource {
-  return {
-    type: ChannelType.Sms,
-    body: "Example message to {{ user.phone }}",
-  };
-}
 
 export async function upsertSmsProvider({
   workspaceId,

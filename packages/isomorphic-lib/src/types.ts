@@ -4880,6 +4880,7 @@ export type GetGroupsForUserResponse = Static<typeof GetGroupsForUserResponse>;
 
 export const GetJourneysResourcesConfig = Type.Object({
   segments: Type.Optional(Type.Boolean()),
+  messageTemplates: Type.Optional(Type.Boolean()),
 });
 
 export type GetJourneysResourcesConfig = Static<
@@ -4904,6 +4905,7 @@ export const MinimalJourneysResource = Type.Object({
   id: Type.String(),
   name: Type.String(),
   segments: Type.Optional(Type.Array(Type.String())),
+  messageTemplates: Type.Optional(Type.Array(Type.String())),
 });
 
 export type MinimalJourneysResource = Static<typeof MinimalJourneysResource>;
