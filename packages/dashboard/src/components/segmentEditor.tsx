@@ -13,7 +13,6 @@ import {
   Stack,
   SxProps,
   TextField,
-  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -29,6 +28,7 @@ import { isBodySegmentNode } from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BodySegmentNode,
+  ChannelType,
   CompletionStatus,
   EmailSegmentNode,
   InternalEventType,
@@ -68,7 +68,7 @@ import React, {
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
-import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import { useSegmentQuery } from "../lib/useSegmentQuery";
 import { CsvUploader } from "./csvUploader";
@@ -79,7 +79,8 @@ import {
 } from "./eventsAutocomplete";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
-import SubscriptionGroupAutocomplete from "./subscriptionGroupAutocomplete";
+import { MessageTemplateAutocomplete } from "./messageTemplateAutocomplete";
+import { SubscriptionGroupAutocompleteV2 } from "./subscriptionGroupAutocomplete";
 import TraitAutocomplete from "./traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -1958,7 +1959,6 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  const { messages } = useAppStorePick(["messages"]);
 
   const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
@@ -1968,22 +1968,6 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
       }
     });
   };
-
-  const { messageOptions, message } = useMemo(() => {
-    const msgOpt =
-      messages.type === CompletionStatus.Successful
-        ? messages.value.map((m) => ({
-            label: m.name,
-            id: m.id,
-          }))
-        : [];
-    const msg = msgOpt.find((m) => m.id === node.templateId) ?? null;
-
-    return {
-      messageOptions: msgOpt,
-      message: msg,
-    };
-  }, [messages, node.templateId]);
 
   const eventLabelId = `email-event-label-${node.id}`;
   return (
@@ -2005,31 +1989,19 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
         </Select>
       </FormControl>
       <Box sx={{ width: selectorWidth }}>
-        <Tooltip placement="right" arrow title={message?.label}>
-          <Autocomplete
-            value={message}
-            disabled={disabled}
-            onChange={(_event, newValue) => {
-              updateEditableSegmentNodeData(
-                setState,
-                node.id,
-                (segmentNode) => {
-                  if (newValue && segmentNode.type === SegmentNodeType.Email) {
-                    segmentNode.templateId = newValue.id;
-                  }
-                },
-              );
-            }}
-            options={messageOptions}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Email Template"
-                variant="outlined"
-              />
-            )}
-          />
-        </Tooltip>
+        <MessageTemplateAutocomplete
+          messageTemplateId={node.templateId}
+          label="Email Template"
+          disabled={disabled}
+          handler={(newValue) => {
+            updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
+              if (segmentNode.type === SegmentNodeType.Email && newValue?.id) {
+                segmentNode.templateId = newValue.id;
+              }
+            });
+          }}
+          channel={ChannelType.Email}
+        />
       </Box>
     </Stack>
   );
@@ -2045,7 +2017,7 @@ function SubscriptionGroupSelect({
 
   return (
     <Box sx={{ width: selectorWidth }}>
-      <SubscriptionGroupAutocomplete
+      <SubscriptionGroupAutocompleteV2
         disabled={disabled}
         subscriptionGroupId={node.subscriptionGroupId}
         handler={(newValue) => {
