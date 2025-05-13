@@ -196,4 +196,39 @@ describe("authenticateAdminApiKey", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("when the admin key is for a different root workspace", () => {
+    let workspace: Workspace;
+    let differentRootWorkspace: Workspace;
+    let adminApiKey: string;
+
+    beforeEach(async () => {
+      workspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Root,
+      }).then(unwrap);
+
+      differentRootWorkspace = await createWorkspace({
+        id: uuidv4(),
+        name: `Different Root Workspace ${uuidv4()}`,
+        type: WorkspaceTypeAppEnum.Root,
+      }).then(unwrap);
+
+      adminApiKey = unwrap(
+        await createAdminApiKey({
+          workspaceId: differentRootWorkspace.id,
+          name: "my-admin-api-key",
+        }),
+      ).apiKey;
+    });
+
+    it("should return false", async () => {
+      const result = await authenticateAdminApiKey({
+        workspaceId: workspace.id,
+        actualKey: adminApiKey,
+      });
+      expect(result).toBe(false);
+    });
+  });
 });

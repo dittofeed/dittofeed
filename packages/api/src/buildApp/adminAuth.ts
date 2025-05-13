@@ -44,33 +44,53 @@ export async function authenticateAdminApiKeyFull({
       )
       .where(
         or(
-          // Condition 1: API key belongs to workspace
-          exists(
-            db()
-              .select({ id: schema.workspace.id })
-              .from(schema.workspace)
-              .where(
-                and(
-                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
-                  eq(schema.workspace.id, workspaceId),
-                ),
-              ),
-          ),
-          // Condition 2: API key belongs to parent workspace
-          exists(
-            db()
-              .select({ id: schema.workspace.id })
-              .from(schema.workspace)
-              .where(
-                and(
-                  eq(
-                    schema.workspace.parentWorkspaceId,
-                    schema.adminApiKey.workspaceId,
+          // Condition 1: API key belongs DIRECTLY to the target workspace, and that workspace is active.
+          and(
+            eq(schema.adminApiKey.workspaceId, workspaceId), // Key's workspace IS the target workspace
+            exists(
+              // And the target workspace is active
+              db()
+                .select({ id: schema.workspace.id })
+                .from(schema.workspace)
+                .where(
+                  and(
+                    eq(schema.workspace.id, workspaceId),
+                    eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
                   ),
-                  eq(schema.workspace.parentWorkspaceId, workspaceId),
-                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
                 ),
-              ),
+            ),
+          ),
+          // Condition 2: API key belongs to the PARENT of the target workspace,
+          // and the target workspace is active, and the parent workspace (key owner) is also active.
+          and(
+            exists(
+              // Check: target workspace is active AND its parent is the API key's workspace
+              db()
+                .select({ id: schema.workspace.id }) // Target workspace
+                .from(schema.workspace)
+                .where(
+                  and(
+                    eq(schema.workspace.id, workspaceId), // This is the target workspace
+                    eq(schema.workspace.status, WorkspaceStatusDbEnum.Active), // Target is active
+                    eq(
+                      schema.workspace.parentWorkspaceId,
+                      schema.adminApiKey.workspaceId,
+                    ), // Target's parent is key's workspace
+                  ),
+                ),
+            ),
+            exists(
+              // Also ensure the API key's own workspace (the parent) is active
+              db()
+                .select({ id: schema.workspace.id }) // API key's own workspace (parent)
+                .from(schema.workspace)
+                .where(
+                  and(
+                    eq(schema.workspace.id, schema.adminApiKey.workspaceId),
+                    eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
+                  ),
+                ),
+            ),
           ),
         ),
       );
@@ -89,34 +109,50 @@ export async function authenticateAdminApiKeyFull({
       )
       .where(
         or(
-          // Condition 1: API key belongs to workspace with external ID
+          // Condition 1: API key belongs to the workspace identified by externalId, and that workspace is active.
           exists(
             db()
               .select({ id: schema.workspace.id })
-              .from(schema.workspace)
+              .from(schema.workspace) // This is the key's workspace / target workspace
               .where(
                 and(
-                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
-                  eq(schema.workspace.id, schema.adminApiKey.workspaceId),
-                  eq(schema.workspace.externalId, externalId),
+                  eq(schema.workspace.id, schema.adminApiKey.workspaceId), // Key belongs to this workspace
+                  eq(schema.workspace.externalId, externalId), // This workspace has the given externalId
+                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active), // And this workspace is active
                 ),
               ),
           ),
-          // Condition 2: API key belongs to parent of workspace with external ID
-          exists(
-            db()
-              .select({ id: schema.workspace.id })
-              .from(schema.workspace)
-              .where(
-                and(
-                  eq(
-                    schema.workspace.parentWorkspaceId,
-                    schema.adminApiKey.workspaceId,
+          // Condition 2: API key belongs to the PARENT of the workspace identified by externalId.
+          // Both the target workspace (with externalId) and the parent workspace (key owner) must be active.
+          and(
+            exists(
+              // Check: target workspace (identified by externalId) is active AND its parent is the API key's workspace
+              db()
+                .select({ id: schema.workspace.id }) // Target workspace
+                .from(schema.workspace)
+                .where(
+                  and(
+                    eq(schema.workspace.externalId, externalId), // Target has the externalId
+                    eq(schema.workspace.status, WorkspaceStatusDbEnum.Active), // Target is active
+                    eq(
+                      schema.workspace.parentWorkspaceId,
+                      schema.adminApiKey.workspaceId,
+                    ), // Target's parent is key's workspace
                   ),
-                  eq(schema.workspace.externalId, externalId),
-                  eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
                 ),
-              ),
+            ),
+            exists(
+              // Also ensure the API key's own workspace (the parent) is active
+              db()
+                .select({ id: schema.workspace.id }) // API key's own workspace (parent)
+                .from(schema.workspace)
+                .where(
+                  and(
+                    eq(schema.workspace.id, schema.adminApiKey.workspaceId),
+                    eq(schema.workspace.status, WorkspaceStatusDbEnum.Active),
+                  ),
+                ),
+            ),
           ),
         ),
       );
@@ -193,40 +229,76 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
     }
     const workspaceIdentifier = workspaceIdentifierResult.value;
     if (!workspaceIdentifier) {
+      const errorMessage = "workspace identifier missing for request";
       logger().info(
         {
           path: request.url,
           method: request.method,
         },
-        "workspace identifier missing for request",
+        errorMessage,
       );
-      return reply.status(401).send();
+      return reply.status(401).send({
+        message: errorMessage,
+      });
     }
-    const actualKey = request.headers.authorization?.trim().split(" ")[1];
-    if (!actualKey) {
+    if (!request.headers.authorization) {
+      const errorMessage = "No authorization header";
       logger().info(
         {
           path: request.url,
           method: request.method,
         },
-        "API key missing for request",
+        errorMessage,
       );
-      return reply.status(401).send();
+      return reply.status(401).send({
+        message: errorMessage,
+      });
+    }
+    const splitAuth = request.headers.authorization.trim().split(" ");
+    if (splitAuth.length !== 2 || splitAuth[0] !== "Bearer") {
+      const errorMessage = "Invalid authorization header";
+      logger().info(
+        {
+          path: request.url,
+          method: request.method,
+        },
+        errorMessage,
+      );
+      return reply.status(401).send({
+        message: errorMessage,
+      });
+    }
+    const actualKey = splitAuth[1];
+    if (!actualKey) {
+      const errorMessage = "API key missing for request";
+      logger().info(
+        {
+          path: request.url,
+          method: request.method,
+        },
+        errorMessage,
+      );
+      return reply.status(401).send({
+        message: errorMessage,
+      });
     }
     const authenticated = await authenticateAdminApiKey({
       ...workspaceIdentifier,
       actualKey,
     });
     if (!authenticated) {
+      const errorMessage = "API key not valid";
       logger().info(
         {
           path: request.url,
           method: request.method,
           ...workspaceIdentifier,
         },
-        "API key not authenticated",
+        errorMessage,
       );
-      return reply.status(401).send();
+      return reply.status(401).send({
+        messsage: errorMessage,
+      });
     }
   });
 });
