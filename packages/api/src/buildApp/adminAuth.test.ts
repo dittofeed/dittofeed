@@ -197,7 +197,7 @@ describe("authenticateAdminApiKey", () => {
     });
   });
 
-  describe.only("when the admin key is for a different root workspace", () => {
+  describe("when the admin key is for a different root workspace", () => {
     let workspace: Workspace;
     let differentRootWorkspace: Workspace;
     let adminApiKey: string;
