@@ -79,6 +79,7 @@ import {
 } from "./eventsAutocomplete";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
+import SubscriptionGroupAutocomplete from "./subscriptionGroupAutocomplete";
 import TraitAutocomplete from "./traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -2041,31 +2042,13 @@ function SubscriptionGroupSelect({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  const subscriptionGroups = useAppStore((s) => s.subscriptionGroups);
-  const subscriptionGroupOptions = useMemo(
-    () =>
-      subscriptionGroups.map((sg) => ({
-        label: sg.name,
-        id: sg.id,
-      })),
-    [subscriptionGroups],
-  );
-
-  const subscriptionGroup = useMemo(
-    () =>
-      subscriptionGroupOptions.find(
-        (sg) => sg.id === node.subscriptionGroupId,
-      ) ?? null,
-    [subscriptionGroupOptions, node.subscriptionGroupId],
-  );
 
   return (
-    // FIXME
     <Box sx={{ width: selectorWidth }}>
-      <Autocomplete
+      <SubscriptionGroupAutocomplete
         disabled={disabled}
-        value={subscriptionGroup}
-        onChange={(_event, newValue) => {
+        subscriptionGroupId={node.subscriptionGroupId}
+        handler={(newValue) => {
           updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
             if (
               newValue &&
@@ -2075,17 +2058,6 @@ function SubscriptionGroupSelect({
             }
           });
         }}
-        options={subscriptionGroupOptions}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="subscription group"
-            variant="outlined"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-        )}
       />
     </Box>
   );
