@@ -1046,6 +1046,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           event={node.event}
           property={property.path}
           onPropertyChange={handlePropertyPathChange}
+          sx={{ width: selectorWidth }}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1212,6 +1213,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           event={node.event}
           property={property.path}
           onPropertyChange={handlePropertyPathChange}
+          sx={{ width: selectorWidth }}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1246,6 +1248,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         <EventNamesAutocomplete
           event={node.event}
           onEventChange={handleEventNameChange}
+          sx={{ width: selectorWidth }}
         />
         <Button variant="contained" onClick={handleAddWhereProperty}>
           Where Property
@@ -1497,6 +1500,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           event={node.event}
           property={property.path}
           onPropertyChange={handlePropertyPathChange}
+          sx={{ width: selectorWidth }}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1565,6 +1569,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         <EventNamesAutocomplete
           event={node.event}
           onEventChange={handleEventNameChange}
+          sx={{ width: selectorWidth }}
         />
         <Select
           onChange={handleTimesOperatorChange}
@@ -1824,6 +1829,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           event={node.event}
           property={property.path}
           onPropertyChange={handlePropertyPathChange}
+          sx={{ width: selectorWidth }}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1866,6 +1872,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
       disabled={disabled}
       label="Property Key Path"
       onPropertyChange={handleKeyChange}
+      sx={{ width: selectorWidth }}
     />
   );
 
@@ -1875,6 +1882,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         <EventNamesAutocomplete
           event={node.event}
           onEventChange={handleEventNameChange}
+          sx={{ width: selectorWidth }}
         />
         {keySelector}
         <Select
@@ -2192,6 +2200,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           traitPath={traitPath}
           traitOnChange={traitOnChange}
           disabled={disabled}
+          sx={{ width: selectorWidth }}
         />
       </Box>
       <Box sx={{ width: secondarySelectorWidth }}>
