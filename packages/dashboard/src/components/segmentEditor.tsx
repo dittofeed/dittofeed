@@ -70,11 +70,13 @@ import { v4 as uuid } from "uuid";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
-import useLoadProperties from "../lib/useLoadProperties";
-import useLoadTraits from "../lib/useLoadTraits";
 import { useSegmentQuery } from "../lib/useSegmentQuery";
 import { CsvUploader } from "./csvUploader";
 import DurationSelect from "./durationSelect";
+import {
+  EventNamesAutocomplete,
+  PropertiesAutocomplete,
+} from "./eventsAutocomplete";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 import TraitAutocomplete from "./traitAutocomplete";
@@ -780,7 +782,6 @@ function DurationValueSelect({
 function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  const { properties } = useAppStorePick(["properties"]);
 
   const handleEventNameChange = (newEvent: string) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
@@ -1041,21 +1042,10 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <Autocomplete
-          value={property.path}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={properties[node.event] ?? []}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handlePropertyPathChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Property Path" {...params} variant="outlined" />
-          )}
+        <PropertiesAutocomplete
+          event={node.event}
+          property={property.path}
+          onPropertyChange={handlePropertyPathChange}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1218,21 +1208,10 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <Autocomplete
-          value={property.path}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={properties[node.event] ?? []}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handlePropertyPathChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Property Path" {...params} variant="outlined" />
-          )}
+        <PropertiesAutocomplete
+          event={node.event}
+          property={property.path}
+          onPropertyChange={handlePropertyPathChange}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1264,21 +1243,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Autocomplete
-          value={node.event}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={Object.keys(properties)}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handleEventNameChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Event Name" {...params} variant="outlined" />
-          )}
+        <EventNamesAutocomplete
+          event={node.event}
+          onEventChange={handleEventNameChange}
         />
         <Button variant="contained" onClick={handleAddWhereProperty}>
           Where Property
@@ -1304,7 +1271,6 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  const { properties } = useAppStorePick(["properties"]);
 
   const handleEventNameChange = (newEvent: string) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
@@ -1527,21 +1493,10 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <Autocomplete
-          value={property.path}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={properties[node.event] ?? []}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handlePropertyPathChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Property Path" {...params} variant="outlined" />
-          )}
+        <PropertiesAutocomplete
+          event={node.event}
+          property={property.path}
+          onPropertyChange={handlePropertyPathChange}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1607,21 +1562,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Autocomplete
-          value={node.event}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={Object.keys(properties)}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handleEventNameChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Event Name" {...params} variant="outlined" />
-          )}
+        <EventNamesAutocomplete
+          event={node.event}
+          onEventChange={handleEventNameChange}
         />
         <Select
           onChange={handleTimesOperatorChange}
@@ -1660,7 +1603,6 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  const { properties } = useAppStorePick(["properties"]);
 
   const handleEventNameChange = (newEvent: string) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
@@ -1878,21 +1820,10 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           alignItems: "center",
         }}
       >
-        <Autocomplete
-          value={property.path}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={properties[node.event] ?? []}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handlePropertyPathChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Property Path" {...params} variant="outlined" />
-          )}
+        <PropertiesAutocomplete
+          event={node.event}
+          property={property.path}
+          onPropertyChange={handlePropertyPathChange}
         />
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
@@ -1929,42 +1860,21 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     });
   };
   const keySelector = (
-    <Autocomplete
-      value={node.key}
+    <PropertiesAutocomplete
+      property={node.key}
+      event={node.event}
       disabled={disabled}
-      freeSolo
-      sx={{ width: selectorWidth }}
-      options={properties[node.event] ?? []}
-      onInputChange={(_event, newKey) => {
-        if (newKey === undefined || newKey === null) {
-          return;
-        }
-        handleKeyChange(newKey);
-      }}
-      renderInput={(params) => (
-        <TextField label="Property Key Path" {...params} variant="outlined" />
-      )}
+      label="Property Key Path"
+      onPropertyChange={handleKeyChange}
     />
   );
 
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Autocomplete
-          value={node.event}
-          disabled={disabled}
-          freeSolo
-          sx={{ width: selectorWidth }}
-          options={Object.keys(properties)}
-          onInputChange={(_event, newPath) => {
-            if (newPath === undefined || newPath === null) {
-              return;
-            }
-            handleEventNameChange(newPath);
-          }}
-          renderInput={(params) => (
-            <TextField label="Event Name" {...params} variant="outlined" />
-          )}
+        <EventNamesAutocomplete
+          event={node.event}
+          onEventChange={handleEventNameChange}
         />
         {keySelector}
         <Select
@@ -2177,7 +2087,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
 
-  const traits = useAppStore((store) => store.traits);
   const operator = keyedOperatorOptions[node.operator.type];
   if (!operator) {
     throw new Error(`Unsupported operator type: ${node.operator.type}`);
@@ -2283,7 +2192,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           traitPath={traitPath}
           traitOnChange={traitOnChange}
           disabled={disabled}
-          traits={traits}
         />
       </Box>
       <Box sx={{ width: secondarySelectorWidth }}>
@@ -2728,9 +2636,6 @@ export default function SegmentEditor({
 }: SegmentEditorProps) {
   const theme = useTheme();
   const { data: segment, isError, isPending } = useSegmentQuery(segmentId);
-
-  useLoadTraits();
-  useLoadProperties();
 
   const [state, setState] = useImmer<SegmentEditorState | null>(
     segment

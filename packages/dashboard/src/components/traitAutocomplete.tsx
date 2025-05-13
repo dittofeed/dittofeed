@@ -1,18 +1,19 @@
 import { Autocomplete, TextField } from "@mui/material";
 
+import { useTraitsQuery } from "../lib/useTraitsQuery";
+
 interface TraitAutocompleteProps {
   traitPath: string;
   traitOnChange: (newValue: string) => void;
   disabled?: boolean;
-  traits: string[];
 }
 
 export default function TraitAutocomplete({
   traitPath,
   traitOnChange,
   disabled,
-  traits,
 }: TraitAutocompleteProps) {
+  const { data: traits } = useTraitsQuery();
   return (
     <Autocomplete
       value={traitPath}
@@ -21,7 +22,7 @@ export default function TraitAutocomplete({
         traitOnChange(newValue);
       }}
       disableClearable
-      options={traits}
+      options={traits?.traits ?? []}
       renderInput={(params) => (
         <TextField
           {...params}
