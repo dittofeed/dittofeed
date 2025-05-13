@@ -2060,6 +2060,7 @@ function SubscriptionGroupSelect({
   );
 
   return (
+    // FIXME
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
         disabled={disabled}
