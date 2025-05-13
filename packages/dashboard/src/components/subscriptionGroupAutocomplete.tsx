@@ -64,7 +64,7 @@ export function SubscriptionGroupAutocompleteV2({
 }: {
   subscriptionGroupId?: string;
   disabled?: boolean;
-  channel: ChannelType;
+  channel?: ChannelType;
   handler: SubscriptionGroupChangeHandler;
   disableClearable?: boolean;
   selectInitialDefault?: boolean;
@@ -75,6 +75,9 @@ export function SubscriptionGroupAutocompleteV2({
     const groups = queryData?.subscriptionGroups;
     if (!groups) {
       return [];
+    }
+    if (!channel) {
+      return groups;
     }
     return groups.filter((sg) => sg.channel === channel);
   }, [queryData, channel]);

@@ -1,5 +1,6 @@
 import { Autocomplete, CircularProgress, TextField } from "@mui/material";
 import {
+  ChannelType,
   MessageTemplateResource,
   ResourceTypeEnum,
 } from "isomorphic-lib/src/types";
@@ -25,10 +26,14 @@ export function MessageTemplateAutocomplete({
   messageTemplateId,
   disabled,
   handler,
+  channel,
+  label,
 }: {
   messageTemplateId?: string;
   disabled?: boolean;
   handler: MessageTemplateChangeHandler;
+  channel?: ChannelType;
+  label?: string;
 }) {
   const { data: queryData, isLoading } = useMessageTemplatesQuery({
     resourceType: ResourceTypeEnum.Declarative,
@@ -41,11 +46,16 @@ export function MessageTemplateAutocomplete({
       return [];
     }
     // Assuming MessageTemplateResource has id and name properties
-    return templates.map((t: MessageTemplateResource) => ({
-      id: t.id,
-      name: t.name,
-    }));
-  }, [queryData]);
+    return templates.flatMap((t: MessageTemplateResource) => {
+      if (channel && t.definition?.type !== channel) {
+        return [];
+      }
+      return {
+        id: t.id,
+        name: t.name,
+      };
+    });
+  }, [queryData, channel]);
 
   const messageTemplate = useMemo(() => {
     return (
@@ -67,7 +77,7 @@ export function MessageTemplateAutocomplete({
       renderInput={(params) => (
         <TextField
           {...params}
-          label="Message Template"
+          label={label ?? "Message Template"}
           variant="outlined"
           InputProps={{
             ...params.InputProps,

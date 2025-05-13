@@ -1,36 +1,53 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, SxProps, TextField } from "@mui/material";
+
+import { useTraitsQuery } from "../lib/useTraitsQuery";
 
 interface TraitAutocompleteProps {
   traitPath: string;
   traitOnChange: (newValue: string) => void;
   disabled?: boolean;
-  traits: string[];
+  sx?: SxProps;
 }
 
 export default function TraitAutocomplete({
   traitPath,
   traitOnChange,
   disabled,
-  traits,
+  sx,
 }: TraitAutocompleteProps) {
+  const { data: traits } = useTraitsQuery();
   return (
     <Autocomplete
       value={traitPath}
       freeSolo
-      onInputChange={(_event, newValue) => {
-        traitOnChange(newValue);
+      sx={sx}
+      onInputChange={(event, newValue, reason) => {
+        if (reason === "input") {
+          traitOnChange(newValue);
+        }
+      }}
+      onChange={(event, newValue) => {
+        if (newValue === null) {
+          traitOnChange("");
+          return;
+        }
+
+        let finalValue = newValue;
+        // Format the value if it's a string containing a space
+        if (typeof newValue === "string" && newValue.includes(" ")) {
+          if (!newValue.startsWith('$["')) {
+            finalValue = `$["${newValue}"]`;
+          }
+        }
+        traitOnChange(finalValue);
       }}
       disableClearable
-      options={traits}
+      options={traits?.traits ?? []}
       renderInput={(params) => (
         <TextField
           {...params}
           disabled={disabled}
           label="Trait"
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const newValue = event.target.value;
-            traitOnChange(newValue);
-          }}
           InputProps={{
             ...params.InputProps,
             type: "search",
