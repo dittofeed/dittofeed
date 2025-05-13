@@ -1,0 +1,24 @@
+---
+title: "Blob Storage"
+description: "Learn how to configure Dittofeed to use a custom blob storage."
+---
+
+Dittofeed optionally utilizes an s3 compatible blob storage to support features which require storing files. This includes file attachments and in the future image hosting.
+
+## Configuration
+
+```bash
+ENABLE_BLOB_STORAGE=true
+# The endpoint of the blob storage e.g. s3 endpoint
+BLOB_STORAGE_ENDPOINT=http://localhost:9010
+# The access key id for the blob storage
+BLOB_STORAGE_ACCESS_KEY_ID=admin
+# The secret access key for the blob storage
+BLOB_STORAGE_SECRET_ACCESS_KEY=password
+# The bucket to use for the blob storage
+BLOB_STORAGE_BUCKET=dittofeed
+# The region of the blob storage
+BLOB_STORAGE_REGION=us-east-1
+```
+
+We recommend creating a dedicated bucket for Dittofeed to use.
