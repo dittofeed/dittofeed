@@ -1,4 +1,4 @@
-import { Box, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 
 import DashboardContent from "../../components/dashboardContent";
