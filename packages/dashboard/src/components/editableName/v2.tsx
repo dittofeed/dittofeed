@@ -4,7 +4,7 @@ import {
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
 import { Edit } from "@mui/icons-material";
-import { IconButton, Stack, SxProps, ClickAwayListener } from "@mui/material";
+import { ClickAwayListener, IconButton, Stack, SxProps } from "@mui/material";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
@@ -177,7 +177,7 @@ export interface EditableNameHandle {
   hasFocus: () => boolean;
 }
 
-export const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
+const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
   ({ text, onSubmit, disabled }, ref) => {
     // ---------------------------------------------------
     // 7a) React state for memorizedText
