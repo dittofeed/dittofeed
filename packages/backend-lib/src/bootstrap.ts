@@ -77,13 +77,26 @@ const INVALID_COMMON_EMAIL_DOMAINS = new Set([
 
 function isValidDomain(domain: string): boolean {
   if (!domain) return false;
-  if (domain.length > 255) return false;
-  if (domain.startsWith(".") || domain.endsWith(".")) return false;
+  const lowerDomain = domain.toLowerCase();
 
-  // Reject common email domains
-  if (INVALID_COMMON_EMAIL_DOMAINS.has(domain)) return false;
+  if (lowerDomain.length > 255) return false;
+  if (lowerDomain.startsWith(".") || lowerDomain.endsWith(".")) return false;
 
-  return DOMAIN_REGEX.test(domain);
+  // Reject common email domains by checking their constituent parts
+  const parts = lowerDomain.split(".");
+  // A domain must have at least two parts (e.g., name.tld) to be checked here.
+  // Shorter or malformed domains will be caught by the DOMAIN_REGEX.
+  if (parts.length >= 2) {
+    // Iterate through parts of the domain, excluding the last part (assumed TLD).
+    // For "foo.gmail.com", parts are ["foo", "gmail", "com"]. We check "foo" and "gmail".
+    for (const part of parts) {
+      if (INVALID_COMMON_EMAIL_DOMAINS.has(part)) {
+        return false; // Found a restricted part
+      }
+    }
+  }
+
+  return DOMAIN_REGEX.test(lowerDomain);
 }
 
 export async function bootstrapPostgres({
