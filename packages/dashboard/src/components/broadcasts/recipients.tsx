@@ -24,7 +24,7 @@ import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useRecomputeBroadcastSegmentMutation } from "../../lib/useRecomputeBroadcastSegmentMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
-import SegmentEditor, { SegmentEditorProps } from "../segmentEditor";
+import SegmentEditor, { SegmentEditorProps } from "../segments/editor";
 import {
   SegmentChangeHandler,
   SegmentsAutocomplete,

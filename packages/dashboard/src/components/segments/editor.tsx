@@ -68,20 +68,20 @@ import React, {
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
-import { useAppStorePick } from "../lib/appStore";
-import { GroupedOption } from "../lib/types";
-import { useSegmentQuery } from "../lib/useSegmentQuery";
-import { CsvUploader } from "./csvUploader";
-import DurationSelect from "./durationSelect";
+import { useAppStorePick } from "../../lib/appStore";
+import { GroupedOption } from "../../lib/types";
+import { useSegmentQuery } from "../../lib/useSegmentQuery";
+import { CsvUploader } from "../csvUploader";
+import DurationSelect from "../durationSelect";
 import {
   EventNamesAutocomplete,
   PropertiesAutocomplete,
-} from "./eventsAutocomplete";
-import { SubtleHeader } from "./headers";
-import InfoTooltip from "./infoTooltip";
-import { MessageTemplateAutocomplete } from "./messageTemplateAutocomplete";
-import { SubscriptionGroupAutocompleteV2 } from "./subscriptionGroupAutocomplete";
-import TraitAutocomplete from "./traitAutocomplete";
+} from "../eventsAutocomplete";
+import { SubtleHeader } from "../headers";
+import InfoTooltip from "../infoTooltip";
+import { MessageTemplateAutocomplete } from "../messageTemplateAutocomplete";
+import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
+import TraitAutocomplete from "../traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -2356,7 +2356,6 @@ function SegmentNodeComponent({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled, editedSegment } = state;
-  const theme = useTheme();
   const nodeById = useMemo(
     () =>
       editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(
@@ -2432,8 +2431,6 @@ function SegmentNodeComponent({
     <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
       <Typography
         sx={{
-          backgroundColor: theme.palette.grey[200],
-          color: theme.palette.grey[600],
           width: 50,
           visibility: label === "empty" ? "hidden" : "visible",
           display: label === undefined ? "none" : "flex",
@@ -2619,11 +2616,10 @@ export default function SegmentEditor({
   useEffect(() => {
     if (segment && state === null) {
       setState({
-        disabled,
         editedSegment: segment,
       });
     }
-  }, [disabled, segment, setState, state]);
+  }, [segment, setState, state]);
 
   const contextValue: SegmentEditorContextType | null = useMemo(() => {
     if (!state) {
@@ -2655,11 +2651,10 @@ export default function SegmentEditor({
     <SegmentEditorContext.Provider value={contextValue}>
       <Box
         sx={{
-          backgroundColor: "white",
           paddingTop: 3,
           paddingBottom: 3,
           borderRadius: 1,
-          border: `1px solid ${theme.palette.grey[200]}`,
+          border: `1px solid ${theme.palette.grey[300]}`,
           ...sx,
         }}
       >

@@ -91,13 +91,12 @@ export function useUpdateSegmentsMutation(
           queryClient.invalidateQueries({
             queryKey: [
               SEGMENTS_QUERY_KEY,
-              workspaceId,
-              { ids: [savedData.id] },
+              { workspaceId, ids: [savedData.id] },
             ],
           });
         }
         queryClient.invalidateQueries({
-          queryKey: [SEGMENTS_QUERY_KEY, workspaceId],
+          queryKey: [SEGMENTS_QUERY_KEY, { workspaceId }],
         });
       }
     },

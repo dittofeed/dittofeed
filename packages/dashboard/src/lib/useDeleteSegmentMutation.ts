@@ -58,7 +58,7 @@ export function useDeleteSegmentMutation(
       if (workspace.type === CompletionStatus.Successful) {
         const workspaceId = workspace.value.id;
         queryClient.invalidateQueries({
-          queryKey: [SEGMENTS_QUERY_KEY, { workspaceId }], // Adjust query key as needed based on useSegmentsQuery
+          queryKey: [SEGMENTS_QUERY_KEY, { workspaceId }],
         });
         // Optionally invalidate specific segment query if needed, but list invalidation is usually sufficient
       }

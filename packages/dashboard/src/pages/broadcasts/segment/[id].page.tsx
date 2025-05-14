@@ -15,7 +15,7 @@ import { validate } from "uuid";
 
 import SegmentEditor, {
   SegmentEditorProps,
-} from "../../../components/segmentEditor";
+} from "../../../components/segments/editor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
