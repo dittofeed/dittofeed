@@ -2356,7 +2356,6 @@ function SegmentNodeComponent({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled, editedSegment } = state;
-  const theme = useTheme();
   const nodeById = useMemo(
     () =>
       editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(

@@ -562,7 +562,7 @@ export default function TemplatesTable() {
         deleteTemplateMutation.mutate(variables);
       },
       isDeletingTemplateId: deleteTemplateMutation.isPending
-        ? deleteTemplateMutation.variables?.id // Access id from variables
+        ? deleteTemplateMutation.variables.id // Access id from variables
         : null,
     },
   });

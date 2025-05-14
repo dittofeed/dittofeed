@@ -184,8 +184,10 @@ function UsersDrawerHeader({
       >
         <Typography variant="h6">Users</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          {lastRecomputedAt && (
+          {lastRecomputedAt ? (
             <LastRecomputedAt lastRecomputedAt={lastRecomputedAt} />
+          ) : (
+            <Typography variant="body2">Not computed yet</Typography>
           )}
 
           <IconButton onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
@@ -232,14 +234,12 @@ export function SegmentEditorV2({
   });
   const hasUnsavedChanges = useMemo(() => {
     if (!segment || !state.editedSegment) {
-      debugger;
       return false;
     }
     const unsaved = !deepEqual(
       segment.definition,
       state.editedSegment.definition,
     );
-    debugger;
     return unsaved;
   }, [segment, state.editedSegment]);
 
