@@ -2617,11 +2617,10 @@ export default function SegmentEditor({
   useEffect(() => {
     if (segment && state === null) {
       setState({
-        disabled,
         editedSegment: segment,
       });
     }
-  }, [disabled, segment, setState, state]);
+  }, [segment, setState, state]);
 
   const contextValue: SegmentEditorContextType | null = useMemo(() => {
     if (!state) {

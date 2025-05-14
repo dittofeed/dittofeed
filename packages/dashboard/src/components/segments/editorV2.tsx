@@ -17,6 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
+import deepEqual from "fast-deep-equal";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -229,6 +230,18 @@ export function SegmentEditorV2({
     snackbarMessage: "",
     editedSegment: null,
   });
+  const hasUnsavedChanges = useMemo(() => {
+    if (!segment || !state.editedSegment) {
+      debugger;
+      return false;
+    }
+    const unsaved = !deepEqual(
+      segment.definition,
+      state.editedSegment.definition,
+    );
+    debugger;
+    return unsaved;
+  }, [segment, state.editedSegment]);
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation({
     onSuccess: () => {
@@ -305,6 +318,15 @@ export function SegmentEditorV2({
         >
           <EditableTitle text={segment.name} onSubmit={handleNameSave} />
           <Stack direction="row" spacing={1} alignItems="center">
+            <Typography
+              sx={{
+                opacity: hasUnsavedChanges ? 1 : 0,
+                transition: "opacity 0.3s ease-in-out",
+              }}
+              variant="body2"
+            >
+              Unsaved Changes
+            </Typography>
             <GreyButton variant="contained" onClick={handleDefinitionSave}>
               Save
             </GreyButton>
