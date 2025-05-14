@@ -1758,19 +1758,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@clickhouse/client-common@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@clickhouse/client-common@npm:1.4.0"
-  checksum: 10/53f754a738d680f1a52117cc09269aa4a0fc03413efec86d1bf28d0e4ac7127650dfdabc53e796b27f29c4252d171edd477d7da9ef90bfa9415c323677ef1591
+"@clickhouse/client-common@npm:1.11.1":
+  version: 1.11.1
+  resolution: "@clickhouse/client-common@npm:1.11.1"
+  checksum: 10/e1b294cad84db8c1facc77c3a72fc05436519f6420b4cbee08994d5cd8c247ac71fa43f4c53c9f1ec453dcabd7828e5acc5348268286efa9c06d459da9965ccf
   languageName: node
   linkType: hard
 
-"@clickhouse/client@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@clickhouse/client@npm:1.4.0"
+"@clickhouse/client@npm:1.11.1":
+  version: 1.11.1
+  resolution: "@clickhouse/client@npm:1.11.1"
   dependencies:
-    "@clickhouse/client-common": "npm:1.4.0"
-  checksum: 10/bd09cbbfb56657a208b575f9a65452c8eb85f0bef2a9ba5ac13e10b9277c63af8a18d54fc295b10315911a3597c6eafb9f7f9c2e58c5dbe58b06277f73e99914
+    "@clickhouse/client-common": "npm:1.11.1"
+  checksum: 10/d51a85984e06e2593060e19e06b3086a4bf26c15dd3c339b816f4ed7677dc4a80fd213f4a1e8d34ed3ba5af88218fad74937893533080185787c9273b3c39940
   languageName: node
   linkType: hard
 
@@ -12868,7 +12868,7 @@ __metadata:
   dependencies:
     "@aws-sdk/client-s3": "npm:^3.600.0"
     "@aws-sdk/client-sesv2": "npm:^3.535.0"
-    "@clickhouse/client": "npm:1.4.0"
+    "@clickhouse/client": "npm:1.11.1"
     "@fast-csv/format": "npm:^4.3.5"
     "@fastify/type-provider-typebox": "npm:4.0.0"
     "@hyperdx/node-opentelemetry": "npm:^0.8.0"

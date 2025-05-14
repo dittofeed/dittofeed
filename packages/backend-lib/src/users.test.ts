@@ -741,6 +741,8 @@ describe("users", () => {
         workspaceId: workspace.id,
         userIds: [userIds[0]],
       });
+      // eslint-disable-next-line no-promise-executor-return
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const users = await getUsers({
         workspaceId: workspace.id,
       });
