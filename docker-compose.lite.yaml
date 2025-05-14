@@ -118,7 +118,7 @@ services:
     networks:
       - dittofeed-network-lite
   clickhouse-server:
-    image: clickhouse/clickhouse-server:23.8.8.20-alpine
+    image: clickhouse/clickhouse-server:24.12.6.70-alpine
     restart: always
     logging:
       driver: "local"
