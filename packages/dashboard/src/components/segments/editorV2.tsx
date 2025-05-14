@@ -1,4 +1,9 @@
-import { ContentCopyOutlined, ContentCopyTwoTone } from "@mui/icons-material";
+import {
+  Computer,
+  ContentCopyOutlined,
+  ContentCopyTwoTone,
+  Home,
+} from "@mui/icons-material";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import {
@@ -8,8 +13,10 @@ import {
   Stack,
   SxProps,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import { formatDistanceToNow } from "date-fns";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -17,6 +24,7 @@ import { useImmer } from "use-immer";
 
 import { copyToClipboard } from "../../lib/copyToClipboard";
 import formatCurl from "../../lib/formatCurl";
+import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
@@ -28,6 +36,64 @@ import SegmentEditor, { SegmentEditorProps } from "./editor";
 
 const MAX_DRAWER_HEIGHT = "440px";
 const DRAWER_HEADER_HEIGHT = "48px";
+
+function LastRecomputedAt({ lastRecomputedAt }: { lastRecomputedAt: string }) {
+  const date = new Date(lastRecomputedAt);
+
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography variant="body2">Last Recomputed {formatted}</Typography>
+    </Tooltip>
+  );
+}
 
 export function formatSegmentCurl(segment: SegmentResource) {
   return formatCurl({
@@ -85,12 +151,22 @@ export function getSegmentCommands(
 }
 
 function UsersDrawerHeader({
+  segmentId,
   isDrawerOpen,
   setIsDrawerOpen,
 }: {
+  segmentId: string;
   isDrawerOpen: boolean;
   setIsDrawerOpen: (isDrawerOpen: boolean) => void;
 }) {
+  const { data: computedPropertyPeriods } = useComputedPropertyPeriodsQuery({
+    step: "ComputeAssignments",
+  });
+  const lastRecomputedAt = useMemo(() => {
+    return computedPropertyPeriods?.periods.find(
+      (p) => p.type === "Segment" && p.id === segmentId,
+    )?.lastRecomputed;
+  }, [computedPropertyPeriods, segmentId]);
   return (
     <Stack>
       <Stack
@@ -106,13 +182,19 @@ function UsersDrawerHeader({
         }}
       >
         <Typography variant="h6">Users</Typography>
-        <IconButton onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
-          {isDrawerOpen ? (
-            <KeyboardDoubleArrowDownRoundedIcon />
-          ) : (
-            <KeyboardDoubleArrowUpRoundedIcon />
+        <Stack direction="row" spacing={1} alignItems="center">
+          {lastRecomputedAt && (
+            <LastRecomputedAt lastRecomputedAt={lastRecomputedAt} />
           )}
-        </IconButton>
+
+          <IconButton onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
+            {isDrawerOpen ? (
+              <KeyboardDoubleArrowDownRoundedIcon />
+            ) : (
+              <KeyboardDoubleArrowUpRoundedIcon />
+            )}
+          </IconButton>
+        </Stack>
       </Stack>
     </Stack>
   );
@@ -222,7 +304,7 @@ export function SegmentEditorV2({
           alignItems="center"
         >
           <EditableTitle text={segment.name} onSubmit={handleNameSave} />
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="center">
             <GreyButton variant="contained" onClick={handleDefinitionSave}>
               Save
             </GreyButton>
@@ -238,6 +320,7 @@ export function SegmentEditorV2({
         open={state.isDrawerOpen}
         header={
           <UsersDrawerHeader
+            segmentId={id}
             isDrawerOpen={state.isDrawerOpen}
             setIsDrawerOpen={handleIsDrawerOpenChange}
           />
