@@ -3,16 +3,17 @@ import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoub
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import {
   Box,
-  Button,
   IconButton,
+  Snackbar,
   Stack,
   SxProps,
   Theme,
   Typography,
 } from "@mui/material";
 import { SegmentResource } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import { useImmer } from "use-immer";
 
 import { copyToClipboard } from "../../lib/copyToClipboard";
 import formatCurl from "../../lib/formatCurl";
@@ -124,6 +125,12 @@ function UsersDrawerContent({ segmentId }: { segmentId: string }) {
     </Box>
   );
 }
+interface SegmentEditorV2State {
+  isDrawerOpen: boolean;
+  snackbarOpen: boolean;
+  snackbarMessage: string;
+  editedSegment: SegmentResource | null;
+}
 
 export function SegmentEditorV2({
   id,
@@ -132,32 +139,34 @@ export function SegmentEditorV2({
   id: string;
   sx?: SxProps<Theme>;
 }) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const { data: segment } = useSegmentQuery(id);
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [editedSegment, setEditedSegment] = useState<SegmentResource | null>(
-    null,
-  );
+  const [state, setState] = useImmer<SegmentEditorV2State>({
+    isDrawerOpen: true,
+    snackbarOpen: false,
+    snackbarMessage: "",
+    editedSegment: null,
+  });
 
   const segmentsUpdateMutation = useUpdateSegmentsMutation({
     onSuccess: () => {
-      setSnackbarMessage("Segment saved successfully!");
-      setSnackbarOpen(true);
+      setState((draft) => {
+        draft.snackbarOpen = true;
+        draft.snackbarMessage = "Segment saved successfully!";
+      });
     },
   });
 
   const handleDefinitionSave = useCallback(() => {
-    if (!id || !editedSegment) {
+    if (!id || !state.editedSegment) {
       return;
     }
     segmentsUpdateMutation.mutate({
       id,
-      definition: editedSegment.definition,
-      name: editedSegment.name,
+      definition: state.editedSegment.definition,
+      name: state.editedSegment.name,
     });
-  }, [id, segmentsUpdateMutation, editedSegment]);
+  }, [id, segmentsUpdateMutation, state.editedSegment]);
 
   const commands = useMemo(
     () => (segment ? getSegmentCommands(segment) : []),
@@ -180,10 +189,26 @@ export function SegmentEditorV2({
   const handleDefinitionUpdate: SegmentEditorProps["onSegmentChange"] =
     useCallback(
       (s: SegmentResource) => {
-        setEditedSegment(s);
+        setState((draft) => {
+          draft.editedSegment = s;
+        });
       },
-      [setEditedSegment],
+      [setState],
     );
+  const handleSnackbarClose = useCallback(() => {
+    setState((draft) => {
+      draft.snackbarOpen = false;
+    });
+  }, [setState]);
+
+  const handleIsDrawerOpenChange = useCallback(
+    (isDrawerOpen: boolean) => {
+      setState((draft) => {
+        draft.isDrawerOpen = isDrawerOpen;
+      });
+    },
+    [setState],
+  );
 
   if (!segment) {
     return null;
@@ -210,17 +235,24 @@ export function SegmentEditorV2({
         />
       </Stack>
       <InlineDrawer
-        open={isDrawerOpen}
+        open={state.isDrawerOpen}
         header={
           <UsersDrawerHeader
-            isDrawerOpen={isDrawerOpen}
-            setIsDrawerOpen={setIsDrawerOpen}
+            isDrawerOpen={state.isDrawerOpen}
+            setIsDrawerOpen={handleIsDrawerOpenChange}
           />
         }
         maxHeight={MAX_DRAWER_HEIGHT}
       >
         <UsersDrawerContent segmentId={id} />
       </InlineDrawer>
+      <Snackbar
+        open={state.snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={state.snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 }
