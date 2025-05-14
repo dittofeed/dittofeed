@@ -54,18 +54,20 @@ export function useDeleteUserMutation(
       // Call user-provided onSuccess first
       options?.onSuccess?.(data, variables, context);
 
-      // Then, invalidate queries
+      // Then, invalidate queries after a delay to accommodate the time it takes for the backend to process the deletion
       if (workspace.type === CompletionStatus.Successful) {
         const workspaceId = workspace.value.id;
-        // Invalidate all queries starting with USERS_QUERY_KEY for the current workspace
-        queryClient.invalidateQueries({
-          queryKey: [USERS_QUERY_KEY, workspaceId],
-          // consider type: 'all' if you want to remove vs just mark stale
-        });
-        // Invalidate all queries starting with USERS_COUNT_QUERY_KEY for the current workspace
-        queryClient.invalidateQueries({
-          queryKey: [USERS_COUNT_QUERY_KEY, workspaceId],
-        });
+        setTimeout(() => {
+          // Invalidate all queries starting with USERS_QUERY_KEY for the current workspace
+          queryClient.invalidateQueries({
+            queryKey: [USERS_QUERY_KEY, workspaceId],
+            // consider type: 'all' if you want to remove vs just mark stale
+          });
+          // Invalidate all queries starting with USERS_COUNT_QUERY_KEY for the current workspace
+          queryClient.invalidateQueries({
+            queryKey: [USERS_COUNT_QUERY_KEY, workspaceId],
+          });
+        }, 1500); // 1.5 second delay
       }
     },
   });
