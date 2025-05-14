@@ -4,14 +4,26 @@ import {
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
 import { Edit } from "@mui/icons-material";
-import { IconButton, Stack, SxProps } from "@mui/material";
-import ClickAwayListener from "@mui/material/ClickAwayListener";
+import { IconButton, Stack, SxProps, ClickAwayListener } from "@mui/material";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
-import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
+import {
+  EditorState,
+  Plugin,
+  PluginKey,
+  TextSelection,
+  Transaction,
+} from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 import styles from "./editableName.module.css";
 
@@ -159,114 +171,128 @@ function createStoreViewRefPlugin(
 // ============================================
 // 7) EditableNameV2 component
 // ============================================
-export function EditableNameV2({
-  text,
-  onSubmit,
-  disabled,
-}: EditableNameProps) {
-  // ---------------------------------------------------
-  // 7a) React state for memorizedText
-  // ---------------------------------------------------
-  const [memorizedText, setMemorizedText] = useState("");
+export interface EditableNameHandle {
+  focus: () => void;
+  blur: () => void;
+  hasFocus: () => boolean;
+}
 
-  // ---------------------------------------------------
-  // 7b) Ref for EditorView (needed for click-away blur)
-  // ---------------------------------------------------
-  const editorViewRef = useRef<EditorView | null>(null);
+export const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
+  ({ text, onSubmit, disabled }, ref) => {
+    // ---------------------------------------------------
+    // 7a) React state for memorizedText
+    // ---------------------------------------------------
+    const [memorizedText, setMemorizedText] = useState("");
 
-  // ---------------------------------------------------
-  // 7c) Build initial doc
-  // ---------------------------------------------------
-  const safeText = text.trim().length ? text : "\u200B";
-  const paragraph = customSchema.nodes.paragraph!.createAndFill(
-    null,
-    customSchema.text(safeText),
-  );
-  if (!paragraph) {
-    throw new Error("Failed to create initial paragraph node.");
-  }
-  const initialDoc = customSchema.node("doc", null, [paragraph]);
+    // ---------------------------------------------------
+    // 7b) Ref for EditorView (needed for click-away blur)
+    // ---------------------------------------------------
+    const editorViewRef = useRef<EditorView | null>(null);
 
-  // ---------------------------------------------------
-  // 7d) Create the ProseMirror plugins
-  // ---------------------------------------------------
-  // This plugin stores memorizedText, initially empty or ...
-  const reactStatePlugin = createReactStatePlugin({ memorizedText: "" });
+    // ---------------------------------------------------
+    // 7c) Expose methods via useImperativeHandle
+    // ---------------------------------------------------
+    useImperativeHandle(ref, () => ({
+      focus: () => {
+        const view = editorViewRef.current;
+        if (!view) return;
 
-  // Focus plugin: memorizes text on focus, calls onSubmit on blur
-  const focusPlugin = createFocusPlugin(
-    (focusedText) => setMemorizedText(focusedText),
-    (finalText) => {
-      onSubmit?.(finalText);
-    },
-  );
+        view.focus();
+        // Select all text
+        const { state, dispatch } = view;
+        const { doc } = state;
+        const end = doc.content.size;
+        const selection = TextSelection.create(doc, 0, end);
+        dispatch(state.tr.setSelection(selection));
+      },
+      blur: () => {
+        editorViewRef.current?.dom.blur();
+      },
+      hasFocus: () => {
+        return editorViewRef.current?.hasFocus() ?? false;
+      },
+    }));
 
-  // Single-line keymap (Enter/Escape)
-  const singleLine = createSingleLineKeymap();
-
-  // Plugin that stores the EditorView in a ref
-  const storeViewRef = createStoreViewRefPlugin(editorViewRef);
-
-  // ---------------------------------------------------
-  // 7e) Create EditorState
-  // ---------------------------------------------------
-  const [editorState, setEditorState] = useState(() =>
-    EditorState.create({
-      schema: customSchema,
-      doc: initialDoc,
-      plugins: [
-        reactKeys(),
-        singleLine,
-        focusPlugin,
-        reactStatePlugin,
-        storeViewRef,
-      ],
-    }),
-  );
-
-  // ---------------------------------------------------
-  // 7f) useEffect: whenever memorizedText changes in React,
-  //     dispatch a transaction to update the plugin's state
-  //     so the keymap can revert from it on Escape.
-  // ---------------------------------------------------
-  useEffect(() => {
-    // Dispatch a tr that sets meta(reactStateKey, { memorizedText })
-    queueMicrotask(() => {
-      if (!editorViewRef.current) return;
-      const { state, dispatch } = editorViewRef.current;
-      const tr = state.tr.setMeta(reactStateKey, { memorizedText });
-      dispatch(tr);
-    });
-  }, [memorizedText]);
-
-  // ---------------------------------------------------
-  // 7g) Dispatch function
-  // ---------------------------------------------------
-  const dispatchTransaction = (tr: Transaction) => {
-    const newState = editorState.apply(tr);
-    setEditorState(newState);
-  };
-
-  // ---------------------------------------------------
-  // 7h) ClickAway => if editor is focused, blur (microtask)
-  // ---------------------------------------------------
-  const handleClickAway = () => {
-    const view = editorViewRef.current;
-    if (view?.hasFocus()) {
-      // Defer the blur to avoid flushSync warnings
-      queueMicrotask(() => {
-        view.dom.blur();
-      });
+    // ---------------------------------------------------
+    // 7d) Build initial doc
+    // ---------------------------------------------------
+    const safeText = text.trim().length ? text : "\u200B";
+    const paragraph = customSchema.nodes.paragraph!.createAndFill(
+      null,
+      customSchema.text(safeText),
+    );
+    if (!paragraph) {
+      throw new Error("Failed to create initial paragraph node.");
     }
-  };
+    const initialDoc = customSchema.node("doc", null, [paragraph]);
 
-  const editable = useCallback(() => !disabled, [disabled]);
+    // ---------------------------------------------------
+    // 7e) Create the ProseMirror plugins
+    // ---------------------------------------------------
+    // This plugin stores memorizedText, initially empty or ...
+    const reactStatePlugin = createReactStatePlugin({ memorizedText: "" });
 
-  // ---------------------------------------------------
-  // 7i) Render
-  // ---------------------------------------------------
-  return (
-    <ClickAwayListener onClickAway={handleClickAway}>
+    // Focus plugin: memorizes text on focus, calls onSubmit on blur
+    const focusPluginImpl = createFocusPlugin(
+      (focusedText) => setMemorizedText(focusedText),
+      (finalText) => {
+        onSubmit?.(finalText);
+      },
+    );
+
+    // Single-line keymap (Enter/Escape)
+    const singleLine = createSingleLineKeymap();
+
+    // Plugin that stores the EditorView in a ref
+    const storeViewRef = createStoreViewRefPlugin(editorViewRef);
+
+    // ---------------------------------------------------
+    // 7f) Create EditorState
+    // ---------------------------------------------------
+    const [editorState, setEditorState] = useState(() =>
+      EditorState.create({
+        schema: customSchema,
+        doc: initialDoc,
+        plugins: [
+          reactKeys(),
+          singleLine,
+          focusPluginImpl, // Renamed to avoid conflict with component prop
+          reactStatePlugin,
+          storeViewRef,
+        ],
+      }),
+    );
+
+    // ---------------------------------------------------
+    // 7g) useEffect: whenever memorizedText changes in React,
+    //     dispatch a transaction to update the plugin's state
+    //     so the keymap can revert from it on Escape.
+    // ---------------------------------------------------
+    useEffect(() => {
+      // Dispatch a tr that sets meta(reactStateKey, { memorizedText })
+      queueMicrotask(() => {
+        if (!editorViewRef.current) return;
+        const { state, dispatch } = editorViewRef.current;
+        const tr = state.tr.setMeta(reactStateKey, { memorizedText });
+        dispatch(tr);
+      });
+    }, [memorizedText]);
+
+    // ---------------------------------------------------
+    // 7h) Dispatch function
+    // ---------------------------------------------------
+    const dispatchTransaction = (tr: Transaction) => {
+      const newState = editorState.apply(tr);
+      setEditorState(newState);
+    };
+
+    const editable = useCallback(() => !disabled, [disabled]);
+
+    // ---------------------------------------------------
+    // 7i) Render
+    // ---------------------------------------------------
+    return (
+      // ClickAwayListener REMOVED from here
       <span>
         <ProseMirror
           state={editorState}
@@ -285,18 +311,38 @@ export function EditableNameV2({
           <ProseMirrorDoc />
         </ProseMirror>
       </span>
-    </ClickAwayListener>
-  );
-}
+    );
+  },
+);
+
+EditableNameV2.displayName = "EditableNameV2";
 
 export function EditableTitle(props: EditableNameProps & { sx?: SxProps }) {
   const { sx, ...rest } = props;
+  const editableNameRef = useRef<EditableNameHandle>(null);
+
+  const handleEditClick = () => {
+    editableNameRef.current?.focus();
+  };
+
+  const handleClickAway = () => {
+    if (editableNameRef.current?.hasFocus()) {
+      // Defer the blur to avoid flushSync warnings, though it might not be strictly necessary here
+      // as we are not directly inside a PM event handler. Kept for consistency.
+      queueMicrotask(() => {
+        editableNameRef.current?.blur();
+      });
+    }
+  };
+
   return (
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ ...sx }}>
-      <EditableNameV2 {...rest} />
-      <IconButton size="small" onClick={() => {}}>
-        <Edit sx={{ fontSize: "1rem" }} />
-      </IconButton>
-    </Stack>
+    <ClickAwayListener onClickAway={handleClickAway}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ ...sx }}>
+        <EditableNameV2 {...rest} ref={editableNameRef} />
+        <IconButton size="small" onClick={handleEditClick}>
+          <Edit sx={{ fontSize: "1rem" }} />
+        </IconButton>
+      </Stack>
+    </ClickAwayListener>
   );
 }
