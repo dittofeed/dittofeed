@@ -16,9 +16,7 @@ export default function NewSegment() {
   }
   return (
     <DashboardContent>
-      <Box sx={{ padding: theme.spacing(3), height: "100%", width: "100%" }}>
-        <SegmentEditorV2 id={id} />
-      </Box>
+      <SegmentEditorV2 id={id} sx={{ padding: theme.spacing(3) }} />
     </DashboardContent>
   );
 }

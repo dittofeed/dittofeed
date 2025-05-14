@@ -1,7 +1,15 @@
 import { ContentCopyOutlined, ContentCopyTwoTone } from "@mui/icons-material";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
-import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  Stack,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -11,11 +19,11 @@ import formatCurl from "../../lib/formatCurl";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
+import { GreyButton } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
 import { SettingsCommand, SettingsMenu } from "../settingsMenu";
 import UsersTableV2 from "../usersTableV2";
 import SegmentEditor, { SegmentEditorProps } from "./editor";
-import { GreyButton } from "../greyButtonStyle";
 
 const MAX_DRAWER_HEIGHT = "440px";
 const DRAWER_HEADER_HEIGHT = "48px";
@@ -112,13 +120,19 @@ function UsersDrawerHeader({
 function UsersDrawerContent({ segmentId }: { segmentId: string }) {
   return (
     <Box sx={{ flex: 1, overflow: "auto" }}>
-      <UsersTableV2 limit={5} segmentFilter={[segmentId]} />
+      <UsersTableV2 limit={5} segmentFilter={[segmentId]} hideControls />
     </Box>
   );
 }
 
-export function SegmentEditorV2({ id }: { id: string }) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+export function SegmentEditorV2({
+  id,
+  sx,
+}: {
+  id: string;
+  sx?: SxProps<Theme>;
+}) {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const { data: segment } = useSegmentQuery(id);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -133,7 +147,6 @@ export function SegmentEditorV2({ id }: { id: string }) {
       setSnackbarOpen(true);
     },
   });
-  // FIXME: immer
 
   const handleDefinitionSave = useCallback(() => {
     if (!id || !editedSegment) {
@@ -176,8 +189,8 @@ export function SegmentEditorV2({ id }: { id: string }) {
     return null;
   }
   return (
-    <>
-      <Stack spacing={1}>
+    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
+      <Stack spacing={1} sx={sx}>
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -208,6 +221,6 @@ export function SegmentEditorV2({ id }: { id: string }) {
       >
         <UsersDrawerContent segmentId={id} />
       </InlineDrawer>
-    </>
+    </Box>
   );
 }
