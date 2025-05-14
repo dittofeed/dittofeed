@@ -2432,8 +2432,6 @@ function SegmentNodeComponent({
     <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
       <Typography
         sx={{
-          backgroundColor: theme.palette.grey[200],
-          color: theme.palette.grey[600],
           width: 50,
           visibility: label === "empty" ? "hidden" : "visible",
           display: label === undefined ? "none" : "flex",
@@ -2655,11 +2653,10 @@ export default function SegmentEditor({
     <SegmentEditorContext.Provider value={contextValue}>
       <Box
         sx={{
-          backgroundColor: "white",
           paddingTop: 3,
           paddingBottom: 3,
           borderRadius: 1,
-          border: `1px solid ${theme.palette.grey[200]}`,
+          border: `1px solid ${theme.palette.grey[300]}`,
           ...sx,
         }}
       >
