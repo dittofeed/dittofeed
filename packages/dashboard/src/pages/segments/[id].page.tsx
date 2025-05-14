@@ -12,7 +12,7 @@ import {
 } from "../../components/editableName/v2";
 import SegmentEditor, {
   SegmentEditorProps,
-} from "../../components/segmentEditor";
+} from "../../components/segments/editor";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import { copyToClipboard } from "../../lib/copyToClipboard";
 import formatCurl from "../../lib/formatCurl";

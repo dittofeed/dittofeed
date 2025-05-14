@@ -68,20 +68,20 @@ import React, {
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
-import { useAppStorePick } from "../lib/appStore";
-import { GroupedOption } from "../lib/types";
-import { useSegmentQuery } from "../lib/useSegmentQuery";
-import { CsvUploader } from "./csvUploader";
-import DurationSelect from "./durationSelect";
+import { useAppStorePick } from "../../lib/appStore";
+import { GroupedOption } from "../../lib/types";
+import { useSegmentQuery } from "../../lib/useSegmentQuery";
+import { CsvUploader } from "../csvUploader";
+import DurationSelect from "../durationSelect";
 import {
   EventNamesAutocomplete,
   PropertiesAutocomplete,
-} from "./eventsAutocomplete";
-import { SubtleHeader } from "./headers";
-import InfoTooltip from "./infoTooltip";
-import { MessageTemplateAutocomplete } from "./messageTemplateAutocomplete";
-import { SubscriptionGroupAutocompleteV2 } from "./subscriptionGroupAutocomplete";
-import TraitAutocomplete from "./traitAutocomplete";
+} from "../eventsAutocomplete";
+import { SubtleHeader } from "../headers";
+import InfoTooltip from "../infoTooltip";
+import { MessageTemplateAutocomplete } from "../messageTemplateAutocomplete";
+import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
+import TraitAutocomplete from "../traitAutocomplete";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
