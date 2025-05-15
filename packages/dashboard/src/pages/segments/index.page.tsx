@@ -64,7 +64,6 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -73,6 +72,7 @@ import { GreyButton, greyButtonStyle } from "../../components/greyButtonStyle";
 import { RelatedResourceSelect } from "../../components/resourceTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
+import { useUniversalRouter } from "../../lib/authModeProvider";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
@@ -292,7 +292,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
 
 export default function SegmentList() {
   const theme = useTheme();
-  const router = useRouter();
+  const universalRouter = useUniversalRouter();
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["apiBase", "workspace"]);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -374,7 +374,9 @@ export default function SegmentList() {
       setSnackbarOpen(true);
       setDialogOpen(false);
       setSegmentName("");
-      router.push(`/segments/${data.id}`); // Redirect to the edit page
+      universalRouter.push("/segments/v1", {
+        id: data.id,
+      }); // Redirect to the edit page
     },
     onError: (error) => {
       console.error("Failed to create segment:", error);

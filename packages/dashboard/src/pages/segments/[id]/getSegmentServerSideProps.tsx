@@ -10,7 +10,7 @@ import { PropsWithInitialState } from "../../../lib/types";
 
 const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const id = ctx.params?.id;
+    const id = ctx.params?.id ?? ctx.query.id;
 
     if (typeof id !== "string" || !validate(id)) {
       return {
