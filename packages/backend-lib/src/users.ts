@@ -238,7 +238,9 @@ export async function getUsers(
       assignments.user_id ASC
   `;
   const userPropertyCondition: SQL[] = [
-    eq(dbUserProperty.workspaceId, workspaceId),
+    childWorkspaceIds.length > 0
+      ? inArray(dbUserProperty.workspaceId, childWorkspaceIds)
+      : eq(dbUserProperty.workspaceId, workspaceId),
   ];
   if (!allowInternalUserProperty) {
     userPropertyCondition.push(
@@ -246,7 +248,10 @@ export async function getUsers(
     );
   }
 
-  const segmentCondition: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  const segmentCondition =
+    childWorkspaceIds.length > 0
+      ? inArray(dbSegment.workspaceId, childWorkspaceIds)
+      : eq(dbSegment.workspaceId, workspaceId);
   const [results, userProperties, segments] = await Promise.all([
     chQuery({
       query,
@@ -260,10 +265,7 @@ export async function getUsers(
       })
       .from(dbUserProperty)
       .where(and(...userPropertyCondition)),
-    db()
-      .select()
-      .from(dbSegment)
-      .where(and(...segmentCondition)),
+    db().select().from(dbSegment).where(segmentCondition),
   ]);
   const segmentNameById = new Map<string, Segment>();
   for (const segment of segments) {
