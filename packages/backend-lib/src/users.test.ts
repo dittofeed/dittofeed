@@ -26,6 +26,7 @@ import {
   UserProperty,
   UserPropertyDefinitionType,
   Workspace,
+  WorkspaceTypeAppEnum,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 import { deleteUsers, getUsers, getUsersCount } from "./users";
@@ -748,6 +749,105 @@ describe("users", () => {
       });
       expect(unwrap(users).users).toHaveLength(1);
       expect(unwrap(users).users[0]?.id).toEqual(userIds[1]);
+    });
+  });
+  describe("getUsers", () => {
+    describe("when a parent workspace is passed", () => {
+      let parentWorkspace: Workspace;
+      let childWorkspace1: Workspace;
+      let childWorkspace2: Workspace;
+      beforeEach(async () => {
+        parentWorkspace = unwrap(
+          await insert({
+            table: dbWorkspace,
+            values: {
+              name: `parentWorkspace-${randomUUID()}`,
+              type: WorkspaceTypeAppEnum.Parent,
+            },
+          }),
+        );
+        childWorkspace1 = unwrap(
+          await insert({
+            table: dbWorkspace,
+            values: {
+              name: "childWorkspace1",
+              parentWorkspaceId: parentWorkspace.id,
+              type: WorkspaceTypeAppEnum.Child,
+            },
+          }),
+        );
+        childWorkspace2 = unwrap(
+          await insert({
+            table: dbWorkspace,
+            values: {
+              name: "childWorkspace2",
+              parentWorkspaceId: parentWorkspace.id,
+              type: WorkspaceTypeAppEnum.Child,
+            },
+          }),
+        );
+
+        const [emailProperty1, emailProperty2] = await Promise.all([
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: childWorkspace1.id,
+              name: "email",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "email",
+              },
+            },
+          }).then(unwrap),
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: childWorkspace2.id,
+              name: "email",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "email",
+              },
+            },
+          }).then(unwrap),
+        ]);
+        await Promise.all([
+          insertUserPropertyAssignments([
+            {
+              userPropertyId: emailProperty1.id,
+              workspaceId: childWorkspace1.id,
+              userId: "user-1",
+              value: JSON.stringify("max@example.com"),
+            },
+            {
+              userPropertyId: emailProperty2.id,
+              workspaceId: childWorkspace2.id,
+              userId: "user-2",
+              value: JSON.stringify("joe@example.com"),
+            },
+          ]),
+        ]);
+      });
+      it.only("returns users from all child workspaces with user properties set", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: parentWorkspace.id,
+          }),
+        );
+        expect(result.users).toHaveLength(2);
+        expect(result.users.map((user) => user.id).sort()).toEqual([
+          "user-1",
+          "user-2",
+        ]);
+        expect(Object.values(result.users[0]?.properties ?? {})[0]).toEqual({
+          name: "email",
+          value: "max@example.com",
+        });
+        expect(Object.values(result.users[1]?.properties ?? {})[0]).toEqual({
+          name: "email",
+          value: "joe@example.com",
+        });
+      });
     });
   });
 });
