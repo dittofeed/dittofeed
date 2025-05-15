@@ -828,7 +828,7 @@ describe("users", () => {
           ]),
         ]);
       });
-      it.only("returns users from all child workspaces with user properties set", async () => {
+      it("returns users from all child workspaces with user properties set", async () => {
         const result = unwrap(
           await getUsers({
             workspaceId: parentWorkspace.id,
