@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { aliasedTable, and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -22,6 +22,7 @@ import {
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
+  Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
   WorkspaceMemberRole,
@@ -43,7 +44,6 @@ interface RolesWithWorkspace {
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
-// FIXME update this code to join child workspaces and their roles (workspaces with parentWorkspaceId equal to a workspace in which they have a role) of workspaces which are parents and which the user either has a role in or has a matching domain then return roles for the child workspaces matching the parents if the children have no roles. these "synthetic" child roles should be returned but not persisted
 export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
@@ -103,7 +103,7 @@ export async function findAndCreateRoles(
   const workspaceById = workspaces.reduce((acc, w) => {
     acc.set(w.Workspace.id, w.Workspace);
     return acc;
-  }, new Map<string, WorkspaceResource>());
+  }, new Map<string, Workspace>());
 
   const parentWorkspaces = workspaces.filter(
     (w) => w.Workspace.type === WorkspaceTypeAppEnum.Parent,
@@ -168,9 +168,7 @@ export async function findAndCreateRoles(
     const lastWorkspaceRole = roles.find(
       (r) => r.workspaceId === member.lastWorkspaceId,
     );
-    const workspace = workspaces.find(
-      (w) => w.Workspace.id === member.lastWorkspaceId,
-    )?.Workspace;
+    const workspace = workspaceById.get(member.lastWorkspaceId);
     if (lastWorkspaceRole && workspace) {
       return { memberRoles, workspace };
     }
@@ -190,9 +188,7 @@ export async function findAndCreateRoles(
       workspace: null,
     };
   }
-  const workspace = workspaces.find(
-    (w) => w.Workspace.id === role.workspaceId,
-  )?.Workspace;
+  const workspace = workspaceById.get(role.workspaceId);
 
   if (!workspace) {
     logger().debug(
