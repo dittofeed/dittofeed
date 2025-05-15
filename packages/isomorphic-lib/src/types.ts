@@ -5242,3 +5242,41 @@ export const StartBroadcastRequest = Type.Object({
 });
 
 export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;
+
+export const UpdateManualSegmentUsersRequest = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: Type.String(),
+  userIds: Type.Array(Type.String()),
+  append: Type.Optional(Type.Boolean()),
+  sync: Type.Optional(Type.Boolean()),
+});
+
+export type UpdateManualSegmentUsersRequest = Static<
+  typeof UpdateManualSegmentUsersRequest
+>;
+
+export const UpdateManualSegmentUsersResponse = Type.Object({
+  version: Type.Number(),
+});
+
+export type UpdateManualSegmentUsersResponse = Static<
+  typeof UpdateManualSegmentUsersResponse
+>;
+
+export const GetManualSegmentStatusRequest = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type GetManualSegmentStatusRequest = Static<
+  typeof GetManualSegmentStatusRequest
+>;
+
+export const GetManualSegmentStatusResponse = Type.Object({
+  segmentVersion: Type.Number(),
+  lastComputedAt: Type.String(),
+});
+
+export type GetManualSegmentStatusResponse = Static<
+  typeof GetManualSegmentStatusResponse
+>;
