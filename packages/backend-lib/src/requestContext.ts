@@ -41,6 +41,7 @@ interface RolesWithWorkspace {
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
+// FIXME update this code to join child workspaces and their roles (workspaces with parentWorkspaceId equal to a workspace in which they have a role) of workspaces which are parents and which the user either has a role in or has a matching domain then return roles for the child workspaces matching the parents if the children have no roles. these "synthetic" child roles should be returned but not persisted
 export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
