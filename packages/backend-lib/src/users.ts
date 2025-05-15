@@ -20,6 +20,7 @@ import {
   subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
+  workspace as dbWorkspace,
 } from "./db/schema";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
@@ -70,6 +71,13 @@ export async function getUsers(
     allowInternalUserProperty?: boolean;
   } = {},
 ): Promise<Result<GetUsersResponse, Error>> {
+  const childWorkspaceIds = (
+    await db()
+      .select({ id: dbWorkspace.id })
+      .from(dbWorkspace)
+      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+  ).map((o) => o.id);
+
   // TODO implement alternate sorting
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
@@ -183,7 +191,10 @@ export async function getUsers(
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
 
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const workspaceIdClause =
+    childWorkspaceIds.length > 0
+      ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
+      : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
 
   const query = `
     SELECT
@@ -205,13 +216,13 @@ export async function getUsers(
           argMax(segment_value, assigned_at) AS last_segment_value
       FROM computed_property_assignments_v2 cp
       WHERE
-        cp.workspace_id = ${workspaceIdParam}
+        ${workspaceIdClause}
         AND cp.user_id IN (SELECT user_id FROM (
           SELECT
             ${selectedStr}
           FROM computed_property_assignments_v2
           WHERE
-            workspace_id = ${workspaceIdParam}
+            ${workspaceIdClause}
             ${cursorClause}
             ${userIdsClause}
           GROUP BY workspace_id, user_id
@@ -467,6 +478,13 @@ export async function getUsersCount({
 }: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
   Result<GetUsersCountResponse, Error>
 > {
+  const childWorkspaceIds = (
+    await db()
+      .select({ id: dbWorkspace.id })
+      .from(dbWorkspace)
+      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+  ).map((o) => o.id);
+
   const qb = new ClickHouseQueryBuilder();
 
   const computedPropertyIds = [
@@ -558,6 +576,11 @@ export async function getUsersCount({
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
 
+  const workspaceIdClause =
+    childWorkspaceIds.length > 0
+      ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
+      : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+
   // Using a similar nested query approach as getUsers
   const query = `
     SELECT
@@ -567,7 +590,7 @@ export async function getUsersCount({
         ${selectUserIdStr}
       FROM computed_property_assignments_v2
       WHERE
-        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        ${workspaceIdClause}
         ${userIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
