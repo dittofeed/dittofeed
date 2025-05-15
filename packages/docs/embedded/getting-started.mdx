@@ -142,6 +142,38 @@ The deliveries table displays all of the message deliveries for the child worksp
 ></iframe>
 ```
 
+### Segments Table
+
+The segments table displays all of the segments for the child workspace. It provides a way to create new segments, view existing ones, and archive them.
+
+<Frame>
+![Embedded Segments Table](/images/embedded-segments.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/segments?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
+### Segment Editor
+
+The segment editor allows you to create and edit segments.
+
+<Frame>
+![Embedded Segment Editor](/images/embedded-segment.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/segments/v1?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=${SEGMENT_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
 ### Broadcasts Table
 
 The broadcasts table displays all of the broadcasts for the child workspace. It provides a way to create new broadcasts, view existing ones, and archive them.
