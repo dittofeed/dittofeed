@@ -45,6 +45,7 @@ import {
   userPropertyAssignment as dbUserPropertyAssignment,
   workspace as dbWorkspace,
   workspaceMember as dbWorkspaceMember,
+  workspaceMemberRole as dbWorkspaceMemberRole,
   workspaceType as dbWorkspaceType,
   writeKey as dbWriteKey,
 } from "./db/schema";
@@ -64,6 +65,10 @@ export enum KafkaMessageTypes {
 }
 
 export type WorkspaceMember = InferSelectModel<typeof dbWorkspaceMember>;
+
+export type WorkspaceMemberRole = InferSelectModel<
+  typeof dbWorkspaceMemberRole
+>;
 
 export type Segment = InferSelectModel<typeof dbSegment>;
 

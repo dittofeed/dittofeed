@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -22,12 +22,15 @@ import {
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
+  Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
+  WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
@@ -41,7 +44,7 @@ interface RolesWithWorkspace {
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
-async function findAndCreateRoles(
+export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
@@ -96,10 +99,56 @@ async function findAndCreateRoles(
       roles.push(role);
     }
   }
+
   const workspaceById = workspaces.reduce((acc, w) => {
     acc.set(w.Workspace.id, w.Workspace);
     return acc;
-  }, new Map<string, WorkspaceResource>());
+  }, new Map<string, Workspace>());
+
+  const parentWorkspaces = workspaces.filter(
+    (w) => w.Workspace.type === WorkspaceTypeAppEnum.Parent,
+  );
+
+  if (parentWorkspaces.length !== 0) {
+    const childWorkspaces = await db()
+      .select()
+      .from(dbWorkspace)
+      .where(
+        and(
+          inArray(
+            dbWorkspace.parentWorkspaceId,
+            parentWorkspaces.map((w) => w.Workspace.id),
+          ),
+          eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
+          eq(dbWorkspace.type, WorkspaceTypeAppEnum.Child),
+        ),
+      );
+
+    const existingRolesByWorkspaceId = roles.reduce((acc, r) => {
+      acc.set(r.workspaceId, r);
+      return acc;
+    }, new Map<string, WorkspaceMemberRole>());
+
+    for (const childWorkspace of childWorkspaces) {
+      if (
+        existingRolesByWorkspaceId.has(childWorkspace.id) ||
+        !childWorkspace.parentWorkspaceId
+      ) {
+        continue;
+      }
+      const parentRole = existingRolesByWorkspaceId.get(
+        childWorkspace.parentWorkspaceId,
+      );
+      if (!parentRole) {
+        continue;
+      }
+      workspaceById.set(childWorkspace.id, childWorkspace);
+      roles.push({
+        ...parentRole,
+        workspaceId: childWorkspace.id,
+      });
+    }
+  }
 
   const memberRoles = roles.flatMap((r) => {
     const workspace = workspaceById.get(r.workspaceId);
@@ -119,9 +168,7 @@ async function findAndCreateRoles(
     const lastWorkspaceRole = roles.find(
       (r) => r.workspaceId === member.lastWorkspaceId,
     );
-    const workspace = workspaces.find(
-      (w) => w.Workspace.id === member.lastWorkspaceId,
-    )?.Workspace;
+    const workspace = workspaceById.get(member.lastWorkspaceId);
     if (lastWorkspaceRole && workspace) {
       return { memberRoles, workspace };
     }
@@ -141,9 +188,7 @@ async function findAndCreateRoles(
       workspace: null,
     };
   }
-  const workspace = workspaces.find(
-    (w) => w.Workspace.id === role.workspaceId,
-  )?.Workspace;
+  const workspace = workspaceById.get(role.workspaceId);
 
   if (!workspace) {
     logger().debug(
