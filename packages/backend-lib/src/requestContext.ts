@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { and, eq, or } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -24,10 +24,12 @@ import {
   RequestContextResult,
   WorkspaceMember,
   WorkspaceMemberResource,
+  WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
 } from "./types";
 
 export const SESSION_KEY = "df-session-key";
@@ -97,10 +99,56 @@ export async function findAndCreateRoles(
       roles.push(role);
     }
   }
+
   const workspaceById = workspaces.reduce((acc, w) => {
     acc.set(w.Workspace.id, w.Workspace);
     return acc;
   }, new Map<string, WorkspaceResource>());
+
+  const parentWorkspaces = workspaces.filter(
+    (w) => w.Workspace.type === WorkspaceTypeAppEnum.Parent,
+  );
+
+  if (parentWorkspaces.length !== 0) {
+    const childWorkspaces = await db()
+      .select()
+      .from(dbWorkspace)
+      .where(
+        and(
+          inArray(
+            dbWorkspace.parentWorkspaceId,
+            parentWorkspaces.map((w) => w.Workspace.id),
+          ),
+          eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
+          eq(dbWorkspace.type, WorkspaceTypeAppEnum.Child),
+        ),
+      );
+
+    const existingRolesByWorkspaceId = roles.reduce((acc, r) => {
+      acc.set(r.workspaceId, r);
+      return acc;
+    }, new Map<string, WorkspaceMemberRole>());
+
+    for (const childWorkspace of childWorkspaces) {
+      if (
+        existingRolesByWorkspaceId.has(childWorkspace.id) ||
+        !childWorkspace.parentWorkspaceId
+      ) {
+        continue;
+      }
+      const parentRole = existingRolesByWorkspaceId.get(
+        childWorkspace.parentWorkspaceId,
+      );
+      if (!parentRole) {
+        continue;
+      }
+      workspaceById.set(childWorkspace.id, childWorkspace);
+      roles.push({
+        ...parentRole,
+        workspaceId: childWorkspace.id,
+      });
+    }
+  }
 
   const memberRoles = roles.flatMap((r) => {
     const workspace = workspaceById.get(r.workspaceId);

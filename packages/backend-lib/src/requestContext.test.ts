@@ -81,19 +81,33 @@ describe("requestContext", () => {
       let member: WorkspaceMember;
 
       beforeEach(async () => {
-        parent = await db().insert(dbWorkspace).values({
-          name: randomUUID(),
-          type: "Parent",
-        });
-        child = await db().insert(dbWorkspace).values({
-          name: randomUUID(),
-          type: "Child",
-          parentWorkspaceId: parent.id,
-        });
-        member = await db().insert(dbWorkspaceMember).values({
-          email: "test@test.com",
-          emailVerified: true,
-        });
+        const parentResult = await db()
+          .insert(dbWorkspace)
+          .values({
+            name: randomUUID(),
+            type: "Parent",
+          })
+          .returning();
+        parent = parentResult[0]!;
+        const childResult = await db()
+          .insert(dbWorkspace)
+          .values({
+            name: randomUUID(),
+            type: "Child",
+            parentWorkspaceId: parent.id,
+          })
+          .returning();
+        child = childResult[0]!;
+
+        const memberResult = await db()
+          .insert(dbWorkspaceMember)
+          .values({
+            email: "test@test.com",
+            emailVerified: true,
+          })
+          .returning();
+        member = memberResult[0]!;
+
         await db().insert(dbWorkspaceMemberRole).values({
           workspaceMemberId: member.id,
           workspaceId: parent.id,
@@ -102,6 +116,7 @@ describe("requestContext", () => {
       });
       it("should return admin role for the child workspace", async () => {
         const result = await findAndCreateRoles(member);
+
         const childRole = result.memberRoles.find(
           (role) => role.workspaceId === child.id,
         );
