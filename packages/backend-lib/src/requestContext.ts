@@ -41,7 +41,7 @@ interface RolesWithWorkspace {
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
-async function findAndCreateRoles(
+export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
