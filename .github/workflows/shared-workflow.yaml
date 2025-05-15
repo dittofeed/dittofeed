@@ -69,7 +69,7 @@ jobs:
 
       clickhouse-server:
         # Only start the service if the backend is being tested
-        image: ${{ ( inputs.is_backend == 'true' && inputs.run_tests == 'true' ) && 'clickhouse/clickhouse-server:23.8.8.20-alpine' || '' }}
+        image: ${{ ( inputs.is_backend == 'true' && inputs.run_tests == 'true' ) && 'clickhouse/clickhouse-server:24.12.6.70-alpine' || '' }}
         env:
           CLICKHOUSE_USER: dittofeed
           CLICKHOUSE_PASSWORD: password
