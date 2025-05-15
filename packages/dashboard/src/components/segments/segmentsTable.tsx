@@ -275,7 +275,7 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
-export default function SegmentsList({ sx }: { sx?: SxProps<Theme> }) {
+export function SegmentsTable({ sx }: { sx?: SxProps<Theme> }) {
   const universalRouter = useUniversalRouter();
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["apiBase", "workspace"]);

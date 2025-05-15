@@ -3,7 +3,7 @@ import { GetServerSideProps } from "next";
 import React from "react";
 
 import DashboardContent from "../../components/dashboardContent";
-import SegmentsList from "../../components/segments/segmentsTable";
+import { SegmentsTable } from "../../components/segments/segmentsTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
@@ -24,7 +24,7 @@ export default function SegmentList() {
   const theme = useTheme();
   return (
     <DashboardContent>
-      <SegmentsList sx={{ padding: theme.spacing(3) }} />
+      <SegmentsTable sx={{ padding: theme.spacing(3) }} />
     </DashboardContent>
   );
 }
