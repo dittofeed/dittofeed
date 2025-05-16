@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import {
   BatchItem,
   EventType,
@@ -189,8 +190,7 @@ export async function replaceManualSegment({
       const { entryNode } = definition;
       const newEntry: ManualSegmentNode = {
         ...entryNode,
-        // FIXME
-        version: 0,
+        version: getNewManualSegmentVersion(now),
       };
       const newDefinition: SegmentDefinition = {
         ...definition,

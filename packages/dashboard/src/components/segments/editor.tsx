@@ -24,7 +24,10 @@ import {
 } from "isomorphic-lib/src/constants";
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import { round } from "isomorphic-lib/src/numbers";
-import { isBodySegmentNode } from "isomorphic-lib/src/segments";
+import {
+  getNewManualSegmentVersion,
+  isBodySegmentNode,
+} from "isomorphic-lib/src/segments";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BodySegmentNode,
@@ -249,9 +252,8 @@ function mapSegmentNodeToNewType(
     case SegmentNodeType.Manual: {
       return {
         primary: {
-          // FIXME
           type: SegmentNodeType.Manual,
-          version: Math.floor(Date.now() / 1000),
+          version: getNewManualSegmentVersion(Date.now()),
           id: node.id,
         },
         secondary: [],
