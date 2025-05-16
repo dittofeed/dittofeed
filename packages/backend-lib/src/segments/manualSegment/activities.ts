@@ -277,9 +277,16 @@ export async function replaceManualSegment({
 export async function clearManualSegment({
   workspaceId,
   segmentId,
+  now,
 }: {
   workspaceId: string;
   segmentId: string;
+  now: number;
 }): Promise<boolean> {
-  throw new Error("Not implemented");
+  return replaceManualSegment({
+    workspaceId,
+    segmentId,
+    userIds: [],
+    now,
+  });
 }
