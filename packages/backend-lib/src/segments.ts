@@ -416,6 +416,9 @@ export async function upsertSegment(
         }
         return ok(updatedSegment);
       }
+      // FIXME don't update manual version
+      // FIXME don't update lastUpdatedAt
+      // FIXME manual segments should not be not started
       const createResult = await txQueryResult(
         tx.insert(dbSegment).values(value).returning(),
       );

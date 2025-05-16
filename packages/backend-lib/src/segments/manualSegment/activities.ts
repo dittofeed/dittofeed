@@ -1,18 +1,29 @@
 import { and, eq } from "drizzle-orm";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  BatchItem,
+  EventType,
+  InternalEventType,
+  SegmentDefinition,
+  SegmentNodeType,
+} from "isomorphic-lib/src/types";
+import { v5 as uuidv5 } from "uuid";
+
+import { submitBatch } from "../../apps/batch";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
 import logger from "../../logger";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { SegmentDefinition, SegmentNodeType } from "isomorphic-lib/src/types";
 
 export async function appendToManualSegment({
   workspaceId,
   segmentId,
   userIds,
+  now,
 }: {
   workspaceId: string;
   segmentId: string;
   userIds: string[];
+  now: number;
 }): Promise<boolean> {
   const segment = await db().query.segment.findFirst({
     where: and(
@@ -57,6 +68,36 @@ export async function appendToManualSegment({
     );
     return false;
   }
+  const batch: BatchItem[] = userIds.flatMap((userId) => {
+    return [
+      {
+        type: EventType.Track,
+        userId,
+        timestamp: new Date(now).toISOString(),
+        event: InternalEventType.ManualSegmentUpdate,
+        properties: {
+          segmentId,
+          version: entryNode.version,
+          inSegment: 1,
+        },
+        messageId: uuidv5(
+          `manual-update-${segmentId}-${entryNode.version}-${userId}`,
+          workspaceId,
+        ),
+      },
+    ];
+  });
+  await submitBatch(
+    {
+      workspaceId,
+      data: {
+        batch,
+      },
+    },
+    {
+      processingTime: now,
+    },
+  );
   return true;
 }
 

@@ -9,7 +9,14 @@ export interface SubmitBatchOptions {
   data: BatchAppData;
 }
 
-export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
+export function buildBatchUserEvents(
+  data: BatchAppData,
+  {
+    processingTime,
+  }: {
+    processingTime?: number;
+  } = {},
+): InsertUserEvent[] {
   const { context, batch } = data;
   const batchWithMappedGroupEvents = batch.flatMap((message) =>
     message.type === EventType.Group ? splitGroupEvents(message) : message,
@@ -43,12 +50,22 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
     return {
       messageId: message.messageId,
       messageRaw: JSON.stringify(messageRaw),
+      processingTime: processingTime
+        ? new Date(processingTime).toISOString()
+        : undefined,
     };
   });
 }
 
-export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
-  const userEvents = buildBatchUserEvents(data);
+export async function submitBatch(
+  { workspaceId, data }: SubmitBatchOptions,
+  {
+    processingTime,
+  }: {
+    processingTime?: number;
+  } = {},
+) {
+  const userEvents = buildBatchUserEvents(data, { processingTime });
 
   await insertUserEvents({
     workspaceId,
