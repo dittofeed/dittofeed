@@ -4,15 +4,18 @@ import {
   BatchItem,
   EventType,
   InternalEventType,
+  ManualSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
+import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
 import logger from "../../logger";
+import { toSegmentResource } from "../../segments";
 
 export async function appendToManualSegment({
   workspaceId,
@@ -98,7 +101,74 @@ export async function appendToManualSegment({
       processingTime: now,
     },
   );
-  return true;
+  const segmentResource = toSegmentResource(segment);
+  if (segmentResource.isErr()) {
+    logger().error(
+      { err: segmentResource.error, workspaceId, segmentId },
+      "Failed to convert segment to resource",
+    );
+    return false;
+  }
+  await computePropertiesIncremental({
+    workspaceId,
+    segments: [segmentResource.value],
+    userProperties: [],
+    journeys: [],
+    integrations: [],
+    now,
+  });
+
+  return await db().transaction(async (tx) => {
+    const segmentPostCalc = await tx.query.segment.findFirst({
+      where: and(
+        eq(schema.segment.workspaceId, workspaceId),
+        eq(schema.segment.id, segmentId),
+      ),
+    });
+    if (!segmentPostCalc) {
+      logger().error(
+        { workspaceId, segmentId },
+        "Segment not found while appending to manual segment",
+      );
+      return false;
+    }
+    const definitionResultPost = schemaValidateWithErr(
+      segmentPostCalc.definition,
+      SegmentDefinition,
+    );
+    if (definitionResultPost.isErr()) {
+      logger().error(
+        { workspaceId, segmentId, err: definitionResultPost.error },
+        "Invalid segment definition while appending to manual segment",
+      );
+      return false;
+    }
+    const { entryNode: entryNodePost, ...restDefinition } =
+      definitionResultPost.value;
+    if (entryNodePost.type !== SegmentNodeType.Manual) {
+      logger().error(
+        { workspaceId, segmentId },
+        "Manual segment definition does not contain a manual node",
+      );
+      return false;
+    }
+    const newEntry: ManualSegmentNode = {
+      ...entryNodePost,
+      lastComputedAt: new Date(now).toISOString(),
+    };
+    const newDefinition = {
+      ...restDefinition,
+      entryNode: newEntry,
+    };
+
+    await tx
+      .update(schema.segment)
+      .set({
+        definition: newDefinition,
+      })
+      .where(eq(schema.segment.id, segmentId));
+    return true;
+  });
 }
 
 export async function replaceManualSegment({
