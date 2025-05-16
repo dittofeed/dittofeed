@@ -117,58 +117,7 @@ export async function appendToManualSegment({
     integrations: [],
     now,
   });
-
-  return await db().transaction(async (tx) => {
-    const segmentPostCalc = await tx.query.segment.findFirst({
-      where: and(
-        eq(schema.segment.workspaceId, workspaceId),
-        eq(schema.segment.id, segmentId),
-      ),
-    });
-    if (!segmentPostCalc) {
-      logger().error(
-        { workspaceId, segmentId },
-        "Segment not found while appending to manual segment",
-      );
-      return false;
-    }
-    const definitionResultPost = schemaValidateWithErr(
-      segmentPostCalc.definition,
-      SegmentDefinition,
-    );
-    if (definitionResultPost.isErr()) {
-      logger().error(
-        { workspaceId, segmentId, err: definitionResultPost.error },
-        "Invalid segment definition while appending to manual segment",
-      );
-      return false;
-    }
-    const { entryNode: entryNodePost, ...restDefinition } =
-      definitionResultPost.value;
-    if (entryNodePost.type !== SegmentNodeType.Manual) {
-      logger().error(
-        { workspaceId, segmentId },
-        "Manual segment definition does not contain a manual node",
-      );
-      return false;
-    }
-    const newEntry: ManualSegmentNode = {
-      ...entryNodePost,
-      lastComputedAt: new Date(now).toISOString(),
-    };
-    const newDefinition = {
-      ...restDefinition,
-      entryNode: newEntry,
-    };
-
-    await tx
-      .update(schema.segment)
-      .set({
-        definition: newDefinition,
-      })
-      .where(eq(schema.segment.id, segmentId));
-    return true;
-  });
+  return true;
 }
 
 export async function replaceManualSegment({
