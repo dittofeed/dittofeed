@@ -9,3 +9,4 @@ export {
   observeWorkspaceComputeLatency,
 } from "../resiliency";
 export * from "../restartUserJourneyWorkflow/activities";
+export * from "../segments/manualSegment/activities";

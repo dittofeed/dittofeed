@@ -249,6 +249,7 @@ function mapSegmentNodeToNewType(
     case SegmentNodeType.Manual: {
       return {
         primary: {
+          // FIXME
           type: SegmentNodeType.Manual,
           version: Math.floor(Date.now() / 1000),
           id: node.id,

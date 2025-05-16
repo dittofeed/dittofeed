@@ -419,6 +419,7 @@ export type OrSegmentNode = Static<typeof OrSegmentNode>;
 export const ManualSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Manual),
   version: Type.Number(),
+  lastComputedAt: Type.Optional(Type.String()),
   id: Type.String(),
 });
 
