@@ -76,12 +76,14 @@ const USER_ID_CHUNK_SIZE = 100;
 export async function manualSegmentWorkflow({
   workspaceId,
   segmentId,
-}: ManualSegmentWorkflowParams): Promise<void> {
-  let lastProcessedTimestamp: number = 0;
+}: ManualSegmentWorkflowParams): Promise<{
+  lastProcessedAt: number;
+}> {
+  let lastProcessedAt = 0;
   const queue: ManualSegmentOperation[] = [];
 
   wf.setHandler(enqueueManualSegmentOperation, (operation) => {
-    wf.log.info("Received signal to enqueue manual segment operation", {
+    logger.info("Received signal to enqueue manual segment operation", {
       operationType: operation.type,
       workspaceId,
       segmentId,
@@ -90,10 +92,10 @@ export async function manualSegmentWorkflow({
   });
 
   wf.setHandler(getLastComputedAtQuery, () => {
-    if (lastProcessedTimestamp === 0) {
+    if (lastProcessedAt === 0) {
       return null;
     }
-    return new Date(lastProcessedTimestamp).toISOString();
+    return new Date(lastProcessedAt).toISOString();
   });
 
   await wf.condition(() => queue.length > 0);
@@ -124,7 +126,7 @@ export async function manualSegmentWorkflow({
           userIds: currentOperation.userIds,
           now: currentTime,
         });
-        lastProcessedTimestamp = currentTime;
+        lastProcessedAt = currentTime;
         logger.info("Replace operation completed.", {
           workspaceId,
           segmentId,
@@ -171,7 +173,7 @@ export async function manualSegmentWorkflow({
             { workspaceId, segmentId },
           );
         }
-        lastProcessedTimestamp = currentTime;
+        lastProcessedAt = currentTime;
         logger.info("Append operation completed.", {
           workspaceId,
           segmentId,
@@ -185,7 +187,7 @@ export async function manualSegmentWorkflow({
           segmentId,
           now: currentTime,
         });
-        lastProcessedTimestamp = currentTime;
+        lastProcessedAt = currentTime;
         logger.info("Clear operation completed.", {
           workspaceId,
           segmentId,
@@ -200,4 +202,5 @@ export async function manualSegmentWorkflow({
         break;
     }
   }
+  return { lastProcessedAt };
 }
