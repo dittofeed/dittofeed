@@ -4,9 +4,10 @@ import { proxyActivities } from "@temporalio/workflow";
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 
-const { performBroadcastIncremental } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "5 minutes",
-});
+const { appendToManualSegment, clearManualSegment, replaceManualSegment } =
+  proxyActivities<typeof activities>({
+    startToCloseTimeout: "5 minutes",
+  });
 
 export function generateManualSegmentWorkflowId({
   workspaceId,
@@ -60,5 +61,10 @@ export async function manualSegmentWorkflow({
   // iterate through queue collapsing appends into a single update, chunked by 100
   // after either append or replace, update the lastComputedAt value
   // when performing a replace operation, update the segment version (at the end or beginning of the operation)
-  throw new Error("Not implemented");
+  let now: number;
+  const queue: ManualSegmentOperation[] = [];
+  while (true) {
+    now = Date.now();
+  }
+  return { lastComputedAt: new Date(now).toISOString() };
 }
