@@ -5244,13 +5244,15 @@ export const StartBroadcastRequest = Type.Object({
 
 export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;
 
-export const UpdateManualSegmentUsersRequest = Type.Object({
-  workspaceId: Type.String(),
-  segmentId: Type.String(),
-  userIds: Type.Array(Type.String()),
-  append: Type.Optional(Type.Boolean()),
-  sync: Type.Optional(Type.Boolean()),
-});
+export const UpdateManualSegmentUsersRequest = Type.Composite([
+  Type.Object({
+    workspaceId: Type.String(),
+    segmentId: Type.String(),
+    userIds: Type.Array(Type.String()),
+    append: Type.Optional(Type.Boolean()),
+    sync: Type.Optional(Type.Boolean()),
+  }),
+]);
 
 export type UpdateManualSegmentUsersRequest = Static<
   typeof UpdateManualSegmentUsersRequest
@@ -5280,4 +5282,13 @@ export const GetManualSegmentStatusResponse = Type.Object({
 
 export type GetManualSegmentStatusResponse = Static<
   typeof GetManualSegmentStatusResponse
+>;
+
+export const ClearManualSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type ClearManualSegmentRequest = Static<
+  typeof ClearManualSegmentRequest
 >;
