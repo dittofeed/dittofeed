@@ -10,13 +10,6 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 const { appendToManualSegment, clearManualSegment, replaceManualSegment } =
   proxyActivities<typeof activities>({
     startToCloseTimeout: "5 minutes",
-    // It's good practice to add a retry policy for activities
-    retry: {
-      initialInterval: "1s",
-      maximumInterval: "1m",
-      backoffCoefficient: 2,
-      // Example: nonRetryableErrorTypes: ["CustomNonRetryableError"],
-    },
   });
 
 export function generateManualSegmentWorkflowId({
@@ -66,11 +59,6 @@ export const enqueueManualSegmentOperation = wf.defineSignal<
   [ManualSegmentOperation]
 >("EnqueueManualSegmentOperation");
 
-// Define a query to get the last computation timestamp
-export const getLastComputedAtQuery = wf.defineQuery<string | null>(
-  "getLastComputedAt",
-);
-
 const USER_ID_CHUNK_SIZE = 100;
 
 export async function manualSegmentWorkflow({
@@ -89,13 +77,6 @@ export async function manualSegmentWorkflow({
       segmentId,
     });
     queue.push(operation);
-  });
-
-  wf.setHandler(getLastComputedAtQuery, () => {
-    if (lastProcessedAt === 0) {
-      return null;
-    }
-    return new Date(lastProcessedAt).toISOString();
   });
 
   await wf.condition(() => queue.length > 0);
