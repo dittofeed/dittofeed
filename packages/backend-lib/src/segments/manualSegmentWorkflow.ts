@@ -1,12 +1,22 @@
+/* eslint-disable no-await-in-loop */
 import * as wf from "@temporalio/workflow";
-import { proxyActivities } from "@temporalio/workflow";
+import { LoggerSinks, proxyActivities, proxySinks } from "@temporalio/workflow";
 
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 
+const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
+
 const { appendToManualSegment, clearManualSegment, replaceManualSegment } =
   proxyActivities<typeof activities>({
     startToCloseTimeout: "5 minutes",
+    // It's good practice to add a retry policy for activities
+    retry: {
+      initialInterval: "1s",
+      maximumInterval: "1m",
+      backoffCoefficient: 2,
+      // Example: nonRetryableErrorTypes: ["CustomNonRetryableError"],
+    },
   });
 
 export function generateManualSegmentWorkflowId({
@@ -47,24 +57,147 @@ export interface ReplaceOperation {
   userIds: string[];
 }
 
-export type ManualSegmentOperation = AppendOperation | ReplaceOperation;
+export type ManualSegmentOperation =
+  | AppendOperation
+  | ReplaceOperation
+  | ClearOperation;
 
 export const enqueueManualSegmentOperation = wf.defineSignal<
   [ManualSegmentOperation]
 >("EnqueueManualSegmentOperation");
 
+// Define a query to get the last computation timestamp
+export const getLastComputedAtQuery = wf.defineQuery<string | null>(
+  "getLastComputedAt",
+);
+
+const USER_ID_CHUNK_SIZE = 100;
+
 export async function manualSegmentWorkflow({
   workspaceId,
   segmentId,
-}: ManualSegmentWorkflowParams): Promise<{ lastComputedAt: string }> {
-  // handle signal with replace or append operation by pushing into queue
-  // iterate through queue collapsing appends into a single update, chunked by 100
-  // after either append or replace, update the lastComputedAt value
-  // when performing a replace operation, update the segment version (at the end or beginning of the operation)
-  let now: number;
+}: ManualSegmentWorkflowParams): Promise<void> {
+  let lastProcessedTimestamp: number = 0;
   const queue: ManualSegmentOperation[] = [];
+
+  wf.setHandler(enqueueManualSegmentOperation, (operation) => {
+    wf.log.info("Received signal to enqueue manual segment operation", {
+      operationType: operation.type,
+      workspaceId,
+      segmentId,
+    });
+    queue.push(operation);
+  });
+
+  wf.setHandler(getLastComputedAtQuery, () => {
+    if (lastProcessedTimestamp === 0) {
+      return null;
+    }
+    return new Date(lastProcessedTimestamp).toISOString();
+  });
+
+  await wf.condition(() => queue.length > 0);
+
+  // Main processing loop
   while (true) {
-    now = Date.now();
+    if (queue.length === 0) {
+      break;
+    }
+    const currentOperation = queue.shift();
+    if (!currentOperation) {
+      break;
+    }
+
+    logger.info("Processing manual segment operation from queue.", {
+      operationType: currentOperation.type,
+      workspaceId,
+      segmentId,
+    });
+
+    const currentTime = Date.now();
+
+    switch (currentOperation.type) {
+      case ManualSegmentOperationTypeEnum.Replace: {
+        await replaceManualSegment({
+          workspaceId,
+          segmentId,
+          userIds: currentOperation.userIds,
+          now: currentTime,
+        });
+        lastProcessedTimestamp = currentTime;
+        logger.info("Replace operation completed.", {
+          workspaceId,
+          segmentId,
+        });
+        break;
+      }
+
+      case ManualSegmentOperationTypeEnum.Append: {
+        const userIdsToProcess: string[] = [...currentOperation.userIds];
+
+        while (
+          queue.length > 0 &&
+          queue[0] &&
+          queue[0].type === ManualSegmentOperationTypeEnum.Append
+        ) {
+          const nextAppendOp = queue.shift() as AppendOperation;
+          userIdsToProcess.push(...nextAppendOp.userIds);
+          logger.info("Collapsed subsequent Append operation.", {
+            workspaceId,
+            segmentId,
+          });
+        }
+
+        const uniqueUserIds = Array.from(new Set(userIdsToProcess));
+
+        if (uniqueUserIds.length > 0) {
+          logger.info("Appending unique user IDs.", {
+            count: uniqueUserIds.length,
+            workspaceId,
+            segmentId,
+          });
+          for (let i = 0; i < uniqueUserIds.length; i += USER_ID_CHUNK_SIZE) {
+            const chunk = uniqueUserIds.slice(i, i + USER_ID_CHUNK_SIZE);
+            await appendToManualSegment({
+              workspaceId,
+              segmentId,
+              userIds: chunk,
+              now: currentTime,
+            });
+          }
+        } else {
+          logger.info(
+            "No unique user IDs to append after collapsing and deduplication.",
+            { workspaceId, segmentId },
+          );
+        }
+        lastProcessedTimestamp = currentTime;
+        logger.info("Append operation completed.", {
+          workspaceId,
+          segmentId,
+        });
+        break;
+      }
+
+      case ManualSegmentOperationTypeEnum.Clear:
+        await clearManualSegment({
+          workspaceId,
+          segmentId,
+          now: currentTime,
+        });
+        lastProcessedTimestamp = currentTime;
+        logger.info("Clear operation completed.", {
+          workspaceId,
+          segmentId,
+        });
+        break;
+
+      default:
+        logger.warn("Unknown operation type encountered", {
+          workspaceId,
+          segmentId,
+        });
+        break;
+    }
   }
-  return { lastComputedAt: new Date(now).toISOString() };
 }
