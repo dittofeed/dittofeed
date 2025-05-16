@@ -37,6 +37,7 @@ import {
   KnownBatchIdentifyData,
   KnownBatchTrackData,
   ManualSegmentOperationEnum,
+  ManualSegmentUpdateEventProperties,
   ManualSegmentUploadCsvHeaders,
   SavedSegmentResource,
   SegmentDefinition,
@@ -318,7 +319,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
             segmentId,
             version: definition.entryNode.version,
             inSegment,
-          },
+          } satisfies ManualSegmentUpdateEventProperties,
           messageId: randomUUID(),
         } satisfies KnownBatchTrackData);
       }

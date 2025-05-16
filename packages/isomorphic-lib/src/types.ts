@@ -5292,3 +5292,14 @@ export const ClearManualSegmentRequest = Type.Object({
 export type ClearManualSegmentRequest = Static<
   typeof ClearManualSegmentRequest
 >;
+
+export const ManualSegmentUpdateEventProperties = Type.Object({
+  segmentId: Type.String(),
+  version: Type.Number(),
+  // represent a boolean value as a number 0 or 1
+  inSegment: Type.Number(),
+});
+
+export type ManualSegmentUpdateEventProperties = Static<
+  typeof ManualSegmentUpdateEventProperties
+>;
