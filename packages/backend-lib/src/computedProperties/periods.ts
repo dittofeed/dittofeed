@@ -138,9 +138,13 @@ export class PeriodByComputedPropertyId {
 export async function getPeriodsByComputedPropertyId({
   workspaceId,
   step,
+  computedPropertyId,
+  computedPropertyType,
 }: {
   workspaceId: string;
   step: ComputedPropertyStep;
+  computedPropertyType: "Segment" | "UserProperty";
+  computedPropertyId?: string;
 }): Promise<PeriodByComputedPropertyId> {
   const periods = (
     await db().execute<AggregatedComputedPropertyPeriod>(sql`

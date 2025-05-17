@@ -1,12 +1,9 @@
-import {
-  WorkflowExecutionAlreadyStartedError,
-  WorkflowHandle,
-} from "@temporalio/client";
-
+import { getPeriodsByComputedPropertyId } from "../computedProperties/periods";
 import config from "../config";
 import connectWorkflowClient from "../temporal/connectWorkflowClient";
 import {
   ClearManualSegmentRequest,
+  ComputedPropertyStepEnum,
   GetManualSegmentStatusRequest,
   GetManualSegmentStatusResponse,
   UpdateManualSegmentUsersRequest,
@@ -87,5 +84,9 @@ export async function getManualSegmentStatus({
   workspaceId,
   segmentId,
 }: GetManualSegmentStatusRequest): Promise<GetManualSegmentStatusResponse> {
+  const periods = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step: ComputedPropertyStepEnum.ProcessAssignments,
+  });
   throw new Error("Not implemented");
 }
