@@ -3253,22 +3253,13 @@ export async function computeAssignments({
             "String",
           );
           const resetQuery = `
-          insert into computed_property_assignments_v2
-          select
-            workspace_id,
-            'user_property',
-            computed_property_id,
-            user_id,
-            False,
-            '',
-            max_event_time,
-            toDateTime64(${nowSeconds}, 3)
-          from computed_property_assignments_v2
+          delete from computed_property_assignments_v2
           where
             workspace_id = ${workspaceIdParam}
             and type = 'user_property'
             and computed_property_id = ${userPropertyIdParam}
             and assigned_at < toDateTime64(${nowSeconds}, 3)
+          settings mutations_sync = 0, lightweight_deletes_sync = 0;
         `;
           queries.push(resetQuery);
         }
