@@ -6499,7 +6499,7 @@ describe("computeProperties", () => {
         {
           // allow async delete to propagate
           type: EventsStepType.Delay,
-          timeMs: 1000,
+          timeMs: 5000,
         },
         {
           type: EventsStepType.Assert,
