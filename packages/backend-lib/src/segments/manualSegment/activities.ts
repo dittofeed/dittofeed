@@ -251,6 +251,7 @@ export async function replaceManualSegment({
       },
     ];
   });
+  // FIXME reset assignment value has exactly same assigned_at as the
   logger().debug(
     {
       now,
