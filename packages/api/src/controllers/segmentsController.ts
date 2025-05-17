@@ -10,6 +10,7 @@ import {
   toSegmentResource,
   upsertSegment,
 } from "backend-lib/src/segments";
+import { updateManualSegmentUsers } from "backend-lib/src/segments/manualSegments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
 import { and, eq, inArray } from "drizzle-orm";
@@ -186,7 +187,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const csvStream = file;
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
       const segmentId = request.headers[SEGMENT_ID_HEADER];
-      const { operation } = request.headers;
 
       // Parse the CSV stream into a JavaScript object with an array of rows
       const csvPromise = new Promise<CsvParseResult>((resolve) => {
@@ -296,52 +296,40 @@ export default async function segmentsController(fastify: FastifyInstance) {
 
       const currentTime = new Date();
       const timestamp = currentTime.toISOString();
-      const batch: BatchItem[] = [];
-      const inSegment = operation === ManualSegmentOperationEnum.Add ? 1 : 0;
+      const userIds = rows.value.map((row) => row.id);
 
-      for (const row of rows.value) {
+      const batch: BatchItem[] = rows.value.flatMap((row) => {
         const { id, ...rest } = row;
-
-        batch.push({
+        if (Object.keys(rest).length === 0) {
+          return [];
+        }
+        const event: KnownBatchIdentifyData = {
           type: EventType.Identify,
           userId: id,
           timestamp,
           traits: rest,
           messageId: randomUUID(),
-        } satisfies KnownBatchIdentifyData);
+        };
+        return event;
+      });
 
-        batch.push({
-          type: EventType.Track,
-          userId: id,
-          timestamp,
-          event: InternalEventType.ManualSegmentUpdate,
-          properties: {
-            segmentId,
-            version: definition.entryNode.version,
-            inSegment,
-          } satisfies ManualSegmentUpdateEventProperties,
-          messageId: randomUUID(),
-        } satisfies KnownBatchTrackData);
-      }
-
-      logger().debug(
-        {
-          batch,
+      if (batch.length > 0) {
+        const data: SubmitBatchOptions = {
           workspaceId,
-          segmentId,
-        },
-        "submitting manual segment batch",
-      );
-      const data: SubmitBatchOptions = {
-        workspaceId,
-        data: {
-          context: {
-            source: DataSources.ManualSegment,
+          data: {
+            context: {
+              source: DataSources.ManualSegment,
+            },
+            batch,
           },
-          batch,
-        },
-      };
-      await submitBatchWithTriggers(data);
+        };
+        await submitBatchWithTriggers(data);
+      }
+      await updateManualSegmentUsers({
+        workspaceId,
+        segmentId,
+        userIds,
+      });
 
       const response = await reply.status(200).send();
       return response;

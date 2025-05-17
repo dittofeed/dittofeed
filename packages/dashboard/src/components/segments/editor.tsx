@@ -39,7 +39,6 @@ import {
   KeyedPerformedSegmentNode,
   LastPerformedSegmentNode,
   ManualSegmentNode,
-  ManualSegmentOperationEnum,
   ManualSegmentUploadCsvHeaders,
   PerformedSegmentNode,
   RandomBucketSegmentNode,
@@ -2248,10 +2247,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
 
 type Label = Group | "empty";
 
-interface ManualUploadState {
-  operation: ManualSegmentOperationEnum;
-}
-
 function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
@@ -2299,9 +2294,6 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
   const { state } = useSegmentEditorContext();
   const { disabled, editedSegment } = state;
   const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
-  const [{ operation }] = useImmer<ManualUploadState>({
-    operation: ManualSegmentOperationEnum.Add,
-  });
 
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
@@ -2325,11 +2317,10 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
         headers: {
           [WORKSPACE_ID_HEADER]: workspace.value.id,
           [SEGMENT_ID_HEADER]: editedSegment.id,
-          operation,
         } satisfies ManualSegmentUploadCsvHeaders,
       });
     },
-    [apiBase, editedSegment, operation, workspace],
+    [apiBase, editedSegment, workspace],
   );
   return (
     <Stack direction="column" spacing={3}>

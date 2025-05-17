@@ -4376,15 +4376,9 @@ export const FeatureConfigByType = {
     DisplayJourneyPercentagesFeatureConfig,
 } as const;
 
-export enum ManualSegmentOperationEnum {
-  Add = "Add",
-  Remove = "Remove",
-}
-
 export const ManualSegmentUploadCsvHeaders = Type.Object({
   [WORKSPACE_ID_HEADER]: WorkspaceId,
   [SEGMENT_ID_HEADER]: Type.String(),
-  operation: Type.Enum(ManualSegmentOperationEnum),
 });
 
 export type ManualSegmentUploadCsvHeaders = Static<
