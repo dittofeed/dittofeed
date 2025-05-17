@@ -16,12 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import axios from "axios";
 import { Draft } from "immer";
-import {
-  SEGMENT_ID_HEADER,
-  WORKSPACE_ID_HEADER,
-} from "isomorphic-lib/src/constants";
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import { round } from "isomorphic-lib/src/numbers";
 import {
@@ -39,7 +34,6 @@ import {
   KeyedPerformedSegmentNode,
   LastPerformedSegmentNode,
   ManualSegmentNode,
-  ManualSegmentUploadCsvHeaders,
   PerformedSegmentNode,
   RandomBucketSegmentNode,
   RelationalOperators,
@@ -73,6 +67,7 @@ import { v4 as uuid } from "uuid";
 import { useAppStorePick } from "../../lib/appStore";
 import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
+import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
 import { CsvUploader } from "../csvUploader";
 import DurationSelect from "../durationSelect";
 import {
@@ -2289,35 +2284,30 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
+function ManualNodeComponent({ node: _node }: { node: ManualSegmentNode }) {
   const { state } = useSegmentEditorContext();
   const { disabled } = state;
-  const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const { mutateAsync, isPending: isUploading } = useUploadCsvMutation();
 
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
       if (workspace.type !== CompletionStatus.Successful) {
         return;
       }
-
-      await axios({
-        method: "POST",
-        url: `${apiBase}/api/segments/upload-csv`,
+      // TODO handle error and success states from mutateAsync
+      await mutateAsync({
+        segmentId: state.editedSegment.id,
         data,
-        headers: {
-          [WORKSPACE_ID_HEADER]: workspace.value.id,
-          [SEGMENT_ID_HEADER]: state.editedSegment.id,
-        } satisfies ManualSegmentUploadCsvHeaders,
       });
     },
-    [apiBase, workspace, state.editedSegment.id],
+    [workspace, state.editedSegment.id, mutateAsync],
   );
   return (
     <Stack direction="column" spacing={3}>
       <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
       <CsvUploader
-        disabled={disabled}
+        disabled={disabled || isUploading}
         submit={handleSubmit}
         successMessage="Uploaded CSV to manual segment"
         errorMessage="API Error: Failed upload CSV to manual segment"

@@ -1,7 +1,7 @@
 import {
-  useMutation,
   UseMutationOptions,
   UseMutationResult,
+  useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
@@ -14,6 +14,8 @@ import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
+import { USERS_COUNT_QUERY_KEY } from "./useUsersCountQuery";
+import { USERS_QUERY_KEY } from "./useUsersQuery";
 
 export interface UploadCsvMutationParams {
   segmentId: string;
@@ -68,6 +70,13 @@ export function useUploadCsvMutation(
         // Invalidate the general segments list query
         queryClient.invalidateQueries({
           queryKey: [SEGMENTS_QUERY_KEY, { workspaceId }],
+        });
+        // Invalidate users and users count queries
+        queryClient.invalidateQueries({
+          queryKey: [USERS_QUERY_KEY, workspaceId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [USERS_COUNT_QUERY_KEY, workspaceId],
         });
       }
     },

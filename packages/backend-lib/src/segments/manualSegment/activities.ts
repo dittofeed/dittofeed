@@ -244,12 +244,17 @@ export async function replaceManualSegment({
       },
     ];
   });
-  await submitBatch({
-    workspaceId,
-    data: {
-      batch,
+  await submitBatch(
+    {
+      workspaceId,
+      data: {
+        batch,
+      },
     },
-  });
+    {
+      processingTime: now,
+    },
+  );
   const segmentResource = toSegmentResource(updated);
   if (segmentResource.isErr()) {
     logger().error(
