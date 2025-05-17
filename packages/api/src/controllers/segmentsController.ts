@@ -125,14 +125,14 @@ export default async function segmentsController(fastify: FastifyInstance) {
       schema: {
         description: "Get the status of a manual segment.",
         tags: ["Segments"],
-        body: GetManualSegmentStatusRequest,
+        querystring: GetManualSegmentStatusRequest,
         response: {
           200: GetManualSegmentStatusResponse,
         },
       },
     },
     async (request, reply) => {
-      const status = await getManualSegmentStatus(request.body);
+      const status = await getManualSegmentStatus(request.query);
       if (!status) {
         return reply.status(404).send();
       }
