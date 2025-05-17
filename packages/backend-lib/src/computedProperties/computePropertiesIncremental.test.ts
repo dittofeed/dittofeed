@@ -401,6 +401,7 @@ enum EventsStepType {
   Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
   UpdateJourney = "UpdateJourney",
+  Delay = "Delay",
 }
 
 interface StepContext {
@@ -439,6 +440,13 @@ interface DebugAssignmentsStep {
   })[];
 }
 
+// Wait in real time
+interface DelayStep {
+  type: EventsStepType.Delay;
+  timeMs: number;
+}
+
+// Wait in test time
 interface SleepStep {
   type: EventsStepType.Sleep;
   timeMs: number;
@@ -502,6 +510,7 @@ type TableStep =
   | SleepStep
   | DebugAssignmentsStep
   | UpdateComputedPropertyStepEnum
+  | DelayStep
   | UpdateJourneyStep;
 
 interface TableTest {
@@ -6488,6 +6497,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 1000,
+        },
+        {
           type: EventsStepType.Assert,
           description: "user property is empty after its definition is updated",
           users: [
@@ -7653,6 +7667,10 @@ describe("computeProperties", () => {
             },
             "sleep step",
           );
+          break;
+        case EventsStepType.Delay:
+          // eslint-disable-next-line no-promise-executor-return
+          await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
           const usersAssertions =
