@@ -10,7 +10,11 @@ import {
   toSegmentResource,
   upsertSegment,
 } from "backend-lib/src/segments";
-import { updateManualSegmentUsers } from "backend-lib/src/segments/manualSegments";
+import {
+  clearManualSegment,
+  getManualSegmentStatus,
+  updateManualSegmentUsers,
+} from "backend-lib/src/segments/manualSegments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
 import { and, eq, inArray } from "drizzle-orm";
@@ -28,10 +32,13 @@ import {
 import {
   BaseUserUploadRow,
   BatchItem,
+  ClearManualSegmentRequest,
   CsvUploadValidationError,
   DeleteSegmentRequest,
   EmptyResponse,
   EventType,
+  GetManualSegmentStatusRequest,
+  GetManualSegmentStatusResponse,
   GetSegmentsRequest,
   GetSegmentsResponse,
   InternalEventType,
@@ -98,6 +105,42 @@ export default async function segmentsController(fastify: FastifyInstance) {
     async (request, reply) => {
       await updateManualSegmentUsers(request.body);
       return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/manual-segment/clear",
+    {
+      schema: {
+        description: "Clear a manual segment.",
+        tags: ["Segments"],
+        body: ClearManualSegmentRequest,
+      },
+    },
+    async (request, reply) => {
+      await clearManualSegment(request.body);
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/manual-segment/status",
+    {
+      schema: {
+        description: "Get the status of a manual segment.",
+        tags: ["Segments"],
+        body: GetManualSegmentStatusRequest,
+        response: {
+          200: GetManualSegmentStatusResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const status = await getManualSegmentStatus(request.body);
+      if (!status) {
+        return reply.status(404).send();
+      }
+      return reply.status(200).send(status);
     },
   );
 
