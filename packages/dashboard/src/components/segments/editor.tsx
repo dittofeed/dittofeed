@@ -2292,7 +2292,7 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
   const { state } = useSegmentEditorContext();
-  const { disabled, editedSegment } = state;
+  const { disabled } = state;
   const { workspace, apiBase } = useAppStorePick(["workspace", "apiBase"]);
 
   const handleSubmit = useCallback(
@@ -2302,25 +2302,16 @@ function ManualNodeComponent({ node }: { node: ManualSegmentNode }) {
       }
 
       await axios({
-        method: "PUT",
-        url: `${apiBase}/api/segments`,
-        data: editedSegment,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      await axios({
         method: "POST",
         url: `${apiBase}/api/segments/upload-csv`,
         data,
         headers: {
           [WORKSPACE_ID_HEADER]: workspace.value.id,
-          [SEGMENT_ID_HEADER]: editedSegment.id,
+          [SEGMENT_ID_HEADER]: state.editedSegment.id,
         } satisfies ManualSegmentUploadCsvHeaders,
       });
     },
-    [apiBase, editedSegment, workspace],
+    [apiBase, workspace, state.editedSegment.id],
   );
   return (
     <Stack direction="column" spacing={3}>
