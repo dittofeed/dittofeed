@@ -5515,6 +5515,68 @@ describe("computeProperties", () => {
             },
           ],
         },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "manual",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Manual,
+                  id: "1",
+                  version: 2,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ segments }) => ({
+              type: EventType.Track,
+              userId: "user-2",
+              event: InternalEventType.ManualSegmentUpdate,
+              offsetMs: -100,
+              properties: {
+                segmentId: segments[0]?.id,
+                version: 2,
+                inSegment: 1,
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                manual: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                manual: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                manual: null,
+              },
+            },
+          ],
+        },
       ],
     },
     {
