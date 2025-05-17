@@ -6419,6 +6419,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.Assert,
           description: "user property is empty after its definition is updated",
           users: [
