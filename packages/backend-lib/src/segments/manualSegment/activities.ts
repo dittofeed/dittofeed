@@ -219,13 +219,6 @@ export async function replaceManualSegment({
         );
         return null;
       }
-      logger().debug(
-        {
-          updated,
-          segment,
-        },
-        "updated segment",
-      );
       return [newEntry, updated];
     });
   if (!newManualSegmentNode) {
@@ -251,27 +244,12 @@ export async function replaceManualSegment({
       },
     ];
   });
-  // FIXME reset assignment value has exactly same assigned_at as the
-  logger().debug(
-    {
-      now,
-      nowISO: new Date(now).toISOString(),
+  await submitBatch({
+    workspaceId,
+    data: {
       batch,
     },
-    "submitting replace batch",
-  );
-  // FIXME run sync
-  await submitBatch(
-    {
-      workspaceId,
-      data: {
-        batch,
-      },
-    },
-    {
-      processingTime: now,
-    },
-  );
+  });
   const segmentResource = toSegmentResource(updated);
   if (segmentResource.isErr()) {
     logger().error(
