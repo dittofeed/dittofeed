@@ -118,12 +118,15 @@ export async function manualSegmentWorkflow({
       case ManualSegmentOperationTypeEnum.Append: {
         const userIdsToProcess: string[] = [...currentOperation.userIds];
 
-        while (
-          queue.length > 0 &&
-          queue[0] &&
-          queue[0].type === ManualSegmentOperationTypeEnum.Append
-        ) {
-          const nextAppendOp = queue.shift() as AppendOperation;
+        while (queue.length > 0) {
+          const nextAppendOp = queue[0];
+          if (
+            !nextAppendOp ||
+            nextAppendOp.type !== ManualSegmentOperationTypeEnum.Append
+          ) {
+            break;
+          }
+          queue.shift();
           userIdsToProcess.push(...nextAppendOp.userIds);
           logger.info("Collapsed subsequent Append operation.", {
             workspaceId,
