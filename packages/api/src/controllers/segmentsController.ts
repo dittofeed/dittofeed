@@ -10,6 +10,11 @@ import {
   toSegmentResource,
   upsertSegment,
 } from "backend-lib/src/segments";
+import {
+  clearManualSegment,
+  getManualSegmentStatus,
+  updateManualSegmentUsers,
+} from "backend-lib/src/segments/manualSegments";
 import { randomUUID } from "crypto";
 import csvParser from "csv-parser";
 import { and, eq, inArray } from "drizzle-orm";
@@ -27,20 +32,21 @@ import {
 import {
   BaseUserUploadRow,
   BatchItem,
+  ClearManualSegmentRequest,
   CsvUploadValidationError,
   DeleteSegmentRequest,
   EmptyResponse,
   EventType,
+  GetManualSegmentStatusRequest,
+  GetManualSegmentStatusResponse,
   GetSegmentsRequest,
   GetSegmentsResponse,
-  InternalEventType,
   KnownBatchIdentifyData,
-  KnownBatchTrackData,
-  ManualSegmentOperationEnum,
   ManualSegmentUploadCsvHeaders,
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
+  UpdateManualSegmentUsersRequest,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UserUploadRowErrors,
@@ -80,6 +86,57 @@ export default async function segmentsController(fastify: FastifyInstance) {
       });
       const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
       return reply.status(200).send({ segments });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/manual-segment/update",
+    {
+      schema: {
+        description: "Update a manual segment.",
+        tags: ["Segments"],
+        body: UpdateManualSegmentUsersRequest,
+      },
+    },
+    async (request, reply) => {
+      await updateManualSegmentUsers(request.body);
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/manual-segment/clear",
+    {
+      schema: {
+        description: "Clear a manual segment.",
+        tags: ["Segments"],
+        body: ClearManualSegmentRequest,
+      },
+    },
+    async (request, reply) => {
+      await clearManualSegment(request.body);
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/manual-segment/status",
+    {
+      schema: {
+        description: "Get the status of a manual segment.",
+        tags: ["Segments"],
+        querystring: GetManualSegmentStatusRequest,
+        response: {
+          200: GetManualSegmentStatusResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const status = await getManualSegmentStatus(request.query);
+      if (!status) {
+        return reply.status(404).send();
+      }
+      return reply.status(200).send(status);
     },
   );
 
@@ -185,7 +242,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const csvStream = file;
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
       const segmentId = request.headers[SEGMENT_ID_HEADER];
-      const { operation } = request.headers;
 
       // Parse the CSV stream into a JavaScript object with an array of rows
       const csvPromise = new Promise<CsvParseResult>((resolve) => {
@@ -295,52 +351,41 @@ export default async function segmentsController(fastify: FastifyInstance) {
 
       const currentTime = new Date();
       const timestamp = currentTime.toISOString();
-      const batch: BatchItem[] = [];
-      const inSegment = operation === ManualSegmentOperationEnum.Add ? 1 : 0;
+      const userIds = rows.value.map((row) => row.id);
 
-      for (const row of rows.value) {
+      const batch: BatchItem[] = rows.value.flatMap((row) => {
         const { id, ...rest } = row;
-
-        batch.push({
+        if (Object.keys(rest).length === 0) {
+          return [];
+        }
+        const event: KnownBatchIdentifyData = {
           type: EventType.Identify,
           userId: id,
           timestamp,
           traits: rest,
           messageId: randomUUID(),
-        } satisfies KnownBatchIdentifyData);
+        };
+        return event;
+      });
 
-        batch.push({
-          type: EventType.Track,
-          userId: id,
-          timestamp,
-          event: InternalEventType.ManualSegmentUpdate,
-          properties: {
-            segmentId,
-            version: definition.entryNode.version,
-            inSegment,
-          },
-          messageId: randomUUID(),
-        } satisfies KnownBatchTrackData);
-      }
-
-      logger().debug(
-        {
-          batch,
+      if (batch.length > 0) {
+        const data: SubmitBatchOptions = {
           workspaceId,
-          segmentId,
-        },
-        "submitting manual segment batch",
-      );
-      const data: SubmitBatchOptions = {
-        workspaceId,
-        data: {
-          context: {
-            source: DataSources.ManualSegment,
+          data: {
+            context: {
+              source: DataSources.ManualSegment,
+            },
+            batch,
           },
-          batch,
-        },
-      };
-      await submitBatchWithTriggers(data);
+        };
+        await submitBatchWithTriggers(data);
+      }
+      await updateManualSegmentUsers({
+        workspaceId,
+        segmentId,
+        userIds,
+        sync: true,
+      });
 
       const response = await reply.status(200).send();
       return response;

@@ -9,6 +9,14 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { omit } from "remeda";
 
+import {
+  getUserCounts,
+  IndexedState,
+  readAssignments,
+  readIndexed,
+  readPeriods,
+  readUpdatedComputedPropertyState,
+} from "../../test/computeProperties";
 import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
   clickhouseClient,
@@ -23,8 +31,6 @@ import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   AppFileType,
   BlobStorageFile,
-  ComputedPropertyAssignment,
-  ComputedPropertyPeriod,
   ComputedPropertyStep,
   ComputedPropertyStepEnum,
   EventType,
@@ -78,132 +84,6 @@ jest.mock("../temporal/activity", () => ({
     },
   }),
 }));
-
-async function getAssignmentUserCount(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select uniqExact(user_id) as user_count
-    from computed_property_assignments_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values: { data: { user_count: number }[] } = await response.json();
-  return Number(values.data[0]?.user_count ?? 0);
-}
-
-async function getStateUserCount(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select uniqExact(user_id) as user_count
-    from computed_property_state_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values: { data: { user_count: number }[] } = await response.json();
-  return Number(values.data[0]?.user_count ?? 0);
-}
-
-async function getEventsUserCount(workspaceId: string) {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select uniqExact(user_id) as user_count
-    from user_events_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values: { data: { user_count: number }[] } = await response.json();
-  return Number(values.data[0]?.user_count ?? 0);
-}
-
-async function getUserCounts(workspaceId: string) {
-  const [stateUserCount, assignmentUserCount, eventsUserCount] =
-    await Promise.all([
-      getStateUserCount(workspaceId),
-      getAssignmentUserCount(workspaceId),
-      getEventsUserCount(workspaceId),
-    ]);
-  return {
-    eventsUserCount,
-    stateUserCount,
-    assignmentUserCount,
-  };
-}
-
-async function readPeriods({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<ComputedPropertyPeriod[]> {
-  const periods = await db()
-    .select()
-    .from(schema.computedPropertyPeriod)
-    .where(eq(schema.computedPropertyPeriod.workspaceId, workspaceId));
-  return periods;
-}
-
-async function readUpdatedComputedPropertyState({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<
-  {
-    workspace_id: string;
-    type: string;
-    computed_property_id: string;
-    state_id: string;
-    user_id: string;
-    computed_at: string;
-  }[]
-> {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select *
-    from updated_computed_property_state
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values = await response.json<{
-    workspace_id: string;
-    type: string;
-    computed_property_id: string;
-    state_id: string;
-    user_id: string;
-    computed_at: string;
-  }>();
-  return values.data;
-}
-
-export async function readAssignments({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<ComputedPropertyAssignment[]> {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select *
-    from computed_property_assignments_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-    order by assigned_at desc
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  const values: { data: ComputedPropertyAssignment[] } = await response.json();
-  return values.data;
-}
 
 interface State {
   type: "segment" | "user_property";
@@ -315,14 +195,6 @@ interface TestState {
   maxEventTime?: string;
 }
 
-interface IndexedState {
-  type: "segment" | "user_property";
-  computed_property_id: string;
-  state_id: string;
-  user_id: string;
-  indexed_value: string;
-}
-
 interface TestIndexedState {
   type: "segment" | "user_property";
   userId: string;
@@ -399,31 +271,6 @@ function toTestResolvedSegmentState(
     nodeId,
     segmentStateValue: resolvedSegmentState.segment_state_value,
   };
-}
-
-async function readIndexed({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<IndexedState[]> {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select
-      type,
-      computed_property_id,
-      state_id,
-      user_id,
-      indexed_value
-    from computed_property_state_index
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = (await (
-    await clickhouseClient().query({
-      query,
-      query_params: qb.getQueries(),
-    })
-  ).json()) satisfies { data: IndexedState[] };
-  return response.data;
 }
 
 function toTestIndexedState(
@@ -554,6 +401,7 @@ enum EventsStepType {
   Debug = "Debug",
   UpdateComputedProperty = "UpdateComputedProperty",
   UpdateJourney = "UpdateJourney",
+  Delay = "Delay",
 }
 
 interface StepContext {
@@ -592,6 +440,13 @@ interface DebugAssignmentsStep {
   })[];
 }
 
+// Wait in real time
+interface DelayStep {
+  type: EventsStepType.Delay;
+  timeMs: number;
+}
+
+// Wait in test time
 interface SleepStep {
   type: EventsStepType.Sleep;
   timeMs: number;
@@ -655,6 +510,7 @@ type TableStep =
   | SleepStep
   | DebugAssignmentsStep
   | UpdateComputedPropertyStepEnum
+  | DelayStep
   | UpdateJourneyStep;
 
 interface TableTest {
@@ -5515,6 +5371,73 @@ describe("computeProperties", () => {
             },
           ],
         },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "manual",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Manual,
+                  id: "1",
+                  version: 2,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ segments }) => ({
+              type: EventType.Track,
+              userId: "user-2",
+              event: InternalEventType.ManualSegmentUpdate,
+              offsetMs: -100,
+              properties: {
+                segmentId: segments[0]?.id,
+                version: 2,
+                inSegment: 1,
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                manual: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                manual: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                manual: null,
+              },
+            },
+          ],
+        },
       ],
     },
     {
@@ -6387,6 +6310,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
@@ -6501,6 +6429,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.Assert,
           description: "user property is empty after its definition is updated",
           users: [
@@ -6577,6 +6510,11 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
         },
         {
           type: EventsStepType.Assert,
@@ -6888,6 +6826,11 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          // allow async deletes to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
         },
         {
           type: EventsStepType.Assert,
@@ -7744,6 +7687,10 @@ describe("computeProperties", () => {
             },
             "sleep step",
           );
+          break;
+        case EventsStepType.Delay:
+          // eslint-disable-next-line no-promise-executor-return
+          await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
           const usersAssertions =
