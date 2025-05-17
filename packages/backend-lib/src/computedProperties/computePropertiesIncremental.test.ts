@@ -6818,6 +6818,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async deletes to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.Assert,
           description:
             "user is no longer in the segment after its definition is updated",
