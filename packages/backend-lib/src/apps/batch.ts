@@ -3,6 +3,7 @@ import * as R from "remeda";
 import { BatchAppData, EventType } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
 import { splitGroupEvents } from "./group";
+import logger from "../logger";
 
 export interface SubmitBatchOptions {
   workspaceId: string;
@@ -67,6 +68,12 @@ export async function submitBatch(
 ) {
   const userEvents = buildBatchUserEvents(data, { processingTime });
 
+  logger().debug(
+    {
+      userEvents,
+    },
+    "submitting batch user events",
+  );
   await insertUserEvents({
     workspaceId,
     userEvents,

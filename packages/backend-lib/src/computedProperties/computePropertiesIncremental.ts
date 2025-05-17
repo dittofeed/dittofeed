@@ -196,7 +196,7 @@ function manualSegmentToLastPerformed({
   node: ManualSegmentNode;
   segment: SavedSegmentResource;
 }): LastPerformedSegmentNode {
-  return {
+  const lastPerformedNode: LastPerformedSegmentNode = {
     type: SegmentNodeType.LastPerformed,
     id: node.id,
     event: InternalEventType.ManualSegmentUpdate,
@@ -226,6 +226,14 @@ function manualSegmentToLastPerformed({
       },
     ],
   };
+  logger().debug(
+    {
+      node,
+      lastPerformedNode,
+    },
+    "manual segment to last performed",
+  );
+  return lastPerformedNode;
 }
 
 function subscriptionChangeToPerformed(

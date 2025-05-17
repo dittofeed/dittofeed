@@ -7,6 +7,7 @@ import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import { createEnvAndWorker } from "../../test/temporal";
 import { insert } from "../db";
 import * as schema from "../db/schema";
+import logger from "../logger";
 import {
   ManualSegmentNode,
   SegmentDefinition,
@@ -14,6 +15,7 @@ import {
   UserPropertyDefinitionType,
   Workspace,
 } from "../types";
+import { findManyEventsWithCount } from "../userEvents";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { getUsers } from "../users";
 import { createWorkspace } from "../workspaces/createWorkspace";
@@ -22,6 +24,10 @@ import {
   ManualSegmentOperationTypeEnum,
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
+import {
+  readAssignments,
+  readUpdatedComputedPropertyState,
+} from "../../test/computeProperties";
 
 jest.setTimeout(15000);
 
@@ -71,7 +77,7 @@ describe("ManualSegmentsWorkflow", () => {
     });
     it("should produce the correct segment membership", async () => {
       await worker.runUntil(async () => {
-        let now = await testEnv.currentTimeMs();
+        const now = await testEnv.currentTimeMs();
         const manualSegmentNode: ManualSegmentNode = {
           id: "1",
           type: SegmentNodeType.Manual,
@@ -138,7 +144,6 @@ describe("ManualSegmentsWorkflow", () => {
           ]),
         );
         await testEnv.sleep(1000);
-        now = await testEnv.currentTimeMs();
 
         const handle2 = await testEnv.client.workflow.signalWithStart(
           manualSegmentWorkflow,
@@ -166,6 +171,23 @@ describe("ManualSegmentsWorkflow", () => {
             workspaceId: workspace.id,
             segmentFilter: [segmentId],
           }),
+        );
+        const assignments = await readAssignments({
+          workspaceId: workspace.id,
+        });
+        const states = await readUpdatedComputedPropertyState({
+          workspaceId: workspace.id,
+        });
+        const events = await findManyEventsWithCount({
+          workspaceId: workspace.id,
+        });
+        logger().debug(
+          {
+            states,
+            assignments,
+            events,
+          },
+          "loc1 debug",
         );
         expect(
           users2,

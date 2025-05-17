@@ -251,6 +251,14 @@ export async function replaceManualSegment({
       },
     ];
   });
+  logger().debug(
+    {
+      now,
+      nowISO: new Date(now).toISOString(),
+      batch,
+    },
+    "submitting replace batch",
+  );
   // FIXME run sync
   await submitBatch(
     {
