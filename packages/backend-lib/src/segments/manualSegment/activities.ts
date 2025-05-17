@@ -219,6 +219,13 @@ export async function replaceManualSegment({
         );
         return null;
       }
+      logger().debug(
+        {
+          updated,
+          segment,
+        },
+        "updated segment",
+      );
       return [newEntry, updated];
     });
   if (!newManualSegmentNode) {
@@ -244,6 +251,7 @@ export async function replaceManualSegment({
       },
     ];
   });
+  // FIXME run sync
   await submitBatch(
     {
       workspaceId,
