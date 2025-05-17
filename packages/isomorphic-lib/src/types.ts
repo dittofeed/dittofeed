@@ -5257,14 +5257,6 @@ export type UpdateManualSegmentUsersRequest = Static<
   typeof UpdateManualSegmentUsersRequest
 >;
 
-export const UpdateManualSegmentUsersResponse = Type.Object({
-  version: Type.Number(),
-});
-
-export type UpdateManualSegmentUsersResponse = Static<
-  typeof UpdateManualSegmentUsersResponse
->;
-
 export const GetManualSegmentStatusRequest = Type.Object({
   workspaceId: Type.String(),
   segmentId: Type.String(),

@@ -65,7 +65,7 @@ export async function manualSegmentWorkflow({
   workspaceId,
   segmentId,
 }: ManualSegmentWorkflowParams): Promise<{
-  lastProcessedAt: number;
+  lastProcessedAt: string;
 }> {
   let lastProcessedAt = 0;
   const queue: ManualSegmentOperation[] = [];
@@ -186,5 +186,5 @@ export async function manualSegmentWorkflow({
         break;
     }
   }
-  return { lastProcessedAt };
+  return { lastProcessedAt: new Date(lastProcessedAt).toISOString() };
 }
