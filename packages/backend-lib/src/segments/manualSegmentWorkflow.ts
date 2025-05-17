@@ -82,7 +82,7 @@ export async function manualSegmentWorkflow({
   await wf.condition(() => queue.length > 0);
 
   // Main processing loop
-  while (true) {
+  mainLoop: while (true) {
     if (queue.length === 0) {
       break;
     }
@@ -101,12 +101,20 @@ export async function manualSegmentWorkflow({
 
     switch (currentOperation.type) {
       case ManualSegmentOperationTypeEnum.Replace: {
-        await replaceManualSegment({
+        const success = await replaceManualSegment({
           workspaceId,
           segmentId,
           userIds: currentOperation.userIds,
           now: currentTime,
         });
+        if (!success) {
+          logger.error("Replace operation failed.", {
+            workspaceId,
+            segmentId,
+            currentOperation,
+          });
+          break mainLoop;
+        }
         lastProcessedAt = currentTime;
         logger.info("Replace operation completed.", {
           workspaceId,
@@ -144,12 +152,21 @@ export async function manualSegmentWorkflow({
           });
           for (let i = 0; i < uniqueUserIds.length; i += USER_ID_CHUNK_SIZE) {
             const chunk = uniqueUserIds.slice(i, i + USER_ID_CHUNK_SIZE);
-            await appendToManualSegment({
+            const success = await appendToManualSegment({
               workspaceId,
               segmentId,
               userIds: chunk,
               now: currentTime,
             });
+
+            if (!success) {
+              logger.error("Append operation failed.", {
+                workspaceId,
+                segmentId,
+                currentOperation,
+              });
+              break mainLoop;
+            }
           }
         } else {
           logger.info(
@@ -165,25 +182,35 @@ export async function manualSegmentWorkflow({
         break;
       }
 
-      case ManualSegmentOperationTypeEnum.Clear:
-        await clearManualSegment({
+      case ManualSegmentOperationTypeEnum.Clear: {
+        const success = await clearManualSegment({
           workspaceId,
           segmentId,
           now: currentTime,
         });
+        if (!success) {
+          logger.error("Clear operation failed.", {
+            workspaceId,
+            segmentId,
+            currentOperation,
+          });
+          break mainLoop;
+        }
         lastProcessedAt = currentTime;
         logger.info("Clear operation completed.", {
           workspaceId,
           segmentId,
         });
         break;
+      }
 
       default:
-        logger.warn("Unknown operation type encountered", {
+        logger.error("Unknown operation type encountered", {
           workspaceId,
           segmentId,
+          currentOperation,
         });
-        break;
+        break mainLoop;
     }
   }
   return { lastProcessedAt: new Date(lastProcessedAt).toISOString() };

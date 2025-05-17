@@ -43,6 +43,7 @@ import {
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
+  UpdateManualSegmentUsersRequest,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UserUploadRowErrors,
@@ -82,6 +83,21 @@ export default async function segmentsController(fastify: FastifyInstance) {
       });
       const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
       return reply.status(200).send({ segments });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/manual-segment/update",
+    {
+      schema: {
+        description: "Update a manual segment.",
+        tags: ["Segments"],
+        body: UpdateManualSegmentUsersRequest,
+      },
+    },
+    async (request, reply) => {
+      await updateManualSegmentUsers(request.body);
+      return reply.status(200).send();
     },
   );
 
