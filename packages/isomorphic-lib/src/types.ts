@@ -5267,8 +5267,7 @@ export type GetManualSegmentStatusRequest = Static<
 >;
 
 export const GetManualSegmentStatusResponse = Type.Object({
-  segmentVersion: Type.Number(),
-  lastComputedAt: Type.String(),
+  lastComputedAt: Nullable(Type.String()),
 });
 
 export type GetManualSegmentStatusResponse = Static<

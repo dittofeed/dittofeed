@@ -1,5 +1,9 @@
+import { and, eq } from "drizzle-orm";
+
 import { getPeriodsByComputedPropertyId } from "../computedProperties/periods";
 import config from "../config";
+import { db } from "../db";
+import * as schema from "../db/schema";
 import connectWorkflowClient from "../temporal/connectWorkflowClient";
 import {
   ClearManualSegmentRequest,
@@ -83,10 +87,30 @@ export async function clearManualSegment({
 export async function getManualSegmentStatus({
   workspaceId,
   segmentId,
-}: GetManualSegmentStatusRequest): Promise<GetManualSegmentStatusResponse> {
-  const periods = await getPeriodsByComputedPropertyId({
-    workspaceId,
-    step: ComputedPropertyStepEnum.ProcessAssignments,
+}: GetManualSegmentStatusRequest): Promise<GetManualSegmentStatusResponse | null> {
+  const [periods, segment] = await Promise.all([
+    getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStepEnum.ProcessAssignments,
+      computedPropertyId: segmentId,
+      computedPropertyType: "Segment",
+    }),
+    db().query.segment.findFirst({
+      where: and(
+        eq(schema.segment.workspaceId, workspaceId),
+        eq(schema.segment.id, segmentId),
+      ),
+    }),
+  ]);
+  if (!segment) {
+    return null;
+  }
+  const version = segment.definitionUpdatedAt.toString();
+  const period = periods.get({
+    computedPropertyId: segment.id,
+    version,
   });
-  throw new Error("Not implemented");
+  return {
+    lastComputedAt: period?.maxTo.toISOString() ?? null,
+  };
 }
