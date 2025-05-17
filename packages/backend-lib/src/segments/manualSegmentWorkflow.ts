@@ -119,6 +119,7 @@ export async function manualSegmentWorkflow({
         logger.info("Replace operation completed.", {
           workspaceId,
           segmentId,
+          userCount: currentOperation.userIds.length,
         });
         break;
       }
@@ -158,7 +159,11 @@ export async function manualSegmentWorkflow({
               userIds: chunk,
               now: currentTime,
             });
-
+            logger.info("Append operation completed for chunk.", {
+              workspaceId,
+              segmentId,
+              userCount: chunk.length,
+            });
             if (!success) {
               logger.error("Append operation failed.", {
                 workspaceId,

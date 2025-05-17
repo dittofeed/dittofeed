@@ -384,6 +384,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         workspaceId,
         segmentId,
         userIds,
+        sync: true,
       });
 
       const response = await reply.status(200).send();
