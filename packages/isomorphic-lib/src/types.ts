@@ -4376,15 +4376,9 @@ export const FeatureConfigByType = {
     DisplayJourneyPercentagesFeatureConfig,
 } as const;
 
-export enum ManualSegmentOperationEnum {
-  Add = "Add",
-  Remove = "Remove",
-}
-
 export const ManualSegmentUploadCsvHeaders = Type.Object({
   [WORKSPACE_ID_HEADER]: WorkspaceId,
   [SEGMENT_ID_HEADER]: Type.String(),
-  operation: Type.Enum(ManualSegmentOperationEnum),
 });
 
 export type ManualSegmentUploadCsvHeaders = Static<
@@ -5242,3 +5236,54 @@ export const StartBroadcastRequest = Type.Object({
 });
 
 export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;
+
+export const UpdateManualSegmentUsersRequest = Type.Composite([
+  Type.Object({
+    workspaceId: Type.String(),
+    segmentId: Type.String(),
+    userIds: Type.Array(Type.String()),
+    append: Type.Optional(Type.Boolean()),
+    sync: Type.Optional(Type.Boolean()),
+  }),
+]);
+
+export type UpdateManualSegmentUsersRequest = Static<
+  typeof UpdateManualSegmentUsersRequest
+>;
+
+export const GetManualSegmentStatusRequest = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type GetManualSegmentStatusRequest = Static<
+  typeof GetManualSegmentStatusRequest
+>;
+
+export const GetManualSegmentStatusResponse = Type.Object({
+  lastComputedAt: Nullable(Type.String()),
+});
+
+export type GetManualSegmentStatusResponse = Static<
+  typeof GetManualSegmentStatusResponse
+>;
+
+export const ClearManualSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type ClearManualSegmentRequest = Static<
+  typeof ClearManualSegmentRequest
+>;
+
+export const ManualSegmentUpdateEventProperties = Type.Object({
+  segmentId: Type.String(),
+  version: Type.Number(),
+  // represent a boolean value as a number 0 or 1
+  inSegment: Type.Number(),
+});
+
+export type ManualSegmentUpdateEventProperties = Static<
+  typeof ManualSegmentUpdateEventProperties
+>;

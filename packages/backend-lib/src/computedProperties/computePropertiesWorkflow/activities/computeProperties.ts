@@ -43,7 +43,10 @@ export async function computePropertiesIncrementalArgs({
     workspaceId,
     segments: segments.flatMap((s) => {
       if (s.isErr()) {
-        logger().error({ err: s.error }, "failed to enrich segment");
+        logger().error(
+          { err: s.error, workspaceId },
+          "failed to enrich segment",
+        );
         return [];
       }
       return s.value;
@@ -51,7 +54,10 @@ export async function computePropertiesIncrementalArgs({
     userProperties,
     journeys: journeys.flatMap((j) => {
       if (j.isErr()) {
-        logger().error({ err: j.error }, "failed to enrich journey");
+        logger().error(
+          { err: j.error, workspaceId },
+          "failed to enrich journey",
+        );
         return [];
       }
       if (j.value.status === "NotStarted") {
@@ -61,7 +67,10 @@ export async function computePropertiesIncrementalArgs({
     }),
     integrations: integrations.flatMap((i) => {
       if (i.isErr()) {
-        logger().error({ err: i.error }, "failed to enrich integration");
+        logger().error(
+          { err: i.error, workspaceId },
+          "failed to enrich integration",
+        );
         return [];
       }
       return i.value;

@@ -466,7 +466,11 @@ function BroadcastTemplate({ templateId, journeyId }: BroadcastTemplateProps) {
     inner = null;
   } else {
     inner = (
-      <BroadcastTemplateInner templateId={templateId} journeyId={journeyId} />
+      <BroadcastTemplateInner
+        key={templateId}
+        templateId={templateId}
+        journeyId={journeyId}
+      />
     );
   }
   return (

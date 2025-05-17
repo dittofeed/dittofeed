@@ -12,6 +12,7 @@ import {
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
+import * as R from "remeda";
 import { validate as validateUuid } from "uuid";
 
 import {
@@ -42,6 +43,8 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentStatus,
+  SegmentStatusEnum,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UpsertSegmentValidationErrorType,
@@ -356,15 +359,6 @@ export async function upsertSegment(
     });
   }
 
-  const value: typeof dbSegment.$inferInsert = {
-    id: params.id,
-    workspaceId: params.workspaceId,
-    name: params.name,
-    definition: params.definition,
-    resourceType: params.resourceType,
-    status: params.status,
-  };
-
   const txResult: Result<Segment, TxQueryError> = await db().transaction(
     async (tx) => {
       const findFirstConditions: SQL[] = [
@@ -386,6 +380,36 @@ export async function upsertSegment(
           params.definition &&
           !deepEqual(existingSegment.definition, params.definition);
 
+        const existingDefinitionResult = schemaValidateWithErr(
+          existingSegment.definition,
+          SegmentDefinition,
+        );
+        if (existingDefinitionResult.isErr()) {
+          logger().error(
+            {
+              err: existingDefinitionResult.error,
+              segment: existingSegment,
+              workspaceId: params.workspaceId,
+            },
+            "Existing segment definition is invalid",
+          );
+          throw new Error("Existing segment definition is invalid");
+        }
+
+        let willBeManual: boolean;
+        if (params.definition) {
+          willBeManual =
+            params.definition.entryNode.type === SegmentNodeType.Manual;
+        } else {
+          willBeManual =
+            existingDefinitionResult.value.entryNode.type ===
+            SegmentNodeType.Manual;
+        }
+        // Ensure manual segments are not started. They're updated imperatively.
+        const status = willBeManual
+          ? SegmentStatusEnum.NotStarted
+          : params.status;
+
         const updateResult = await txQueryResult(
           tx
             .update(dbSegment)
@@ -396,6 +420,7 @@ export async function upsertSegment(
               definitionUpdatedAt: wasDefinitionUpdated
                 ? new Date()
                 : existingSegment.definitionUpdatedAt,
+              status,
             })
             .where(eq(dbSegment.id, existingSegment.id))
             .returning(),
@@ -416,6 +441,20 @@ export async function upsertSegment(
         }
         return ok(updatedSegment);
       }
+
+      const status =
+        params.definition?.entryNode.type === SegmentNodeType.Manual
+          ? SegmentStatusEnum.NotStarted
+          : params.status;
+      const value: typeof dbSegment.$inferInsert = {
+        id: params.id,
+        workspaceId: params.workspaceId,
+        name: params.name,
+        definition: params.definition,
+        resourceType: params.resourceType,
+        status,
+      };
+
       const createResult = await txQueryResult(
         tx.insert(dbSegment).values(value).returning(),
       );

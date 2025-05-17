@@ -138,10 +138,31 @@ export class PeriodByComputedPropertyId {
 export async function getPeriodsByComputedPropertyId({
   workspaceId,
   step,
+  computedPropertyId,
+  computedPropertyType,
 }: {
   workspaceId: string;
   step: ComputedPropertyStep;
+  computedPropertyType?: "Segment" | "UserProperty";
+  computedPropertyId?: string;
 }): Promise<PeriodByComputedPropertyId> {
+  const queryConditions: SQL[] = [
+    sql`${dbComputedPropertyPeriod.workspaceId} = CAST(${workspaceId} AS UUID)`,
+    sql`${dbComputedPropertyPeriod.step} = ${step}`,
+  ];
+
+  if (computedPropertyId) {
+    queryConditions.push(
+      sql`${dbComputedPropertyPeriod.computedPropertyId} = CAST(${computedPropertyId} AS UUID)`,
+    );
+  }
+
+  if (computedPropertyType) {
+    queryConditions.push(
+      sql`${dbComputedPropertyPeriod.type} = ${computedPropertyType}`,
+    );
+  }
+
   const periods = (
     await db().execute<AggregatedComputedPropertyPeriod>(sql`
     SELECT DISTINCT ON (${dbComputedPropertyPeriod.workspaceId}, ${dbComputedPropertyPeriod.type}, ${dbComputedPropertyPeriod.computedPropertyId})
@@ -152,9 +173,7 @@ export async function getPeriodsByComputedPropertyId({
         PARTITION BY ${dbComputedPropertyPeriod.workspaceId}, ${dbComputedPropertyPeriod.type}, ${dbComputedPropertyPeriod.computedPropertyId}
       ) as ${sql.identifier("maxTo")}
     FROM ${dbComputedPropertyPeriod}
-    WHERE
-      ${dbComputedPropertyPeriod.workspaceId} = CAST(${workspaceId} AS UUID)
-      AND ${dbComputedPropertyPeriod.step} = ${step}
+    WHERE ${and(...queryConditions)}
     ORDER BY 
       ${dbComputedPropertyPeriod.workspaceId}, 
       ${dbComputedPropertyPeriod.type}, 
