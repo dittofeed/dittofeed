@@ -5411,6 +5411,11 @@ describe("computeProperties", () => {
           type: EventsStepType.ComputeProperties,
         },
         {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
+        },
+        {
           type: EventsStepType.Assert,
           users: [
             {
@@ -6303,6 +6308,11 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          // allow async delete to propagate
+          type: EventsStepType.Delay,
+          timeMs: 5000,
         },
         {
           type: EventsStepType.Assert,
