@@ -5,16 +5,14 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DeleteSegmentRequest,
+} from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery"; // Assuming SEGMENTS_QUERY_KEY is exported from here
-
-export interface DeleteSegmentRequest {
-  workspaceId: string;
-  segmentId: string;
-}
 
 // Define the mutation function type
 type DeleteSegmentMutationFn = (segmentId: string) => Promise<void>;
@@ -30,7 +28,7 @@ export function useDeleteSegmentMutation(
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn: DeleteSegmentMutationFn = async (segmentId) => {
+  const mutationFn: DeleteSegmentMutationFn = async (id) => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available for segment deletion");
     }
@@ -39,7 +37,7 @@ export function useDeleteSegmentMutation(
     await axios.delete(`${baseApiUrl}/segments`, {
       data: {
         workspaceId,
-        segmentId,
+        id,
       } satisfies DeleteSegmentRequest, // Assuming DELETE endpoint accepts body
       headers: {
         "Content-Type": "application/json",
