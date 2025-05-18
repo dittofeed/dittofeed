@@ -252,7 +252,6 @@
               "api-reference/auto/deliveries/get-apiadmindeliveries",
               "api-reference/auto/settings/put-apisettingsemail-providers",
               "api-reference/auto/settings/put-apisettingssms-providers",
-              "api-reference/auto/segments/get-apiadminsegmentsmanual-segment",
               "api-reference/auto/segments/post-apiadminsegmentsmanual-segmentupdate",
               "api-reference/auto/segments/post-apiadminsegmentsmanual-segmentclear",
               "api-reference/auto/segments/get-apiadminsegmentsmanual-segmentstatus"
