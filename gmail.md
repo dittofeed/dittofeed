@@ -54,11 +54,11 @@ The core idea is to treat a user's Gmail account as a specialized Email Service 
     *   [X] Configure OAuth 2.0 Consent Screen (ensure `redirect_uri` points to `/dashboard/oauth2/callback/gmail`).
     *   [X] Generate OAuth 2.0 Client ID and Secret (Client Secret will be used by Next.js `getServerSideProps`).
 *   [ ] **Frontend - Connect Gmail Account (Next.js Dashboard - Client-side):**
-    *   [ ] UI button/link (e.g., in a settings or integrations page) to initiate the "Connect Gmail" flow.
-    *   [ ] When clicked, client-side JavaScript will:
-        *   [ ] Generate a cryptographically random `state` string.
-        *   [ ] Store this `state` temporarily (e.g., in a short-lived cookie accessible by `getServerSideProps` during the callback, or `sessionStorage` if a mechanism is in place to verify it server-side).
-        *   [ ] Construct the Google OAuth authorization URL with:
+    *   [X] UI button/link (e.g., in a settings or integrations page) to initiate the "Connect Gmail" flow.
+    *   [X] When clicked, client-side JavaScript will:
+        *   [X] Generate a cryptographically random `state` string.
+        *   [X] Store this `state` temporarily (e.g., in a short-lived cookie accessible by `getServerSideProps` during the callback, or `sessionStorage` if a mechanism is in place to verify it server-side).
+        *   [X] Construct the Google OAuth authorization URL with:
             *   `client_id` (publicly known).
             *   `redirect_uri` (e.g., `YOUR_DASHBOARD_URL/dashboard/oauth2/callback/gmail`).
             *   `response_type=code`.
@@ -66,7 +66,7 @@ The core idea is to treat a user's Gmail account as a specialized Email Service 
             *   The generated `state`.
             *   `access_type=offline` (to ensure a refresh token is returned).
             *   Optionally, `prompt=consent`.
-        *   [ ] Redirect the user's browser to this Google URL.
+        *   [X] Redirect the user's browser to this Google URL.
 *   [ ] **Frontend - OAuth Callback Page (Next.js - e.g., `/dashboard/oauth2/callback/gmail.page.tsx` - Server-Side Logic):**
     *   [ ] This page will be the `redirect_uri` registered with Google.
     *   [ ] In `getServerSideProps(ctx)`:
