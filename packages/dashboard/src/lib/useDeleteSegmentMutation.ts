@@ -34,11 +34,11 @@ export function useDeleteSegmentMutation(
     }
     const workspaceId = workspace.value.id;
 
-    await axios.delete(`${baseApiUrl}/segments`, {
-      data: {
+    await axios.delete(`${baseApiUrl}/segments/v2`, {
+      params: {
         workspaceId,
         id,
-      } satisfies DeleteSegmentRequest, // Assuming DELETE endpoint accepts body
+      } satisfies DeleteSegmentRequest,
       headers: {
         "Content-Type": "application/json",
         ...authHeaders,

@@ -7,6 +7,7 @@ import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import {
   buildSegmentsFile,
+  deleteSegment,
   toSegmentResource,
   upsertSegment,
 } from "backend-lib/src/segments";
@@ -176,17 +177,30 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id, workspaceId } = request.body;
-      const result = await db()
-        .delete(schema.segment)
-        .where(
-          and(
-            eq(schema.segment.id, id),
-            eq(schema.segment.workspaceId, workspaceId),
-          ),
-        )
-        .returning();
-      if (!result.length) {
+      const result = await deleteSegment(request.body);
+      if (!result) {
+        return reply.status(404).send();
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/v2",
+    {
+      schema: {
+        description: "Delete a segment.",
+        tags: ["Segments"],
+        querystring: DeleteSegmentRequest,
+        response: {
+          204: EmptyResponse,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await deleteSegment(request.query);
+      if (!result) {
         return reply.status(404).send();
       }
       return reply.status(204).send();
