@@ -51,8 +51,8 @@ The core idea is to treat a user's Gmail account as a specialized Email Service 
 *   [ ] **Google Cloud Setup:**
     *   [X] Create Google Cloud Project.
     *   [X] Enable Gmail API.
-    *   [ ] Configure OAuth 2.0 Consent Screen (ensure `redirect_uri` points to `/dashboard/oauth2/callback/gmail`).
-    *   [ ] Generate OAuth 2.0 Client ID and Secret (Client Secret will be used by Next.js `getServerSideProps`).
+    *   [X] Configure OAuth 2.0 Consent Screen (ensure `redirect_uri` points to `/dashboard/oauth2/callback/gmail`).
+    *   [X] Generate OAuth 2.0 Client ID and Secret (Client Secret will be used by Next.js `getServerSideProps`).
 *   [ ] **Frontend - Connect Gmail Account (Next.js Dashboard - Client-side):**
     *   [ ] UI button/link (e.g., in a settings or integrations page) to initiate the "Connect Gmail" flow.
     *   [ ] When clicked, client-side JavaScript will:
