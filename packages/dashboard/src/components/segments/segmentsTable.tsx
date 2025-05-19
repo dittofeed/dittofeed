@@ -82,6 +82,21 @@ import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
 
+export type SegmentsAllowedColumn =
+  | "name"
+  | "journeysUsedBy"
+  | "lastRecomputed"
+  | "updatedAt"
+  | "actions";
+
+export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
+  "name",
+  "journeysUsedBy",
+  "lastRecomputed",
+  "updatedAt",
+  "actions",
+];
+
 type Row = Omit<SegmentResource, "lastRecomputedAt"> & {
   lastRecomputed?: number;
   journeysUsedBy: MinimalJourneysResource[];
@@ -276,7 +291,13 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
-export function SegmentsTable({ sx }: { sx?: SxProps<Theme> }) {
+export function SegmentsTable({
+  sx,
+  columnAllowList = DEFAULT_ALLOWED_SEGMENTS_COLUMNS,
+}: {
+  sx?: SxProps<Theme>;
+  columnAllowList?: SegmentsAllowedColumn[];
+}) {
   const universalRouter = useUniversalRouter();
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["apiBase", "workspace"]);
@@ -407,41 +428,43 @@ export function SegmentsTable({ sx }: { sx?: SxProps<Theme> }) {
   };
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
-    return [
-      {
+    const columnDefinitions: Record<SegmentsAllowedColumn, ColumnDef<Row>> = {
+      name: {
         id: "name",
         header: "Name",
         accessorKey: "name",
         cell: NameCell,
       },
-      {
+      journeysUsedBy: {
         id: "journeysUsedBy",
         header: "Journeys Used By",
         accessorKey: "journeysUsedBy",
         cell: JourneysCell,
         enableSorting: false,
       },
-      {
+      lastRecomputed: {
         id: "lastRecomputed",
         header: "Last Recomputed",
-        accessorKey: "lastRecomputedAt", // Assuming this key exists from API
-        cell: TimeCell, // Use TimeCell or a custom formatter
+        accessorKey: "lastRecomputedAt",
+        cell: TimeCell,
       },
-      {
+      updatedAt: {
         id: "updatedAt",
         header: "Updated At",
         accessorKey: "updatedAt",
         cell: TimeCell,
       },
-      {
+      actions: {
         id: "actions",
         header: "",
-        size: 70, // Adjust size as needed
+        size: 70,
         cell: ActionsCell,
         enableSorting: false,
       },
-    ];
-  }, []); // Dependencies will be added if needed
+    };
+
+    return columnAllowList.map((columnId) => columnDefinitions[columnId]);
+  }, [columnAllowList]);
 
   const table = useReactTable({
     columns,
