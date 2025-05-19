@@ -222,7 +222,8 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
 function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   const name = getValue<string>();
   const segmentId = row.original.id;
-  const href = `/segments/${segmentId}`;
+  const universalRouter = useUniversalRouter();
+  const href = universalRouter.mapUrl("/segments/v1", { id: segmentId });
 
   return (
     <Stack
