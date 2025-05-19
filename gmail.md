@@ -137,6 +137,10 @@ The core idea is to treat a user's Gmail account as a specialized Email Service 
 *   [ ] **Security Review:**
     *   [ ] Thorough review of token handling and storage.
     *   [ ] Review OAuth implementation against best practices (e.g., state parameter for CSRF).
+*   [ ] **Prepare for Google Verification:**
+    *   [ ] Ensure privacy policy clearly details use of Gmail scopes.
+    *   [ ] Create a video recording demonstrating the complete OAuth flow for connecting a Gmail account and how the application uses the `gmail.send` permission (e.g., sending a test broadcast). This will be needed for Google's verification process.
+    *   [ ] Review and fulfill all other requirements listed by Google for app verification when using sensitive/restricted scopes.
 *   [ ] **UX Improvements:**
     *   [ ] Clear warnings about Gmail sending limits.
     *   [ ] Guidance on what happens to replies, bounces.
