@@ -29,6 +29,7 @@ import {
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
 import {
+  DeleteSegmentRequest,
   EnrichedSegment,
   InternalEventType,
   JsonResult,
@@ -972,4 +973,19 @@ export async function getSegmentAssignmentDb({
   });
   const rows = await result.json<{ latest_segment_value: boolean }>();
   return rows[0]?.latest_segment_value ?? null;
+}
+
+export async function deleteSegment(
+  params: DeleteSegmentRequest,
+): Promise<Segment | null> {
+  const result = await db()
+    .delete(dbSegment)
+    .where(
+      and(
+        eq(dbSegment.id, params.id),
+        eq(dbSegment.workspaceId, params.workspaceId),
+      ),
+    )
+    .returning();
+  return result[0] ?? null;
 }
