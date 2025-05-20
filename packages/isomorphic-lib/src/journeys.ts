@@ -11,6 +11,8 @@ import {
   JourneyNodeType,
   JourneyResourceStatus,
   JourneyResourceStatusEnum,
+  SavedSegmentResource,
+  SegmentNodeType,
 } from "./types";
 
 export function getNodeId(node: JourneyNode): string {
@@ -29,20 +31,36 @@ export function getNodeId(node: JourneyNode): string {
 export function getJourneyConstraintViolations({
   newStatus,
   definition,
+  segments,
 }: {
   newStatus?: JourneyResourceStatus;
   definition?: JourneyDefinition;
+  segments?: SavedSegmentResource[];
 }): JourneyConstraintViolation[] {
   const constraintViolations: JourneyConstraintViolation[] = [];
 
   if (definition) {
-    const hasWaitForNode = definition.nodes.some(
-      (n) => n.type === JourneyNodeType.WaitForNode,
-    );
+    const segmentsById = new Map(segments?.map((s) => [s.id, s]));
     const hasEventEntry =
       definition.entryNode.type === JourneyNodeType.EventEntryNode;
 
-    if (hasEventEntry && hasWaitForNode) {
+    const hasInvalidWaitForNode = definition.nodes.some((n) => {
+      if (n.type !== JourneyNodeType.WaitForNode) {
+        return false;
+      }
+      const hasNonKeyedSegment = n.segmentChildren.some((c) => {
+        const segment = segmentsById.get(c.segmentId);
+        if (!segment) {
+          return false;
+        }
+        return (
+          segment.definition.entryNode.type !== SegmentNodeType.KeyedPerformed
+        );
+      });
+      return hasNonKeyedSegment;
+    });
+
+    if (hasEventEntry && hasInvalidWaitForNode) {
       constraintViolations.push({
         type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
         message:
