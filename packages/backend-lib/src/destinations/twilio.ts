@@ -31,28 +31,45 @@ export interface MessagingServiceSender {
 
 export type Sender = PhoneNumberSender | MessagingServiceSender;
 
+export type TwilioAuth =
+  | {
+      type: "authToken";
+      authToken: string;
+    }
+  | {
+      type: "apiKey";
+      apiKeySid: string;
+      apiKeySecret: string;
+    };
+
 export async function sendSms({
   body,
-  accountSid,
-  authToken,
   to,
   subscriptionGroupId,
   userId,
   workspaceId,
   disableCallback = false,
   tags,
+  auth,
+  accountSid,
   ...sender
 }: {
   body: string;
   to: string;
-  accountSid: string;
-  authToken: string;
   subscriptionGroupId: string | undefined;
   userId: string;
   workspaceId: string;
+  accountSid: string;
+  auth: TwilioAuth;
   disableCallback?: boolean;
   tags?: MessageTags;
 } & Sender): Promise<Result<{ sid: string }, RestException | Error>> {
+  const client =
+    auth.type === "apiKey"
+      ? TwilioClient(auth.apiKeySid, auth.apiKeySecret, {
+          accountSid,
+        })
+      : TwilioClient(accountSid, auth.authToken);
   try {
     let statusCallback: string | undefined;
     if (!disableCallback) {
@@ -79,9 +96,7 @@ export async function sendSms({
       },
       "Sending SMS",
     );
-    const response = await TwilioClient(accountSid, authToken).messages.create(
-      createPayload,
-    );
+    const response = await client.messages.create(createPayload);
     logger().debug({ response }, "SMS sent");
     return ok({ sid: response.sid });
   } catch (e) {

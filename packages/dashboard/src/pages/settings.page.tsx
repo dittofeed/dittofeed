@@ -1387,6 +1387,40 @@ function Twilios() {
                     ),
                   },
                 },
+                {
+                  id: "twilio-api-key-sid",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.Twilio,
+                    secretKey: "apiKeySid",
+                    label: "Twilio API Key SID",
+                    helperText:
+                      "Twilio API Key SID used to authenticate requests. Used with the API key secret to authenticate requests as an alternative to the auth token.",
+                    type: SmsProviderType.Twilio,
+                    saved: isSecretSaved(
+                      SecretNames.Twilio,
+                      "apiKeySid",
+                      secretAvailability,
+                    ),
+                  },
+                },
+                {
+                  id: "twilio-api-key-secret",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.Twilio,
+                    secretKey: "apiKeySecret",
+                    label: "Twilio API Key Secret",
+                    helperText:
+                      "Twilio API Key Secret used to authenticate requests. Used with the API key SID to authenticate requests as an alternative to the auth token.",
+                    type: SmsProviderType.Twilio,
+                    saved: isSecretSaved(
+                      SecretNames.Twilio,
+                      "apiKeySecret",
+                      secretAvailability,
+                    ),
+                  },
+                },
               ],
             },
           ],
