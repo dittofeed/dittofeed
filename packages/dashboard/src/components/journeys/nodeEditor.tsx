@@ -915,17 +915,12 @@ function WaitForNodeFields({
   nodeProps: WaitForUiNodeProps;
   disabled?: boolean;
 }) {
-  const {
-    updateJourneyNodeData,
-    segments: segmentsResult,
-    journeyNodes,
-    updateLabelNode,
-  } = useAppStorePick([
-    "updateJourneyNodeData",
-    "segments",
-    "updateLabelNode",
-    "journeyNodes",
-  ]);
+  const { updateJourneyNodeData, journeyNodes, updateLabelNode } =
+    useAppStorePick([
+      "updateJourneyNodeData",
+      "updateLabelNode",
+      "journeyNodes",
+    ]);
 
   const isEventEntry = useMemo(
     () =>
@@ -938,17 +933,23 @@ function WaitForNodeFields({
     [journeyNodes],
   );
 
+  const { data: segmentsData } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
+
   const segments = useMemo(() => {
-    if (segmentsResult.type !== CompletionStatus.Successful) {
+    if (!segmentsData) {
       return [];
     }
-    if (!isEventEntry) {
-      return segmentsResult.value;
+    if (isEventEntry) {
+      return segmentsData.segments.filter(
+        (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+      );
     }
-    return segmentsResult.value.filter(
-      (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+    return segmentsData.segments.filter(
+      (s) => s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
     );
-  }, [segmentsResult, isEventEntry]);
+  }, [segmentsData, isEventEntry]);
 
   const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
