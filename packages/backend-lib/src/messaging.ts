@@ -1650,12 +1650,12 @@ export async function sendSms(
         apiKeySecret,
       } = configResult.value;
 
-      if (!accountSid || !messagingServiceSid) {
+      if (!accountSid) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing accountSid or messagingServiceSid in sms provider config`,
+            message: `missing accountSid in sms provider config`,
           },
         });
       }
@@ -1699,10 +1699,19 @@ export async function sendSms(
           default:
             assertUnreachable(senderOverride);
         }
-      } else {
+      } else if (messagingServiceSid) {
         sender = {
           messagingServiceSid,
         };
+      } else {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message:
+              "twilio sender must provide either a messaging service sid or a sender override",
+          },
+        });
       }
 
       const result = await sendSmsTwilio({
