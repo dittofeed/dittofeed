@@ -12,7 +12,6 @@ import {
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
-import * as R from "remeda";
 import { validate as validateUuid } from "uuid";
 
 import {
