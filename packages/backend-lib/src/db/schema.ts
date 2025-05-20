@@ -504,6 +504,57 @@ export const workspaceMemberRole = pgTable(
   ],
 );
 
+export const workspaceMemberSetting = pgTable(
+  "WorkspaceMemberSetting",
+  {
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    workspaceMemberId: uuid().notNull(),
+    config: jsonb(),
+    secretId: uuid(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex(
+      "WorkspaceMemberSetting_workspaceId_workspaceMemberId_key",
+    ).using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.workspaceMemberId.asc().nullsLast().op("uuid_ops"),
+    ),
+    uniqueIndex("WorkspaceMemberSetting_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "WorkspaceMemberSetting_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.workspaceMemberId],
+      foreignColumns: [workspaceMember.id],
+      name: "WorkspaceMemberSetting_workspaceMemberId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.secretId],
+      foreignColumns: [secret.id],
+      name: "WorkspaceMemberSetting_secretId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("set null"),
+  ],
+);
+
 export const secret = pgTable(
   "Secret",
   {
