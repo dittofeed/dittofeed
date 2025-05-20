@@ -11,6 +11,8 @@ import {
   JourneyNodeType,
   JourneyResourceStatus,
   JourneyResourceStatusEnum,
+  SavedSegmentResource,
+  SegmentNodeType,
 } from "./types";
 
 export function getNodeId(node: JourneyNode): string {
@@ -29,25 +31,79 @@ export function getNodeId(node: JourneyNode): string {
 export function getJourneyConstraintViolations({
   newStatus,
   definition,
+  segments,
 }: {
   newStatus?: JourneyResourceStatus;
   definition?: JourneyDefinition;
+  segments?: SavedSegmentResource[];
 }): JourneyConstraintViolation[] {
   const constraintViolations: JourneyConstraintViolation[] = [];
 
   if (definition) {
-    const hasWaitForNode = definition.nodes.some(
-      (n) => n.type === JourneyNodeType.WaitForNode,
-    );
+    const segmentsById = new Map(segments?.map((s) => [s.id, s]));
     const hasEventEntry =
       definition.entryNode.type === JourneyNodeType.EventEntryNode;
 
-    if (hasEventEntry && hasWaitForNode) {
-      constraintViolations.push({
-        type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
-        message:
-          "A journey cannot have both an Event Entry node and a Wait For node",
+    if (hasEventEntry) {
+      const hasInvalidWaitForNode = definition.nodes.some((n) => {
+        if (n.type !== JourneyNodeType.WaitForNode) {
+          return false;
+        }
+        const hasNonKeyedSegment = n.segmentChildren.some((c) => {
+          const segment = segmentsById.get(c.segmentId);
+          if (!segment) {
+            return false;
+          }
+          return (
+            segment.definition.entryNode.type !== SegmentNodeType.KeyedPerformed
+          );
+        });
+        return hasNonKeyedSegment;
       });
+
+      if (hasInvalidWaitForNode) {
+        constraintViolations.push({
+          type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
+          message:
+            "A journey cannot have both an Event Entry node and a Wait For node",
+        });
+      }
+    } else {
+      const hasInvalidNode = definition.nodes.some((n) => {
+        switch (n.type) {
+          case JourneyNodeType.WaitForNode:
+            return n.segmentChildren.some((c) => {
+              const segment = segmentsById.get(c.segmentId);
+              if (!segment) {
+                return false;
+              }
+              return (
+                segment.definition.entryNode.type ===
+                SegmentNodeType.KeyedPerformed
+              );
+            });
+          case JourneyNodeType.SegmentSplitNode: {
+            const segment = segmentsById.get(n.variant.segment);
+            if (!segment) {
+              return false;
+            }
+            return (
+              segment.definition.entryNode.type ===
+              SegmentNodeType.KeyedPerformed
+            );
+          }
+          default:
+            return false;
+        }
+      });
+
+      if (hasInvalidNode) {
+        constraintViolations.push({
+          type: JourneyConstraintViolationType.KeyedPerformedSegmentEntryNode,
+          message:
+            "Segment entry journeys cannot condition on keyed performed segments in segment split or wait for nodes.",
+        });
+      }
     }
   } else if (newStatus !== JourneyResourceStatusEnum.NotStarted) {
     constraintViolations.push({

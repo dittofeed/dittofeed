@@ -267,6 +267,7 @@ function mapSegmentNodeToNewType(
       return {
         primary: {
           type: SegmentNodeType.KeyedPerformed,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
           id: node.id,
           event: "",
           key: "",

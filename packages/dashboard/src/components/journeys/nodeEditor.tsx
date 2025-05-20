@@ -37,6 +37,7 @@ import {
   MessageTemplateResource,
   MobilePushProviderType,
   PartialSegmentResource,
+  SavedSegmentResource,
   SegmentNodeType,
   SmsProviderType,
   TwilioSenderOverrideType,
@@ -55,6 +56,7 @@ import {
   WaitForUiNodeProps,
 } from "../../lib/types";
 import useLoadProperties from "../../lib/useLoadProperties";
+import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
@@ -128,11 +130,22 @@ function EntryNodeFields({
   nodeProps: EntryUiNodeProps;
   disabled?: boolean;
 }) {
-  const { segments, updateJourneyNodeData, properties } = useAppStorePick([
-    "segments",
+  const { updateJourneyNodeData, properties } = useAppStorePick([
     "updateJourneyNodeData",
     "properties",
   ]);
+  const { data: segmentsData } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
+  const nonKeyedSegments: SavedSegmentResource[] = useMemo(() => {
+    if (!segmentsData) {
+      return [];
+    }
+    const { segments } = segmentsData;
+    return segments.filter(
+      (s) => s.definition.entryNode.type !== SegmentNodeType.KeyedPerformed,
+    );
+  }, [segmentsData]);
 
   let variant: React.ReactNode;
   const nodeVariant = nodeProps.variant;
@@ -140,7 +153,7 @@ function EntryNodeFields({
     case JourneyNodeType.SegmentEntryNode: {
       const onSegmentChangeHandler = (
         _event: unknown,
-        segment: PartialSegmentResource | null,
+        segment: SavedSegmentResource | null,
       ) => {
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
@@ -153,18 +166,14 @@ function EntryNodeFields({
         });
       };
 
-      if (segments.type !== CompletionStatus.Successful) {
-        return null;
-      }
-
       const segment =
-        segments.value.find((t) => t.id === nodeVariant.segment) ?? null;
+        nonKeyedSegments.find((t) => t.id === nodeVariant.segment) ?? null;
 
       variant = (
         <>
           <Autocomplete
             value={segment}
-            options={segments.value}
+            options={nonKeyedSegments}
             getOptionLabel={getLabel}
             onChange={onSegmentChangeHandler}
             disabled={disabled}
@@ -906,17 +915,12 @@ function WaitForNodeFields({
   nodeProps: WaitForUiNodeProps;
   disabled?: boolean;
 }) {
-  const {
-    updateJourneyNodeData,
-    segments: segmentsResult,
-    journeyNodes,
-    updateLabelNode,
-  } = useAppStorePick([
-    "updateJourneyNodeData",
-    "segments",
-    "updateLabelNode",
-    "journeyNodes",
-  ]);
+  const { updateJourneyNodeData, journeyNodes, updateLabelNode } =
+    useAppStorePick([
+      "updateJourneyNodeData",
+      "updateLabelNode",
+      "journeyNodes",
+    ]);
 
   const isEventEntry = useMemo(
     () =>
@@ -929,17 +933,23 @@ function WaitForNodeFields({
     [journeyNodes],
   );
 
+  const { data: segmentsData } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
+
   const segments = useMemo(() => {
-    if (segmentsResult.type !== CompletionStatus.Successful) {
+    if (!segmentsData) {
       return [];
     }
-    if (!isEventEntry) {
-      return segmentsResult.value;
+    if (isEventEntry) {
+      return segmentsData.segments.filter(
+        (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+      );
     }
-    return segmentsResult.value.filter(
-      (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+    return segmentsData.segments.filter(
+      (s) => s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
     );
-  }, [segmentsResult, isEventEntry]);
+  }, [segmentsData, isEventEntry]);
 
   const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
