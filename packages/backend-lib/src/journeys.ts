@@ -5,6 +5,7 @@ import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
   getJourneyConstraintViolations,
+  getSubscribedSegments,
   HeritageMap,
 } from "isomorphic-lib/src/journeys";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
@@ -32,6 +33,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
+import { findEnrichedSegments, findManySegmentResourcesSafe } from "./segments";
 import {
   BaseMessageNodeStats,
   ChannelType,
@@ -814,9 +816,18 @@ export async function upsertJourney(
   }
 
   if (definition) {
+    const segmentIds = getSubscribedSegments(definition);
+    const segments = (
+      await findManySegmentResourcesSafe({
+        workspaceId,
+        segmentIds: Array.from(segmentIds),
+      })
+    ).map(unwrap);
+
     const constraintViolations = getJourneyConstraintViolations({
       definition,
       newStatus: status,
+      segments,
     });
     if (constraintViolations.length > 0) {
       return err({
