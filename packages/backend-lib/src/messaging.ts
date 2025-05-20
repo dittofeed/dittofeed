@@ -49,6 +49,7 @@ import {
 import {
   Sender as TwilioSender,
   sendSms as sendSmsTwilio,
+  TwilioAuth,
 } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -1641,17 +1642,46 @@ export async function sendSms(
         });
       }
 
-      const { accountSid, authToken, messagingServiceSid } = configResult.value;
+      const {
+        accountSid,
+        authToken,
+        messagingServiceSid,
+        apiKeySid,
+        apiKeySecret,
+      } = configResult.value;
 
-      if (!accountSid || !authToken || !messagingServiceSid) {
+      if (!accountSid || !messagingServiceSid) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing accountSid, authToken, or messagingServiceSid in sms provider config`,
+            message: `missing accountSid or messagingServiceSid in sms provider config`,
           },
         });
       }
+      let auth: TwilioAuth;
+      if (apiKeySid && apiKeySecret) {
+        auth = {
+          type: "apiKey",
+          apiKeySid,
+          apiKeySecret,
+        };
+      } else if (authToken) {
+        auth = {
+          type: "authToken",
+          authToken,
+        };
+      } else {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message:
+              "twilio auth must provider either an auth token or api key sid and secret",
+          },
+        });
+      }
+
       let sender: TwilioSender;
       const { senderOverride } = params;
       if (providerOverride === SmsProviderType.Twilio && senderOverride) {
@@ -1678,7 +1708,7 @@ export async function sendSms(
       const result = await sendSmsTwilio({
         body,
         accountSid,
-        authToken,
+        auth,
         userId,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         to,

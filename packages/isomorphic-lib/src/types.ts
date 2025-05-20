@@ -3431,6 +3431,8 @@ export const TwilioSecret = Type.Object({
   accountSid: Type.Optional(Type.String()),
   messagingServiceSid: Type.Optional(Type.String()),
   authToken: Type.Optional(Type.String()),
+  apiKeySid: Type.Optional(Type.String()),
+  apiKeySecret: Type.Optional(Type.String()),
 });
 
 export type TwilioSecret = Static<typeof TwilioSecret>;
