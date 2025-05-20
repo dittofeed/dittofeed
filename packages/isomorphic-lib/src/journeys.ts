@@ -28,15 +28,24 @@ export function getNodeId(node: JourneyNode): string {
   return node.id;
 }
 
+type GetJourneyConstraintViolationsParams = {
+  newStatus?: JourneyResourceStatus;
+} & (
+  | {
+      definition: JourneyDefinition;
+      segments: SavedSegmentResource[];
+    }
+  | {
+      definition: undefined;
+      segments: undefined;
+    }
+);
+
 export function getJourneyConstraintViolations({
   newStatus,
   definition,
   segments,
-}: {
-  newStatus?: JourneyResourceStatus;
-  definition?: JourneyDefinition;
-  segments?: SavedSegmentResource[];
-}): JourneyConstraintViolation[] {
+}: GetJourneyConstraintViolationsParams): JourneyConstraintViolation[] {
   const constraintViolations: JourneyConstraintViolation[] = [];
 
   if (definition) {

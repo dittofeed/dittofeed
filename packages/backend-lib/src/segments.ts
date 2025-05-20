@@ -43,7 +43,6 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentStatus,
   SegmentStatusEnum,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
