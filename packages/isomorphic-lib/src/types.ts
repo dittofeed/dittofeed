@@ -2556,7 +2556,10 @@ export type WorkspaceMemberRoleResource = Static<
 >;
 
 export interface DFRequestContext {
-  workspace: WorkspaceResource;
+  workspace: WorkspaceResource & {
+    type: WorkspaceTypeApp;
+    parentWorkspaceId?: string;
+  };
   member: WorkspaceMemberResource;
   memberRoles: WorkspaceMemberRoleResource[];
 }

@@ -30,6 +30,7 @@ import {
   WorkspaceResource,
   WorkspaceStatusDb,
   WorkspaceStatusDbEnum,
+  WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
 
@@ -39,6 +40,8 @@ interface RolesWithWorkspace {
   workspace:
     | (WorkspaceResource & {
         status: WorkspaceStatusDb;
+        type: WorkspaceTypeApp;
+        parentWorkspaceId: string | null;
       })
     | null;
   memberRoles: WorkspaceMemberRoleResource[];
@@ -369,7 +372,12 @@ export async function getMultiTenantRequestContext({
 
   return ok({
     member: memberResouce,
-    workspace,
+    workspace: {
+      id: workspace.id,
+      name: workspace.name,
+      type: workspace.type,
+      parentWorkspaceId: workspace.parentWorkspaceId ?? undefined,
+    },
     memberRoles,
   });
 }
@@ -386,6 +394,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
     workspace: {
       id: workspace.id,
       name: workspace.name,
+      type: workspace.type,
     },
     member: {
       id: "anonymous",
