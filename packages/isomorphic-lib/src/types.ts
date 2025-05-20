@@ -1723,7 +1723,7 @@ export const GetSegmentsRequest = Type.Object({
 export type GetSegmentsRequest = Static<typeof GetSegmentsRequest>;
 
 export const GetSegmentsResponse = Type.Object({
-  segments: Type.Array(SegmentResource),
+  segments: Type.Array(SavedSegmentResource),
 });
 
 export type GetSegmentsResponse = Static<typeof GetSegmentsResponse>;

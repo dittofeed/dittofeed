@@ -45,6 +45,7 @@ export function useSegmentsQuery<TData = GetSegmentsResponse>(
         const response = await axios.get(`${baseApiUrl}/segments`, {
           params: {
             ...params,
+            resourceType: params?.resourceType ?? "Declarative",
             workspaceId,
           },
           headers: authHeaders,
