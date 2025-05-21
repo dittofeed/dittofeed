@@ -5,8 +5,8 @@ import { isStringPresent } from "isomorphic-lib/src/strings";
 import config from "./config";
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
-import { SecretAvailabilityResource } from "./types";
 import logger from "./logger";
+import { SecretAvailabilityResource } from "./types";
 
 export async function getSecretAvailability({
   workspaceId,
