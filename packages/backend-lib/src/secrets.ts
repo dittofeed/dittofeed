@@ -40,6 +40,11 @@ export async function getSecretAvailability({
   });
 }
 
+export function generateSecretKey(bytes = 32) {
+  const buffer = crypto.randomBytes(bytes); // Generate 32 random bytes
+  return buffer.toString("base64");
+}
+
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 
@@ -48,13 +53,42 @@ export function encrypt(plaintext: string): {
   encryptedData: string;
   authTag: string;
 } {
-  const { secretKey } = config();
-  if (!secretKey) {
-    throw new Error("Secret key is not set");
+  const appConfig = config();
+  const secretKeyString = appConfig.secretKey;
+
+  if (!secretKeyString || typeof secretKeyString !== "string") {
+    throw new Error(
+      "Secret key is not set in config or is not a string. Please ensure 'secretKey' is configured.",
+    );
   }
-  const iv = crypto.randomBytes(IV_LENGTH);
+
+  // Convert the secretKeyString from config to a 32-byte Buffer for AES-256-GCM.
+  // IMPORTANT: If your key is generated using crypto.randomBytes(32).toString('base64'),
+  // as in the example `generateSecretKey` function, it MUST be decoded from base64.
+  // If your key is stored in a different format (e.g., hex or a raw UTF-8 string that results in 32 bytes),
+  // you would need to adjust the encoding parameter below accordingly (e.g., 'hex' or 'utf-8').
+  const keyBuffer = Buffer.from(secretKeyString, "base64");
+
+  if (keyBuffer.length !== 32) {
+    throw new Error(
+      `Invalid secret key length after encoding. Expected 32 bytes for AES-256-GCM, but got ${keyBuffer.length} bytes. ` +
+        `Ensure the 'secretKey' in your configuration is correctly formatted (e.g., a UTF-8 string that yields 32 bytes, a 64-char hex string, or a ~44-char base64 string) ` +
+        `and that the Buffer.from encoding parameter matches your key's storage format.`,
+    );
+  }
+
+  // Convert keyBuffer to Uint8Array to satisfy TypeScript type checking for createCipheriv
+  const keyUint8Array = new Uint8Array(
+    keyBuffer.buffer,
+    keyBuffer.byteOffset,
+    keyBuffer.length,
+  );
+
+  const iv = crypto.randomBytes(IV_LENGTH); // iv is a Buffer
+  // Convert iv Buffer to Uint8Array to satisfy TypeScript type checking for createCipheriv
   const ivUint8Array = new Uint8Array(iv.buffer, iv.byteOffset, iv.length);
-  const cipher = crypto.createCipheriv(ALGORITHM, secretKey, ivUint8Array);
+
+  const cipher = crypto.createCipheriv(ALGORITHM, keyUint8Array, ivUint8Array);
 
   let encrypted = cipher.update(plaintext, "utf8", "hex");
   encrypted += cipher.final("hex");
