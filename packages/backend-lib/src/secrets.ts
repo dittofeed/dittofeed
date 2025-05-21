@@ -41,6 +41,11 @@ export async function getSecretAvailability({
   });
 }
 
+export function generateSecretKey(bytes = 32) {
+  const buffer = crypto.randomBytes(bytes); // Generate 32 random bytes
+  return buffer.toString("base64");
+}
+
 const ALGORITHM: crypto.CipherGCMTypes = "aes-256-gcm";
 const IV_LENGTH = 16;
 
