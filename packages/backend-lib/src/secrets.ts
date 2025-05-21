@@ -6,6 +6,7 @@ import config from "./config";
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import { SecretAvailabilityResource } from "./types";
+import logger from "./logger";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -45,7 +46,7 @@ export function generateSecretKey(bytes = 32) {
   return buffer.toString("base64");
 }
 
-const ALGORITHM = "aes-256-gcm";
+const ALGORITHM: crypto.CipherGCMTypes = "aes-256-gcm";
 const IV_LENGTH = 16;
 
 export function encrypt(
@@ -101,4 +102,81 @@ export function encrypt(
     encryptedData: encrypted,
     authTag,
   };
+}
+
+export function decrypt(parts: {
+  iv: string;
+  encryptedData: string;
+  authTag: string;
+  secretKey?: string;
+}): string | null {
+  const secretKeyString = parts.secretKey ?? config().secretKey;
+
+  if (!secretKeyString || typeof secretKeyString !== "string") {
+    // In a real scenario, you might throw or log more specifically
+    logger().error(
+      {
+        secretKey: secretKeyString,
+      },
+      "Decryption failed: Secret key is not set in config or is not a string.",
+    );
+    return null;
+  }
+
+  // Decode the base64 secretKeyString to a Buffer
+  const keyBuffer = Buffer.from(secretKeyString, "base64");
+
+  if (keyBuffer.length !== 32) {
+    logger().error(
+      {
+        keyBufferLength: keyBuffer.length,
+      },
+      "Decryption failed: Invalid secret key length after base64 decoding. Expected 32 bytes",
+    );
+    return null;
+  }
+
+  // Convert keyBuffer to Uint8Array
+  const keyUint8Array = new Uint8Array(
+    keyBuffer.buffer,
+    keyBuffer.byteOffset,
+    keyBuffer.length,
+  );
+
+  try {
+    const ivBuffer = Buffer.from(parts.iv, "hex");
+    const authTagBuffer = Buffer.from(parts.authTag, "hex");
+
+    // Convert iv Buffer to Uint8Array
+    const ivUint8Array = new Uint8Array(
+      ivBuffer.buffer,
+      ivBuffer.byteOffset,
+      ivBuffer.length,
+    );
+    // Convert authTag Buffer to Uint8Array
+    const authTagUint8Array = new Uint8Array(
+      authTagBuffer.buffer,
+      authTagBuffer.byteOffset,
+      authTagBuffer.length,
+    );
+
+    const decipher = crypto.createDecipheriv(
+      ALGORITHM,
+      keyUint8Array,
+      ivUint8Array,
+    );
+    decipher.setAuthTag(authTagUint8Array);
+
+    let decrypted = decipher.update(parts.encryptedData, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    logger().error(
+      {
+        err: error,
+      },
+      "Decryption failed",
+    );
+    return null;
+  }
 }
