@@ -53,7 +53,8 @@ export function encrypt(plaintext: string): {
     throw new Error("Secret key is not set");
   }
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, secretKey, iv);
+  const ivUint8Array = new Uint8Array(iv.buffer, iv.byteOffset, iv.length);
+  const cipher = crypto.createCipheriv(ALGORITHM, secretKey, ivUint8Array);
 
   let encrypted = cipher.update(plaintext, "utf8", "hex");
   encrypted += cipher.final("hex");
