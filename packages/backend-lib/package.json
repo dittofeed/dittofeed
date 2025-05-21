@@ -87,7 +87,7 @@
     "@types/markdown-it": "^12.2.3",
     "@types/minimist": "^1.2.2",
     "@types/mjml": "^4.7.1",
-    "@types/node": "18.11.18",
+    "@types/node": "20.14.8",
     "@types/node-cache": "^4.2.5",
     "@types/nodemailer": "^6.4.14",
     "@types/pg": "^8",
