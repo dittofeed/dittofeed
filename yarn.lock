@@ -11244,10 +11244,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:18.11.18, @types/node@npm:>=12.12.47, @types/node@npm:>=13.7.0":
+"@types/node@npm:*, @types/node@npm:>=12.12.47, @types/node@npm:>=13.7.0":
   version: 18.11.18
   resolution: "@types/node@npm:18.11.18"
   checksum: 10/da05cf3a0036ef05cd695ac4cb265948593acbe723ba818f0ca0ce466b13ba99e1aac3a363086d6b8c7ea8f30c9233478e0293ac878a6f4b1d5515b10c392257
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:20.14.8":
+  version: 20.14.8
+  resolution: "@types/node@npm:20.14.8"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10/73822f66f269ce865df7e2f586787ac7444bd1169fd265cbed1e851b72787f1170517c5b616e0308ec2fbc0934ec6403b0f28d4152acbb0486071aec41167d51
   languageName: node
   linkType: hard
 
@@ -12433,7 +12442,7 @@ __metadata:
     "@temporalio/worker": "npm:1.11.6"
     "@types/analytics-node": "npm:^3.1.9"
     "@types/jest": "npm:^29.2.6"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@types/uuid": "npm:^9.0.0"
     "@types/yargs": "npm:^17.0.24"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
@@ -12905,7 +12914,7 @@ __metadata:
     "@types/markdown-it": "npm:^12.2.3"
     "@types/minimist": "npm:^1.2.2"
     "@types/mjml": "npm:^4.7.1"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@types/node-cache": "npm:^4.2.5"
     "@types/nodemailer": "npm:^6.4.14"
     "@types/pg": "npm:^8"
@@ -14394,7 +14403,7 @@ __metadata:
     "@types/file-saver": "npm:^2.0.5"
     "@types/humanize-duration": "npm:^3.27.1"
     "@types/jest": "npm:^29.2.6"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@types/react": "npm:18.3.1"
     "@types/react-dom": "npm:18.3.0"
     "@types/react-transition-group": "npm:^4.4.12"
@@ -14817,7 +14826,7 @@ __metadata:
   resolution: "dittofeed@workspace:."
   dependencies:
     "@types/jest": "npm:^29.2.6"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
     eslint: "npm:^8.43.0"
@@ -20297,7 +20306,7 @@ __metadata:
     "@sinclair/typebox": "npm:0.32.29"
     "@temporalio/worker": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@types/yargs": "npm:^17.0.24"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
@@ -27448,6 +27457,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 10/0097779d94bc0fd26f0418b3a05472410408877279141ded2bd449167be1aed7ea5b76f756562cb3586a07f251b90799bab22d9019ceba49c037c76445f7cddd
+  languageName: node
+  linkType: hard
+
 "unherit@npm:^3.0.0":
   version: 3.0.1
   resolution: "unherit@npm:3.0.1"
@@ -28407,7 +28423,7 @@ __metadata:
     "@temporalio/interceptors-opentelemetry": "npm:1.11.6"
     "@temporalio/worker": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"
-    "@types/node": "npm:18.11.18"
+    "@types/node": "npm:20.14.8"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
     backend-lib: "npm:0.0.3"
