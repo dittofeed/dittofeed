@@ -60,13 +60,6 @@ export function generateSecureKey(length = 32): string {
   return crypto.randomBytes(length).toString("hex");
 }
 
-export function encrypt({ text, key }: { text: string; key: string }) {
-  const cipher = crypto.createCipher("aes-256-cbc", key);
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  return encrypted;
-}
-
 export function trimTo32Bytes(base64String: string): string {
   // Decode the base64 string back to a Buffer
   const buffer = Buffer.from(base64String, "base64");

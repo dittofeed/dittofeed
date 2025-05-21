@@ -1,3 +1,4 @@
+import { generateSecureKey } from "./crypto";
 import { decrypt, encrypt, generateSecretKey } from "./secrets";
 
 describe("secrets", () => {
@@ -26,7 +27,7 @@ describe("secrets", () => {
 
     it("should return null from decrypt if the wrong secret key is used", () => {
       const encrypted = encrypt(plaintext, testSecretKey);
-      const wrongSecretKey = generateSecretKey(); // Generate a different key
+      const wrongSecretKey = generateSecureKey(); // Generate a different key
       const decrypted = decrypt({ ...encrypted, secretKey: wrongSecretKey });
       expect(decrypted).toBeNull();
     });
