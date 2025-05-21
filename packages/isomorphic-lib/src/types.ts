@@ -5293,3 +5293,32 @@ export const ManualSegmentUpdateEventProperties = Type.Object({
 export type ManualSegmentUpdateEventProperties = Static<
   typeof ManualSegmentUpdateEventProperties
 >;
+
+export const WorkspaceMemberSettingTypeEnum = {
+  GmailTokens: "GmailTokens",
+} as const;
+
+export const WorkspaceMemberSettingType = Type.KeyOf(
+  Type.Const(WorkspaceMemberSettingTypeEnum),
+);
+
+export type WorkspaceMemberSettingType = Static<
+  typeof WorkspaceMemberSettingType
+>;
+
+export const GmailTokensWorkspaceMemberSetting = Type.Object({
+  type: Type.Literal(WorkspaceMemberSettingTypeEnum.GmailTokens),
+  accessToken: Type.String(),
+  refreshToken: Type.String(),
+  expiresAt: Type.Number(),
+});
+
+export type GmailTokensWorkspaceMemberSetting = Static<
+  typeof GmailTokensWorkspaceMemberSetting
+>;
+
+export const WorkspaceMemberSetting = Type.Union([
+  GmailTokensWorkspaceMemberSetting,
+]);
+
+export type WorkspaceMemberSetting = Static<typeof WorkspaceMemberSetting>;
