@@ -48,13 +48,15 @@ export function generateSecretKey(bytes = 32) {
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 
-export function encrypt(plaintext: string): {
+export function encrypt(
+  plaintext: string,
+  secretKey?: string,
+): {
   iv: string;
   encryptedData: string;
   authTag: string;
 } {
-  const appConfig = config();
-  const secretKeyString = appConfig.secretKey;
+  const secretKeyString = secretKey ?? config().secretKey;
 
   if (!secretKeyString || typeof secretKeyString !== "string") {
     throw new Error(
