@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { WorkspaceMemberSetting } from "isomorphic-lib/src/types";
 
 import { db } from "./db";
@@ -16,5 +17,20 @@ export async function writeSecretWorkspaceMemberSettings({
   workspaceMemberId: string;
   config: WorkspaceMemberSetting;
 }) {
-  await db().transaction(async (tx) => {});
+  await db().transaction(async (tx) => {
+    const secretId = randomUUID();
+    await tx.insert(schema.secret).values({
+      workspaceId,
+      id: secretId,
+      name: getSecretName(config.type),
+      configValue: config,
+    });
+    await tx.insert(schema.workspaceMemberSetting).values({
+      workspaceId,
+      workspaceMemberId,
+      secretId,
+      name: config.type,
+      config,
+    });
+  });
 }

@@ -1,9 +1,11 @@
+import crypto from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import { SecretAvailabilityResource } from "./types";
+import config from "./config";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -36,4 +38,30 @@ export async function getSecretAvailability({
       configValue,
     };
   });
+}
+
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 16;
+
+function encrypt(plaintext: string): {
+  iv: string;
+  encryptedData: string;
+  authTag: string;
+} {
+  const { secretKey } = config();
+  if (!secretKey) {
+    throw new Error("Secret key is not set");
+  }
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, secretKey, iv);
+
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+
+  return {
+    iv: iv.toString("hex"),
+    encryptedData: encrypted,
+    authTag,
+  };
 }
