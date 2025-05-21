@@ -8,7 +8,7 @@ describe("secrets", () => {
 
     beforeAll(() => {
       // Generate a single key for all tests in this describe block
-      testSecretKey = generateSecretKey();
+      testSecretKey = generateSecretKey(32);
     });
 
     it("should encrypt a string and then decrypt it back successfully", () => {
@@ -27,7 +27,7 @@ describe("secrets", () => {
 
     it("should return null from decrypt if the wrong secret key is used", () => {
       const encrypted = encrypt(plaintext, testSecretKey);
-      const wrongSecretKey = generateSecureKey(); // Generate a different key
+      const wrongSecretKey = generateSecureKey();
       const decrypted = decrypt({ ...encrypted, secretKey: wrongSecretKey });
       expect(decrypted).toBeNull();
     });
@@ -73,7 +73,7 @@ describe("secrets", () => {
     it("encrypt should throw an error if the secret key is not 32 bytes after base64 decoding", () => {
       const shortKey = Buffer.from("too short key").toString("base64"); // Not 32 bytes
       expect(() => encrypt(plaintext, shortKey)).toThrow(
-        /Invalid secret key length after base64 decoding/,
+        /Invalid secret key length after encoding. Expected 32 bytes for AES-256-GCM/,
       );
     });
 
