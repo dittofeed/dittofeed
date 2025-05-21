@@ -2,10 +2,10 @@ import crypto from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 
+import config from "./config";
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import { SecretAvailabilityResource } from "./types";
-import config from "./config";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -43,7 +43,7 @@ export async function getSecretAvailability({
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 
-function encrypt(plaintext: string): {
+export function encrypt(plaintext: string): {
   iv: string;
   encryptedData: string;
   authTag: string;
