@@ -52,6 +52,7 @@
     "firebase-admin": "^11.9.0",
     "gaxios": "^6.7.1",
     "geo-tz": "^7.0.7",
+    "google-apis": "^1.0.0",
     "google-auth-library": "^9.15.1",
     "googleapis": "^149.0.0",
     "isomorphic-lib": "0.0.3",
