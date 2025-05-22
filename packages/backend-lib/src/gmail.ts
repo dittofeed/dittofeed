@@ -13,6 +13,8 @@ import {
   EmailGmailSuccess,
   EmailProviderType,
   GmailTokensWorkspaceMemberSetting,
+  MessageGmailServiceFailure,
+  SendGmailFailureTypeEnum,
 } from "./types";
 import {
   getSecretWorkspaceSettingsResource,
@@ -336,37 +338,7 @@ export interface SendGmailEmailParams {
   attachments?: Mail.Attachment[];
 }
 
-// Define more specific failure reasons
-export enum SendGmailFailureType {
-  NonRetryableGoogleError = "NonRetryableGoogleError",
-  ConstructionError = "ConstructionError",
-  UnknownError = "UnknownError",
-}
-
-export interface BaseGmailFailure {
-  errorType: SendGmailFailureType;
-  message: string;
-  details?: unknown;
-}
-
-export interface NonRetryableGoogleError extends BaseGmailFailure {
-  errorType: SendGmailFailureType.NonRetryableGoogleError;
-  statusCode?: string | number | null;
-  googleErrorCode?: string | null;
-}
-
-export interface ConstructionError extends BaseGmailFailure {
-  errorType: SendGmailFailureType.ConstructionError;
-}
-
-export interface UnknownGmailError extends BaseGmailFailure {
-  errorType: SendGmailFailureType.UnknownError;
-}
-
-export type SendGmailEmailFailureReason =
-  | NonRetryableGoogleError
-  | ConstructionError
-  | UnknownGmailError;
+// --- End TypeBox Schemas ---
 
 export async function sendGmailEmail({
   accessToken,
@@ -374,7 +346,13 @@ export async function sendGmailEmail({
 }: {
   accessToken: string;
   params: SendGmailEmailParams;
-}): Promise<Result<EmailGmailSuccess, SendGmailEmailFailureReason>> {
+}): Promise<Result<EmailGmailSuccess, MessageGmailServiceFailure>> {
+  if (!accessToken) {
+    return err({
+      errorType: SendGmailFailureTypeEnum.ConfigurationError,
+      message: "Access token is missing or empty.",
+    });
+  }
   let rawEmailBuffer: Buffer;
   try {
     const mailOptions: Mail.Options = {
@@ -403,7 +381,7 @@ export async function sendGmailEmail({
       "Failed to construct email for Gmail sending",
     );
     return err({
-      errorType: SendGmailFailureType.ConstructionError,
+      errorType: SendGmailFailureTypeEnum.ConstructionError,
       message: error instanceof Error ? error.message : String(error),
       details: error,
     });
@@ -442,7 +420,7 @@ export async function sendGmailEmail({
       "Gmail API send call unexpected response: missing id or threadId",
     );
     return err({
-      errorType: SendGmailFailureType.UnknownError, // Or a more specific non-retryable error
+      errorType: SendGmailFailureTypeEnum.UnknownError,
       message:
         "Gmail API response missing message ID or threadId after successful-like call.",
       details: res.data,
@@ -496,7 +474,7 @@ export async function sendGmailEmail({
       );
       const errorDetails: unknown = googleError ?? e.response?.data;
       return err({
-        errorType: SendGmailFailureType.NonRetryableGoogleError,
+        errorType: SendGmailFailureTypeEnum.NonRetryableGoogleError,
         message:
           googleError?.error_description ?? googleError?.error ?? e.message,
         statusCode,
@@ -519,7 +497,7 @@ export async function sendGmailEmail({
     // By default, treat other errors as potentially non-retryable from this function's perspective
     // If a specific error type here is known to be retryable, it could be thrown.
     return err({
-      errorType: SendGmailFailureType.UnknownError,
+      errorType: SendGmailFailureTypeEnum.UnknownError,
       message: e instanceof Error ? e.message : String(e),
       details: e,
     });

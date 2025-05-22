@@ -3773,10 +3773,73 @@ export type MessageAmazonSesServiceFailure = Static<
   typeof MessageAmazonSesServiceFailure
 >;
 
-export const MessageGmailServiceFailure = Type.Object({
-  type: Type.Literal(EmailProviderType.Gmail),
+export const SendGmailFailureTypeEnum = {
+  NonRetryableGoogleError: "NonRetryableGoogleError",
+  ConfigurationError: "ConfigurationError",
+  ConstructionError: "ConstructionError",
+  UnknownError: "UnknownError",
+} as const;
+
+export const SendGmailFailureType = Type.KeyOf(
+  Type.Const(SendGmailFailureTypeEnum),
+);
+
+export type SendGmailFailureType = Static<typeof SendGmailFailureType>;
+
+// --- TypeBox Schemas for Failure Reasons ---
+// Individual error type schemas
+export const GmailSendConfigurationError = Type.Object({
+  errorType: Type.Literal(SendGmailFailureTypeEnum.ConfigurationError),
   message: Type.String(),
+  details: Type.Optional(Type.Unknown()),
 });
+
+export type GmailSendConfigurationError = Static<
+  typeof GmailSendConfigurationError
+>;
+
+export const GmailSendConstructionError = Type.Object({
+  errorType: Type.Literal(SendGmailFailureTypeEnum.ConstructionError),
+  message: Type.String(),
+  details: Type.Optional(Type.Unknown()),
+});
+
+export type GmailSendConstructionError = Static<
+  typeof GmailSendConstructionError
+>;
+
+export const GmailSendNonRetryableError = Type.Object({
+  errorType: Type.Literal(SendGmailFailureTypeEnum.NonRetryableGoogleError),
+  message: Type.String(),
+  statusCode: Type.Optional(
+    Type.Union([Type.String(), Type.Number(), Type.Null()]),
+  ),
+  googleErrorCode: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  googleErrorDescription: Type.Optional(
+    Type.Union([Type.String(), Type.Null()]),
+  ),
+  details: Type.Optional(Type.Unknown()),
+});
+
+export type GmailSendNonRetryableError = Static<
+  typeof GmailSendNonRetryableError
+>;
+
+export const GmailSendUnknownError = Type.Object({
+  errorType: Type.Literal(SendGmailFailureTypeEnum.UnknownError),
+  message: Type.String(),
+  details: Type.Optional(Type.Unknown()),
+});
+
+export type GmailSendUnknownError = Static<typeof GmailSendUnknownError>;
+
+// Union of all failure reason schemas
+export const MessageGmailServiceFailure = Type.Union([
+  GmailSendNonRetryableError,
+  GmailSendConfigurationError,
+  GmailSendConstructionError,
+  GmailSendUnknownError,
+]);
 
 export type MessageGmailServiceFailure = Static<
   typeof MessageGmailServiceFailure
@@ -3813,7 +3876,6 @@ export const MessageMailChimpFailure = Type.Object({
 
 export type MessageMailChimpFailure = Static<typeof MessageMailChimpFailure>;
 
-// FIXME
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
   MessageMailChimpFailure,
@@ -3821,6 +3883,7 @@ export const EmailServiceProviderFailure = Type.Union([
   MessageResendFailure,
   MessagePostMarkFailure,
   MessageSmtpFailure,
+  MessageGmailServiceFailure,
 ]);
 
 export type EmailServiceProviderFailure = Static<
