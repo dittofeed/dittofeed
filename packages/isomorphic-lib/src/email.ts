@@ -34,6 +34,8 @@ export function emailProviderLabel(provider: EmailProviderType): string {
       return "SMTP";
     case EmailProviderType.MailChimp:
       return "Mailchimp";
+    case EmailProviderType.Gmail:
+      return "Gmail";
     default:
       assertUnreachable(provider);
   }

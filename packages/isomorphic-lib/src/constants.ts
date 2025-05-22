@@ -9,6 +9,12 @@ import {
   SmsProviderType,
 } from "./types";
 
+// Providers that are configured at the workspace level, not the member level.
+type WorkspaceWideProviders = Exclude<
+  EmailProviderType,
+  EmailProviderType.Gmail
+>;
+
 export * from "./constants/headers";
 
 export const UNAUTHORIZED_PAGE = "/404" as const;
@@ -43,7 +49,7 @@ export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   };
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
-  EmailProviderType,
+  WorkspaceWideProviders,
   string
 > = {
   [EmailProviderType.Sendgrid]: SecretNames.Sendgrid,
