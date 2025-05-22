@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   BadWorkspaceConfigurationType,
   EmailProviderType,
@@ -9,6 +10,7 @@ import {
   PersistedEmailProvider,
   SubscriptionChange,
   UpsertEmailProviderRequest,
+  WorkspaceWideProviders,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
@@ -153,33 +155,18 @@ export async function getOrCreateEmailProviders({
       },
     })
   ).flatMap((ep) => {
-    let type: EmailProviderType;
-    switch (ep.type) {
-      case EmailProviderType.Test:
-        type = EmailProviderType.Test;
-        break;
-      case EmailProviderType.Sendgrid:
-        type = EmailProviderType.Sendgrid;
-        break;
-      case EmailProviderType.AmazonSes:
-        type = EmailProviderType.AmazonSes;
-        break;
-      case EmailProviderType.PostMark:
-        type = EmailProviderType.PostMark;
-        break;
-      case EmailProviderType.Resend:
-        type = EmailProviderType.Resend;
-        break;
-      case EmailProviderType.Smtp:
-        type = EmailProviderType.Smtp;
-        break;
-      case EmailProviderType.MailChimp:
-        type = EmailProviderType.MailChimp;
-        break;
-      default:
-        logger().error(`Unknown email provider type: ${ep.type}`);
-        return [];
+    const typeResult = schemaValidateWithErr(ep.type, WorkspaceWideProviders);
+    if (typeResult.isErr()) {
+      logger().error(
+        {
+          workspaceId,
+          err: typeResult.error,
+        },
+        "Unknown email provider type",
+      );
+      return [];
     }
+    const type: WorkspaceWideProviders = typeResult.value;
 
     return {
       workspaceId: ep.workspaceId,
@@ -191,6 +178,10 @@ export async function getOrCreateEmailProviders({
   const upsertPromises: Promise<unknown>[] = [];
   for (const typeKey in EmailProviderType) {
     const type = EmailProviderType[typeKey as keyof typeof EmailProviderType];
+    // Impossible, but TypeScript doesn't know that.
+    if (type === EmailProviderType.Gmail) {
+      continue;
+    }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     const missing = emailProviders.find((ep) => ep.type === type) === undefined;
     if (missing) {
