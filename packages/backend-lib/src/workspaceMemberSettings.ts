@@ -1,5 +1,4 @@
-import { Static, TSchema } from "@sinclair/typebox";
-import { randomUUID } from "crypto";
+import { Static } from "@sinclair/typebox";
 import { and, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -9,11 +8,11 @@ import {
   WorkspaceSettingSchemaRecord,
   WorkspaceSettingsResource,
 } from "isomorphic-lib/src/types";
+import { err, ok, Result } from "neverthrow";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
 import logger from "./logger";
-import { ok, Result } from "neverthrow";
 
 function getSecretName(settingName: string) {
   return `workspace-member-setting-${settingName}`;
@@ -140,6 +139,11 @@ export async function getSecretWorkspaceSettingsResource({
     WorkspaceSettingSchemaRecord[name],
   );
   if (settingsConfig.isErr()) {
-    return null;
+    return err(settingsConfig.error);
   }
+  return ok({
+    workspaceId,
+    name,
+    config: settingsConfig.value,
+  });
 }
