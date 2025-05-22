@@ -5315,6 +5315,9 @@ export type GmailTokensWorkspaceMemberSetting = Static<
   typeof GmailTokensWorkspaceMemberSetting
 >;
 
+export type WorkspaceMemberSettingSchema =
+  typeof GmailTokensWorkspaceMemberSetting;
+
 export const WorkspaceMemberSetting = Type.Union([
   GmailTokensWorkspaceMemberSetting,
 ]);
