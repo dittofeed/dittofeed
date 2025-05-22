@@ -3,9 +3,13 @@ import { Credentials, OAuth2Client } from "google-auth-library";
 import { err, ok, Result } from "neverthrow";
 
 import config from "./config";
-import { encrypt } from "./secrets";
+import { decrypt, encrypt } from "./secrets";
 import { GmailTokensWorkspaceMemberSetting } from "./types";
-import { writeSecretWorkspaceMemberSettings } from "./workspaceMemberSettings";
+import {
+  getSecretWorkspaceSettingsResource,
+  writeSecretWorkspaceMemberSettings,
+} from "./workspaceMemberSettings";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 async function persistGmailTokens({
   workspaceId,
@@ -122,21 +126,67 @@ export async function handleGmailCallback({
   return ok(undefined);
 }
 
+export type UnencryptedGmailTokens = Required<
+  Pick<
+    GmailTokensWorkspaceMemberSetting,
+    "accessToken" | "refreshToken" | "expiresAt"
+  >
+>;
+
 export async function getGmailTokens({
   workspaceId,
   workspaceMemberId,
 }: {
   workspaceId: string;
   workspaceMemberId: string;
-}): Promise<
-  Result<
-    Pick<
-      GmailTokensWorkspaceMemberSetting,
-      "accessToken" | "refreshToken" | "expiresAt"
-    >,
-    GmailCallbackError
-  >
-> {}
+}): Promise<UnencryptedGmailTokens | null> {
+  const settings = unwrap(
+    await getSecretWorkspaceSettingsResource({
+      workspaceId,
+      workspaceMemberId,
+      name: "GmailTokens",
+    }),
+  );
+  if (!settings || !settings.config.expiresAt) {
+    return null;
+  }
+  if (
+    !settings.config.accessToken ||
+    !settings.config.accessTokenIv ||
+    !settings.config.accessTokenAuthTag
+  ) {
+    return null;
+  }
+  const accessToken = decrypt({
+    iv: settings.config.accessTokenIv,
+    encryptedData: settings.config.accessToken,
+    authTag: settings.config.accessTokenAuthTag,
+  });
+  if (!accessToken) {
+    return null;
+  }
+
+  if (
+    !settings.config.refreshToken ||
+    !settings.config.refreshTokenIv ||
+    !settings.config.refreshTokenAuthTag
+  ) {
+    return null;
+  }
+  const refreshToken = decrypt({
+    iv: settings.config.refreshTokenIv,
+    encryptedData: settings.config.refreshToken,
+    authTag: settings.config.refreshTokenAuthTag,
+  });
+  if (!refreshToken) {
+    return null;
+  }
+  return {
+    accessToken,
+    refreshToken,
+    expiresAt: settings.config.expiresAt,
+  };
+}
 
 export async function refreshGmailAccessToken({
   workspaceId,
@@ -144,4 +194,16 @@ export async function refreshGmailAccessToken({
 }: {
   workspaceId: string;
   workspaceMemberId: string;
-}): Promise<Result<void, GmailCallbackError>> {}
+}): Promise<UnencryptedGmailTokens | null> {
+  const tokens = await getGmailTokens({
+    workspaceId,
+    workspaceMemberId,
+  });
+  if (!tokens) {
+    return null;
+  }
+  const oauth2Client = new OAuth2Client(
+    config().gmailClientId,
+    config().gmailClientSecret,
+  );
+}
