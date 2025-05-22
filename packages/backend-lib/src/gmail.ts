@@ -9,7 +9,11 @@ import Mail from "nodemailer/lib/mailer";
 import config from "./config";
 import logger from "./logger";
 import { decrypt, encrypt } from "./secrets";
-import { GmailTokensWorkspaceMemberSetting } from "./types";
+import {
+  EmailGmailSuccess,
+  EmailProviderType,
+  GmailTokensWorkspaceMemberSetting,
+} from "./types";
 import {
   getSecretWorkspaceSettingsResource,
   writeSecretWorkspaceMemberSettings,
@@ -332,15 +336,9 @@ export interface SendGmailEmailParams {
   attachments?: Mail.Attachment[];
 }
 
-export interface SendGmailEmailSuccess {
-  messageId: string;
-  threadId: string;
-}
-
 // Define more specific failure reasons
 export enum SendGmailFailureType {
   NonRetryableGoogleError = "NonRetryableGoogleError",
-  ConfigurationError = "ConfigurationError",
   ConstructionError = "ConstructionError",
   UnknownError = "UnknownError",
 }
@@ -357,10 +355,6 @@ export interface NonRetryableGoogleError extends BaseGmailFailure {
   googleErrorCode?: string | null;
 }
 
-export interface ConfigurationError extends BaseGmailFailure {
-  errorType: SendGmailFailureType.ConfigurationError;
-}
-
 export interface ConstructionError extends BaseGmailFailure {
   errorType: SendGmailFailureType.ConstructionError;
 }
@@ -371,7 +365,6 @@ export interface UnknownGmailError extends BaseGmailFailure {
 
 export type SendGmailEmailFailureReason =
   | NonRetryableGoogleError
-  | ConfigurationError
   | ConstructionError
   | UnknownGmailError;
 
@@ -381,15 +374,7 @@ export async function sendGmailEmail({
 }: {
   accessToken: string;
   params: SendGmailEmailParams;
-}): Promise<Result<SendGmailEmailSuccess, SendGmailEmailFailureReason>> {
-  // Initial validation (example, could be expanded)
-  if (!accessToken) {
-    return err({
-      errorType: SendGmailFailureType.ConfigurationError,
-      message: "Access token is missing or empty.",
-    });
-  }
-
+}): Promise<Result<EmailGmailSuccess, SendGmailEmailFailureReason>> {
   let rawEmailBuffer: Buffer;
   try {
     const mailOptions: Mail.Options = {
@@ -439,6 +424,7 @@ export async function sendGmailEmail({
 
     if (res.data.id && res.data.threadId) {
       return ok({
+        type: EmailProviderType.Gmail,
         messageId: res.data.id,
         threadId: res.data.threadId,
       });
