@@ -5329,3 +5329,18 @@ export const WorkspaceMemberSetting = Type.Union([
 ]);
 
 export type WorkspaceMemberSetting = Static<typeof WorkspaceMemberSetting>;
+
+export const WorkspaceSettingRecord = {
+  [WorkspaceMemberSettingTypeEnum.GmailTokens]:
+    GmailTokensWorkspaceMemberSetting,
+} as const;
+
+export const WorkspaceSettingsResource = Type.Object({
+  workspaceId: Type.String(),
+  name: WorkspaceMemberSettingType,
+  config: WorkspaceMemberSetting,
+});
+
+export type WorkspaceSettingsResource = Static<
+  typeof WorkspaceSettingsResource
+>;

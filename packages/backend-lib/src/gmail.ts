@@ -1,5 +1,6 @@
 import { GaxiosError } from "gaxios";
 import { Credentials, OAuth2Client } from "google-auth-library";
+import { err, ok, Result } from "neverthrow";
 
 import config from "./config";
 import { encrypt } from "./secrets";
@@ -58,7 +59,7 @@ export interface GoogleOAuthErrorData {
 
 export interface GmailTokenExchangeError {
   type: typeof GmailCallbackErrorEnum.TokenExchangeError;
-  code: string;
+  code?: string;
   data?: GoogleOAuthErrorData;
 }
 
@@ -80,11 +81,11 @@ export async function handleGmailCallback({
   originalState: string;
   returnedState: string;
   redirectUri: string;
-}) {
+}): Promise<Result<void, GmailCallbackError>> {
   if (originalState !== returnedState) {
-    return {
+    return err({
       type: GmailCallbackErrorEnum.StateMismatchError,
-    };
+    });
   }
   const { gmailClientId, gmailClientSecret } = config();
   if (!gmailClientId || !gmailClientSecret) {
@@ -107,15 +108,40 @@ export async function handleGmailCallback({
     }
     const data = e.response?.data as GoogleOAuthErrorData | undefined;
 
-    return {
+    return err({
       type: GmailCallbackErrorEnum.TokenExchangeError,
       code: e.code,
       data,
-    };
+    } satisfies GmailTokenExchangeError);
   }
   await persistGmailTokens({
     workspaceId,
     workspaceMemberId,
     tokens,
   });
+  return ok(undefined);
 }
+
+export async function getGmailTokens({
+  workspaceId,
+  workspaceMemberId,
+}: {
+  workspaceId: string;
+  workspaceMemberId: string;
+}): Promise<
+  Result<
+    Pick<
+      GmailTokensWorkspaceMemberSetting,
+      "accessToken" | "refreshToken" | "expiresAt"
+    >,
+    GmailCallbackError
+  >
+> {}
+
+export async function refreshGmailAccessToken({
+  workspaceId,
+  workspaceMemberId,
+}: {
+  workspaceId: string;
+  workspaceMemberId: string;
+}): Promise<Result<void, GmailCallbackError>> {}

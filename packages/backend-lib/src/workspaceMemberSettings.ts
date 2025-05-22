@@ -5,11 +5,15 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   WorkspaceMemberSetting,
   WorkspaceMemberSettingSchema,
+  WorkspaceMemberSettingType,
+  WorkspaceSettingSchemaRecord,
+  WorkspaceSettingsResource,
 } from "isomorphic-lib/src/types";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
 import logger from "./logger";
+import { ok, Result } from "neverthrow";
 
 function getSecretName(settingName: string) {
   return `workspace-member-setting-${settingName}`;
@@ -27,20 +31,32 @@ export async function writeSecretWorkspaceMemberSettings<
   config: T;
 }) {
   await db().transaction(async (tx) => {
-    const secretId = randomUUID();
-    await tx.insert(schema.secret).values({
-      workspaceId,
-      id: secretId,
-      name: getSecretName(config.type),
-      configValue: config,
-    });
-    await tx.insert(schema.workspaceMemberSetting).values({
-      workspaceId,
-      workspaceMemberId,
-      secretId,
-      name: config.type,
-      config,
-    });
+    const [secret] = await tx
+      .insert(schema.secret)
+      .values({
+        workspaceId,
+        name: getSecretName(config.type),
+        configValue: config,
+      })
+      .onConflictDoUpdate({
+        target: [schema.secret.workspaceId, schema.secret.name],
+        set: {
+          configValue: config,
+        },
+      })
+      .returning();
+    if (!secret) {
+      throw new Error("Failed to create secret");
+    }
+    await tx
+      .insert(schema.workspaceMemberSetting)
+      .values({
+        workspaceId,
+        workspaceMemberId,
+        secretId: secret.id,
+        name: config.type,
+      })
+      .onConflictDoNothing();
   });
 }
 
@@ -51,12 +67,10 @@ export async function updateSecretWorkspaceMemberSettings<
   workspaceMemberId,
   update,
   name,
-  schema: settingsSchema,
 }: {
   workspaceId: string;
   workspaceMemberId: string;
-  name: S["type"];
-  schema: S;
+  name: WorkspaceMemberSettingType;
   update: (existingConfig: Static<S>) => Static<S>;
 }): Promise<Static<S> | null> {
   return await db().transaction(async (tx) => {
@@ -70,6 +84,7 @@ export async function updateSecretWorkspaceMemberSettings<
     if (!existingSecret) {
       return null;
     }
+    const settingsSchema = WorkspaceSettingSchemaRecord[name];
     const configResult = schemaValidateWithErr(
       existingSecret.configValue,
       settingsSchema,
@@ -96,4 +111,35 @@ export async function updateSecretWorkspaceMemberSettings<
       .where(eq(schema.secret.id, existingSecret.id));
     return newConfig;
   });
+}
+
+export async function getSecretWorkspaceSettingsResource({
+  workspaceId,
+  workspaceMemberId,
+  name,
+}: {
+  workspaceId: string;
+  workspaceMemberId: string;
+  name: WorkspaceMemberSettingType;
+}): Promise<Result<WorkspaceSettingsResource | null, Error>> {
+  const settings = await db().query.workspaceMemberSetting.findFirst({
+    where: and(
+      eq(schema.workspaceMemberSetting.workspaceId, workspaceId),
+      eq(schema.workspaceMemberSetting.workspaceMemberId, workspaceMemberId),
+      eq(schema.workspaceMemberSetting.name, name),
+    ),
+    with: {
+      secret: true,
+    },
+  });
+  if (!settings?.secret) {
+    return ok(null);
+  }
+  const settingsConfig = schemaValidateWithErr(
+    settings.secret.configValue,
+    WorkspaceSettingSchemaRecord[name],
+  );
+  if (settingsConfig.isErr()) {
+    return null;
+  }
 }
