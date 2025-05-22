@@ -1,6 +1,10 @@
 import { GaxiosError } from "gaxios";
 import { Credentials, OAuth2Client } from "google-auth-library";
 
+import config from "./config";
+import { GmailTokensWorkspaceMemberSetting } from "./types";
+import { writeSecretWorkspaceMemberSettings } from "./workspaceMemberSettings";
+
 async function persistGmailTokens({
   workspaceId,
   workspaceMemberId,
@@ -9,7 +13,19 @@ async function persistGmailTokens({
   workspaceId: string;
   workspaceMemberId: string;
   tokens: Credentials;
-}) {}
+}) {
+  const gmailConfig: GmailTokensWorkspaceMemberSetting = {
+    type: "GmailTokens",
+    accessToken: tokens.access_token ?? undefined,
+    refreshToken: tokens.refresh_token ?? undefined,
+    expiresAt: tokens.expiry_date ?? undefined,
+  };
+  await writeSecretWorkspaceMemberSettings({
+    workspaceId,
+    workspaceMemberId,
+    config: gmailConfig,
+  });
+}
 
 export const GmailCallbackErrorEnum = {
   StateMismatchError: "StateMismatchError",
@@ -54,10 +70,19 @@ export async function handleGmailCallback({
   returnedState: string;
   redirectUri: string;
 }) {
+  if (originalState !== returnedState) {
+    return {
+      type: GmailCallbackErrorEnum.StateMismatchError,
+    };
+  }
+  const { gmailClientId, gmailClientSecret } = config();
+  if (!gmailClientId || !gmailClientSecret) {
+    throw new Error("Gmail client ID and secret are not set");
+  }
+
   const oauth2Client = new OAuth2Client(
-    // TODO pull from env vars
-    "FIXME_CLIENT_ID", // Your Google Client ID
-    "FIXME_CLIENT_SECRET", // Your Google Client Secret
+    gmailClientId,
+    gmailClientSecret,
     redirectUri,
   );
 
@@ -82,12 +107,4 @@ export async function handleGmailCallback({
     workspaceMemberId,
     tokens,
   });
-
-  // tokens will contain:
-  // tokens.access_token
-  // tokens.refresh_token (if access_type=offline was used and it's the first exchange)
-  // tokens.expiry_date
-  // tokens.id_token (if openid scope was included)
-  // tokens.scope
-  // tokens.token_type
 }
