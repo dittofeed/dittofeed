@@ -5330,7 +5330,7 @@ export const WorkspaceMemberSetting = Type.Union([
 
 export type WorkspaceMemberSetting = Static<typeof WorkspaceMemberSetting>;
 
-export const WorkspaceSettingRecord = {
+export const WorkspaceSettingSchemaRecord = {
   [WorkspaceMemberSettingTypeEnum.GmailTokens]:
     GmailTokensWorkspaceMemberSetting,
 } as const;
