@@ -202,8 +202,5 @@ export async function refreshGmailAccessToken({
   if (!tokens) {
     return null;
   }
-  const oauth2Client = new OAuth2Client(
-    config().gmailClientId,
-    config().gmailClientSecret,
-  );
+  throw new Error("Not implemented");
 }
