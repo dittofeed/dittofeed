@@ -968,7 +968,7 @@ export type RateLimitNode = Static<typeof RateLimitNode>;
 export const EmailMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
-  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
+  providerOverride: Type.Optional(Type.Enum(WorkspaceWideProviders)),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
@@ -5073,6 +5073,15 @@ export const BroadcastErrorHandling = Type.KeyOf(
 
 export type BroadcastErrorHandling = Static<typeof BroadcastErrorHandling>;
 
+export const BroadcastEmailMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type BroadcastEmailMessageVariant = Static<
+  typeof BroadcastEmailMessageVariant
+>;
+
 export const BroadcastV2Config = Type.Object({
   type: Type.Literal(BroadcastConfigTypeEnum.V2),
   // messages per second
@@ -5082,7 +5091,8 @@ export const BroadcastV2Config = Type.Object({
   errorHandling: Type.Optional(BroadcastErrorHandling),
   batchSize: Type.Optional(Type.Number()),
   message: Type.Union([
-    Type.Omit(EmailMessageVariant, ["templateId"]),
+    // Defined separately to allow workspace member specific providers.
+    BroadcastEmailMessageVariant,
     Type.Omit(SmsMessageVariant, ["templateId"]),
     Type.Omit(WebhookMessageVariant, ["templateId"]),
   ]),
