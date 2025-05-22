@@ -2,6 +2,7 @@ import { GaxiosError } from "gaxios";
 import { Credentials, OAuth2Client } from "google-auth-library";
 
 import config from "./config";
+import { encrypt } from "./secrets";
 import { GmailTokensWorkspaceMemberSetting } from "./types";
 import { writeSecretWorkspaceMemberSettings } from "./workspaceMemberSettings";
 
@@ -14,10 +15,20 @@ async function persistGmailTokens({
   workspaceMemberId: string;
   tokens: Credentials;
 }) {
+  const encryptedAccessToken = tokens.access_token
+    ? encrypt(tokens.access_token)
+    : undefined;
+  const encryptedRefreshToken = tokens.refresh_token
+    ? encrypt(tokens.refresh_token)
+    : undefined;
   const gmailConfig: GmailTokensWorkspaceMemberSetting = {
     type: "GmailTokens",
-    accessToken: tokens.access_token ?? undefined,
-    refreshToken: tokens.refresh_token ?? undefined,
+    accessToken: encryptedAccessToken?.encryptedData ?? undefined,
+    accessTokenIv: encryptedAccessToken?.iv ?? undefined,
+    accessTokenAuthTag: encryptedAccessToken?.authTag ?? undefined,
+    refreshToken: encryptedRefreshToken?.encryptedData ?? undefined,
+    refreshTokenIv: encryptedRefreshToken?.iv ?? undefined,
+    refreshTokenAuthTag: encryptedRefreshToken?.authTag ?? undefined,
     expiresAt: tokens.expiry_date ?? undefined,
   };
   await writeSecretWorkspaceMemberSettings({
