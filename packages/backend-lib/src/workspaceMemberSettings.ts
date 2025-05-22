@@ -8,14 +8,16 @@ function getSecretName(settingName: string) {
   return `workspace-member-setting-${settingName}`;
 }
 
-export async function writeSecretWorkspaceMemberSettings({
+export async function writeSecretWorkspaceMemberSettings<
+  T extends WorkspaceMemberSetting,
+>({
   workspaceId,
   workspaceMemberId,
   config,
 }: {
   workspaceId: string;
   workspaceMemberId: string;
-  config: WorkspaceMemberSetting;
+  config: T;
 }) {
   await db().transaction(async (tx) => {
     const secretId = randomUUID();
