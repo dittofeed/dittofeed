@@ -107,6 +107,7 @@ export enum EmailProviderType {
   Smtp = "Smtp",
   Test = "Test",
   MailChimp = "MailChimp",
+  Gmail = "Gmail",
 }
 
 export const EmailProviderTypeSchema = Type.Enum(EmailProviderType);
@@ -1847,6 +1848,14 @@ export const MailChimpEmailProvider = Type.Object({
 
 export type MailChimpEmailProvider = Static<typeof MailChimpEmailProvider>;
 
+export const GmailEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.Gmail),
+});
+
+export type GmailEmailProvider = Static<typeof GmailEmailProvider>;
+
 export const PersistedEmailProvider = Type.Union([
   MailChimpEmailProvider,
   SendgridEmailProvider,
@@ -1855,6 +1864,7 @@ export const PersistedEmailProvider = Type.Union([
   ResendEmailProvider,
   SmtpEmailProvider,
   TestEmailProvider,
+  GmailEmailProvider,
 ]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
@@ -3536,6 +3546,14 @@ export const EmailAmazonSesSuccess = Type.Object({
 
 export type EmailAmazonSesSuccess = Static<typeof EmailAmazonSesSuccess>;
 
+export const EmailGmailSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
+  messageId: Type.String(),
+  threadId: Type.String(),
+});
+
+export type EmailGmailSuccess = Static<typeof EmailGmailSuccess>;
+
 export const EmailSmtpSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   messageId: Type.String(),
@@ -3567,6 +3585,7 @@ export const EmailServiceProviderSuccess = Type.Union([
   EmailAmazonSesSuccess,
   EmailPostMarkSuccess,
   EmailResendSuccess,
+  EmailGmailSuccess,
   EmailSmtpSuccess,
   EmailTestSuccess,
 ]);
@@ -3754,6 +3773,15 @@ export type MessageAmazonSesServiceFailure = Static<
   typeof MessageAmazonSesServiceFailure
 >;
 
+export const MessageGmailServiceFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
+  message: Type.String(),
+});
+
+export type MessageGmailServiceFailure = Static<
+  typeof MessageGmailServiceFailure
+>;
+
 export const MessageSmtpFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   message: Type.String(),
@@ -3785,6 +3813,7 @@ export const MessageMailChimpFailure = Type.Object({
 
 export type MessageMailChimpFailure = Static<typeof MessageMailChimpFailure>;
 
+// FIXME
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
   MessageMailChimpFailure,
@@ -4145,6 +4174,7 @@ export type WebhookSecret = Static<typeof WebhookSecret>;
 
 export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 
+// FIXME
 export const EmailProviderSecret = Type.Union([
   MailChimpSecret,
   SendgridSecret,
