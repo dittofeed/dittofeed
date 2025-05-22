@@ -176,28 +176,34 @@ This checklist provides a structured approach. Items can be broken down further 
 ```typescript
 // --- Configuration (Loaded at application startup) ---
 // Assume TOKEN_ENCRYPTION_KEY is loaded from environment variables (sourced from K8s Secret)
-// const TOKEN_ENCRYPTION_KEY: string = process.env.TOKEN_ENCRYPTION_KEY;
+// import { config } from './config'; // Example of how config might be imported
+// const TOKEN_ENCRYPTION_KEY_STRING: string = config().tokenEncryptionKey; 
 // const ALGORITHM = 'aes-256-gcm';
 // const IV_LENGTH = 16; // Or 12 for GCM, be consistent
+// import crypto from 'crypto'; // Standard import
 
 // --- Encryption Utility (e.g., in a crypto.service.ts) ---
 
-function generateEncryptionKey(): Buffer {
-  // In a real scenario, this key is securely managed and provisioned, not generated on the fly
-  // For example, fetched from process.env.TOKEN_ENCRYPTION_KEY which is a 32-byte string
-  const keyFromEnv = process.env.TOKEN_ENCRYPTION_KEY;
-  if (!keyFromEnv || Buffer.from(keyFromEnv, 'utf-8').length !== 32) {
-    throw new Error('Invalid TOKEN_ENCRYPTION_KEY: must be 32 bytes.');
+function generateEncryptionKey(keyFromEnv: string | undefined): Buffer {
+  // In a real scenario, this key is securely managed and provisioned.
+  // For example, fetched from process.env.TOKEN_ENCRYPTION_KEY or a config service.
+  if (!keyFromEnv || Buffer.from(keyFromEnv, 'utf-8').length !== 32) { // Assuming UTF-8 encoded key that results in 32 bytes, or adjust encoding
+    throw new Error('Invalid TOKEN_ENCRYPTION_KEY: must be 32 bytes after appropriate encoding.');
   }
-  return Buffer.from(keyFromEnv, 'utf-8');
+  return Buffer.from(keyFromEnv, 'utf-8'); // Or 'base64', 'hex' if the env var is stored that way
 }
 
-const MASTER_KEY = generateEncryptionKey();
+// const MASTER_KEY = generateEncryptionKey(TOKEN_ENCRYPTION_KEY_STRING); // Example instantiation
 
+interface EncryptedOutput {
+  iv: string;
+  encryptedData: string;
+  authTag: string;
+}
 
-function encrypt(plaintext: string): { iv: string; encryptedData: string; authTag: string } {
+function encrypt(plaintext: string, masterKey: Buffer): EncryptedOutput {
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, MASTER_KEY, iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', masterKey, iv);
   
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -210,37 +216,43 @@ function encrypt(plaintext: string): { iv: string; encryptedData: string; authTa
   };
 }
 
-function decrypt(ciphertext: string, ivHex: string, authTagHex: string): string | null {
+function decrypt(ciphertext: string, ivHex: string, authTagHex: string, masterKey: Buffer): string | null {
   try {
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    const decipher = crypto.createDecipheriv(ALGORITHM, MASTER_KEY, iv);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', masterKey, iv);
     decipher.setAuthTag(authTag);
     
     let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
-  } catch (error) {
+  } catch (error: any) { // Using 'any' for brevity in pseudocode, type guard in real code
     // Log error securely
     console.error("Decryption failed:", error.message);
     return null; // Or throw a specific error to be handled upstream
   }
 }
 
-// --- Fastify OAuth Callback Handler (/auth/gmail/callback) ---
+// --- Fastify OAuth Callback Handler Example (/auth/gmail/callback) ---
+// import { FastifyRequest, FastifyReply } from 'fastify'; // Example imports
+// Assume db, exchangeCodeForTokens, userGmailProfile are available/imported
 
-async function handleOauthCallback(request, reply) {
+async function handleOauthCallback(request: any, reply: any) { // Using 'any' for brevity
   // 1. Exchange authorization_code for tokens from Google
-  const { access_token, refresh_token, expires_in } = await exchangeCodeForTokens(request.query.code);
+  // const { access_token, refresh_token, expires_in } = await exchangeCodeForTokens(request.query.code);
+  const access_token = "example_access_token"; // Placeholder
+  const refresh_token = "example_refresh_token"; // Placeholder
+  const expires_in = 3600; // Placeholder
+  const MASTER_KEY = generateEncryptionKey("your-32-byte-secret-key-in-utf8"); // Placeholder for actual key loading
 
   // 2. Encrypt tokens before storing
-  const encryptedAccessToken = encrypt(access_token);
-  let encryptedRefreshToken = null;
+  const encryptedAccessToken = encrypt(access_token, MASTER_KEY);
+  let encryptedRefreshToken: EncryptedOutput | null = null;
   if (refresh_token) {
-    encryptedRefreshToken = encrypt(refresh_token);
+    encryptedRefreshToken = encrypt(refresh_token, MASTER_KEY);
   }
 
-  // 3. Store in Postgres
+  // 3. Store in Postgres (conceptual)
   //   db.query(
   //     `INSERT INTO gmail_auth (workspace_id, email, 
   //                             encrypted_access_token, access_token_iv, access_token_auth_tag, access_token_expires_at,
@@ -259,39 +271,110 @@ async function handleOauthCallback(request, reply) {
   //     ]
   //   );
 
+  console.log("Tokens encrypted and ready for storage.");
   // ... redirect user ...
 }
 
 // --- Temporal Activity / Service that needs to use a token ---
+// Assume db, refreshAccessTokenFromGoogle are available/imported
 
-async function getDecryptedRefreshToken(workspaceId: string, userEmail: string): Promise<string | null> {
-  // 1. Fetch encrypted refresh token details from Postgres
+async function getDecryptedRefreshToken(workspaceId: string, userEmail: string, masterKey: Buffer): Promise<string | null> {
+  // 1. Fetch encrypted refresh token details from Postgres (conceptual)
   //   const result = await db.query(
   //     `SELECT encrypted_refresh_token, refresh_token_iv, refresh_token_auth_tag 
   //      FROM gmail_auth WHERE workspace_id = $1 AND email = $2`, 
   //     [workspaceId, userEmail]
   //   );
   //   const row = result.rows[0];
-  //   if (!row || !row.encrypted_refresh_token) return null;
+  //   if (!row || !row.encrypted_refresh_token || !row.refresh_token_iv || !row.refresh_token_auth_tag) return null;
 
   // 2. Decrypt
-  //   return decrypt(row.encrypted_refresh_token, row.refresh_token_iv, row.refresh_token_auth_tag);
+  //   return decrypt(row.encrypted_refresh_token, row.refresh_token_iv, row.refresh_token_auth_tag, masterKey);
   return "decrypted_refresh_token_placeholder"; // Placeholder for actual logic
 }
 
-async function sendEmailViaGmailActivity(params: { workspaceId: string; userEmail: string; mailOptions: any }) {
-  const plaintextRefreshToken = await getDecryptedRefreshToken(params.workspaceId, params.userEmail);
+interface MailOptions {
+  to: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml?: string;
+  from: string; // User's actual Gmail address
+  replyTo?: string;
+}
+
+async function callGmailApi(accessToken: string, mailOptions: MailOptions) {
+  // import { google, gmail_v1 } from 'googleapis'; // Standard import
+  // const oauth2Client = new google.auth.OAuth2();
+  // oauth2Client.setCredentials({ access_token: accessToken });
+  // const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+  console.log("Simulating call to Gmail API with mailOptions:", mailOptions);
+  // Actual implementation details:
+  // 1. Create an OAuth2 client and set the access token.
+  // 2. Get a Gmail API client.
+  // 3. Construct the raw email message (RFC 2822 format, base64url encoded).
+  //    Example of raw email construction:
+  //    const utf8Subject = `=?utf-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
+  //    const messageParts = [
+  //      `From: ${mailOptions.from}`,
+  //      `To: ${mailOptions.to}`,
+  //      `Content-Type: multipart/alternative; boundary="boundary_string_123"`,
+  //      `MIME-Version: 1.0`,
+  //      `Subject: ${utf8Subject}`
+  //    ];
+  //    if (mailOptions.replyTo) {
+  //      messageParts.splice(2, 0, `Reply-To: ${mailOptions.replyTo}`);
+  //    }
+  //    messageParts.push('');
+  //    messageParts.push('--boundary_string_123');
+  //    messageParts.push('Content-Type: text/plain; charset="UTF-8"');
+  //    messageParts.push('');
+  //    messageParts.push(mailOptions.bodyText);
+  //    if (mailOptions.bodyHtml) {
+  //      messageParts.push('');
+  //      messageParts.push('--boundary_string_123');
+  //      messageParts.push('Content-Type: text/html; charset="UTF-8"');
+  //      messageParts.push('');
+  //      messageParts.push(mailOptions.bodyHtml);
+  //    }
+  //    messageParts.push('');
+  //    messageParts.push('--boundary_string_123--');
+  //    const email = messageParts.join('\\r\\n');
+  //    const base64EncodedEmail = Buffer.from(email).toString('base64url');
+
+  // try {
+  //   const res = await gmail.users.messages.send({
+  //     userId: 'me',
+  //     requestBody: {
+  //       raw: base64EncodedEmail
+  //     }
+  //   });
+  //   console.log('Email sent successfully (simulated):', res.data.id);
+  //   return { success: true, messageId: res.data.id };
+  // } catch (error: any) {
+  //   console.error('Error sending email via Gmail API (simulated):', error.message);
+  //   throw new Error(`Gmail API send error: ${error.message}`);
+  // }
+  return { success: true, messageId: "simulated_message_id" }; // Placeholder
+}
+
+
+async function sendEmailViaGmailActivity(params: { workspaceId: string; userEmail: string; mailOptions: MailOptions }) {
+  const MASTER_KEY = generateEncryptionKey("your-32-byte-secret-key-in-utf8"); // Placeholder for actual key loading
+  const plaintextRefreshToken = await getDecryptedRefreshToken(params.workspaceId, params.userEmail, MASTER_KEY);
+  
   if (!plaintextRefreshToken) {
-    // Handle missing or undecryptable refresh token (e.g., throw error, notify user to re-auth)
     throw new Error("Refresh token unavailable or invalid. Please re-authenticate Gmail.");
   }
 
   // 3. Use plaintext refresh token to get a new access token from Google
-  const { new_access_token, new_expires_in } = await refreshAccessTokenFromGoogle(plaintextRefreshToken);
+  // const { new_access_token, new_expires_in } = await refreshAccessTokenFromGoogle(plaintextRefreshToken);
+  const new_access_token = "new_example_access_token"; // Placeholder
+  const new_expires_in = 3600; // Placeholder
   
   // 4. Encrypt the new access token and update DB (important!)
-  const encryptedNewAccessToken = encrypt(new_access_token);
-  //   db.query(
+  const encryptedNewAccessToken = encrypt(new_access_token, MASTER_KEY);
+  //   db.query( // Conceptual storage update
   //     `UPDATE gmail_auth 
   //      SET encrypted_access_token = $1, access_token_iv = $2, access_token_auth_tag = $3, access_token_expires_at = $4
   //      WHERE workspace_id = $5 AND email = $6`,
@@ -304,11 +387,13 @@ async function sendEmailViaGmailActivity(params: { workspaceId: string; userEmai
   //       params.userEmail
   //     ]
   //   );
+  console.log("New access token encrypted and ready for storage update (simulated).");
   
   // 5. Use the new_access_token (plaintext) to call Gmail API
-  //   await callGmailApi(new_access_token, params.mailOptions);
+  await callGmailApi(new_access_token, params.mailOptions);
 
   return { success: true };
 }
 ```
+
 ---

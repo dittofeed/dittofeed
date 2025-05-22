@@ -286,3 +286,34 @@ export async function refreshGmailAccessToken({
     return null;
   }
 }
+
+const ONE_WEEK_IN_MS = 1000 * 60 * 60 * 24 * 7;
+
+export async function getAndRefreshGmailAccessToken({
+  workspaceId,
+  workspaceMemberId,
+}: {
+  workspaceId: string;
+  workspaceMemberId: string;
+}): Promise<UnencryptedGmailTokens | null> {
+  const tokens = await getGmailTokens({
+    workspaceId,
+    workspaceMemberId,
+  });
+  if (!tokens) {
+    return null;
+  }
+  if (tokens.expiresAt > Date.now() + ONE_WEEK_IN_MS) {
+    return tokens;
+  }
+  return refreshGmailAccessToken({
+    workspaceId,
+    workspaceMemberId,
+  });
+}
+
+export async function sendGmailEmail({
+  accessToken,
+}: {
+  accessToken: string;
+}) {}
