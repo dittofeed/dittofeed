@@ -12949,6 +12949,7 @@ __metadata:
     firebase-admin: "npm:^11.9.0"
     gaxios: "npm:^6.7.1"
     geo-tz: "npm:^7.0.7"
+    google-apis: "npm:^1.0.0"
     google-auth-library: "npm:^9.15.1"
     googleapis: "npm:^149.0.0"
     isomorphic-lib: "npm:0.0.3"
@@ -17139,6 +17140,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"flow-runtime@npm:^0.14.0":
+  version: 0.14.0
+  resolution: "flow-runtime@npm:0.14.0"
+  checksum: 10/9d1d1065a68a45923302d4cbd20121e2c93f155080066268a52c4d96ebff7bac7cdd4a5d763cec861148e11d9eea81e6f0f5fbb67446646c6d3cada45a96e0f1
+  languageName: node
+  linkType: hard
+
 "fnv1a@npm:^1.1.1":
   version: 1.1.1
   resolution: "fnv1a@npm:1.1.1"
@@ -17715,6 +17723,16 @@ __metadata:
   peerDependencies:
     csstype: ^3.0.10
   checksum: 10/2d1600c87d6a16a069deb3deb7e7f2f6be28a2d9b9cd155e795e2672a476ebea7e9b9cc913157326be3dbc687bc85e75d22da04d3f9b6966585ed762c81bccfa
+  languageName: node
+  linkType: hard
+
+"google-apis@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "google-apis@npm:1.0.0"
+  dependencies:
+    axios: "npm:^0.16.2"
+    flow-runtime: "npm:^0.14.0"
+  checksum: 10/4b5582f26e5acd5aa6f0512a0813626cb7000f9af1df6b91e42a6476c9373fba1d0e2739dd461b5790b3065d4a325521249ff8598a51d47053f2fe9fb6bec1e8
   languageName: node
   linkType: hard
 
