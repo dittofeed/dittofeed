@@ -7,13 +7,8 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SmsProviderType,
+  WorkspaceWideProviders,
 } from "./types";
-
-// Providers that are configured at the workspace level, not the member level.
-type WorkspaceWideProviders = Exclude<
-  EmailProviderType,
-  EmailProviderType.Gmail
->;
 
 export * from "./constants/headers";
 

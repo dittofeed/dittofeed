@@ -112,6 +112,19 @@ export enum EmailProviderType {
 
 export const EmailProviderTypeSchema = Type.Enum(EmailProviderType);
 
+// Providers that are configured at the workspace level, not the member level.
+export const WorkspaceWideProviders = Type.Union([
+  Type.Literal(EmailProviderType.Sendgrid),
+  Type.Literal(EmailProviderType.AmazonSes),
+  Type.Literal(EmailProviderType.Smtp),
+  Type.Literal(EmailProviderType.Resend),
+  Type.Literal(EmailProviderType.PostMark),
+  Type.Literal(EmailProviderType.MailChimp),
+  Type.Literal(EmailProviderType.Test),
+]);
+
+export type WorkspaceWideProviders = Static<typeof WorkspaceWideProviders>;
+
 export type EmailProviderTypeSchema = Static<typeof EmailProviderTypeSchema>;
 
 export enum MobilePushProviderType {
@@ -1792,87 +1805,16 @@ export type RequestStatus<V, E> =
   | SuccessfulRequest<V>
   | FailedRequest<E>;
 
-export const TestEmailProvider = Type.Object({
+export const PersistedEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.Test),
+  type: WorkspaceWideProviders,
 });
-
-export type TestEmailProvider = Static<typeof TestEmailProvider>;
-
-export const SendgridEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.Sendgrid),
-});
-
-export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;
-
-export const AmazonSesEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.AmazonSes),
-});
-
-export type AmazonSesEmailProvider = Static<typeof AmazonSesEmailProvider>;
-
-export const SmtpEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.Smtp),
-});
-
-export type SmtpEmailProvider = Static<typeof SmtpEmailProvider>;
-
-export const ResendEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.Resend),
-});
-
-export type ResendEmailProvider = Static<typeof ResendEmailProvider>;
-
-export const PostMarkEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.PostMark),
-});
-
-export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
-
-export const MailChimpEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.MailChimp),
-});
-
-export type MailChimpEmailProvider = Static<typeof MailChimpEmailProvider>;
-
-export const GmailEmailProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Literal(EmailProviderType.Gmail),
-});
-
-export type GmailEmailProvider = Static<typeof GmailEmailProvider>;
-
-export const PersistedEmailProvider = Type.Union([
-  MailChimpEmailProvider,
-  SendgridEmailProvider,
-  AmazonSesEmailProvider,
-  PostMarkEmailProvider,
-  ResendEmailProvider,
-  SmtpEmailProvider,
-  TestEmailProvider,
-  GmailEmailProvider,
-]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
 
-export const EmailProviderResource = Type.Union([
-  PersistedEmailProvider,
-  TestEmailProvider,
-]);
+// Backwards compatibility with old email provider types.
+export const EmailProviderResource = PersistedEmailProvider;
 
 export type EmailProviderResource = Static<typeof EmailProviderResource>;
 
@@ -4237,7 +4179,6 @@ export type WebhookSecret = Static<typeof WebhookSecret>;
 
 export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 
-// FIXME
 export const EmailProviderSecret = Type.Union([
   MailChimpSecret,
   SendgridSecret,
