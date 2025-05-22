@@ -1,5 +1,6 @@
 import { GaxiosError } from "gaxios";
 import { Credentials, OAuth2Client } from "google-auth-library";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 
 import config from "./config";
@@ -9,7 +10,6 @@ import {
   getSecretWorkspaceSettingsResource,
   writeSecretWorkspaceMemberSettings,
 } from "./workspaceMemberSettings";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 async function persistGmailTokens({
   workspaceId,
