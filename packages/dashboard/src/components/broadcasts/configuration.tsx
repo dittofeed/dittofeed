@@ -30,6 +30,9 @@ import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import { ChannelType, SmsProviderType } from "isomorphic-lib/src/types";
+import { EmailProviderType } from "isomorphic-lib/src/types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -86,6 +89,37 @@ export default function Configuration({
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const channel = useMemo(() => {
+    return broadcast?.config.message.type;
+  }, [broadcast?.config.message.type]);
+
+  const availableProviderOverrides = useMemo(() => {
+    if (!channel) {
+      return [];
+    }
+    switch (channel) {
+      case ChannelType.Email:
+        return [
+          { id: EmailProviderType.Gmail, label: "Gmail" },
+          { id: EmailProviderType.Sendgrid, label: "SendGrid" },
+          { id: EmailProviderType.AmazonSes, label: "Amazon SES" },
+          { id: EmailProviderType.Smtp, label: "SMTP" },
+          { id: EmailProviderType.Resend, label: "Resend" },
+          { id: EmailProviderType.PostMark, label: "PostMark" },
+          { id: EmailProviderType.MailChimp, label: "MailChimp" },
+          { id: EmailProviderType.Test, label: "Test" },
+        ];
+      case ChannelType.Sms:
+        return [
+          { id: SmsProviderType.Twilio, label: "Twilio" },
+          { id: SmsProviderType.Test, label: "Test" },
+        ];
+      case ChannelType.Webhook:
+        return [];
+      default:
+        assertUnreachable(channel);
+    }
+  }, [channel]);
 
   const errors = useMemo(() => {
     const e: string[] = [];
