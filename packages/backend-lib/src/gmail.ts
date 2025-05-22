@@ -213,7 +213,7 @@ export async function refreshGmailAccessToken({
         workspaceId,
         workspaceMemberId,
       },
-      "Cannot refresh Gmail access token for workspace member because missing refresh token.",
+      "Cannot refresh Gmail access token for workspace member: missing refresh token.",
     );
     return null;
   }
@@ -221,6 +221,10 @@ export async function refreshGmailAccessToken({
   const { gmailClientId, gmailClientSecret } = config();
   if (!gmailClientId || !gmailClientSecret) {
     logger().error(
+      {
+        gmailClientIdProvided: !!gmailClientId,
+        gmailClientSecretProvided: !!gmailClientSecret,
+      },
       "Gmail client ID or secret is not configured. Cannot refresh token.",
     );
     throw new Error(
@@ -244,7 +248,7 @@ export async function refreshGmailAccessToken({
           workspaceId,
           workspaceMemberId,
         },
-        "Failed to refresh Gmail access token for workspace member because response missing access_token or expiry_date.",
+        "Failed to refresh Gmail access token: response missing access_token or expiry_date.",
       );
       return null;
     }
@@ -267,7 +271,7 @@ export async function refreshGmailAccessToken({
           workspaceId,
           workspaceMemberId,
         },
-        "Critical error: Refresh token became null after refresh for workspace member. Re-authentication may be required.",
+        "Critical error: Refresh token became null after refresh. Re-authentication may be required.",
       );
       return null;
     }
@@ -403,14 +407,19 @@ export async function sendGmailEmail({
     const mailComposer = new MailComposer(mailOptions);
     rawEmailBuffer = await mailComposer.compile().build();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger().error(
-      { err: error, params, from: params.from, to: params.to },
-      `Failed to construct email: ${message}`,
+    logger().info(
+      {
+        err: error,
+        params,
+        from: params.from,
+        to: params.to,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      "Failed to construct email for Gmail sending",
     );
     return err({
       errorType: SendGmailFailureType.ConstructionError,
-      message: `Failed to construct email: ${message}`,
+      message: error instanceof Error ? error.message : String(error),
       details: error,
     });
   }
@@ -437,7 +446,7 @@ export async function sendGmailEmail({
     // Should not happen if API call was successful (status 200)
     // but Gmail API might return 200 with an error in the body in some edge cases,
     // or if id/threadId are unexpectedly missing.
-    logger().error(
+    logger().info(
       {
         response: res.data,
         params,
@@ -470,7 +479,7 @@ export async function sendGmailEmail({
           Number.isNaN(parseInt(statusCode, 10))); // Use Number.isNaN
 
       if (isRetryable) {
-        logger().warn(
+        logger().error(
           {
             err: e,
             params,
@@ -478,15 +487,15 @@ export async function sendGmailEmail({
             to: params.to,
             statusCode,
             googleErrorCode: googleError?.error,
+            googleErrorDescription: googleError?.error_description,
           },
-          `Retryable error sending Gmail email: ${googleError?.error ?? e.message}`,
+          "Retryable error sending Gmail email",
         );
         throw e; // Throw retryable errors for Temporal (or other retry mechanisms)
       }
 
       // Non-retryable GaxiosError
-      const message = `Gmail API error: ${googleError?.error_description ?? googleError?.error ?? e.message}`;
-      logger().error(
+      logger().info(
         {
           err: e,
           params,
@@ -494,28 +503,38 @@ export async function sendGmailEmail({
           to: params.to,
           statusCode,
           googleErrorCode: googleError?.error,
+          googleErrorDescription: googleError?.error_description,
+          originalErrorMessage: e.message,
         },
-        message,
+        "Non-retryable Gmail API error encountered",
       );
+      const errorDetails: unknown = googleError ?? e.response?.data;
       return err({
         errorType: SendGmailFailureType.NonRetryableGoogleError,
-        message,
+        message:
+          googleError?.error_description ?? googleError?.error ?? e.message,
         statusCode,
         googleErrorCode: googleError?.error,
-        details: googleError ?? e.response?.data, // Prefer parsed, fallback to raw
+        googleErrorDescription: googleError?.error_description,
+        details: errorDetails,
       });
     }
     // Other unexpected errors (non-Gaxios)
-    const message = e instanceof Error ? e.message : String(e);
-    logger().error(
-      { err: e, params, from: params.from, to: params.to },
-      `Unknown error sending Gmail email: ${message}`,
+    logger().info(
+      {
+        err: e,
+        params,
+        from: params.from,
+        to: params.to,
+        errorMessage: e instanceof Error ? e.message : String(e),
+      },
+      "Unknown error sending Gmail email",
     );
     // By default, treat other errors as potentially non-retryable from this function's perspective
     // If a specific error type here is known to be retryable, it could be thrown.
     return err({
       errorType: SendGmailFailureType.UnknownError,
-      message: `Unknown error sending Gmail email: ${message}`,
+      message: e instanceof Error ? e.message : String(e),
       details: e,
     });
   }
