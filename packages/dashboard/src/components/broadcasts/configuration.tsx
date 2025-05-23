@@ -2,9 +2,11 @@
 import { CalendarDateTime, parseDateTime, Time } from "@internationalized/date";
 import { LoadingButton } from "@mui/lab";
 import {
+  Autocomplete,
   Box,
   Popover,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -18,6 +20,16 @@ import {
   setMinutes,
   setSeconds,
 } from "date-fns";
+import { isEmailProviderType } from "isomorphic-lib/src/email";
+import { isSmsProviderType } from "isomorphic-lib/src/sms";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import {
+  BroadcastSmsMessageVariant,
+  BroadcastV2Config,
+  ChannelType,
+  EmailProviderType,
+  SmsProviderType,
+} from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
 
 // Internal application imports
@@ -30,9 +42,6 @@ import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
-import { ChannelType, SmsProviderType } from "isomorphic-lib/src/types";
-import { EmailProviderType } from "isomorphic-lib/src/types";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -77,6 +86,11 @@ function getTomorrowAt8AM(currentDate: Date = new Date()): string {
   return format(tomorrowAt8AM, "yyyy-MM-dd HH:mm");
 }
 
+type ProviderOverrideOption = {
+  id: EmailProviderType | SmsProviderType;
+  label: string;
+};
+
 export default function Configuration({
   state,
   updateState,
@@ -93,7 +107,7 @@ export default function Configuration({
     return broadcast?.config.message.type;
   }, [broadcast?.config.message.type]);
 
-  const availableProviderOverrides = useMemo(() => {
+  const availableProviderOverrides: ProviderOverrideOption[] = useMemo(() => {
     if (!channel) {
       return [];
     }
@@ -121,6 +135,29 @@ export default function Configuration({
     }
   }, [channel]);
 
+  const providerOverride = useMemo<ProviderOverrideOption | null>(() => {
+    if (!broadcast) {
+      return null;
+    }
+    const { message } = broadcast.config;
+    let override: EmailProviderType | SmsProviderType | null = null;
+    switch (message.type) {
+      case ChannelType.Email:
+        override = message.providerOverride ?? null;
+        break;
+      case ChannelType.Sms:
+        override = message.providerOverride ?? null;
+        break;
+      case ChannelType.Webhook:
+        return null;
+      default:
+        assertUnreachable(message);
+    }
+    return (
+      availableProviderOverrides.find((option) => option.id === override) ??
+      null
+    );
+  }, [broadcast, availableProviderOverrides]);
   const errors = useMemo(() => {
     const e: string[] = [];
     if (!broadcast?.messageTemplateId) {
@@ -289,6 +326,65 @@ export default function Configuration({
           />
         </>
       )}
+      <Autocomplete
+        options={availableProviderOverrides}
+        getOptionLabel={(option) => option.label}
+        value={providerOverride ?? null}
+        renderInput={(params) => (
+          <TextField {...params} label="Provider Override" />
+        )}
+        onChange={(_, newValue) => {
+          if (!broadcast) {
+            return;
+          }
+          const { message } = broadcast.config;
+          let newMessage: BroadcastV2Config["message"];
+          if (message.type === ChannelType.Webhook) {
+            return;
+          }
+          switch (message.type) {
+            case ChannelType.Email: {
+              let newProviderOverride: EmailProviderType | undefined;
+              if (!newValue) {
+                newProviderOverride = undefined;
+              } else if (isEmailProviderType(newValue.id)) {
+                newProviderOverride = newValue.id;
+              } else {
+                newProviderOverride = undefined;
+              }
+              newMessage = {
+                ...message,
+                providerOverride: newProviderOverride,
+              };
+              break;
+            }
+            case ChannelType.Sms: {
+              let newProviderOverride: SmsProviderType | undefined;
+              if (!newValue) {
+                newProviderOverride = undefined;
+              } else if (isSmsProviderType(newValue.id)) {
+                newProviderOverride = newValue.id;
+              } else {
+                newProviderOverride = undefined;
+              }
+              const newSmsMessage: BroadcastSmsMessageVariant = {
+                type: message.type,
+                providerOverride: newProviderOverride ?? null,
+              };
+              newMessage = newSmsMessage;
+              break;
+            }
+            default:
+              assertUnreachable(message);
+          }
+          updateBroadcast({
+            config: {
+              ...broadcast.config,
+              message: newMessage,
+            },
+          });
+        }}
+      />
 
       <LoadingButton
         variant="outlined"
