@@ -103,8 +103,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
 
         // Validate the state parameter
         if (
-          !decodedState ||
-          !decodedState.csrf ||
+          !decodedState?.csrf ||
           !storedCsrfToken ||
           decodedState.csrf !== storedCsrfToken
         ) {
