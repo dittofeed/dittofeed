@@ -15,18 +15,20 @@ import * as schema from "./db/schema";
 import logger from "./logger";
 
 function getSecretName(settingName: string) {
-  return `workspace-member-setting-${settingName}`;
+  return `workspace-occupant-setting-${settingName}`;
 }
 
 export async function writeSecretWorkspaceMemberSettings<
   T extends WorkspaceMemberSetting,
 >({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
   config,
+  occupantType,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
+  occupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
   config: T;
 }) {
   await db().transaction(async (tx) => {
@@ -48,12 +50,13 @@ export async function writeSecretWorkspaceMemberSettings<
       throw new Error("Failed to create secret");
     }
     await tx
-      .insert(schema.workspaceMemberSetting)
+      .insert(schema.workspaceOccupantSetting)
       .values({
         workspaceId,
-        workspaceMemberId,
+        workspaceOccupantId,
         secretId: secret.id,
         name: config.type,
+        occupantType,
       })
       .onConflictDoNothing();
   });
@@ -63,12 +66,12 @@ export async function updateSecretWorkspaceMemberSettings<
   S extends WorkspaceMemberSettingSchema,
 >({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
   update,
   name,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
   name: WorkspaceMemberSettingType;
   update: (existingConfig: Static<S>) => Static<S>;
 }): Promise<Static<S> | null> {
@@ -92,7 +95,7 @@ export async function updateSecretWorkspaceMemberSettings<
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
           err: configResult.error,
         },
         "Error validating workspace member setting",
@@ -114,18 +117,22 @@ export async function updateSecretWorkspaceMemberSettings<
 
 export async function getSecretWorkspaceSettingsResource({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
   name,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
   name: WorkspaceMemberSettingType;
 }): Promise<Result<WorkspaceSettingsResource | null, Error>> {
-  const settings = await db().query.workspaceMemberSetting.findFirst({
+  const settings = await db().query.workspaceOccupantSetting.findFirst({
     where: and(
-      eq(schema.workspaceMemberSetting.workspaceId, workspaceId),
-      eq(schema.workspaceMemberSetting.workspaceMemberId, workspaceMemberId),
-      eq(schema.workspaceMemberSetting.name, name),
+      eq(schema.workspaceOccupantSetting.workspaceId, workspaceId),
+      eq(
+        schema.workspaceOccupantSetting.workspaceOccupantId,
+        workspaceOccupantId,
+      ),
+      eq(schema.workspaceOccupantSetting.name, name),
+      eq(schema.workspaceOccupantSetting.occupantType, "WorkspaceMember"),
     ),
     with: {
       secret: true,
