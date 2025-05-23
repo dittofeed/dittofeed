@@ -1175,6 +1175,8 @@ export async function sendEmail({
           headers,
           replyTo,
           name: emailName,
+          workspaceOccupantId: messageTags?.workspaceOccupantId,
+          workspaceOccupantType: messageTags?.workspaceOccupantType,
           provider: {
             type: EmailProviderType.AmazonSes,
           },
