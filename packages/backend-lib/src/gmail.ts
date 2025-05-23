@@ -18,16 +18,20 @@ import {
 } from "./types";
 import {
   getSecretWorkspaceSettingsResource,
-  writeSecretWorkspaceMemberSettings,
-} from "./workspaceMemberSettings";
+  writeSecretWorkspaceOccupantSettings,
+} from "./workspaceOccupantSettings";
+import { WORKSPACE_OCCUPANT_SETTINGS_NAMES } from "./constants";
 
 async function persistGmailTokens({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
+  workspaceOccupantType,
+  email,
   tokens,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
+  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
   email: string;
   tokens: Credentials;
 }) {
@@ -48,9 +52,10 @@ async function persistGmailTokens({
     refreshTokenAuthTag: encryptedRefreshToken?.authTag ?? undefined,
     expiresAt: tokens.expiry_date ?? undefined,
   };
-  await writeSecretWorkspaceMemberSettings({
+  await writeSecretWorkspaceOccupantSettings({
     workspaceId,
-    workspaceMemberId,
+    workspaceOccupantId,
+    occupantType: workspaceOccupantType,
     config: gmailConfig,
   });
 }
@@ -130,9 +135,13 @@ export async function handleGmailCallback({
       data,
     } satisfies GmailTokenExchangeError);
   }
+  // TODO: get email from Google API
+  let email = "";
   await persistGmailTokens({
     workspaceId,
-    workspaceMemberId,
+    workspaceOccupantId: workspaceMemberId,
+    workspaceOccupantType: "WorkspaceMember",
+    email,
     tokens,
   });
   return ok(undefined);
@@ -147,16 +156,16 @@ export type UnencryptedGmailTokens = Required<
 
 export async function getGmailTokens({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
 }): Promise<UnencryptedGmailTokens | null> {
   const settings = unwrap(
     await getSecretWorkspaceSettingsResource({
       workspaceId,
-      workspaceMemberId,
-      name: "GmailTokens",
+      workspaceOccupantId,
+      name: WORKSPACE_OCCUPANT_SETTINGS_NAMES.GmailTokens,
     }),
   );
   if (!settings || !settings.config.expiresAt) {
@@ -202,14 +211,16 @@ export async function getGmailTokens({
 
 export async function refreshGmailAccessToken({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
+  workspaceOccupantType,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
+  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
 }): Promise<UnencryptedGmailTokens | null> {
   const tokens = await getGmailTokens({
     workspaceId,
-    workspaceMemberId,
+    workspaceOccupantId,
   });
   if (!tokens) {
     return null;
@@ -219,7 +230,7 @@ export async function refreshGmailAccessToken({
     logger().error(
       {
         workspaceId,
-        workspaceMemberId,
+        workspaceOccupantId,
       },
       "Cannot refresh Gmail access token for workspace member: missing refresh token.",
     );
@@ -254,7 +265,7 @@ export async function refreshGmailAccessToken({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
         },
         "Failed to refresh Gmail access token: response missing access_token or expiry_date.",
       );
@@ -264,7 +275,9 @@ export async function refreshGmailAccessToken({
     // Persist the newly obtained tokens (this will encrypt them)
     await persistGmailTokens({
       workspaceId,
-      workspaceMemberId,
+      workspaceOccupantId,
+      workspaceOccupantType,
+      email: "placeholder",
       tokens: newCredentials,
     });
 
@@ -277,7 +290,7 @@ export async function refreshGmailAccessToken({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
         },
         "Critical error: Refresh token became null after refresh. Re-authentication may be required.",
       );
@@ -293,7 +306,7 @@ export async function refreshGmailAccessToken({
     logger().error(
       {
         workspaceId,
-        workspaceMemberId,
+        workspaceOccupantId,
         err: e,
       },
       "Error refreshing Gmail access token for workspace member",
@@ -306,14 +319,16 @@ const ONE_WEEK_IN_MS = 1000 * 60 * 60 * 24 * 7;
 
 export async function getAndRefreshGmailAccessToken({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
+  workspaceOccupantType,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
+  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
 }): Promise<UnencryptedGmailTokens | null> {
   const tokens = await getGmailTokens({
     workspaceId,
-    workspaceMemberId,
+    workspaceOccupantId,
   });
   if (!tokens) {
     return null;
@@ -323,7 +338,8 @@ export async function getAndRefreshGmailAccessToken({
   }
   return refreshGmailAccessToken({
     workspaceId,
-    workspaceMemberId,
+    workspaceOccupantId,
+    workspaceOccupantType,
   });
 }
 
