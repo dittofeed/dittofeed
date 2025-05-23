@@ -27,10 +27,12 @@ import {
   BroadcastV2Config,
   BroadcastV2Status,
   ChannelType,
+  DBWorkspaceOccupantType,
   EventType,
   GetUsersResponseItem,
   InternalEventType,
   JSONValue,
+  MessageTags,
   SavedSegmentResource,
   TrackData,
 } from "../types";
@@ -128,10 +130,24 @@ interface SendMessagesResponse {
 interface SendMessagesParams {
   workspaceId: string;
   broadcastId: string;
+  workspaceOccupantId?: string;
+  workspaceOccupantType?: DBWorkspaceOccupantType;
   now: number;
   timezones?: string[];
   cursor?: string;
   limit: number;
+}
+
+function getMessageId({
+  broadcastId,
+  userId,
+  workspaceId,
+}: {
+  broadcastId: string;
+  userId: string;
+  workspaceId: string;
+}): string {
+  return uuidV5(`${userId}-${broadcastId}`, workspaceId);
 }
 
 async function getUnmessagedUsers(
@@ -183,6 +199,8 @@ export function sendMessagesFactory(sender: Sender) {
         workspaceId: params.workspaceId,
         broadcastId: params.broadcastId,
         timezones: params.timezones,
+        workspaceOccupantId: params.workspaceOccupantId,
+        workspaceOccupantType: params.workspaceOccupantType,
         cursor: params.cursor,
         limit: params.limit,
       });
@@ -256,6 +274,8 @@ export function sendMessagesFactory(sender: Sender) {
           usersSpan.setAttributes({
             userId: user.id,
             isAnonymous,
+            workspaceOccupantId: params.workspaceOccupantId,
+            workspaceOccupantType: params.workspaceOccupantType,
             workspaceId: params.workspaceId,
             broadcastId: params.broadcastId,
             templateId: broadcast.messageTemplateId,
@@ -270,12 +290,28 @@ export function sendMessagesFactory(sender: Sender) {
             acc[name] = value;
             return acc;
           }, {});
+
+          const messageId = getMessageId({
+            broadcastId: params.broadcastId,
+            userId: user.id,
+            workspaceId: params.workspaceId,
+          });
+          const messageTags: MessageTags = {
+            messageId,
+          };
+          if (params.workspaceOccupantId) {
+            messageTags.workspaceOccupantId = params.workspaceOccupantId;
+          }
+          if (params.workspaceOccupantType) {
+            messageTags.workspaceOccupantType = params.workspaceOccupantType;
+          }
           const baseParams: SendMessageParametersBase = {
             userId: user.id,
             workspaceId: params.workspaceId,
             templateId: messageTemplateId,
             useDraft: false,
             userPropertyAssignments,
+            messageTags,
           };
           let messageVariant: SendMessageParameters;
           switch (config.message.type) {
@@ -318,10 +354,11 @@ export function sendMessagesFactory(sender: Sender) {
       };
       const events: BatchTrackData[] = results.map(
         ({ userId, result, isAnonymous }) => {
-          const messageId = uuidV5(
-            `${userId}-${params.broadcastId}`,
-            params.workspaceId,
-          );
+          const messageId = getMessageId({
+            broadcastId: params.broadcastId,
+            userId,
+            workspaceId: params.workspaceId,
+          });
           let event: InternalEventType;
           let trackingProperties: TrackData["properties"];
           if (result.isErr()) {
