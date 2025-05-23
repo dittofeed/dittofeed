@@ -32,11 +32,13 @@ import {
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
+import { AuthorizeGmail } from "../authorizeGmail";
 import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
@@ -98,6 +100,7 @@ export default function Configuration({
   state: BroadcastState;
   updateState: BroadcastStateUpdater;
 }) {
+  const { gmailClientId } = useAppStorePick(["gmailClientId"]);
   const { data: broadcast } = useBroadcastQuery(state.id);
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
@@ -385,6 +388,9 @@ export default function Configuration({
           });
         }}
       />
+      {providerOverride?.id === EmailProviderType.Gmail && gmailClientId && (
+        <AuthorizeGmail gmailClientId={gmailClientId} />
+      )}
 
       <LoadingButton
         variant="outlined"

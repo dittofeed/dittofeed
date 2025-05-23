@@ -175,6 +175,7 @@ export type AppState = {
     | "enableAdditionalDashboardSettings"
     | "additionalDashboardSettingsPath"
     | "additionalDashboardSettingsTitle"
+    | "gmailClientId"
   > &
   Partial<Pick<Config, "signoutUrl">>;
 

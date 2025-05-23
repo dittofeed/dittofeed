@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export function AuthorizeGmail({ googleClientId }: { googleClientId: string }) {
+export function AuthorizeGmail({ gmailClientId }: { gmailClientId: string }) {
   const router = useRouter();
 
   const handleConnectGmailClick = () => {
@@ -38,7 +38,7 @@ export function AuthorizeGmail({ googleClientId }: { googleClientId: string }) {
     const redirectUri = `${window.location.origin}/dashboard/oauth2/callback/gmail`;
 
     const params = new URLSearchParams({
-      client_id: googleClientId,
+      client_id: gmailClientId,
       redirect_uri: redirectUri,
       response_type: "code",
       scope:
