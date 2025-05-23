@@ -449,7 +449,7 @@ export interface SendGmailEmailParams {
   to: string;
   from: string;
   subject: string;
-  bodyText: string;
+  bodyText?: string;
   bodyHtml?: string;
   replyTo?: string;
   cc?: string | string[];
