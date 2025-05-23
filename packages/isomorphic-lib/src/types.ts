@@ -5076,6 +5076,19 @@ export type BroadcastEmailMessageVariant = Static<
   typeof BroadcastEmailMessageVariant
 >;
 
+export const BaseBroadcastSmsMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+});
+
+export const BroadcastSmsMessageVariant = Type.Union([
+  Type.Composite([BaseBroadcastSmsMessageVariant, NoSmsProviderOverride]),
+  Type.Composite([BaseBroadcastSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseBroadcastSmsMessageVariant, TestSmsOverride]),
+]);
+
+export type BroadcastSmsMessageVariant = Static<
+  typeof BroadcastSmsMessageVariant
+>;
 export const BroadcastV2Config = Type.Object({
   type: Type.Literal(BroadcastConfigTypeEnum.V2),
   // messages per second
@@ -5087,7 +5100,7 @@ export const BroadcastV2Config = Type.Object({
   message: Type.Union([
     // Defined separately to allow workspace member specific providers.
     BroadcastEmailMessageVariant,
-    Type.Omit(SmsMessageVariant, ["templateId"]),
+    BroadcastSmsMessageVariant,
     Type.Omit(WebhookMessageVariant, ["templateId"]),
   ]),
 });

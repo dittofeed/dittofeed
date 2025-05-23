@@ -18,6 +18,13 @@ export function isEmailEvent(s: unknown): s is EmailEvent {
   return EmailEventSet.has(s);
 }
 
+const EmailProviderTypeSet = new Set<string>(Object.values(EmailProviderType));
+
+export function isEmailProviderType(s: unknown): s is EmailProviderType {
+  if (typeof s !== "string") return false;
+  return EmailProviderTypeSet.has(s);
+}
+
 export function emailProviderLabel(provider: EmailProviderType): string {
   switch (provider) {
     case EmailProviderType.Test:
