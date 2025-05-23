@@ -1174,8 +1174,6 @@ export async function sendEmail({
           headers,
           replyTo,
           name: emailName,
-          workspaceOccupantId: messageTags?.workspaceOccupantId,
-          workspaceOccupantType: messageTags?.workspaceOccupantType,
           provider: {
             type: EmailProviderType.AmazonSes,
           },
@@ -1271,8 +1269,6 @@ export async function sendEmail({
           bcc: unsplitBcc,
           name: emailName,
           attachments: attachmentsSent,
-          workspaceOccupantId,
-          workspaceOccupantType,
           provider: {
             type: EmailProviderType.Gmail,
             messageId: gmailResult.value.messageId,

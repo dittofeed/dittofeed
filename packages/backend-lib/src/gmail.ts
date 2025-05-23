@@ -11,6 +11,7 @@ import { WORKSPACE_OCCUPANT_SETTINGS_NAMES } from "./constants";
 import logger from "./logger";
 import { decrypt, encrypt } from "./secrets";
 import {
+  DBWorkspaceOccupantType,
   EmailGmailSuccess,
   EmailProviderType,
   GmailTokensWorkspaceMemberSetting,
@@ -31,7 +32,7 @@ async function persistGmailTokens({
 }: {
   workspaceId: string;
   workspaceOccupantId: string;
-  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
+  workspaceOccupantType: DBWorkspaceOccupantType;
   email: string;
   tokens: Credentials;
 }) {
@@ -99,14 +100,16 @@ export type GmailCallbackError =
 
 export async function handleGmailCallback({
   workspaceId,
-  workspaceMemberId,
+  workspaceOccupantId,
+  workspaceOccupantType,
   code,
   originalState,
   returnedState,
   redirectUri,
 }: {
   workspaceId: string;
-  workspaceMemberId: string;
+  workspaceOccupantId: string;
+  workspaceOccupantType: DBWorkspaceOccupantType;
   code: string;
   originalState: string;
   returnedState: string;
@@ -163,7 +166,7 @@ export async function handleGmailCallback({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
           userInfo: userInfoResponse.data,
         },
         "Failed to get valid user email from Google userinfo endpoint (email missing or not verified).",
@@ -196,7 +199,7 @@ export async function handleGmailCallback({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
           err: e,
           gaxiosErrorCode: e.code,
           gaxiosErrorData,
@@ -211,7 +214,7 @@ export async function handleGmailCallback({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
           err: e,
           originalErrorMessage: e.message,
         },
@@ -225,7 +228,7 @@ export async function handleGmailCallback({
       logger().error(
         {
           workspaceId,
-          workspaceMemberId,
+          workspaceOccupantId,
           errorObject: e,
         },
         "Unknown error object type fetching user info from Google.",
@@ -241,8 +244,8 @@ export async function handleGmailCallback({
   // Persist tokens and the fetched email
   await persistGmailTokens({
     workspaceId,
-    workspaceOccupantId: workspaceMemberId,
-    workspaceOccupantType: "WorkspaceMember",
+    workspaceOccupantId,
+    workspaceOccupantType,
     email: userEmail,
     tokens,
   });
@@ -318,7 +321,7 @@ export async function refreshGmailAccessToken({
 }: {
   workspaceId: string;
   workspaceOccupantId: string;
-  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
+  workspaceOccupantType: DBWorkspaceOccupantType;
 }): Promise<UnencryptedGmailTokens | null> {
   const tokens = await getGmailTokens({
     workspaceId,
@@ -426,7 +429,7 @@ export async function getAndRefreshGmailAccessToken({
 }: {
   workspaceId: string;
   workspaceOccupantId: string;
-  workspaceOccupantType: "WorkspaceMember" | "ChildWorkspaceOccupant";
+  workspaceOccupantType: DBWorkspaceOccupantType;
 }): Promise<UnencryptedGmailTokens | null> {
   const tokens = await getGmailTokens({
     workspaceId,

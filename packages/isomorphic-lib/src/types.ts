@@ -3537,8 +3537,6 @@ export const MessageEmailSuccess = Type.Composite([
     provider: EmailServiceProviderSuccess,
     to: Type.String(),
     headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-    workspaceOccupantId: Type.Optional(Type.String()),
-    workspaceOccupantType: Type.Optional(Type.String()),
     attachments: Type.Optional(
       Type.Array(
         Type.Object({
