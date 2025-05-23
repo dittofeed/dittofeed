@@ -27,8 +27,39 @@ function getGmailOauthState(
   return cookies.gmail_oauth_state;
 }
 
-// TODO
-function decodeGmailState() {}
+interface DecodedGmailState {
+  csrf?: string;
+  returnTo?: string;
+}
+
+// Function to decode the state parameter
+function decodeGmailState(
+  stateParam: string | undefined,
+): DecodedGmailState | null {
+  if (!stateParam) {
+    return null;
+  }
+  try {
+    // Base64Url decode
+    let base64 = stateParam.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4) {
+      base64 += "=";
+    }
+    const jsonString = atob(base64); // atob is available in Node.js via global or Buffer
+    const decoded = JSON.parse(jsonString) as DecodedGmailState;
+    // Basic validation of the decoded object structure
+    if (typeof decoded.csrf === "string") {
+      return decoded;
+    }
+    return null;
+  } catch (error) {
+    logger().error(
+      { err: error, stateParam },
+      "Error decoding Gmail OAuth state",
+    );
+    return null;
+  }
+}
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
@@ -62,24 +93,33 @@ export const getServerSideProps: GetServerSideProps = requestContext(
     switch (provider) {
       case "gmail": {
         // Get the state from the query parameters (returned by Google)
-        const { state } = ctx.query;
+        const returnedStateParam = ctx.query.state as string | undefined;
 
-        // Get the stored state from the cookie
-        const storedState = getGmailOauthState(ctx);
+        // Decode the state parameter
+        const decodedState = decodeGmailState(returnedStateParam);
+
+        // Get the stored CSRF token from the cookie
+        const storedCsrfToken = getGmailOauthState(ctx);
 
         // Validate the state parameter
-        if (!state || !storedState || state !== storedState) {
+        if (
+          !decodedState ||
+          !decodedState.csrf ||
+          !storedCsrfToken ||
+          decodedState.csrf !== storedCsrfToken
+        ) {
           logger().error(
             {
               workspaceId: dfContext.workspace.id,
               provider: "gmail",
-              state,
-              storedState,
+              returnedStateParam,
+              decodedCsrf: decodedState?.csrf,
+              storedCsrf: storedCsrfToken,
             },
-            "Invalid OAuth state - possible CSRF attack",
+            "Invalid OAuth state - possible CSRF attack or decoding issue",
           );
 
-          const { signoutUrl, dashboardUrl } = backendConfig();
+          const { signoutUrl } = backendConfig(); // Only get signoutUrl if dashboardUrl isn't needed here
           if (!signoutUrl) {
             return {
               notFound: true,
@@ -105,8 +145,8 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           workspaceOccupantId: dfContext.member.id,
           workspaceOccupantType: "WorkspaceMember",
           code,
-          originalState: storedState,
-          returnedState: state,
+          originalState: storedCsrfToken,
+          returnedState: decodedState.csrf,
           redirectUri,
         });
         if (gmailResult.isErr()) {
@@ -118,7 +158,35 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             "failed to authorize gmail",
           );
         }
-        break;
+
+        let baseRedirectPath = "/"; // Default to app's base path
+
+        // Validate and use the returnTo path from the decoded state if valid
+        if (
+          decodedState.returnTo &&
+          typeof decodedState.returnTo === "string" && // Ensure it's a string
+          decodedState.returnTo.startsWith("/") &&
+          !decodedState.returnTo.startsWith("//")
+        ) {
+          baseRedirectPath = decodedState.returnTo;
+        }
+
+        const finalUrl = new URL(baseRedirectPath, dashboardUrl); // Use dashboardUrl to make it absolute for URL object manipulation
+
+        if (gmailResult.isOk()) {
+          finalUrl.searchParams.set("gmail_connected", "true");
+        } else {
+          finalUrl.searchParams.set("gmail_error", gmailResult.error.type);
+        }
+
+        const finalRedirectPath = finalUrl.pathname + finalUrl.search;
+
+        return {
+          redirect: {
+            permanent: false,
+            destination: finalRedirectPath,
+          },
+        };
       }
       case "hubspot": {
         logger().info(

@@ -1,31 +1,39 @@
+import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export function AuthorizeGmail() {
+export function AuthorizeGmail({ googleClientId }: { googleClientId: string }) {
+  const router = useRouter();
+
   const handleConnectGmailClick = () => {
-    // 1. Generate a cryptographically random state string
-    const state = uuidv4();
+    // 1. Generate a CSRF token and get the current path for returnTo
+    const csrfToken = uuidv4();
+    const returnTo = router.asPath;
 
-    // 2. Store this state temporarily in a short-lived cookie
-    // accessible by getServerSideProps during the callback.
-    // Max-age is in seconds (e.g., 300 seconds = 5 minutes).
-    // SameSite=Lax is a good default for OAuth state cookies.
-    const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
-    document.cookie = `gmail_oauth_state=${state};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
+    // 2. Create the state object
+    const stateObject = {
+      csrf: csrfToken,
+      returnTo,
+    };
 
-    // 3. Construct the Google OAuth authorization URL
-    const googleClientId = process.env.NEXT_PUBLIC_GMAIL_CLIENT_ID;
-
-    if (!googleClientId) {
-      console.error(
-        "Google Client ID is not configured. Please set NEXT_PUBLIC_GMAIL_CLIENT_ID.",
-      );
-      // Optionally, show an error to the user in the UI
-      alert(
-        "Gmail integration is not configured correctly. Please contact support.",
-      );
+    // 3. JSON.stringify and Base64Url encode the state object
+    //    Using btoa for Base64 encoding (works in browser) and making it URL-safe.
+    let stateParam;
+    try {
+      const jsonString = JSON.stringify(stateObject);
+      stateParam = btoa(jsonString)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    } catch (error) {
+      console.error("Error encoding state object:", error);
+      alert("An error occurred preparing your request. Please try again.");
       return;
     }
+
+    // 4. Store only the CSRF token in a short-lived cookie
+    const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
+    document.cookie = `gmail_oauth_state=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
     const redirectUri = `${window.location.origin}/dashboard/oauth2/callback/gmail`;
 
@@ -35,7 +43,7 @@ export function AuthorizeGmail() {
       response_type: "code",
       scope:
         "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
-      state,
+      state: stateParam,
       access_type: "offline", // Important to get a refresh token
       prompt: "consent", // Optional: forces the consent screen every time, good for testing
       // or if you want users to re-confirm scopes. Can be removed for production.
@@ -43,7 +51,7 @@ export function AuthorizeGmail() {
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-    // 4. Redirect the user's browser to this Google URL
+    // 6. Redirect the user's browser to this Google URL
     window.location.href = googleAuthUrl;
   };
 
