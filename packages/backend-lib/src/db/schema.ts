@@ -58,6 +58,10 @@ export const dbSubscriptionGroupType = pgEnum("DBSubscriptionGroupType", [
   "OptIn",
   "OptOut",
 ]);
+export const DBWorkspaceOccupantType = pgEnum("DBWorkspaceOccupantType", [
+  "WorkspaceMember",
+  "ChildWorkspaceOccupant",
+]);
 export const journeyStatus = pgEnum("JourneyStatus", [
   "NotStarted",
   "Running",
@@ -1032,12 +1036,13 @@ export const componentConfiguration = pgTable(
   ],
 );
 
-export const workspaceMemberSetting = pgTable(
-  "WorkspaceMemberSetting",
+export const workspaceOccupantSetting = pgTable(
+  "WorkspaceOccupantSetting",
   {
     workspaceId: uuid().notNull(),
     name: text().notNull(),
-    workspaceMemberId: uuid().notNull(),
+    workspaceOccupantId: text().notNull(),
+    occupantType: DBWorkspaceOccupantType().notNull(),
     config: jsonb(),
     secretId: uuid(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
@@ -1048,13 +1053,13 @@ export const workspaceMemberSetting = pgTable(
   },
   (table) => [
     uniqueIndex(
-      "WorkspaceMemberSetting_workspaceId_workspaceMemberId_key",
+      "WorkspaceOccupantSetting_workspaceId_workspaceOccupantId_key",
     ).using(
       "btree",
       table.workspaceId.asc().nullsLast().op("uuid_ops"),
-      table.workspaceMemberId.asc().nullsLast().op("uuid_ops"),
+      table.workspaceOccupantId.asc().nullsLast().op("text_ops"),
     ),
-    uniqueIndex("WorkspaceMemberSetting_workspaceId_name_key").using(
+    uniqueIndex("WorkspaceOccupantSetting_workspaceId_name_key").using(
       "btree",
       table.workspaceId.asc().nullsLast().op("uuid_ops"),
       table.name.asc().nullsLast().op("text_ops"),
@@ -1062,21 +1067,14 @@ export const workspaceMemberSetting = pgTable(
     foreignKey({
       columns: [table.workspaceId],
       foreignColumns: [workspace.id],
-      name: "WorkspaceMemberSetting_workspaceId_fkey",
-    })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
-    foreignKey({
-      columns: [table.workspaceMemberId],
-      foreignColumns: [workspaceMember.id],
-      name: "WorkspaceMemberSetting_workspaceMemberId_fkey",
+      name: "WorkspaceOccupantSetting_workspaceId_fkey",
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
     foreignKey({
       columns: [table.secretId],
       foreignColumns: [secret.id],
-      name: "WorkspaceMemberSetting_secretId_fkey",
+      name: "WorkspaceOccupantSetting_secretId_fkey",
     })
       .onUpdate("cascade")
       .onDelete("set null"),
