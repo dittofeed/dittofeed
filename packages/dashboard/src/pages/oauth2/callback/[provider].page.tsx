@@ -13,9 +13,18 @@ import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hu
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import logger from "backend-lib/src/logger";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, GetServerSidePropsContext } from "next";
 
 import { requestContext } from "../../../lib/requestContext";
+
+// pull out gmail_oauth_state value from request context
+function getGmailOauthState(
+  ctx: GetServerSidePropsContext,
+): string | undefined {
+  // Get cookies from the request
+  const cookies = ctx.req.cookies ?? {};
+  return cookies.gmail_oauth_state;
+}
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
@@ -47,6 +56,42 @@ export const getServerSideProps: GetServerSideProps = requestContext(
     };
 
     switch (provider) {
+      case "gmail": {
+        // Get the state from the query parameters (returned by Google)
+        const { state } = ctx.query;
+
+        // Get the stored state from the cookie
+        const storedState = getGmailOauthState(ctx);
+
+        // Validate the state parameter
+        if (!state || !storedState || state !== storedState) {
+          logger().error(
+            {
+              workspaceId: dfContext.workspace.id,
+              provider: "gmail",
+              state,
+              storedState,
+            },
+            "Invalid OAuth state - possible CSRF attack",
+          );
+
+          const { signoutUrl } = backendConfig();
+          return {
+            redirect: {
+              permanent: false,
+              destination: signoutUrl,
+            },
+          };
+        }
+
+        logger().info(
+          {
+            workspaceId: dfContext.workspace.id,
+          },
+          "handling gmail callback - state validated",
+        );
+        break;
+      }
       case "hubspot": {
         logger().info(
           {
