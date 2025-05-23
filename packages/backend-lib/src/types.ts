@@ -46,6 +46,7 @@ import {
   workspace as dbWorkspace,
   workspaceMember as dbWorkspaceMember,
   workspaceMemberRole as dbWorkspaceMemberRole,
+  DBWorkspaceOccupantType,
   workspaceType as dbWorkspaceType,
   writeKey as dbWriteKey,
 } from "./db/schema";
@@ -118,6 +119,9 @@ export type UserJourneyEvent = InferSelectModel<typeof dbUserJourneyEvent>;
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
+
+export type DBWorkspaceOccupantType =
+  (typeof DBWorkspaceOccupantType.enumValues)[number];
 
 export interface EnrichedJourney extends Omit<Journey, "definition" | "draft"> {
   definition?: JourneyDefinition;
