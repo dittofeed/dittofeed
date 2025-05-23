@@ -26,7 +26,7 @@ import {
   workspaceMembeAccount,
   workspaceMember,
   workspaceMemberRole,
-  workspaceMemberSetting,
+  workspaceOccupantSetting,
   workspaceRelation,
   writeKey,
 } from "./schema";
@@ -72,7 +72,7 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
     relationName: "workspaceRelation_childWorkspaceId_workspace_id",
   }),
   componentConfigurations: many(componentConfiguration),
-  workspaceMemberSettings: many(workspaceMemberSetting),
+  workspaceOccupantSettings: many(workspaceOccupantSetting),
 }));
 
 export const userPropertyRelations = relations(
@@ -124,7 +124,7 @@ export const secretRelations = relations(secret, ({ one, many }) => ({
   writeKeys: many(writeKey),
   smsProviders: many(smsProvider),
   adminApiKeys: many(adminApiKey),
-  workspaceMemberSettings: many(workspaceMemberSetting),
+  workspaceOccupantSettings: many(workspaceOccupantSetting),
 }));
 
 export const emailTemplateRelations = relations(emailTemplate, ({ one }) => ({
@@ -247,7 +247,6 @@ export const workspaceMemberRelations = relations(
       fields: [workspaceMember.lastWorkspaceId],
       references: [workspace.id],
     }),
-    workspaceMemberSettings: many(workspaceMemberSetting),
   }),
 );
 
@@ -356,19 +355,15 @@ export const workspaceRelationRelations = relations(
   }),
 );
 
-export const workspaceMemberSettingRelations = relations(
-  workspaceMemberSetting,
+export const workspaceOccupantSettingRelations = relations(
+  workspaceOccupantSetting,
   ({ one }) => ({
     workspace: one(workspace, {
-      fields: [workspaceMemberSetting.workspaceId],
+      fields: [workspaceOccupantSetting.workspaceId],
       references: [workspace.id],
     }),
-    workspaceMember: one(workspaceMember, {
-      fields: [workspaceMemberSetting.workspaceMemberId],
-      references: [workspaceMember.id],
-    }),
     secret: one(secret, {
-      fields: [workspaceMemberSetting.secretId],
+      fields: [workspaceOccupantSetting.secretId],
       references: [secret.id],
     }),
   }),
