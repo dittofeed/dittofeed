@@ -27,6 +27,9 @@ function getGmailOauthState(
   return cookies.gmail_oauth_state;
 }
 
+// TODO
+function decodeGmailState() {}
+
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
     const { code, provider } = ctx.query;
