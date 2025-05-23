@@ -5359,6 +5359,7 @@ export type WorkspaceMemberSettingType = Static<
 
 export const GmailTokensWorkspaceMemberSetting = Type.Object({
   type: Type.Literal(WorkspaceMemberSettingTypeEnum.GmailTokens),
+  email: Type.String(),
   accessToken: Type.Optional(Type.String()),
   accessTokenIv: Type.Optional(Type.String()),
   accessTokenAuthTag: Type.Optional(Type.String()),
