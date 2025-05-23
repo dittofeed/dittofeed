@@ -76,7 +76,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             "Invalid OAuth state - possible CSRF attack",
           );
 
-          const { signoutUrl } = backendConfig();
+          const { signoutUrl, dashboardUrl } = backendConfig();
           if (!signoutUrl) {
             return {
               notFound: true,
@@ -96,6 +96,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           },
           "handling gmail callback - state validated",
         );
+        const redirectUri = `${dashboardUrl}/dashboard/oauth2/callback/gmail`;
         const gmailResult = await handleGmailCallback({
           workspaceId: dfContext.workspace.id,
           workspaceOccupantId: dfContext.member.id,
@@ -103,7 +104,17 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           code,
           originalState: storedState,
           returnedState: state,
+          redirectUri,
         });
+        if (gmailResult.isErr()) {
+          logger().error(
+            {
+              err: gmailResult.error,
+              workspaceId: dfContext.workspace.id,
+            },
+            "failed to authorize gmail",
+          );
+        }
         break;
       }
       case "hubspot": {
