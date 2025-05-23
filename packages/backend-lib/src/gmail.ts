@@ -7,6 +7,7 @@ import MailComposer from "nodemailer/lib/mail-composer";
 import Mail from "nodemailer/lib/mailer";
 
 import config from "./config";
+import { WORKSPACE_OCCUPANT_SETTINGS_NAMES } from "./constants";
 import logger from "./logger";
 import { decrypt, encrypt } from "./secrets";
 import {
@@ -20,7 +21,6 @@ import {
   getSecretWorkspaceSettingsResource,
   writeSecretWorkspaceOccupantSettings,
 } from "./workspaceOccupantSettings";
-import { WORKSPACE_OCCUPANT_SETTINGS_NAMES } from "./constants";
 
 async function persistGmailTokens({
   workspaceId,
@@ -63,6 +63,7 @@ async function persistGmailTokens({
 export const GmailCallbackErrorEnum = {
   StateMismatchError: "StateMismatchError",
   TokenExchangeError: "TokenExchangeError",
+  UserInfoError: "UserInfoError",
 } as const;
 
 export type GmailCallbackErrorType =
@@ -84,9 +85,17 @@ export interface GmailTokenExchangeError {
   data?: GoogleOAuthErrorData;
 }
 
+export interface GmailUserInfoError {
+  type: typeof GmailCallbackErrorEnum.UserInfoError;
+  message: string;
+  gaxiosErrorCode?: string | number | null;
+  gaxiosErrorData?: GoogleOAuthErrorData;
+}
+
 export type GmailCallbackError =
   | GmailStateMismatchError
-  | GmailTokenExchangeError;
+  | GmailTokenExchangeError
+  | GmailUserInfoError;
 
 export async function handleGmailCallback({
   workspaceId,
@@ -135,13 +144,106 @@ export async function handleGmailCallback({
       data,
     } satisfies GmailTokenExchangeError);
   }
-  // TODO: get email from Google API
-  let email = "";
+
+  // Fetch user info using the obtained tokens
+  let userEmail: string;
+  try {
+    // oauth2Client now has credentials (access token) set from the getToken call
+    const oauth2Api = google.oauth2({
+      auth: oauth2Client, // Use the authenticated client
+      version: "v2",
+    });
+
+    const userInfoResponse = await oauth2Api.userinfo.get();
+
+    if (
+      !userInfoResponse.data.email ||
+      userInfoResponse.data.verified_email === false
+    ) {
+      logger().error(
+        {
+          workspaceId,
+          workspaceMemberId,
+          userInfo: userInfoResponse.data,
+        },
+        "Failed to get valid user email from Google userinfo endpoint (email missing or not verified).",
+      );
+      return err({
+        type: GmailCallbackErrorEnum.UserInfoError,
+        message: "User email not found or not verified.",
+        // Include details from userInfoResponse.data if relevant for debugging
+        gaxiosErrorData:
+          userInfoResponse.data as unknown as GoogleOAuthErrorData,
+      });
+    }
+    userEmail = userInfoResponse.data.email;
+  } catch (e) {
+    let errorDetails: Pick<
+      GmailUserInfoError,
+      "gaxiosErrorCode" | "gaxiosErrorData"
+    > = {};
+    let errorMessage = "Failed to fetch user information from Google.";
+
+    if (e instanceof GaxiosError) {
+      const gaxiosErrorData = e.response?.data as
+        | GoogleOAuthErrorData
+        | undefined;
+      errorDetails = {
+        gaxiosErrorCode: e.code,
+        gaxiosErrorData,
+      };
+      errorMessage = `Failed to fetch user info from Google: ${gaxiosErrorData?.error_description ?? gaxiosErrorData?.error ?? e.message}`;
+      logger().error(
+        {
+          workspaceId,
+          workspaceMemberId,
+          err: e,
+          gaxiosErrorCode: e.code,
+          gaxiosErrorData,
+          originalErrorMessage: e.message,
+          googleApiErrorCode: gaxiosErrorData?.error,
+          googleApiErrorDescription: gaxiosErrorData?.error_description,
+        },
+        "GaxiosError fetching user info from Google.",
+      );
+    } else if (e instanceof Error) {
+      errorMessage = `Unknown error fetching user info from Google: ${e.message}`;
+      logger().error(
+        {
+          workspaceId,
+          workspaceMemberId,
+          err: e,
+          originalErrorMessage: e.message,
+        },
+        "Error fetching user info from Google.",
+      );
+      // For non-Gaxios errors, decide if you want to rethrow or wrap
+      // For now, wrapping as UserInfoError
+    } else {
+      // Handle non-Error objects thrown
+      errorMessage = "Unknown error object fetching user info from Google.";
+      logger().error(
+        {
+          workspaceId,
+          workspaceMemberId,
+          errorObject: e,
+        },
+        "Unknown error object type fetching user info from Google.",
+      );
+    }
+    return err({
+      type: GmailCallbackErrorEnum.UserInfoError,
+      message: errorMessage,
+      ...errorDetails,
+    });
+  }
+
+  // Persist tokens and the fetched email
   await persistGmailTokens({
     workspaceId,
     workspaceOccupantId: workspaceMemberId,
     workspaceOccupantType: "WorkspaceMember",
-    email,
+    email: userEmail,
     tokens,
   });
   return ok(undefined);
