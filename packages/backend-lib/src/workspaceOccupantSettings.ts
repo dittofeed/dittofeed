@@ -18,7 +18,7 @@ function getSecretName(settingName: string) {
   return `workspace-occupant-setting-${settingName}`;
 }
 
-export async function writeSecretWorkspaceMemberSettings<
+export async function writeSecretWorkspaceOccupantSettings<
   T extends WorkspaceMemberSetting,
 >({
   workspaceId,
@@ -62,7 +62,7 @@ export async function writeSecretWorkspaceMemberSettings<
   });
 }
 
-export async function updateSecretWorkspaceMemberSettings<
+export async function updateSecretWorkspaceOccupantSettings<
   S extends WorkspaceMemberSettingSchema,
 >({
   workspaceId,
