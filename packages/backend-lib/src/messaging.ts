@@ -51,6 +51,11 @@ import {
   sendSms as sendSmsTwilio,
   TwilioAuth,
 } from "./destinations/twilio";
+import {
+  getAndRefreshGmailAccessToken,
+  sendGmailEmail,
+  SendGmailEmailParams,
+} from "./gmail";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
 import {
@@ -1178,15 +1183,100 @@ export async function sendEmail({
     }
 
     case EmailProviderType.Gmail: {
-      // const gmailAttachments: GmailRequiredFields["attachments"] =
-      //   attachments?.map((attachment) => ({
-      //     filename: attachment.name,
-      //     content: attachment.data,
-      //     contentType: attachment.mimeType,
-      //   }));
+      const workspaceOccupantId = messageTags?.workspaceOccupantId;
+      const workspaceOccupantType = messageTags?.workspaceOccupantType;
 
-      // const fromWithName = emailName ? `${emailName} <${from}>` : from;
-      throw new Error("Not implemented");
+      if (!workspaceOccupantId || !workspaceOccupantType) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message:
+              "missing workspaceOccupantId or workspaceOccupantType in message tags",
+          },
+        });
+      }
+
+      if (
+        workspaceOccupantType !== "WorkspaceMember" &&
+        workspaceOccupantType !== "ChildWorkspaceOccupant"
+      ) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `invalid workspaceOccupantType in message tags: ${workspaceOccupantType}`,
+          },
+        });
+      }
+
+      const accessToken = await getAndRefreshGmailAccessToken({
+        workspaceId,
+        workspaceOccupantId,
+        workspaceOccupantType,
+      });
+      if (!accessToken) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: "Failed to get or refresh Gmail access token",
+          },
+        });
+      }
+
+      const gmailAttachments: SendGmailEmailParams["attachments"] =
+        attachments?.map((attachment) => ({
+          filename: attachment.name,
+          content: attachment.data,
+          contentType: attachment.mimeType,
+        }));
+
+      const gmailResult = await sendGmailEmail({
+        accessToken: accessToken.accessToken,
+        params: {
+          to,
+          from,
+          subject,
+          bodyHtml: body,
+          replyTo,
+          cc,
+          bcc,
+          headers,
+          attachments: gmailAttachments,
+        },
+      });
+
+      if (gmailResult.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: gmailResult.error,
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          headers,
+          replyTo,
+          cc: unsplitCc,
+          bcc: unsplitBcc,
+          name: emailName,
+          attachments: attachmentsSent,
+          provider: {
+            type: EmailProviderType.Gmail,
+            messageId: gmailResult.value.messageId,
+            threadId: gmailResult.value.threadId,
+          },
+        },
+      });
     }
 
     case EmailProviderType.Resend: {
