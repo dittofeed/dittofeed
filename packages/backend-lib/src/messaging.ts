@@ -1270,6 +1270,8 @@ export async function sendEmail({
           bcc: unsplitBcc,
           name: emailName,
           attachments: attachmentsSent,
+          workspaceOccupantId,
+          workspaceOccupantType,
           provider: {
             type: EmailProviderType.Gmail,
             messageId: gmailResult.value.messageId,
