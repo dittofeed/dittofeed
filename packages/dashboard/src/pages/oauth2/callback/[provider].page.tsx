@@ -8,6 +8,7 @@ import {
 } from "backend-lib/src/constants";
 import { insert, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { handleGmailCallback } from "backend-lib/src/gmail";
 import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
@@ -76,6 +77,11 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           );
 
           const { signoutUrl } = backendConfig();
+          if (!signoutUrl) {
+            return {
+              notFound: true,
+            };
+          }
           return {
             redirect: {
               permanent: false,
@@ -90,6 +96,14 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           },
           "handling gmail callback - state validated",
         );
+        const gmailResult = await handleGmailCallback({
+          workspaceId: dfContext.workspace.id,
+          workspaceOccupantId: dfContext.member.id,
+          workspaceOccupantType: "WorkspaceMember",
+          code,
+          originalState: storedState,
+          returnedState: state,
+        });
         break;
       }
       case "hubspot": {

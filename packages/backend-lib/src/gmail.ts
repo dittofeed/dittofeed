@@ -105,7 +105,6 @@ export async function handleGmailCallback({
   code,
   originalState,
   returnedState,
-  redirectUri,
 }: {
   workspaceId: string;
   workspaceOccupantId: string;
@@ -113,7 +112,6 @@ export async function handleGmailCallback({
   code: string;
   originalState: string;
   returnedState: string;
-  redirectUri: string;
 }): Promise<Result<void, GmailCallbackError>> {
   if (originalState !== returnedState) {
     return err({
@@ -125,11 +123,7 @@ export async function handleGmailCallback({
     throw new Error("Gmail client ID and secret are not set");
   }
 
-  const oauth2Client = new OAuth2Client(
-    gmailClientId,
-    gmailClientSecret,
-    redirectUri,
-  );
+  const oauth2Client = new OAuth2Client(gmailClientId, gmailClientSecret);
 
   let tokens: Credentials;
   try {
