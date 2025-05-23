@@ -1177,6 +1177,18 @@ export async function sendEmail({
       });
     }
 
+    case EmailProviderType.Gmail: {
+      // const gmailAttachments: GmailRequiredFields["attachments"] =
+      //   attachments?.map((attachment) => ({
+      //     filename: attachment.name,
+      //     content: attachment.data,
+      //     contentType: attachment.mimeType,
+      //   }));
+
+      // const fromWithName = emailName ? `${emailName} <${from}>` : from;
+      throw new Error("Not implemented");
+    }
+
     case EmailProviderType.Resend: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (secretConfig.type !== EmailProviderType.Resend) {

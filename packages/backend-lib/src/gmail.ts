@@ -28,6 +28,7 @@ async function persistGmailTokens({
 }: {
   workspaceId: string;
   workspaceMemberId: string;
+  email: string;
   tokens: Credentials;
 }) {
   const encryptedAccessToken = tokens.access_token
@@ -38,6 +39,7 @@ async function persistGmailTokens({
     : undefined;
   const gmailConfig: GmailTokensWorkspaceMemberSetting = {
     type: "GmailTokens",
+    email,
     accessToken: encryptedAccessToken?.encryptedData ?? undefined,
     accessTokenIv: encryptedAccessToken?.iv ?? undefined,
     accessTokenAuthTag: encryptedAccessToken?.authTag ?? undefined,
