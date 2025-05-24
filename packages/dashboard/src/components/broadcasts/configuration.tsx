@@ -117,14 +117,14 @@ export default function Configuration({
     switch (channel) {
       case ChannelType.Email:
         return [
-          { id: EmailProviderType.Gmail, label: "Gmail" },
+          { id: EmailProviderType.Test, label: "Test" },
           { id: EmailProviderType.Sendgrid, label: "SendGrid" },
           { id: EmailProviderType.AmazonSes, label: "Amazon SES" },
           { id: EmailProviderType.Smtp, label: "SMTP" },
           { id: EmailProviderType.Resend, label: "Resend" },
           { id: EmailProviderType.PostMark, label: "PostMark" },
           { id: EmailProviderType.MailChimp, label: "MailChimp" },
-          { id: EmailProviderType.Test, label: "Test" },
+          { id: EmailProviderType.Gmail, label: "Gmail" },
         ];
       case ChannelType.Sms:
         return [

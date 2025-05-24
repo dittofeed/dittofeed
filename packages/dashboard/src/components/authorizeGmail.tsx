@@ -1,3 +1,5 @@
+import CheckIcon from "@mui/icons-material/Check";
+import { Box, Button, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -69,11 +71,9 @@ export function AuthorizeGmail({
   };
 
   // Determine button color based on state
-  let buttonColor = "#4285F4"; // Google blue by default
+  let buttonColor: "primary" | "success" | "inherit" = "primary";
   if (isAuthorized) {
-    buttonColor = "#34A853"; // Green for authorized
-  } else if (isLoading) {
-    buttonColor = "#ccc"; // Gray for loading
+    buttonColor = "success";
   }
 
   // Determine button text based on state
@@ -83,46 +83,56 @@ export function AuthorizeGmail({
   } else if (isAuthorized) {
     buttonText = (
       <>
-        <span style={{ marginRight: "8px" }}>✓</span>
+        <CheckIcon sx={{ mr: 1, fontSize: 20 }} />
         Gmail Connected
       </>
     );
   }
 
   return (
-    <div>
-      <button
-        type="button"
+    <Box>
+      <Button
+        variant="contained"
+        color={buttonColor}
         onClick={handleConnectGmailClick}
         disabled={isLoading || isAuthorized || disabled}
-        style={{
-          padding: "10px 15px",
+        sx={{
+          textTransform: "none",
           fontSize: "16px",
-          cursor:
-            isLoading || isAuthorized || disabled ? "not-allowed" : "pointer",
-          backgroundColor: buttonColor,
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-          opacity: isLoading || isAuthorized || disabled ? 0.8 : 1,
-          transition: "background-color 0.3s ease",
+          py: 1.25,
+          px: 2,
+          boxShadow: 2,
+          "&.Mui-disabled": {
+            backgroundColor: isAuthorized ? "success.main" : undefined,
+            color: isAuthorized ? "white" : undefined,
+            opacity: isAuthorized ? 0.9 : undefined,
+          },
         }}
       >
         {buttonText}
-      </button>
-      <p style={{ marginTop: "10px", fontSize: "12px", color: "#555" }}>
+      </Button>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mt: 1.25, display: "block" }}
+      >
         {isAuthorized ? (
           <>
-            <span style={{ color: "#34A853", fontWeight: "bold" }}>
-              ✓ Connected
-            </span>
+            <Box
+              component="span"
+              sx={{ color: "success.main", fontWeight: "bold" }}
+            >
+              <CheckIcon
+                sx={{ fontSize: 14, verticalAlign: "middle", mr: 0.5 }}
+              />
+              Connected
+            </Box>
             {" - Your Gmail account is authorized to send emails."}
           </>
         ) : (
           "You will be redirected to Google to authorize access to send emails on your behalf."
         )}
-      </p>
-    </div>
+      </Typography>
+    </Box>
   );
 }
