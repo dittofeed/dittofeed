@@ -638,6 +638,14 @@ async function getEmailProvider({
           workspaceOccupantType,
         });
         if (!gmailCredentials) {
+          logger().info(
+            {
+              workspaceId,
+              workspaceOccupantId,
+              workspaceOccupantType,
+            },
+            "gmail credentials not found",
+          );
           return err(PROVIDER_NOT_FOUND_ERROR);
         }
         emailProviderSecret = {
@@ -658,6 +666,13 @@ async function getEmailProvider({
       providerOverride,
     });
     if (!secret) {
+      logger().info(
+        {
+          workspaceId,
+          providerOverride,
+        },
+        "email provider not found for workspace",
+      );
       return err(PROVIDER_NOT_FOUND_ERROR);
     }
 

@@ -3,6 +3,7 @@ import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import config from "../config";
 import logger from "../logger";
 import connectWorkflowClient from "../temporal/connectWorkflowClient";
+import { DBWorkspaceOccupantType } from "../types";
 import {
   broadcastWorkflowV2,
   generateBroadcastWorkflowV2Id,
@@ -55,9 +56,13 @@ export async function startRecomputeBroadcastSegmentWorkflow({
 export async function startBroadcastWorkflow({
   workspaceId,
   broadcastId,
+  workspaceOccupantId,
+  workspaceOccupantType,
 }: {
   workspaceId: string;
   broadcastId: string;
+  workspaceOccupantId?: string;
+  workspaceOccupantType?: DBWorkspaceOccupantType;
 }) {
   const client = await connectWorkflowClient();
   try {
@@ -65,6 +70,8 @@ export async function startBroadcastWorkflow({
       {
         workspaceId,
         broadcastId,
+        workspaceOccupantId,
+        workspaceOccupantType,
       },
       "Starting broadcast workflow",
     );
@@ -77,6 +84,8 @@ export async function startBroadcastWorkflow({
         {
           workspaceId,
           broadcastId,
+          workspaceOccupantId,
+          workspaceOccupantType,
         },
       ],
       taskQueue: config().computedPropertiesTaskQueue,

@@ -18,6 +18,7 @@ import {
   BroadcastResourceV2,
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
+  OpenIdProfile,
   RecomputeBroadcastSegmentRequest,
   StartBroadcastRequest,
   TriggerBroadcastRequest,
@@ -177,9 +178,12 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, broadcastId } = request.body;
+      const { user } = request as { user?: OpenIdProfile };
       await startBroadcastWorkflow({
         workspaceId,
         broadcastId,
+        workspaceOccupantId: user?.sub,
+        workspaceOccupantType: "WorkspaceMember",
       });
       return reply.status(200).send({ message: "Broadcast started" });
     },

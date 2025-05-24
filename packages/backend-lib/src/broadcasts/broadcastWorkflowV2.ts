@@ -58,6 +58,8 @@ export interface BroadcastWorkflowV2Params {
 export async function broadcastWorkflowV2({
   workspaceId,
   broadcastId,
+  workspaceOccupantId,
+  workspaceOccupantType,
 }: BroadcastWorkflowV2Params): Promise<void> {
   const broadcast = await getBroadcast({ workspaceId, broadcastId });
   if (!broadcast) {
@@ -179,6 +181,8 @@ export async function broadcastWorkflowV2({
           limit: batchSize,
           cursor: cursor ?? undefined,
           now: activityStartTime,
+          workspaceOccupantId,
+          workspaceOccupantType,
         });
 
       const activityEndTime = Date.now();
