@@ -78,18 +78,6 @@ export const getServerSideProps: GetServerSideProps = requestContext(
     const { dashboardUrl, hubspotClientSecret, hubspotClientId } =
       backendConfig();
 
-    if (!hubspotClientSecret) {
-      throw new Error("missing hubspotClientSecret");
-    }
-
-    const formData = {
-      grant_type: "authorization_code",
-      client_id: hubspotClientId,
-      client_secret: hubspotClientSecret,
-      redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
-      code,
-    };
-
     switch (provider) {
       case "gmail": {
         // Get the state from the query parameters (returned by Google)
@@ -194,6 +182,19 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           },
           "handling hubspot callback",
         );
+
+        if (!hubspotClientSecret) {
+          throw new Error("missing hubspotClientSecret");
+        }
+
+        const formData = {
+          grant_type: "authorization_code",
+          client_id: hubspotClientId,
+          client_secret: hubspotClientSecret,
+          redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
+          code,
+        };
+
         const [tokenResponse, integration] = await Promise.all([
           axios({
             method: "post",

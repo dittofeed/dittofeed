@@ -6,6 +6,7 @@ import { and, eq, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
+import { isWorkspaceWideProvider } from "isomorphic-lib/src/email";
 import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
@@ -545,6 +546,9 @@ async function getEmailProviderForWorkspace({
   providerOverride?: EmailProviderType;
 }): Promise<EmailProviderPayload> {
   if (providerOverride) {
+    if (!isWorkspaceWideProvider(providerOverride)) {
+      return null;
+    }
     const provider = await db().query.emailProvider.findFirst({
       where: and(
         eq(dbEmailProvider.workspaceId, workspaceId),
@@ -630,7 +634,12 @@ export async function sendEmail({
   const { messageTemplateDefinition, subscriptionGroupSecret } =
     getSendModelsResult.value;
 
-  if (!emailProvider) {
+  if (
+    !emailProvider &&
+    // Allow non-workspace-wide provider overrides to be used even when no
+    // workspace-wide provider is configured
+    (!providerOverride || isWorkspaceWideProvider(providerOverride))
+  ) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -805,7 +814,7 @@ export async function sendEmail({
     ...unsubscribeHeaders,
   };
 
-  const unvalidatedSecretConfig = emailProvider.secret?.configValue;
+  const unvalidatedSecretConfig = emailProvider?.secret?.configValue;
 
   if (!unvalidatedSecretConfig) {
     return err({

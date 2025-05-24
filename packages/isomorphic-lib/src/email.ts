@@ -9,6 +9,7 @@ import {
   EmailEventList,
   EmailProviderType,
   EmailTemplateResource,
+  WorkspaceWideProviders,
 } from "./types";
 
 export const EmailEventSet = new Set<string>(EmailEventList);
@@ -23,6 +24,16 @@ const EmailProviderTypeSet = new Set<string>(Object.values(EmailProviderType));
 export function isEmailProviderType(s: unknown): s is EmailProviderType {
   if (typeof s !== "string") return false;
   return EmailProviderTypeSet.has(s);
+}
+
+const WorkspaceWideProviderSet = new Set<string>(
+  WorkspaceWideProviders.anyOf.map((v) => v.const),
+);
+
+export function isWorkspaceWideProvider(
+  provider: EmailProviderType,
+): provider is WorkspaceWideProviders {
+  return WorkspaceWideProviderSet.has(provider);
 }
 
 export function emailProviderLabel(provider: EmailProviderType): string {

@@ -135,6 +135,7 @@ export async function handleGmailCallback({
   try {
     const response = await oauth2Client.getToken(code);
     tokens = response.tokens;
+    oauth2Client.setCredentials(tokens);
   } catch (e) {
     if (!(e instanceof GaxiosError)) {
       throw e;

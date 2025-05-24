@@ -419,6 +419,7 @@ export default function Configuration({
         }}
       >
         {scheduledStatus === "scheduled" ? "Schedule" : "Start"} Broadcast
+        {/* // FIXME dont allow to start until gmail is authed  */}
       </LoadingButton>
     </Stack>
   );
