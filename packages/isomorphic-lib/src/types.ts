@@ -3731,6 +3731,7 @@ export type SendGmailFailureType = Static<typeof SendGmailFailureType>;
 // --- TypeBox Schemas for Failure Reasons ---
 // Individual error type schemas
 export const GmailSendConfigurationError = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
   errorType: Type.Literal(SendGmailFailureTypeEnum.ConfigurationError),
   message: Type.String(),
   details: Type.Optional(Type.Unknown()),
@@ -3741,6 +3742,7 @@ export type GmailSendConfigurationError = Static<
 >;
 
 export const GmailSendConstructionError = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
   errorType: Type.Literal(SendGmailFailureTypeEnum.ConstructionError),
   message: Type.String(),
   details: Type.Optional(Type.Unknown()),
@@ -3751,6 +3753,7 @@ export type GmailSendConstructionError = Static<
 >;
 
 export const GmailSendNonRetryableError = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
   errorType: Type.Literal(SendGmailFailureTypeEnum.NonRetryableGoogleError),
   message: Type.String(),
   statusCode: Type.Optional(
@@ -3768,6 +3771,7 @@ export type GmailSendNonRetryableError = Static<
 >;
 
 export const GmailSendUnknownError = Type.Object({
+  type: Type.Literal(EmailProviderType.Gmail),
   errorType: Type.Literal(SendGmailFailureTypeEnum.UnknownError),
   message: Type.String(),
   details: Type.Optional(Type.Unknown()),
@@ -4258,6 +4262,11 @@ export const EmailProviderSecret = Type.Union([
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
 
+export const WorkspaceWideEmailProviderSecret = Type.Exclude(
+  EmailProviderSecret,
+  GmailSecret,
+);
+
 export const DeleteUsersRequest = Type.Object({
   workspaceId: Type.String(),
   userIds: Type.Array(UserId),
@@ -4645,7 +4654,7 @@ export type WorkspaceIdentifier = Static<typeof WorkspaceIdentifier>;
 export const UpsertEmailProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
-  config: EmailProviderSecret,
+  config: WorkspaceWideEmailProviderSecret,
 });
 
 export type UpsertEmailProviderRequest = Static<

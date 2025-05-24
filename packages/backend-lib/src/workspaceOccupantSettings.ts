@@ -157,7 +157,7 @@ export async function getSecretWorkspaceSettingsResource({
 }
 
 export function isWorkspaceOccupantType(
-  type: string,
+  type?: string,
 ): type is DBWorkspaceOccupantType {
   return type === "WorkspaceMember" || type === "ChildWorkspaceOccupant";
 }
