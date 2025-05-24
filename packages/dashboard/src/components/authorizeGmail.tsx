@@ -2,10 +2,23 @@ import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export function AuthorizeGmail({ gmailClientId }: { gmailClientId: string }) {
+import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
+
+export function AuthorizeGmail({
+  gmailClientId,
+  disabled,
+}: {
+  gmailClientId: string;
+  disabled?: boolean;
+}) {
   const router = useRouter();
+  const { data, isLoading } = useGmailAuthorizationQuery();
+  const isAuthorized = data?.authorized ?? false;
 
   const handleConnectGmailClick = () => {
+    // Don't proceed if already authorized or externally disabled
+    if (isAuthorized || disabled) return;
+
     // 1. Generate a CSRF token and get the current path for returnTo
     const csrfToken = uuidv4();
     const returnTo = router.asPath;
@@ -55,27 +68,60 @@ export function AuthorizeGmail({ gmailClientId }: { gmailClientId: string }) {
     window.location.href = googleAuthUrl;
   };
 
+  // Determine button color based on state
+  let buttonColor = "#4285F4"; // Google blue by default
+  if (isAuthorized) {
+    buttonColor = "#34A853"; // Green for authorized
+  } else if (isLoading) {
+    buttonColor = "#ccc"; // Gray for loading
+  }
+
+  // Determine button text based on state
+  let buttonText: React.ReactNode = "Connect Gmail Account";
+  if (isLoading) {
+    buttonText = "Checking authorization...";
+  } else if (isAuthorized) {
+    buttonText = (
+      <>
+        <span style={{ marginRight: "8px" }}>✓</span>
+        Gmail Connected
+      </>
+    );
+  }
+
   return (
     <div>
       <button
         type="button"
         onClick={handleConnectGmailClick}
+        disabled={isLoading || isAuthorized || disabled}
         style={{
           padding: "10px 15px",
           fontSize: "16px",
-          cursor: "pointer",
-          backgroundColor: "#4285F4", // Google's blue
+          cursor:
+            isLoading || isAuthorized || disabled ? "not-allowed" : "pointer",
+          backgroundColor: buttonColor,
           color: "white",
           border: "none",
           borderRadius: "4px",
           boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+          opacity: isLoading || isAuthorized || disabled ? 0.8 : 1,
+          transition: "background-color 0.3s ease",
         }}
       >
-        Connect Gmail Account
+        {buttonText}
       </button>
       <p style={{ marginTop: "10px", fontSize: "12px", color: "#555" }}>
-        You will be redirected to Google to authorize access to send emails on
-        your behalf.
+        {isAuthorized ? (
+          <>
+            <span style={{ color: "#34A853", fontWeight: "bold" }}>
+              ✓ Connected
+            </span>
+            {" - Your Gmail account is authorized to send emails."}
+          </>
+        ) : (
+          "You will be redirected to Google to authorize access to send emails on your behalf."
+        )}
       </p>
     </div>
   );

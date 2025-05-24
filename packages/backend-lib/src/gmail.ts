@@ -423,7 +423,8 @@ export async function refreshGmailAccessToken({
   }
 }
 
-const ONE_WEEK_IN_MS = 1000 * 60 * 60 * 24 * 7;
+// 10 minutes
+const MAX_EXPIRATION_BOUND = 1000 * 60 * 10;
 
 export async function getAndRefreshGmailAccessToken({
   workspaceId,
@@ -441,7 +442,7 @@ export async function getAndRefreshGmailAccessToken({
   if (!tokens) {
     return null;
   }
-  if (tokens.expiresAt > Date.now() + ONE_WEEK_IN_MS) {
+  if (tokens.expiresAt > Date.now() + MAX_EXPIRATION_BOUND) {
     return tokens;
   }
   return refreshGmailAccessToken({
@@ -646,5 +647,13 @@ export async function isGmailAuthorized({
     workspaceId,
     workspaceOccupantId,
   });
-  return !!tokens && tokens.expiresAt > Date.now() + ONE_WEEK_IN_MS;
+  const maxExpirationDate = Date.now() + MAX_EXPIRATION_BOUND;
+  logger().debug(
+    {
+      expiresAt: tokens?.expiresAt,
+      maxExpirationDate,
+    },
+    "isGmailAuthorized",
+  );
+  return !!tokens && tokens.expiresAt > maxExpirationDate;
 }

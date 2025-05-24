@@ -331,6 +331,7 @@ export default function Configuration({
       )}
       <Autocomplete
         options={availableProviderOverrides}
+        disabled={disabled}
         getOptionLabel={(option) => option.label}
         value={providerOverride ?? null}
         renderInput={(params) => (
@@ -389,7 +390,7 @@ export default function Configuration({
         }}
       />
       {providerOverride?.id === EmailProviderType.Gmail && gmailClientId && (
-        <AuthorizeGmail gmailClientId={gmailClientId} />
+        <AuthorizeGmail gmailClientId={gmailClientId} disabled={disabled} />
       )}
 
       <LoadingButton
