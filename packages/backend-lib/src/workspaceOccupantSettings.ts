@@ -13,6 +13,7 @@ import { err, ok, Result } from "neverthrow";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import logger from "./logger";
+import { DBWorkspaceOccupantType } from "./types";
 
 function getSecretName(settingName: string) {
   return `workspace-occupant-setting-${settingName}`;
@@ -153,4 +154,10 @@ export async function getSecretWorkspaceSettingsResource({
     name,
     config: settingsConfig.value,
   });
+}
+
+export function isWorkspaceOccupantType(
+  type: string,
+): type is DBWorkspaceOccupantType {
+  return type === "WorkspaceMember" || type === "ChildWorkspaceOccupant";
 }

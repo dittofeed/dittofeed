@@ -4090,6 +4090,72 @@ export const SearchDeliveriesResponse = Type.Object({
 
 export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;
 
+export const WorkspaceMemberSettingTypeEnum = {
+  GmailTokens: "GmailTokens",
+} as const;
+
+export const WorkspaceMemberSettingType = Type.KeyOf(
+  Type.Const(WorkspaceMemberSettingTypeEnum),
+);
+
+export type WorkspaceMemberSettingType = Static<
+  typeof WorkspaceMemberSettingType
+>;
+
+export const GmailTokensWorkspaceMemberSetting = Type.Object({
+  type: Type.Literal(WorkspaceMemberSettingTypeEnum.GmailTokens),
+  email: Type.String(),
+  accessToken: Type.Optional(Type.String()),
+  accessTokenIv: Type.Optional(Type.String()),
+  accessTokenAuthTag: Type.Optional(Type.String()),
+  refreshToken: Type.Optional(Type.String()),
+  refreshTokenIv: Type.Optional(Type.String()),
+  refreshTokenAuthTag: Type.Optional(Type.String()),
+  expiresAt: Type.Optional(Type.Number()),
+});
+
+export type GmailTokensWorkspaceMemberSetting = Static<
+  typeof GmailTokensWorkspaceMemberSetting
+>;
+
+export type WorkspaceMemberSettingSchema =
+  typeof GmailTokensWorkspaceMemberSetting;
+
+export const WorkspaceMemberSetting = Type.Union([
+  GmailTokensWorkspaceMemberSetting,
+]);
+
+export type WorkspaceMemberSetting = Static<typeof WorkspaceMemberSetting>;
+
+export const WorkspaceSettingSchemaRecord = {
+  [WorkspaceMemberSettingTypeEnum.GmailTokens]:
+    GmailTokensWorkspaceMemberSetting,
+} as const;
+
+export const WorkspaceSettingsResource = Type.Object({
+  workspaceId: Type.String(),
+  name: WorkspaceMemberSettingType,
+  config: WorkspaceMemberSetting,
+});
+
+export type WorkspaceSettingsResource = Static<
+  typeof WorkspaceSettingsResource
+>;
+
+export const GmailSecret = Type.Composite([
+  Type.Pick(GmailTokensWorkspaceMemberSetting, [
+    "email",
+    "accessToken",
+    "refreshToken",
+    "expiresAt",
+  ]),
+  Type.Object({
+    type: Type.Literal(EmailProviderType.Gmail),
+  }),
+]);
+
+export type GmailSecret = Static<typeof GmailSecret>;
+
 export const SendgridSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
   apiKey: Type.Optional(Type.String()),
@@ -4187,6 +4253,7 @@ export const EmailProviderSecret = Type.Union([
   SmtpSecret,
   ResendSecret,
   TestEmailSecret,
+  GmailSecret,
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
@@ -5349,56 +5416,4 @@ export const ManualSegmentUpdateEventProperties = Type.Object({
 
 export type ManualSegmentUpdateEventProperties = Static<
   typeof ManualSegmentUpdateEventProperties
->;
-
-export const WorkspaceMemberSettingTypeEnum = {
-  GmailTokens: "GmailTokens",
-} as const;
-
-export const WorkspaceMemberSettingType = Type.KeyOf(
-  Type.Const(WorkspaceMemberSettingTypeEnum),
-);
-
-export type WorkspaceMemberSettingType = Static<
-  typeof WorkspaceMemberSettingType
->;
-
-export const GmailTokensWorkspaceMemberSetting = Type.Object({
-  type: Type.Literal(WorkspaceMemberSettingTypeEnum.GmailTokens),
-  email: Type.String(),
-  accessToken: Type.Optional(Type.String()),
-  accessTokenIv: Type.Optional(Type.String()),
-  accessTokenAuthTag: Type.Optional(Type.String()),
-  refreshToken: Type.Optional(Type.String()),
-  refreshTokenIv: Type.Optional(Type.String()),
-  refreshTokenAuthTag: Type.Optional(Type.String()),
-  expiresAt: Type.Optional(Type.Number()),
-});
-
-export type GmailTokensWorkspaceMemberSetting = Static<
-  typeof GmailTokensWorkspaceMemberSetting
->;
-
-export type WorkspaceMemberSettingSchema =
-  typeof GmailTokensWorkspaceMemberSetting;
-
-export const WorkspaceMemberSetting = Type.Union([
-  GmailTokensWorkspaceMemberSetting,
-]);
-
-export type WorkspaceMemberSetting = Static<typeof WorkspaceMemberSetting>;
-
-export const WorkspaceSettingSchemaRecord = {
-  [WorkspaceMemberSettingTypeEnum.GmailTokens]:
-    GmailTokensWorkspaceMemberSetting,
-} as const;
-
-export const WorkspaceSettingsResource = Type.Object({
-  workspaceId: Type.String(),
-  name: WorkspaceMemberSettingType,
-  config: WorkspaceMemberSetting,
-});
-
-export type WorkspaceSettingsResource = Static<
-  typeof WorkspaceSettingsResource
 >;

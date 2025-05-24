@@ -256,7 +256,7 @@ export async function handleGmailCallback({
 export type UnencryptedGmailTokens = Required<
   Pick<
     GmailTokensWorkspaceMemberSetting,
-    "accessToken" | "refreshToken" | "expiresAt"
+    "accessToken" | "refreshToken" | "expiresAt" | "email"
   >
 >;
 
@@ -312,6 +312,7 @@ export async function getGmailTokens({
     accessToken,
     refreshToken,
     expiresAt: settings.config.expiresAt,
+    email: settings.config.email,
   };
 }
 
@@ -404,6 +405,7 @@ export async function refreshGmailAccessToken({
     }
 
     return {
+      email: tokens.email,
       accessToken: newCredentials.access_token,
       refreshToken: newRefreshToken,
       expiresAt: newCredentials.expiry_date,
