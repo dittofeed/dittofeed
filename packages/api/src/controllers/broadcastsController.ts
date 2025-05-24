@@ -12,6 +12,8 @@ import {
 } from "backend-lib/src/broadcasts/lifecycle";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import logger from "backend-lib/src/logger";
+import { getUserFromRequest } from "backend-lib/src/requestContext";
 import {
   BaseMessageResponse,
   BroadcastResource,
@@ -178,12 +180,13 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, broadcastId } = request.body;
-      const { user } = request as { user?: OpenIdProfile };
+      const { workspaceOccupantId, workspaceOccupantType } =
+        getUserFromRequest(request);
       await startBroadcastWorkflow({
         workspaceId,
         broadcastId,
-        workspaceOccupantId: user?.sub,
-        workspaceOccupantType: "WorkspaceMember",
+        workspaceOccupantId,
+        workspaceOccupantType,
       });
       return reply.status(200).send({ message: "Broadcast started" });
     },

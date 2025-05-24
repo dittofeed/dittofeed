@@ -1,5 +1,6 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray, or } from "drizzle-orm";
+import { FastifyRequest } from "fastify";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -18,6 +19,7 @@ import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
+  DBWorkspaceOccupantType,
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,
@@ -543,4 +545,15 @@ export async function getRequestContext(
     }
     return result;
   });
+}
+
+export function getUserFromRequest(request: FastifyRequest): {
+  workspaceOccupantId: string;
+  workspaceOccupantType: DBWorkspaceOccupantType;
+} {
+  const { user } = request as { user?: OpenIdProfile };
+  return {
+    workspaceOccupantId: user?.sub ?? "anonymous",
+    workspaceOccupantType: "WorkspaceMember",
+  };
 }
