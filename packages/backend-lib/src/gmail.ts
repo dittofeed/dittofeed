@@ -634,3 +634,17 @@ export async function sendGmailEmail({
     });
   }
 }
+
+export async function isGmailAuthorized({
+  workspaceId,
+  workspaceOccupantId,
+}: {
+  workspaceId: string;
+  workspaceOccupantId: string;
+}): Promise<boolean> {
+  const tokens = await getGmailTokens({
+    workspaceId,
+    workspaceOccupantId,
+  });
+  return !!tokens && tokens.expiresAt > Date.now() + ONE_WEEK_IN_MS;
+}

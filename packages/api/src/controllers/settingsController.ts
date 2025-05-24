@@ -4,8 +4,10 @@ import { Type } from "@sinclair/typebox";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { isGmailAuthorized } from "backend-lib/src/gmail";
 import { upsertEmailProvider } from "backend-lib/src/messaging/email";
 import { upsertSmsProvider } from "backend-lib/src/messaging/sms";
+import { getUserFromRequest } from "backend-lib/src/requestContext";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -18,6 +20,8 @@ import {
   DeleteDataSourceConfigurationRequest,
   DeleteWriteKeyResource,
   EmptyResponse,
+  GetGmailAuthorizationRequest,
+  GetGmailAuthorizationResponse,
   ListDataSourceConfigurationRequest,
   ListDataSourceConfigurationResponse,
   ListWriteKeyRequest,
@@ -329,6 +333,29 @@ export default async function settingsController(fastify: FastifyInstance) {
         return reply.status(404).send();
       }
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/gmail-authorization",
+    {
+      schema: {
+        description: "Get gmail authorization status",
+        tags: ["Settings"],
+        querystring: GetGmailAuthorizationRequest,
+        response: {
+          200: GetGmailAuthorizationResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId } = request.query;
+      const { workspaceOccupantId } = getUserFromRequest(request);
+      const authorized = await isGmailAuthorized({
+        workspaceId,
+        workspaceOccupantId,
+      });
+      return reply.status(200).send({ authorized });
     },
   );
 }

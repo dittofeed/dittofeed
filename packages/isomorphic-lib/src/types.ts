@@ -5426,3 +5426,19 @@ export const ManualSegmentUpdateEventProperties = Type.Object({
 export type ManualSegmentUpdateEventProperties = Static<
   typeof ManualSegmentUpdateEventProperties
 >;
+
+export const GetGmailAuthorizationRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetGmailAuthorizationRequest = Static<
+  typeof GetGmailAuthorizationRequest
+>;
+
+export const GetGmailAuthorizationResponse = Type.Object({
+  authorized: Type.Boolean(),
+});
+
+export type GetGmailAuthorizationResponse = Static<
+  typeof GetGmailAuthorizationResponse
+>;
