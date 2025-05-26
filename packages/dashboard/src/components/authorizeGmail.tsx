@@ -1,7 +1,7 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
@@ -9,13 +9,22 @@ import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
 export function AuthorizeGmail({
   gmailClientId,
   disabled,
+  onAuthorize,
 }: {
   gmailClientId: string;
   disabled?: boolean;
+  onAuthorize?: () => void;
 }) {
   const router = useRouter();
   const { data, isLoading } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
+
+  // Call onAuthorize when authorization status becomes true
+  useEffect(() => {
+    if (isAuthorized && onAuthorize) {
+      onAuthorize();
+    }
+  }, [isAuthorized, onAuthorize]);
 
   const handleConnectGmailClick = () => {
     // Don't proceed if already authorized or externally disabled

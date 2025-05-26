@@ -102,6 +102,7 @@ export default function Configuration({
 }) {
   const { gmailClientId } = useAppStorePick(["gmailClientId"]);
   const { data: broadcast } = useBroadcastQuery(state.id);
+  const [isGmailAuthorized, setIsGmailAuthorized] = useState(false);
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
@@ -390,14 +391,23 @@ export default function Configuration({
         }}
       />
       {providerOverride?.id === EmailProviderType.Gmail && gmailClientId && (
-        <AuthorizeGmail gmailClientId={gmailClientId} disabled={disabled} />
+        <AuthorizeGmail
+          gmailClientId={gmailClientId}
+          disabled={disabled}
+          onAuthorize={() => setIsGmailAuthorized(true)}
+        />
       )}
 
       <LoadingButton
         variant="outlined"
         color="primary"
         loading={isPending}
-        disabled={disabled || errors.length !== 0}
+        disabled={
+          disabled ||
+          errors.length !== 0 ||
+          (!isGmailAuthorized &&
+            providerOverride?.id === EmailProviderType.Gmail)
+        }
         sx={{
           ...greyButtonStyle,
           borderColor: "grey.400",
