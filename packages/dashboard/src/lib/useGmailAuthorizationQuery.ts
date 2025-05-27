@@ -18,7 +18,7 @@ import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 export const GMAIL_AUTHORIZATION_QUERY_KEY = "gmail-authorization";
 
 /**
- * Custom hook for fetching gmail authorization status using the GET /api/settings/gmail-authorization endpoint
+ * Custom hook for fetching gmail authorization status using the GET /api/broadcasts/gmail-authorization endpoint
  */
 export function useGmailAuthorizationQuery<
   TData = GetGmailAuthorizationResponse,
@@ -45,7 +45,7 @@ export function useGmailAuthorizationQuery<
     queryFn: async (): Promise<GetGmailAuthorizationResponse> => {
       try {
         const response = await axios.get(
-          `${baseApiUrl}/settings/gmail-authorization`,
+          `${baseApiUrl}/broadcasts/gmail-authorization`,
           {
             params: {
               ...params,

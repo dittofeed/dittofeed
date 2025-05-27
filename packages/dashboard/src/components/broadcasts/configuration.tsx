@@ -88,11 +88,12 @@ function getTomorrowAt8AM(currentDate: Date = new Date()): string {
   return format(tomorrowAt8AM, "yyyy-MM-dd HH:mm");
 }
 
-type ProviderOverrideOption = {
+interface ProviderOverrideOption {
   id: EmailProviderType | SmsProviderType;
   label: string;
-};
+}
 
+// TODO provide state configuration to disable or hardcode email providers
 export default function Configuration({
   state,
   updateState,
@@ -430,7 +431,6 @@ export default function Configuration({
         }}
       >
         {scheduledStatus === "scheduled" ? "Schedule" : "Start"} Broadcast
-        {/* // FIXME dont allow to start until gmail is authed  */}
       </LoadingButton>
     </Stack>
   );

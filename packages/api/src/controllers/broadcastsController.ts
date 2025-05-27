@@ -12,6 +12,7 @@ import {
 } from "backend-lib/src/broadcasts/lifecycle";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { isGmailAuthorized } from "backend-lib/src/gmail";
 import { getOccupantFromRequest } from "backend-lib/src/requestContext";
 import {
   BaseMessageResponse,
@@ -19,6 +20,8 @@ import {
   BroadcastResourceV2,
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
+  GetGmailAuthorizationRequest,
+  GetGmailAuthorizationResponse,
   RecomputeBroadcastSegmentRequest,
   StartBroadcastRequest,
   TriggerBroadcastRequest,
@@ -190,6 +193,32 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         workspaceOccupantType,
       });
       return reply.status(200).send({ message: "Broadcast started" });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/gmail-authorization",
+    {
+      schema: {
+        description: "Get gmail authorization status",
+        tags: ["Broadcasts"],
+        querystring: GetGmailAuthorizationRequest,
+        response: {
+          200: GetGmailAuthorizationResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId } = request.query;
+      const occupant = getOccupantFromRequest(request);
+      if (!occupant) {
+        return reply.status(401).send();
+      }
+      const authorized = await isGmailAuthorized({
+        workspaceId,
+        workspaceOccupantId: occupant.workspaceOccupantId,
+      });
+      return reply.status(200).send({ authorized });
     },
   );
 }
