@@ -13,6 +13,7 @@ import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import logger from "backend-lib/src/logger";
+import { DBWorkspaceOccupantType } from "backend-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 
@@ -76,7 +77,7 @@ export async function handleOauthCallback({
   state?: string;
   storedCsrfToken?: string;
   occupantId: string;
-  occupantType: string;
+  occupantType: DBWorkspaceOccupantType;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
   const { dashboardUrl, hubspotClientSecret, hubspotClientId, signoutUrl } =
     backendConfig();
@@ -137,8 +138,8 @@ export async function handleOauthCallback({
       // Handle Gmail callback asynchronously
       handleGmailCallback({
         workspaceId,
-        workspaceOccupantId: dfContext.member.id,
-        workspaceOccupantType: "WorkspaceMember",
+        workspaceOccupantId: occupantId,
+        workspaceOccupantType: occupantType,
         code,
         originalState: storedCsrfToken,
         returnedState: decodedState.csrf,
