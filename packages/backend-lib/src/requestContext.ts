@@ -548,7 +548,7 @@ export async function getRequestContext(
   });
 }
 
-export function getUserFromRequest(request: FastifyRequest): {
+export function getOccupantFromRequest(request: FastifyRequest): {
   workspaceOccupantId: string;
   workspaceOccupantType: DBWorkspaceOccupantType;
 } | null {

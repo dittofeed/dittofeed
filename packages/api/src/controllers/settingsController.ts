@@ -7,7 +7,7 @@ import * as schema from "backend-lib/src/db/schema";
 import { isGmailAuthorized } from "backend-lib/src/gmail";
 import { upsertEmailProvider } from "backend-lib/src/messaging/email";
 import { upsertSmsProvider } from "backend-lib/src/messaging/sms";
-import { getUserFromRequest } from "backend-lib/src/requestContext";
+import { getOccupantFromRequest } from "backend-lib/src/requestContext";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -350,10 +350,13 @@ export default async function settingsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId } = request.query;
-      const { workspaceOccupantId } = getUserFromRequest(request);
+      const occupant = getOccupantFromRequest(request);
+      if (!occupant) {
+        return reply.status(401).send();
+      }
       const authorized = await isGmailAuthorized({
         workspaceId,
-        workspaceOccupantId,
+        workspaceOccupantId: occupant.workspaceOccupantId,
       });
       return reply.status(200).send({ authorized });
     },
