@@ -70,7 +70,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
       return {
         redirect: {
           permanent: false,
-          destination: "/settings",
+          destination: "/",
         },
       };
     }
@@ -274,14 +274,14 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         return {
           redirect: {
             permanent: false,
-            destination: "/settings",
+            destination: "/",
           },
         };
     }
     return {
       redirect: {
         permanent: false,
-        destination: "/settings",
+        destination: "/",
       },
     };
   },
