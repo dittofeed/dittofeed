@@ -40,6 +40,7 @@ export function useGmailAuthorizationQuery<
   const queryKey = [GMAIL_AUTHORIZATION_QUERY_KEY, { ...params, workspaceId }];
   const baseApiUrl = useBaseApiUrl();
 
+  // FIXME not authing
   const queryResult = useQuery<GetGmailAuthorizationResponse, Error, TData>({
     queryKey,
     queryFn: async (): Promise<GetGmailAuthorizationResponse> => {

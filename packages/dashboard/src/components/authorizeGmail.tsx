@@ -66,6 +66,7 @@ export function AuthorizeGmail({
       undefined,
       {
         includeBasePath: true,
+        excludeQueryParams: true,
       },
     );
     const redirectUri = `${window.location.origin}${redirectPath}`;

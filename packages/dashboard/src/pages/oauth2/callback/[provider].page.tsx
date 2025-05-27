@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next";
 import { handleOauthCallback } from "../../../lib/oauth";
 import { requestContext } from "../../../lib/requestContext";
 
+// FIXME implement embedded version of page, but exclude from embedded auth
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
     const { code, provider, state } = ctx.query;
