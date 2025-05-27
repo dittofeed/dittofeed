@@ -61,8 +61,14 @@ export function AuthorizeGmail({
     const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
     document.cookie = `gmail_oauth_state=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
-    const redirectPath = universalRouter.mapUrl("/oauth2/callback/gmail");
-    const redirectUri = `${window.location.origin}/dashboard${redirectPath}`;
+    const redirectPath = universalRouter.mapUrl(
+      "/oauth2/callback/gmail",
+      undefined,
+      {
+        includeBasePath: true,
+      },
+    );
+    const redirectUri = `${window.location.origin}${redirectPath}`;
 
     const params = new URLSearchParams({
       client_id: gmailClientId,
