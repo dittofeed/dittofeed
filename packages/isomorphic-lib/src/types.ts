@@ -5442,3 +5442,8 @@ export const GetGmailAuthorizationResponse = Type.Object({
 export type GetGmailAuthorizationResponse = Static<
   typeof GetGmailAuthorizationResponse
 >;
+
+export interface EmbeddedSession {
+  workspaceId: string;
+  occupantId?: string;
+}

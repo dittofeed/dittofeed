@@ -20,6 +20,7 @@ import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
   DBWorkspaceOccupantType,
+  EmbeddedSession,
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,
@@ -550,10 +551,30 @@ export async function getRequestContext(
 export function getUserFromRequest(request: FastifyRequest): {
   workspaceOccupantId: string;
   workspaceOccupantType: DBWorkspaceOccupantType;
-} {
-  const { user } = request as { user?: OpenIdProfile };
-  return {
-    workspaceOccupantId: user?.sub ?? "anonymous",
-    workspaceOccupantType: "WorkspaceMember",
+} | null {
+  const { user, embeddedSession } = request as {
+    user?: OpenIdProfile;
+    embeddedSession?: EmbeddedSession;
   };
+  if (config().authMode === "anonymous") {
+    return {
+      workspaceOccupantId: "anonymous",
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+
+  if (embeddedSession?.occupantId) {
+    return {
+      workspaceOccupantId: embeddedSession.occupantId,
+      workspaceOccupantType: "ChildWorkspaceOccupant",
+    };
+  }
+
+  if (user) {
+    return {
+      workspaceOccupantId: user.sub,
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+  return null;
 }
