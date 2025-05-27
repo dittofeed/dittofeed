@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { useUniversalRouter } from "../lib/authModeProvider";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
 
 export function AuthorizeGmail({
@@ -16,6 +17,7 @@ export function AuthorizeGmail({
   onAuthorize?: () => void;
 }) {
   const router = useRouter();
+  const universalRouter = useUniversalRouter();
   const { data, isLoading } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
 
@@ -59,7 +61,8 @@ export function AuthorizeGmail({
     const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
     document.cookie = `gmail_oauth_state=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
-    const redirectUri = `${window.location.origin}/dashboard/oauth2/callback/gmail`;
+    const redirectPath = universalRouter.mapUrl("/oauth2/callback/gmail");
+    const redirectUri = `${window.location.origin}/dashboard${redirectPath}`;
 
     const params = new URLSearchParams({
       client_id: gmailClientId,
