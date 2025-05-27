@@ -12,15 +12,13 @@ import {
 } from "backend-lib/src/broadcasts/lifecycle";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
-import logger from "backend-lib/src/logger";
-import { getUserFromRequest } from "backend-lib/src/requestContext";
+import { getOccupantFromRequest } from "backend-lib/src/requestContext";
 import {
   BaseMessageResponse,
   BroadcastResource,
   BroadcastResourceV2,
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
-  OpenIdProfile,
   RecomputeBroadcastSegmentRequest,
   StartBroadcastRequest,
   TriggerBroadcastRequest,
@@ -180,8 +178,11 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, broadcastId } = request.body;
-      const { workspaceOccupantId, workspaceOccupantType } =
-        getUserFromRequest(request);
+      const occupant = getOccupantFromRequest(request);
+      if (!occupant) {
+        return reply.status(401).send();
+      }
+      const { workspaceOccupantId, workspaceOccupantType } = occupant;
       await startBroadcastWorkflow({
         workspaceId,
         broadcastId,
