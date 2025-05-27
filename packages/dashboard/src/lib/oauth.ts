@@ -75,8 +75,8 @@ export async function handleOauthCallback({
   code?: string;
   state?: string;
   storedCsrfToken?: string;
-  occupantId?: string;
-  occupantType?: string;
+  occupantId: string;
+  occupantType: string;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
   const { dashboardUrl, hubspotClientSecret, hubspotClientId, signoutUrl } =
     backendConfig();
