@@ -136,7 +136,7 @@ export async function handleOauthCallback({
       const redirectUri = `${dashboardUrl}/dashboard/oauth2/callback/gmail`;
 
       // Handle Gmail callback asynchronously
-      handleGmailCallback({
+      const gmailResult = await handleGmailCallback({
         workspaceId,
         workspaceOccupantId: occupantId,
         workspaceOccupantType: occupantType,
@@ -144,16 +144,6 @@ export async function handleOauthCallback({
         originalState: storedCsrfToken,
         returnedState: decodedState.csrf,
         redirectUri,
-      }).then((gmailResult) => {
-        if (gmailResult.isErr()) {
-          logger().error(
-            {
-              err: gmailResult.error,
-              workspaceId,
-            },
-            "failed to authorize gmail",
-          );
-        }
       });
 
       let baseRedirectPath = "/"; // Default to app's base path
@@ -169,9 +159,19 @@ export async function handleOauthCallback({
       }
 
       const finalUrl = new URL(baseRedirectPath, dashboardUrl);
-      // Note: We're returning success immediately and handling the actual Gmail auth asynchronously
-      // The actual success/failure will be determined by the async operation
-      finalUrl.searchParams.set("gmail_connected", "pending");
+
+      if (gmailResult.isOk()) {
+        finalUrl.searchParams.set("gmail_connected", "true");
+      } else {
+        logger().error(
+          {
+            err: gmailResult.error,
+            workspaceId,
+          },
+          "failed to authorize gmail",
+        );
+        finalUrl.searchParams.set("gmail_error", gmailResult.error.type);
+      }
 
       const finalRedirectPath = finalUrl.pathname + finalUrl.search;
 
@@ -204,8 +204,7 @@ export async function handleOauthCallback({
         code,
       };
 
-      // Handle HubSpot callback asynchronously
-      Promise.all([
+      const [tokenResponse, integration] = await Promise.all([
         axios({
           method: "post",
           url: "https://api.hubapi.com/oauth/v1/token",
@@ -216,73 +215,60 @@ export async function handleOauthCallback({
           workspaceId,
           name: HUBSPOT_INTEGRATION,
         }).then(unwrap),
-      ])
-        .then(async ([tokenResponse, integration]) => {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const { access_token, refresh_token, expires_in } =
-            tokenResponse.data;
+      ]);
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-          await Promise.all([
-            upsert({
-              table: schema.oauthToken,
-              values: {
-                workspaceId,
-                name: HUBSPOT_OAUTH_TOKEN,
-                accessToken: access_token,
-                refreshToken: refresh_token,
-                expiresIn: expires_in,
-              },
-              set: {
-                accessToken: access_token,
-                refreshToken: refresh_token,
-                expiresIn: expires_in,
-              },
-              target: [schema.oauthToken.workspaceId, schema.oauthToken.name],
-            }).then(unwrap),
-            upsert({
-              table: schema.integration,
-              values: {
-                ...HUBSPOT_INTEGRATION_DEFINITION,
-                workspaceId,
-              },
-              target: [schema.integration.workspaceId, schema.integration.name],
-              set: {
-                enabled: true,
-                definition: integration
-                  ? {
-                      ...integration.definition,
-                      subscribedUserProperties:
-                        HUBSPOT_INTEGRATION_DEFINITION.definition
-                          .subscribedUserProperties,
-                    }
-                  : undefined,
-              },
-            }).then(unwrap),
-            insert({
-              table: schema.userProperty,
-              values: {
-                workspaceId,
-                name: EMAIL_EVENTS_UP_NAME,
-                definition: EMAIL_EVENTS_UP_DEFINITION,
-                resourceType: "Internal",
-              },
-              doNothingOnConflict: true,
-            }).then(unwrap),
-          ]);
-          await startHubspotIntegrationWorkflow({
+      await Promise.all([
+        upsert({
+          table: schema.oauthToken,
+          values: {
             workspaceId,
-          });
-        })
-        .catch((error) => {
-          logger().error(
-            {
-              err: error,
-              workspaceId,
-              provider: "hubspot",
-            },
-            "failed to handle hubspot callback",
-          );
-        });
+            name: HUBSPOT_OAUTH_TOKEN,
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: expires_in,
+          },
+          set: {
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: expires_in,
+          },
+          target: [schema.oauthToken.workspaceId, schema.oauthToken.name],
+        }).then(unwrap),
+        upsert({
+          table: schema.integration,
+          values: {
+            ...HUBSPOT_INTEGRATION_DEFINITION,
+            workspaceId,
+          },
+          target: [schema.integration.workspaceId, schema.integration.name],
+          set: {
+            enabled: true,
+            definition: integration
+              ? {
+                  ...integration.definition,
+                  subscribedUserProperties:
+                    HUBSPOT_INTEGRATION_DEFINITION.definition
+                      .subscribedUserProperties,
+                }
+              : HUBSPOT_INTEGRATION_DEFINITION.definition,
+          },
+        }).then(unwrap),
+        insert({
+          table: schema.userProperty,
+          values: {
+            workspaceId,
+            name: EMAIL_EVENTS_UP_NAME,
+            definition: EMAIL_EVENTS_UP_DEFINITION,
+            resourceType: "Internal",
+          },
+          doNothingOnConflict: true,
+        }).then(unwrap),
+      ]);
+      await startHubspotIntegrationWorkflow({
+        workspaceId,
+      });
 
       return ok({
         type: "success",
