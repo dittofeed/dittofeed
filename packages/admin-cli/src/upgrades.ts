@@ -29,7 +29,7 @@ export async function disentangleResendSendgrid() {
   await db().transaction(async (pTx) => {
     const emailProviders = await pTx.query.emailProvider.findMany({
       where: inArray(schema.emailProvider.type, [
-        EmailProviderType.Sendgrid,
+        EmailProviderType.SendGrid,
         EmailProviderType.Resend,
       ]),
       with: {
@@ -90,7 +90,7 @@ export async function disentangleResendSendgrid() {
       if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         misnamed.emailProviderType === EmailProviderType.Resend &&
-        misnamed.secretValue.type === EmailProviderType.Sendgrid
+        misnamed.secretValue.type === EmailProviderType.SendGrid
       ) {
         logger().info("Correcting Resend email provider.");
         promises.push(
@@ -120,7 +120,7 @@ export async function disentangleResendSendgrid() {
         );
       } else if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        misnamed.emailProviderType === EmailProviderType.Sendgrid &&
+        misnamed.emailProviderType === EmailProviderType.SendGrid &&
         misnamed.secretValue.type === EmailProviderType.Resend
       ) {
         logger().info("Correcting Sendgrid email provider.");
@@ -150,7 +150,7 @@ export async function disentangleResendSendgrid() {
             await pTx
               .update(schema.secret)
               .set({
-                configValue: { type: EmailProviderType.Sendgrid },
+                configValue: { type: EmailProviderType.SendGrid },
               })
               .where(eq(schema.secret.id, secret.id));
           })(),
