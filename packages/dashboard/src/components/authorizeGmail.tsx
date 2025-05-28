@@ -1,5 +1,6 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, Typography } from "@mui/material";
+import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
@@ -9,7 +10,6 @@ import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
 import { OauthStateObject } from "../lib/oauthV2";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
-import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 
 export function AuthorizeGmail({
   gmailClientId,
