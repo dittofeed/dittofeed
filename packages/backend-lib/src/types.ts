@@ -30,6 +30,7 @@ import {
   broadcast as dbBroadcast,
   componentConfiguration as dbComponentConfiguration,
   computedPropertyPeriod as dbComputedPropertyPeriod,
+  DBWorkspaceOccupantType,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
@@ -118,6 +119,9 @@ export type UserJourneyEvent = InferSelectModel<typeof dbUserJourneyEvent>;
 export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
+
+export type DBWorkspaceOccupantType =
+  (typeof DBWorkspaceOccupantType.enumValues)[number];
 
 export interface EnrichedJourney extends Omit<Journey, "definition" | "draft"> {
   definition?: JourneyDefinition;

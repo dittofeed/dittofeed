@@ -1,5 +1,6 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray, or } from "drizzle-orm";
+import { FastifyRequest } from "fastify";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -18,6 +19,8 @@ import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
+  DBWorkspaceOccupantType,
+  EmbeddedSession,
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,
@@ -543,4 +546,37 @@ export async function getRequestContext(
     }
     return result;
   });
+}
+
+export function getOccupantFromRequest(request: FastifyRequest): {
+  workspaceOccupantId: string;
+  workspaceOccupantType: DBWorkspaceOccupantType;
+} | null {
+  const { user } = request as {
+    user?: OpenIdProfile;
+  };
+  const { embeddedSession } = request.raw as {
+    embeddedSession?: EmbeddedSession;
+  };
+  if (config().authMode === "anonymous") {
+    return {
+      workspaceOccupantId: "anonymous",
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+
+  if (embeddedSession?.occupantId) {
+    return {
+      workspaceOccupantId: embeddedSession.occupantId,
+      workspaceOccupantType: "ChildWorkspaceOccupant",
+    };
+  }
+
+  if (user) {
+    return {
+      workspaceOccupantId: user.sub,
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+  return null;
 }

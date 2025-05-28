@@ -533,7 +533,6 @@ describe("broadcastWorkflowV2", () => {
           workspaceId: workspace.id,
           broadcastId: broadcast.id,
         });
-        // FIXME
         expect(updatedBroadcast?.status).toBe("Paused");
 
         shouldError = false;

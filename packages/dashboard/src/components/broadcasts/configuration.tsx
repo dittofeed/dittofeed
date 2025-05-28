@@ -2,9 +2,11 @@
 import { CalendarDateTime, parseDateTime, Time } from "@internationalized/date";
 import { LoadingButton } from "@mui/lab";
 import {
+  Autocomplete,
   Box,
   Popover,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -18,13 +20,25 @@ import {
   setMinutes,
   setSeconds,
 } from "date-fns";
+import { isEmailProviderType } from "isomorphic-lib/src/email";
+import { isSmsProviderType } from "isomorphic-lib/src/sms";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import {
+  BroadcastSmsMessageVariant,
+  BroadcastV2Config,
+  ChannelType,
+  EmailProviderType,
+  SmsProviderType,
+} from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
+import { AuthorizeGmail } from "../authorizeGmail";
 import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
@@ -74,6 +88,12 @@ function getTomorrowAt8AM(currentDate: Date = new Date()): string {
   return format(tomorrowAt8AM, "yyyy-MM-dd HH:mm");
 }
 
+interface ProviderOverrideOption {
+  id: EmailProviderType | SmsProviderType;
+  label: string;
+}
+
+// TODO provide state configuration to disable or hardcode email providers
 export default function Configuration({
   state,
   updateState,
@@ -81,12 +101,68 @@ export default function Configuration({
   state: BroadcastState;
   updateState: BroadcastStateUpdater;
 }) {
+  const { gmailClientId } = useAppStorePick(["gmailClientId"]);
   const { data: broadcast } = useBroadcastQuery(state.id);
+  const [isGmailAuthorized, setIsGmailAuthorized] = useState(false);
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
   const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const channel = useMemo(() => {
+    return broadcast?.config.message.type;
+  }, [broadcast?.config.message.type]);
 
+  const availableProviderOverrides: ProviderOverrideOption[] = useMemo(() => {
+    if (!channel) {
+      return [];
+    }
+    switch (channel) {
+      case ChannelType.Email:
+        return [
+          { id: EmailProviderType.Test, label: "Test" },
+          { id: EmailProviderType.Sendgrid, label: "SendGrid" },
+          { id: EmailProviderType.AmazonSes, label: "Amazon SES" },
+          { id: EmailProviderType.Smtp, label: "SMTP" },
+          { id: EmailProviderType.Resend, label: "Resend" },
+          { id: EmailProviderType.PostMark, label: "PostMark" },
+          { id: EmailProviderType.MailChimp, label: "MailChimp" },
+          { id: EmailProviderType.Gmail, label: "Gmail" },
+        ];
+      case ChannelType.Sms:
+        return [
+          { id: SmsProviderType.Twilio, label: "Twilio" },
+          { id: SmsProviderType.Test, label: "Test" },
+        ];
+      case ChannelType.Webhook:
+        return [];
+      default:
+        assertUnreachable(channel);
+    }
+  }, [channel]);
+
+  const providerOverride = useMemo<ProviderOverrideOption | null>(() => {
+    if (!broadcast) {
+      return null;
+    }
+    const { message } = broadcast.config;
+    let override: EmailProviderType | SmsProviderType | null = null;
+    switch (message.type) {
+      case ChannelType.Email:
+        override = message.providerOverride ?? null;
+        break;
+      case ChannelType.Sms:
+        override = message.providerOverride ?? null;
+        break;
+      case ChannelType.Webhook:
+        return null;
+      default:
+        assertUnreachable(message);
+    }
+    return (
+      availableProviderOverrides.find((option) => option.id === override) ??
+      null
+    );
+  }, [broadcast, availableProviderOverrides]);
   const errors = useMemo(() => {
     const e: string[] = [];
     if (!broadcast?.messageTemplateId) {
@@ -255,12 +331,84 @@ export default function Configuration({
           />
         </>
       )}
+      <Autocomplete
+        options={availableProviderOverrides}
+        disabled={disabled}
+        getOptionLabel={(option) => option.label}
+        value={providerOverride ?? null}
+        renderInput={(params) => (
+          <TextField {...params} label="Provider Override" />
+        )}
+        onChange={(_, newValue) => {
+          if (!broadcast) {
+            return;
+          }
+          const { message } = broadcast.config;
+          let newMessage: BroadcastV2Config["message"];
+          if (message.type === ChannelType.Webhook) {
+            return;
+          }
+          switch (message.type) {
+            case ChannelType.Email: {
+              let newProviderOverride: EmailProviderType | undefined;
+              if (!newValue) {
+                newProviderOverride = undefined;
+              } else if (isEmailProviderType(newValue.id)) {
+                newProviderOverride = newValue.id;
+              } else {
+                newProviderOverride = undefined;
+              }
+              newMessage = {
+                ...message,
+                providerOverride: newProviderOverride,
+              };
+              break;
+            }
+            case ChannelType.Sms: {
+              let newProviderOverride: SmsProviderType | undefined;
+              if (!newValue) {
+                newProviderOverride = undefined;
+              } else if (isSmsProviderType(newValue.id)) {
+                newProviderOverride = newValue.id;
+              } else {
+                newProviderOverride = undefined;
+              }
+              const newSmsMessage: BroadcastSmsMessageVariant = {
+                type: message.type,
+                providerOverride: newProviderOverride ?? null,
+              };
+              newMessage = newSmsMessage;
+              break;
+            }
+            default:
+              assertUnreachable(message);
+          }
+          updateBroadcast({
+            config: {
+              ...broadcast.config,
+              message: newMessage,
+            },
+          });
+        }}
+      />
+      {providerOverride?.id === EmailProviderType.Gmail && gmailClientId && (
+        <AuthorizeGmail
+          gmailClientId={gmailClientId}
+          disabled={disabled}
+          onAuthorize={() => setIsGmailAuthorized(true)}
+        />
+      )}
 
       <LoadingButton
         variant="outlined"
         color="primary"
         loading={isPending}
-        disabled={disabled || errors.length !== 0}
+        disabled={
+          disabled ||
+          errors.length !== 0 ||
+          (!isGmailAuthorized &&
+            providerOverride?.id === EmailProviderType.Gmail)
+        }
         sx={{
           ...greyButtonStyle,
           borderColor: "grey.400",

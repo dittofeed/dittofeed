@@ -9,7 +9,7 @@ import {
 
 // Only import the activity types
 import type * as activities from "../temporal/activities";
-import { BroadcastV2Status } from "../types";
+import { BroadcastV2Status, DBWorkspaceOccupantType } from "../types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -51,11 +51,15 @@ export function generateBroadcastWorkflowV2Id({
 export interface BroadcastWorkflowV2Params {
   workspaceId: string;
   broadcastId: string;
+  workspaceOccupantId?: string;
+  workspaceOccupantType?: DBWorkspaceOccupantType;
 }
 
 export async function broadcastWorkflowV2({
   workspaceId,
   broadcastId,
+  workspaceOccupantId,
+  workspaceOccupantType,
 }: BroadcastWorkflowV2Params): Promise<void> {
   const broadcast = await getBroadcast({ workspaceId, broadcastId });
   if (!broadcast) {
@@ -177,6 +181,8 @@ export async function broadcastWorkflowV2({
           limit: batchSize,
           cursor: cursor ?? undefined,
           now: activityStartTime,
+          workspaceOccupantId,
+          workspaceOccupantType,
         });
 
       const activityEndTime = Date.now();

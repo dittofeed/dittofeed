@@ -61,7 +61,11 @@ export function useAuthHeaders(): Record<string, string> {
 
 interface UniversalRouter {
   push: (path: string, query?: Record<string, string>) => void;
-  mapUrl: (path: string, query?: Record<string, string>) => string;
+  mapUrl: (
+    path: string,
+    query?: Record<string, string>,
+    opts?: { includeBasePath?: boolean; excludeQueryParams?: boolean },
+  ) => string;
 }
 
 export function useUniversalRouter() {
@@ -77,10 +81,10 @@ export function useUniversalRouter() {
         : undefined;
     switch (authContext.type) {
       case AuthModeTypeEnum.Embedded:
-        mapUrl = (path: string, query?: Record<string, string>) => {
-          const fullPath = `/embedded${path}`;
+        mapUrl = (path: string, query?: Record<string, string>, opts = {}) => {
+          const fullPath = `${opts.includeBasePath ? "/dashboard-l" : ""}/embedded${path}`;
           const fullQuery = { token: authContext.token, workspaceId, ...query };
-          return `${fullPath}?${qs.stringify(fullQuery)}`;
+          return `${fullPath}${opts.excludeQueryParams ? "" : `?${qs.stringify(fullQuery)}`}`;
         };
         push = (path: string, query?: Record<string, string>) => {
           const fullPath = `/embedded${path}`;
@@ -89,8 +93,10 @@ export function useUniversalRouter() {
         };
         break;
       case AuthModeTypeEnum.Base:
-        mapUrl = (path: string, query?: Record<string, string>) =>
-          `${path}?${qs.stringify(query)}`;
+        mapUrl = (path: string, query?: Record<string, string>, opts = {}) => {
+          const fullPath = `${opts.includeBasePath ? "/dashboard" : ""}${path}`;
+          return `${fullPath}${opts.excludeQueryParams ? "" : `?${qs.stringify(query)}`}`;
+        };
         push = (path: string, query?: Record<string, string>) =>
           router.push({ pathname: path, query });
         break;

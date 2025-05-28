@@ -1,10 +1,4 @@
-import {
-  IntegrationCreateDefinition,
-  IntegrationType,
-  SegmentDefinition,
-  SegmentNodeType,
-  SegmentOperatorType,
-} from "./types";
+import { IntegrationCreateDefinition, IntegrationType } from "./types";
 
 export const HUBSPOT_OAUTH_TOKEN = "hubspot" as const;
 export const HUBSPOT_INTEGRATION = "hubspot" as const;
@@ -34,3 +28,7 @@ export const MESSAGE_METADATA_FIELDS = [
   "templateId",
   "nodeId",
 ] as const;
+
+export const WORKSPACE_OCCUPANT_SETTINGS_NAMES = {
+  GmailTokens: "GmailTokens",
+} as const;

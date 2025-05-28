@@ -58,6 +58,10 @@ export const dbSubscriptionGroupType = pgEnum("DBSubscriptionGroupType", [
   "OptIn",
   "OptOut",
 ]);
+export const DBWorkspaceOccupantType = pgEnum("DBWorkspaceOccupantType", [
+  "WorkspaceMember",
+  "ChildWorkspaceOccupant",
+]);
 export const journeyStatus = pgEnum("JourneyStatus", [
   "NotStarted",
   "Running",
@@ -1029,5 +1033,50 @@ export const componentConfiguration = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
+  ],
+);
+
+export const workspaceOccupantSetting = pgTable(
+  "WorkspaceOccupantSetting",
+  {
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    workspaceOccupantId: text().notNull(),
+    occupantType: DBWorkspaceOccupantType().notNull(),
+    config: jsonb(),
+    secretId: uuid(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex(
+      "WorkspaceOccupantSetting_workspaceId_workspaceOccupantId_key",
+    ).using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.workspaceOccupantId.asc().nullsLast().op("text_ops"),
+    ),
+    uniqueIndex("WorkspaceOccupantSetting_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "WorkspaceOccupantSetting_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.secretId],
+      foreignColumns: [secret.id],
+      name: "WorkspaceOccupantSetting_secretId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("set null"),
   ],
 );

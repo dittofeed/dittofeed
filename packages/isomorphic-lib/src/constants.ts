@@ -7,6 +7,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SmsProviderType,
+  WorkspaceWideProviders,
 } from "./types";
 
 export * from "./constants/headers";
@@ -43,7 +44,7 @@ export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   };
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
-  EmailProviderType,
+  WorkspaceWideProviders,
   string
 > = {
   [EmailProviderType.Sendgrid]: SecretNames.Sendgrid,
@@ -111,3 +112,5 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
     },
   ],
 };
+
+export const OAUTH_COOKIE_NAME = "oauth_csrf_token";

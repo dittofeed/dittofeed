@@ -505,6 +505,9 @@ export default async function contentController(fastify: FastifyInstance) {
                   },
                 });
               }
+              case EmailProviderType.Gmail: {
+                throw new Error("Gmail is not supported in test mode");
+              }
               default: {
                 assertUnreachable(type);
               }
