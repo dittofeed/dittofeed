@@ -104,6 +104,7 @@ export async function handleOauthCallback({
   occupantId,
   occupantType,
   returnTo,
+  baseRedirectUri,
 }: {
   workspaceId: string;
   provider?: string;
@@ -111,6 +112,7 @@ export async function handleOauthCallback({
   returnTo?: string;
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
+  baseRedirectUri: string;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
   if (!code) {
     return err({
@@ -124,7 +126,7 @@ export async function handleOauthCallback({
 
   switch (provider) {
     case "gmail": {
-      const redirectUri = `${dashboardUrl}/dashboard/oauth2/callback/gmail`;
+      const redirectUri = `${dashboardUrl}${baseRedirectUri}/gmail`;
       // Get the state from the query parameters (returned by Google)
       const gmailResult = await handleGmailCallback({
         workspaceId,

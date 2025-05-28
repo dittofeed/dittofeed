@@ -50,6 +50,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
       returnTo: validatedState?.returnTo,
       occupantId: dfContext.member.id,
       occupantType: "WorkspaceMember",
+      baseRedirectUri: "/dashboard/oauth2/callback",
     });
 
     if (callbackResult.isErr()) {
