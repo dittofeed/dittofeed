@@ -30,7 +30,7 @@ import {
   CompletionStatus,
   CursorDirectionEnum,
   DelayVariantType,
-  EmailProviderType,
+  EmailProviderTypeSchema,
   EntryNode,
   JourneyNodeType,
   JourneyUiNodeType,
@@ -398,7 +398,7 @@ function MessageNodeFields({
         switch (props.channel) {
           case ChannelType.Email:
             props.providerOverride =
-              (provider as EmailProviderType | null) ?? undefined;
+              (provider as EmailProviderTypeSchema | null) ?? undefined;
             break;
           case ChannelType.Sms:
             props.providerOverride =
@@ -943,11 +943,11 @@ function WaitForNodeFields({
     }
     if (isEventEntry) {
       return segmentsData.segments.filter(
-        (s) => s.definition?.entryNode.type === SegmentNodeType.KeyedPerformed,
+        (s) => s.definition.entryNode.type === SegmentNodeType.KeyedPerformed,
       );
     }
     return segmentsData.segments.filter(
-      (s) => s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
+      (s) => s.definition.entryNode.type !== SegmentNodeType.KeyedPerformed,
     );
   }, [segmentsData, isEventEntry]);
 

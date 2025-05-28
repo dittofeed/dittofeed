@@ -8,6 +8,7 @@ import {
   EmailEvent,
   EmailEventList,
   EmailProviderType,
+  EmailProviderTypeSchema,
   EmailTemplateResource,
   WorkspaceWideProviders,
 } from "./types";
@@ -21,7 +22,7 @@ export function isEmailEvent(s: unknown): s is EmailEvent {
 
 const EmailProviderTypeSet = new Set<string>(Object.values(EmailProviderType));
 
-export function isEmailProviderType(s: unknown): s is EmailProviderType {
+export function isEmailProviderType(s: unknown): s is EmailProviderTypeSchema {
   if (typeof s !== "string") return false;
   return EmailProviderTypeSet.has(s);
 }
@@ -31,17 +32,17 @@ const WorkspaceWideProviderSet = new Set<string>(
 );
 
 export function isWorkspaceWideProvider(
-  provider: EmailProviderType,
+  provider: EmailProviderTypeSchema,
 ): provider is WorkspaceWideProviders {
   return WorkspaceWideProviderSet.has(provider);
 }
 
-export function emailProviderLabel(provider: EmailProviderType): string {
+export function emailProviderLabel(provider: EmailProviderTypeSchema): string {
   switch (provider) {
     case EmailProviderType.Test:
       return "Test";
-    case EmailProviderType.Sendgrid:
-      return "Sendgrid";
+    case EmailProviderType.SendGrid:
+      return "SendGrid";
     case EmailProviderType.AmazonSes:
       return "Amazon SES";
     case EmailProviderType.PostMark:

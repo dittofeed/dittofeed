@@ -48,6 +48,7 @@ import {
   ChannelType,
   CompletionStatus,
   EmailProviderType,
+  EmailProviderTypeSchema,
   InternalEventType,
   JsonResultType,
   MessageTemplateResourceDraft,
@@ -194,7 +195,7 @@ export interface BaseTemplateState {
 
 export interface EmailTemplateState extends BaseTemplateState {
   channel: (typeof ChannelType)["Email"];
-  providerOverride: EmailProviderType | null;
+  providerOverride: EmailProviderTypeSchema | null;
 }
 
 export interface SmsTemplateState extends BaseTemplateState {
@@ -943,13 +944,15 @@ export default function TemplateEditor({
     switch (state.channel) {
       case ChannelType.Email:
         {
-          const providerOptions: { id: EmailProviderType; label: string }[] =
-            Object.values(EmailProviderType).map((type) => ({
-              id: type,
-              label: emailProviderLabel(type),
-            }));
+          const providerOptions: {
+            id: EmailProviderTypeSchema;
+            label: string;
+          }[] = Object.values(EmailProviderType).map((type) => ({
+            id: type,
+            label: emailProviderLabel(type),
+          }));
           providerAutocomplete = (
-            <ProviderOverrideSelector<EmailProviderType>
+            <ProviderOverrideSelector<EmailProviderTypeSchema>
               value={state.providerOverride}
               options={providerOptions}
               onChange={(value) => {

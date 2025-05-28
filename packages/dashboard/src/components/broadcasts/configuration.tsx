@@ -28,6 +28,7 @@ import {
   BroadcastV2Config,
   ChannelType,
   EmailProviderType,
+  EmailProviderTypeSchema,
   SmsProviderType,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
@@ -89,7 +90,7 @@ function getTomorrowAt8AM(currentDate: Date = new Date()): string {
 }
 
 interface ProviderOverrideOption {
-  id: EmailProviderType | SmsProviderType;
+  id: EmailProviderTypeSchema | SmsProviderType;
   label: string;
 }
 
@@ -120,10 +121,10 @@ export default function Configuration({
       case ChannelType.Email:
         return [
           { id: EmailProviderType.Test, label: "Test" },
-          { id: EmailProviderType.Sendgrid, label: "SendGrid" },
           { id: EmailProviderType.AmazonSes, label: "Amazon SES" },
-          { id: EmailProviderType.Smtp, label: "SMTP" },
           { id: EmailProviderType.Resend, label: "Resend" },
+          { id: EmailProviderType.SendGrid, label: "SendGrid" },
+          { id: EmailProviderType.Smtp, label: "SMTP" },
           { id: EmailProviderType.PostMark, label: "PostMark" },
           { id: EmailProviderType.MailChimp, label: "MailChimp" },
           { id: EmailProviderType.Gmail, label: "Gmail" },
@@ -145,7 +146,7 @@ export default function Configuration({
       return null;
     }
     const { message } = broadcast.config;
-    let override: EmailProviderType | SmsProviderType | null = null;
+    let override: EmailProviderTypeSchema | SmsProviderType | null = null;
     switch (message.type) {
       case ChannelType.Email:
         override = message.providerOverride ?? null;
@@ -350,7 +351,7 @@ export default function Configuration({
           }
           switch (message.type) {
             case ChannelType.Email: {
-              let newProviderOverride: EmailProviderType | undefined;
+              let newProviderOverride: EmailProviderTypeSchema | undefined;
               if (!newValue) {
                 newProviderOverride = undefined;
               } else if (isEmailProviderType(newValue.id)) {
