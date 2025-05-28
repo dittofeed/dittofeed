@@ -1,12 +1,14 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, Typography } from "@mui/material";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
+import { OauthStateObject } from "../lib/oauthV2";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
-import { GmailStateObject } from "../lib/oauth";
 
 export function AuthorizeGmail({
   gmailClientId,
@@ -19,6 +21,7 @@ export function AuthorizeGmail({
 }) {
   const router = useRouter();
   const universalRouter = useUniversalRouter();
+  const { workspace } = useAppStorePick(["workspace"]);
   const { data, isLoading } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
 
@@ -30,17 +33,24 @@ export function AuthorizeGmail({
   }, [isAuthorized, onAuthorize]);
 
   const handleConnectGmailClick = () => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
     // Don't proceed if already authorized or externally disabled
     if (isAuthorized || disabled) return;
+    const token =
+      typeof router.query.token === "string" ? router.query.token : undefined;
 
     // 1. Generate a CSRF token and get the current path for returnTo
     const csrfToken = uuidv4();
     const returnTo = router.asPath;
 
     // 2. Create the state object
-    const stateObject: GmailStateObject = {
+    const stateObject: OauthStateObject = {
       csrf: csrfToken,
       returnTo,
+      workspaceId: workspace.value.id,
+      token,
     };
 
     // 3. JSON.stringify and Base64Url encode the state object

@@ -88,13 +88,6 @@ export async function handleOauthCallback({
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
-  if (!validatedStateObject && provider !== "hubspot") {
-    return err({
-      type: "error",
-      reason: "csrf_not_checked",
-      redirectUrl: "/",
-    });
-  }
   if (!code) {
     return err({
       type: "error",
