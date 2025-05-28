@@ -79,24 +79,84 @@ export async function handleOauthCallback({
   code,
   occupantId,
   occupantType,
-  csrfChecked,
+  validatedStateObject,
 }: {
   workspaceId: string;
   provider?: string;
   code?: string;
-  csrfChecked: boolean;
+  validatedStateObject: OauthStateObject | null;
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
-  if (!csrfChecked && provider !== "hubspot") {
+  if (!validatedStateObject && provider !== "hubspot") {
     return err({
       type: "error",
       reason: "csrf_not_checked",
       redirectUrl: "/",
     });
   }
+  if (!code) {
+    return err({
+      type: "error",
+      reason: "missing_code",
+      redirectUrl: "/",
+    });
+  }
+  const { dashboardUrl, hubspotClientSecret, hubspotClientId } =
+    backendConfig();
+
   switch (provider) {
     case "gmail": {
+      if (!validatedStateObject) {
+        return err({
+          type: "error",
+          reason: "csrf_not_checked",
+          redirectUrl: "/",
+        });
+      }
+      const redirectUri = `${dashboardUrl}/dashboard/oauth2/callback/gmail`;
+      // Get the state from the query parameters (returned by Google)
+      const gmailResult = await handleGmailCallback({
+        workspaceId,
+        workspaceOccupantId: occupantId,
+        workspaceOccupantType: occupantType,
+        code,
+        redirectUri,
+      });
+      if (gmailResult.isErr()) {
+        logger().error(
+          {
+            err: gmailResult.error,
+            workspaceId,
+          },
+          "failed to authorize gmail",
+        );
+      }
+      let baseRedirectPath = "/"; // Default to app's base path
+
+      const { returnTo } = validatedStateObject;
+      if (
+        returnTo &&
+        typeof returnTo === "string" && // Ensure it's a string
+        returnTo.startsWith("/") &&
+        !returnTo.startsWith("//")
+      ) {
+        baseRedirectPath = returnTo;
+      }
+
+      const finalUrl = new URL(baseRedirectPath, dashboardUrl); // Use dashboardUrl to make it absolute for URL object manipulation
+
+      if (gmailResult.isOk()) {
+        finalUrl.searchParams.set("gmail_connected", "true");
+      } else {
+        finalUrl.searchParams.set("gmail_error", gmailResult.error.type);
+      }
+
+      const finalRedirectPath = finalUrl.pathname + finalUrl.search;
+      return ok({
+        type: "success",
+        redirectUrl: finalRedirectPath,
+      });
       break;
     }
     case "hubspot": {

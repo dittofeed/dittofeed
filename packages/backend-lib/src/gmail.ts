@@ -62,17 +62,12 @@ async function persistGmailTokens({
 }
 
 export const GmailCallbackErrorEnum = {
-  StateMismatchError: "StateMismatchError",
   TokenExchangeError: "TokenExchangeError",
   UserInfoError: "UserInfoError",
 } as const;
 
 export type GmailCallbackErrorType =
   (typeof GmailCallbackErrorEnum)[keyof typeof GmailCallbackErrorEnum];
-
-export interface GmailStateMismatchError {
-  type: typeof GmailCallbackErrorEnum.StateMismatchError;
-}
 
 export interface GoogleOAuthErrorData {
   error: string;
@@ -93,33 +88,21 @@ export interface GmailUserInfoError {
   gaxiosErrorData?: GoogleOAuthErrorData;
 }
 
-export type GmailCallbackError =
-  | GmailStateMismatchError
-  | GmailTokenExchangeError
-  | GmailUserInfoError;
+export type GmailCallbackError = GmailTokenExchangeError | GmailUserInfoError;
 
 export async function handleGmailCallback({
   workspaceId,
   workspaceOccupantId,
   workspaceOccupantType,
   code,
-  originalState,
-  returnedState,
   redirectUri,
 }: {
   workspaceId: string;
   workspaceOccupantId: string;
   workspaceOccupantType: DBWorkspaceOccupantType;
   code: string;
-  originalState: string;
-  returnedState: string;
   redirectUri: string;
 }): Promise<Result<void, GmailCallbackError>> {
-  if (originalState !== returnedState) {
-    return err({
-      type: GmailCallbackErrorEnum.StateMismatchError,
-    });
-  }
   const { gmailClientId, gmailClientSecret } = config();
   if (!gmailClientId || !gmailClientSecret) {
     throw new Error("Gmail client ID and secret are not set");
