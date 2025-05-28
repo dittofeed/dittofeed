@@ -79,12 +79,12 @@ export async function handleOauthCallback({
   code,
   occupantId,
   occupantType,
-  validatedStateObject,
+  returnTo,
 }: {
   workspaceId: string;
   provider?: string;
   code?: string;
-  validatedStateObject: OauthStateObject | null;
+  returnTo?: string;
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
@@ -100,13 +100,6 @@ export async function handleOauthCallback({
 
   switch (provider) {
     case "gmail": {
-      if (!validatedStateObject) {
-        return err({
-          type: "error",
-          reason: "csrf_not_checked",
-          redirectUrl: "/",
-        });
-      }
       const redirectUri = `${dashboardUrl}/dashboard/oauth2/callback/gmail`;
       // Get the state from the query parameters (returned by Google)
       const gmailResult = await handleGmailCallback({
@@ -127,7 +120,6 @@ export async function handleOauthCallback({
       }
       let baseRedirectPath = "/"; // Default to app's base path
 
-      const { returnTo } = validatedStateObject;
       if (
         returnTo &&
         typeof returnTo === "string" && // Ensure it's a string
@@ -153,7 +145,95 @@ export async function handleOauthCallback({
       break;
     }
     case "hubspot": {
-      break;
+      logger().info(
+        {
+          workspaceId,
+        },
+        "handling hubspot callback",
+      );
+
+      if (!hubspotClientSecret) {
+        throw new Error("missing hubspotClientSecret");
+      }
+
+      const formData = {
+        grant_type: "authorization_code",
+        client_id: hubspotClientId,
+        client_secret: hubspotClientSecret,
+        redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
+        code,
+      };
+
+      const [tokenResponse, integration] = await Promise.all([
+        axios({
+          method: "post",
+          url: "https://api.hubapi.com/oauth/v1/token",
+          data: formData,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }),
+        findEnrichedIntegration({
+          workspaceId,
+          name: HUBSPOT_INTEGRATION,
+        }).then(unwrap),
+      ]);
+
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const { access_token, refresh_token, expires_in } = tokenResponse.data;
+
+      await Promise.all([
+        upsert({
+          table: schema.oauthToken,
+          values: {
+            workspaceId,
+            name: HUBSPOT_OAUTH_TOKEN,
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: expires_in,
+          },
+          set: {
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: expires_in,
+          },
+          target: [schema.oauthToken.workspaceId, schema.oauthToken.name],
+        }).then(unwrap),
+        upsert({
+          table: schema.integration,
+          values: {
+            ...HUBSPOT_INTEGRATION_DEFINITION,
+            workspaceId,
+          },
+          target: [schema.integration.workspaceId, schema.integration.name],
+          set: {
+            enabled: true,
+            definition: integration
+              ? {
+                  ...integration.definition,
+                  subscribedUserProperties:
+                    HUBSPOT_INTEGRATION_DEFINITION.definition
+                      .subscribedUserProperties,
+                }
+              : undefined,
+          },
+        }).then(unwrap),
+        insert({
+          table: schema.userProperty,
+          values: {
+            workspaceId,
+            name: EMAIL_EVENTS_UP_NAME,
+            definition: EMAIL_EVENTS_UP_DEFINITION,
+            resourceType: "Internal",
+          },
+          doNothingOnConflict: true,
+        }).then(unwrap),
+      ]);
+      await startHubspotIntegrationWorkflow({
+        workspaceId,
+      });
+      return ok({
+        type: "success",
+        redirectUrl: "/settings",
+      });
     }
     default: {
       return err({
@@ -163,5 +243,4 @@ export async function handleOauthCallback({
       });
     }
   }
-  throw new Error("Not implemented");
 }
