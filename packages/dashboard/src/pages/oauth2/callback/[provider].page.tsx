@@ -1,7 +1,10 @@
 import logger from "backend-lib/src/logger";
 import { GetServerSideProps } from "next";
 
-import { handleOauthCallback } from "../../../lib/oauth";
+import {
+  decodeAndValidateOauthState,
+  handleOauthCallback,
+} from "../../../lib/oauthV2";
 import { requestContext } from "../../../lib/requestContext";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
@@ -19,11 +22,24 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         },
       };
     }
+    const validatedState = decodeAndValidateOauthState({
+      stateParam: state,
+      storedCsrfToken: ctx.req.cookies.csrfToken,
+    });
+    // allow hubspot to be called without a state param for backwards compatibility
+    if (!validatedState && provider !== "hubspot") {
+      return {
+        redirect: {
+          permanent: false,
+          destination: "/",
+        },
+      };
+    }
     const callbackResult = await handleOauthCallback({
       workspaceId: dfContext.workspace.id,
       provider,
       code,
-      state,
+      returnTo: validatedState?.returnTo,
       occupantId: dfContext.member.id,
       occupantType: "WorkspaceMember",
     });

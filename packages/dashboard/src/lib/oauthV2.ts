@@ -30,10 +30,13 @@ export const OauthStateObject = Type.Object({
 export type OauthStateObject = Static<typeof OauthStateObject>;
 
 // Function to decode the state parameter
-export function decodeAndValidateOauthState(
-  stateParam?: string,
-  storedCsrfToken?: string,
-): OauthStateObject | null {
+export function decodeAndValidateOauthState({
+  stateParam,
+  storedCsrfToken,
+}: {
+  stateParam?: string;
+  storedCsrfToken?: string;
+}): OauthStateObject | null {
   if (!stateParam || !storedCsrfToken) {
     return null;
   }
