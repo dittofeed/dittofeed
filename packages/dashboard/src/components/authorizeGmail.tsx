@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { useUniversalRouter } from "../lib/authModeProvider";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
+import { GmailStateObject } from "../lib/oauth";
 
 export function AuthorizeGmail({
   gmailClientId,
@@ -37,7 +38,7 @@ export function AuthorizeGmail({
     const returnTo = router.asPath;
 
     // 2. Create the state object
-    const stateObject = {
+    const stateObject: GmailStateObject = {
       csrf: csrfToken,
       returnTo,
     };

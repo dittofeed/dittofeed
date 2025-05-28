@@ -1,3 +1,4 @@
+import { Static, Type } from "@sinclair/typebox";
 import axios from "axios";
 import backendConfig from "backend-lib/src/config";
 import {
@@ -16,6 +17,15 @@ import logger from "backend-lib/src/logger";
 import { DBWorkspaceOccupantType } from "backend-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
+
+export const GmailStateObject = Type.Object({
+  csrf: Type.String(),
+  returnTo: Type.Optional(Type.String()),
+  workspaceId: Type.Optional(Type.String()),
+  token: Type.Optional(Type.String()),
+});
+
+export type GmailStateObject = Static<typeof GmailStateObject>;
 
 interface OauthCallbackSuccess {
   type: "success";
@@ -47,6 +57,7 @@ function decodeGmailState(
       base64 += "=";
     }
     const jsonString = atob(base64); // atob is available in Node.js via global or Buffer
+    // FIXME use schema to parse
     const decoded = JSON.parse(jsonString) as DecodedGmailState;
     // Basic validation of the decoded object structure
     if (typeof decoded.csrf === "string") {
@@ -61,6 +72,19 @@ function decodeGmailState(
     return null;
   }
 }
+
+export type ValidatedOauthState = null | {
+  occupantId: string;
+  workspaceId: string;
+};
+
+export async function validateOauthState({
+  state,
+  storedCsrfToken,
+}: {
+  state: string;
+  storedCsrfToken: string;
+}): Promise<Result<{} | null, OauthCallbackError>> {}
 
 export async function handleOauthCallback({
   workspaceId,
