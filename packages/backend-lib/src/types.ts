@@ -30,6 +30,7 @@ import {
   broadcast as dbBroadcast,
   componentConfiguration as dbComponentConfiguration,
   computedPropertyPeriod as dbComputedPropertyPeriod,
+  DBWorkspaceOccupantType,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
@@ -46,7 +47,6 @@ import {
   workspace as dbWorkspace,
   workspaceMember as dbWorkspaceMember,
   workspaceMemberRole as dbWorkspaceMemberRole,
-  DBWorkspaceOccupantType,
   workspaceType as dbWorkspaceType,
   writeKey as dbWriteKey,
 } from "./db/schema";

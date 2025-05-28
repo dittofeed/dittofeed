@@ -5,7 +5,7 @@ import { GetServerSideProps } from "next";
 import {
   decodeAndValidateOauthState,
   handleOauthCallback,
-} from "../../../lib/oauthV2";
+} from "../../../lib/oauth";
 import { requestContext } from "../../../lib/requestContext";
 
 export const getServerSideProps: GetServerSideProps = requestContext(

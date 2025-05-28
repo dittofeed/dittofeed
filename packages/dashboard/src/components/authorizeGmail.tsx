@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
-import { OauthStateObject } from "../lib/oauthV2";
+import { OauthStateObject } from "../lib/oauth";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
 
 export function AuthorizeGmail({
