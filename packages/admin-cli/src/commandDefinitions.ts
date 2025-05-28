@@ -253,9 +253,11 @@ export function createCommands(yargs: Argv): Argv {
           workspaces.map(async (workspace) => {
             const isGlobal = workspace.features.some(
               (f) =>
+                // defaults to true
+                backendConfig().useGlobalComputedProperties !== false ||
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-                f.name === FeatureNamesEnum.ComputePropertiesGlobal &&
-                f.enabled,
+                (f.name === FeatureNamesEnum.ComputePropertiesGlobal &&
+                  f.enabled),
             );
             if (
               workspace.status !== WorkspaceStatusDbEnum.Active ||
