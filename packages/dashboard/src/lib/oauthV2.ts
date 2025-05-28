@@ -23,6 +23,7 @@ export const OauthStateObject = Type.Object({
   csrf: Type.String(),
   returnTo: Type.Optional(Type.String()),
   workspaceId: Type.String(),
+  // used for embedded auth
   token: Type.Optional(Type.String()),
 });
 
@@ -59,4 +60,55 @@ export function decodeAndValidateOauthState(
     );
     return null;
   }
+}
+
+interface OauthCallbackSuccess {
+  type: "success";
+  redirectUrl: string;
+}
+
+interface OauthCallbackError {
+  type: "error";
+  reason: string;
+  redirectUrl: string;
+}
+
+export async function handleOauthCallback({
+  workspaceId,
+  provider,
+  code,
+  occupantId,
+  occupantType,
+  csrfChecked,
+}: {
+  workspaceId: string;
+  provider?: string;
+  code?: string;
+  csrfChecked: boolean;
+  occupantId: string;
+  occupantType: DBWorkspaceOccupantType;
+}): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
+  if (!csrfChecked && provider !== "hubspot") {
+    return err({
+      type: "error",
+      reason: "csrf_not_checked",
+      redirectUrl: "/",
+    });
+  }
+  switch (provider) {
+    case "gmail": {
+      break;
+    }
+    case "hubspot": {
+      break;
+    }
+    default: {
+      return err({
+        type: "error",
+        reason: "invalid_provider",
+        redirectUrl: "/",
+      });
+    }
+  }
+  throw new Error("Not implemented");
 }
