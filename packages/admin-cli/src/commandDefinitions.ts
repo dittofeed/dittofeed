@@ -372,20 +372,20 @@ export function createCommands(yargs: Argv): Argv {
               const webhookSecret = await pTx.query.secret.findFirst({
                 where: and(
                   eq(schema.secret.workspaceId, emailProvider.workspaceId),
-                  eq(schema.secret.name, SecretNames.Sendgrid),
+                  eq(schema.secret.name, SecretNames.SendGrid),
                 ),
               });
               const sendgridSecretDefinition: SendgridSecret = {
                 apiKey: emailProvider.apiKey ?? undefined,
                 webhookKey: webhookSecret?.value ?? undefined,
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               };
               const [secret] = await pTx
                 .insert(schema.secret)
                 .values({
                   id: randomUUID(),
                   workspaceId: emailProvider.workspaceId,
-                  name: SecretNames.Sendgrid,
+                  name: SecretNames.SendGrid,
                   configValue: sendgridSecretDefinition,
                   updatedAt: new Date(),
                   createdAt: new Date(),
