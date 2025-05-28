@@ -887,8 +887,6 @@ describe("deliveries", () => {
             properties: {
               workspaceId,
               broadcastId,
-              // // FIXME remove
-              // journeyId: randomUUID(),
               templateId: randomUUID(),
               messageId: randomUUID(),
               ...messageSentEvent,
