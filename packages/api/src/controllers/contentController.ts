@@ -425,7 +425,7 @@ export default async function contentController(fastify: FastifyInstance) {
           case ChannelType.Email: {
             const { type } = result.error.variant.provider;
             switch (type) {
-              case EmailProviderType.Sendgrid: {
+              case EmailProviderType.SendGrid: {
                 const { body, status } = result.error.variant.provider;
                 const suggestions: string[] = [];
                 if (status) {

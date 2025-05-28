@@ -701,14 +701,14 @@ function SendGridConfig() {
                   id: "sendgrid-api-key",
                   type: "secret",
                   fieldProps: {
-                    name: SecretNames.Sendgrid,
+                    name: SecretNames.SendGrid,
                     secretKey: "apiKey",
                     label: "Sendgrid API Key",
                     helperText:
                       "API key, used internally to send emails via sendgrid.",
-                    type: EmailProviderType.Sendgrid,
+                    type: EmailProviderType.SendGrid,
                     saved: isSecretSaved(
-                      SecretNames.Sendgrid,
+                      SecretNames.SendGrid,
                       "apiKey",
                       secretAvailability,
                     ),
@@ -718,14 +718,14 @@ function SendGridConfig() {
                   id: "sendgrid-webhook-key",
                   type: "secret",
                   fieldProps: {
-                    name: SecretNames.Sendgrid,
+                    name: SecretNames.SendGrid,
                     secretKey: "webhookKey",
                     label: "Webhook Key",
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
-                    type: EmailProviderType.Sendgrid,
+                    type: EmailProviderType.SendGrid,
                     saved: isSecretSaved(
-                      SecretNames.Sendgrid,
+                      SecretNames.SendGrid,
                       "webhookKey",
                       secretAvailability,
                     ),

@@ -105,7 +105,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const secret = await db().query.secret.findFirst({
         where: and(
           eq(schema.secret.workspaceId, workspaceId),
-          eq(schema.secret.name, SecretNames.Sendgrid),
+          eq(schema.secret.name, SecretNames.SendGrid),
         ),
       });
       const webhookKey = schemaValidateWithErr(

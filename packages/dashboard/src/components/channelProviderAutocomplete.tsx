@@ -1,16 +1,16 @@
 import { Autocomplete, TextField } from "@mui/material";
 import {
   ChannelType,
-  EmailProviderType,
+  EmailProviderTypeSchema,
   SmsProviderType,
 } from "isomorphic-lib/src/types";
 
-function getProviderLabel(provider: EmailProviderType | SmsProviderType) {
+function getProviderLabel(provider: EmailProviderTypeSchema | SmsProviderType) {
   return provider;
 }
 
 export type ProviderOverrideChangeHandler = (
-  provider: EmailProviderType | SmsProviderType | null,
+  provider: EmailProviderTypeSchema | SmsProviderType | null,
 ) => void;
 
 export default function ChannelProviderAutocomplete({
@@ -19,15 +19,15 @@ export default function ChannelProviderAutocomplete({
   disabled,
   handler,
 }: {
-  providerOverride?: EmailProviderType | SmsProviderType | null;
+  providerOverride?: EmailProviderTypeSchema | SmsProviderType | null;
   disabled?: boolean;
   channel: ChannelType;
   handler: ProviderOverrideChangeHandler;
 }) {
-  let providerOptions: (EmailProviderType | SmsProviderType)[] = [];
+  let providerOptions: (EmailProviderTypeSchema | SmsProviderType)[] = [];
   switch (channel) {
     case ChannelType.Email:
-      providerOptions = Object.values(EmailProviderType);
+      providerOptions = Object.values(EmailProviderTypeSchema);
       break;
     case ChannelType.Sms:
       providerOptions = Object.values(SmsProviderType);

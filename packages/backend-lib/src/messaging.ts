@@ -75,6 +75,7 @@ import {
   ChannelType,
   EmailProviderSecret,
   EmailProviderType,
+  EmailProviderTypeSchema,
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
@@ -377,7 +378,7 @@ export interface SendMessageParametersBase {
 
 export interface SendMessageParametersEmail extends SendMessageParametersBase {
   channel: (typeof ChannelType)["Email"];
-  providerOverride?: EmailProviderType;
+  providerOverride?: EmailProviderTypeSchema;
 }
 
 export type SendMessageParametersSms = SendMessageParametersBase &
@@ -541,7 +542,7 @@ async function getEmailProviderSecretForWorkspace({
   workspaceId,
 }: {
   workspaceId: string;
-  providerOverride?: EmailProviderType;
+  providerOverride?: EmailProviderTypeSchema;
 }): Promise<Secret | null> {
   if (providerOverride) {
     const provider = await db().query.emailProvider.findFirst({
@@ -581,7 +582,7 @@ async function getEmailProviderSecretForWorkspaceHierarchical({
   providerOverride,
 }: {
   workspaceId: string;
-  providerOverride?: EmailProviderType;
+  providerOverride?: EmailProviderTypeSchema;
 }): Promise<Secret | null> {
   const secret = await getEmailProviderSecretForWorkspace({
     workspaceId,
@@ -610,7 +611,7 @@ async function getEmailProvider({
   workspaceOccupantType,
 }: {
   workspaceId: string;
-  providerOverride?: EmailProviderType;
+  providerOverride?: EmailProviderTypeSchema;
   workspaceOccupantId?: string;
   workspaceOccupantType?: string;
 }): Promise<Result<EmailProviderSecret, MessageSendFailure>> {
@@ -1035,7 +1036,7 @@ export async function sendEmail({
         },
       });
     }
-    case EmailProviderType.Sendgrid: {
+    case EmailProviderType.SendGrid: {
       const sendgridAttachments: MailDataRequired["attachments"] =
         messageTags &&
         attachments?.map((attachment) => ({
@@ -1088,7 +1089,7 @@ export async function sendEmail({
           variant: {
             type: ChannelType.Email,
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
               // Necessary because the types on sendgrid's lib are wrong
               body: JSON.stringify(result.error.response.body),
               status: result.error.code,
@@ -1111,7 +1112,7 @@ export async function sendEmail({
           name: emailName,
           attachments: attachmentsSent,
           provider: {
-            type: EmailProviderType.Sendgrid,
+            type: EmailProviderType.SendGrid,
           },
         },
       });

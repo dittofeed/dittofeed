@@ -45,7 +45,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -149,7 +149,7 @@ describe("deliveries", () => {
               to: "user@email.com",
               subject: "triggered",
               body: "triggered",
-              provider: { type: EmailProviderType.Sendgrid },
+              provider: { type: EmailProviderType.SendGrid },
             },
           },
         };
@@ -287,7 +287,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -432,7 +432,7 @@ describe("deliveries", () => {
             body: "body1",
             subject: "subject1",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -445,7 +445,7 @@ describe("deliveries", () => {
             body: "body2",
             subject: "subject2",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -600,7 +600,7 @@ describe("deliveries", () => {
             body: "body1",
             subject: "subject1",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -613,7 +613,7 @@ describe("deliveries", () => {
             body: "body2",
             subject: "subject2",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -711,7 +711,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -785,7 +785,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -873,7 +873,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -939,7 +939,7 @@ describe("deliveries", () => {
             body: "body",
             subject: "subject",
             provider: {
-              type: EmailProviderType.Sendgrid,
+              type: EmailProviderType.SendGrid,
             },
           },
         };
@@ -1018,7 +1018,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           };
@@ -1132,7 +1132,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           };
@@ -1253,7 +1253,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           },
@@ -1329,7 +1329,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           },
@@ -1406,7 +1406,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           },
@@ -1429,7 +1429,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           },
@@ -1496,7 +1496,7 @@ describe("deliveries", () => {
               body: "body",
               subject: "subject",
               provider: {
-                type: EmailProviderType.Sendgrid,
+                type: EmailProviderType.SendGrid,
               },
             },
           };
@@ -1616,7 +1616,7 @@ describe("deliveries", () => {
           body: "body",
           subject: "subject",
           provider: {
-            type: EmailProviderType.Sendgrid,
+            type: EmailProviderType.SendGrid,
           },
         };
 
@@ -1690,7 +1690,7 @@ describe("deliveries", () => {
           body: "body",
           subject: "subject",
           provider: {
-            type: EmailProviderType.Sendgrid,
+            type: EmailProviderType.SendGrid,
           },
         };
 
@@ -1765,7 +1765,7 @@ describe("deliveries", () => {
           body: "body",
           subject: "subject",
           provider: {
-            type: EmailProviderType.Sendgrid,
+            type: EmailProviderType.SendGrid,
           },
         };
 

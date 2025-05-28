@@ -20,7 +20,7 @@ export const DEBUG_USER_ID1 = "1b9858de-907d-493f-a067-b3c8effecb0b" as const;
 
 export enum SecretNames {
   Twilio = "twilio-key",
-  Sendgrid = "sendgrid",
+  SendGrid = "sendgrid",
   AmazonSes = "amazonses",
   Resend = "resend",
   Postmark = "postmark",
@@ -47,7 +47,7 @@ export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   WorkspaceWideProviders,
   string
 > = {
-  [EmailProviderType.Sendgrid]: SecretNames.Sendgrid,
+  [EmailProviderType.SendGrid]: SecretNames.SendGrid,
   [EmailProviderType.AmazonSes]: SecretNames.AmazonSes,
   [EmailProviderType.Smtp]: SecretNames.Smtp,
   [EmailProviderType.Resend]: SecretNames.Resend,

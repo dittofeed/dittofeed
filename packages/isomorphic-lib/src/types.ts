@@ -99,33 +99,39 @@ export const ChannelType = {
   Webhook: "Webhook",
 } as const;
 
-export enum EmailProviderType {
-  Sendgrid = "SendGrid",
-  AmazonSes = "AmazonSes",
-  Resend = "Resend",
-  PostMark = "PostMark",
-  Smtp = "Smtp",
-  Test = "Test",
-  MailChimp = "MailChimp",
-  Gmail = "Gmail",
-}
+export const EmailProviderType = {
+  SendGrid: "SendGrid",
+  AmazonSes: "AmazonSes",
+  Resend: "Resend",
+  PostMark: "PostMark",
+  Smtp: "Smtp",
+  Test: "Test",
+  MailChimp: "MailChimp",
+  Gmail: "Gmail",
+} as const;
 
-export const EmailProviderTypeSchema = Type.Enum(EmailProviderType);
-
-// Providers that are configured at the workspace level, not the member level.
-export const WorkspaceWideProviders = Type.Union([
-  Type.Literal(EmailProviderType.Sendgrid),
-  Type.Literal(EmailProviderType.AmazonSes),
-  Type.Literal(EmailProviderType.Smtp),
-  Type.Literal(EmailProviderType.Resend),
-  Type.Literal(EmailProviderType.PostMark),
-  Type.Literal(EmailProviderType.MailChimp),
-  Type.Literal(EmailProviderType.Test),
-]);
-
-export type WorkspaceWideProviders = Static<typeof WorkspaceWideProviders>;
+export const EmailProviderTypeSchema = Type.KeyOf(
+  Type.Const(EmailProviderType),
+);
 
 export type EmailProviderTypeSchema = Static<typeof EmailProviderTypeSchema>;
+
+export const WorkspaceWideEmailProviderType = {
+  SendGrid: EmailProviderType.SendGrid,
+  AmazonSes: EmailProviderType.AmazonSes,
+  Resend: EmailProviderType.Resend,
+  PostMark: EmailProviderType.PostMark,
+  Smtp: EmailProviderType.Smtp,
+  Test: EmailProviderType.Test,
+  MailChimp: EmailProviderType.MailChimp,
+} as const;
+
+// Providers that are configured at the workspace level, not the member level.
+export const WorkspaceWideProviders = Type.KeyOf(
+  Type.Const(WorkspaceWideEmailProviderType),
+);
+
+export type WorkspaceWideProviders = Static<typeof WorkspaceWideProviders>;
 
 export enum MobilePushProviderType {
   Firebase = "Firebase",
@@ -3476,7 +3482,7 @@ export const EmailTestSuccess = Type.Object({
 export type EmailTestSuccess = Static<typeof EmailTestSuccess>;
 
 export const EmailSendgridSuccess = Type.Object({
-  type: Type.Literal(EmailProviderType.Sendgrid),
+  type: Type.Literal(EmailProviderType.SendGrid),
 });
 
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
@@ -3697,7 +3703,7 @@ export type MessageSendBadConfiguration = Static<
 >;
 
 export const MessageSendgridServiceFailure = Type.Object({
-  type: Type.Literal(EmailProviderType.Sendgrid),
+  type: Type.Literal(EmailProviderType.SendGrid),
   status: Type.Optional(Type.Number()),
   body: Type.Optional(Type.String()),
 });
@@ -4161,7 +4167,7 @@ export const GmailSecret = Type.Composite([
 export type GmailSecret = Static<typeof GmailSecret>;
 
 export const SendgridSecret = Type.Object({
-  type: Type.Literal(EmailProviderType.Sendgrid),
+  type: Type.Literal(EmailProviderType.SendGrid),
   apiKey: Type.Optional(Type.String()),
   webhookKey: Type.Optional(Type.String()),
 });

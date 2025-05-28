@@ -17,7 +17,7 @@ describe("email", () => {
         workspaceId: workspace.id,
         setDefault: true,
         config: {
-          type: EmailProviderType.Sendgrid,
+          type: EmailProviderType.SendGrid,
           apiKey: "123",
         },
       });
@@ -26,7 +26,7 @@ describe("email", () => {
         workspaceId: workspace.id,
         setDefault: true,
         config: {
-          type: EmailProviderType.Sendgrid,
+          type: EmailProviderType.SendGrid,
           apiKey: "456",
         },
       });
