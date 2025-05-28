@@ -385,7 +385,7 @@ export async function findDueWorkspaceMaxTos({
       ),
     ),
   ];
-  if (!config().useGlobalComputedProperties) {
+  if (config().useGlobalComputedProperties === false) {
     logger().debug("Not using global computed properties");
     whereConditions.push(
       eq(schema.feature.name, FeatureNamesEnum.ComputePropertiesGlobal),
