@@ -38,6 +38,13 @@ export function decodeAndValidateOauthState({
   storedCsrfToken?: string;
 }): OauthStateObject | null {
   if (!stateParam || !storedCsrfToken) {
+    logger().error(
+      {
+        stateParam,
+        storedCsrfToken,
+      },
+      "missing state param or stored csrf token",
+    );
     return null;
   }
   try {
@@ -49,10 +56,24 @@ export function decodeAndValidateOauthState({
     const jsonString = Buffer.from(base64, "base64").toString("utf-8");
     const decoded = jsonParseSafeWithSchema(jsonString, OauthStateObject);
     if (decoded.isErr()) {
+      logger().error(
+        {
+          err: decoded.error,
+          stateParam,
+        },
+        "error decoding state param",
+      );
       return null;
     }
     const { value } = decoded;
     if (value.csrf !== storedCsrfToken) {
+      logger().error(
+        {
+          value,
+          storedCsrfToken,
+        },
+        "csrf token mismatch",
+      );
       return null;
     }
     return value;

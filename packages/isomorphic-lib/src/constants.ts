@@ -112,3 +112,5 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
     },
   ],
 };
+
+export const OAUTH_COOKIE_NAME = "oauth_csrf_token";

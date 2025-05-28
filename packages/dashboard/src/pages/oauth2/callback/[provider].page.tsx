@@ -1,4 +1,5 @@
 import logger from "backend-lib/src/logger";
+import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { GetServerSideProps } from "next";
 
 import {
@@ -24,10 +25,17 @@ export const getServerSideProps: GetServerSideProps = requestContext(
     }
     const validatedState = decodeAndValidateOauthState({
       stateParam: state,
-      storedCsrfToken: ctx.req.cookies.csrfToken,
+      storedCsrfToken: ctx.req.cookies[OAUTH_COOKIE_NAME],
     });
     // allow hubspot to be called without a state param for backwards compatibility
     if (!validatedState && provider !== "hubspot") {
+      logger().error(
+        {
+          provider,
+          state,
+        },
+        "invalid state param",
+      );
       return {
         redirect: {
           permanent: false,

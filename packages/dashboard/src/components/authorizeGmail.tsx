@@ -9,6 +9,7 @@ import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
 import { OauthStateObject } from "../lib/oauthV2";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
+import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 
 export function AuthorizeGmail({
   gmailClientId,
@@ -70,7 +71,7 @@ export function AuthorizeGmail({
 
     // 4. Store only the CSRF token in a short-lived cookie
     const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
-    document.cookie = `gmail_oauth_state=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
+    document.cookie = `${OAUTH_COOKIE_NAME}=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
     const redirectPath = universalRouter.mapUrl(
       "/oauth2/callback/gmail",
