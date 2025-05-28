@@ -1,6 +1,9 @@
-import { GaxiosError } from "gaxios";
-import { Credentials, OAuth2Client } from "google-auth-library";
-import { google } from "googleapis";
+import { gmail_v1, oauth2_v2 } from "@googleapis/gmail";
+import { GaxiosError, GaxiosResponse } from "gaxios";
+import {
+  Credentials,
+  OAuth2Client as GoogleAuthOAuth2Client,
+} from "google-auth-library";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 import MailComposer from "nodemailer/lib/mail-composer";
@@ -108,7 +111,7 @@ export async function handleGmailCallback({
     throw new Error("Gmail client ID and secret are not set");
   }
 
-  const oauth2Client = new OAuth2Client(
+  const oauth2Client = new GoogleAuthOAuth2Client(
     gmailClientId,
     gmailClientSecret,
     redirectUri,
@@ -136,12 +139,12 @@ export async function handleGmailCallback({
   let userEmail: string;
   try {
     // oauth2Client now has credentials (access token) set from the getToken call
-    const oauth2Api = google.oauth2({
-      auth: oauth2Client, // Use the authenticated client
-      version: "v2",
+    const oauth2Api = new oauth2_v2.Oauth2({
+      auth: oauth2Client,
     });
 
-    const userInfoResponse = await oauth2Api.userinfo.get();
+    const userInfoResponse: GaxiosResponse<oauth2_v2.Schema$Userinfoplus> =
+      await oauth2Api.userinfo.get();
 
     if (
       !userInfoResponse.data.email ||
@@ -376,7 +379,10 @@ export async function refreshGmailAccessToken({
     );
   }
 
-  const oauth2Client = new OAuth2Client(gmailClientId, gmailClientSecret);
+  const oauth2Client = new GoogleAuthOAuth2Client(
+    gmailClientId,
+    gmailClientSecret,
+  );
 
   oauth2Client.setCredentials({
     refresh_token: tokens.refreshToken,
@@ -535,17 +541,18 @@ export async function sendGmailEmail({
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2();
+    const oauth2Client = new GoogleAuthOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
-    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+    const gmail = new gmail_v1.Gmail({ auth: oauth2Client });
     const base64EncodedEmail = rawEmailBuffer.toString("base64url");
 
-    const res = await gmail.users.messages.send({
-      userId: "me",
-      requestBody: {
-        raw: base64EncodedEmail,
-      },
-    });
+    const res: GaxiosResponse<gmail_v1.Schema$Message> =
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: base64EncodedEmail,
+        },
+      });
 
     if (res.data.id && res.data.threadId) {
       return ok({

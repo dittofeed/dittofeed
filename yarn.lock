@@ -3242,6 +3242,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@googleapis/gmail@npm:^12.0.1":
+  version: 12.0.1
+  resolution: "@googleapis/gmail@npm:12.0.1"
+  dependencies:
+    googleapis-common: "npm:^7.0.0"
+  checksum: 10/ed8122187603ef45c19f810ddfc8d98b8d88a02d92f1f8c30b814c8fc51b77050c25cbada3715ca19738d9ed571f1bae096867a11c4bdec1098b56e6eb2ca4a4
+  languageName: node
+  linkType: hard
+
 "@grpc/grpc-js@npm:^1.10.7":
   version: 1.12.2
   resolution: "@grpc/grpc-js@npm:1.12.2"
@@ -12887,6 +12896,7 @@ __metadata:
     "@clickhouse/client": "npm:1.11.1"
     "@fast-csv/format": "npm:^4.3.5"
     "@fastify/type-provider-typebox": "npm:4.0.0"
+    "@googleapis/gmail": "npm:^12.0.1"
     "@hyperdx/node-opentelemetry": "npm:^0.8.0"
     "@mailchimp/mailchimp_transactional": "npm:^1.0.59"
     "@opentelemetry/api": "npm:1.9.0"
@@ -12949,9 +12959,7 @@ __metadata:
     firebase-admin: "npm:^11.9.0"
     gaxios: "npm:^6.7.1"
     geo-tz: "npm:^7.0.7"
-    google-apis: "npm:^1.0.0"
     google-auth-library: "npm:^9.15.1"
-    googleapis: "npm:^149.0.0"
     isomorphic-lib: "npm:0.0.3"
     jest: "npm:^29.4.0"
     jest-expect-message: "npm:^1.1.3"
@@ -17140,13 +17148,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"flow-runtime@npm:^0.14.0":
-  version: 0.14.0
-  resolution: "flow-runtime@npm:0.14.0"
-  checksum: 10/9d1d1065a68a45923302d4cbd20121e2c93f155080066268a52c4d96ebff7bac7cdd4a5d763cec861148e11d9eea81e6f0f5fbb67446646c6d3cada45a96e0f1
-  languageName: node
-  linkType: hard
-
 "fnv1a@npm:^1.1.1":
   version: 1.1.1
   resolution: "fnv1a@npm:1.1.1"
@@ -17726,16 +17727,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"google-apis@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "google-apis@npm:1.0.0"
-  dependencies:
-    axios: "npm:^0.16.2"
-    flow-runtime: "npm:^0.14.0"
-  checksum: 10/4b5582f26e5acd5aa6f0512a0813626cb7000f9af1df6b91e42a6476c9373fba1d0e2739dd461b5790b3065d4a325521249ff8598a51d47053f2fe9fb6bec1e8
-  languageName: node
-  linkType: hard
-
 "google-auth-library@npm:^8.0.1, google-auth-library@npm:^8.0.2":
   version: 8.8.0
   resolution: "google-auth-library@npm:8.8.0"
@@ -17753,7 +17744,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"google-auth-library@npm:^9.0.0, google-auth-library@npm:^9.15.1, google-auth-library@npm:^9.7.0":
+"google-auth-library@npm:^9.15.1, google-auth-library@npm:^9.7.0":
   version: 9.15.1
   resolution: "google-auth-library@npm:9.15.1"
   dependencies:
@@ -17822,16 +17813,6 @@ __metadata:
     url-template: "npm:^2.0.8"
     uuid: "npm:^9.0.0"
   checksum: 10/4b914be6681f2a5a02bd0954a4a5cee1725d8623cb9d0a7c2fd7132de110e8d5707566cba39784e58147be39e74bc5513ad30fdcdaa6edcbb47ecf687003cb6c
-  languageName: node
-  linkType: hard
-
-"googleapis@npm:^149.0.0":
-  version: 149.0.0
-  resolution: "googleapis@npm:149.0.0"
-  dependencies:
-    google-auth-library: "npm:^9.0.0"
-    googleapis-common: "npm:^7.0.0"
-  checksum: 10/097bc81fe87da09e959f37ac9b1a488c75d1d29169d3100ab1df6382ec7610735351026139daca65486d2eeb1d9c4568ff896a4472cb29039eb8a77754dcde9f
   languageName: node
   linkType: hard
 
