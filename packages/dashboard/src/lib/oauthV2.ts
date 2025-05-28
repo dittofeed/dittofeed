@@ -29,10 +29,11 @@ export const OauthStateObject = Type.Object({
 export type OauthStateObject = Static<typeof OauthStateObject>;
 
 // Function to decode the state parameter
-export function decodeOauthState(
-  stateParam: string | undefined,
+export function decodeAndValidateOauthState(
+  stateParam?: string,
+  storedCsrfToken?: string,
 ): OauthStateObject | null {
-  if (!stateParam) {
+  if (!stateParam || !storedCsrfToken) {
     return null;
   }
   try {
@@ -43,7 +44,14 @@ export function decodeOauthState(
     }
     const jsonString = Buffer.from(base64, "base64").toString("utf-8");
     const decoded = jsonParseSafeWithSchema(jsonString, OauthStateObject);
-    return decoded.isOk() ? decoded.value : null;
+    if (decoded.isErr()) {
+      return null;
+    }
+    const { value } = decoded;
+    if (value.csrf !== storedCsrfToken) {
+      return null;
+    }
+    return value;
   } catch (error) {
     logger().error(
       { err: error, stateParam },
