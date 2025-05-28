@@ -1,4 +1,5 @@
-import { gmail_v1, oauth2_v2 } from "@googleapis/gmail";
+import { gmail_v1 } from "@googleapis/gmail";
+import { oauth2_v2 } from "@googleapis/oauth2";
 import { GaxiosError, GaxiosResponse } from "gaxios";
 import {
   Credentials,
@@ -143,7 +144,7 @@ export async function handleGmailCallback({
       auth: oauth2Client,
     });
 
-    const userInfoResponse: GaxiosResponse<oauth2_v2.Schema$Userinfoplus> =
+    const userInfoResponse: GaxiosResponse<oauth2_v2.Schema$Userinfo> =
       await oauth2Api.userinfo.get();
 
     if (

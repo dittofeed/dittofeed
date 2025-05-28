@@ -19,6 +19,7 @@
     "@fast-csv/format": "^4.3.5",
     "@fastify/type-provider-typebox": "4.0.0",
     "@googleapis/gmail": "^12.0.1",
+    "@googleapis/oauth2": "^1.0.7",
     "@hyperdx/node-opentelemetry": "^0.8.0",
     "@mailchimp/mailchimp_transactional": "^1.0.59",
     "@opentelemetry/api": "1.9.0",

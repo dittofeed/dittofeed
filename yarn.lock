@@ -3251,6 +3251,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@googleapis/oauth2@npm:^1.0.7":
+  version: 1.0.7
+  resolution: "@googleapis/oauth2@npm:1.0.7"
+  dependencies:
+    googleapis-common: "npm:^7.0.0"
+  checksum: 10/b8d90e9ee626e97fa04e6bd36d9ef512e20df590ed8d0c638bf53c209999036f8dfa09e59c6b828b989e33d2ef74b949ce9ce82da28104142ec8bec563c8311d
+  languageName: node
+  linkType: hard
+
 "@grpc/grpc-js@npm:^1.10.7":
   version: 1.12.2
   resolution: "@grpc/grpc-js@npm:1.12.2"
@@ -12897,6 +12906,7 @@ __metadata:
     "@fast-csv/format": "npm:^4.3.5"
     "@fastify/type-provider-typebox": "npm:4.0.0"
     "@googleapis/gmail": "npm:^12.0.1"
+    "@googleapis/oauth2": "npm:^1.0.7"
     "@hyperdx/node-opentelemetry": "npm:^0.8.0"
     "@mailchimp/mailchimp_transactional": "npm:^1.0.59"
     "@opentelemetry/api": "npm:1.9.0"
