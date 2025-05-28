@@ -258,6 +258,13 @@ export async function getGmailTokens({
     }),
   );
   if (!settings || !settings.config.expiresAt) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "no workspace occupant settings found for gmail tokens",
+    );
     return null;
   }
   if (
@@ -265,6 +272,13 @@ export async function getGmailTokens({
     !settings.config.accessTokenIv ||
     !settings.config.accessTokenAuthTag
   ) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "no access token found for workspace occupant settings for gmail tokens",
+    );
     return null;
   }
   const accessToken = decrypt({
@@ -273,6 +287,13 @@ export async function getGmailTokens({
     authTag: settings.config.accessTokenAuthTag,
   });
   if (!accessToken) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "failed to decrypt access token for workspace occupant settings for gmail tokens",
+    );
     return null;
   }
 
@@ -281,6 +302,13 @@ export async function getGmailTokens({
     !settings.config.refreshTokenIv ||
     !settings.config.refreshTokenAuthTag
   ) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "no refresh token found for workspace occupant settings for gmail tokens",
+    );
     return null;
   }
   const refreshToken = decrypt({
@@ -289,6 +317,13 @@ export async function getGmailTokens({
     authTag: settings.config.refreshTokenAuthTag,
   });
   if (!refreshToken) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "failed to decrypt refresh token for workspace occupant settings for gmail tokens",
+    );
     return null;
   }
   return {

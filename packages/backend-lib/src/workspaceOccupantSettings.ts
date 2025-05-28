@@ -133,13 +133,31 @@ export async function getSecretWorkspaceSettingsResource({
         workspaceOccupantId,
       ),
       eq(schema.workspaceOccupantSetting.name, name),
-      eq(schema.workspaceOccupantSetting.occupantType, "WorkspaceMember"),
     ),
     with: {
       secret: true,
     },
   });
-  if (!settings?.secret) {
+  if (!settings) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        settingsName: name,
+      },
+      "no workspace occupant settings found",
+    );
+    return ok(null);
+  }
+  if (!settings.secret) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        settingsName: name,
+      },
+      "no secret found for workspace occupant settings",
+    );
     return ok(null);
   }
   const settingsConfig = schemaValidateWithErr(
@@ -147,6 +165,14 @@ export async function getSecretWorkspaceSettingsResource({
     WorkspaceSettingSchemaRecord[name],
   );
   if (settingsConfig.isErr()) {
+    logger().error(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        name,
+      },
+      "failed to validate workspace occupant settings",
+    );
     return err(settingsConfig.error);
   }
   return ok({
