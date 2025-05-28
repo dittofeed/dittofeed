@@ -638,5 +638,27 @@ export async function isGmailAuthorized({
     },
     "isGmailAuthorized",
   );
-  return !!tokens && tokens.expiresAt > maxExpirationDate;
+  if (!tokens) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "No tokens found for workspace member",
+    );
+    return false;
+  }
+  if (tokens.expiresAt < maxExpirationDate) {
+    logger().debug(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        expiresAt: new Date(tokens.expiresAt).toISOString(),
+        maxExpirationDate: new Date(maxExpirationDate).toISOString(),
+      },
+      "Tokens expired for workspace member",
+    );
+    return false;
+  }
+  return true;
 }
