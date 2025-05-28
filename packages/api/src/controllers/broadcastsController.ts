@@ -13,6 +13,7 @@ import {
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { isGmailAuthorized } from "backend-lib/src/gmail";
+import logger from "backend-lib/src/logger";
 import { getOccupantFromRequest } from "backend-lib/src/requestContext";
 import {
   BaseMessageResponse,
@@ -212,6 +213,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       const { workspaceId } = request.query;
       const occupant = getOccupantFromRequest(request);
       if (!occupant) {
+        logger().debug("No occupant found");
         return reply.status(401).send();
       }
       const authorized = await isGmailAuthorized({

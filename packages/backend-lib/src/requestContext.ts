@@ -552,8 +552,10 @@ export function getOccupantFromRequest(request: FastifyRequest): {
   workspaceOccupantId: string;
   workspaceOccupantType: DBWorkspaceOccupantType;
 } | null {
-  const { user, embeddedSession } = request as {
+  const { user } = request as {
     user?: OpenIdProfile;
+  };
+  const { embeddedSession } = request.raw as {
     embeddedSession?: EmbeddedSession;
   };
   if (config().authMode === "anonymous") {
