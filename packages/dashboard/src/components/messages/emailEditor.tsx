@@ -393,6 +393,7 @@ export default function EmailEditor({
     },
   };
 
+  console.log("loc2 rendering email editor");
   return (
     <TemplateEditor
       templateId={messageId}
