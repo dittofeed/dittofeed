@@ -1,6 +1,4 @@
 import backendConfig from "backend-lib/src/config";
-import { db } from "backend-lib/src/db";
-import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import { getRequestContext, SESSION_KEY } from "backend-lib/src/requestContext";
 import {
@@ -9,7 +7,6 @@ import {
   OpenIdProfile,
   RequestContextErrorType,
 } from "backend-lib/src/types";
-import { eq } from "drizzle-orm";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
