@@ -7,7 +7,6 @@ import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import { createEnvAndWorker } from "../../test/temporal";
 import { insert } from "../db";
 import * as schema from "../db/schema";
-import logger from "../logger";
 import {
   ManualSegmentNode,
   SegmentDefinition,
@@ -15,7 +14,6 @@ import {
   UserPropertyDefinitionType,
   Workspace,
 } from "../types";
-import { findManyEventsWithCount } from "../userEvents";
 import { insertUserPropertyAssignments } from "../userProperties";
 import { getUsers } from "../users";
 import { createWorkspace } from "../workspaces/createWorkspace";
@@ -24,10 +22,6 @@ import {
   ManualSegmentOperationTypeEnum,
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
-import {
-  readAssignments,
-  readUpdatedComputedPropertyState,
-} from "../../test/computeProperties";
 
 jest.setTimeout(15000);
 
@@ -171,23 +165,6 @@ describe("ManualSegmentsWorkflow", () => {
             workspaceId: workspace.id,
             segmentFilter: [segmentId],
           }),
-        );
-        const assignments = await readAssignments({
-          workspaceId: workspace.id,
-        });
-        const states = await readUpdatedComputedPropertyState({
-          workspaceId: workspace.id,
-        });
-        const events = await findManyEventsWithCount({
-          workspaceId: workspace.id,
-        });
-        logger().debug(
-          {
-            states,
-            assignments,
-            events,
-          },
-          "loc1 debug",
         );
         expect(
           users2,

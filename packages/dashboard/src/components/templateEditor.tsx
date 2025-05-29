@@ -629,14 +629,14 @@ export default function TemplateEditor({
     if (renderQuery.data) {
       const { contents } = renderQuery.data;
       const newRendered: Record<string, string> = {};
-      const newErrors = new Map(errors);
+      const newErrors = new Map(state.errors);
 
       for (const contentKey in contents) {
         const content = contents[contentKey];
         if (content === undefined) {
           continue;
         }
-        const existingErr = errors.get(contentKey);
+        const existingErr = state.errors.get(contentKey);
         if (content.type === JsonResultType.Ok) {
           newRendered[contentKey] = content.value;
           if (existingErr) {
@@ -657,14 +657,51 @@ export default function TemplateEditor({
               key: errorHash(contentKey, message),
               anchorOrigin,
             });
+            newErrors.set(contentKey, message);
+          } else if (!existingErr) {
+            enqueueSnackbar(message, {
+              variant: "error",
+              persist: true,
+              key: errorHash(contentKey, message),
+              anchorOrigin,
+            });
+            newErrors.set(contentKey, message);
           }
-          newErrors.set(contentKey, message);
         }
       }
-      setState((draft) => {
-        draft.rendered = newRendered;
-        draft.errors = newErrors;
-      });
+
+      const renderedContentChanged = !deepEquals(state.rendered, newRendered);
+
+      let errorsContentChanged = false;
+      if (state.errors.size !== newErrors.size) {
+        errorsContentChanged = true;
+      } else {
+        for (const [key, value] of state.errors.entries()) {
+          if (newErrors.get(key) !== value) {
+            errorsContentChanged = true;
+            break;
+          }
+        }
+        if (!errorsContentChanged) {
+          for (const [key, value] of newErrors.entries()) {
+            if (state.errors.get(key) !== value) {
+              errorsContentChanged = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (renderedContentChanged || errorsContentChanged) {
+        setState((draft) => {
+          if (renderedContentChanged) {
+            draft.rendered = newRendered;
+          }
+          if (errorsContentChanged) {
+            draft.errors = newErrors;
+          }
+        });
+      }
     }
   }, [
     renderQuery.data,
@@ -673,6 +710,8 @@ export default function TemplateEditor({
     setState,
     errors,
     fieldToReadable,
+    state.rendered,
+    state.errors,
   ]);
 
   useEffect(() => {
@@ -1310,6 +1349,7 @@ export default function TemplateEditor({
       )}
     </Stack>
   );
+
   return (
     <>
       <Stack
