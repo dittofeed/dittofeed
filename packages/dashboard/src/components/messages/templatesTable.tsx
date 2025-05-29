@@ -56,6 +56,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
   MessageTemplateResource,
   MinimalJourneysResource,
   ResourceTypeEnum,
@@ -350,6 +351,9 @@ export default function TemplatesTable() {
   const [selectedChannel, setSelectedChannel] = useState<ChannelType>(
     ChannelType.Email,
   );
+  const [emailContentType, setEmailContentType] = useState<EmailContentsType>(
+    EmailContentsType.LowCode,
+  );
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch message templates
@@ -426,6 +430,7 @@ export default function TemplatesTable() {
     setDialogOpen(false);
     setNewTemplateName("");
     setSelectedChannel(ChannelType.Email);
+    setEmailContentType(EmailContentsType.LowCode);
   };
 
   // Handle channel change in dialog
@@ -435,6 +440,7 @@ export default function TemplatesTable() {
   ) => {
     if (newChannel !== null) {
       setSelectedChannel(newChannel);
+      setEmailContentType(EmailContentsType.LowCode);
     }
   };
 
@@ -445,7 +451,10 @@ export default function TemplatesTable() {
     }
 
     const newTemplateId = uuid();
-    const definition = getDefaultMessageTemplateDefinition(selectedChannel);
+    const definition = getDefaultMessageTemplateDefinition(
+      selectedChannel,
+      emailContentType,
+    );
 
     const templateData: UpsertMessageTemplateParams = {
       id: newTemplateId,
@@ -817,6 +826,29 @@ export default function TemplatesTable() {
               Mobile Push
             </ToggleButton>
           </ToggleButtonGroup>
+          {selectedChannel === ChannelType.Email && (
+            <>
+              <Typography display="block" sx={{ mt: 2, mb: 1 }}>
+                Email Editor Type
+              </Typography>
+              <ToggleButtonGroup
+                value={emailContentType}
+                exclusive
+                onChange={(_, newValue) => {
+                  if (newValue !== null) {
+                    setEmailContentType(newValue);
+                  }
+                }}
+                aria-label="email editor type"
+                size="small"
+              >
+                <ToggleButton value={EmailContentsType.LowCode}>
+                  Low Code
+                </ToggleButton>
+                <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
+              </ToggleButtonGroup>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>

@@ -12,11 +12,12 @@ export const DEFAULT_EMAIL_CONTENTS_TYPE = EmailContentsType.LowCode;
 
 export function getDefaultMessageTemplateDefinition(
   channelType: ChannelType,
+  emailContentsType?: EmailContentsType,
 ): MessageTemplateResourceDefinition {
   switch (channelType) {
     case ChannelType.Email:
       return defaultEmailDefinition({
-        emailContentsType: DEFAULT_EMAIL_CONTENTS_TYPE,
+        emailContentsType: emailContentsType ?? DEFAULT_EMAIL_CONTENTS_TYPE,
       });
     case ChannelType.Sms:
       return defaultSmsDefinition();
