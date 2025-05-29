@@ -30,7 +30,6 @@ import {
   CompletionStatus,
   CursorDirectionEnum,
   DelayVariantType,
-  EmailProviderTypeSchema,
   EntryNode,
   JourneyNodeType,
   JourneyUiNodeType,
