@@ -42,6 +42,7 @@ import {
   SmsProviderType,
   TwilioSenderOverrideType,
   UserPropertyResource,
+  WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 
@@ -398,7 +399,7 @@ function MessageNodeFields({
         switch (props.channel) {
           case ChannelType.Email:
             props.providerOverride =
-              (provider as EmailProviderTypeSchema | null) ?? undefined;
+              (provider as WorkspaceWideEmailProviders | null) ?? undefined;
             break;
           case ChannelType.Sms:
             props.providerOverride =

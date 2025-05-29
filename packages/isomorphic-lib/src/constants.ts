@@ -7,7 +7,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SmsProviderType,
-  WorkspaceWideProviders,
+  WorkspaceWideEmailProviders,
 } from "./types";
 
 export * from "./constants/headers";
@@ -44,7 +44,7 @@ export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   };
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
-  WorkspaceWideProviders,
+  WorkspaceWideEmailProviders,
   string
 > = {
   [EmailProviderType.SendGrid]: SecretNames.SendGrid,

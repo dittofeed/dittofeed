@@ -127,11 +127,13 @@ export const WorkspaceWideEmailProviderType = {
 } as const;
 
 // Providers that are configured at the workspace level, not the member level.
-export const WorkspaceWideProviders = Type.KeyOf(
+export const WorkspaceWideEmailProviders = Type.KeyOf(
   Type.Const(WorkspaceWideEmailProviderType),
 );
 
-export type WorkspaceWideProviders = Static<typeof WorkspaceWideProviders>;
+export type WorkspaceWideEmailProviders = Static<
+  typeof WorkspaceWideEmailProviders
+>;
 
 export enum MobilePushProviderType {
   Firebase = "Firebase",
@@ -974,7 +976,7 @@ export type RateLimitNode = Static<typeof RateLimitNode>;
 export const EmailMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
-  providerOverride: Type.Optional(Type.Enum(WorkspaceWideProviders)),
+  providerOverride: Type.Optional(WorkspaceWideEmailProviders),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
@@ -1814,7 +1816,7 @@ export type RequestStatus<V, E> =
 export const PersistedEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
-  type: WorkspaceWideProviders,
+  type: WorkspaceWideEmailProviders,
 });
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
@@ -1954,7 +1956,7 @@ export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
 
 export const EmailMessageUiNodeProps = Type.Object({
   channel: Type.Literal(ChannelType.Email),
-  providerOverride: Type.Optional(Type.Enum(EmailProviderType)),
+  providerOverride: Type.Optional(WorkspaceWideEmailProviders),
 });
 
 export type EmailMessageUiNodeProps = Static<typeof EmailMessageUiNodeProps>;

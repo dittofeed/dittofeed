@@ -10,7 +10,7 @@ import {
   PersistedEmailProvider,
   SubscriptionChange,
   UpsertEmailProviderRequest,
-  WorkspaceWideProviders,
+  WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
@@ -155,7 +155,10 @@ export async function getOrCreateEmailProviders({
       },
     })
   ).flatMap((ep) => {
-    const typeResult = schemaValidateWithErr(ep.type, WorkspaceWideProviders);
+    const typeResult = schemaValidateWithErr(
+      ep.type,
+      WorkspaceWideEmailProviders,
+    );
     if (typeResult.isErr()) {
       logger().error(
         {
@@ -166,7 +169,7 @@ export async function getOrCreateEmailProviders({
       );
       return [];
     }
-    const type: WorkspaceWideProviders = typeResult.value;
+    const type: WorkspaceWideEmailProviders = typeResult.value;
 
     return {
       workspaceId: ep.workspaceId,
