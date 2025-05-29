@@ -547,36 +547,3 @@ export async function getRequestContext(
     return result;
   });
 }
-
-export function getOccupantFromRequest(request: FastifyRequest): {
-  workspaceOccupantId: string;
-  workspaceOccupantType: DBWorkspaceOccupantType;
-} | null {
-  const { user } = request as {
-    user?: OpenIdProfile;
-  };
-  const { embeddedSession } = request.raw as {
-    embeddedSession?: EmbeddedSession;
-  };
-  if (config().authMode === "anonymous") {
-    return {
-      workspaceOccupantId: "anonymous",
-      workspaceOccupantType: "WorkspaceMember",
-    };
-  }
-
-  if (embeddedSession?.occupantId) {
-    return {
-      workspaceOccupantId: embeddedSession.occupantId,
-      workspaceOccupantType: "ChildWorkspaceOccupant",
-    };
-  }
-
-  if (user) {
-    return {
-      workspaceOccupantId: user.sub,
-      workspaceOccupantType: "WorkspaceMember",
-    };
-  }
-  return null;
-}

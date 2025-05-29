@@ -1,7 +1,15 @@
 import backendConfig from "backend-lib/src/config";
+import { db } from "backend-lib/src/db";
+import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import { getRequestContext, SESSION_KEY } from "backend-lib/src/requestContext";
-import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
+import {
+  DBWorkspaceOccupantType,
+  EmbeddedSession,
+  OpenIdProfile,
+  RequestContextErrorType,
+} from "backend-lib/src/types";
+import { eq } from "drizzle-orm";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
@@ -89,3 +97,34 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
 });
 
 export default requestContext;
+
+export function getOccupantFromRequest(request: FastifyRequest): {
+  workspaceOccupantId: string;
+  workspaceOccupantType: DBWorkspaceOccupantType;
+} | null {
+  const { embeddedSession } = request.raw as {
+    embeddedSession?: EmbeddedSession;
+  };
+  if (backendConfig().authMode === "anonymous") {
+    return {
+      workspaceOccupantId: "anonymous",
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+
+  if (embeddedSession?.occupantId) {
+    return {
+      workspaceOccupantId: embeddedSession.occupantId,
+      workspaceOccupantType: "ChildWorkspaceOccupant",
+    };
+  }
+
+  const member = request.requestContext.get("member");
+  if (member) {
+    return {
+      workspaceOccupantId: member.id,
+      workspaceOccupantType: "WorkspaceMember",
+    };
+  }
+  return null;
+}

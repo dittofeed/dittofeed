@@ -14,7 +14,6 @@ import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { isGmailAuthorized } from "backend-lib/src/gmail";
 import logger from "backend-lib/src/logger";
-import { getOccupantFromRequest } from "backend-lib/src/requestContext";
 import {
   BaseMessageResponse,
   BroadcastResource,
@@ -32,6 +31,8 @@ import {
 } from "backend-lib/src/types";
 import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
+
+import { getOccupantFromRequest } from "../buildApp/requestContext";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function broadcastsController(fastify: FastifyInstance) {
