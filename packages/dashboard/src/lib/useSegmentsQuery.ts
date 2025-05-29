@@ -42,10 +42,14 @@ export function useSegmentsQuery<TData = GetSegmentsResponse>(
     queryKey,
     queryFn: async (): Promise<GetSegmentsResponse> => {
       try {
+        let resourceType: GetSegmentsRequest["resourceType"];
+        if (!params?.ids) {
+          resourceType = params?.resourceType ?? "Declarative";
+        }
         const response = await axios.get(`${baseApiUrl}/segments`, {
           params: {
             ...params,
-            resourceType: params?.resourceType ?? "Declarative",
+            resourceType,
             workspaceId,
           },
           headers: authHeaders,
