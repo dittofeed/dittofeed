@@ -1350,7 +1350,6 @@ export default function TemplateEditor({
     </Stack>
   );
 
-  console.log("loc1 rendering template editor");
   return (
     <>
       <Stack
