@@ -4837,6 +4837,7 @@ export type DeliveriesTableConfiguration = Static<
 
 export const BroadcastConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.Broadcast),
+  hideRecipients: Type.Optional(Type.Boolean()),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;

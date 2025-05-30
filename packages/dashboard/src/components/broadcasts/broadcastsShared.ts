@@ -1,4 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
+import { BroadcastConfiguration } from "isomorphic-lib/src/types";
 import { Updater } from "use-immer";
 
 export const BroadcastStepKeys = {
@@ -41,6 +42,7 @@ export const BROADCAST_STEPS = [
 export interface BroadcastState {
   step: BroadcastStepKey;
   id: string;
+  configuration?: Omit<BroadcastConfiguration, "type">;
 }
 
 export type ExposedBroadcastState = Pick<BroadcastState, "step">;

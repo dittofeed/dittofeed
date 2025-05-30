@@ -1,5 +1,6 @@
 import { SxProps, Theme } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { BroadcastConfiguration } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
@@ -44,10 +45,12 @@ function stateToQueryParams(state: QueryState): Record<string, string> {
 export default function Broadcast({
   queryParams,
   onStateChange,
+  configuration,
   sx,
 }: {
   queryParams: Record<string, string | string[] | undefined>;
   onStateChange?: (state: ExposedBroadcastState) => void;
+  configuration?: Omit<BroadcastConfiguration, "type">;
   sx?: SxProps<Theme>;
 }) {
   const router = useRouter();
@@ -62,6 +65,7 @@ export default function Broadcast({
       ? {
           id,
           step: stateFromQueryParams.step ?? BroadcastStepKeys.RECIPIENTS,
+          configuration,
         }
       : null,
   );
