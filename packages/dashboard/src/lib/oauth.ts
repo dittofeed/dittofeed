@@ -25,6 +25,7 @@ export const OauthStateObject = Type.Object({
   workspaceId: Type.String(),
   // used for embedded auth
   token: Type.Optional(Type.String()),
+  flow: Type.Optional(Type.Literal("popup")),
 });
 
 export type OauthStateObject = Static<typeof OauthStateObject>;
@@ -86,10 +87,20 @@ export function decodeAndValidateOauthState({
   }
 }
 
-interface OauthCallbackSuccess {
+interface OauthCallbackSuccessPopup {
   type: "success";
+  actionType: "popup";
+}
+
+interface OauthCallbackSuccessRedirect {
+  type: "success";
+  actionType: "redirect";
   redirectUrl: string;
 }
+
+type OauthCallbackSuccess =
+  | OauthCallbackSuccessPopup
+  | OauthCallbackSuccessRedirect;
 
 interface OauthCallbackError {
   type: "error";
@@ -167,6 +178,7 @@ export async function handleOauthCallback({
       return ok({
         type: "success",
         redirectUrl: finalRedirectPath,
+        actionType: "redirect",
       });
       break;
     }
@@ -258,6 +270,7 @@ export async function handleOauthCallback({
       });
       return ok({
         type: "success",
+        actionType: "redirect",
         redirectUrl: "/settings",
       });
     }
