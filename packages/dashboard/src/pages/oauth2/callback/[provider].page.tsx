@@ -68,15 +68,18 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         },
       };
     }
-    return {
-      redirect: {
-        permanent: false,
-        destination: callbackResult.value.redirectUrl,
-      },
-    };
+    if (callbackResult.value.actionType === "redirect") {
+      return {
+        redirect: {
+          permanent: false,
+          destination: callbackResult.value.redirectUrl,
+        },
+      };
+    }
   },
 );
 
+// Should only be reached if the callback is a popup
 export default function CallbackPage() {
-  throw new Error("CallbackPage should never be rendered");
+  return null;
 }
