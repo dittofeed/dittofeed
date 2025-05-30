@@ -43,6 +43,7 @@ export interface BroadcastState {
   step: BroadcastStepKey;
   id: string;
   configuration?: Omit<BroadcastConfiguration, "type">;
+  steps: BroadcastStep[];
 }
 
 export type ExposedBroadcastState = Pick<BroadcastState, "step">;

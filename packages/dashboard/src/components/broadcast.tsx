@@ -7,6 +7,7 @@ import { useImmer } from "use-immer";
 
 import BroadcastLayout from "./broadcasts/broadcastsLayoutV2";
 import {
+  BROADCAST_STEPS,
   BroadcastQueryKeys,
   BroadcastState,
   BroadcastStateUpdater,
@@ -58,6 +59,13 @@ export default function Broadcast({
     () => queryParamsToState(queryParams),
     [queryParams],
   );
+  const steps = useMemo(() => {
+    const excludedSteps = new Set<BroadcastStepKey>();
+    if (configuration?.hideRecipients) {
+      excludedSteps.add(BroadcastStepKeys.RECIPIENTS);
+    }
+    return BROADCAST_STEPS.filter((step) => !excludedSteps.has(step.key));
+  }, [configuration]);
 
   const { id } = queryParams;
   const [state, updateState] = useImmer<BroadcastState | null>(
@@ -66,6 +74,7 @@ export default function Broadcast({
           id,
           step: stateFromQueryParams.step ?? BroadcastStepKeys.RECIPIENTS,
           configuration,
+          steps,
         }
       : null,
   );
