@@ -5455,3 +5455,11 @@ export interface EmbeddedSession {
   workspaceId: string;
   occupantId?: string;
 }
+
+export const OauthFlowEnum = {
+  PopUp: "PopUp",
+  Redirect: "Redirect",
+} as const;
+
+export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
+export type OauthFlow = Static<typeof OauthFlow>;

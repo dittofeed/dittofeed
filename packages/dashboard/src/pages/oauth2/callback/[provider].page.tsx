@@ -54,6 +54,7 @@ export const getServerSideProps: GetServerSideProps<{
     occupantId: dfContext.member.id,
     occupantType: "WorkspaceMember",
     baseRedirectUri: "/dashboard/oauth2/callback",
+    flow: validatedState?.flow,
   });
 
   if (callbackResult.isErr()) {
@@ -64,22 +65,34 @@ export const getServerSideProps: GetServerSideProps<{
       },
       "failed to handle oauth callback",
     );
-    return {
-      redirect: {
-        permanent: false,
-        destination: callbackResult.error.redirectUrl,
-      },
-    };
+    switch (callbackResult.error.flow) {
+      case "Redirect":
+        return {
+          redirect: {
+            permanent: false,
+            destination: callbackResult.error.redirectUrl,
+          },
+        };
+      case "PopUp":
+        return {
+          props: {
+            isPopup: true,
+            serverInitialState: {},
+          },
+        };
+      default:
+        assertUnreachable(callbackResult.error);
+    }
   }
-  switch (callbackResult.value.actionType) {
-    case "redirect":
+  switch (callbackResult.value.flow) {
+    case "Redirect":
       return {
         redirect: {
           permanent: false,
           destination: callbackResult.value.redirectUrl,
         },
       };
-    case "popup":
+    case "PopUp":
       return {
         props: {
           isPopup: true,

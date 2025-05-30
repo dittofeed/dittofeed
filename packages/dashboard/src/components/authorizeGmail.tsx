@@ -1,15 +1,19 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { CompletionStatus, OauthFlowEnum } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
-import { OauthFlowEnum, OauthStateObject } from "../lib/oauth";
-import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
+import { OauthStateObject } from "../lib/oauth";
+import {
+  GMAIL_AUTHORIZATION_QUERY_KEY,
+  useGmailAuthorizationQuery,
+} from "../lib/useGmailAuthorizationQuery";
 
 export function AuthorizeGmail({
   gmailClientId,
@@ -23,38 +27,37 @@ export function AuthorizeGmail({
   const router = useRouter();
   const universalRouter = useUniversalRouter();
   const { workspace } = useAppStorePick(["workspace"]);
-  const { data, isLoading } = useGmailAuthorizationQuery();
+  const queryClient = useQueryClient();
+  const { data, isLoading, refetch } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  // Call onAuthorize when authorization status becomes true
   useEffect(() => {
     if (isAuthorized && onAuthorize) {
       onAuthorize();
     }
   }, [isAuthorized, onAuthorize]);
 
-  const handleConnectGmailClick = () => {
-    if (workspace.type !== CompletionStatus.Successful) {
+  const handleConnectGmailClick = useCallback(() => {
+    if (workspace.type !== CompletionStatus.Successful || isPopupOpen) {
       return;
     }
-    // Don't proceed if already authorized or externally disabled
+    const currentWorkspaceId = workspace.value.id;
+
     if (isAuthorized || disabled) return;
+
     const token =
       typeof router.query.token === "string" ? router.query.token : undefined;
 
-    // 1. Generate a CSRF token and get the current path for returnTo
     const csrfToken = uuidv4();
 
-    // 2. Create the state object
     const stateObject: OauthStateObject = {
       csrf: csrfToken,
-      workspaceId: workspace.value.id,
+      workspaceId: currentWorkspaceId,
       token,
       flow: OauthFlowEnum.PopUp,
     };
 
-    // 3. JSON.stringify and Base64Url encode the state object
-    //    Using btoa for Base64 encoding (works in browser) and making it URL-safe.
     let stateParam;
     try {
       const jsonString = JSON.stringify(stateObject);
@@ -68,7 +71,6 @@ export function AuthorizeGmail({
       return;
     }
 
-    // 4. Store only the CSRF token in a short-lived cookie
     const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
     document.cookie = `${OAUTH_COOKIE_NAME}=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
@@ -89,16 +91,45 @@ export function AuthorizeGmail({
       scope:
         "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
       state: stateParam,
-      access_type: "offline", // Important to get a refresh token
-      prompt: "consent", // Optional: forces the consent screen every time, good for testing
-      // or if you want users to re-confirm scopes. Can be removed for production.
+      access_type: "offline",
+      prompt: "consent",
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-    // 6. Redirect the user's browser to this Google URL
-    window.location.href = googleAuthUrl;
-  };
+    const popup = window.open(
+      googleAuthUrl,
+      "googleOAuthPopup",
+      "width=600,height=700,resizable,scrollbars",
+    );
+
+    if (popup) {
+      setIsPopupOpen(true);
+      const timer = setInterval(async () => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setIsPopupOpen(false);
+          if (refetch) {
+            await refetch();
+          } else {
+            await queryClient.invalidateQueries({
+              queryKey: GMAIL_AUTHORIZATION_QUERY_KEY,
+            });
+          }
+        }
+      }, 500);
+    }
+  }, [
+    workspace,
+    isPopupOpen,
+    isAuthorized,
+    disabled,
+    router.query.token,
+    gmailClientId,
+    universalRouter,
+    refetch,
+    queryClient,
+  ]);
 
   // Determine button color based on state
   let buttonColor: "primary" | "success" | "inherit" = "primary";
@@ -108,8 +139,10 @@ export function AuthorizeGmail({
 
   // Determine button text based on state
   let buttonText: React.ReactNode = "Connect Gmail Account";
-  if (isLoading) {
+  if (isLoading && !isPopupOpen) {
     buttonText = "Checking authorization...";
+  } else if (isPopupOpen) {
+    buttonText = "Awaiting Gmail Authorization...";
   } else if (isAuthorized) {
     buttonText = (
       <>

@@ -14,19 +14,15 @@ import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import logger from "backend-lib/src/logger";
-import { DBWorkspaceOccupantType } from "backend-lib/src/types";
+import {
+  DBWorkspaceOccupantType,
+  OauthFlow,
+  OauthFlowEnum,
+} from "backend-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
-
-export const OauthFlowEnum = {
-  PopUp: "PopUp",
-  Redirect: "Redirect",
-} as const;
-
-export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
-export type OauthFlow = Static<typeof OauthFlow>;
 
 export const OauthStateObject = Type.Object({
   csrf: Type.String(),
