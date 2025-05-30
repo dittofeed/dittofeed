@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
-import { OauthStateObject } from "../lib/oauth";
+import { OauthFlowEnum, OauthStateObject } from "../lib/oauth";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
 
 export function AuthorizeGmail({
@@ -44,14 +44,13 @@ export function AuthorizeGmail({
 
     // 1. Generate a CSRF token and get the current path for returnTo
     const csrfToken = uuidv4();
-    const returnTo = router.asPath;
 
     // 2. Create the state object
     const stateObject: OauthStateObject = {
       csrf: csrfToken,
-      returnTo,
       workspaceId: workspace.value.id,
       token,
+      flow: OauthFlowEnum.PopUp,
     };
 
     // 3. JSON.stringify and Base64Url encode the state object

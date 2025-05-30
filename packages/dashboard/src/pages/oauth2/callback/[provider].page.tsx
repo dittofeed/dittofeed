@@ -1,5 +1,6 @@
 import logger from "backend-lib/src/logger";
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { GetServerSideProps } from "next";
 import { useEffect } from "react";
 
@@ -70,20 +71,24 @@ export const getServerSideProps: GetServerSideProps<{
       },
     };
   }
-  if (callbackResult.value.actionType === "redirect") {
-    return {
-      redirect: {
-        permanent: false,
-        destination: callbackResult.value.redirectUrl,
-      },
-    };
+  switch (callbackResult.value.actionType) {
+    case "redirect":
+      return {
+        redirect: {
+          permanent: false,
+          destination: callbackResult.value.redirectUrl,
+        },
+      };
+    case "popup":
+      return {
+        props: {
+          isPopup: true,
+          serverInitialState: {},
+        },
+      };
+    default:
+      assertUnreachable(callbackResult.value);
   }
-  return {
-    props: {
-      isPopup: true,
-      serverInitialState: {},
-    },
-  };
 });
 
 // Should only be reached if the callback is a popup

@@ -17,7 +17,16 @@ import logger from "backend-lib/src/logger";
 import { DBWorkspaceOccupantType } from "backend-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+
+export const OauthFlowEnum = {
+  PopUp: "PopUp",
+  Redirect: "Redirect",
+} as const;
+
+export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
+export type OauthFlow = Static<typeof OauthFlow>;
 
 export const OauthStateObject = Type.Object({
   csrf: Type.String(),
@@ -25,7 +34,7 @@ export const OauthStateObject = Type.Object({
   workspaceId: Type.String(),
   // used for embedded auth
   token: Type.Optional(Type.String()),
-  flow: Type.Optional(Type.Literal("popup")),
+  flow: Type.Optional(OauthFlow),
 });
 
 export type OauthStateObject = Static<typeof OauthStateObject>;
@@ -89,12 +98,12 @@ export function decodeAndValidateOauthState({
 
 interface OauthCallbackSuccessPopup {
   type: "success";
-  actionType: "popup";
+  flow: typeof OauthFlowEnum.PopUp;
 }
 
 interface OauthCallbackSuccessRedirect {
   type: "success";
-  actionType: "redirect";
+  flow: typeof OauthFlowEnum.Redirect;
   redirectUrl: string;
 }
 
@@ -102,11 +111,19 @@ type OauthCallbackSuccess =
   | OauthCallbackSuccessPopup
   | OauthCallbackSuccessRedirect;
 
-interface OauthCallbackError {
+interface OauthCallbackErrorPopup {
   type: "error";
+  flow: typeof OauthFlowEnum.PopUp;
   reason: string;
+}
+
+interface OauthCallbackErrorRedirect {
+  type: "error";
+  flow: typeof OauthFlowEnum.Redirect;
   redirectUrl: string;
 }
+
+type OauthCallbackError = OauthCallbackErrorPopup | OauthCallbackErrorRedirect;
 
 export async function handleOauthCallback({
   workspaceId,
@@ -116,21 +133,35 @@ export async function handleOauthCallback({
   occupantType,
   returnTo,
   baseRedirectUri,
+  flow = OauthFlowEnum.Redirect,
 }: {
   workspaceId: string;
   provider?: string;
   code?: string;
   returnTo?: string;
+  flow?: OauthFlow;
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
   baseRedirectUri: string;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
   if (!code) {
-    return err({
-      type: "error",
-      reason: "missing_code",
-      redirectUrl: "/",
-    });
+    switch (flow) {
+      case OauthFlowEnum.PopUp:
+        return err({
+          flow,
+          type: "error",
+          reason: "missing_code",
+        });
+      case OauthFlowEnum.Redirect:
+        return err({
+          flow,
+          type: "error",
+          reason: "missing_code",
+          redirectUrl: "/",
+        });
+      default:
+        assertUnreachable(flow);
+    }
   }
   const { dashboardUrl, hubspotClientSecret, hubspotClientId } =
     backendConfig();
@@ -147,13 +178,28 @@ export async function handleOauthCallback({
         redirectUri,
       });
       if (gmailResult.isErr()) {
-        logger().error(
+        logger().info(
           {
             err: gmailResult.error,
             workspaceId,
           },
           "failed to authorize gmail",
         );
+      }
+
+      if (flow === OauthFlowEnum.PopUp) {
+        if (gmailResult.isOk()) {
+          return ok({
+            type: "success",
+            actionType: "popup",
+            flow,
+          });
+        }
+        return err({
+          type: "error",
+          reason: "failed_to_authorize_gmail",
+          flow,
+        });
       }
       let baseRedirectPath = "/"; // Default to app's base path
 
@@ -178,7 +224,7 @@ export async function handleOauthCallback({
       return ok({
         type: "success",
         redirectUrl: finalRedirectPath,
-        actionType: "redirect",
+        flow,
       });
       break;
     }
@@ -270,16 +316,28 @@ export async function handleOauthCallback({
       });
       return ok({
         type: "success",
-        actionType: "redirect",
+        flow,
         redirectUrl: "/settings",
       });
     }
     default: {
-      return err({
-        type: "error",
-        reason: "invalid_provider",
-        redirectUrl: "/",
-      });
+      switch (flow) {
+        case OauthFlowEnum.PopUp:
+          return err({
+            flow,
+            type: "error",
+            reason: "invalid_provider",
+          });
+        case OauthFlowEnum.Redirect:
+          return err({
+            flow,
+            type: "error",
+            reason: "invalid_provider",
+            redirectUrl: "/",
+          });
+        default:
+          assertUnreachable(flow);
+      }
     }
   }
 }
