@@ -5467,10 +5467,30 @@ export type OauthFlow = Static<typeof OauthFlow>;
 export const SetTimeLimitedCacheRequest = Type.Object({
   workspaceId: Type.String(),
   key: Type.String(),
-  value: Type.String(),
+  value: Type.Any(),
   expiresAt: Type.String(),
 });
 
 export type SetTimeLimitedCacheRequest = Static<
   typeof SetTimeLimitedCacheRequest
+>;
+
+export const GetTimeLimitedCacheRequest = Type.Object({
+  workspaceId: Type.String(),
+  key: Type.String(),
+});
+
+export type GetTimeLimitedCacheRequest = Static<
+  typeof GetTimeLimitedCacheRequest
+>;
+
+export const GetTimeLimitedCacheResponse = Nullable(
+  Type.Object({
+    value: Type.Any(),
+    expiresAt: Type.String(),
+  }),
+);
+
+export type GetTimeLimitedCacheResponse = Static<
+  typeof GetTimeLimitedCacheResponse
 >;
