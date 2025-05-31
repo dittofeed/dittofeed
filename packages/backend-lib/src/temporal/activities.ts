@@ -6,6 +6,7 @@ export * from "../journeys/bootstrap/activities";
 export * from "../journeys/userWorkflow/activities";
 export {
   emitGlobalSignals,
+  expireCache,
   observeWorkspaceComputeLatency,
 } from "../resiliency";
 export * from "../restartUserJourneyWorkflow/activities";

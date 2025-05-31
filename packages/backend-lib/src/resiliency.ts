@@ -1,4 +1,4 @@
-import { aliasedTable, and, eq, inArray, max, not, or } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray, lte, max, not, or } from "drizzle-orm";
 
 import { query as chQuery } from "./clickhouse";
 import config from "./config";
@@ -7,6 +7,7 @@ import { db } from "./db";
 import {
   computedPropertyPeriod as dbComputedPropertyPeriod,
   segment as dbSegment,
+  timeLimitedCache,
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
@@ -224,5 +225,31 @@ export async function emitGlobalSignals() {
     await emitPublicSignals({
       workspaces,
     });
+  }
+}
+
+/**
+ * Expire all caches that are expired at the given time.
+ * @param now - The current time unix timestamp ms.
+ */
+export async function expireCache({ now }: { now: number }) {
+  const expirationDate = new Date(now);
+  logger().info({ expirationDate }, "Expiring cache entries before or at");
+
+  try {
+    await db()
+      .delete(timeLimitedCache)
+      .where(lte(timeLimitedCache.expiresAt, expirationDate));
+
+    // drizzle orm for pg through neon http currently returns an empty array for result.rows on delete
+    // even if rows were deleted, and result.rowCount is not available directly on the result object
+    // so we can't reliably get the count of deleted rows without another query or change in driver behavior.
+    // For now, we'll just log that the operation was attempted.
+    // If a row count is needed, one might typically check result.rowCount or similar depending on the driver.
+    logger().info("Cache expiration process attempted.");
+  } catch (e) {
+    logger().error({ err: e }, "Error expiring cache entries");
+    // Optional: rethrow if you want the caller to handle/be aware of the error
+    // throw e;
   }
 }
