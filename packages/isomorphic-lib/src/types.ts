@@ -5463,3 +5463,14 @@ export const OauthFlowEnum = {
 
 export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
 export type OauthFlow = Static<typeof OauthFlow>;
+
+export const SetTimeLimitedCacheRequest = Type.Object({
+  workspaceId: Type.String(),
+  key: Type.String(),
+  value: Type.String(),
+  expiresAt: Type.String(),
+});
+
+export type SetTimeLimitedCacheRequest = Static<
+  typeof SetTimeLimitedCacheRequest
+>;
