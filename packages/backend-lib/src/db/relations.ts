@@ -20,6 +20,7 @@ import {
   segmentIoConfiguration,
   smsProvider,
   subscriptionGroup,
+  timeLimitedCache,
   userProperty,
   userPropertyAssignment,
   workspace,
@@ -73,6 +74,7 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
   }),
   componentConfigurations: many(componentConfiguration),
   workspaceOccupantSettings: many(workspaceOccupantSetting),
+  timeLimitedCaches: many(timeLimitedCache),
 }));
 
 export const userPropertyRelations = relations(
@@ -365,6 +367,16 @@ export const workspaceOccupantSettingRelations = relations(
     secret: one(secret, {
       fields: [workspaceOccupantSetting.secretId],
       references: [secret.id],
+    }),
+  }),
+);
+
+export const timeLimitedCacheRelations = relations(
+  timeLimitedCache,
+  ({ one }) => ({
+    workspace: one(workspace, {
+      fields: [timeLimitedCache.workspaceId],
+      references: [workspace.id],
     }),
   }),
 );

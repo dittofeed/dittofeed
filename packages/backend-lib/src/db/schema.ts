@@ -1080,3 +1080,40 @@ export const workspaceOccupantSetting = pgTable(
       .onDelete("set null"),
   ],
 );
+
+export const timeLimitedCache = pgTable(
+  "TimeLimitedCache",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid()
+      .notNull()
+      .references(() => workspace.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    key: text().notNull(),
+    value: jsonb(),
+    expiresAt: timestamp("expires_at", {
+      precision: 3,
+      mode: "date",
+    }).notNull(),
+    createdAt: timestamp("created_at", { precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("TimeLimitedCache_workspaceId_key_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast(),
+      table.key.asc().nullsLast(),
+    ),
+    index("TimeLimitedCache_expiresAt_idx").using(
+      "btree",
+      table.expiresAt.asc(),
+    ),
+  ],
+);
