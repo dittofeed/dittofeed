@@ -41,7 +41,7 @@ export function decodeAndValidateOauthState({
   storedCsrfToken,
 }: {
   stateParam?: string;
-  storedCsrfToken?: string;
+  storedCsrfToken?: unknown;
 }): OauthStateObject | null {
   if (!stateParam || !storedCsrfToken) {
     logger().error(
