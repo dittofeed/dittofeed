@@ -24,6 +24,7 @@ import settingsController from "../controllers/settingsController";
 import authController from "../controllers/singleTenantController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import subscriptionManagementController from "../controllers/subscriptionManagementController";
+import timeLimitedCacheController from "../controllers/timeLimitedCacheController";
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
@@ -70,6 +71,9 @@ export default async function router(
         f.register(resourcesController, { prefix: "/resources" }),
         f.register(computedPropertiesController, {
           prefix: "/computed-properties",
+        }),
+        f.register(timeLimitedCacheController, {
+          prefix: "/time-limited-cache",
         }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.
