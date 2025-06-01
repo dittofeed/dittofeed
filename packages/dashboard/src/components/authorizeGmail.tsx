@@ -1,6 +1,5 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, Typography } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { CompletionStatus, OauthFlowEnum } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
@@ -10,10 +9,10 @@ import { v4 as uuidv4 } from "uuid";
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
 import { OauthStateObject } from "../lib/oauth";
-import {
-  GMAIL_AUTHORIZATION_QUERY_KEY,
-  useGmailAuthorizationQuery,
-} from "../lib/useGmailAuthorizationQuery";
+import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
+import { useSetTimeLimitedCacheKeyMutation } from "../lib/useSetTimeLimitedCacheKeyMutation";
+
+const CSRF_TOKEN_CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export function AuthorizeGmail({
   gmailClientId,
@@ -27,10 +26,11 @@ export function AuthorizeGmail({
   const router = useRouter();
   const universalRouter = useUniversalRouter();
   const { workspace } = useAppStorePick(["workspace"]);
-  const queryClient = useQueryClient();
   const { data, isLoading, refetch } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  const setTimeLimitedCache = useSetTimeLimitedCacheKeyMutation();
 
   useEffect(() => {
     if (isAuthorized && onAuthorize) {
@@ -38,7 +38,7 @@ export function AuthorizeGmail({
     }
   }, [isAuthorized, onAuthorize]);
 
-  const handleConnectGmailClick = useCallback(() => {
+  const handleConnectGmailClick = useCallback(async () => {
     if (workspace.type !== CompletionStatus.Successful || isPopupOpen) {
       return;
     }
@@ -46,32 +46,35 @@ export function AuthorizeGmail({
 
     if (isAuthorized || disabled) return;
 
-    const token =
+    const tokenFromQuery =
       typeof router.query.token === "string" ? router.query.token : undefined;
 
     const csrfToken = uuidv4();
 
-    const stateObject: OauthStateObject = {
+    const fullStateObject: OauthStateObject = {
       csrf: csrfToken,
       workspaceId: currentWorkspaceId,
-      token,
+      token: tokenFromQuery,
       flow: OauthFlowEnum.PopUp,
     };
 
-    let stateParam;
     try {
-      const jsonString = JSON.stringify(stateObject);
-      stateParam = btoa(jsonString)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      const expiresAtDate = new Date(Date.now() + CSRF_TOKEN_CACHE_EXPIRY_MS);
+      await setTimeLimitedCache.mutateAsync({
+        key: csrfToken,
+        value: fullStateObject,
+        expiresAt: expiresAtDate.toISOString(),
+      });
     } catch (error) {
-      console.error("Error encoding state object:", error);
-      alert("An error occurred preparing your request. Please try again.");
+      console.error("Failed to set OAuth state in cache:", error);
       return;
     }
 
-    const cookieExpiry = new Date(Date.now() + 5 * 60 * 1000).toUTCString();
+    const stateParam = csrfToken;
+
+    const cookieExpiry = new Date(
+      Date.now() + CSRF_TOKEN_CACHE_EXPIRY_MS,
+    ).toUTCString();
     document.cookie = `${OAUTH_COOKIE_NAME}=${csrfToken};path=/;expires=${cookieExpiry};SameSite=Lax;Secure`;
 
     const redirectPath = universalRouter.mapUrl(
@@ -109,15 +112,11 @@ export function AuthorizeGmail({
         if (popup.closed) {
           clearInterval(timer);
           setIsPopupOpen(false);
-          if (refetch) {
-            await refetch();
-          } else {
-            await queryClient.invalidateQueries({
-              queryKey: GMAIL_AUTHORIZATION_QUERY_KEY,
-            });
-          }
+          await refetch();
         }
       }, 500);
+    } else {
+      alert("Popup blocked. Please allow popups for this site.");
     }
   }, [
     workspace,
@@ -128,20 +127,18 @@ export function AuthorizeGmail({
     gmailClientId,
     universalRouter,
     refetch,
-    queryClient,
+    setTimeLimitedCache,
   ]);
 
-  // Determine button color based on state
   let buttonColor: "primary" | "success" | "inherit" = "primary";
   if (isAuthorized) {
     buttonColor = "success";
   }
 
-  // Determine button text based on state
   let buttonText: React.ReactNode = "Connect Gmail Account";
   if (isLoading && !isPopupOpen) {
     buttonText = "Checking authorization...";
-  } else if (isPopupOpen) {
+  } else if (isPopupOpen || setTimeLimitedCache.isPending) {
     buttonText = "Awaiting Gmail Authorization...";
   } else if (isAuthorized) {
     buttonText = (
@@ -158,7 +155,13 @@ export function AuthorizeGmail({
         variant="contained"
         color={buttonColor}
         onClick={handleConnectGmailClick}
-        disabled={isLoading || isAuthorized || disabled}
+        disabled={
+          isLoading ||
+          isAuthorized ||
+          disabled ||
+          isPopupOpen ||
+          setTimeLimitedCache.isPending
+        }
         sx={{
           textTransform: "none",
           fontSize: "16px",
