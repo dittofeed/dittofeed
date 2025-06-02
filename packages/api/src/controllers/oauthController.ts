@@ -28,7 +28,7 @@ export default async function oauthController(fastify: FastifyInstance) {
         expires: new Date(expiresAt),
       };
 
-      await reply.setCookie(OAUTH_COOKIE_NAME, csrfToken, cookieOptions);
+      void reply.setCookie(OAUTH_COOKIE_NAME, csrfToken, cookieOptions);
       return reply.status(204).send();
     },
   );
