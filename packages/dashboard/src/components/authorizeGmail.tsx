@@ -7,20 +7,16 @@ import { v4 as uuidv4 } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
-import { OauthStateObject } from "../lib/oauth";
 import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
-import { useOauthSetCsrfMutation } from "../lib/useOauthSetCsrfMutation";
-
-const CSRF_TOKEN_CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export function AuthorizeGmail({
-  gmailClientId,
   disabled,
   onAuthorize,
+  oAuthCsrfToken: propCsrfToken,
 }: {
-  gmailClientId: string;
   disabled?: boolean;
   onAuthorize?: () => void;
+  oAuthCsrfToken?: string;
 }) {
   const router = useRouter();
   const universalRouter = useUniversalRouter();
@@ -28,8 +24,6 @@ export function AuthorizeGmail({
   const { data, isLoading, refetch } = useGmailAuthorizationQuery();
   const isAuthorized = data?.authorized ?? false;
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-
-  const setCsrfCookieMutation = useOauthSetCsrfMutation();
 
   useEffect(() => {
     if (isAuthorized && onAuthorize) {
@@ -41,70 +35,35 @@ export function AuthorizeGmail({
     if (workspace.type !== CompletionStatus.Successful || isPopupOpen) {
       return;
     }
-    const currentWorkspaceId = workspace.value.id;
 
     if (isAuthorized || disabled) return;
 
     const tokenFromQuery =
       typeof router.query.token === "string" ? router.query.token : undefined;
 
-    const csrfToken = uuidv4();
+    const csrfToken = propCsrfToken ?? uuidv4();
 
-    const fullStateObject: OauthStateObject = {
-      csrf: csrfToken,
-      workspaceId: currentWorkspaceId,
-      token: tokenFromQuery,
-      flow: OauthFlowEnum.PopUp,
-    };
-
-    // try {
-    //   const expiresAtDate = new Date(Date.now() + CSRF_TOKEN_CACHE_EXPIRY_MS);
-    //   await setCsrfCookieMutation.mutateAsync({
-    //     csrfToken,
-    //     expiresAt: expiresAtDate.toISOString(),
-    //   });
-    // } catch (error) {
-    //   console.error("Failed to set CSRF cookie via API:", error);
-    //   return;
-    // }
-
-    let stateParam;
-    try {
-      const jsonString = JSON.stringify(fullStateObject);
-      stateParam = btoa(jsonString)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-    } catch (error) {
-      console.error("Error encoding state object:", error);
-      return;
-    }
-
-    const redirectPath = universalRouter.mapUrl(
-      "/oauth2/callback/gmail",
+    const initiatePath = universalRouter.mapUrl(
+      "/oauth2/initiate/gmail",
       undefined,
       {
         includeBasePath: true,
         excludeQueryParams: true,
       },
     );
-    const redirectUri = `${window.location.origin}${redirectPath}`;
+    const initiateUrl = new URL(`${window.location.origin}${initiatePath}`);
 
-    const params = new URLSearchParams({
-      client_id: gmailClientId,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope:
-        "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
-      state: stateParam,
-      access_type: "offline",
-      prompt: "consent",
-    });
-
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    initiateUrl.searchParams.append("csrfToken", csrfToken);
+    initiateUrl.searchParams.append("flow", OauthFlowEnum.PopUp);
+    if (router.asPath) {
+      initiateUrl.searchParams.append("returnTo", router.asPath);
+    }
+    if (tokenFromQuery) {
+      initiateUrl.searchParams.append("token", tokenFromQuery);
+    }
 
     const popup = window.open(
-      googleAuthUrl,
+      initiateUrl.toString(),
       "googleOAuthPopup",
       "width=600,height=700,resizable,scrollbars",
     );
@@ -118,17 +77,19 @@ export function AuthorizeGmail({
           await refetch();
         }
       }, 500);
+    } else {
+      console.error("Popup blocked. Please allow popups for this site.");
     }
   }, [
     workspace,
     isPopupOpen,
     isAuthorized,
     disabled,
+    router.asPath,
     router.query.token,
-    gmailClientId,
     universalRouter,
     refetch,
-    setCsrfCookieMutation,
+    propCsrfToken,
   ]);
 
   let buttonColor: "primary" | "success" | "inherit" = "primary";
@@ -139,7 +100,7 @@ export function AuthorizeGmail({
   let buttonText: React.ReactNode = "Connect Gmail Account";
   if (isLoading && !isPopupOpen) {
     buttonText = "Checking authorization...";
-  } else if (isPopupOpen || setCsrfCookieMutation.isPending) {
+  } else if (isPopupOpen) {
     buttonText = "Awaiting Gmail Authorization...";
   } else if (isAuthorized) {
     buttonText = (
@@ -156,13 +117,7 @@ export function AuthorizeGmail({
         variant="contained"
         color={buttonColor}
         onClick={handleConnectGmailClick}
-        disabled={
-          isLoading ||
-          isAuthorized ||
-          disabled ||
-          isPopupOpen ||
-          setCsrfCookieMutation.isPending
-        }
+        disabled={isLoading || isAuthorized || disabled || isPopupOpen}
         sx={{
           textTransform: "none",
           fontSize: "16px",
