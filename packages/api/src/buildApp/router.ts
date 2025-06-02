@@ -16,7 +16,6 @@ import groupsController from "../controllers/groupsController";
 import indexController from "../controllers/indexController";
 import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
-import oauthController from "../controllers/oauthController";
 import publicAppsController from "../controllers/publicAppsController";
 import resourcesController from "../controllers/resourcesController";
 import secretsController from "../controllers/secretsController";
@@ -72,7 +71,6 @@ export default async function router(
         f.register(computedPropertiesController, {
           prefix: "/computed-properties",
         }),
-        f.register(oauthController, { prefix: "/oauth" }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.
         f.register(webhooksController, { prefix: "/webhooks" }),

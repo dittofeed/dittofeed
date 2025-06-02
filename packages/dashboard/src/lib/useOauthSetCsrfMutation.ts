@@ -11,7 +11,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore"; // Will be used now
-import { useAuthHeaders } from "./authModeProvider"; // Only useAuthHeaders is needed
+import { useAuthHeaders, useUniversalRouter } from "./authModeProvider"; // Only useAuthHeaders is needed
 
 // Type for the variables passed to the mutate function from the component
 export type OauthSetCsrfInput = Omit<SetCsrfCookieRequest, "workspaceId">;
@@ -28,6 +28,7 @@ export function useOauthSetCsrfMutation(
   // const queryClient = useQueryClient(); // Include if specific query invalidations are needed
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
+  const universalRouter = useUniversalRouter();
   // const baseApiUrl = useBaseApiUrl(); // No longer needed for the URL construction
 
   const mutationFn: SetCsrfCookieMutationFn = async (input) => {
@@ -43,8 +44,10 @@ export function useOauthSetCsrfMutation(
       workspaceId,
     };
 
+    // FIXME need a corresponding API route in the embedd dashboard
+    const url = `${universalRouter.basePath}/api/oauth/set-csrf-cookie`;
     // Point to the new Next.js API route within the dashboard
-    await axios.post("/dashboard/api/oauth/set-csrf-cookie", apiRequest, {
+    await axios.post(url, apiRequest, {
       headers: {
         "Content-Type": "application/json",
         ...authHeaders, // Send auth headers even to our own Next.js API routes if they are protected
