@@ -19,7 +19,6 @@ export default async function handler(
   const parsedBody = jsonParseSafeWithSchema(req.body, SetCsrfCookieRequest);
 
   if (parsedBody.isErr()) {
-    // console.error("Invalid request body:", parsedBody.error);
     return res
       .status(400)
       .json({ message: "Invalid request body", errors: parsedBody.error });
@@ -54,7 +53,6 @@ export default async function handler(
     res.setHeader("Set-Cookie", cookieString);
     return res.status(204).end();
   } catch (error) {
-    // console.error("Error setting cookie:", error);
     const err = error as Error;
     return res
       .status(500)
