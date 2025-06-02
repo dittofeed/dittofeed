@@ -19,10 +19,21 @@ import {
   OauthFlow,
   OauthFlowEnum,
 } from "backend-lib/src/types";
+import { serialize } from "cookie";
+import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafeWithSchema,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
+import { v4 as uuidv4 } from "uuid";
+
+import { PropsWithInitialState } from "./types";
+
+const CSRF_TOKEN_COOKIE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export const OauthStateObject = Type.Object({
   csrf: Type.String(),
@@ -336,4 +347,99 @@ export async function handleOauthCallback({
       }
     }
   }
+}
+
+export const InitiateQuerySchema = Type.Omit(OauthStateObject, [
+  "workspaceId",
+  "csrf",
+]);
+
+export type InitiateQuery = Static<typeof InitiateQuerySchema>;
+
+export function initiateGmailAuth({
+  workspaceId,
+  flow,
+  returnTo,
+  token,
+  context,
+}: {
+  workspaceId: string;
+  context: GetServerSidePropsContext;
+} & InitiateQuery): GetServerSidePropsResult<PropsWithInitialState> {
+  const { gmailClientId, dashboardUrl } = backendConfig();
+
+  if (!gmailClientId) {
+    logger().error("Missing gmailClientId in backend config.");
+    return { redirect: { destination: "/", permanent: false } };
+  }
+  const csrf = uuidv4();
+
+  const stateObjectToEncode: OauthStateObject = {
+    csrf,
+    workspaceId,
+    flow: flow ?? OauthFlowEnum.Redirect,
+    ...(returnTo && { returnTo }),
+    ...(token && { token }),
+  };
+
+  logger().debug({ stateObjectToEncode }, "State object to encode");
+
+  const cookieExpiry = new Date(Date.now() + CSRF_TOKEN_COOKIE_EXPIRY_MS);
+  const cookieOptions = {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    expires: cookieExpiry,
+  };
+  const cookieString = serialize(OAUTH_COOKIE_NAME, csrf, cookieOptions);
+  context.res.setHeader("Set-Cookie", cookieString);
+
+  let stateParamForGoogle;
+  try {
+    const finalStateValidation = schemaValidateWithErr(
+      stateObjectToEncode,
+      OauthStateObject,
+    );
+    if (finalStateValidation.isErr()) {
+      logger().error(
+        { err: finalStateValidation.error, state: stateObjectToEncode },
+        "Constructed OauthStateObject is invalid",
+      );
+      return { redirect: { destination: "/", permanent: false } };
+    }
+    const jsonString = JSON.stringify(finalStateValidation.value);
+    stateParamForGoogle = Buffer.from(jsonString).toString("base64url");
+  } catch (error) {
+    logger().error(
+      { err: error, stateObject: stateObjectToEncode },
+      "Failed to stringify or encode OAuth state object.",
+    );
+    return { redirect: { destination: "/", permanent: false } };
+  }
+
+  const finalCallbackPath = `/dashboard/oauth2/callback/gmail`;
+  const googleRedirectUri = dashboardUrl.endsWith("/")
+    ? `${dashboardUrl.slice(0, -1)}${finalCallbackPath}`
+    : `${dashboardUrl}${finalCallbackPath}`;
+
+  const params = new URLSearchParams({
+    client_id: gmailClientId,
+    redirect_uri: googleRedirectUri,
+    response_type: "code",
+    scope:
+      "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
+    state: stateParamForGoogle,
+    access_type: "offline",
+    prompt: "consent",
+  });
+
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+  return {
+    redirect: {
+      destination: googleAuthUrl,
+      permanent: false,
+    },
+  };
 }
