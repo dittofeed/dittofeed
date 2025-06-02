@@ -1,3 +1,4 @@
+import fastifyCookie from "@fastify/cookie";
 import { fastifyRequestContext } from "@fastify/request-context";
 import secureSession from "@fastify/secure-session";
 import fastifySwagger from "@fastify/swagger";
@@ -99,6 +100,7 @@ export async function registerApp(
   // needs to be registered before routes
   const fastifyPluginPromises: PromiseLike<unknown>[] = [
     server.register(fastifyRequestContext),
+    server.register(fastifyCookie),
     server.register(multipart),
   ];
 

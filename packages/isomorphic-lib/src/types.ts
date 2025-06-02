@@ -5455,3 +5455,19 @@ export interface EmbeddedSession {
   workspaceId: string;
   occupantId?: string;
 }
+
+export const OauthFlowEnum = {
+  PopUp: "PopUp",
+  Redirect: "Redirect",
+} as const;
+
+export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
+export type OauthFlow = Static<typeof OauthFlow>;
+
+export const SetCsrfCookieRequest = Type.Object({
+  workspaceId: Type.String(),
+  csrfToken: Type.String(),
+  expiresAt: Type.String({ format: "date-time" }), // Expect ISO date string
+});
+
+export type SetCsrfCookieRequest = Static<typeof SetCsrfCookieRequest>;

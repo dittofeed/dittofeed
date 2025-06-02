@@ -61,6 +61,7 @@ export function useAuthHeaders(): Record<string, string> {
 
 interface UniversalRouter {
   push: (path: string, query?: Record<string, string>) => void;
+  basePath: string;
   mapUrl: (
     path: string,
     query?: Record<string, string>,
@@ -75,12 +76,14 @@ export function useUniversalRouter() {
   const universalRouter: UniversalRouter = useMemo(() => {
     let push: UniversalRouter["push"];
     let mapUrl: UniversalRouter["mapUrl"];
+    let basePath: UniversalRouter["basePath"];
     const workspaceId =
       workspace.type === CompletionStatus.Successful
         ? workspace.value.id
         : undefined;
     switch (authContext.type) {
       case AuthModeTypeEnum.Embedded:
+        basePath = "/dashboard-l";
         mapUrl = (path: string, query?: Record<string, string>, opts = {}) => {
           const fullPath = `${opts.includeBasePath ? "/dashboard-l" : ""}/embedded${path}`;
           const fullQuery = { token: authContext.token, workspaceId, ...query };
@@ -93,6 +96,7 @@ export function useUniversalRouter() {
         };
         break;
       case AuthModeTypeEnum.Base:
+        basePath = "/dashboard";
         mapUrl = (path: string, query?: Record<string, string>, opts = {}) => {
           const fullPath = `${opts.includeBasePath ? "/dashboard" : ""}${path}`;
           return `${fullPath}${opts.excludeQueryParams ? "" : `?${qs.stringify(query)}`}`;
@@ -103,7 +107,7 @@ export function useUniversalRouter() {
       default:
         assertUnreachable(authContext);
     }
-    return { push, mapUrl };
-  }, [authContext, router]);
+    return { push, mapUrl, basePath };
+  }, [authContext, router, workspace]);
   return universalRouter;
 }

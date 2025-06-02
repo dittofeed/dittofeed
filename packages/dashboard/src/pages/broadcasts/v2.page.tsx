@@ -36,6 +36,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         notFound: true,
       };
     }
+
     return {
       props: addInitialStateToProps({
         dfContext,

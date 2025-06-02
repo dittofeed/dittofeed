@@ -1,18 +1,27 @@
 import { DittofeedSdk } from "@dittofeed/sdk-node";
-import backendConfig from "backend-lib/src/config";
+import backendConfigFromLib from "backend-lib/src/config";
 import { getFeatures } from "backend-lib/src/features";
-import logger from "backend-lib/src/logger";
-import { getRequestContext } from "backend-lib/src/requestContext";
-import { OpenIdProfile, RequestContextErrorType } from "backend-lib/src/types";
+import backendLogger from "backend-lib/src/logger";
+import { getRequestContext as getRequestContextFromLib } from "backend-lib/src/requestContext";
+import {
+  DFRequestContext,
+  OpenIdProfile,
+  RequestContextErrorType as BackendRequestContextErrorType,
+} from "backend-lib/src/types";
 import {
   SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,
 } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { GetServerSideProps } from "next";
+import { err, ok, Result } from "neverthrow";
+import { GetServerSideProps, NextApiRequest } from "next";
 
 import { apiBase } from "./apiBase";
 import { GetDFServerSideProps, PropsWithInitialState } from "./types";
+
+const backendConfig = backendConfigFromLib;
+const logger = backendLogger;
+const getRequestContext = getRequestContextFromLib;
 
 export const requestContext: <T>(
   gssp: GetDFServerSideProps<PropsWithInitialState<T>>,
@@ -24,7 +33,7 @@ export const requestContext: <T>(
     if (rc.isErr()) {
       const { error } = rc;
       switch (error.type) {
-        case RequestContextErrorType.EmailNotVerified:
+        case BackendRequestContextErrorType.EmailNotVerified:
           logger().info(
             {
               onboardingUrl,
@@ -39,7 +48,7 @@ export const requestContext: <T>(
               permanent: false,
             },
           };
-        case RequestContextErrorType.NotOnboarded:
+        case BackendRequestContextErrorType.NotOnboarded:
           logger().info(
             {
               contextErrorMsg: error.message,
@@ -53,7 +62,7 @@ export const requestContext: <T>(
               basePath: false,
             },
           };
-        case RequestContextErrorType.Unauthorized: {
+        case BackendRequestContextErrorType.Unauthorized: {
           logger().info(
             {
               contextErrorMsg: error.message,
@@ -69,9 +78,9 @@ export const requestContext: <T>(
             },
           };
         }
-        case RequestContextErrorType.ApplicationError:
+        case BackendRequestContextErrorType.ApplicationError:
           throw new Error(error.message);
-        case RequestContextErrorType.NotAuthenticated:
+        case BackendRequestContextErrorType.NotAuthenticated:
           if (backendConfig().authMode === "single-tenant") {
             return {
               redirect: {
@@ -86,7 +95,7 @@ export const requestContext: <T>(
               permanent: false,
             },
           };
-        case RequestContextErrorType.WorkspaceInactive:
+        case BackendRequestContextErrorType.WorkspaceInactive:
           logger().info(
             {
               contextErrorMsg: error.message,
@@ -130,3 +139,60 @@ export const requestContext: <T>(
 
     return gssp(context, { ...dfContext, features });
   };
+
+export interface ApiRequestContextError {
+  message: string;
+  status: number;
+}
+
+export async function apiAuth(
+  req: NextApiRequest,
+): Promise<Result<DFRequestContext, ApiRequestContextError>> {
+  const rc = await getRequestContext(req.headers, undefined);
+
+  if (rc.isOk()) {
+    return ok(rc.value);
+  }
+
+  const { error } = rc;
+  logger().info({ backendError: error }, "API Auth Error from backend-lib");
+
+  switch (error.type) {
+    case BackendRequestContextErrorType.NotAuthenticated:
+      return err({
+        message: "Authentication required.",
+        status: 401,
+      });
+    case BackendRequestContextErrorType.Unauthorized:
+      return err({
+        message: error.message || "Unauthorized",
+        status: 401,
+      });
+    case BackendRequestContextErrorType.EmailNotVerified:
+      return err({
+        message: `Email not verified: ${error.email}`,
+        status: 403,
+      });
+    case BackendRequestContextErrorType.NotOnboarded:
+      return err({
+        message: error.message || "User not onboarded.",
+        status: 403,
+      });
+    case BackendRequestContextErrorType.WorkspaceInactive:
+      return err({
+        message: error.message || "Workspace is inactive.",
+        status: 403,
+      });
+    case BackendRequestContextErrorType.ApplicationError:
+      return err({
+        message: error.message || "Internal Server Error.",
+        status: 500,
+      });
+    default:
+      assertUnreachable(error);
+      return err({
+        message: "An unexpected authentication error occurred.",
+        status: 500,
+      });
+  }
+}
