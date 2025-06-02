@@ -24,7 +24,7 @@ export default async function oauthController(fastify: FastifyInstance) {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "lax" as const,
         expires: new Date(expiresAt),
       };
 
