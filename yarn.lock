@@ -2814,7 +2814,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/cookie@npm:^9.0.4":
+"@fastify/cookie@npm:9.0.4":
   version: 9.0.4
   resolution: "@fastify/cookie@npm:9.0.4"
   dependencies:
@@ -12440,6 +12440,7 @@ __metadata:
   resolution: "api@workspace:packages/api"
   dependencies:
     "@apidevtools/openapi-schemas": "npm:^2.1.0"
+    "@fastify/cookie": "npm:9.0.4"
     "@fastify/cors": "npm:^8.1.0"
     "@fastify/formbody": "npm:^7.4.0"
     "@fastify/multipart": "npm:^7.6.0"

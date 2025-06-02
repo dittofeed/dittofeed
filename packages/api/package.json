@@ -13,6 +13,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@fastify/cookie": "9.0.4",
     "@fastify/cors": "^8.1.0",
     "@fastify/formbody": "^7.4.0",
     "@fastify/multipart": "^7.6.0",
