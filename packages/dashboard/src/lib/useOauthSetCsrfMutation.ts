@@ -9,9 +9,14 @@ import {
   CompletionStatus, // Import if workspace check is re-enabled
   SetCsrfCookieRequest, // This type should now include workspaceId
 } from "isomorphic-lib/src/types";
+import { useContext } from "react";
 
 import { useAppStorePick } from "./appStore"; // Will be used now
-import { useAuthHeaders, useUniversalRouter } from "./authModeProvider"; // Only useAuthHeaders is needed
+import {
+  AuthContext,
+  AuthModeTypeEnum,
+  useAuthHeaders,
+} from "./authModeProvider"; // Only useAuthHeaders is needed
 
 // Type for the variables passed to the mutate function from the component
 export type OauthSetCsrfInput = Omit<SetCsrfCookieRequest, "workspaceId">;
@@ -25,11 +30,9 @@ export function useOauthSetCsrfMutation(
     "mutationFn"
   >,
 ): UseMutationResult<void, AxiosError, OauthSetCsrfInput> {
-  // const queryClient = useQueryClient(); // Include if specific query invalidations are needed
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
-  const universalRouter = useUniversalRouter();
-  // const baseApiUrl = useBaseApiUrl(); // No longer needed for the URL construction
+  const authContext = useContext(AuthContext);
 
   const mutationFn: SetCsrfCookieMutationFn = async (input) => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -44,8 +47,11 @@ export function useOauthSetCsrfMutation(
       workspaceId,
     };
 
-    // FIXME need a corresponding API route in the embedd dashboard
-    const url = `${universalRouter.basePath}/api/oauth/set-csrf-cookie`;
+    const basePath =
+      authContext.type === AuthModeTypeEnum.Embedded
+        ? "/dashboard-l/api/embedded"
+        : "/dashboard/api";
+    const url = `${basePath}/oauth/set-csrf-cookie`;
     // Point to the new Next.js API route within the dashboard
     await axios.post(url, apiRequest, {
       headers: {
