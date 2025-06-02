@@ -1,6 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray, or } from "drizzle-orm";
-import { FastifyRequest } from "fastify";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -19,8 +18,6 @@ import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
-  DBWorkspaceOccupantType,
-  EmbeddedSession,
   NotOnboardedError,
   OpenIdProfile,
   RequestContextErrorType,

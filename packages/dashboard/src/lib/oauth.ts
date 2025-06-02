@@ -14,10 +14,26 @@ import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import logger from "backend-lib/src/logger";
-import { DBWorkspaceOccupantType } from "backend-lib/src/types";
+import {
+  DBWorkspaceOccupantType,
+  OauthFlow,
+  OauthFlowEnum,
+} from "backend-lib/src/types";
+import { serialize } from "cookie";
+import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafeWithSchema,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
+import { v4 as uuidv4 } from "uuid";
+
+import { PropsWithInitialState } from "./types";
+
+const CSRF_TOKEN_COOKIE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export const OauthStateObject = Type.Object({
   csrf: Type.String(),
@@ -25,6 +41,7 @@ export const OauthStateObject = Type.Object({
   workspaceId: Type.String(),
   // used for embedded auth
   token: Type.Optional(Type.String()),
+  flow: Type.Optional(OauthFlow),
 });
 
 export type OauthStateObject = Static<typeof OauthStateObject>;
@@ -86,16 +103,34 @@ export function decodeAndValidateOauthState({
   }
 }
 
-interface OauthCallbackSuccess {
+interface OauthCallbackSuccessPopup {
   type: "success";
+  flow: typeof OauthFlowEnum.PopUp;
+}
+
+interface OauthCallbackSuccessRedirect {
+  type: "success";
+  flow: typeof OauthFlowEnum.Redirect;
   redirectUrl: string;
 }
 
-interface OauthCallbackError {
+type OauthCallbackSuccess =
+  | OauthCallbackSuccessPopup
+  | OauthCallbackSuccessRedirect;
+
+interface OauthCallbackErrorPopup {
   type: "error";
+  flow: typeof OauthFlowEnum.PopUp;
   reason: string;
+}
+
+interface OauthCallbackErrorRedirect {
+  type: "error";
+  flow: typeof OauthFlowEnum.Redirect;
   redirectUrl: string;
 }
+
+type OauthCallbackError = OauthCallbackErrorPopup | OauthCallbackErrorRedirect;
 
 export async function handleOauthCallback({
   workspaceId,
@@ -105,21 +140,35 @@ export async function handleOauthCallback({
   occupantType,
   returnTo,
   baseRedirectUri,
+  flow = OauthFlowEnum.Redirect,
 }: {
   workspaceId: string;
   provider?: string;
   code?: string;
   returnTo?: string;
+  flow?: OauthFlow;
   occupantId: string;
   occupantType: DBWorkspaceOccupantType;
   baseRedirectUri: string;
 }): Promise<Result<OauthCallbackSuccess, OauthCallbackError>> {
   if (!code) {
-    return err({
-      type: "error",
-      reason: "missing_code",
-      redirectUrl: "/",
-    });
+    switch (flow) {
+      case OauthFlowEnum.PopUp:
+        return err({
+          flow,
+          type: "error",
+          reason: "missing_code",
+        });
+      case OauthFlowEnum.Redirect:
+        return err({
+          flow,
+          type: "error",
+          reason: "missing_code",
+          redirectUrl: "/",
+        });
+      default:
+        assertUnreachable(flow);
+    }
   }
   const { dashboardUrl, hubspotClientSecret, hubspotClientId } =
     backendConfig();
@@ -136,13 +185,28 @@ export async function handleOauthCallback({
         redirectUri,
       });
       if (gmailResult.isErr()) {
-        logger().error(
+        logger().info(
           {
             err: gmailResult.error,
             workspaceId,
           },
           "failed to authorize gmail",
         );
+      }
+
+      if (flow === OauthFlowEnum.PopUp) {
+        if (gmailResult.isOk()) {
+          return ok({
+            type: "success",
+            actionType: "popup",
+            flow,
+          });
+        }
+        return err({
+          type: "error",
+          reason: "failed_to_authorize_gmail",
+          flow,
+        });
       }
       let baseRedirectPath = "/"; // Default to app's base path
 
@@ -167,6 +231,7 @@ export async function handleOauthCallback({
       return ok({
         type: "success",
         redirectUrl: finalRedirectPath,
+        flow,
       });
       break;
     }
@@ -258,15 +323,127 @@ export async function handleOauthCallback({
       });
       return ok({
         type: "success",
+        flow,
         redirectUrl: "/settings",
       });
     }
     default: {
-      return err({
-        type: "error",
-        reason: "invalid_provider",
-        redirectUrl: "/",
-      });
+      switch (flow) {
+        case OauthFlowEnum.PopUp:
+          return err({
+            flow,
+            type: "error",
+            reason: "invalid_provider",
+          });
+        case OauthFlowEnum.Redirect:
+          return err({
+            flow,
+            type: "error",
+            reason: "invalid_provider",
+            redirectUrl: "/",
+          });
+        default:
+          assertUnreachable(flow);
+      }
     }
   }
+}
+
+export const InitiateQuerySchema = Type.Omit(OauthStateObject, [
+  "workspaceId",
+  "csrf",
+]);
+
+export type InitiateQuery = Static<typeof InitiateQuerySchema>;
+
+export function initiateGmailAuth({
+  workspaceId,
+  flow,
+  returnTo,
+  token,
+  context,
+  finalCallbackPath,
+}: {
+  workspaceId: string;
+  finalCallbackPath: string;
+  context: GetServerSidePropsContext;
+} & InitiateQuery): Result<
+  GetServerSidePropsResult<PropsWithInitialState>,
+  Error
+> {
+  const { gmailClientId, dashboardUrl } = backendConfig();
+
+  if (!gmailClientId) {
+    logger().error("Missing gmailClientId in backend config.");
+    return err(new Error("Missing gmailClientId in backend config."));
+  }
+  const csrf = uuidv4();
+
+  const stateObjectToEncode: OauthStateObject = {
+    csrf,
+    workspaceId,
+    flow: flow ?? OauthFlowEnum.Redirect,
+    ...(returnTo && { returnTo }),
+    ...(token && { token }),
+  };
+
+  logger().debug({ stateObjectToEncode }, "State object to encode");
+
+  const cookieExpiry = new Date(Date.now() + CSRF_TOKEN_COOKIE_EXPIRY_MS);
+  const cookieOptions = {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    expires: cookieExpiry,
+  };
+  const cookieString = serialize(OAUTH_COOKIE_NAME, csrf, cookieOptions);
+  context.res.setHeader("Set-Cookie", cookieString);
+
+  let stateParamForGoogle;
+  try {
+    const finalStateValidation = schemaValidateWithErr(
+      stateObjectToEncode,
+      OauthStateObject,
+    );
+    if (finalStateValidation.isErr()) {
+      logger().error(
+        { err: finalStateValidation.error, state: stateObjectToEncode },
+        "Constructed OauthStateObject is invalid",
+      );
+      return err(new Error("Constructed OauthStateObject is invalid"));
+    }
+    const jsonString = JSON.stringify(finalStateValidation.value);
+    stateParamForGoogle = Buffer.from(jsonString).toString("base64url");
+  } catch (error) {
+    logger().error(
+      { err: error, stateObject: stateObjectToEncode },
+      "Failed to stringify or encode OAuth state object.",
+    );
+    return err(new Error("Failed to stringify or encode OAuth state object."));
+  }
+
+  const googleRedirectUri = dashboardUrl.endsWith("/")
+    ? `${dashboardUrl.slice(0, -1)}${finalCallbackPath}`
+    : `${dashboardUrl}${finalCallbackPath}`;
+
+  const params = new URLSearchParams({
+    client_id: gmailClientId,
+    redirect_uri: googleRedirectUri,
+    response_type: "code",
+    scope:
+      "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
+    state: stateParamForGoogle,
+    access_type: "offline",
+    prompt: "consent",
+  });
+
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+  return ok({
+    redirect: {
+      destination: googleAuthUrl,
+      permanent: false,
+    },
+  });
 }
