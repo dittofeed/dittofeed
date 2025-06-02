@@ -25,8 +25,9 @@ export const getServerSideProps: GetServerSideProps = requestContext(
     return initiateGmailAuth({
       workspaceId: dfContext.workspace.id,
       context,
+      finalCallbackPath: "/dashboard/oauth2/callback/gmail",
       ...validatedQuery.value,
-    });
+    }).unwrapOr({ redirect: { destination: "/", permanent: false } });
   },
 );
 

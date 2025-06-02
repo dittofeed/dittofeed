@@ -362,15 +362,20 @@ export function initiateGmailAuth({
   returnTo,
   token,
   context,
+  finalCallbackPath,
 }: {
   workspaceId: string;
+  finalCallbackPath: string;
   context: GetServerSidePropsContext;
-} & InitiateQuery): GetServerSidePropsResult<PropsWithInitialState> {
+} & InitiateQuery): Result<
+  GetServerSidePropsResult<PropsWithInitialState>,
+  Error
+> {
   const { gmailClientId, dashboardUrl } = backendConfig();
 
   if (!gmailClientId) {
     logger().error("Missing gmailClientId in backend config.");
-    return { redirect: { destination: "/", permanent: false } };
+    return err(new Error("Missing gmailClientId in backend config."));
   }
   const csrf = uuidv4();
 
@@ -406,7 +411,7 @@ export function initiateGmailAuth({
         { err: finalStateValidation.error, state: stateObjectToEncode },
         "Constructed OauthStateObject is invalid",
       );
-      return { redirect: { destination: "/", permanent: false } };
+      return err(new Error("Constructed OauthStateObject is invalid"));
     }
     const jsonString = JSON.stringify(finalStateValidation.value);
     stateParamForGoogle = Buffer.from(jsonString).toString("base64url");
@@ -415,10 +420,9 @@ export function initiateGmailAuth({
       { err: error, stateObject: stateObjectToEncode },
       "Failed to stringify or encode OAuth state object.",
     );
-    return { redirect: { destination: "/", permanent: false } };
+    return err(new Error("Failed to stringify or encode OAuth state object."));
   }
 
-  const finalCallbackPath = `/dashboard/oauth2/callback/gmail`;
   const googleRedirectUri = dashboardUrl.endsWith("/")
     ? `${dashboardUrl.slice(0, -1)}${finalCallbackPath}`
     : `${dashboardUrl}${finalCallbackPath}`;
@@ -436,10 +440,10 @@ export function initiateGmailAuth({
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-  return {
+  return ok({
     redirect: {
       destination: googleAuthUrl,
       permanent: false,
     },
-  };
+  });
 }

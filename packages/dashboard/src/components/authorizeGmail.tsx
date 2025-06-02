@@ -3,7 +3,6 @@ import { Box, Button, Typography } from "@mui/material";
 import { CompletionStatus, OauthFlowEnum } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useUniversalRouter } from "../lib/authModeProvider";
@@ -12,11 +11,9 @@ import { useGmailAuthorizationQuery } from "../lib/useGmailAuthorizationQuery";
 export function AuthorizeGmail({
   disabled,
   onAuthorize,
-  oAuthCsrfToken: propCsrfToken,
 }: {
   disabled?: boolean;
   onAuthorize?: () => void;
-  oAuthCsrfToken?: string;
 }) {
   const router = useRouter();
   const universalRouter = useUniversalRouter();
@@ -38,27 +35,16 @@ export function AuthorizeGmail({
 
     if (isAuthorized || disabled) return;
 
-    const tokenFromQuery =
-      typeof router.query.token === "string" ? router.query.token : undefined;
-
     const initiatePath = universalRouter.mapUrl(
       "/oauth2/initiate/gmail",
       undefined,
       {
         includeBasePath: true,
-        excludeQueryParams: true,
       },
     );
     const initiateUrl = new URL(`${window.location.origin}${initiatePath}`);
 
     initiateUrl.searchParams.append("flow", OauthFlowEnum.PopUp);
-    if (router.asPath) {
-      initiateUrl.searchParams.append("returnTo", router.asPath);
-    }
-    if (tokenFromQuery) {
-      initiateUrl.searchParams.append("token", tokenFromQuery);
-    }
-    console.log("initiateUrl", initiateUrl.toString());
 
     const popup = window.open(
       initiateUrl.toString(),
@@ -84,10 +70,8 @@ export function AuthorizeGmail({
     isAuthorized,
     disabled,
     router.asPath,
-    router.query.token,
     universalRouter,
     refetch,
-    propCsrfToken,
   ]);
 
   let buttonColor: "primary" | "success" | "inherit" = "primary";
