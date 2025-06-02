@@ -1,12 +1,10 @@
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
-import { serialize } from "cookie";
 import { and, eq } from "drizzle-orm";
-import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React from "react";
-import { v4 as uuidv4, validate as validateUuid } from "uuid";
+import { validate as validateUuid } from "uuid";
 
 import Broadcast from "../../components/broadcast";
 import DashboardContent from "../../components/dashboardContent";
@@ -38,18 +36,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         notFound: true,
       };
     }
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    const cookieOptions = {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      expires: new Date(expiresAt),
-    };
-    const csrfToken = uuidv4();
-    // allow broadcasts to initiate oauth flow
-    const cookieString = serialize(OAUTH_COOKIE_NAME, csrfToken, cookieOptions);
-    ctx.res.setHeader("Set-Cookie", cookieString);
 
     return {
       props: addInitialStateToProps({

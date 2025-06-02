@@ -33,7 +33,6 @@ import {
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useState } from "react";
 
-import { useAppStorePick } from "../../lib/appStore";
 // Internal application imports
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -102,7 +101,6 @@ export default function Configuration({
   state: BroadcastState;
   updateState: BroadcastStateUpdater;
 }) {
-  const { gmailClientId } = useAppStorePick(["gmailClientId"]);
   const { data: broadcast } = useBroadcastQuery(state.id);
   const [isGmailAuthorized, setIsGmailAuthorized] = useState(false);
   const { mutate: startBroadcast, isPending } = useStartBroadcastMutation();
@@ -392,9 +390,8 @@ export default function Configuration({
           });
         }}
       />
-      {providerOverride?.id === EmailProviderType.Gmail && gmailClientId && (
+      {providerOverride?.id === EmailProviderType.Gmail && (
         <AuthorizeGmail
-          gmailClientId={gmailClientId}
           disabled={disabled}
           onAuthorize={() => setIsGmailAuthorized(true)}
         />

@@ -6,12 +6,13 @@ import { serialize } from "cookie";
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import type { GetServerSideProps } from "next";
+import { v4 as uuidv4 } from "uuid";
 
 import { OauthStateObject } from "../../../lib/oauth";
 import { requestContext } from "../../../lib/requestContext";
 
 const CSRF_TOKEN_COOKIE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
-const QuerySchema = Type.Omit(OauthStateObject, ["workspaceId"]);
+const QuerySchema = Type.Omit(OauthStateObject, ["workspaceId", "csrf"]);
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (context, dfContext) => {
@@ -36,7 +37,8 @@ export const getServerSideProps: GetServerSideProps = requestContext(
       return { redirect: { destination: "/", permanent: false } };
     }
 
-    const { csrf, flow, returnTo, token } = validatedQuery.value;
+    const csrf = uuidv4();
+    const { flow, returnTo, token } = validatedQuery.value;
 
     const stateObjectToEncode: OauthStateObject = {
       csrf,
@@ -45,6 +47,8 @@ export const getServerSideProps: GetServerSideProps = requestContext(
       ...(returnTo && { returnTo }),
       ...(token && { token }),
     };
+
+    logger().debug({ stateObjectToEncode }, "State object to encode");
 
     const cookieExpiry = new Date(Date.now() + CSRF_TOKEN_COOKIE_EXPIRY_MS);
     const cookieOptions = {

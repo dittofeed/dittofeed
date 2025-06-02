@@ -41,8 +41,6 @@ export function AuthorizeGmail({
     const tokenFromQuery =
       typeof router.query.token === "string" ? router.query.token : undefined;
 
-    const csrfToken = propCsrfToken ?? uuidv4();
-
     const initiatePath = universalRouter.mapUrl(
       "/oauth2/initiate/gmail",
       undefined,
@@ -53,7 +51,6 @@ export function AuthorizeGmail({
     );
     const initiateUrl = new URL(`${window.location.origin}${initiatePath}`);
 
-    initiateUrl.searchParams.append("csrfToken", csrfToken);
     initiateUrl.searchParams.append("flow", OauthFlowEnum.PopUp);
     if (router.asPath) {
       initiateUrl.searchParams.append("returnTo", router.asPath);
@@ -61,6 +58,7 @@ export function AuthorizeGmail({
     if (tokenFromQuery) {
       initiateUrl.searchParams.append("token", tokenFromQuery);
     }
+    console.log("initiateUrl", initiateUrl.toString());
 
     const popup = window.open(
       initiateUrl.toString(),
