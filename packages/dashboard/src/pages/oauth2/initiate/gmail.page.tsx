@@ -102,8 +102,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   };
 };
 
-function InitiateGmailAuthPage(): JSX.Element {
-  return <p>Initializing Gmail authentication, please wait...</p>;
+export default function InitiateGmailAuthPage(): null {
+  return null;
 }
-
-export default InitiateGmailAuthPage;
