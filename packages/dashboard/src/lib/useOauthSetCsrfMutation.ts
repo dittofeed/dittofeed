@@ -6,34 +6,44 @@ import {
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import {
-  // CompletionStatus, // Not strictly needed if workspaceId isn't part of the core logic here
-  SetCsrfCookieRequest,
+  CompletionStatus, // Import if workspace check is re-enabled
+  SetCsrfCookieRequest, // This type should now include workspaceId
 } from "isomorphic-lib/src/types";
 
-// import { useAppStorePick } from "./appStore"; // Only if workspace context is needed
+import { useAppStorePick } from "./appStore"; // Will be used now
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
-// Define the mutation function type
-type SetCsrfCookieMutationFn = (request: SetCsrfCookieRequest) => Promise<void>;
+// Type for the variables passed to the mutate function from the component
+export type OauthSetCsrfInput = Omit<SetCsrfCookieRequest, "workspaceId">;
+
+// Define the mutation function type (internal, takes the simplified input)
+type SetCsrfCookieMutationFn = (input: OauthSetCsrfInput) => Promise<void>;
 
 export function useOauthSetCsrfMutation(
   options?: Omit<
-    UseMutationOptions<void, AxiosError, SetCsrfCookieRequest>,
+    UseMutationOptions<void, AxiosError, OauthSetCsrfInput>,
     "mutationFn"
   >,
-): UseMutationResult<void, AxiosError, SetCsrfCookieRequest> {
+): UseMutationResult<void, AxiosError, OauthSetCsrfInput> {
   // const queryClient = useQueryClient(); // Include if specific query invalidations are needed
-  // const { workspace } = useAppStorePick(["workspace"]); // Include if workspace needed
+  const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn: SetCsrfCookieMutationFn = async (request) => {
-    // Example of workspace check, though not directly used in this request body
-    // if (workspace.type !== CompletionStatus.Successful) {
-    //   throw new Error("Workspace not available");
-    // }
+  const mutationFn: SetCsrfCookieMutationFn = async (input) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      throw new Error(
+        "Workspace not available for setting CSRF cookie. Cannot get workspaceId.",
+      );
+    }
+    const workspaceId = workspace.value.id;
 
-    await axios.post(`${baseApiUrl}/oauth/set-csrf-cookie`, request, {
+    const apiRequest: SetCsrfCookieRequest = {
+      ...input,
+      workspaceId,
+    };
+
+    await axios.post(`${baseApiUrl}/oauth/set-csrf-cookie`, apiRequest, {
       headers: {
         "Content-Type": "application/json",
         ...authHeaders,
@@ -41,7 +51,7 @@ export function useOauthSetCsrfMutation(
     });
   };
 
-  const mutation = useMutation<void, AxiosError, SetCsrfCookieRequest>({
+  const mutation = useMutation<void, AxiosError, OauthSetCsrfInput>({
     mutationFn,
     ...options,
     onSuccess: (data, variables, context) => {

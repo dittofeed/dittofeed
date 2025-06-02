@@ -5465,6 +5465,7 @@ export const OauthFlow = Type.KeyOf(Type.Const(OauthFlowEnum));
 export type OauthFlow = Static<typeof OauthFlow>;
 
 export const SetCsrfCookieRequest = Type.Object({
+  workspaceId: Type.String(),
   csrfToken: Type.String(),
   expiresAt: Type.String({ format: "date-time" }), // Expect ISO date string
 });
