@@ -2,50 +2,64 @@ import { serialize } from "cookie"; // Using the 'cookie' library for serializat
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import {
   jsonParseSafeWithSchema,
-  schemaValidate,
+  // schemaValidate, // schemaValidate is redundant if jsonParseSafeWithSchema validates
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { SetCsrfCookieRequest } from "isomorphic-lib/src/types";
 import type { NextApiRequest, NextApiResponse } from "next";
+
+import { apiAuth } from "../../../lib/requestContext"; // Adjusted path assuming lib is at src/lib
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // Authenticate the request
+  const authResult = await apiAuth(req);
+  if (authResult.isErr()) {
+    const { status, message } = authResult.error;
+    return res.status(status).json({ message });
+  }
+  // const dfContext = authResult.value; // dfContext is available if needed by the endpoint's logic
+
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const parsedBody = jsonParseSafeWithSchema(req.body, SetCsrfCookieRequest);
-
-  if (parsedBody.isErr()) {
+  // Ensure req.body is a string for jsonParseSafeWithSchema if Next.js has pre-parsed it
+  let bodyToParse: string;
+  if (typeof req.body === "string") {
+    bodyToParse = req.body;
+  } else if (typeof req.body === "object" && req.body !== null) {
+    try {
+      bodyToParse = JSON.stringify(req.body);
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid JSON body format." });
+    }
+  } else {
+    // Handle cases where req.body is not a string or object (e.g., undefined)
     return res
       .status(400)
-      .json({ message: "Invalid request body", errors: parsedBody.error });
+      .json({ message: "Request body must be a valid JSON string or object." });
   }
 
-  // Re-validate with schemaValidate to be absolutely sure after parsing, or rely on jsonParseSafeWithSchema
-  // For simplicity, if jsonParseSafeWithSchema passed, we assume it's structurally okay.
-  // If more detailed validation errors are needed from schemaValidate, it can be used here.
-  const validationResult = schemaValidate(
-    parsedBody.value,
-    SetCsrfCookieRequest,
-  );
-  if (validationResult.isErr()) {
+  const parsedBody = jsonParseSafeWithSchema(bodyToParse, SetCsrfCookieRequest);
+
+  if (parsedBody.isErr()) {
     return res.status(400).json({
-      message: "Invalid request body after validation",
-      errors: validationResult.error,
+      message: "Invalid request body schema",
+      errors: parsedBody.error,
     });
   }
 
-  const { csrfToken, expiresAt } = validationResult.value;
+  const { csrfToken, expiresAt } = parsedBody.value;
 
   try {
     const cookieOptions = {
       path: "/",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const, // Ensures 'lax' is treated as a literal for typing
+      sameSite: "lax" as const,
       expires: new Date(expiresAt),
     };
 
@@ -53,9 +67,10 @@ export default async function handler(
     res.setHeader("Set-Cookie", cookieString);
     return res.status(204).end();
   } catch (error) {
-    const err = error as Error;
+    // console.error("Error setting cookie:", error); // Consider logging errors
+    const errMessage = error instanceof Error ? error.message : "Unknown error";
     return res
       .status(500)
-      .json({ message: `Internal server error: ${err.message}` });
+      .json({ message: `Internal server error: ${errMessage}` });
   }
 }

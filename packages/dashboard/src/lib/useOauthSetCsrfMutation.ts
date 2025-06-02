@@ -11,7 +11,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore"; // Will be used now
-import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
+import { useAuthHeaders } from "./authModeProvider"; // Only useAuthHeaders is needed
 
 // Type for the variables passed to the mutate function from the component
 export type OauthSetCsrfInput = Omit<SetCsrfCookieRequest, "workspaceId">;
@@ -28,7 +28,7 @@ export function useOauthSetCsrfMutation(
   // const queryClient = useQueryClient(); // Include if specific query invalidations are needed
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
-  const baseApiUrl = useBaseApiUrl();
+  // const baseApiUrl = useBaseApiUrl(); // No longer needed for the URL construction
 
   const mutationFn: SetCsrfCookieMutationFn = async (input) => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -43,10 +43,11 @@ export function useOauthSetCsrfMutation(
       workspaceId,
     };
 
-    await axios.post(`${baseApiUrl}/oauth/set-csrf-cookie`, apiRequest, {
+    // Point to the new Next.js API route within the dashboard
+    await axios.post("/dashboard/api/oauth/set-csrf-cookie", apiRequest, {
       headers: {
         "Content-Type": "application/json",
-        ...authHeaders,
+        ...authHeaders, // Send auth headers even to our own Next.js API routes if they are protected
       },
     });
   };
