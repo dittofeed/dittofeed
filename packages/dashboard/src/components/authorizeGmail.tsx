@@ -57,16 +57,16 @@ export function AuthorizeGmail({
       flow: OauthFlowEnum.PopUp,
     };
 
-    try {
-      const expiresAtDate = new Date(Date.now() + CSRF_TOKEN_CACHE_EXPIRY_MS);
-      await setCsrfCookieMutation.mutateAsync({
-        csrfToken,
-        expiresAt: expiresAtDate.toISOString(),
-      });
-    } catch (error) {
-      console.error("Failed to set CSRF cookie via API:", error);
-      return;
-    }
+    // try {
+    //   const expiresAtDate = new Date(Date.now() + CSRF_TOKEN_CACHE_EXPIRY_MS);
+    //   await setCsrfCookieMutation.mutateAsync({
+    //     csrfToken,
+    //     expiresAt: expiresAtDate.toISOString(),
+    //   });
+    // } catch (error) {
+    //   console.error("Failed to set CSRF cookie via API:", error);
+    //   return;
+    // }
 
     let stateParam;
     try {

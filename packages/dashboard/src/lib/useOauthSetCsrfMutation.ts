@@ -49,14 +49,13 @@ export function useOauthSetCsrfMutation(
 
     const basePath =
       authContext.type === AuthModeTypeEnum.Embedded
-        ? "/dashboard-l/api/embedded"
+        ? "/dashboard-l/api-d/embedded"
         : "/dashboard/api";
     const url = `${basePath}/oauth/set-csrf-cookie`;
-    // Point to the new Next.js API route within the dashboard
     await axios.post(url, apiRequest, {
       headers: {
         "Content-Type": "application/json",
-        ...authHeaders, // Send auth headers even to our own Next.js API routes if they are protected
+        ...authHeaders,
       },
     });
   };
@@ -66,10 +65,7 @@ export function useOauthSetCsrfMutation(
     ...options,
     onSuccess: (data, variables, context) => {
       options?.onSuccess?.(data, variables, context);
-      // No specific query invalidation is obviously needed just from setting a cookie,
-      // unless this action has side effects on other cached data.
     },
-    // onError, onSettled as needed
   });
 
   return mutation;

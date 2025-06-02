@@ -48,7 +48,7 @@
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "clsx": "^2.1.1",
-    "cookie": "^1.0.2",
+    "cookie": "1.0.2",
     "dagre": "^0.8.5",
     "date-fns": "^2.29.3",
     "date-fns-tz": "^2.0.0",
