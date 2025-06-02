@@ -1,8 +1,7 @@
 import { serialize } from "cookie"; // Using the 'cookie' library for serialization
 import { OAUTH_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import {
-  jsonParseSafeWithSchema,
-  // schemaValidate, // schemaValidate is redundant if jsonParseSafeWithSchema validates
+  schemaValidateWithErr, // Use this for direct object validation
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { SetCsrfCookieRequest } from "isomorphic-lib/src/types";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -26,33 +25,23 @@ export default async function handler(
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  // Ensure req.body is a string for jsonParseSafeWithSchema if Next.js has pre-parsed it
-  let bodyToParse: string;
-  if (typeof req.body === "string") {
-    bodyToParse = req.body;
-  } else if (typeof req.body === "object" && req.body !== null) {
-    try {
-      bodyToParse = JSON.stringify(req.body);
-    } catch (e) {
-      return res.status(400).json({ message: "Invalid JSON body format." });
-    }
-  } else {
-    // Handle cases where req.body is not a string or object (e.g., undefined)
+  // Assume Next.js has parsed the JSON body if Content-Type was application/json
+  // Directly validate the req.body object
+  const validationResult = schemaValidateWithErr(
+    req.body, // req.body is expected to be the parsed object
+    SetCsrfCookieRequest,
+  );
+
+  if (validationResult.isErr()) {
+    // schemaValidateWithErr returns an Error object in the err case
+    const errorMessage = validationResult.error.message;
     return res
       .status(400)
-      .json({ message: "Request body must be a valid JSON string or object." });
+      .json({ message: "Invalid request body", error: errorMessage });
   }
 
-  const parsedBody = jsonParseSafeWithSchema(bodyToParse, SetCsrfCookieRequest);
-
-  if (parsedBody.isErr()) {
-    return res.status(400).json({
-      message: "Invalid request body schema",
-      errors: parsedBody.error,
-    });
-  }
-
-  const { csrfToken, expiresAt } = parsedBody.value;
+  // At this point, validationResult.value is the validated SetCsrfCookieRequest object
+  const { csrfToken, expiresAt } = validationResult.value;
 
   try {
     const cookieOptions = {
