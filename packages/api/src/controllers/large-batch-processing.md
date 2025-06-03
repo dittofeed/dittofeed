@@ -69,4 +69,3 @@ The existing ClickHouse table structures (e.g., `user_events_event_time`, `user_
 
 * **Parameter Tuning:** The new parameters (`TARGET_DISTINCT_USERS_PER_BUCKET`, `MAX_ALLOWED_BUCKETS`) will require careful tuning based on performance testing and observation of production workloads.
 * **Monitoring:** Enhanced monitoring will be needed to observe the performance of the bucketing process, including the initial count query and individual bucket processing times.
-* **Error Handling:** Robust error handling and potential retry mechanisms for individual buckets or workspace batches will be important.
