@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
+import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -72,7 +73,6 @@ import {
   upgradeV012Pre,
   upgradeV021Pre,
 } from "./upgrades";
-import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
 
 export function createCommands(yargs: Argv): Argv {
   return yargs
