@@ -72,6 +72,7 @@ import {
   upgradeV012Pre,
   upgradeV021Pre,
 } from "./upgrades";
+import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
 
 export function createCommands(yargs: Argv): Argv {
   return yargs
@@ -94,6 +95,14 @@ export function createCommands(yargs: Argv): Argv {
           },
         }),
       ({ workspaceId }) => startComputePropertiesWorkflow({ workspaceId }),
+    )
+    .command(
+      "bootstrap-clickhouse",
+      "Bootstraps clickhouse.",
+      (y) => y,
+      async () => {
+        await bootstrapClickhouse();
+      },
     )
     .command(
       "spawn",

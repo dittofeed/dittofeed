@@ -54,6 +54,7 @@ export interface ComputePropertiesQueueWorkflowParams {
   queueState?: string[];
   // TODO handle
   queueStateV2?: WorkspaceQueueItem[];
+  continueAsNew?: boolean;
 }
 
 interface InFlightTask {
@@ -307,7 +308,10 @@ export async function computePropertiesQueueWorkflow(
         nextQueueSize: priorityQueue.length,
       });
 
-      await continueAsNew<typeof computePropertiesQueueWorkflow>(nextParams);
+      const shouldContinueAsNew = params.continueAsNew !== false;
+      if (shouldContinueAsNew) {
+        await continueAsNew<typeof computePropertiesQueueWorkflow>(nextParams);
+      }
     }
   }
 }
