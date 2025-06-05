@@ -586,7 +586,7 @@ export async function getUsersCount({
   // Using a similar nested query approach as getUsers
   const query = `
     SELECT
-      uniq(user_id) as user_count
+      uniqExact(user_id) as user_count
     FROM (
       SELECT
         ${selectUserIdStr}
