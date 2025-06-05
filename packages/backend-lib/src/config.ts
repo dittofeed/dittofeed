@@ -133,8 +133,9 @@ const BaseRawConfigProps = {
   clickhouseComputePropertiesMaxExecutionTime: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
-  // FIXME make format float
-  clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(Type.String()),
+  clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(
+    Type.String({ format: "float" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {

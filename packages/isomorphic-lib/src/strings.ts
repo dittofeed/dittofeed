@@ -3,7 +3,11 @@ export function isNaturalNumber(str: string): boolean {
 }
 
 export function isFloat(str: string): boolean {
-  return /^\d+\.\d+$/.test(str);
+  if (str.trim() === "") {
+    return false;
+  }
+  const num = Number(str);
+  return !Number.isNaN(num) && Number.isFinite(num);
 }
 
 export function isStringPresent(str: string | null | undefined): boolean {
