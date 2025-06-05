@@ -104,10 +104,12 @@ export class ClickHouseQueryBuilder {
 
 export interface CreateConfigParams {
   enableSession?: boolean;
+  requestTimeout?: number;
 }
 
 function getClientConfig({
   enableSession = false,
+  requestTimeout = 180000,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: url,
@@ -121,6 +123,7 @@ function getClientConfig({
     database,
     username,
     password,
+    request_timeout: requestTimeout,
     clickhouse_settings: {
       date_time_input_format: "best_effort",
     },
@@ -220,7 +223,13 @@ export async function command(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-command" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().trace(`clickhouse-command: ${params.query}`);
+    logger().trace(
+      {
+        queryId,
+        query: params.query,
+      },
+      "clickhouse-command",
+    );
     return client.command({ query_id: queryId, ...params });
   });
 }
@@ -237,7 +246,13 @@ export async function query(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().trace(`clickhouse-query: ${params.query}`);
+    logger().trace(
+      {
+        queryId,
+        query: params.query,
+      },
+      "clickhouse-query",
+    );
     return client.query<"JSONEachRow">({
       query_id: queryId,
       ...params,

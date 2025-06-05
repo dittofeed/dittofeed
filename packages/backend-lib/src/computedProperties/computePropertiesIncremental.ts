@@ -14,6 +14,7 @@ import {
   command,
   getChCompatibleUuid,
   query as chQuery,
+  createClickhouseClient,
 } from "../clickhouse";
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
@@ -64,6 +65,8 @@ import {
   getPeriodsByComputedPropertyId,
   PeriodByComputedPropertyId,
 } from "./periods";
+
+const THREE_MINUTES_IN_MS = 180000;
 
 type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
@@ -2884,6 +2887,9 @@ export async function computeState({
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
+    const clickhouseClient = createClickhouseClient({
+      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+    });
 
     const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
       ([period, periodSubQueries]) => {
@@ -2944,15 +2950,21 @@ export async function computeState({
               ue.event_time
           `;
 
-          await command({
-            query,
-            query_params: qb.getQueries(),
-            clickhouse_settings: {
-              wait_end_of_query: 1,
-              function_json_value_return_type_allow_complex: 1,
-              max_execution_time: 15000,
+          await command(
+            {
+              query,
+              query_params: qb.getQueries(),
+              clickhouse_settings: {
+                wait_end_of_query: 1,
+                function_json_value_return_type_allow_complex: 1,
+                max_execution_time:
+                  config().clickhouseComputePropertiesMaxExecutionTime,
+              },
             },
-          });
+            {
+              clickhouseClient,
+            },
+          );
         });
       },
     );
@@ -2984,7 +2996,8 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
             query_params: qb.getQueries(),
             clickhouse_settings: {
               wait_end_of_query: 1,
-              max_execution_time: 15000,
+              max_execution_time: THREE_MINUTES_IN_MS,
+              request_timeout: THREE_MINUTES_IN_MS,
             },
           }),
         ),
@@ -2995,7 +3008,8 @@ async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
         query_params: qb.getQueries(),
         clickhouse_settings: {
           wait_end_of_query: 1,
-          max_execution_time: 15000,
+          max_execution_time: THREE_MINUTES_IN_MS,
+          request_timeout: THREE_MINUTES_IN_MS,
         },
       });
     }
@@ -3687,7 +3701,8 @@ class AssignmentProcessor {
                 format: "JSONEachRow",
                 clickhouse_settings: {
                   wait_end_of_query: 1,
-                  max_execution_time: 15000,
+                  max_execution_time: THREE_MINUTES_IN_MS,
+                  request_timeout: THREE_MINUTES_IN_MS,
                   join_algorithm: "grace_hash",
                 },
               });

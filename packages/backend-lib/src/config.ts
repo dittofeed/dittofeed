@@ -127,6 +127,12 @@ const BaseRawConfigProps = {
   additionalDashboardSettingsTitle: Type.Optional(Type.String()),
   gmailClientId: Type.Optional(Type.String()),
   gmailClientSecret: Type.Optional(Type.String()),
+  clickhouseComputePropertiesRequestTimeout: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  clickhouseComputePropertiesMaxExecutionTime: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -248,6 +254,8 @@ export type Config = Overwrite<
     useGlobalComputedProperties?: boolean;
     userEventsTopicName: string;
     writeMode: WriteMode;
+    clickhouseComputePropertiesRequestTimeout?: number;
+    clickhouseComputePropertiesMaxExecutionTime?: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -578,6 +586,14 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.useGlobalComputedProperties === undefined
         ? undefined
         : rawConfig.useGlobalComputedProperties !== "false",
+    clickhouseComputePropertiesRequestTimeout:
+      rawConfig.clickhouseComputePropertiesRequestTimeout
+        ? parseInt(rawConfig.clickhouseComputePropertiesRequestTimeout)
+        : 180000,
+    clickhouseComputePropertiesMaxExecutionTime:
+      rawConfig.clickhouseComputePropertiesMaxExecutionTime
+        ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)
+        : 180000,
   };
 
   return parsedConfig;
