@@ -2379,56 +2379,59 @@ function assignStandardUserPropertiesQuery({
       ${lowerBoundClause}
   `;
   const query = `
-    insert into computed_property_assignments_v2
+  insert into computed_property_assignments_v2
+  select
+    workspace_id,
+    'user_property',
+    computed_property_id,
+    user_id,
+    False as segment_value,
+    ${ac.query} as user_property_value,
+    overall_max_event_time,
+    toDateTime64(${nowSeconds}, 3) as assigned_at
+  from (
     select
       workspace_id,
-      'user_property',
       computed_property_id,
       user_id,
-      False as segment_value,
-      ${ac.query} as user_property_value,
-      arrayReduce('max', mapValues(max_event_time)),
-      toDateTime64(${nowSeconds}, 3) as assigned_at
+      CAST((groupArray(s1_state_id_output), groupArray(s1_last_value_output)), 'Map(String, String)') as last_value,
+      CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count, 
+      max(s1_max_event_time_output) as overall_max_event_time
     from (
       select
-        workspace_id,
-        computed_property_id,
-        user_id,
-        CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
-        CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time
-      from (
-        select
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          argMaxMerge(last_value) last_value,
-          uniqMerge(unique_count) unique_count,
-          max(event_time) max_event_time
-        from computed_property_state_v2 cps
-        where
-          (
-            workspace_id,
-            type,
-            computed_property_id,
-            state_id,
-            user_id
-          ) in (${boundedQuery})
-        group by
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id
-      )
+        cps.workspace_id,
+        cps.type,
+        cps.computed_property_id,
+        cps.state_id AS s1_state_id_output,
+        cps.user_id,
+        argMaxMerge(cps.last_value) AS s1_last_value_output,
+        uniqMerge(cps.unique_count) AS s1_unique_count_output, 
+        max(cps.event_time) AS s1_max_event_time_output
+      from 
+        computed_property_state_v2 AS cps
+      INNER JOIN -- Using standard INNER JOIN
+        (${boundedQuery}) AS bq_results
+      ON 
+        cps.workspace_id = bq_results.workspace_id AND
+        cps.type = bq_results.type AND
+        cps.computed_property_id = bq_results.computed_property_id AND
+        cps.state_id = bq_results.state_id AND
+        cps.user_id = bq_results.user_id
       group by
-        workspace_id,
-        computed_property_id,
-        user_id
-    )
-  `;
+        cps.workspace_id,
+        cps.type,
+        cps.computed_property_id,
+        cps.state_id,
+        cps.user_id
+      SETTINGS join_algorithm = 'grace_hash' -- Applying setting to this SELECT block
+    ) /* s1_results_alias */
+    group by
+      workspace_id,
+      computed_property_id,
+      user_id
+  ) /* s2_results_alias */
+`;
+  // return query;
   return query;
 }
 
@@ -3675,6 +3678,9 @@ class AssignmentProcessor {
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
+        const clickhouseClient = createClickhouseClient({
+          requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+        });
         const currentCursor = cursor;
         const results = await withSpan(
           { name: "process-assignments-query-page" },
@@ -3709,18 +3715,21 @@ class AssignmentProcessor {
                 qb,
               });
 
-              const resultSet = await chQuery({
-                query,
-                query_id: pageQueryId,
-                query_params: qb.getQueries(),
-                format: "JSONEachRow",
-                clickhouse_settings: {
-                  wait_end_of_query: 1,
-                  max_execution_time: THREE_MINUTES_IN_MS,
-                  request_timeout: THREE_MINUTES_IN_MS,
-                  join_algorithm: "grace_hash",
+              const resultSet = await chQuery(
+                {
+                  query,
+                  query_id: pageQueryId,
+                  query_params: qb.getQueries(),
+                  format: "JSONEachRow",
+                  clickhouse_settings: {
+                    wait_end_of_query: 1,
+                    max_execution_time:
+                      config().clickhouseComputePropertiesMaxExecutionTime,
+                    join_algorithm: "grace_hash",
+                  },
                 },
-              });
+                { clickhouseClient },
+              );
               const resultRows = await resultSet.json();
               const nextCursor = await processRows({
                 rows: resultRows,
