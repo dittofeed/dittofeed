@@ -221,8 +221,11 @@ export async function stopComputePropertiesWorkflowGlobal() {
   }
 }
 
-export async function startComputePropertiesWorkflowGlobal() {
-  const client = await connectWorkflowClient();
+export async function startQueueWorkflow({
+  client,
+}: {
+  client: WorkflowClient;
+}) {
   try {
     await client.start(computePropertiesSchedulerWorkflow, {
       taskQueue: config().computedPropertiesTaskQueue,
@@ -245,6 +248,11 @@ export async function startComputePropertiesWorkflowGlobal() {
     }
     logger().info("Compute properties global workflow already started.");
   }
+}
+
+export async function startComputePropertiesWorkflowGlobal() {
+  const client = await connectWorkflowClient();
+  await startQueueWorkflow({ client });
   try {
     await client.start(computePropertiesQueueWorkflow, {
       taskQueue: config().computedPropertiesTaskQueue,
