@@ -2395,7 +2395,7 @@ function assignStandardUserPropertiesQuery({
       computed_property_id,
       user_id,
       CAST((groupArray(s1_state_id_output), groupArray(s1_last_value_output)), 'Map(String, String)') as last_value,
-      CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count, 
+      CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count,
       max(s1_max_event_time_output) as overall_max_event_time
     from (
       select
@@ -2405,13 +2405,13 @@ function assignStandardUserPropertiesQuery({
         cps.state_id AS s1_state_id_output,
         cps.user_id,
         argMaxMerge(cps.last_value) AS s1_last_value_output,
-        uniqMerge(cps.unique_count) AS s1_unique_count_output, 
+        uniqMerge(cps.unique_count) AS s1_unique_count_output,
         max(cps.event_time) AS s1_max_event_time_output
-      from 
+      from
         computed_property_state_v2 AS cps
       INNER JOIN -- Using standard INNER JOIN
         (${boundedQuery}) AS bq_results
-      ON 
+      ON
         cps.workspace_id = bq_results.workspace_id AND
         cps.type = bq_results.type AND
         cps.computed_property_id = bq_results.computed_property_id AND
