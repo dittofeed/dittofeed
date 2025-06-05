@@ -12,6 +12,7 @@ import {
   addWorkspacesSignalV2,
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
   computePropertiesQueueWorkflow,
+  ComputePropertiesQueueWorkflowParams,
   WorkspaceQueueSignal,
 } from "../computePropertiesQueueWorkflow";
 import {
@@ -223,9 +224,33 @@ export async function stopComputePropertiesWorkflowGlobal() {
 
 export async function startQueueWorkflow({
   client,
+  ...params
 }: {
   client: WorkflowClient;
-}) {
+} & Pick<ComputePropertiesQueueWorkflowParams, "continueAsNew">) {
+  try {
+    await client.start(computePropertiesQueueWorkflow, {
+      taskQueue: config().computedPropertiesTaskQueue,
+      workflowId: COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+      args: [params],
+    });
+  } catch (e) {
+    if (!(e instanceof WorkflowExecutionAlreadyStartedError)) {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to start compute properties queue workflow.",
+      );
+      throw e;
+    }
+    logger().info("Compute properties queue workflow already started.");
+  }
+}
+
+export async function startComputePropertiesWorkflowGlobal() {
+  const client = await connectWorkflowClient();
+  await startQueueWorkflow({ client });
   try {
     await client.start(computePropertiesSchedulerWorkflow, {
       taskQueue: config().computedPropertiesTaskQueue,
@@ -247,29 +272,6 @@ export async function startQueueWorkflow({
       throw e;
     }
     logger().info("Compute properties global workflow already started.");
-  }
-}
-
-export async function startComputePropertiesWorkflowGlobal() {
-  const client = await connectWorkflowClient();
-  await startQueueWorkflow({ client });
-  try {
-    await client.start(computePropertiesQueueWorkflow, {
-      taskQueue: config().computedPropertiesTaskQueue,
-      workflowId: COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
-      args: [{}],
-    });
-  } catch (e) {
-    if (!(e instanceof WorkflowExecutionAlreadyStartedError)) {
-      logger().error(
-        {
-          err: e,
-        },
-        "Failed to start compute properties queue workflow.",
-      );
-      throw e;
-    }
-    logger().info("Compute properties queue workflow already started.");
   }
 }
 
