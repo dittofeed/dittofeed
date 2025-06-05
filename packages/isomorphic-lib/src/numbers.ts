@@ -12,6 +12,14 @@ export function parseInt(val: string): number {
   return parsed;
 }
 
+export function parseFloat(val: string): number {
+  const parsed = Number.parseFloat(val);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Failed to parse float from ${val}`);
+  }
+  return parsed;
+}
+
 export function floorToNearest(num: number, nearest: number): number {
-    return Math.floor(num / nearest) * nearest;
+  return Math.floor(num / nearest) * nearest;
 }

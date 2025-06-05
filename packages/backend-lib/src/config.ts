@@ -1,5 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
-import { parseInt } from "isomorphic-lib/src/numbers";
+import { parseFloat, parseInt } from "isomorphic-lib/src/numbers";
 import { hasProtocol } from "isomorphic-lib/src/urls";
 import queryString from "querystring";
 import { URL } from "url";
@@ -133,6 +133,8 @@ const BaseRawConfigProps = {
   clickhouseComputePropertiesMaxExecutionTime: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  // FIXME make format float
+  clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -256,6 +258,7 @@ export type Config = Overwrite<
     writeMode: WriteMode;
     clickhouseComputePropertiesRequestTimeout?: number;
     clickhouseComputePropertiesMaxExecutionTime?: number;
+    clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -594,6 +597,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseComputePropertiesMaxExecutionTime
         ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)
         : 180000,
+    clickhouseMaxBytesRatioBeforeExternalGroupBy:
+      rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
+        ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
+        : 1,
   };
 
   return parsedConfig;

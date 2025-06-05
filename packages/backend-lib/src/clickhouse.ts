@@ -105,11 +105,13 @@ export class ClickHouseQueryBuilder {
 export interface CreateConfigParams {
   enableSession?: boolean;
   requestTimeout?: number;
+  maxBytesRatioBeforeExternalGroupBy?: number;
 }
 
 function getClientConfig({
   enableSession = false,
   requestTimeout = 180000,
+  maxBytesRatioBeforeExternalGroupBy,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: url,
@@ -125,6 +127,9 @@ function getClientConfig({
     password,
     request_timeout: requestTimeout,
     clickhouse_settings: {
+      // FIXME pull from config
+      max_bytes_ratio_before_external_group_by:
+        maxBytesRatioBeforeExternalGroupBy,
       date_time_input_format: "best_effort",
     },
   };
