@@ -12,9 +12,9 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import {
   ClickHouseQueryBuilder,
   command,
+  createClickhouseClient,
   getChCompatibleUuid,
   query as chQuery,
-  createClickhouseClient,
 } from "../clickhouse";
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
@@ -2986,32 +2986,42 @@ interface AssignmentQueryGroup {
   qb: ClickHouseQueryBuilder;
 }
 
-async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
+async function execAssignmentQueryGroup(
+  group: AssignmentQueryGroup,
+  clickhouseClient: ReturnType<typeof createClickhouseClient>,
+) {
+  const { queries, qb } = group;
   for (const query of queries) {
     if (Array.isArray(query)) {
       await Promise.all(
         query.map((q) =>
-          command({
-            query: q,
-            query_params: qb.getQueries(),
-            clickhouse_settings: {
-              wait_end_of_query: 1,
-              max_execution_time: THREE_MINUTES_IN_MS,
-              request_timeout: THREE_MINUTES_IN_MS,
+          command(
+            {
+              query: q,
+              query_params: qb.getQueries(),
+              clickhouse_settings: {
+                wait_end_of_query: 1,
+                max_execution_time:
+                  config().clickhouseComputePropertiesMaxExecutionTime,
+              },
             },
-          }),
+            { clickhouseClient },
+          ),
         ),
       );
     } else {
-      await command({
-        query,
-        query_params: qb.getQueries(),
-        clickhouse_settings: {
-          wait_end_of_query: 1,
-          max_execution_time: THREE_MINUTES_IN_MS,
-          request_timeout: THREE_MINUTES_IN_MS,
+      await command(
+        {
+          query,
+          query_params: qb.getQueries(),
+          clickhouse_settings: {
+            wait_end_of_query: 1,
+            max_execution_time:
+              config().clickhouseComputePropertiesMaxExecutionTime,
+          },
         },
-      });
+        { clickhouseClient },
+      );
     }
   }
 }
@@ -3035,6 +3045,9 @@ export async function computeAssignments({
     const idUserProperty = userProperties.find(
       (up) => up.definition.type === UserPropertyDefinitionType.Id,
     );
+    const clickhouseClient = createClickhouseClient({
+      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+    });
 
     for (const segment of segments) {
       withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
@@ -3291,7 +3304,9 @@ export async function computeAssignments({
     }
 
     await Promise.all(
-      [...segmentQueries, ...userPropertyQueries].map(execAssignmentQueryGroup),
+      [...segmentQueries, ...userPropertyQueries].map((group) =>
+        execAssignmentQueryGroup(group, clickhouseClient),
+      ),
     );
 
     await createPeriods({
