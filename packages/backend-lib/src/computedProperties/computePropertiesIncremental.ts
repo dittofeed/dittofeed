@@ -2379,59 +2379,58 @@ function assignStandardUserPropertiesQuery({
       ${lowerBoundClause}
   `;
   const query = `
-  insert into computed_property_assignments_v2
-  select
-    workspace_id,
-    'user_property',
-    computed_property_id,
-    user_id,
-    False as segment_value,
-    ${ac.query} as user_property_value,
-    overall_max_event_time,
-    toDateTime64(${nowSeconds}, 3) as assigned_at
-  from (
+    insert into computed_property_assignments_v2
     select
       workspace_id,
+      'user_property',
       computed_property_id,
       user_id,
-      CAST((groupArray(s1_state_id_output), groupArray(s1_last_value_output)), 'Map(String, String)') as last_value,
-      CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count,
-      max(s1_max_event_time_output) as overall_max_event_time
+      False as segment_value,
+      ${ac.query} as user_property_value,
+      overall_max_event_time,
+      toDateTime64(${nowSeconds}, 3) as assigned_at
     from (
       select
-        cps.workspace_id,
-        cps.type,
-        cps.computed_property_id,
-        cps.state_id AS s1_state_id_output,
-        cps.user_id,
-        argMaxMerge(cps.last_value) AS s1_last_value_output,
-        uniqMerge(cps.unique_count) AS s1_unique_count_output,
-        max(cps.event_time) AS s1_max_event_time_output
-      from
-        computed_property_state_v2 AS cps
-      INNER JOIN -- Using standard INNER JOIN
-        (${boundedQuery}) AS bq_results
-      ON
-        cps.workspace_id = bq_results.workspace_id AND
-        cps.type = bq_results.type AND
-        cps.computed_property_id = bq_results.computed_property_id AND
-        cps.state_id = bq_results.state_id AND
-        cps.user_id = bq_results.user_id
+        workspace_id,
+        computed_property_id,
+        user_id,
+        CAST((groupArray(s1_state_id_output), groupArray(s1_last_value_output)), 'Map(String, String)') as last_value,
+        CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count,
+        max(s1_max_event_time_output) as overall_max_event_time
+      from (
+        select
+          cps.workspace_id,
+          cps.type,
+          cps.computed_property_id,
+          cps.state_id AS s1_state_id_output,
+          cps.user_id,
+          argMaxMerge(cps.last_value) AS s1_last_value_output,
+          uniqMerge(cps.unique_count) AS s1_unique_count_output,
+          max(cps.event_time) AS s1_max_event_time_output
+        from
+          computed_property_state_v2 AS cps
+        INNER JOIN
+          (${boundedQuery}) AS bq_results
+        ON
+          cps.workspace_id = bq_results.workspace_id AND
+          cps.type = bq_results.type AND
+          cps.computed_property_id = bq_results.computed_property_id AND
+          cps.state_id = bq_results.state_id AND
+          cps.user_id = bq_results.user_id
+        group by
+          cps.workspace_id,
+          cps.type,
+          cps.computed_property_id,
+          cps.state_id,
+          cps.user_id
+        SETTINGS join_algorithm = 'grace_hash'
+      )
       group by
-        cps.workspace_id,
-        cps.type,
-        cps.computed_property_id,
-        cps.state_id,
-        cps.user_id
-      SETTINGS join_algorithm = 'grace_hash' -- Applying setting to this SELECT block
-    ) /* s1_results_alias */
-    group by
-      workspace_id,
-      computed_property_id,
-      user_id
-  ) /* s2_results_alias */
-`;
-  // return query;
+        workspace_id,
+        computed_property_id,
+        user_id
+    )
+  `;
   return query;
 }
 
