@@ -1,16 +1,23 @@
 import { Autocomplete, TextField } from "@mui/material";
+import { emailProviderLabel } from "isomorphic-lib/src/email";
 import {
   ChannelType,
-  EmailProviderTypeSchema,
   SmsProviderType,
+  WorkspaceWideEmailProviders,
+  WorkspaceWideEmailProviderType,
 } from "isomorphic-lib/src/types";
 
-function getProviderLabel(provider: EmailProviderTypeSchema | SmsProviderType) {
-  return provider;
+function getProviderLabel(
+  provider: WorkspaceWideEmailProviders | SmsProviderType,
+) {
+  if (Object.values(SmsProviderType).includes(provider as SmsProviderType)) {
+    return provider;
+  }
+  return emailProviderLabel(provider as WorkspaceWideEmailProviders);
 }
 
 export type ProviderOverrideChangeHandler = (
-  provider: EmailProviderTypeSchema | SmsProviderType | null,
+  provider: WorkspaceWideEmailProviders | SmsProviderType | null,
 ) => void;
 
 export default function ChannelProviderAutocomplete({
@@ -19,15 +26,15 @@ export default function ChannelProviderAutocomplete({
   disabled,
   handler,
 }: {
-  providerOverride?: EmailProviderTypeSchema | SmsProviderType | null;
+  providerOverride?: WorkspaceWideEmailProviders | SmsProviderType | null;
   disabled?: boolean;
   channel: ChannelType;
   handler: ProviderOverrideChangeHandler;
 }) {
-  let providerOptions: (EmailProviderTypeSchema | SmsProviderType)[] = [];
+  let providerOptions: (WorkspaceWideEmailProviders | SmsProviderType)[] = [];
   switch (channel) {
     case ChannelType.Email:
-      providerOptions = Object.values(EmailProviderTypeSchema);
+      providerOptions = Object.values(WorkspaceWideEmailProviderType);
       break;
     case ChannelType.Sms:
       providerOptions = Object.values(SmsProviderType);
@@ -48,7 +55,9 @@ export default function ChannelProviderAutocomplete({
       options={providerOptions}
       disabled={disabled}
       getOptionLabel={getProviderLabel}
-      onChange={(_event, p) => handler(p)}
+      onChange={(_event, p) =>
+        handler(p as WorkspaceWideEmailProviders | SmsProviderType | null)
+      }
       renderInput={(params) => (
         <TextField {...params} label="Provider Override" variant="outlined" />
       )}
