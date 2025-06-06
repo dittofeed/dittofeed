@@ -104,10 +104,16 @@ export class ClickHouseQueryBuilder {
 
 export interface CreateConfigParams {
   enableSession?: boolean;
+  requestTimeout?: number;
+  maxBytesRatioBeforeExternalGroupBy?: number;
+  maxBytesBeforeExternalGroupBy?: string;
 }
 
 function getClientConfig({
   enableSession = false,
+  requestTimeout = 180000,
+  maxBytesRatioBeforeExternalGroupBy: maxBytesRatioBeforeExternalGroupByParam,
+  maxBytesBeforeExternalGroupBy: maxBytesBeforeExternalGroupByParam,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: url,
@@ -116,15 +122,27 @@ function getClientConfig({
     clickhousePassword: password,
   } = config();
 
+  const maxBytesRatioBeforeExternalGroupBy =
+    maxBytesRatioBeforeExternalGroupByParam ??
+    config().clickhouseMaxBytesRatioBeforeExternalGroupBy;
+  const maxBytesBeforeExternalGroupBy =
+    maxBytesBeforeExternalGroupByParam ??
+    config().clickhouseMaxBytesBeforeExternalGroupBy;
+
   const clientConfig: NodeClickHouseClientConfigOptions = {
     url,
     database,
     username,
     password,
+    request_timeout: requestTimeout,
     clickhouse_settings: {
+      max_bytes_ratio_before_external_group_by:
+        maxBytesRatioBeforeExternalGroupBy,
+      max_bytes_before_external_group_by: maxBytesBeforeExternalGroupBy,
       date_time_input_format: "best_effort",
     },
   };
+  logger().debug({ clientConfig }, "ClickHouse client config");
   if (enableSession) {
     const sessionId = getChCompatibleUuid();
     logger().info(
@@ -220,7 +238,13 @@ export async function command(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-command" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().trace(`clickhouse-command: ${params.query}`);
+    logger().trace(
+      {
+        queryId,
+        query: params.query,
+      },
+      "clickhouse-command",
+    );
     return client.command({ query_id: queryId, ...params });
   });
 }
@@ -237,7 +261,13 @@ export async function query(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
-    logger().trace(`clickhouse-query: ${params.query}`);
+    logger().trace(
+      {
+        queryId,
+        query: params.query,
+      },
+      "clickhouse-query",
+    );
     return client.query<"JSONEachRow">({
       query_id: queryId,
       ...params,

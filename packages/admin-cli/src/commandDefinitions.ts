@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
+import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -94,6 +95,14 @@ export function createCommands(yargs: Argv): Argv {
           },
         }),
       ({ workspaceId }) => startComputePropertiesWorkflow({ workspaceId }),
+    )
+    .command(
+      "bootstrap-clickhouse",
+      "Bootstraps clickhouse.",
+      (y) => y,
+      async () => {
+        await bootstrapClickhouse();
+      },
     )
     .command(
       "spawn",

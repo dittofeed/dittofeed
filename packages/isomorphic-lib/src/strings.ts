@@ -2,6 +2,14 @@ export function isNaturalNumber(str: string): boolean {
   return /^\d+$/.test(str);
 }
 
+export function isFloat(str: string): boolean {
+  if (str.trim() === "") {
+    return false;
+  }
+  const num = Number(str);
+  return !Number.isNaN(num) && Number.isFinite(num);
+}
+
 export function isStringPresent(str: string | null | undefined): boolean {
   return !!str && str.length > 0;
 }

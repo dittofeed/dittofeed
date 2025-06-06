@@ -12,6 +12,7 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import {
   ClickHouseQueryBuilder,
   command,
+  createClickhouseClient,
   getChCompatibleUuid,
   query as chQuery,
 } from "../clickhouse";
@@ -64,6 +65,8 @@ import {
   getPeriodsByComputedPropertyId,
   PeriodByComputedPropertyId,
 } from "./periods";
+
+const THREE_MINUTES_IN_MS = 180000;
 
 type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
@@ -2384,41 +2387,43 @@ function assignStandardUserPropertiesQuery({
       user_id,
       False as segment_value,
       ${ac.query} as user_property_value,
-      arrayReduce('max', mapValues(max_event_time)),
+      overall_max_event_time,
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from (
       select
         workspace_id,
         computed_property_id,
         user_id,
-        CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
-        CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time
+        CAST((groupArray(s1_state_id_output), groupArray(s1_last_value_output)), 'Map(String, String)') as last_value,
+        CAST((groupArray(s1_state_id_output), groupArray(s1_unique_count_output)), 'Map(String, Int32)') as unique_count,
+        max(s1_max_event_time_output) as overall_max_event_time
       from (
         select
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          argMaxMerge(last_value) last_value,
-          uniqMerge(unique_count) unique_count,
-          max(event_time) max_event_time
-        from computed_property_state_v2 cps
-        where
-          (
-            workspace_id,
-            type,
-            computed_property_id,
-            state_id,
-            user_id
-          ) in (${boundedQuery})
+          cps.workspace_id,
+          cps.type,
+          cps.computed_property_id,
+          cps.state_id AS s1_state_id_output,
+          cps.user_id,
+          argMaxMerge(cps.last_value) AS s1_last_value_output,
+          uniqMerge(cps.unique_count) AS s1_unique_count_output,
+          max(cps.event_time) AS s1_max_event_time_output
+        from
+          computed_property_state_v2 AS cps
+        INNER JOIN
+          (${boundedQuery}) AS bq_results
+        ON
+          cps.workspace_id = bq_results.workspace_id AND
+          cps.type = bq_results.type AND
+          cps.computed_property_id = bq_results.computed_property_id AND
+          cps.state_id = bq_results.state_id AND
+          cps.user_id = bq_results.user_id
         group by
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id
+          cps.workspace_id,
+          cps.type,
+          cps.computed_property_id,
+          cps.state_id,
+          cps.user_id
+        SETTINGS join_algorithm = 'grace_hash'
       )
       group by
         workspace_id,
@@ -2884,6 +2889,9 @@ export async function computeState({
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
+    const clickhouseClient = createClickhouseClient({
+      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+    });
 
     const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
       ([period, periodSubQueries]) => {
@@ -2944,15 +2952,21 @@ export async function computeState({
               ue.event_time
           `;
 
-          await command({
-            query,
-            query_params: qb.getQueries(),
-            clickhouse_settings: {
-              wait_end_of_query: 1,
-              function_json_value_return_type_allow_complex: 1,
-              max_execution_time: 15000,
+          await command(
+            {
+              query,
+              query_params: qb.getQueries(),
+              clickhouse_settings: {
+                wait_end_of_query: 1,
+                function_json_value_return_type_allow_complex: 1,
+                max_execution_time:
+                  config().clickhouseComputePropertiesMaxExecutionTime,
+              },
             },
-          });
+            {
+              clickhouseClient,
+            },
+          );
         });
       },
     );
@@ -2974,30 +2988,42 @@ interface AssignmentQueryGroup {
   qb: ClickHouseQueryBuilder;
 }
 
-async function execAssignmentQueryGroup({ queries, qb }: AssignmentQueryGroup) {
+async function execAssignmentQueryGroup(
+  group: AssignmentQueryGroup,
+  clickhouseClient: ReturnType<typeof createClickhouseClient>,
+) {
+  const { queries, qb } = group;
   for (const query of queries) {
     if (Array.isArray(query)) {
       await Promise.all(
         query.map((q) =>
-          command({
-            query: q,
-            query_params: qb.getQueries(),
-            clickhouse_settings: {
-              wait_end_of_query: 1,
-              max_execution_time: 15000,
+          command(
+            {
+              query: q,
+              query_params: qb.getQueries(),
+              clickhouse_settings: {
+                wait_end_of_query: 1,
+                max_execution_time:
+                  config().clickhouseComputePropertiesMaxExecutionTime,
+              },
             },
-          }),
+            { clickhouseClient },
+          ),
         ),
       );
     } else {
-      await command({
-        query,
-        query_params: qb.getQueries(),
-        clickhouse_settings: {
-          wait_end_of_query: 1,
-          max_execution_time: 15000,
+      await command(
+        {
+          query,
+          query_params: qb.getQueries(),
+          clickhouse_settings: {
+            wait_end_of_query: 1,
+            max_execution_time:
+              config().clickhouseComputePropertiesMaxExecutionTime,
+          },
         },
-      });
+        { clickhouseClient },
+      );
     }
   }
 }
@@ -3021,6 +3047,9 @@ export async function computeAssignments({
     const idUserProperty = userProperties.find(
       (up) => up.definition.type === UserPropertyDefinitionType.Id,
     );
+    const clickhouseClient = createClickhouseClient({
+      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+    });
 
     for (const segment of segments) {
       withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
@@ -3277,7 +3306,9 @@ export async function computeAssignments({
     }
 
     await Promise.all(
-      [...segmentQueries, ...userPropertyQueries].map(execAssignmentQueryGroup),
+      [...segmentQueries, ...userPropertyQueries].map((group) =>
+        execAssignmentQueryGroup(group, clickhouseClient),
+      ),
     );
 
     await createPeriods({
@@ -3646,6 +3677,9 @@ class AssignmentProcessor {
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
+        const clickhouseClient = createClickhouseClient({
+          requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
+        });
         const currentCursor = cursor;
         const results = await withSpan(
           { name: "process-assignments-query-page" },
@@ -3680,17 +3714,21 @@ class AssignmentProcessor {
                 qb,
               });
 
-              const resultSet = await chQuery({
-                query,
-                query_id: pageQueryId,
-                query_params: qb.getQueries(),
-                format: "JSONEachRow",
-                clickhouse_settings: {
-                  wait_end_of_query: 1,
-                  max_execution_time: 15000,
-                  join_algorithm: "grace_hash",
+              const resultSet = await chQuery(
+                {
+                  query,
+                  query_id: pageQueryId,
+                  query_params: qb.getQueries(),
+                  format: "JSONEachRow",
+                  clickhouse_settings: {
+                    wait_end_of_query: 1,
+                    max_execution_time:
+                      config().clickhouseComputePropertiesMaxExecutionTime,
+                    join_algorithm: "grace_hash",
+                  },
                 },
-              });
+                { clickhouseClient },
+              );
               const resultRows = await resultSet.json();
               const nextCursor = await processRows({
                 rows: resultRows,
