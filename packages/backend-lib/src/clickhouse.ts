@@ -106,12 +106,14 @@ export interface CreateConfigParams {
   enableSession?: boolean;
   requestTimeout?: number;
   maxBytesRatioBeforeExternalGroupBy?: number;
+  maxBytesBeforeExternalGroupBy?: string;
 }
 
 function getClientConfig({
   enableSession = false,
   requestTimeout = 180000,
-  maxBytesRatioBeforeExternalGroupBy,
+  maxBytesRatioBeforeExternalGroupBy: maxBytesRatioBeforeExternalGroupByParam,
+  maxBytesBeforeExternalGroupBy: maxBytesBeforeExternalGroupByParam,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: url,
@@ -120,6 +122,13 @@ function getClientConfig({
     clickhousePassword: password,
   } = config();
 
+  const maxBytesRatioBeforeExternalGroupBy =
+    maxBytesRatioBeforeExternalGroupByParam ??
+    config().clickhouseMaxBytesRatioBeforeExternalGroupBy;
+  const maxBytesBeforeExternalGroupBy =
+    maxBytesBeforeExternalGroupByParam ??
+    config().clickhouseMaxBytesBeforeExternalGroupBy;
+
   const clientConfig: NodeClickHouseClientConfigOptions = {
     url,
     database,
@@ -127,12 +136,13 @@ function getClientConfig({
     password,
     request_timeout: requestTimeout,
     clickhouse_settings: {
-      // FIXME pull from config
       max_bytes_ratio_before_external_group_by:
         maxBytesRatioBeforeExternalGroupBy,
+      max_bytes_before_external_group_by: maxBytesBeforeExternalGroupBy,
       date_time_input_format: "best_effort",
     },
   };
+  logger().debug({ clientConfig }, "ClickHouse client config");
   if (enableSession) {
     const sessionId = getChCompatibleUuid();
     logger().info(

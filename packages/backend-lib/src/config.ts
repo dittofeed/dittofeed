@@ -136,6 +136,9 @@ const BaseRawConfigProps = {
   clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "float" }),
   ),
+  clickhouseMaxBytesBeforeExternalGroupBy: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -601,7 +604,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     clickhouseMaxBytesRatioBeforeExternalGroupBy:
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
-        : 1,
+        : undefined,
   };
 
   return parsedConfig;
