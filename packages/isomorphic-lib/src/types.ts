@@ -1723,14 +1723,9 @@ export type GetMessageTemplatesRequest = Static<
   typeof GetMessageTemplatesRequest
 >;
 
-export const GetMessageTemplatesResponse = Type.Object(
-  {
-    templates: Type.Array(MessageTemplateResource),
-  },
-  {
-    $id: "GetMessageTemplatesResponse",
-  },
-);
+export const GetMessageTemplatesResponse = Type.Object({
+  templates: Type.Array(MessageTemplateResource),
+});
 
 export type GetMessageTemplatesResponse = Static<
   typeof GetMessageTemplatesResponse
@@ -2288,12 +2283,20 @@ export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
 export const GetJourneysRequest = Type.Object({
   workspaceId: Type.String(),
+  getPartial: Type.Optional(Type.Boolean()),
 });
 
 export type GetJourneysRequest = Static<typeof GetJourneysRequest>;
 
+export const GetJourneysResponseItem = Type.Composite([
+  Type.Omit(SavedJourneyResource, ["definition", "draft"]),
+  Type.Partial(Type.Pick(SavedJourneyResource, ["definition", "draft"])),
+]);
+
+export type GetJourneysResponseItem = Static<typeof GetJourneysResponseItem>;
+
 export const GetJourneysResponse = Type.Object({
-  journeys: Type.Array(SavedJourneyResource),
+  journeys: Type.Array(GetJourneysResponseItem),
 });
 
 export type GetJourneysResponse = Static<typeof GetJourneysResponse>;
