@@ -94,6 +94,8 @@ export function RecomputedRecentlyIcon() {
     mutationKey: TRIGGER_RECOMPUTE_PROPERTIES_MUTATION_KEY,
   });
 
+  const nodeRef = useRef(null);
+
   let currentState: string;
   if (isRecomputing > 0) {
     currentState = "recomputing";
@@ -164,13 +166,12 @@ export function RecomputedRecentlyIcon() {
       <SwitchTransition mode="out-in">
         <CSSTransition
           key={currentState}
-          addEndListener={(node, done) => {
-            node.addEventListener("transitionend", done, false);
-          }}
+          nodeRef={nodeRef}
+          timeout={300}
           classNames="fade"
         >
           {/* Use the helper function to render content */}
-          {renderContent()}
+          <span ref={nodeRef}>{renderContent()}</span>
         </CSSTransition>
       </SwitchTransition>
     </Box>

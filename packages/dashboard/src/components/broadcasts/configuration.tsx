@@ -390,6 +390,54 @@ export default function Configuration({
           });
         }}
       />
+      <Stack direction="row" spacing={2}>
+        <TextField
+          label="Rate Limit (messages / second)"
+          type="number"
+          inputProps={{
+            min: 1,
+          }}
+          disabled={disabled}
+          value={broadcast.config.rateLimit ?? ""}
+          onChange={(e) => {
+            if (!broadcast) {
+              return;
+            }
+            const { value } = e.target;
+            const intValue = parseInt(value, 10);
+            updateBroadcast({
+              config: {
+                ...broadcast.config,
+                rateLimit:
+                  !value || Number.isNaN(intValue) ? undefined : intValue,
+              },
+            });
+          }}
+        />
+        <TextField
+          label="Batch Size"
+          type="number"
+          inputProps={{
+            min: 1,
+          }}
+          disabled={disabled}
+          value={broadcast.config.batchSize ?? ""}
+          onChange={(e) => {
+            if (!broadcast) {
+              return;
+            }
+            const { value } = e.target;
+            const intValue = parseInt(value, 10);
+            updateBroadcast({
+              config: {
+                ...broadcast.config,
+                batchSize:
+                  !value || Number.isNaN(intValue) ? undefined : intValue,
+              },
+            });
+          }}
+        />
+      </Stack>
       {providerOverride?.id === EmailProviderType.Gmail && (
         <AuthorizeGmail
           disabled={disabled}
