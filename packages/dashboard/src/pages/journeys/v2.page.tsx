@@ -2,6 +2,7 @@ import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
 import { validate } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
@@ -47,9 +48,15 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 export default function JourneyPageV2() {
+  const path = useRouter();
+  const id = typeof path.query.id === "string" ? path.query.id : undefined;
+  if (!id) {
+    return null;
+  }
+
   return (
     <DashboardContent>
-      <JourneyV2 />
+      <JourneyV2 id={id} />
     </DashboardContent>
   );
 }
