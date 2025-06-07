@@ -798,6 +798,12 @@ function mapUpsertValidationError(
     error.code === PostgresError.UNIQUE_VIOLATION ||
     error.code === PostgresError.FOREIGN_KEY_VIOLATION
   ) {
+    logger().debug(
+      {
+        err: error,
+      },
+      "Unique constraint violation",
+    );
     return {
       type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
       message: "Journey with this name already exists",
@@ -845,16 +851,19 @@ export async function upsertJourney(
   // explicitly set to null
   const nullableDraft = definition || draft === null ? null : draft;
 
-  const conditions: SQL[] = [];
-  if (id) {
-    conditions.push(eq(dbJourney.id, id));
-  }
-  if (workspaceId) {
-    conditions.push(eq(dbJourney.workspaceId, workspaceId));
-  }
-
   const txResult: Result<Journey, JourneyUpsertValidationError> =
     await db().transaction(async (tx) => {
+      const conditions: SQL[] = [];
+      if (id) {
+        conditions.push(eq(dbJourney.id, id));
+      }
+      if (workspaceId) {
+        conditions.push(eq(dbJourney.workspaceId, workspaceId));
+      }
+      if (name) {
+        conditions.push(eq(dbJourney.name, name));
+      }
+
       const journey = await tx.query.journey.findFirst({
         where: and(...conditions),
       });

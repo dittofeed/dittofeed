@@ -11,6 +11,7 @@ import {
   EmptyResponse,
   GetJourneysRequest,
   GetJourneysResponse,
+  GetJourneysResponseItem,
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
@@ -36,11 +37,42 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const journeyModels = await db()
-        .select()
-        .from(schema.journey)
-        .where(eq(schema.journey.workspaceId, request.query.workspaceId));
-      const journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
+      let journeys: GetJourneysResponseItem[] = [];
+      if (request.query.getPartial) {
+        const journeyModels = await db()
+          .select({
+            id: schema.journey.id,
+            name: schema.journey.name,
+            status: schema.journey.status,
+            updatedAt: schema.journey.updatedAt,
+            createdAt: schema.journey.createdAt,
+            resourceType: schema.journey.resourceType,
+            statusUpdatedAt: schema.journey.statusUpdatedAt,
+            canRunMultiple: schema.journey.canRunMultiple,
+          })
+          .from(schema.journey)
+          .where(eq(schema.journey.workspaceId, request.query.workspaceId));
+
+        journeys = journeyModels.flatMap((j) => {
+          return [
+            {
+              workspaceId: request.query.workspaceId,
+              id: j.id,
+              name: j.name,
+              status: j.status,
+              updatedAt: j.updatedAt.getTime(),
+              createdAt: j.createdAt.getTime(),
+            },
+          ];
+        });
+      } else {
+        const journeyModels = await db()
+          .select()
+          .from(schema.journey)
+          .where(eq(schema.journey.workspaceId, request.query.workspaceId));
+
+        journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
+      }
       return reply.status(200).send({ journeys });
     },
   );

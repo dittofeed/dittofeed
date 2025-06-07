@@ -329,16 +329,6 @@ describe("journeys", () => {
           draft: null,
           statusUpdatedAt: new Date(),
         });
-        await insert({
-          table: dbJourney,
-          values: {
-            workspaceId,
-            id: journeyId,
-            definition: journeyDefinition,
-            name: randomUUID(),
-            status: "Running",
-          },
-        });
 
         const userId = randomUUID();
 
