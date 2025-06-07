@@ -447,7 +447,9 @@ export default function BroadcastsTable() {
         config: {
           type: "V2" as const, // Explicitly set type to 'V2'
           message: broadcastConfigMessage,
-        },
+          rateLimit: 10,
+          batchSize: 100,
+        } satisfies BroadcastV2Config,
       };
       createBroadcastMutation.mutate(newBroadcastData, {
         onSuccess: (data) => {

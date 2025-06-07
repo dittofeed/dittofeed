@@ -392,9 +392,10 @@ export default function Configuration({
       />
       <Stack direction="row" spacing={2}>
         <TextField
-          label="Rate Limit (messages per second)"
-          InputProps={{
-            type: "number",
+          label="Rate Limit (messages / second)"
+          type="number"
+          inputProps={{
+            min: 1,
           }}
           disabled={disabled}
           value={broadcast.config.rateLimit ?? ""}
@@ -415,8 +416,9 @@ export default function Configuration({
         />
         <TextField
           label="Batch Size"
-          InputProps={{
-            type: "number",
+          type="number"
+          inputProps={{
+            min: 1,
           }}
           disabled={disabled}
           value={broadcast.config.batchSize ?? ""}
