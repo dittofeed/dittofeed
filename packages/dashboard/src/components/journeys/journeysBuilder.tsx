@@ -31,14 +31,17 @@ import { defaultBodyNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
 import { createConnections } from "./store";
 
-const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
+export const proOptions: ProOptions = {
+  account: "paid-pro",
+  hideAttribution: true,
+};
 
-const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
+export const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
   e.preventDefault();
 };
 
 // this function adds a new node and connects it to the source node
-function createNewConnections({
+export function createNewConnections({
   nodes,
   nodeType,
   source,

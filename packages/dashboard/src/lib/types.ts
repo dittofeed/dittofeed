@@ -332,15 +332,15 @@ export interface AddNodesParams {
   edges: JourneyUiEdge[];
 }
 
-type JourneyNodeUpdaterInPlace = (
+export type JourneyNodeUpdaterInPlace = (
   currentValue: Draft<DefinitionJourneyNode>,
 ) => void;
 
-type JourneyNodeUpdaterReturning = (
+export type JourneyNodeUpdaterReturning = (
   currentValue: Draft<DefinitionJourneyNode>,
 ) => DefinitionJourneyNode;
 
-type JourneyNodeUpdater =
+export type JourneyNodeUpdater =
   | JourneyNodeUpdaterInPlace
   | JourneyNodeUpdaterReturning;
 

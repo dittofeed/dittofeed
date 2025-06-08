@@ -24,6 +24,16 @@ export default function JourneyV2({ id }: { id: string }) {
     case JourneyV2StepKeys.SUMMARY:
       content = <JourneyV2Summary />;
   }
+  // TODO: load initial state
+  // - journeyName
+  // - journeyEdges
+  // - journeyNodes
+  // - journeyNodesIndex
+  // TODO use useQuery to load seconary resources
+  // - segments
+  // - user properties
+  // - message templates
+  // - subscription groups
   return (
     <JourneyV2Context.Provider value={context}>
       <JourneyV2Layout>{content}</JourneyV2Layout>
