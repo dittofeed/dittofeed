@@ -66,6 +66,7 @@ export default function JourneyV2({ id }: { id: string }) {
     initJourneyState(stateFromJourney);
   }, !!journey);
 
+  // Update journey when draft changes.
   useEffect(() => {
     if (!journey || !viewDraft) {
       return;

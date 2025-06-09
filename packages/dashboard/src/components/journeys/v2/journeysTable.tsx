@@ -55,7 +55,6 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   GetJourneysResponseItem,
   JourneyResourceStatus,
-  SavedJourneyResource,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -66,6 +65,8 @@ import { useDeleteJourneyMutation } from "../../../lib/useDeleteJourneyMutation"
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneysQuery } from "../../../lib/useJourneysQuery";
 import { GreyButton, greyButtonStyle } from "../../greyButtonStyle";
+import { DEFAULT_EDGES, DEFAULT_JOURNEY_NODES } from "../defaults";
+import { JourneyStateForDraft, journeyStateToDraft } from "../store";
 
 type Row = GetJourneysResponseItem;
 
@@ -340,8 +341,14 @@ export default function JourneysTable() {
 
   const handleCreateJourney = () => {
     if (journeyName.trim() && !createJourneyMutation.isPending) {
+      const stateForDraft: JourneyStateForDraft = {
+        journeyNodes: DEFAULT_JOURNEY_NODES,
+        journeyEdges: DEFAULT_EDGES,
+      };
+      const draft = journeyStateToDraft(stateForDraft);
+
       createJourneyMutation.mutate(
-        { name: journeyName.trim() },
+        { name: journeyName.trim(), draft },
         {
           onSuccess: (data) => {
             setSnackbarMessage("Journey created successfully!");

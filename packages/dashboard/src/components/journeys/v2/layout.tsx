@@ -1,6 +1,7 @@
-import { Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
+import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import {
   JourneyV2StepKey,
   JourneyV2StepKeys,
@@ -65,6 +66,9 @@ export default function JourneyV2Layout({
   children: React.ReactNode;
 }) {
   const theme = useTheme();
+  const { state } = useJourneyV2Context();
+  const { id } = state;
+  const { isPending } = useJourneyQuery(id);
   return (
     <Stack
       sx={{
@@ -85,7 +89,16 @@ export default function JourneyV2Layout({
       >
         <JourneyStepper />
       </Stack>
-      {children}
+      <Box
+        sx={{
+          width: "100%",
+          flex: 1,
+          opacity: isPending ? 0 : 1,
+          transition: "opacity 0.3s ease-in-out",
+        }}
+      >
+        {children}
+      </Box>
     </Stack>
   );
 }
