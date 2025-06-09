@@ -2284,6 +2284,7 @@ export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 export const GetJourneysRequest = Type.Object({
   workspaceId: Type.String(),
   getPartial: Type.Optional(Type.Boolean()),
+  ids: Type.Optional(Type.Array(Type.String())),
 });
 
 export type GetJourneysRequest = Static<typeof GetJourneysRequest>;

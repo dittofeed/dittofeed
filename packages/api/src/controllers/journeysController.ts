@@ -18,7 +18,7 @@ import {
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -38,6 +38,13 @@ export default async function journeysController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let journeys: GetJourneysResponseItem[] = [];
+      const conditions = [
+        eq(schema.journey.workspaceId, request.query.workspaceId),
+      ];
+      if (request.query.ids) {
+        conditions.push(inArray(schema.journey.id, request.query.ids));
+      }
+
       if (request.query.getPartial) {
         const journeyModels = await db()
           .select({
@@ -51,7 +58,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             canRunMultiple: schema.journey.canRunMultiple,
           })
           .from(schema.journey)
-          .where(eq(schema.journey.workspaceId, request.query.workspaceId));
+          .where(and(...conditions));
 
         journeys = journeyModels.flatMap((j) => {
           return [
@@ -69,7 +76,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         const journeyModels = await db()
           .select()
           .from(schema.journey)
-          .where(eq(schema.journey.workspaceId, request.query.workspaceId));
+          .where(and(...conditions));
 
         journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
       }

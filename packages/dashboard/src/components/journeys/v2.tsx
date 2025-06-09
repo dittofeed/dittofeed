@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
+import { useAppStorePick } from "../../lib/appStore";
+import { useJourneyQuery } from "../../lib/useJourneyQuery";
+import useOnceWhen from "../../lib/useOnceWhen";
 import JourneyV2Editor from "./v2/editor";
 import JourneyV2Layout from "./v2/layout";
 import {
@@ -9,12 +12,14 @@ import {
   JourneyV2StepKeys,
 } from "./v2/shared";
 import JourneyV2Summary from "./v2/summary";
+import { journeyDraftToState } from "./store";
 
 export default function JourneyV2({ id }: { id: string }) {
   const [state, setState] = useImmer<JourneyV2State>({
     id,
     step: JourneyV2StepKeys.EDITOR,
   });
+  const {} = useAppStorePick(["setNodes", "setEdges", "setJourneyName"]);
   const context = useMemo(() => ({ state, setState }), [state, setState]);
   let content: React.ReactNode;
   switch (state.step) {
@@ -24,6 +29,13 @@ export default function JourneyV2({ id }: { id: string }) {
     case JourneyV2StepKeys.SUMMARY:
       content = <JourneyV2Summary />;
   }
+  const { data: journey } = useJourneyQuery(id);
+  useOnceWhen(() => {
+    if (!journey) {
+      throw new Error("Impossible branch, journey is undefined");
+    }
+    const state = journeyDraftToState(journey);
+  }, !!journey);
   // TODO: load initial state
   // - journeyName
   // - journeyEdges
