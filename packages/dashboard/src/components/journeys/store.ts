@@ -1130,6 +1130,13 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       state.journeyEdges = edges;
       state.journeyNodesIndex = index;
     }),
+  initJourneyState: (stateFromJourney: JourneyStateForResource) =>
+    set((state) => {
+      state.journeyName = stateFromJourney.journeyName;
+      state.journeyEdges = stateFromJourney.journeyEdges;
+      state.journeyNodes = stateFromJourney.journeyNodes;
+      state.journeyNodesIndex = stateFromJourney.journeyNodesIndex;
+    }),
 });
 
 export function journeyBranchToState(

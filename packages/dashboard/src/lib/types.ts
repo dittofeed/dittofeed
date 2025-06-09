@@ -67,6 +67,8 @@ import {
 import { ParsedUrlQuery } from "querystring";
 import { Optional } from "utility-types";
 
+import { JourneyStateForResource } from "../components/journeys/store";
+
 // re-exporting for convenience
 export {
   AdditionalJourneyNodeType,
@@ -349,6 +351,7 @@ export interface JourneyContent extends JourneyState {
     t: JourneyUiBodyNodeTypeProps["type"] | null,
   ) => void;
   setSelectedNodeId: (t: string | null) => void;
+  initJourneyState: (state: JourneyStateForResource) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange<JourneyUiEdge>[]) => void;
   setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
