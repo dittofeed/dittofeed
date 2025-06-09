@@ -1,13 +1,10 @@
-import {
-  SavedJourneyResource,
-  UpsertJourneyResource,
-} from "isomorphic-lib/src/types";
+import { SavedJourneyResource } from "isomorphic-lib/src/types";
 import { useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import {
-  JourneyUpdatePayload,
+  JourneyUpdate,
   useJourneyMutation,
 } from "../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../lib/useJourneyQuery";
@@ -84,7 +81,7 @@ export default function JourneyV2({ id }: { id: string }) {
     ) {
       return;
     }
-    const upsertPayload: JourneyUpdatePayload = {
+    const upsertPayload: JourneyUpdate = {
       name: journey.name,
       draft: journeyStateToDraft({
         journeyEdges,

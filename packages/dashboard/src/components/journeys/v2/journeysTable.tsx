@@ -104,8 +104,7 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
   const handleToggleStatus = () => {
     const newStatus = status === "Running" ? "Paused" : "Running";
     journeyMutation.mutate({
-      journey: row.original as SavedJourneyResource,
-      update: { status: newStatus },
+      status: newStatus,
     });
     handleClose();
   };
