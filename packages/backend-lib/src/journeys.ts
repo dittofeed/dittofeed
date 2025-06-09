@@ -853,12 +853,9 @@ export async function upsertJourney(
 
   const txResult: Result<Journey, JourneyUpsertValidationError> =
     await db().transaction(async (tx) => {
-      const conditions: SQL[] = [];
+      const conditions: SQL[] = [eq(dbJourney.workspaceId, workspaceId)];
       if (id) {
         conditions.push(eq(dbJourney.id, id));
-      }
-      if (workspaceId) {
-        conditions.push(eq(dbJourney.workspaceId, workspaceId));
       }
       if (name) {
         conditions.push(eq(dbJourney.name, name));
@@ -868,6 +865,12 @@ export async function upsertJourney(
         where: and(...conditions),
       });
       if (!journey) {
+        if (!name) {
+          return err({
+            type: JourneyUpsertValidationErrorType.BadValues,
+            message: "Name is required when creating a journey",
+          });
+        }
         const created = (
           await insert({
             table: dbJourney,

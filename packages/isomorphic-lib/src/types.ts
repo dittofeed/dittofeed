@@ -2261,7 +2261,25 @@ export const SavedJourneyResource = Type.Union([
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
+export const IdOrName = Type.Union([
+  Type.Object({
+    id: Type.String(),
+    name: Type.Optional(Type.String()),
+  }),
+  Type.Object({
+    name: Type.String(),
+    id: Type.Optional(Type.String()),
+  }),
+]);
+
+export type IdOrName = Static<typeof IdOrName>;
+
 export const UpsertJourneyResource = Type.Composite([
+  IdOrName,
+  Type.Object({
+    workspaceId: Type.String(),
+    draft: Type.Optional(Nullable(JourneyDraft)),
+  }),
   Type.Partial(
     Type.Omit(
       Type.Object({
@@ -2272,11 +2290,6 @@ export const UpsertJourneyResource = Type.Composite([
       ["draft"],
     ),
   ),
-  Type.Object({
-    name: Type.String(),
-    workspaceId: Type.String(),
-    draft: Type.Optional(Nullable(JourneyDraft)),
-  }),
 ]);
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
@@ -4378,7 +4391,17 @@ export enum JourneyUpsertValidationErrorType {
   StatusTransitionError = "StatusTransitionError",
   IdError = "IdError",
   UniqueConstraintViolation = "UniqueConstraintViolation",
+  BadValues = "BadValues",
 }
+
+export const JourneyUpsertBadValuesError = Type.Object({
+  type: Type.Literal(JourneyUpsertValidationErrorType.BadValues),
+  message: Type.String(),
+});
+
+export type JourneyUpsertBadValuesError = Static<
+  typeof JourneyUpsertBadValuesError
+>;
 
 export const JourneyUpsertValidationConstraintViolationError = Type.Object({
   type: Type.Literal(JourneyUpsertValidationErrorType.ConstraintViolation),
@@ -4421,6 +4444,7 @@ export const JourneyUpsertValidationError = Type.Union([
   JourneyUpsertIdError,
   JourneyUpsertStatusTransitionError,
   JourneyUpsertUniqueConstraintViolationError,
+  JourneyUpsertBadValuesError,
 ]);
 
 export type JourneyUpsertValidationError = Static<
@@ -5329,18 +5353,6 @@ export const TriggerRecomputeRequest = Type.Object({
 });
 
 export type TriggerRecomputeRequest = Static<typeof TriggerRecomputeRequest>;
-export const IdOrName = Type.Union([
-  Type.Object({
-    id: Type.String(),
-    name: Type.Optional(Type.String()),
-  }),
-  Type.Object({
-    name: Type.String(),
-    id: Type.Optional(Type.String()),
-  }),
-]);
-
-export type IdOrName = Static<typeof IdOrName>;
 
 export const BaseUpsertBroadcastV2Request = Type.Object({
   workspaceId: Type.String(),

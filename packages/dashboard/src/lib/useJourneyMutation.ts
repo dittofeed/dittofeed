@@ -10,10 +10,9 @@ import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { JOURNEYS_QUERY_KEY } from "./constants";
 
-interface JourneyUpdate {
-  journey: SavedJourneyResource;
-  update: Partial<Omit<UpsertJourneyResource, "workspaceId" | "id">>;
-}
+export type JourneyUpdate = Partial<
+  Omit<UpsertJourneyResource, "workspaceId" | "id">
+>;
 
 // Mutation hook for upserting journeys
 export function useJourneyMutation(journeyId: string) {
@@ -22,13 +21,12 @@ export function useJourneyMutation(journeyId: string) {
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn = async ({ journey, update }: JourneyUpdate) => {
+  const mutationFn = async (update: JourneyUpdate) => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
     }
     const workspaceId = workspace.value.id;
     const requestData: UpsertJourneyResource = {
-      ...journey,
       ...update,
       workspaceId,
       id: journeyId,

@@ -1,11 +1,22 @@
-import { SavedJourneyResource } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import {
+  SavedJourneyResource,
+  UpsertJourneyResource,
+} from "isomorphic-lib/src/types";
+import { useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
+import {
+  JourneyUpdatePayload,
+  useJourneyMutation,
+} from "../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../lib/useJourneyQuery";
 import useOnceWhen from "../../lib/useOnceWhen";
-import { journeyResourceToState } from "./store";
+import {
+  journeyResourceToState,
+  journeyStateToDraft,
+  shouldDraftBeUpdated,
+} from "./store";
 import JourneyV2Editor from "./v2/editor";
 import JourneyV2Layout from "./v2/layout";
 import {
@@ -20,9 +31,23 @@ export default function JourneyV2({ id }: { id: string }) {
     id,
     step: JourneyV2StepKeys.EDITOR,
   });
-  const { initJourneyState } = useAppStorePick(["initJourneyState"]);
+  const {
+    initJourneyState,
+    viewDraft,
+    journeyEdges,
+    journeyNodes,
+    journeyNodesIndex,
+  } = useAppStorePick([
+    "initJourneyState",
+    "viewDraft",
+    "journeyEdges",
+    "journeyNodes",
+    "journeyNodesIndex",
+  ]);
 
   const context = useMemo(() => ({ state, setState }), [state, setState]);
+  const { mutate: updateJourney } = useJourneyMutation(id);
+
   let content: React.ReactNode;
   switch (state.step) {
     case JourneyV2StepKeys.EDITOR:
@@ -33,6 +58,7 @@ export default function JourneyV2({ id }: { id: string }) {
   }
   const { data: journey } = useJourneyQuery(id);
 
+  // Initialize journey.
   useOnceWhen(() => {
     if (!journey) {
       throw new Error("Impossible branch, journey is undefined");
@@ -42,6 +68,32 @@ export default function JourneyV2({ id }: { id: string }) {
     const stateFromJourney = journeyResourceToState(savedJourney);
     initJourneyState(stateFromJourney);
   }, !!journey);
+
+  useEffect(() => {
+    if (!journey || !viewDraft) {
+      return;
+    }
+    if (
+      !shouldDraftBeUpdated({
+        definition: journey.definition,
+        draft: journey.draft,
+        journeyEdges,
+        journeyNodes,
+        journeyNodesIndex,
+      })
+    ) {
+      return;
+    }
+    const upsertPayload: JourneyUpdatePayload = {
+      name: journey.name,
+      draft: journeyStateToDraft({
+        journeyEdges,
+        journeyNodes,
+      }),
+    };
+    updateJourney(upsertPayload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journey, journeyEdges, journeyNodes, journeyNodesIndex, viewDraft]);
 
   // TODO use useQuery to load seconary resources
   // - segments
