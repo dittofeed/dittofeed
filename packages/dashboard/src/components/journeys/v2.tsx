@@ -1,10 +1,11 @@
+import { SavedJourneyResource } from "isomorphic-lib/src/types";
 import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useJourneyQuery } from "../../lib/useJourneyQuery";
 import useOnceWhen from "../../lib/useOnceWhen";
-import { journeyDraftToState } from "./store";
+import { journeyResourceToState } from "./store";
 import JourneyV2Editor from "./v2/editor";
 import JourneyV2Layout from "./v2/layout";
 import {
@@ -19,7 +20,8 @@ export default function JourneyV2({ id }: { id: string }) {
     id,
     step: JourneyV2StepKeys.EDITOR,
   });
-  const {} = useAppStorePick(["setNodes", "setEdges", "setJourneyName"]);
+  const { initJourneyState } = useAppStorePick(["initJourneyState"]);
+
   const context = useMemo(() => ({ state, setState }), [state, setState]);
   let content: React.ReactNode;
   switch (state.step) {
@@ -30,17 +32,17 @@ export default function JourneyV2({ id }: { id: string }) {
       content = <JourneyV2Summary />;
   }
   const { data: journey } = useJourneyQuery(id);
+
   useOnceWhen(() => {
     if (!journey) {
       throw new Error("Impossible branch, journey is undefined");
     }
-    const state = journeyDraftToState(journey);
+    // assume that definition and draft values were not excluded from the query
+    const savedJourney = journey as SavedJourneyResource;
+    const stateFromJourney = journeyResourceToState(savedJourney);
+    initJourneyState(stateFromJourney);
   }, !!journey);
-  // TODO: load initial state
-  // - journeyName
-  // - journeyEdges
-  // - journeyNodes
-  // - journeyNodesIndex
+
   // TODO use useQuery to load seconary resources
   // - segments
   // - user properties
