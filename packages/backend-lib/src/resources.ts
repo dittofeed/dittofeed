@@ -95,7 +95,6 @@ export async function getResources({
           where: and(
             eq(schema.segment.workspaceId, workspaceId),
             eq(schema.segment.resourceType, "Declarative"),
-            eq(schema.segment.status, "Running"),
           ),
           orderBy: [asc(schema.segment.name)],
         })
