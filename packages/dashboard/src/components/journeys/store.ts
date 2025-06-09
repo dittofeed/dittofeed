@@ -35,6 +35,7 @@ import {
   JourneyUiBodyNodeTypeProps,
   JourneyUiEdgeProps,
   MessageNode,
+  SavedJourneyResource,
   SegmentEntryNode,
   SegmentSplitNode,
   SegmentSplitVariantType,
@@ -1813,4 +1814,24 @@ export function shouldDraftBeUpdated({
   }
 
   return !deepEquals(draftFromStateResult.value, definition);
+}
+
+export function journeyResourceToState(
+  journey: SavedJourneyResource,
+): JourneyStateForResource {
+  if (journey.draft) {
+    const resource: JourneyResourceWithDraftForState = {
+      ...journey,
+      draft: journey.draft,
+    };
+    return journeyDraftToState(resource);
+  }
+  if (journey.definition) {
+    const resource: JourneyResourceWithDefinitionForState = {
+      ...journey,
+      definition: journey.definition,
+    };
+    return journeyToState(resource);
+  }
+  throw new Error("journey resource has no definition or draft");
 }

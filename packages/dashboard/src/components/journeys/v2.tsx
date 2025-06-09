@@ -4,6 +4,7 @@ import { useImmer } from "use-immer";
 import { useAppStorePick } from "../../lib/appStore";
 import { useJourneyQuery } from "../../lib/useJourneyQuery";
 import useOnceWhen from "../../lib/useOnceWhen";
+import { journeyDraftToState } from "./store";
 import JourneyV2Editor from "./v2/editor";
 import JourneyV2Layout from "./v2/layout";
 import {
@@ -12,7 +13,6 @@ import {
   JourneyV2StepKeys,
 } from "./v2/shared";
 import JourneyV2Summary from "./v2/summary";
-import { journeyDraftToState } from "./store";
 
 export default function JourneyV2({ id }: { id: string }) {
   const [state, setState] = useImmer<JourneyV2State>({
