@@ -9,7 +9,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
-import { v5 as uuidv5 } from "uuid";
+import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
 import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
@@ -164,12 +164,15 @@ export async function replaceManualSegment({
 }): Promise<boolean> {
   const newManualSegmentNode: [ManualSegmentNode, Segment] | null =
     await db().transaction(async (tx) => {
-      const segment = await tx.query.segment.findFirst({
-        where: and(
-          eq(schema.segment.workspaceId, workspaceId),
-          eq(schema.segment.id, segmentId),
-        ),
-      });
+      let segment: Segment | undefined;
+      if (validateUuid(segmentId)) {
+        segment = await tx.query.segment.findFirst({
+          where: and(
+            eq(schema.segment.workspaceId, workspaceId),
+            eq(schema.segment.id, segmentId),
+          ),
+        });
+      }
       if (!segment) {
         logger().info(
           {
