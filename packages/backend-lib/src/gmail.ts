@@ -262,7 +262,7 @@ export async function getGmailTokens({
     }),
   );
   if (!settings || !settings.config.expiresAt) {
-    logger().debug(
+    logger().info(
       {
         workspaceId,
         workspaceOccupantId,
@@ -276,7 +276,7 @@ export async function getGmailTokens({
     !settings.config.accessTokenIv ||
     !settings.config.accessTokenAuthTag
   ) {
-    logger().debug(
+    logger().info(
       {
         workspaceId,
         workspaceOccupantId,
@@ -291,7 +291,7 @@ export async function getGmailTokens({
     authTag: settings.config.accessTokenAuthTag,
   });
   if (!accessToken) {
-    logger().debug(
+    logger().info(
       {
         workspaceId,
         workspaceOccupantId,
@@ -306,7 +306,7 @@ export async function getGmailTokens({
     !settings.config.refreshTokenIv ||
     !settings.config.refreshTokenAuthTag
   ) {
-    logger().debug(
+    logger().info(
       {
         workspaceId,
         workspaceOccupantId,
@@ -321,7 +321,7 @@ export async function getGmailTokens({
     authTag: settings.config.refreshTokenAuthTag,
   });
   if (!refreshToken) {
-    logger().debug(
+    logger().info(
       {
         workspaceId,
         workspaceOccupantId,
@@ -352,6 +352,13 @@ export async function refreshGmailAccessToken({
     workspaceOccupantId,
   });
   if (!tokens) {
+    logger().info(
+      {
+        workspaceId,
+        workspaceOccupantId,
+      },
+      "no tokens found for workspace member",
+    );
     return null;
   }
 
@@ -465,11 +472,35 @@ export async function getAndRefreshGmailAccessToken({
     workspaceOccupantId,
   });
   if (!tokens) {
+    logger().info(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        workspaceOccupantType,
+      },
+      "no tokens found for workspace member",
+    );
     return null;
   }
   if (tokens.expiresAt > Date.now() + MAX_EXPIRATION_BOUND) {
+    logger().info(
+      {
+        workspaceId,
+        workspaceOccupantId,
+        workspaceOccupantType,
+      },
+      "tokens are still valid",
+    );
     return tokens;
   }
+  logger().info(
+    {
+      workspaceId,
+      workspaceOccupantId,
+      workspaceOccupantType,
+    },
+    "refreshing tokens",
+  );
   return refreshGmailAccessToken({
     workspaceId,
     workspaceOccupantId,
