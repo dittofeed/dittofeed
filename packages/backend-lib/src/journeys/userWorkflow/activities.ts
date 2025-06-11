@@ -28,6 +28,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
+  MessageTags,
   MessageVariant,
   OptionalAllOrNothing,
   RenameKey,
@@ -122,6 +123,19 @@ async function sendMessageInner({
     });
   }
 
+  const messageTags: MessageTags = {
+    workspaceId,
+    runId,
+    nodeId,
+    journeyId,
+    templateId,
+    messageId,
+    userId,
+    channel: rest.channel,
+  };
+  if (rest.triggeringMessageId) {
+    messageTags.triggeringMessageId = rest.triggeringMessageId;
+  }
   const result = await sender({
     workspaceId,
     useDraft: false,
@@ -129,17 +143,8 @@ async function sendMessageInner({
     userId,
     userPropertyAssignments,
     subscriptionGroupDetails,
+    messageTags,
     ...rest,
-    messageTags: {
-      workspaceId,
-      runId,
-      nodeId,
-      journeyId,
-      templateId,
-      messageId,
-      userId,
-      channel: rest.channel,
-    },
   });
   return result;
 }
