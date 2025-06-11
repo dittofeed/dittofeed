@@ -33,7 +33,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
-import { findEnrichedSegments, findManySegmentResourcesSafe } from "./segments";
+import { findManySegmentResourcesSafe } from "./segments";
 import {
   BaseMessageNodeStats,
   ChannelType,
@@ -739,7 +739,11 @@ export function triggerEventEntryJourneysFactory({
 
     const starts: Promise<unknown>[] = journeyDetails.flatMap(
       ({ journeyId, event: journeyEvent, definition }) => {
-        if (journeyEvent !== triggerEvent.event) {
+        const isMatch = journeyEvent.endsWith("*")
+          ? triggerEvent.event.startsWith(journeyEvent.slice(0, -1))
+          : journeyEvent === triggerEvent.event;
+
+        if (!isMatch) {
           return [];
         }
 

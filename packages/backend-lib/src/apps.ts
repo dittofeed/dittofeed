@@ -18,7 +18,6 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
-import logger from "./logger";
 
 export async function submitIdentify({
   workspaceId,
