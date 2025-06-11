@@ -8,7 +8,7 @@ import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
 import { CompletionStatus } from "isomorphic-lib/src/types";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -22,6 +22,7 @@ import {
   BroadcastStateUpdater,
   BroadcastStep,
   BroadcastStepKey,
+  useBroadcastSteps,
 } from "./broadcastsShared";
 
 const PREVIEW_HEIGHT = "440px";
@@ -110,7 +111,9 @@ export default function BroadcastLayout({
     },
     [updateState],
   );
-  const activeStepIndex: number = BROADCAST_STEPS.findIndex(
+  const broadcastSteps = useBroadcastSteps(state.configuration?.stepsAllowList);
+
+  const activeStepIndex: number = broadcastSteps.findIndex(
     (step) => step.key === state.step,
   );
   if (workspace.type !== CompletionStatus.Successful) {

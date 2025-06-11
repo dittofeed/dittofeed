@@ -51,7 +51,7 @@ import { defaultEmailDefinition } from "./messaging/email";
 import { toSegmentResource } from "./segments";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { isAlreadyStartedError } from "./temporal/workflow";
-import { Broadcast } from "./types";
+import { Broadcast, SubscriptionGroup } from "./types";
 
 export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
   if (broadcast.status === null) {
@@ -619,10 +619,24 @@ export async function upsertBroadcastV2({
             throw new Error("Unsupported channel type");
         }
 
+        let defaultSubscriptionGroup: SubscriptionGroup | undefined;
+        if (!subscriptionGroupId) {
+          defaultSubscriptionGroup =
+            await db().query.subscriptionGroup.findFirst({
+              where: and(
+                eq(dbSubscriptionGroup.workspaceId, workspaceId),
+                eq(dbSubscriptionGroup.channel, channel),
+              ),
+              orderBy: [asc(dbSubscriptionGroup.createdAt)],
+            });
+        }
+
         const insertedConfig: BroadcastV2Config = config ?? {
           type: "V2",
           message: messageConfig,
         };
+        const subscriptionGroupIdWithDefault =
+          subscriptionGroupId ?? defaultSubscriptionGroup?.id;
         const insertResult = await queryResult(
           tx
             .insert(dbBroadcast)
@@ -632,7 +646,7 @@ export async function upsertBroadcastV2({
               workspaceId,
               segmentId,
               messageTemplateId,
-              subscriptionGroupId,
+              subscriptionGroupId: subscriptionGroupIdWithDefault,
               version: "V2",
               config: insertedConfig,
               scheduledAt,

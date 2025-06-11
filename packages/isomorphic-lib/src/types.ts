@@ -4835,9 +4835,20 @@ export type DeliveriesTableConfiguration = Static<
   typeof DeliveriesTableConfiguration
 >;
 
+export const BroadcastStepKeys = {
+  RECIPIENTS: "RECIPIENTS",
+  CONTENT: "CONTENT",
+  CONFIGURATION: "CONFIGURATION",
+  REVIEW: "REVIEW",
+} as const;
+
+export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));
+
+export type BroadcastStepKey = Static<typeof BroadcastStepKey>;
+
 export const BroadcastConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.Broadcast),
-  hideRecipients: Type.Optional(Type.Boolean()),
+  stepsAllowList: Type.Optional(Type.Array(BroadcastStepKey)),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;
