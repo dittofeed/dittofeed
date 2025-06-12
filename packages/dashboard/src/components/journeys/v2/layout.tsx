@@ -9,6 +9,7 @@ import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import {
   PublisherDraftToggleStatus,
+  PublisherOutOfDateStatus,
   PublisherStatus,
   PublisherStatusType,
   PublisherUnpublishedStatus,
@@ -39,7 +40,8 @@ function JourneyStepper() {
     [state.step],
   );
   const { mutate: updateJourney } = useJourneyMutation(state.id);
-  const { data: journey } = useJourneyQuery(state.id);
+  const { data: journey, isPending: isJourneyMutationPending } =
+    useJourneyQuery(state.id);
   const {
     workspace,
     journeyNodes,
@@ -97,15 +99,27 @@ function JourneyStepper() {
 
     const globalJourneyErrors = getGlobalJourneyErrors({
       nodes: journeyNodes,
-      segments: segmentsResponse?.segments ?? [],
+      segments: segmentsResponse.segments,
     });
+
+    const publisher: PublisherOutOfDateStatus = {
+      type: PublisherStatusType.OutOfDate,
+      isUpdating: isJourneyMutationPending,
+      disabled:
+        globalJourneyErrors.size > 0 ||
+        definitionFromState.isErr() ||
+        !viewDraft,
+      onPublish: () => {},
+      onRevert: () => {},
+    };
     return null;
   }, [
+    isJourneyMutationPending,
     journey,
     journeyEdges,
     journeyNodes,
     journeyNodesIndex,
-    segmentsResponse?.segments,
+    segmentsResponse,
     viewDraft,
     workspace.type,
   ]);
