@@ -1,9 +1,12 @@
 import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { deepEquals } from "isomorphic-lib/src/equality";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
+import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import {
   PublisherDraftToggleStatus,
   PublisherStatus,
@@ -11,14 +14,13 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../../publisher";
+import { getGlobalJourneyErrors } from "../globalJourneyErrors";
+import { journeyDefinitionFromState } from "../store";
 import {
   JourneyV2StepKey,
   JourneyV2StepKeys,
   useJourneyV2Context,
 } from "./shared";
-import { CompletionStatus } from "isomorphic-lib/src/types";
-import { journeyDefinitionFromState } from "../store";
-import { deepEquals } from "isomorphic-lib/src/equality";
 
 const STEPS = [
   {
@@ -52,11 +54,17 @@ function JourneyStepper() {
     "viewDraft",
   ]);
 
+  const { data: segmentsResponse } = useSegmentsQuery();
+
   const publisherStatuses: {
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
   } | null = useMemo(() => {
-    if (!journey || workspace.type !== CompletionStatus.Successful) {
+    if (
+      !journey ||
+      workspace.type !== CompletionStatus.Successful ||
+      !segmentsResponse
+    ) {
       return null;
     }
 
@@ -86,12 +94,18 @@ function JourneyStepper() {
       };
       return { publisher, draftToggle: publisher };
     }
+
+    const globalJourneyErrors = getGlobalJourneyErrors({
+      nodes: journeyNodes,
+      segments: segmentsResponse?.segments ?? [],
+    });
     return null;
   }, [
     journey,
     journeyEdges,
     journeyNodes,
     journeyNodesIndex,
+    segmentsResponse?.segments,
     viewDraft,
     workspace.type,
   ]);
