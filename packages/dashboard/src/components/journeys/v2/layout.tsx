@@ -16,7 +16,7 @@ import {
   PublisherUpToDateStatus,
 } from "../../publisher";
 import { getGlobalJourneyErrors } from "../globalJourneyErrors";
-import { journeyDefinitionFromState } from "../store";
+import { journeyDefinitionFromState, journeyToState } from "../store";
 import {
   JourneyV2StepKey,
   JourneyV2StepKeys,
@@ -48,12 +48,14 @@ function JourneyStepper() {
     journeyEdges,
     journeyNodesIndex,
     viewDraft,
+    resetJourneyState,
   } = useAppStorePick([
     "workspace",
     "journeyNodes",
     "journeyEdges",
     "journeyNodesIndex",
     "viewDraft",
+    "resetJourneyState",
   ]);
 
   const { data: segmentsResponse } = useSegmentsQuery();
@@ -118,10 +120,33 @@ function JourneyStepper() {
         });
       },
       onRevert: () => {
-        updateJourney({
-          draft: null,
-        });
-        // FIXME need an on success callback to update the state
+        updateJourney(
+          {
+            draft: null,
+          },
+          {
+            onSuccess: (response) => {
+              const { definition, name } = response;
+
+              if (definition) {
+                const {
+                  journeyEdges: edges,
+                  journeyNodes: nodes,
+                  journeyNodesIndex: index,
+                } = journeyToState({
+                  definition,
+                  name,
+                });
+
+                resetJourneyState({
+                  edges,
+                  nodes,
+                  index,
+                });
+              }
+            },
+          },
+        );
       },
     };
     return null;
@@ -135,6 +160,7 @@ function JourneyStepper() {
     updateJourney,
     viewDraft,
     workspace.type,
+    resetJourneyState,
   ]);
 
   const handleStepClick = useCallback(
