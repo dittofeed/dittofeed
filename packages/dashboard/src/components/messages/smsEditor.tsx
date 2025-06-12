@@ -46,6 +46,8 @@ export default function SmsEditor({
   member,
   mode,
   defaultIsUserPropertiesMinimised,
+  hideUserPropertiesPanel,
+  hideEditor,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -54,6 +56,8 @@ export default function SmsEditor({
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
+  hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
 }) {
   const theme = useTheme();
 
@@ -104,6 +108,8 @@ export default function SmsEditor({
       fieldToReadable={fieldToReadable}
       mode={mode}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      hideUserPropertiesPanel={hideUserPropertiesPanel}
+      hideEditor={hideEditor}
     />
   );
 }

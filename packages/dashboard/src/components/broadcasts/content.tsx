@@ -65,12 +65,63 @@ function EmailControls({
   );
 }
 
+function ExistingTemplatePreview({ broadcastId }: { broadcastId: string }) {
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const messageTemplateId = useMemo<string | undefined>(
+    () => broadcast?.messageTemplateId,
+    [broadcast?.messageTemplateId],
+  );
+  const { data: messageTemplate } = useMessageTemplateQuery(messageTemplateId);
+  if (!messageTemplate || !messageTemplateId) {
+    return null;
+  }
+  switch (messageTemplate.definition?.type) {
+    case ChannelType.Email:
+      return (
+        <EmailEditor
+          templateId={messageTemplateId}
+          disabled
+          hidePublisher
+          hideTitle
+          hideUserPropertiesPanel
+          hideEditor
+        />
+      );
+    case ChannelType.Sms:
+      return (
+        <SmsEditor
+          templateId={messageTemplateId}
+          disabled
+          hidePublisher
+          hideTitle
+          hideUserPropertiesPanel
+          hideEditor
+        />
+      );
+    case ChannelType.Webhook:
+      return (
+        <WebhookEditor
+          templateId={messageTemplateId}
+          disabled
+          hidePublisher
+          hideTitle
+          hideUserPropertiesPanel
+          hideEditor
+        />
+      );
+    default:
+      return null;
+  }
+}
+
 function BroadcastMessageTemplateEditor({
   broadcastId,
   disabled,
+  hideTemplateUserPropertiesPanel,
 }: {
   broadcastId: string;
   disabled: boolean;
+  hideTemplateUserPropertiesPanel?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const broadcastMutation = useBroadcastMutation(broadcastId);
@@ -141,6 +192,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -151,6 +203,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -161,6 +214,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -247,13 +301,17 @@ export default function Content({ state }: { state: BroadcastState }) {
   switch (selectExistingTemplate) {
     case "existing":
       templateSelect = (
-        <Box sx={{ maxWidth: 600 }}>
-          <MessageTemplateAutocomplete
-            messageTemplateId={broadcast?.messageTemplateId}
-            handler={handleMessageTemplateChange}
-            disabled={disabled}
-          />
-        </Box>
+        <Stack spacing={1} sx={{ flex: 1 }}>
+          <Box sx={{ maxWidth: 600 }}>
+            <MessageTemplateAutocomplete
+              messageTemplateId={broadcast?.messageTemplateId}
+              handler={handleMessageTemplateChange}
+              channel={broadcast?.config.message.type}
+              disabled={disabled}
+            />
+          </Box>
+          <ExistingTemplatePreview broadcastId={state.id} />
+        </Stack>
       );
       break;
     case "new":
@@ -261,6 +319,9 @@ export default function Content({ state }: { state: BroadcastState }) {
         <BroadcastMessageTemplateEditor
           broadcastId={state.id}
           disabled={disabled}
+          hideTemplateUserPropertiesPanel={
+            state.configuration?.hideTemplateUserPropertiesPanel
+          }
         />
       );
       break;

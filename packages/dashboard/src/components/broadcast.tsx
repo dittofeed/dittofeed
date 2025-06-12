@@ -1,5 +1,10 @@
 import { SxProps, Theme } from "@mui/material";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  BroadcastConfiguration,
+  BroadcastStepKey,
+  BroadcastStepKeys,
+} from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
@@ -9,9 +14,8 @@ import {
   BroadcastQueryKeys,
   BroadcastState,
   BroadcastStateUpdater,
-  BroadcastStepKey,
-  BroadcastStepKeys,
   ExposedBroadcastState,
+  useBroadcastSteps,
 } from "./broadcasts/broadcastsShared";
 import Configuration from "./broadcasts/configuration";
 import Content from "./broadcasts/content";
@@ -44,10 +48,12 @@ function stateToQueryParams(state: QueryState): Record<string, string> {
 export default function Broadcast({
   queryParams,
   onStateChange,
+  configuration,
   sx,
 }: {
   queryParams: Record<string, string | string[] | undefined>;
   onStateChange?: (state: ExposedBroadcastState) => void;
+  configuration?: Omit<BroadcastConfiguration, "type">;
   sx?: SxProps<Theme>;
 }) {
   const router = useRouter();
@@ -55,13 +61,20 @@ export default function Broadcast({
     () => queryParamsToState(queryParams),
     [queryParams],
   );
+  const steps = useBroadcastSteps(configuration?.stepsAllowList);
 
   const { id } = queryParams;
+  const initialStep = stateFromQueryParams.step ?? steps[0]?.key;
+  if (!initialStep) {
+    throw new Error("Application error: no steps available");
+  }
   const [state, updateState] = useImmer<BroadcastState | null>(
     id && typeof id === "string"
       ? {
           id,
-          step: stateFromQueryParams.step ?? BroadcastStepKeys.RECIPIENTS,
+          step: initialStep,
+          configuration,
+          steps,
         }
       : null,
   );

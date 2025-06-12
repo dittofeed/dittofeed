@@ -4835,8 +4835,28 @@ export type DeliveriesTableConfiguration = Static<
   typeof DeliveriesTableConfiguration
 >;
 
+export const BroadcastStepKeys = {
+  RECIPIENTS: "RECIPIENTS",
+  CONTENT: "CONTENT",
+  CONFIGURATION: "CONFIGURATION",
+  REVIEW: "REVIEW",
+} as const;
+
+export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));
+
+export type BroadcastStepKey = Static<typeof BroadcastStepKey>;
+
 export const BroadcastConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.Broadcast),
+  stepsAllowList: Type.Optional(Type.Array(BroadcastStepKey)),
+  emailProviderOverrideAllowList: Type.Optional(
+    Type.Array(EmailProviderTypeSchema),
+  ),
+  hideOverrideSelect: Type.Optional(Type.Boolean()),
+  hideScheduledSelect: Type.Optional(Type.Boolean()),
+  hideRateLimit: Type.Optional(Type.Boolean()),
+  hideDrawer: Type.Optional(Type.Boolean()),
+  hideTemplateUserPropertiesPanel: Type.Optional(Type.Boolean()),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;

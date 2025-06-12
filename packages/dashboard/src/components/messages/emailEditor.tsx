@@ -373,6 +373,8 @@ export default function EmailEditor({
   member,
   mode,
   defaultIsUserPropertiesMinimised,
+  hideUserPropertiesPanel,
+  hideEditor,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -381,6 +383,8 @@ export default function EmailEditor({
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
+  hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -511,6 +515,8 @@ export default function EmailEditor({
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      hideUserPropertiesPanel={hideUserPropertiesPanel}
+      hideEditor={hideEditor}
     />
   );
 }

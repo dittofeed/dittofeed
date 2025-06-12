@@ -51,6 +51,8 @@ export default function WebhookEditor({
   member,
   mode,
   defaultIsUserPropertiesMinimised,
+  hideUserPropertiesPanel,
+  hideEditor,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -59,6 +61,8 @@ export default function WebhookEditor({
   member?: WorkspaceMemberResource;
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
+  hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
 }) {
   const theme = useTheme();
   const { userProperties } = useAppStorePick([
@@ -179,6 +183,8 @@ export default function WebhookEditor({
       fieldToReadable={fieldToReadable}
       mode={mode}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
+      hideUserPropertiesPanel={hideUserPropertiesPanel}
+      hideEditor={hideEditor}
     />
   );
 }

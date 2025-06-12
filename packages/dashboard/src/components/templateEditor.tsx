@@ -330,6 +330,8 @@ export interface TemplateEditorProps {
   disabled?: boolean;
   hideTitle?: boolean;
   hidePublisher?: boolean;
+  hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
   member?: WorkspaceMemberResource;
   renderPreviewHeader: RenderPreviewSection;
   renderPreviewBody: RenderPreviewSection;
@@ -358,6 +360,8 @@ export default function TemplateEditor({
   renderEditorOptions,
   mode = ModeEnum.Full,
   defaultIsUserPropertiesMinimised = false,
+  hideUserPropertiesPanel = false,
+  hideEditor = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -1360,19 +1364,21 @@ export default function TemplateEditor({
         }}
         spacing={1}
       >
-        {userPropertiesPanel}
+        {!hideUserPropertiesPanel && userPropertiesPanel}
         <Stack direction="row" sx={{ flex: 1 }}>
-          <Box
-            sx={{
-              width: "50%",
-            }}
-          >
-            {editor}
-          </Box>
+          {!hideEditor && (
+            <Box
+              sx={{
+                width: "50%",
+              }}
+            >
+              {editor}
+            </Box>
+          )}
           <Divider orientation="vertical" />
           <Box
             sx={{
-              width: "50%",
+              width: hideEditor ? "100%" : "50%",
             }}
           >
             {preview}

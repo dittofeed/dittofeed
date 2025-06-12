@@ -1,16 +1,10 @@
-import { Static, Type } from "@sinclair/typebox";
+import {
+  BroadcastConfiguration,
+  BroadcastStepKey,
+  BroadcastStepKeys,
+} from "isomorphic-lib/src/types";
+import { useMemo } from "react";
 import { Updater } from "use-immer";
-
-export const BroadcastStepKeys = {
-  RECIPIENTS: "RECIPIENTS",
-  CONTENT: "CONTENT",
-  CONFIGURATION: "CONFIGURATION",
-  REVIEW: "REVIEW",
-} as const;
-
-export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));
-
-export type BroadcastStepKey = Static<typeof BroadcastStepKey>;
 
 export interface BroadcastStep {
   key: BroadcastStepKey;
@@ -18,7 +12,7 @@ export interface BroadcastStep {
   afterDraft?: true;
 }
 
-export const BROADCAST_STEPS = [
+const BROADCAST_STEPS = [
   {
     key: BroadcastStepKeys.RECIPIENTS,
     name: "Recipients",
@@ -41,6 +35,8 @@ export const BROADCAST_STEPS = [
 export interface BroadcastState {
   step: BroadcastStepKey;
   id: string;
+  configuration?: Omit<BroadcastConfiguration, "type">;
+  steps: readonly BroadcastStep[];
 }
 
 export type ExposedBroadcastState = Pick<BroadcastState, "step">;
@@ -50,3 +46,17 @@ export type BroadcastStateUpdater = Updater<BroadcastState>;
 export const BroadcastQueryKeys = {
   STEP: "dfbs",
 } as const;
+
+export function useBroadcastSteps(
+  stepsAllowList: BroadcastConfiguration["stepsAllowList"],
+): readonly BroadcastStep[] {
+  return useMemo(() => {
+    if (!stepsAllowList) {
+      return BROADCAST_STEPS;
+    }
+    const stepsAllowListSet = new Set(stepsAllowList);
+    return BROADCAST_STEPS.filter((step) => {
+      return stepsAllowListSet.has(step.key);
+    });
+  }, [stepsAllowList]);
+}

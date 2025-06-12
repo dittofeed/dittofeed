@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -17,11 +17,10 @@ import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
 import {
-  BROADCAST_STEPS,
   BroadcastState,
   BroadcastStateUpdater,
   BroadcastStep,
-  BroadcastStepKey,
+  useBroadcastSteps,
 } from "./broadcastsShared";
 
 const PREVIEW_HEIGHT = "440px";
@@ -110,13 +109,16 @@ export default function BroadcastLayout({
     },
     [updateState],
   );
-  const activeStepIndex: number = BROADCAST_STEPS.findIndex(
+  const broadcastSteps = useBroadcastSteps(state.configuration?.stepsAllowList);
+
+  const activeStepIndex: number = broadcastSteps.findIndex(
     (step) => step.key === state.step,
   );
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
   const isDraft = broadcast?.status === "Draft";
+  const hasDrawer = !state.configuration?.hideDrawer && isDraft;
 
   return (
     <Box
@@ -142,7 +144,7 @@ export default function BroadcastLayout({
             nonLinear
             activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
           >
-            {BROADCAST_STEPS.map((step: BroadcastStep) => (
+            {broadcastSteps.map((step: BroadcastStep) => (
               <Step key={step.key}>
                 <StepButton
                   color="inherit"
@@ -162,18 +164,20 @@ export default function BroadcastLayout({
             ))}
           </Stepper>
           <Stack direction="row" spacing={2}>
-            <GreyButton
-              variant="contained"
-              color="primary"
-              disabled={broadcast?.status !== "Draft"}
-              onClick={() => setPreviewOpen(!previewOpen)}
-            >
-              Toggle Preview
-            </GreyButton>
+            {!state.configuration?.hideDrawer && (
+              <GreyButton
+                variant="contained"
+                color="primary"
+                disabled={broadcast?.status !== "Draft"}
+                onClick={() => setPreviewOpen(!previewOpen)}
+              >
+                Toggle Preview
+              </GreyButton>
+            )}
           </Stack>
         </Stack>
         <Box sx={{ pt: 3, pb: 1, pl: 2, flex: 1 }}>{children}</Box>
-        {isDraft && (
+        {hasDrawer && (
           <Box
             sx={{
               height: PREVIEW_HEADER_HEIGHT,
@@ -181,7 +185,7 @@ export default function BroadcastLayout({
           />
         )}
       </Stack>
-      {isDraft && (
+      {hasDrawer && (
         <InlineDrawer
           open={previewOpen}
           maxHeight={PREVIEW_HEIGHT}

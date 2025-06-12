@@ -25,6 +25,7 @@ import { isSmsProviderType } from "isomorphic-lib/src/sms";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BroadcastSmsMessageVariant,
+  BroadcastStepKeys,
   BroadcastV2Config,
   ChannelType,
   EmailProviderType,
@@ -43,7 +44,11 @@ import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
-import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import {
+  BroadcastState,
+  BroadcastStateUpdater,
+  useBroadcastSteps,
+} from "./broadcastsShared";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -110,14 +115,15 @@ export default function Configuration({
   const channel = useMemo(() => {
     return broadcast?.config.message.type;
   }, [broadcast?.config.message.type]);
+  const steps = useBroadcastSteps(state.configuration?.stepsAllowList);
 
   const availableProviderOverrides: ProviderOverrideOption[] = useMemo(() => {
     if (!channel) {
       return [];
     }
     switch (channel) {
-      case ChannelType.Email:
-        return [
+      case ChannelType.Email: {
+        const options = [
           { id: EmailProviderType.Test, label: "Test" },
           { id: EmailProviderType.AmazonSes, label: "Amazon SES" },
           { id: EmailProviderType.Resend, label: "Resend" },
@@ -127,6 +133,14 @@ export default function Configuration({
           { id: EmailProviderType.MailChimp, label: "MailChimp" },
           { id: EmailProviderType.Gmail, label: "Gmail" },
         ];
+        if (!state.configuration?.emailProviderOverrideAllowList) {
+          return options;
+        }
+        const allowedSet = new Set(
+          state.configuration.emailProviderOverrideAllowList,
+        );
+        return options.filter((option) => allowedSet.has(option.id));
+      }
       case ChannelType.Sms:
         return [
           { id: SmsProviderType.Twilio, label: "Twilio" },
@@ -269,20 +283,21 @@ export default function Configuration({
           </ul>
         </Box>
       )}
-      <ToggleButtonGroup
-        value={scheduledStatus}
-        exclusive
-        disabled={disabled}
-        onChange={(_, newValue) => {
-          updateBroadcast({
-            scheduledAt: newValue === "scheduled" ? getTomorrowAt8AM() : null,
-          });
-        }}
-      >
-        <ToggleButton value="immediate">Immediate</ToggleButton>
-        <ToggleButton value="scheduled">Scheduled</ToggleButton>
-      </ToggleButtonGroup>
-
+      {!state.configuration?.hideScheduledSelect && (
+        <ToggleButtonGroup
+          value={scheduledStatus}
+          exclusive
+          disabled={disabled}
+          onChange={(_, newValue) => {
+            updateBroadcast({
+              scheduledAt: newValue === "scheduled" ? getTomorrowAt8AM() : null,
+            });
+          }}
+        >
+          <ToggleButton value="immediate">Immediate</ToggleButton>
+          <ToggleButton value="scheduled">Scheduled</ToggleButton>
+        </ToggleButtonGroup>
+      )}
       {scheduledStatus === "scheduled" && (
         <>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -330,114 +345,119 @@ export default function Configuration({
           />
         </>
       )}
-      <Autocomplete
-        options={availableProviderOverrides}
-        disabled={disabled}
-        getOptionLabel={(option) => option.label}
-        value={providerOverride ?? null}
-        renderInput={(params) => (
-          <TextField {...params} label="Provider Override" />
-        )}
-        onChange={(_, newValue) => {
-          if (!broadcast) {
-            return;
-          }
-          const { message } = broadcast.config;
-          let newMessage: BroadcastV2Config["message"];
-          if (message.type === ChannelType.Webhook) {
-            return;
-          }
-          switch (message.type) {
-            case ChannelType.Email: {
-              let newProviderOverride: EmailProviderTypeSchema | undefined;
-              if (!newValue) {
-                newProviderOverride = undefined;
-              } else if (isEmailProviderType(newValue.id)) {
-                newProviderOverride = newValue.id;
-              } else {
-                newProviderOverride = undefined;
-              }
-              newMessage = {
-                ...message,
-                providerOverride: newProviderOverride,
-              };
-              break;
-            }
-            case ChannelType.Sms: {
-              let newProviderOverride: SmsProviderType | undefined;
-              if (!newValue) {
-                newProviderOverride = undefined;
-              } else if (isSmsProviderType(newValue.id)) {
-                newProviderOverride = newValue.id;
-              } else {
-                newProviderOverride = undefined;
-              }
-              const newSmsMessage: BroadcastSmsMessageVariant = {
-                type: message.type,
-                providerOverride: newProviderOverride ?? null,
-              };
-              newMessage = newSmsMessage;
-              break;
-            }
-            default:
-              assertUnreachable(message);
-          }
-          updateBroadcast({
-            config: {
-              ...broadcast.config,
-              message: newMessage,
-            },
-          });
-        }}
-      />
-      <Stack direction="row" spacing={2}>
-        <TextField
-          label="Rate Limit (messages / second)"
-          type="number"
-          inputProps={{
-            min: 1,
-          }}
+      {!state.configuration?.hideOverrideSelect && (
+        <Autocomplete
+          options={availableProviderOverrides}
           disabled={disabled}
-          value={broadcast.config.rateLimit ?? ""}
-          onChange={(e) => {
+          getOptionLabel={(option) => option.label}
+          value={providerOverride ?? null}
+          renderInput={(params) => (
+            <TextField {...params} label="Provider Override" />
+          )}
+          onChange={(_, newValue) => {
             if (!broadcast) {
               return;
             }
-            const { value } = e.target;
-            const intValue = parseInt(value, 10);
+            const { message } = broadcast.config;
+            let newMessage: BroadcastV2Config["message"];
+            if (message.type === ChannelType.Webhook) {
+              return;
+            }
+            switch (message.type) {
+              case ChannelType.Email: {
+                let newProviderOverride: EmailProviderTypeSchema | undefined;
+                if (!newValue) {
+                  newProviderOverride = undefined;
+                } else if (isEmailProviderType(newValue.id)) {
+                  newProviderOverride = newValue.id;
+                } else {
+                  newProviderOverride = undefined;
+                }
+                newMessage = {
+                  ...message,
+                  providerOverride: newProviderOverride,
+                };
+                break;
+              }
+              case ChannelType.Sms: {
+                let newProviderOverride: SmsProviderType | undefined;
+                if (!newValue) {
+                  newProviderOverride = undefined;
+                } else if (isSmsProviderType(newValue.id)) {
+                  newProviderOverride = newValue.id;
+                } else {
+                  newProviderOverride = undefined;
+                }
+                const newSmsMessage: BroadcastSmsMessageVariant = {
+                  type: message.type,
+                  providerOverride: newProviderOverride ?? null,
+                };
+                newMessage = newSmsMessage;
+                break;
+              }
+              default:
+                assertUnreachable(message);
+            }
             updateBroadcast({
               config: {
                 ...broadcast.config,
-                rateLimit:
-                  !value || Number.isNaN(intValue) ? undefined : intValue,
+                message: newMessage,
               },
             });
           }}
         />
-        <TextField
-          label="Batch Size"
-          type="number"
-          inputProps={{
-            min: 1,
-          }}
-          disabled={disabled}
-          value={broadcast.config.batchSize ?? ""}
-          onChange={(e) => {
-            if (!broadcast) {
-              return;
-            }
-            const { value } = e.target;
-            const intValue = parseInt(value, 10);
-            updateBroadcast({
-              config: {
-                ...broadcast.config,
-                batchSize:
-                  !value || Number.isNaN(intValue) ? undefined : intValue,
-              },
-            });
-          }}
-        />
-      </Stack>
+      )}
+      {!state.configuration?.hideRateLimit && (
+        <Stack direction="row" spacing={2}>
+          <TextField
+            label="Rate Limit (messages / second)"
+            type="number"
+            inputProps={{
+              min: 1,
+            }}
+            disabled={disabled}
+            value={broadcast.config.rateLimit ?? ""}
+            onChange={(e) => {
+              if (!broadcast) {
+                return;
+              }
+              const { value } = e.target;
+              const intValue = parseInt(value, 10);
+              updateBroadcast({
+                config: {
+                  ...broadcast.config,
+                  rateLimit:
+                    !value || Number.isNaN(intValue) ? undefined : intValue,
+                },
+              });
+            }}
+          />
+          <TextField
+            label="Batch Size"
+            type="number"
+            inputProps={{
+              min: 1,
+            }}
+            disabled={disabled}
+            value={broadcast.config.batchSize ?? ""}
+            onChange={(e) => {
+              if (!broadcast) {
+                return;
+              }
+              const { value } = e.target;
+              const intValue = parseInt(value, 10);
+              updateBroadcast({
+                config: {
+                  ...broadcast.config,
+                  batchSize:
+                    !value || Number.isNaN(intValue) ? undefined : intValue,
+                },
+              });
+            }}
+          />
+        </Stack>
+      )}
+
       {providerOverride?.id === EmailProviderType.Gmail && (
         <AuthorizeGmail
           disabled={disabled}
@@ -469,7 +489,11 @@ export default function Configuration({
             {
               onSuccess: () => {
                 updateState((draft) => {
-                  draft.step = "REVIEW";
+                  if (
+                    steps.find((step) => step.key === BroadcastStepKeys.REVIEW)
+                  ) {
+                    draft.step = BroadcastStepKeys.REVIEW;
+                  }
                 });
               },
             },
