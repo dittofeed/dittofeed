@@ -1,12 +1,24 @@
 import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
+import { useAppStorePick } from "../../../lib/appStore";
+import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
+import {
+  PublisherDraftToggleStatus,
+  PublisherStatus,
+  PublisherStatusType,
+  PublisherUnpublishedStatus,
+  PublisherUpToDateStatus,
+} from "../../publisher";
 import {
   JourneyV2StepKey,
   JourneyV2StepKeys,
   useJourneyV2Context,
 } from "./shared";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import { journeyDefinitionFromState } from "../store";
+import { deepEquals } from "isomorphic-lib/src/equality";
 
 const STEPS = [
   {
@@ -24,6 +36,66 @@ function JourneyStepper() {
     () => STEPS.findIndex((s) => s.step === state.step),
     [state.step],
   );
+  const { mutate: updateJourney } = useJourneyMutation(state.id);
+  const { data: journey } = useJourneyQuery(state.id);
+  const {
+    workspace,
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex,
+    viewDraft,
+  } = useAppStorePick([
+    "workspace",
+    "journeyNodes",
+    "journeyEdges",
+    "journeyNodesIndex",
+    "viewDraft",
+  ]);
+
+  const publisherStatuses: {
+    publisher: PublisherStatus;
+    draftToggle: PublisherDraftToggleStatus;
+  } | null = useMemo(() => {
+    if (!journey || workspace.type !== CompletionStatus.Successful) {
+      return null;
+    }
+
+    if (journey.status === "NotStarted") {
+      const publisher: PublisherUnpublishedStatus = {
+        type: PublisherStatusType.Unpublished,
+      };
+      return { publisher, draftToggle: publisher };
+    }
+
+    const definitionFromState = journeyDefinitionFromState({
+      state: {
+        journeyNodes,
+        journeyEdges,
+        journeyNodesIndex,
+      },
+    });
+
+    if (
+      !journey.draft ||
+      (viewDraft &&
+        definitionFromState.isOk() &&
+        deepEquals(definitionFromState.value, journey.definition))
+    ) {
+      const publisher: PublisherUpToDateStatus = {
+        type: PublisherStatusType.UpToDate,
+      };
+      return { publisher, draftToggle: publisher };
+    }
+    return null;
+  }, [
+    journey,
+    journeyEdges,
+    journeyNodes,
+    journeyNodesIndex,
+    viewDraft,
+    workspace.type,
+  ]);
+
   const handleStepClick = useCallback(
     (step: JourneyV2StepKey) => {
       setState((draft) => {
