@@ -100,10 +100,10 @@ services:
       - postgres
     environment:
       - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PWD=password
-      - POSTGRES_SEEDS=postgres
+      - DB_PORT=${DATABASE_PORT:-5432}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
+      - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
