@@ -109,8 +109,20 @@ function JourneyStepper() {
         globalJourneyErrors.size > 0 ||
         definitionFromState.isErr() ||
         !viewDraft,
-      onPublish: () => {},
-      onRevert: () => {},
+      onPublish: () => {
+        if (definitionFromState.isErr()) {
+          return;
+        }
+        updateJourney({
+          definition: definitionFromState.value,
+        });
+      },
+      onRevert: () => {
+        updateJourney({
+          draft: null,
+        });
+        // FIXME need an on success callback to update the state
+      },
     };
     return null;
   }, [
@@ -120,6 +132,7 @@ function JourneyStepper() {
     journeyNodes,
     journeyNodesIndex,
     segmentsResponse,
+    updateJourney,
     viewDraft,
     workspace.type,
   ]);
