@@ -88,6 +88,12 @@ export async function buildWorker(otel?: OpenTelemetry) {
     opts.maxCachedWorkflows = maxCachedWorkflows;
   }
 
+  const { appVersion } = backendConfig();
+  if (appVersion) {
+    opts.buildId = appVersion;
+    opts.useVersioning = true;
+  }
+
   const worker = await Worker.create(opts);
 
   logger().info(
