@@ -118,6 +118,7 @@ export default function BroadcastLayout({
     return null;
   }
   const isDraft = broadcast?.status === "Draft";
+  const hasDrawer = !state.configuration?.hideDrawer && isDraft;
 
   return (
     <Box
@@ -163,18 +164,20 @@ export default function BroadcastLayout({
             ))}
           </Stepper>
           <Stack direction="row" spacing={2}>
-            <GreyButton
-              variant="contained"
-              color="primary"
-              disabled={broadcast?.status !== "Draft"}
-              onClick={() => setPreviewOpen(!previewOpen)}
-            >
-              Toggle Preview
-            </GreyButton>
+            {!state.configuration?.hideDrawer && (
+              <GreyButton
+                variant="contained"
+                color="primary"
+                disabled={broadcast?.status !== "Draft"}
+                onClick={() => setPreviewOpen(!previewOpen)}
+              >
+                Toggle Preview
+              </GreyButton>
+            )}
           </Stack>
         </Stack>
         <Box sx={{ pt: 3, pb: 1, pl: 2, flex: 1 }}>{children}</Box>
-        {isDraft && (
+        {hasDrawer && (
           <Box
             sx={{
               height: PREVIEW_HEADER_HEIGHT,
@@ -182,7 +185,7 @@ export default function BroadcastLayout({
           />
         )}
       </Stack>
-      {isDraft && (
+      {hasDrawer && (
         <InlineDrawer
           open={previewOpen}
           maxHeight={PREVIEW_HEIGHT}
