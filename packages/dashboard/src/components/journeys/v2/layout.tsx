@@ -8,15 +8,21 @@ import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import {
+  PublisherDraftToggle,
   PublisherDraftToggleStatus,
   PublisherOutOfDateStatus,
+  PublisherOutOfDateToggleStatus,
   PublisherStatus,
   PublisherStatusType,
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../../publisher";
 import { getGlobalJourneyErrors } from "../globalJourneyErrors";
-import { journeyDefinitionFromState, journeyToState } from "../store";
+import {
+  journeyDefinitionFromState,
+  journeyDraftToState,
+  journeyToState,
+} from "../store";
 import {
   JourneyV2StepKey,
   JourneyV2StepKeys,
@@ -49,6 +55,7 @@ function JourneyStepper() {
     journeyNodesIndex,
     viewDraft,
     resetJourneyState,
+    setViewDraft,
   } = useAppStorePick([
     "workspace",
     "journeyNodes",
@@ -56,6 +63,7 @@ function JourneyStepper() {
     "journeyNodesIndex",
     "viewDraft",
     "resetJourneyState",
+    "setViewDraft",
   ]);
 
   const { data: segmentsResponse } = useSegmentsQuery();
@@ -149,7 +157,40 @@ function JourneyStepper() {
         );
       },
     };
-    return null;
+    const draftToggle: PublisherOutOfDateToggleStatus = {
+      type: PublisherStatusType.OutOfDate,
+      isUpdating: isJourneyMutationPending,
+      isDraft: viewDraft,
+      onToggle: ({ isDraft: newIsDraft }) => {
+        setViewDraft(newIsDraft);
+        if (newIsDraft && journey.draft) {
+          const newState = journeyDraftToState({
+            name: journey.name,
+            draft: journey.draft,
+          });
+          resetJourneyState({
+            edges: newState.journeyEdges,
+            index: newState.journeyNodesIndex,
+            nodes: newState.journeyNodes,
+          });
+        } else if (journey.definition) {
+          const {
+            journeyEdges: edges,
+            journeyNodes: nodes,
+            journeyNodesIndex: index,
+          } = journeyToState({
+            definition: journey.definition,
+            name: journey.name,
+          });
+          resetJourneyState({
+            edges,
+            nodes,
+            index,
+          });
+        }
+      },
+    };
+    return { publisher, draftToggle };
   }, [
     isJourneyMutationPending,
     journey,
@@ -161,6 +202,7 @@ function JourneyStepper() {
     viewDraft,
     workspace.type,
     resetJourneyState,
+    setViewDraft,
   ]);
 
   const handleStepClick = useCallback(
@@ -219,6 +261,7 @@ export default function JourneyV2Layout({
         direction="row"
         justifyContent="space-between"
         alignItems="center"
+        spacing={1}
         sx={{
           padding: 1,
           alignItems: "center",
