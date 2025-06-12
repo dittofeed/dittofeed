@@ -161,11 +161,7 @@ export default function Configuration({
     let override: EmailProviderTypeSchema | SmsProviderType | null = null;
     switch (message.type) {
       case ChannelType.Email:
-        if (state.configuration?.constantEmailOverride) {
-          override = state.configuration.constantEmailOverride;
-        } else {
-          override = message.providerOverride ?? null;
-        }
+        override = message.providerOverride ?? null;
         break;
       case ChannelType.Sms:
         override = message.providerOverride ?? null;
