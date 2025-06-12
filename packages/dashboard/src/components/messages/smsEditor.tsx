@@ -47,6 +47,7 @@ export default function SmsEditor({
   mode,
   defaultIsUserPropertiesMinimised,
   hideUserPropertiesPanel,
+  hideEditor,
 }: {
   templateId: string;
   hideTitle?: boolean;
@@ -56,6 +57,7 @@ export default function SmsEditor({
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
   hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
 }) {
   const theme = useTheme();
 
@@ -107,6 +109,7 @@ export default function SmsEditor({
       mode={mode}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
       hideUserPropertiesPanel={hideUserPropertiesPanel}
+      hideEditor={hideEditor}
     />
   );
 }

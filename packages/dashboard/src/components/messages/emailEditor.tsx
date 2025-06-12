@@ -374,6 +374,7 @@ export default function EmailEditor({
   mode,
   defaultIsUserPropertiesMinimised,
   hideUserPropertiesPanel,
+  hideEditor,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -383,6 +384,7 @@ export default function EmailEditor({
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
   hideUserPropertiesPanel?: boolean;
+  hideEditor?: boolean;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -514,6 +516,7 @@ export default function EmailEditor({
       fieldToReadable={fieldToReadable}
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
       hideUserPropertiesPanel={hideUserPropertiesPanel}
+      hideEditor={hideEditor}
     />
   );
 }
