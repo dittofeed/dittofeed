@@ -39,15 +39,62 @@ const STEPS = [
     step: JourneyV2StepKeys.SUMMARY,
   },
 ] as const;
+
 function JourneyStepper() {
   const { state, setState } = useJourneyV2Context();
   const activeStep = useMemo(
     () => STEPS.findIndex((s) => s.step === state.step),
     [state.step],
   );
-  const { mutate: updateJourney } = useJourneyMutation(state.id);
-  const { data: journey, isPending: isJourneyMutationPending } =
-    useJourneyQuery(state.id);
+
+  const handleStepClick = useCallback(
+    (step: JourneyV2StepKey) => {
+      setState((draft) => {
+        draft.step = step;
+      });
+    },
+    [setState],
+  );
+
+  return (
+    <Stack direction="row" spacing={1}>
+      <Stepper
+        sx={{
+          minWidth: "240px",
+          "& .MuiStepIcon-root.Mui-active": {
+            color: "grey.600",
+          },
+        }}
+        nonLinear
+        activeStep={activeStep}
+      >
+        {STEPS.map((step) => (
+          <Step key={step.label}>
+            <StepButton
+              color="inherit"
+              onClick={() => handleStepClick(step.step)}
+            >
+              {step.label}
+            </StepButton>
+          </Step>
+        ))}
+      </Stepper>
+    </Stack>
+  );
+}
+
+export default function JourneyV2Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  const { state } = useJourneyV2Context();
+  const { id } = state;
+  const { isPending: isJourneyQueryPending, data: journey } =
+    useJourneyQuery(id);
+  const { mutate: updateJourney, isPending: isJourneyMutationPending } =
+    useJourneyMutation(state.id);
   const {
     workspace,
     journeyNodes,
@@ -204,52 +251,6 @@ function JourneyStepper() {
     resetJourneyState,
     setViewDraft,
   ]);
-
-  const handleStepClick = useCallback(
-    (step: JourneyV2StepKey) => {
-      setState((draft) => {
-        draft.step = step;
-      });
-    },
-    [setState],
-  );
-
-  return (
-    <Stack direction="row" spacing={1}>
-      <Stepper
-        sx={{
-          minWidth: "240px",
-          "& .MuiStepIcon-root.Mui-active": {
-            color: "grey.600",
-          },
-        }}
-        nonLinear
-        activeStep={activeStep}
-      >
-        {STEPS.map((step) => (
-          <Step key={step.label}>
-            <StepButton
-              color="inherit"
-              onClick={() => handleStepClick(step.step)}
-            >
-              {step.label}
-            </StepButton>
-          </Step>
-        ))}
-      </Stepper>
-    </Stack>
-  );
-}
-
-export default function JourneyV2Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const theme = useTheme();
-  const { state } = useJourneyV2Context();
-  const { id } = state;
-  const { isPending } = useJourneyQuery(id);
   return (
     <Stack
       sx={{
@@ -270,12 +271,22 @@ export default function JourneyV2Layout({
         }}
       >
         <JourneyStepper />
+        <Box
+          sx={{
+            opacity: publisherStatuses ? 1 : 0,
+            transition: "opacity 0.3s ease-in-out",
+          }}
+        >
+          {publisherStatuses && (
+            <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+          )}
+        </Box>
       </Stack>
       <Box
         sx={{
           width: "100%",
           flex: 1,
-          opacity: isPending ? 0 : 1,
+          opacity: isJourneyQueryPending ? 0 : 1,
           transition: "opacity 0.3s ease-in-out",
         }}
       >
