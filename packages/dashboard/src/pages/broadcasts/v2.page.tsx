@@ -1,6 +1,7 @@
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
+import { EmailProviderType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React from "react";
@@ -52,7 +53,9 @@ function BroadcastPageContent() {
     <Broadcast
       queryParams={queryParams}
       configuration={{
-        stepsAllowList: ["CONTENT", "CONFIGURATION", "REVIEW"],
+        hideScheduledSelect: true,
+        hideRateLimit: true,
+        hideOverrideSelect: true,
       }}
       sx={{
         pt: 2,

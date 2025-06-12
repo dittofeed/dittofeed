@@ -4849,6 +4849,12 @@ export type BroadcastStepKey = Static<typeof BroadcastStepKey>;
 export const BroadcastConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.Broadcast),
   stepsAllowList: Type.Optional(Type.Array(BroadcastStepKey)),
+  emailProviderOverrideAllowList: Type.Optional(
+    Type.Array(EmailProviderTypeSchema),
+  ),
+  hideOverrideSelect: Type.Optional(Type.Boolean()),
+  hideScheduledSelect: Type.Optional(Type.Boolean()),
+  hideRateLimit: Type.Optional(Type.Boolean()),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;
