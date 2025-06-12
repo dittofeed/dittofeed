@@ -7,8 +7,8 @@ import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
-import { CompletionStatus } from "isomorphic-lib/src/types";
-import React, { useCallback, useMemo, useState } from "react";
+import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
+import React, { useCallback, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
@@ -17,11 +17,9 @@ import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
 import {
-  BROADCAST_STEPS,
   BroadcastState,
   BroadcastStateUpdater,
   BroadcastStep,
-  BroadcastStepKey,
   useBroadcastSteps,
 } from "./broadcastsShared";
 
@@ -145,7 +143,7 @@ export default function BroadcastLayout({
             nonLinear
             activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
           >
-            {BROADCAST_STEPS.map((step: BroadcastStep) => (
+            {broadcastSteps.map((step: BroadcastStep) => (
               <Step key={step.key}>
                 <StepButton
                   color="inherit"

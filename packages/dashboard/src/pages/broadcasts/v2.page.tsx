@@ -51,6 +51,9 @@ function BroadcastPageContent() {
   return (
     <Broadcast
       queryParams={queryParams}
+      configuration={{
+        stepsAllowList: ["CONTENT", "CONFIGURATION", "REVIEW"],
+      }}
       sx={{
         pt: 2,
         px: 1,

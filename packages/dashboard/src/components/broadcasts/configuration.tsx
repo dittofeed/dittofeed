@@ -25,6 +25,7 @@ import { isSmsProviderType } from "isomorphic-lib/src/sms";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BroadcastSmsMessageVariant,
+  BroadcastStepKeys,
   BroadcastV2Config,
   ChannelType,
   EmailProviderType,
@@ -43,7 +44,11 @@ import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { TimeField } from "../timeField";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
-import { BroadcastState, BroadcastStateUpdater } from "./broadcastsShared";
+import {
+  BroadcastState,
+  BroadcastStateUpdater,
+  useBroadcastSteps,
+} from "./broadcastsShared";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -110,6 +115,7 @@ export default function Configuration({
   const channel = useMemo(() => {
     return broadcast?.config.message.type;
   }, [broadcast?.config.message.type]);
+  const steps = useBroadcastSteps(state.configuration?.stepsAllowList);
 
   const availableProviderOverrides: ProviderOverrideOption[] = useMemo(() => {
     if (!channel) {
@@ -469,7 +475,11 @@ export default function Configuration({
             {
               onSuccess: () => {
                 updateState((draft) => {
-                  draft.step = "REVIEW";
+                  if (
+                    steps.find((step) => step.key === BroadcastStepKeys.REVIEW)
+                  ) {
+                    draft.step = BroadcastStepKeys.REVIEW;
+                  }
                 });
               },
             },

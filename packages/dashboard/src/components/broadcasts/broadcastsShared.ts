@@ -12,7 +12,7 @@ export interface BroadcastStep {
   afterDraft?: true;
 }
 
-export const BROADCAST_STEPS = [
+const BROADCAST_STEPS = [
   {
     key: BroadcastStepKeys.RECIPIENTS,
     name: "Recipients",
