@@ -56,7 +56,6 @@ function BroadcastPageContent() {
         hideScheduledSelect: true,
         hideRateLimit: true,
         hideOverrideSelect: true,
-        hideDrawer: true,
         hideTemplateUserPropertiesPanel: true,
       }}
       sx={{
