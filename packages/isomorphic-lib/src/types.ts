@@ -4856,6 +4856,7 @@ export const BroadcastConfiguration = Type.Object({
   hideScheduledSelect: Type.Optional(Type.Boolean()),
   hideRateLimit: Type.Optional(Type.Boolean()),
   hideDrawer: Type.Optional(Type.Boolean()),
+  hideTemplateUserPropertiesPanel: Type.Optional(Type.Boolean()),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;

@@ -68,9 +68,11 @@ function EmailControls({
 function BroadcastMessageTemplateEditor({
   broadcastId,
   disabled,
+  hideTemplateUserPropertiesPanel,
 }: {
   broadcastId: string;
   disabled: boolean;
+  hideTemplateUserPropertiesPanel?: boolean;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const broadcastMutation = useBroadcastMutation(broadcastId);
@@ -141,6 +143,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -151,6 +154,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -161,6 +165,7 @@ function BroadcastMessageTemplateEditor({
           disabled={disabled}
           hidePublisher
           hideTitle
+          hideUserPropertiesPanel={hideTemplateUserPropertiesPanel}
         />
       );
       break;
@@ -261,6 +266,9 @@ export default function Content({ state }: { state: BroadcastState }) {
         <BroadcastMessageTemplateEditor
           broadcastId={state.id}
           disabled={disabled}
+          hideTemplateUserPropertiesPanel={
+            state.configuration?.hideTemplateUserPropertiesPanel
+          }
         />
       );
       break;

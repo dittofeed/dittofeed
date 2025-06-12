@@ -330,6 +330,7 @@ export interface TemplateEditorProps {
   disabled?: boolean;
   hideTitle?: boolean;
   hidePublisher?: boolean;
+  hideUserPropertiesPanel?: boolean;
   member?: WorkspaceMemberResource;
   renderPreviewHeader: RenderPreviewSection;
   renderPreviewBody: RenderPreviewSection;
@@ -358,6 +359,7 @@ export default function TemplateEditor({
   renderEditorOptions,
   mode = ModeEnum.Full,
   defaultIsUserPropertiesMinimised = false,
+  hideUserPropertiesPanel = false,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -1360,7 +1362,7 @@ export default function TemplateEditor({
         }}
         spacing={1}
       >
-        {userPropertiesPanel}
+        {!hideUserPropertiesPanel && userPropertiesPanel}
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
             sx={{
