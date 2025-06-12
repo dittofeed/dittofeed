@@ -52,12 +52,6 @@ function BroadcastPageContent() {
   return (
     <Broadcast
       queryParams={queryParams}
-      configuration={{
-        hideScheduledSelect: true,
-        hideRateLimit: true,
-        hideOverrideSelect: true,
-        hideTemplateUserPropertiesPanel: true,
-      }}
       sx={{
         pt: 2,
         px: 1,
