@@ -23,7 +23,9 @@ import {
   CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
+  MessageTemplateResource,
   NodeStatsType,
+  SavedSegmentResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
@@ -31,10 +33,11 @@ import { useCallback, useMemo } from "react";
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
-  AppState,
   JourneyUiNodeDefinition,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
+import { useMessageTemplatesQuery } from "../../../lib/useMessageTemplatesQuery";
+import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
@@ -59,7 +62,10 @@ interface JourneyNodeConfig {
  */
 export function isNodeComplete(
   props: JourneyUiNodeTypeProps,
-  state: Pick<AppState, "segments" | "messages">,
+  state: {
+    segments: SavedSegmentResource[];
+    messages: MessageTemplateResource[];
+  },
 ): boolean {
   switch (props.type) {
     case AdditionalJourneyNodeType.EntryUiNode: {
@@ -70,12 +76,7 @@ export function isNodeComplete(
           if (!variant.segment) {
             return false;
           }
-          if (state.segments.type !== CompletionStatus.Successful) {
-            return true;
-          }
-          const segment = state.segments.value.find(
-            (s) => s.id === variant.segment,
-          );
+          const segment = state.segments.find((s) => s.id === variant.segment);
           return segment !== undefined;
         }
         case JourneyNodeType.EventEntryNode: {
@@ -312,18 +313,20 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   const path = useRouter();
   const theme = useTheme();
   const {
-    segments,
-    messages,
     journeySelectedNodeId: selectedNodeId,
     setSelectedNodeId,
     journeyStats,
   } = useAppStorePick([
-    "segments",
-    "messages",
     "journeySelectedNodeId",
     "journeyStats",
     "setSelectedNodeId",
   ]);
+  const { data: segmentsResult } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
+  const { data: messagesResult } = useMessageTemplatesQuery({
+    resourceType: "Declarative",
+  });
 
   const { id: journeyId } = path.query;
   const config = useMemo(
@@ -359,8 +362,12 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     [isSelected, setSelectedNodeId],
   );
   const isComplete = useMemo(
-    () => isNodeComplete(data.nodeTypeProps, { segments, messages }),
-    [data.nodeTypeProps, messages, segments],
+    () =>
+      isNodeComplete(data.nodeTypeProps, {
+        segments: segmentsResult?.segments ?? [],
+        messages: messagesResult ?? [],
+      }),
+    [data.nodeTypeProps, messagesResult, segmentsResult],
   );
 
   const channelStats = useMemo(() => {
