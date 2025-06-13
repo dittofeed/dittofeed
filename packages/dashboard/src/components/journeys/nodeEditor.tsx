@@ -67,7 +67,7 @@ import {
 } from "../eventsAutocomplete";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
-import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
+import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
@@ -545,7 +545,7 @@ function MessageNodeFields({
           </MenuItem>
         </Select>
       </FormControl>
-      <SubscriptionGroupAutocomplete
+      <SubscriptionGroupAutocompleteV2
         subscriptionGroupId={nodeProps.subscriptionGroupId}
         channel={nodeProps.channel}
         disabled={disabled}
