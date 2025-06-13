@@ -485,6 +485,7 @@ export default function JourneyV2Layout({
             )}
           </Box>
         </Stack>
+        {/* FIXME add settings menu here */}
       </Stack>
       <Box
         sx={{
