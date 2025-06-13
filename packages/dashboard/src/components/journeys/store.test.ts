@@ -15,6 +15,7 @@ import { v4 as uuid } from "uuid";
 import {
   AdditionalJourneyNodeType,
   JourneyState,
+  JourneyStateForResource,
   JourneyUiEdgeType,
   JourneyUiNodeType,
 } from "../../lib/types";
@@ -22,7 +23,6 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
-  JourneyStateForResource,
   journeyToState,
 } from "./store";
 
