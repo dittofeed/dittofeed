@@ -57,6 +57,7 @@ import {
   JourneyContent,
   JourneyNodeUiProps,
   JourneyState,
+  JourneyStateForResource,
   JourneyUiEdge,
   JourneyUiEdgeType,
   JourneyUiNode,
@@ -78,11 +79,6 @@ import findNode from "./findNode";
 import { isJourneyNode } from "./isJourneyNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
-
-export type JourneyStateForResource = Pick<
-  JourneyState,
-  "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
->;
 
 export function findDirectUiParents(
   childId: string,

@@ -37,8 +37,7 @@ export function getGlobalJourneyErrors({
           (s) =>
             nodeTypeProps.segmentChildren.some(
               (child) => child.segmentId === s.id,
-            ) &&
-            s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
+            ) && s.definition.entryNode.type !== SegmentNodeType.KeyedPerformed,
         );
         if (notKeyedSegment) {
           hasWaitForNode = true;
