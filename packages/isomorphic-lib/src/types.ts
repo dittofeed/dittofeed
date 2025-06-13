@@ -2298,6 +2298,7 @@ export const GetJourneysRequest = Type.Object({
   workspaceId: Type.String(),
   getPartial: Type.Optional(Type.Boolean()),
   ids: Type.Optional(Type.Array(Type.String())),
+  resourceType: Type.Optional(Type.Enum(ResourceTypeEnum)),
 });
 
 export type GetJourneysRequest = Static<typeof GetJourneysRequest>;

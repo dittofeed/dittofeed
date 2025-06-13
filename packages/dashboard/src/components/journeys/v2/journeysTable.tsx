@@ -281,7 +281,9 @@ export default function JourneysTable() {
     pageSize: 10,
   });
 
-  const query = useJourneysQuery();
+  const query = useJourneysQuery({
+    resourceType: "Declarative",
+  });
   const createJourneyMutation = useCreateJourneyMutation();
   const journeysData: Row[] = useMemo(
     () => query.data?.journeys ?? [],

@@ -44,6 +44,11 @@ export default async function journeysController(fastify: FastifyInstance) {
       if (request.query.ids) {
         conditions.push(inArray(schema.journey.id, request.query.ids));
       }
+      if (request.query.resourceType) {
+        conditions.push(
+          eq(schema.journey.resourceType, request.query.resourceType),
+        );
+      }
 
       if (request.query.getPartial) {
         const journeyModels = await db()
