@@ -60,6 +60,10 @@ import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
+import {
+  EventNamesAutocomplete,
+  PropertiesAutocomplete,
+} from "../eventsAutocomplete";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
 import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
@@ -210,15 +214,11 @@ function EntryNodeFields({
     case JourneyNodeType.EventEntryNode:
       variant = (
         <>
-          <Autocomplete
-            value={nodeVariant.event ?? ""}
-            options={Object.keys(properties)}
-            freeSolo
+          <EventNamesAutocomplete
+            event={nodeVariant.event ?? ""}
             disabled={disabled}
-            onInputChange={(_event, newEventName) => {
-              if (newEventName === null) {
-                return;
-              }
+            label="Event Trigger Name"
+            onEventChange={(newEventName) => {
               updateJourneyNodeData(nodeId, (node) => {
                 const props = node.data.nodeTypeProps;
                 if (
@@ -229,24 +229,14 @@ function EntryNodeFields({
                 }
               });
             }}
-            renderInput={(params) => (
-              <TextField
-                label="Event Trigger Name"
-                {...params}
-                variant="outlined"
-              />
-            )}
           />
 
-          <Autocomplete
-            value={nodeVariant.key ?? ""}
-            options={properties[nodeVariant.event ?? ""] ?? []}
-            freeSolo
+          <PropertiesAutocomplete
+            event={nodeVariant.event ?? ""}
+            property={nodeVariant.key ?? ""}
             disabled={disabled}
-            onInputChange={(_event, newPropertyPath) => {
-              if (newPropertyPath === null) {
-                return;
-              }
+            label="Key"
+            onPropertyChange={(newPropertyPath) => {
               updateJourneyNodeData(nodeId, (node) => {
                 const props = node.data.nodeTypeProps;
                 if (
@@ -257,9 +247,6 @@ function EntryNodeFields({
                 }
               });
             }}
-            renderInput={(params) => (
-              <TextField label="Key" {...params} variant="outlined" />
-            )}
           />
         </>
       );
