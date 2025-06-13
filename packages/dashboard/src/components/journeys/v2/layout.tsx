@@ -1,10 +1,15 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
+import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
 import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
 import {
   Box,
   Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
+  IconButton,
   Stack,
   Step,
   StepButton,
@@ -20,7 +25,7 @@ import {
   SavedJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
@@ -338,6 +343,8 @@ export default function JourneyV2Layout({
     "setViewDraft",
   ]);
 
+  const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
+
   const { data: segmentsResponse } = useSegmentsQuery();
 
   const publisherStatuses: {
@@ -513,6 +520,14 @@ export default function JourneyV2Layout({
     ];
   }, [journey]);
 
+  const handleOptionsDialogClose = useCallback(() => {
+    setOptionsDialogOpen(false);
+  }, []);
+
+  const handleOptionsDialogOpen = useCallback(() => {
+    setOptionsDialogOpen(true);
+  }, []);
+
   return (
     <Stack
       sx={{
@@ -548,8 +563,16 @@ export default function JourneyV2Layout({
             )}
           </Box>
         </Stack>
-        {/* FIXME add options dialog here */}
-        <SettingsMenu commands={settingsCommands} />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleOptionsDialogOpen}
+          >
+            Options
+          </Button>
+          <SettingsMenu commands={settingsCommands} />
+        </Stack>
       </Stack>
       <Box
         sx={{
@@ -561,6 +584,33 @@ export default function JourneyV2Layout({
       >
         {children}
       </Box>
+
+      <Dialog
+        open={optionsDialogOpen}
+        onClose={handleOptionsDialogClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          Journey Options
+          <IconButton
+            onClick={handleOptionsDialogClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>{/* TODO: Add options content here */}</DialogContent>
+      </Dialog>
     </Stack>
   );
 }
