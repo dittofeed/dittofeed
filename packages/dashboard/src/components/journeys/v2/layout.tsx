@@ -1,4 +1,6 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
+import ContentCopyOutlined from "@mui/icons-material/ContentCopyOutlined";
+import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
 import {
   Box,
   Button,
@@ -8,7 +10,6 @@ import {
   StepButton,
   Stepper,
   Tooltip,
-  Typography,
   useTheme,
 } from "@mui/material";
 import { deepEquals } from "isomorphic-lib/src/equality";
@@ -16,12 +17,15 @@ import {
   CompletionStatus,
   JourneyDefinition,
   JourneyResourceStatus,
+  SavedJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
+import { copyToClipboard } from "../../../lib/copyToClipboard";
+import formatCurl from "../../../lib/formatCurl";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
@@ -36,6 +40,7 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../../publisher";
+import { SettingsCommand, SettingsMenu } from "../../settingsMenu";
 import { getGlobalJourneyErrors } from "../globalJourneyErrors";
 import {
   journeyDefinitionFromState,
@@ -224,7 +229,11 @@ function JourneyStatusControl() {
   }, [journey, definitionFromState]);
 
   const handleChangeStatus = useCallback(() => {
-    if (!journey || workspace.type !== CompletionStatus.Successful) {
+    if (
+      !journey ||
+      workspace.type !== CompletionStatus.Successful ||
+      !statusValue.nextStatus
+    ) {
       return;
     }
 
@@ -237,7 +246,7 @@ function JourneyStatusControl() {
       {
         name: journey.name,
         definition,
-        status: statusValue.nextStatus,
+        status: statusValue.nextStatus as "Running" | "Paused" | "Broadcast",
       },
       {
         onSuccess: (response) => {
@@ -279,6 +288,24 @@ function JourneyStatusControl() {
       </Tooltip>
     </InfoTooltip>
   );
+}
+
+function formatJourneyCurl(journey: SavedJourneyResource) {
+  return formatCurl({
+    method: "PUT",
+    url: "https://app.dittofeed.com/api/admin/journeys",
+    headers: {
+      Authorization: "Bearer MY_ADMIN_API_TOKEN",
+      "Content-Type": "application/json",
+    },
+    data: {
+      id: journey.id,
+      workspaceId: journey.workspaceId,
+      name: journey.name,
+      canRunMultiple: journey.canRunMultiple,
+      definition: journey.definition,
+    },
+  });
 }
 
 export default function JourneyV2Layout({
@@ -450,6 +477,42 @@ export default function JourneyV2Layout({
     setViewDraft,
   ]);
 
+  const settingsCommands: SettingsCommand[] = useMemo(() => {
+    return [
+      {
+        label: "Copy journey definition as JSON",
+        icon: <ContentCopyOutlined />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          copyToClipboard({
+            value: JSON.stringify(journey.definition),
+            successNotice: "Journey definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy journey definition.",
+          });
+        },
+      },
+      {
+        label: "Copy journey definition as CURL",
+        icon: <ContentCopyTwoTone />,
+        disabled: !journey?.definition,
+        action: () => {
+          if (!journey) {
+            return;
+          }
+          const curl = formatJourneyCurl(journey as SavedJourneyResource);
+          copyToClipboard({
+            value: curl,
+            successNotice: "Journey definition copied to clipboard as CURL.",
+            failureNotice: "Failed to copy journey CURL.",
+          });
+        },
+      },
+    ];
+  }, [journey]);
+
   return (
     <Stack
       sx={{
@@ -485,7 +548,7 @@ export default function JourneyV2Layout({
             )}
           </Box>
         </Stack>
-        {/* FIXME add settings menu here */}
+        <SettingsMenu commands={settingsCommands} />
       </Stack>
       <Box
         sx={{
