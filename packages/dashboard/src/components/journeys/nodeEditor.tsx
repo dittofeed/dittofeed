@@ -57,7 +57,7 @@ import {
 import useLoadProperties from "../../lib/useLoadProperties";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
-import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
@@ -317,8 +317,7 @@ function MessageNodeFields({
     "enableMobilePush",
     "updateJourneyNodeData",
   ]);
-  const { data: subscriptionGroupsData } =
-    useSubscriptionGroupsResourcesQuery();
+  const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
   const { data: messageTemplates } = useMessageTemplatesQuery({
     resourceType: "Declarative",
   });

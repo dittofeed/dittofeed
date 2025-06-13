@@ -9,7 +9,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
-  SubscriptionGroupResource,
+  SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
@@ -18,7 +18,7 @@ import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 export const SUBSCRIPTION_GROUPS_QUERY_KEY = "subscriptionGroups";
 
 // Define response type for subscription groups API
-export type GetSubscriptionGroupsResponse = SubscriptionGroupResource[];
+export type GetSubscriptionGroupsResponse = SavedSubscriptionGroupResource[];
 
 /**
  * Custom hook for fetching subscription groups using the GET /api/subscription-groups endpoint
@@ -58,7 +58,7 @@ export function useSubscriptionGroupsQuery<
         return unwrap(
           schemaValidateWithErr(
             response.data,
-            Type.Array(SubscriptionGroupResource),
+            Type.Array(SavedSubscriptionGroupResource),
           ),
         );
       } catch (error) {
