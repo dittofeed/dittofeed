@@ -16,7 +16,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import * as React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
-import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
+import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
@@ -150,7 +150,7 @@ function SubscriptionGroupSelector({
   updater: UserFilterUpdater;
   closeDropdown: () => void;
 }) {
-  const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
+  const subscriptionGroupsQuery = useSubscriptionGroupsResourcesQuery();
 
   const options: Option[] = React.useMemo(() => {
     if (subscriptionGroupsQuery.status !== "success") {

@@ -332,15 +332,15 @@ export interface AddNodesParams {
   edges: JourneyUiEdge[];
 }
 
-type JourneyNodeUpdaterInPlace = (
+export type JourneyNodeUpdaterInPlace = (
   currentValue: Draft<DefinitionJourneyNode>,
 ) => void;
 
-type JourneyNodeUpdaterReturning = (
+export type JourneyNodeUpdaterReturning = (
   currentValue: Draft<DefinitionJourneyNode>,
 ) => DefinitionJourneyNode;
 
-type JourneyNodeUpdater =
+export type JourneyNodeUpdater =
   | JourneyNodeUpdaterInPlace
   | JourneyNodeUpdaterReturning;
 
@@ -349,6 +349,7 @@ export interface JourneyContent extends JourneyState {
     t: JourneyUiBodyNodeTypeProps["type"] | null,
   ) => void;
   setSelectedNodeId: (t: string | null) => void;
+  initJourneyState: (state: JourneyStateForResource) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange<JourneyUiEdge>[]) => void;
   setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
@@ -396,4 +397,9 @@ export type JourneyUiNodeLabel = Node<
 export type JourneyUiNodeDefinition = Node<
   JourneyUiNodeDefinitionProps,
   "JourneyUiNodeDefinition"
+>;
+
+export type JourneyStateForResource = Pick<
+  JourneyState,
+  "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;

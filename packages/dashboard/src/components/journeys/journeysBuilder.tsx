@@ -24,6 +24,7 @@ import { v4 as uuid } from "uuid";
 import { useAppStorePick } from "../../lib/appStore";
 import { AppState, JourneyUiEdge, JourneyUiNode } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
@@ -31,14 +32,17 @@ import { defaultBodyNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
 import { createConnections } from "./store";
 
-const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
+export const proOptions: ProOptions = {
+  account: "paid-pro",
+  hideAttribution: true,
+};
 
-const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
+export const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
   e.preventDefault();
 };
 
 // this function adds a new node and connects it to the source node
-function createNewConnections({
+export function createNewConnections({
   nodes,
   nodeType,
   source,
@@ -80,7 +84,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     upsertJourneyStats,
     setJourneyStatsRequest,
     viewDraft,
-    subscriptionGroups,
     setSelectedNodeId,
   } = useAppStorePick([
     "setNodes",
@@ -92,9 +95,9 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
     "viewDraft",
-    "subscriptionGroups",
     "setSelectedNodeId",
   ]);
+  const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
 
   useJourneyStats({
     journeyIds: [journeyId],
@@ -117,7 +120,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           target,
           addNodes,
           nodes,
-          subscriptionGroups,
+          subscriptionGroups: subscriptionGroups ?? [],
           setSelectedNodeId,
         });
       }

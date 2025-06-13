@@ -16,7 +16,6 @@ import {
   EmptyResponse,
   SavedSubscriptionGroupResource,
   SubscriptionChange,
-  SubscriptionGroupResource,
   UpsertSubscriptionGroupAssignmentsRequest,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
@@ -298,7 +297,7 @@ export default async function subscriptionGroupsController(
           workspaceId: WorkspaceId,
         }),
         response: {
-          200: Type.Array(SubscriptionGroupResource),
+          200: Type.Array(SavedSubscriptionGroupResource),
         },
       },
     },

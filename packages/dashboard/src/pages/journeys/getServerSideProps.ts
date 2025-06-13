@@ -18,13 +18,9 @@ import {
   DEFAULT_JOURNEY_NODES,
 } from "../../components/journeys/defaults";
 import {
-  journeyDraftToState,
-  JourneyResourceWithDefinitionForState,
-  JourneyResourceWithDraftForState,
+  journeyResourceToState,
   JourneyStateForDraft,
-  JourneyStateForResource,
   journeyStateToDraft,
-  journeyToState,
 } from "../../components/journeys/store";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
@@ -91,28 +87,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: [journeyResource],
       };
 
-      let stateFromJourney: JourneyStateForResource;
-      if (journeyResource.draft) {
-        const resource: JourneyResourceWithDraftForState = {
-          ...journeyResource,
-          draft: journeyResource.draft,
-        };
-        stateFromJourney = journeyDraftToState(resource);
-      } else if (journeyResource.definition) {
-        const resource: JourneyResourceWithDefinitionForState = {
-          ...journeyResource,
-          definition: journeyResource.definition,
-        };
-        stateFromJourney = journeyToState(resource);
-      } else {
-        const err = new Error("journey resource has no definition or draft");
-        logger().error({
-          journeyResource,
-          err,
-        });
-        throw err;
-      }
-
+      const stateFromJourney = journeyResourceToState(journeyResource);
       serverInitialState.journeyName = stateFromJourney.journeyName;
       serverInitialState.journeyEdges = stateFromJourney.journeyEdges;
       serverInitialState.journeyNodes = stateFromJourney.journeyNodes;

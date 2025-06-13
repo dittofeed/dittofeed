@@ -1,39 +1,15 @@
-import { AddCircleOutline } from "@mui/icons-material";
-import { Button, Stack, Typography } from "@mui/material";
-import * as schema from "backend-lib/src/db/schema";
-import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
-import { and, eq } from "drizzle-orm";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { Stack } from "@mui/material";
 import { GetServerSideProps } from "next";
-import Link from "next/link";
-import { useState } from "react";
-import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
-import JourneysTable from "../../components/journeysTable";
+import JourneysTableV2 from "../../components/journeys/v2/journeysTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
-import { PreloadedState, PropsWithInitialState } from "../../lib/types";
+import { PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const workspaceId = dfContext.workspace.id;
-    const journeys = await findManyJourneyResourcesUnsafe(
-      and(
-        eq(schema.journey.workspaceId, workspaceId),
-        eq(schema.journey.resourceType, "Declarative"),
-      ),
-    );
-
-    const serverInitialState: PreloadedState = {
-      journeys: {
-        type: CompletionStatus.Successful,
-        value: journeys,
-      },
-    };
-
     const props = addInitialStateToProps({
-      serverInitialState,
       dfContext,
       props: {},
     });
@@ -42,45 +18,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function JourneyListContents() {
-  const [newId, setNewId] = useState(uuid());
-
-  return (
-    <Stack
-      sx={{
-        padding: 1,
-        width: "100%",
-        borderRadius: 1,
-        margin: "1rem",
-        bgcolor: "background.paper",
-      }}
-      spacing={2}
-    >
-      <Stack direction="row" justifyContent="space-between">
-        <Typography sx={{ padding: 1 }} variant="h5">
-          Journeys
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddCircleOutline />}
-          LinkComponent={Link}
-          href={`/journeys/${newId}`}
-          onClick={() => {
-            setNewId(uuid());
-          }}
-        >
-          Create Journey
-        </Button>
-      </Stack>
-      <JourneysTable />
-    </Stack>
-  );
-}
-
 function Journeys() {
   return (
     <DashboardContent>
-      <JourneyListContents />
+      <Stack sx={{ width: "100%", height: "100%", p: 3 }}>
+        <JourneysTableV2 />
+      </Stack>
     </DashboardContent>
   );
 }

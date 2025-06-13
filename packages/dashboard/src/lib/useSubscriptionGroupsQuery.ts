@@ -1,22 +1,74 @@
-import { UseQueryOptions } from "@tanstack/react-query";
-import { GetResourcesResponse } from "isomorphic-lib/src/types";
+import { Type } from "@sinclair/typebox";
+import {
+  useQuery,
+  UseQueryOptions,
+  UseQueryResult,
+} from "@tanstack/react-query";
+import axios from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  CompletionStatus,
+  SavedSubscriptionGroupResource,
+} from "isomorphic-lib/src/types";
 
-import { useResourcesQuery } from "./useResourcesQuery";
+import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
+
+export const SUBSCRIPTION_GROUPS_QUERY_KEY = "subscriptionGroups";
+
+// Define response type for subscription groups API
+export type GetSubscriptionGroupsResponse = SavedSubscriptionGroupResource[];
 
 /**
- * Custom hook for fetching subscription groups
- *
- * @param options Any valid useQuery options
- * @returns A query result object containing the subscription groups data
- * @throws Error if workspaceId is not available (handled by useResourcesQuery)
+ * Custom hook for fetching subscription groups using the GET /api/subscription-groups endpoint
  */
-export function useSubscriptionGroupsQuery(
-  options?: Omit<UseQueryOptions<GetResourcesResponse>, "queryKey" | "queryFn">,
-) {
-  return useResourcesQuery(
-    {
-      subscriptionGroups: true,
+export function useSubscriptionGroupsQuery<
+  TData = GetSubscriptionGroupsResponse,
+>(
+  params?: Record<string, unknown>, // Allow optional additional params if needed later
+  options?: Omit<
+    UseQueryOptions<GetSubscriptionGroupsResponse, Error, TData>,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<TData> {
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+
+  if (workspace.type !== CompletionStatus.Successful) {
+    throw new Error("Workspace not available for subscription groups query");
+  }
+
+  const workspaceId = workspace.value.id;
+  const queryKey = [SUBSCRIPTION_GROUPS_QUERY_KEY, { ...params, workspaceId }];
+  const baseApiUrl = useBaseApiUrl();
+
+  const queryResult = useQuery<GetSubscriptionGroupsResponse, Error, TData>({
+    queryKey,
+    queryFn: async (): Promise<GetSubscriptionGroupsResponse> => {
+      try {
+        const response = await axios.get(`${baseApiUrl}/subscription-groups`, {
+          params: {
+            ...params,
+            workspaceId,
+          },
+          headers: authHeaders,
+        });
+
+        return unwrap(
+          schemaValidateWithErr(
+            response.data,
+            Type.Array(SavedSubscriptionGroupResource),
+          ),
+        );
+      } catch (error) {
+        console.error("Failed to fetch subscription groups", error);
+        // Re-throw or handle error as appropriate for your application
+        throw error;
+      }
     },
-    options,
-  );
+    ...options,
+  });
+
+  return queryResult;
 }

@@ -3,7 +3,7 @@ import { ChannelType } from "isomorphic-lib/src/types";
 import { useEffect, useMemo } from "react";
 
 import { useAppStorePick } from "../lib/appStore";
-import { useSubscriptionGroupsQuery } from "../lib/useSubscriptionGroupsQuery";
+import { useSubscriptionGroupsResourcesQuery } from "../lib/useSubscriptionGroupsResourcesQuery";
 
 // Define a simpler type based on observed/inferred data structure
 interface SimpleSubscriptionGroup {
@@ -69,7 +69,7 @@ export function SubscriptionGroupAutocompleteV2({
   disableClearable?: boolean;
   selectInitialDefault?: boolean;
 }) {
-  const { data: queryData, isLoading } = useSubscriptionGroupsQuery();
+  const { data: queryData, isLoading } = useSubscriptionGroupsResourcesQuery();
 
   const subscriptionGroupItems = useMemo(() => {
     const groups = queryData?.subscriptionGroups;

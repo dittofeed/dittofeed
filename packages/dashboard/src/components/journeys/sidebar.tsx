@@ -1,13 +1,12 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import {
-  CompletionStatus,
   JourneyNodeType,
   JourneyUiBodyNodeTypeProps,
-  PartialSegmentResource,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import { getWarningStyles } from "../../lib/warningTheme";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -22,25 +21,24 @@ const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
 
 function Sidebar() {
   const theme = useTheme();
-  const {
-    setDraggedComponentType,
-    journeyNodes,
-    viewDraft,
-    segments: segmentsResult,
-  } = useAppStorePick([
+  const { setDraggedComponentType, journeyNodes, viewDraft } = useAppStorePick([
     "setDraggedComponentType",
     "journeyNodes",
     "viewDraft",
-    "segments",
   ]);
+  const { data: segmentsResult } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
 
   const globalErrors = useMemo(() => {
-    const segments: PartialSegmentResource[] =
-      segmentsResult.type === CompletionStatus.Successful
-        ? segmentsResult.value
-        : [];
+    if (!segmentsResult) {
+      return [];
+    }
     return Array.from(
-      getGlobalJourneyErrors({ nodes: journeyNodes, segments }).values(),
+      getGlobalJourneyErrors({
+        nodes: journeyNodes,
+        segments: segmentsResult.segments,
+      }).values(),
     );
   }, [journeyNodes, segmentsResult]);
 

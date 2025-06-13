@@ -11,13 +11,14 @@ import {
   EmptyResponse,
   GetJourneysRequest,
   GetJourneysResponse,
+  GetJourneysResponseItem,
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -36,11 +37,49 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const journeyModels = await db()
-        .select()
-        .from(schema.journey)
-        .where(eq(schema.journey.workspaceId, request.query.workspaceId));
-      const journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
+      let journeys: GetJourneysResponseItem[] = [];
+      const conditions = [
+        eq(schema.journey.workspaceId, request.query.workspaceId),
+      ];
+      if (request.query.ids) {
+        conditions.push(inArray(schema.journey.id, request.query.ids));
+      }
+
+      if (request.query.getPartial) {
+        const journeyModels = await db()
+          .select({
+            id: schema.journey.id,
+            name: schema.journey.name,
+            status: schema.journey.status,
+            updatedAt: schema.journey.updatedAt,
+            createdAt: schema.journey.createdAt,
+            resourceType: schema.journey.resourceType,
+            statusUpdatedAt: schema.journey.statusUpdatedAt,
+            canRunMultiple: schema.journey.canRunMultiple,
+          })
+          .from(schema.journey)
+          .where(and(...conditions));
+
+        journeys = journeyModels.flatMap((j) => {
+          return [
+            {
+              workspaceId: request.query.workspaceId,
+              id: j.id,
+              name: j.name,
+              status: j.status,
+              updatedAt: j.updatedAt.getTime(),
+              createdAt: j.createdAt.getTime(),
+            },
+          ];
+        });
+      } else {
+        const journeyModels = await db()
+          .select()
+          .from(schema.journey)
+          .where(and(...conditions));
+
+        journeys = journeyModels.map((j) => unwrap(toJourneyResource(j)));
+      }
       return reply.status(200).send({ journeys });
     },
   );

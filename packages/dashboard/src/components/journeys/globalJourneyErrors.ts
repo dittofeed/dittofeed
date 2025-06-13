@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 import {
   JourneyNodeType,
-  PartialSegmentResource,
+  SavedSegmentResource,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
 
@@ -18,7 +18,7 @@ export function getGlobalJourneyErrors({
   nodes,
   segments,
 }: {
-  segments: PartialSegmentResource[];
+  segments: SavedSegmentResource[];
   nodes: Node<JourneyNodeUiProps>[];
 }): Map<GlobalJourneyErrorType, string> {
   let hasEventEntry = false;
@@ -37,8 +37,7 @@ export function getGlobalJourneyErrors({
           (s) =>
             nodeTypeProps.segmentChildren.some(
               (child) => child.segmentId === s.id,
-            ) &&
-            s.definition?.entryNode.type !== SegmentNodeType.KeyedPerformed,
+            ) && s.definition.entryNode.type !== SegmentNodeType.KeyedPerformed,
         );
         if (notKeyedSegment) {
           hasWaitForNode = true;
