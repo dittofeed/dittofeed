@@ -1,12 +1,29 @@
-import { Box, Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
+import {
+  Box,
+  Button,
+  Stack,
+  Step,
+  StepButton,
+  Stepper,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { deepEquals } from "isomorphic-lib/src/equality";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  JourneyDefinition,
+  JourneyResourceStatus,
+  WorkspaceMemberResource,
+} from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
+import InfoTooltip from "../../infoTooltip";
 import {
   PublisherDraftToggle,
   PublisherDraftToggleStatus,
@@ -39,6 +56,62 @@ const STEPS = [
     step: JourneyV2StepKeys.SUMMARY,
   },
 ] as const;
+
+interface StatusCopy {
+  label: string;
+  currentDescription: string;
+  nextDescription: string;
+  nextStatusLabel: string;
+  nextStatus?: JourneyResourceStatus;
+  disabled?: true;
+}
+
+const statusValues: Record<"NotStarted" | "Running" | "Paused", StatusCopy> = {
+  NotStarted: {
+    label: "Not Started",
+    nextStatus: "Running",
+    nextStatusLabel: "Start",
+    currentDescription:
+      "The journey has not been started. Users have not been exposed to the journey.",
+    nextDescription: "Start the journey to expose users to it.",
+  },
+  Running: {
+    label: "Running",
+    nextStatus: "Paused",
+    nextStatusLabel: "Pause",
+    currentDescription:
+      "The journey is running. Users are being exposed to it.",
+    nextDescription:
+      "Pause the journey to prevent users from entering it. Users already on the journey will exit if the journey is not restarted before they enter a message node.",
+  },
+  Paused: {
+    label: "Paused",
+    nextStatus: "Running",
+    nextStatusLabel: "Restart",
+    currentDescription:
+      "The journey is running. Users are not currently being exposed to the journey, but were prior to it being paused. Users already on the journey will exit if the journey is not restarted before they enter a message node.",
+    nextDescription: "Restart the journey to start exposing users to it again.",
+  },
+};
+
+function trackStatusChange({
+  member,
+  journeyId,
+  status,
+}: {
+  journeyId: string;
+  member: WorkspaceMemberResource;
+  status: JourneyResourceStatus;
+}) {
+  sdk.track({
+    event: JOURNEY_STATUS_CHANGE_EVENT,
+    userId: member.id,
+    properties: {
+      journeyId,
+      status,
+    },
+  });
+}
 
 function JourneyStepper() {
   const { state, setState } = useJourneyV2Context();
@@ -79,6 +152,132 @@ function JourneyStepper() {
           </Step>
         ))}
       </Stepper>
+    </Stack>
+  );
+}
+
+function JourneyStatusControl() {
+  const { state } = useJourneyV2Context();
+  const { data: journey } = useJourneyQuery(state.id);
+  const { mutate: updateJourney, isPending: isUpdating } = useJourneyMutation(
+    state.id,
+  );
+  const { data: segmentsResponse } = useSegmentsQuery();
+  const { workspace, journeyNodes, journeyEdges, journeyNodesIndex, member } =
+    useAppStorePick([
+      "workspace",
+      "journeyNodes",
+      "journeyEdges",
+      "journeyNodesIndex",
+      "member",
+    ]);
+
+  const segments = useMemo(
+    () => segmentsResponse?.segments ?? [],
+    [segmentsResponse],
+  );
+
+  const definitionFromState: JourneyDefinition | null = useMemo(() => {
+    const globalJourneyErrors = getGlobalJourneyErrors({
+      nodes: journeyNodes,
+      segments,
+    });
+    if (globalJourneyErrors.size > 0) {
+      return null;
+    }
+    return journeyDefinitionFromState({
+      state: {
+        journeyNodes,
+        journeyEdges,
+        journeyNodesIndex,
+      },
+    }).unwrapOr(null);
+  }, [journeyNodes, journeyEdges, journeyNodesIndex, segments]);
+
+  const statusValue: StatusCopy = useMemo(() => {
+    if (!journey) {
+      return {
+        label: "Loading...",
+        disabled: true,
+        currentDescription: "Loading journey status...",
+        nextStatusLabel: "Loading",
+        nextDescription: "Please wait...",
+      };
+    }
+
+    if (journey.status === "NotStarted" && !definitionFromState) {
+      return {
+        label: "Unfinished",
+        disabled: true,
+        currentDescription:
+          "This journey has not been finished and can't be started.",
+        nextStatusLabel: "Disabled",
+        nextDescription: "Finish configuring this journey to progress",
+      };
+    }
+    if (journey.status === "Broadcast") {
+      throw new Error("Broadcast journeys cannot be configured.");
+    }
+    return statusValues[journey.status];
+  }, [journey, definitionFromState]);
+
+  const handleChangeStatus = useCallback(() => {
+    if (!journey || workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+
+    const definition =
+      definitionFromState && statusValue.nextStatus === "Running"
+        ? definitionFromState
+        : undefined;
+
+    updateJourney(
+      {
+        name: journey.name,
+        definition,
+        status: statusValue.nextStatus,
+      },
+      {
+        onSuccess: (response) => {
+          if (member) {
+            trackStatusChange({
+              journeyId: state.id,
+              member,
+              status: response.status,
+            });
+          }
+        },
+      },
+    );
+  }, [
+    journey,
+    workspace,
+    definitionFromState,
+    statusValue,
+    updateJourney,
+    member,
+    state.id,
+  ]);
+
+  if (!journey) {
+    return null;
+  }
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        {statusValue.label}
+      </Typography>
+      <InfoTooltip title={statusValue.nextDescription}>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={statusValue.disabled || isUpdating}
+          onClick={handleChangeStatus}
+        >
+          {statusValue.nextStatusLabel}
+        </Button>
+      </InfoTooltip>
     </Stack>
   );
 }
@@ -251,6 +450,7 @@ export default function JourneyV2Layout({
     resetJourneyState,
     setViewDraft,
   ]);
+
   return (
     <Stack
       sx={{
@@ -281,6 +481,7 @@ export default function JourneyV2Layout({
             <PublisherDraftToggle status={publisherStatuses.draftToggle} />
           )}
         </Box>
+        <JourneyStatusControl />
       </Stack>
       <Box
         sx={{
