@@ -130,10 +130,7 @@ function EntryNodeFields({
   nodeProps: EntryUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, properties } = useAppStorePick([
-    "updateJourneyNodeData",
-    "properties",
-  ]);
+  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
   const { data: segmentsData } = useSegmentsQuery({
     resourceType: "Declarative",
   });
