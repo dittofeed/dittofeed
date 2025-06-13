@@ -27,7 +27,6 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AllowedDayIndices,
   ChannelType,
-  CompletionStatus,
   CursorDirectionEnum,
   DelayVariantType,
   EntryNode,
@@ -58,6 +57,7 @@ import {
 import useLoadProperties from "../../lib/useLoadProperties";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import {
@@ -646,8 +646,10 @@ function DelayNodeFields({
   nodeProps: DelayUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, userProperties: userPropertiesResult } =
-    useAppStorePick(["updateJourneyNodeData", "userProperties"]);
+  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
+  const { data: userProperties } = useUserPropertiesQuery({
+    resourceType: "Declarative",
+  });
   let variant: React.ReactElement;
   const nodeVariant = nodeProps.variant;
   switch (nodeVariant.type) {
@@ -755,12 +757,10 @@ function DelayNodeFields({
       break;
     }
     case DelayVariantType.UserProperty: {
-      const userProperties =
-        userPropertiesResult.type === CompletionStatus.Successful
-          ? userPropertiesResult.value
-          : [];
       const userProperty =
-        userProperties.find((p) => p.id === nodeVariant.userProperty) ?? null;
+        userProperties?.userProperties.find(
+          (p) => p.id === nodeVariant.userProperty,
+        ) ?? null;
       const onUserPropertyChangeHandler = (
         _event: unknown,
         up: UserPropertyResource | null,
@@ -781,7 +781,7 @@ function DelayNodeFields({
         <>
           <Autocomplete
             value={userProperty}
-            options={userProperties}
+            options={userProperties?.userProperties ?? []}
             getOptionLabel={getLabel}
             onChange={onUserPropertyChangeHandler}
             renderInput={(params) => (
