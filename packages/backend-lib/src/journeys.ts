@@ -856,8 +856,7 @@ export async function upsertJourney(
       const conditions: SQL[] = [eq(dbJourney.workspaceId, workspaceId)];
       if (id) {
         conditions.push(eq(dbJourney.id, id));
-      }
-      if (name) {
+      } else if (name) {
         conditions.push(eq(dbJourney.name, name));
       }
 

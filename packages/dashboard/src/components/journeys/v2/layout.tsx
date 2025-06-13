@@ -36,6 +36,7 @@ import formatCurl from "../../../lib/formatCurl";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
+import { EditableTitle } from "../../editableName/v2";
 import InfoTooltip from "../../infoTooltip";
 import {
   PublisherDraftToggle,
@@ -597,6 +598,17 @@ export default function JourneyV2Layout({
               <PublisherDraftToggle status={publisherStatuses.draftToggle} />
             )}
           </Box>
+          <Divider orientation="vertical" flexItem />
+          {journey && (
+            <EditableTitle
+              text={journey.name}
+              onSubmit={(val) => {
+                updateJourney({
+                  name: val,
+                });
+              }}
+            />
+          )}
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <Button
