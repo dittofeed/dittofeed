@@ -5,10 +5,12 @@ import ContentCopyTwoTone from "@mui/icons-material/ContentCopyTwoTone";
 import {
   Box,
   Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   IconButton,
   Stack,
   Step,
@@ -25,7 +27,7 @@ import {
   SavedJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
@@ -344,6 +346,15 @@ export default function JourneyV2Layout({
   ]);
 
   const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
+  const [canRunMultiple, setCanRunMultiple] = useState(
+    !!journey?.canRunMultiple,
+  );
+
+  useEffect(() => {
+    if (journey) {
+      setCanRunMultiple(!!journey.canRunMultiple);
+    }
+  }, [journey]);
 
   const { data: segmentsResponse } = useSegmentsQuery();
 
@@ -528,6 +539,30 @@ export default function JourneyV2Layout({
     setOptionsDialogOpen(true);
   }, []);
 
+  const handleChangeRunMultiple = useCallback(
+    (newValue: boolean) => {
+      if (!journey || workspace.type !== CompletionStatus.Successful) {
+        return;
+      }
+
+      const previousValue = canRunMultiple;
+      setCanRunMultiple(newValue);
+
+      updateJourney(
+        {
+          name: journey.name,
+          canRunMultiple: newValue,
+        },
+        {
+          onError: () => {
+            setCanRunMultiple(previousValue);
+          },
+        },
+      );
+    },
+    [journey, workspace, canRunMultiple, updateJourney],
+  );
+
   return (
     <Stack
       sx={{
@@ -571,6 +606,7 @@ export default function JourneyV2Layout({
           >
             Options
           </Button>
+          <Divider orientation="vertical" flexItem />
           <SettingsMenu commands={settingsCommands} />
         </Stack>
       </Stack>
@@ -589,7 +625,6 @@ export default function JourneyV2Layout({
         open={optionsDialogOpen}
         onClose={handleOptionsDialogClose}
         maxWidth="md"
-        fullWidth
       >
         <DialogTitle
           sx={{
@@ -603,13 +638,26 @@ export default function JourneyV2Layout({
             onClick={handleOptionsDialogClose}
             size="small"
             sx={{
-              color: (theme) => theme.palette.grey[500],
+              color: (t) => t.palette.grey[500],
             }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent>{/* TODO: Add options content here */}</DialogContent>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={canRunMultiple}
+                  onChange={(e) => handleChangeRunMultiple(e.target.checked)}
+                  disabled={isJourneyMutationPending}
+                />
+              }
+              label="Allow journey to run multiple times per user"
+            />
+          </Stack>
+        </DialogContent>
       </Dialog>
     </Stack>
   );
