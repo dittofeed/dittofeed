@@ -93,11 +93,6 @@ export default function JourneyV2({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journey, journeyEdges, journeyNodes, journeyNodesIndex, viewDraft]);
 
-  // TODO use useQuery to load seconary resources
-  // - segments
-  // - user properties
-  // - message templates
-  // - subscription groups
   return (
     <JourneyV2Context.Provider value={context}>
       <JourneyV2Layout>{content}</JourneyV2Layout>

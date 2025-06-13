@@ -24,6 +24,7 @@ import { v4 as uuid } from "uuid";
 import { useAppStorePick } from "../../lib/appStore";
 import { AppState, JourneyUiEdge, JourneyUiNode } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
@@ -83,7 +84,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     upsertJourneyStats,
     setJourneyStatsRequest,
     viewDraft,
-    subscriptionGroups,
     setSelectedNodeId,
   } = useAppStorePick([
     "setNodes",
@@ -95,9 +95,9 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
     "viewDraft",
-    "subscriptionGroups",
     "setSelectedNodeId",
   ]);
+  const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
 
   useJourneyStats({
     journeyIds: [journeyId],
@@ -120,7 +120,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           target,
           addNodes,
           nodes,
-          subscriptionGroups,
+          subscriptionGroups: subscriptionGroups ?? [],
           setSelectedNodeId,
         });
       }
