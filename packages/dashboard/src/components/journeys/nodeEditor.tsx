@@ -45,7 +45,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 
-import { useAppStore, useAppStorePick } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   DelayUiNodeProps,
@@ -82,11 +82,10 @@ function SegmentSplitNodeFields({
   nodeProps: SegmentSplitUiNodeProps;
   disabled?: boolean;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData,
-  );
-
-  const segments = useAppStore((state) => state.segments);
+  const { updateJourneyNodeData, segments } = useAppStorePick([
+    "updateJourneyNodeData",
+    "segments",
+  ]);
 
   const onSegmentChangeHandler = (
     _event: unknown,
@@ -1015,8 +1014,10 @@ function NodeLayout({
 }) {
   const theme = useTheme();
 
-  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
-  const deleteJourneyNode = useAppStore((state) => state.deleteJourneyNode);
+  const { setSelectedNodeId, deleteJourneyNode } = useAppStorePick([
+    "setSelectedNodeId",
+    "deleteJourneyNode",
+  ]);
 
   const handleDelete = () => {
     setSelectedNodeId(null);
@@ -1136,7 +1137,7 @@ function NodeEditorContents({
   disabled?: boolean;
   node: Node<JourneyUiNodeDefinitionProps>;
 }) {
-  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
+  const { setSelectedNodeId } = useAppStorePick(["setSelectedNodeId"]);
   const closeNodeEditor = () => {
     setSelectedNodeId(null);
   };
@@ -1172,15 +1173,22 @@ export default function NodeEditor({ disabled }: { disabled?: boolean }) {
   useLoadProperties();
 
   const theme = useTheme();
-  const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
-  const nodes = useAppStore((state) => state.journeyNodes);
-  const nodesIndex = useAppStore((state) => state.journeyNodesIndex);
+  const { journeySelectedNodeId, journeyNodes, journeyNodesIndex } =
+    useAppStorePick([
+      "journeySelectedNodeId",
+      "journeyNodes",
+      "journeyNodesIndex",
+    ]);
   const selectedNode = useMemo(
     () =>
-      selectedNodeId
-        ? findJourneyNode(selectedNodeId, nodes, nodesIndex)
+      journeySelectedNodeId
+        ? findJourneyNode(
+            journeySelectedNodeId,
+            journeyNodes,
+            journeyNodesIndex,
+          )
         : null,
-    [selectedNodeId, nodes, nodesIndex],
+    [journeySelectedNodeId, journeyNodes, journeyNodesIndex],
   );
   const isOpen = !!selectedNode;
 
