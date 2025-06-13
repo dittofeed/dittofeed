@@ -57,6 +57,7 @@ import {
 import useLoadProperties from "../../lib/useLoadProperties";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
+import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
@@ -312,12 +313,12 @@ function MessageNodeFields({
   nodeProps: MessageUiNodeProps;
   disabled?: boolean;
 }) {
-  const { enableMobilePush, updateJourneyNodeData, subscriptionGroups } =
-    useAppStorePick([
-      "enableMobilePush",
-      "updateJourneyNodeData",
-      "subscriptionGroups",
-    ]);
+  const { enableMobilePush, updateJourneyNodeData } = useAppStorePick([
+    "enableMobilePush",
+    "updateJourneyNodeData",
+  ]);
+  const { data: subscriptionGroupsData } =
+    useSubscriptionGroupsResourcesQuery();
   const { data: messageTemplates } = useMessageTemplatesQuery({
     resourceType: "Declarative",
   });
@@ -363,7 +364,7 @@ function MessageNodeFields({
         const channel = e.target.value as ChannelType;
         const defaultSubscriptionGroup = getDefaultSubscriptionGroup({
           channel,
-          subscriptionGroups,
+          subscriptionGroups: subscriptionGroups ?? [],
         });
 
         props.channel = channel;

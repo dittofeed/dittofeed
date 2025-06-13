@@ -2,7 +2,7 @@ import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
 import React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
-import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
+import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 import {
   removeSegment,
@@ -22,7 +22,7 @@ export function UsersFilterV2({
 }) {
   const userPropertiesQuery = useUserPropertyResourcesQuery();
   const segmentsQuery = useSegmentsQuery();
-  const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
+  const subscriptionGroupsQuery = useSubscriptionGroupsResourcesQuery();
 
   const joinedFilterSegments: {
     id: string;
