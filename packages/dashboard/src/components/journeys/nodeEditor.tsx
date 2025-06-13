@@ -82,10 +82,10 @@ function SegmentSplitNodeFields({
   nodeProps: SegmentSplitUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, segments } = useAppStorePick([
-    "updateJourneyNodeData",
-    "segments",
-  ]);
+  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
+  const { data: segmentsData } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
 
   const onSegmentChangeHandler = (
     _event: unknown,
@@ -99,17 +99,17 @@ function SegmentSplitNodeFields({
     });
   };
 
-  if (segments.type !== CompletionStatus.Successful) {
+  if (!segmentsData) {
     return null;
   }
 
   const segment =
-    segments.value.find((t) => t.id === nodeProps.segmentId) ?? null;
+    segmentsData.segments.find((t) => t.id === nodeProps.segmentId) ?? null;
 
   return (
     <Autocomplete
       value={segment}
-      options={segments.value}
+      options={segmentsData.segments}
       getOptionLabel={getLabel}
       onChange={onSegmentChangeHandler}
       disabled={disabled}
