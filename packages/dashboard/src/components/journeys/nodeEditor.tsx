@@ -56,6 +56,7 @@ import {
   WaitForUiNodeProps,
 } from "../../lib/types";
 import useLoadProperties from "../../lib/useLoadProperties";
+import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
@@ -327,17 +328,15 @@ function MessageNodeFields({
   nodeProps: MessageUiNodeProps;
   disabled?: boolean;
 }) {
-  const {
-    enableMobilePush,
-    updateJourneyNodeData,
-    messages,
-    subscriptionGroups,
-  } = useAppStorePick([
-    "messages",
-    "enableMobilePush",
-    "updateJourneyNodeData",
-    "subscriptionGroups",
-  ]);
+  const { enableMobilePush, updateJourneyNodeData, subscriptionGroups } =
+    useAppStorePick([
+      "enableMobilePush",
+      "updateJourneyNodeData",
+      "subscriptionGroups",
+    ]);
+  const { data: messageTemplates } = useMessageTemplatesQuery({
+    resourceType: "Declarative",
+  });
 
   const onNameChangeHandler: React.ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -365,10 +364,9 @@ function MessageNodeFields({
     });
   };
 
-  const templates =
-    messages.type === CompletionStatus.Successful
-      ? messages.value.filter((t) => t.type === nodeProps.channel)
-      : [];
+  const templates = messageTemplates
+    ? messageTemplates.filter((t) => t.type === nodeProps.channel)
+    : [];
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
