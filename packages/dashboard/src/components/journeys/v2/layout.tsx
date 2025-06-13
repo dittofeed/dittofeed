@@ -548,6 +548,7 @@ export default function JourneyV2Layout({
             )}
           </Box>
         </Stack>
+        {/* FIXME add options dialog here */}
         <SettingsMenu commands={settingsCommands} />
       </Stack>
       <Box
