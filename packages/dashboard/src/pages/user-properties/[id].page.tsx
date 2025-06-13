@@ -46,6 +46,7 @@ import DashboardContent from "../../components/dashboardContent";
 import { EditableTitle } from "../../components/editableName/v2";
 import { SubtleHeader } from "../../components/headers";
 import InfoTooltip from "../../components/infoTooltip";
+import TraitAutocomplete from "../../components/traitAutocomplete";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
@@ -55,7 +56,6 @@ import {
   PreloadedState,
   PropsWithInitialState,
 } from "../../lib/types";
-import useLoadTraits from "../../lib/useLoadTraits";
 
 const selectorWidth = "192px";
 
@@ -329,9 +329,6 @@ function TraitUserPropertyDefinitionEditor({
 }: {
   definition: TraitUserPropertyDefinition;
 }) {
-  useLoadTraits();
-  const traits = useAppStore((store) => store.traits);
-
   const updateUserPropertyDefinition = useAppStore(
     (state) => state.updateUserPropertyDefinition,
   );
@@ -356,30 +353,10 @@ function TraitUserPropertyDefinitionEditor({
   };
 
   return (
-    <Autocomplete
-      value={definition.path}
-      freeSolo
-      onInputChange={(_event, newValue) => {
-        handleTraitChange(newValue);
-      }}
-      disableClearable
+    <TraitAutocomplete
+      traitPath={definition.path}
+      traitOnChange={handleTraitChange}
       sx={{ width: selectorWidth }}
-      options={traits}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Trait Path"
-          disabled={params.disabled}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const newValue = event.target.value;
-            handleTraitChange(newValue);
-          }}
-          InputProps={{
-            ...params.InputProps,
-            type: "search",
-          }}
-        />
-      )}
     />
   );
 }

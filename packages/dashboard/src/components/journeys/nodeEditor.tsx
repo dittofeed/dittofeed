@@ -54,7 +54,6 @@ import {
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
-import useLoadProperties from "../../lib/useLoadProperties";
 import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
@@ -1152,8 +1151,6 @@ function NodeEditorContents({
 export const journeyNodeEditorId = "journey-node-editor";
 
 export default function NodeEditor({ disabled }: { disabled?: boolean }) {
-  useLoadProperties();
-
   const theme = useTheme();
   const { journeySelectedNodeId, journeyNodes, journeyNodesIndex } =
     useAppStorePick([
