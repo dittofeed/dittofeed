@@ -2,10 +2,12 @@ import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
 import {
   Box,
   Button,
+  Divider,
   Stack,
   Step,
   StepButton,
   Stepper,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -264,11 +266,8 @@ function JourneyStatusControl() {
   }
 
   return (
-    <Stack direction="row" spacing={1} alignItems="center">
-      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-        {statusValue.label}
-      </Typography>
-      <InfoTooltip title={statusValue.nextDescription}>
+    <InfoTooltip title={statusValue.nextDescription}>
+      <Tooltip title={`Current status: ${statusValue.label}`}>
         <Button
           variant="outlined"
           size="small"
@@ -277,8 +276,8 @@ function JourneyStatusControl() {
         >
           {statusValue.nextStatusLabel}
         </Button>
-      </InfoTooltip>
-    </Stack>
+      </Tooltip>
+    </InfoTooltip>
   );
 }
 
@@ -470,18 +469,22 @@ export default function JourneyV2Layout({
           borderBottom: `2px solid ${theme.palette.grey[200]}`,
         }}
       >
-        <JourneyStepper />
-        <Box
-          sx={{
-            opacity: publisherStatuses ? 1 : 0,
-            transition: "opacity 0.3s ease-in-out",
-          }}
-        >
-          {publisherStatuses && (
-            <PublisherDraftToggle status={publisherStatuses.draftToggle} />
-          )}
-        </Box>
-        <JourneyStatusControl />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <JourneyStepper />
+          <Divider orientation="vertical" flexItem />
+          <JourneyStatusControl />
+          <Divider orientation="vertical" flexItem />
+          <Box
+            sx={{
+              opacity: publisherStatuses ? 1 : 0,
+              transition: "opacity 0.3s ease-in-out",
+            }}
+          >
+            {publisherStatuses && (
+              <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+            )}
+          </Box>
+        </Stack>
       </Stack>
       <Box
         sx={{
