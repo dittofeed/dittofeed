@@ -125,13 +125,15 @@ function SegmentDescriptionBody({
   segmentId?: string;
   prefix?: string;
 }) {
-  const segments = useAppStore((state) => state.segments);
+  const { data: segmentsResult } = useSegmentsQuery({
+    resourceType: "Declarative",
+  });
   const theme = useTheme();
 
-  if (!segmentId || segments.type !== CompletionStatus.Successful) {
+  if (!segmentId || !segmentsResult) {
     return null;
   }
-  const segment = segments.value.find((s) => s.id === segmentId);
+  const segment = segmentsResult.segments.find((s) => s.id === segmentId);
   if (!segment) {
     return null;
   }
