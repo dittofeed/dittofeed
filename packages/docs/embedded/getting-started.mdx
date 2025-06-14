@@ -82,13 +82,29 @@ The journey editor allows you to create and edit journeys.
 ![Embedded Journey Editor](/images/embedded-journey-editor.png)
 </Frame>
 
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/journeys/v2?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=${JOURNEY_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
 ### Journey Table
 
 The journey table displays all of the journeys for the child workspace. It provides a way to create new journeys, and view existing ones.
 
-<Frame caption="Create a new journey.">
+<Frame caption="View all journeys for the child workspace.">
 ![Embedded Journey Table](/images/embedded-journey-table.png)
 </Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/journeys?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
 
 ### Broadcast Editor
 
