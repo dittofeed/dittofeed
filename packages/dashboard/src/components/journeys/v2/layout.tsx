@@ -39,6 +39,7 @@ import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import { EditableTitle } from "../../editableName/v2";
 import InfoTooltip from "../../infoTooltip";
 import {
+  Publisher,
   PublisherDraftToggle,
   PublisherDraftToggleStatus,
   PublisherOutOfDateStatus,
@@ -583,21 +584,36 @@ export default function JourneyV2Layout({
           borderBottom: `2px solid ${theme.palette.grey[200]}`,
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="flex-start"
+        >
           <JourneyStepper />
           <Divider orientation="vertical" flexItem />
           <JourneyStatusControl />
           <Divider orientation="vertical" flexItem />
-          <Box
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
             sx={{
               opacity: publisherStatuses ? 1 : 0,
               transition: "opacity 0.3s ease-in-out",
             }}
           >
-            {publisherStatuses && (
-              <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+            {publisherStatuses && journey && (
+              <>
+                <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+                <Divider orientation="vertical" flexItem />
+                <Publisher
+                  status={publisherStatuses.publisher}
+                  title={journey.name}
+                />
+              </>
             )}
-          </Box>
+          </Stack>
           <Divider orientation="vertical" flexItem />
           {journey && (
             <EditableTitle
