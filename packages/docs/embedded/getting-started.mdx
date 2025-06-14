@@ -74,17 +74,54 @@ This token can then be passed to your frontend, and used to embed Dittofeed comp
 
 Take your session token and pass it to the Dittofeed components which can be loaded via an iframe.
 
-### Templates Table
+### Journey Editor
 
-The templates table displays all of the message templates for the child workspace.
+The journey editor allows you to create and edit journeys.
 
-<Frame>
-![Embedded Templates Table](/images/embedded-templates.png)
+<Frame caption="Create a new journey.">
+![Embedded Journey Editor](/images/embedded-journey-editor.png)
+</Frame>
+
+### Journey Table
+
+The journey table displays all of the journeys for the child workspace. It provides a way to create new journeys, and view existing ones.
+
+<Frame caption="Create a new journey.">
+![Embedded Journey Table](/images/embedded-journey-table.png)
+</Frame>
+
+### Broadcast Editor
+
+The broadcast editor allows you to create and edit broadcasts.
+
+<Frame caption="Select who you'd like to send the broadcast to.">
+![Embedded Broadcast Recipients](/images/embedded-broadcast-recipients.png)
+</Frame>
+
+<Frame caption="Send a broadcast immediately or schedule it for a later date.">
+![Embedded Broadcast Configuration](/images/embedded-broadcast-configuration.png)
 </Frame>
 
 ```html
 <iframe
-  src="https://app.dittofeed.com/dashboard-l/embedded/templates?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  src="https://app.dittofeed.com/dashboard-l/embedded/broadcasts/v2?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=${BROADCAST_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
+
+### Broadcasts Table
+
+The broadcasts table displays all of the broadcasts for the child workspace. It provides a way to create new broadcasts, view existing ones, and archive them.
+
+<Frame>
+![Embedded Broadcasts Table](/images/embedded-broadcasts.png)
+</Frame>
+
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/broadcasts?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
   width="100%"
   height="100%"
 ></iframe>
@@ -126,33 +163,17 @@ The email editor allows you to create and edit email templates.
 ></iframe>
 ```
 
-### Deliveries Table
+### Templates Table
 
-The deliveries table displays all of the message deliveries for the child workspace e.g. for sent emails, and SMS.
+The templates table displays all of the message templates for the child workspace.
 
 <Frame>
-![Embedded Deliveries Table](/images/embedded-deliveries.png)
+![Embedded Templates Table](/images/embedded-templates.png)
 </Frame>
 
 ```html
 <iframe
-  src="https://app.dittofeed.com/dashboard-l/embedded/deliveries/v2?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
-  width="100%"
-  height="100%"
-></iframe>
-```
-
-### Segments Table
-
-The segments table displays all of the segments for the child workspace. It provides a way to create new segments, view existing ones, and archive them.
-
-<Frame>
-![Embedded Segments Table](/images/embedded-segments.png)
-</Frame>
-
-```html
-<iframe
-  src="https://app.dittofeed.com/dashboard-l/embedded/segments?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  src="https://app.dittofeed.com/dashboard-l/embedded/templates?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
   width="100%"
   height="100%"
 ></iframe>
@@ -174,38 +195,33 @@ The segment editor allows you to create and edit segments.
 ></iframe>
 ```
 
-### Broadcasts Table
+### Segments Table
 
-The broadcasts table displays all of the broadcasts for the child workspace. It provides a way to create new broadcasts, view existing ones, and archive them.
+The segments table displays all of the segments for the child workspace. It provides a way to create new segments, view existing ones, and archive them.
 
 <Frame>
-![Embedded Broadcasts Table](/images/embedded-broadcasts.png)
+![Embedded Segments Table](/images/embedded-segments.png)
 </Frame>
-
 
 ```html
 <iframe
-  src="https://app.dittofeed.com/dashboard-l/embedded/broadcasts?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  src="https://app.dittofeed.com/dashboard-l/embedded/segments?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
   width="100%"
   height="100%"
 ></iframe>
 ```
 
-### Broadcast Builder
+### Deliveries Table
 
-The broadcast builder allows you to create and edit broadcasts.
+The deliveries table displays all of the message deliveries for the child workspace e.g. for sent emails, and SMS.
 
-<Frame caption="Select who you'd like to send the broadcast to.">
-![Embedded Broadcast Recipients](/images/embedded-broadcast-recipients.png)
-</Frame>
-
-<Frame caption="Send a broadcast immediately or schedule it for a later date.">
-![Embedded Broadcast Configuration](/images/embedded-broadcast-configuration.png)
+<Frame>
+![Embedded Deliveries Table](/images/embedded-deliveries.png)
 </Frame>
 
 ```html
 <iframe
-  src="https://app.dittofeed.com/dashboard-l/embedded/broadcasts/v2?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}&id=${BROADCAST_ID}"
+  src="https://app.dittofeed.com/dashboard-l/embedded/deliveries/v2?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
   width="100%"
   height="100%"
 ></iframe>
