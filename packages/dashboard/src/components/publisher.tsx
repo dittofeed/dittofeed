@@ -143,6 +143,7 @@ function PublisherInner({
           visibility: showProgress ? "visible" : "hidden",
           opacity: showProgress ? 1 : 0,
           transition: "visibility 0.4s, opacity 0.4s linear",
+          display: showProgress ? "block" : "none",
         }}
         size="1rem"
       />
@@ -152,6 +153,8 @@ function PublisherInner({
             ...getWarningStyles(theme),
             p: 1,
             opacity: showUnpublishedWarning ? undefined : 0,
+            transition: "visibility 0.4s, opacity 0.4s linear",
+            display: showUnpublishedWarning ? "block" : "none",
           }}
         >
           Unpublished Changes.
