@@ -34,8 +34,8 @@ export function useDeleteJourneyMutation(
     }
     const workspaceId = workspace.value.id;
 
-    await axios.delete(`${baseApiUrl}/journeys`, {
-      data: {
+    await axios.delete(`${baseApiUrl}/journeys/v2`, {
+      params: {
         workspaceId,
         id,
       } satisfies DeleteJourneyRequest,

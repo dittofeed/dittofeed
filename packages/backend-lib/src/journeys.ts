@@ -37,6 +37,7 @@ import { findManySegmentResourcesSafe } from "./segments";
 import {
   BaseMessageNodeStats,
   ChannelType,
+  DeleteJourneyRequest,
   EmailStats,
   EnrichedJourney,
   InternalEventType,
@@ -1050,4 +1051,18 @@ export async function upsertJourney(
   }
 
   return ok(resource);
+}
+
+export async function deleteJourney(
+  params: DeleteJourneyRequest,
+): Promise<Journey | null> {
+  const { id, workspaceId } = params;
+  const [journey] = await db()
+    .delete(dbJourney)
+    .where(and(eq(dbJourney.id, id), eq(dbJourney.workspaceId, workspaceId)))
+    .returning();
+  if (!journey) {
+    return null;
+  }
+  return journey;
 }

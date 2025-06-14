@@ -113,4 +113,23 @@ export default async function usersController(fastify: FastifyInstance) {
       return reply.status(204).send();
     },
   );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/v2",
+    {
+      schema: {
+        description:
+          "Delete events, and computed properties and segments for specific users.",
+        tags: ["Users"],
+        querystring: DeleteUsersRequest,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await deleteUsers(request.query);
+      return reply.status(204).send();
+    },
+  );
 }
