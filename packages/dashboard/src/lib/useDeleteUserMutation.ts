@@ -38,8 +38,8 @@ export function useDeleteUserMutation(
       userIds,
     };
 
-    await axios.delete(`${baseApiUrl}/users`, {
-      data: requestData,
+    await axios.delete(`${baseApiUrl}/users/v2`, {
+      params: requestData,
       headers: {
         "Content-Type": "application/json",
         ...authHeaders,

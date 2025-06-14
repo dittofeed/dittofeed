@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
+  deleteJourney,
   getJourneysStats,
   toJourneyResource,
   upsertJourney,
@@ -125,19 +126,31 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id, workspaceId } = request.body;
+      const result = await deleteJourney(request.body);
+      if (!result) {
+        return reply.status(404).send();
+      }
 
-      const result = await db()
-        .delete(schema.journey)
-        .where(
-          and(
-            eq(schema.journey.id, id),
-            eq(schema.journey.workspaceId, workspaceId),
-          ),
-        )
-        .returning();
+      return reply.status(204).send();
+    },
+  );
 
-      if (result.length === 0) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/v2",
+    {
+      schema: {
+        description: "Delete a journey.",
+        tags: ["Journeys"],
+        querystring: DeleteJourneyRequest,
+        response: {
+          204: EmptyResponse,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await deleteJourney(request.query);
+      if (!result) {
         return reply.status(404).send();
       }
 
