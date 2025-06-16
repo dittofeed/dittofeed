@@ -20,7 +20,6 @@ import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
-  CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
   MessageTemplateResource,
@@ -30,7 +29,7 @@ import {
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
-import { useAppStore, useAppStorePick } from "../../../lib/appStore";
+import { useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   JourneyUiNodeDefinition,
@@ -128,6 +127,7 @@ function SegmentDescriptionBody({
   const { data: segmentsResult } = useSegmentsQuery({
     resourceType: "Declarative",
   });
+
   const theme = useTheme();
 
   if (!segmentId || !segmentsResult) {
