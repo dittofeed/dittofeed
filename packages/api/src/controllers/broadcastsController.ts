@@ -4,6 +4,7 @@ import {
   getBroadcastsV2,
   toBroadcastResource,
   triggerBroadcast,
+  upsertBroadcast,
   upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
 import {
@@ -18,6 +19,8 @@ import {
   BaseMessageResponse,
   BroadcastResource,
   BroadcastResourceV2,
+  ExecuteBroadcastRequest,
+  ExecuteBroadcastResponse,
   GetBroadcastsResponse,
   GetBroadcastsV2Request,
   GetGmailAuthorizationRequest,
@@ -31,6 +34,7 @@ import {
 } from "backend-lib/src/types";
 import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
+import { v5 as uuidv5 } from "uuid";
 
 import { getOccupantFromRequest } from "../buildApp/requestContext";
 
@@ -222,6 +226,44 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         workspaceOccupantId: occupant.workspaceOccupantId,
       });
       return reply.status(200).send({ authorized });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/execute",
+    {
+      schema: {
+        description: "Create and trigger a broadcast.",
+        tags: ["Broadcasts"],
+        body: ExecuteBroadcastRequest,
+        response: {
+          200: ExecuteBroadcastResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const broadcastId = uuidv5(
+        request.body.broadcastName,
+        request.body.workspaceId,
+      );
+      await upsertBroadcast({
+        broadcastId,
+        workspaceId: request.body.workspaceId,
+        name: request.body.broadcastName,
+        segmentDefinition: request.body.segmentDefinition,
+        messageTemplateDefinition: request.body.messageTemplateDefinition,
+        subscriptionGroupId: request.body.subscriptionGroupId,
+      });
+
+      await triggerBroadcast({
+        broadcastId,
+        workspaceId: request.body.workspaceId,
+      });
+
+      return reply.status(200).send({
+        broadcastId,
+        broadcastName: request.body.broadcastName,
+      });
     },
   );
 }
