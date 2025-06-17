@@ -53,6 +53,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  RowData,
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
@@ -251,6 +252,16 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   );
 }
 
+function ChannelCell({ getValue }: CellContext<Row, unknown>) {
+  const channel = getValue<ChannelType>();
+  return <Typography variant="body2">{CHANNEL_NAMES[channel]}</Typography>;
+}
+
+function TypeCell({ getValue }: CellContext<Row, unknown>) {
+  const type = getValue<SubscriptionGroupType>();
+  return <Typography variant="body2">{type}</Typography>;
+}
+
 export function SubscriptionGroupsTable({
   sx,
   columnAllowList = DEFAULT_ALLOWED_SUBSCRIPTION_GROUPS_COLUMNS,
@@ -360,21 +371,13 @@ export function SubscriptionGroupsTable({
         id: "channel",
         header: "Channel",
         accessorKey: "channel",
-        cell: ({ getValue }: CellContext<Row, unknown>) => {
-          const channel = getValue<ChannelType>();
-          return (
-            <Typography variant="body2">{CHANNEL_NAMES[channel]}</Typography>
-          );
-        },
+        cell: ChannelCell,
       },
       type: {
         id: "type",
         header: "Type",
         accessorKey: "type",
-        cell: ({ getValue }: CellContext<Row, unknown>) => {
-          const type = getValue<SubscriptionGroupType>();
-          return <Typography variant="body2">{type}</Typography>;
-        },
+        cell: TypeCell,
       },
       updatedAt: {
         id: "updatedAt",
@@ -684,7 +687,8 @@ export function SubscriptionGroupsTable({
 }
 
 declare module "@tanstack/react-table" {
-  interface TableMeta<TData = unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData extends RowData> {
     deleteSubscriptionGroup?: (subscriptionGroupId: string) => void;
   }
 }
