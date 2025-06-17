@@ -46,6 +46,19 @@ export type JSONValue =
   | { [x: string]: JSONValue }
   | JSONValue[];
 
+export const IdOrName = Type.Union([
+  Type.Object({
+    id: Type.String(),
+    name: Type.Optional(Type.String()),
+  }),
+  Type.Object({
+    name: Type.String(),
+    id: Type.Optional(Type.String()),
+  }),
+]);
+
+export type IdOrName = Static<typeof IdOrName>;
+
 export const ResourceTypeEnum = {
   Declarative: "Declarative",
   Internal: "Internal",
@@ -1214,7 +1227,65 @@ export const PartialSegmentResource = Type.Composite([
 
 export type PartialSegmentResource = Static<typeof PartialSegmentResource>;
 
-export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
+export const UpsertSubscriptionGroupResourceOther = Type.Pick(
+  SubscriptionGroupResource,
+  ["workspaceId", "channel", "type"],
+);
+
+export const SubscriptionGroupUpsertValidationErrorType = {
+  IdError: "IdError",
+  UniqueConstraintViolation: "UniqueConstraintViolation",
+  BadValues: "BadValues",
+} as const;
+
+export const SubscriptionGroupUpsertValidationIdError = Type.Object({
+  type: Type.Literal(SubscriptionGroupUpsertValidationErrorType.IdError),
+  message: Type.String(),
+});
+
+export type SubscriptionGroupUpsertValidationIdError = Static<
+  typeof SubscriptionGroupUpsertValidationIdError
+>;
+
+export const SubscriptionGroupUpsertValidationUniqueConstraintViolation =
+  Type.Object({
+    type: Type.Literal(
+      SubscriptionGroupUpsertValidationErrorType.UniqueConstraintViolation,
+    ),
+    message: Type.String(),
+  });
+
+export type SubscriptionGroupUpsertValidationUniqueConstraintViolation = Static<
+  typeof SubscriptionGroupUpsertValidationUniqueConstraintViolation
+>;
+
+export const SubscriptionGroupUpsertValidationBadValues = Type.Object({
+  type: Type.Literal(SubscriptionGroupUpsertValidationErrorType.BadValues),
+  message: Type.String(),
+});
+
+export type SubscriptionGroupUpsertValidationBadValues = Static<
+  typeof SubscriptionGroupUpsertValidationBadValues
+>;
+
+export const SubscriptionGroupUpsertValidationError = Type.Union([
+  SubscriptionGroupUpsertValidationIdError,
+  SubscriptionGroupUpsertValidationUniqueConstraintViolation,
+  SubscriptionGroupUpsertValidationBadValues,
+]);
+
+export type SubscriptionGroupUpsertValidationError = Static<
+  typeof SubscriptionGroupUpsertValidationError
+>;
+
+export type UpsertSubscriptionGroupResourceOther = Static<
+  typeof UpsertSubscriptionGroupResourceOther
+>;
+
+export const UpsertSubscriptionGroupResource = Type.Composite([
+  IdOrName,
+  UpsertSubscriptionGroupResourceOther,
+]);
 
 export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource
@@ -2261,19 +2332,6 @@ export const SavedJourneyResource = Type.Union([
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
-export const IdOrName = Type.Union([
-  Type.Object({
-    id: Type.String(),
-    name: Type.Optional(Type.String()),
-  }),
-  Type.Object({
-    name: Type.String(),
-    id: Type.Optional(Type.String()),
-  }),
-]);
-
-export type IdOrName = Static<typeof IdOrName>;
-
 export const UpsertJourneyResource = Type.Composite([
   IdOrName,
   Type.Object({
@@ -2714,6 +2772,7 @@ export type RenderMessageTemplateResponse = Static<
 >;
 
 export const DeleteSubscriptionGroupRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 

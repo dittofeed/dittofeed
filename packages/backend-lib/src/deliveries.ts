@@ -225,10 +225,10 @@ export async function searchDeliveries({
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const triggeringProperties = triggeringPropertiesInput as
-    | Array<{
+    | {
         key: string;
         value: string | number;
-      }>
+      }[]
     | undefined;
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
@@ -334,7 +334,7 @@ export async function searchDeliveries({
       groupedByKey,
       values, // Get the arrays of properties for each key
       map((keyItems) => {
-        const key = keyItems[0]?.key;
+        const { key } = keyItems[0];
         if (!key) {
           return null; // Return null if key is missing
         }
