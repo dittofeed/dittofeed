@@ -33,7 +33,9 @@ if (typeof globalThis.POOL_ENDED === "undefined") globalThis.POOL_ENDED = false;
 
 export { PostgresError };
 
-export type TxQueryError = { code: PostgresError };
+export interface TxQueryError {
+  code: PostgresError;
+}
 
 export function isTxQueryError(e: unknown): e is TxQueryError {
   return typeof e === "object" && e !== null && "code" in e;

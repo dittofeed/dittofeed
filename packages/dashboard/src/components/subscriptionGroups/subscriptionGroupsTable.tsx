@@ -21,10 +21,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   IconButton,
+  InputLabel,
   Menu,
   MenuItem,
   Paper,
+  Select,
+  SelectChangeEvent,
   Snackbar,
   Stack,
   SxProps,
@@ -54,13 +58,16 @@ import {
 } from "@tanstack/react-table";
 import { AxiosError } from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import {
+  ChannelType,
   CompletionStatus,
   SavedSubscriptionGroupResource,
+  SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useCreateSubscriptionGroupMutation } from "../../lib/useCreateSubscriptionGroupMutation";
@@ -73,14 +80,13 @@ import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 
 export type SubscriptionGroupsAllowedColumn =
   | "name"
+  | "channel"
+  | "type"
   | "updatedAt"
   | "actions";
 
-export const DEFAULT_ALLOWED_SUBSCRIPTION_GROUPS_COLUMNS: SubscriptionGroupsAllowedColumn[] = [
-  "name",
-  "updatedAt",
-  "actions",
-];
+export const DEFAULT_ALLOWED_SUBSCRIPTION_GROUPS_COLUMNS: SubscriptionGroupsAllowedColumn[] =
+  ["name", "channel", "type", "updatedAt", "actions"];
 
 type Row = SavedSubscriptionGroupResource;
 
@@ -258,9 +264,13 @@ export function SubscriptionGroupsTable({
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [subscriptionGroupName, setSubscriptionGroupName] = useState("");
+  const [selectedChannel, setSelectedChannel] = useState<ChannelType>(
+    ChannelType.Email,
+  );
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const router = useRouter();
 
   const subscriptionGroupsQuery = useSubscriptionGroupsQuery();
 
@@ -293,27 +303,34 @@ export function SubscriptionGroupsTable({
 
   const createSubscriptionGroupMutation = useCreateSubscriptionGroupMutation({
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [SUBSCRIPTION_GROUPS_QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [SUBSCRIPTION_GROUPS_QUERY_KEY],
+      });
       setSnackbarMessage("Subscription group created successfully!");
       setSnackbarOpen(true);
       setDialogOpen(false);
       setSubscriptionGroupName("");
-      window.location.href = `/subscription-groups/${data.id}`;
+      router.push(`/subscription-groups/${data.id}`);
     },
     onError: (error) => {
       console.error("Failed to create subscription group:", error);
-      const errorMsg = (error as AxiosError<{ message?: string }>).response?.data.message ?? "API Error";
+      const errorMsg =
+        (error as AxiosError<{ message?: string }>).response?.data.message ??
+        "API Error";
       setSnackbarMessage(`Failed to create subscription group: ${errorMsg}`);
       setSnackbarOpen(true);
     },
   });
 
   const handleCreateSubscriptionGroup = () => {
-    if (subscriptionGroupName.trim() && !createSubscriptionGroupMutation.isPending) {
-      const newSubscriptionGroupId = uuid();
+    if (
+      subscriptionGroupName.trim() &&
+      !createSubscriptionGroupMutation.isPending
+    ) {
       createSubscriptionGroupMutation.mutate({
-        id: newSubscriptionGroupId,
         name: subscriptionGroupName.trim(),
+        channel: selectedChannel,
+        type: SubscriptionGroupType.OptOut,
       });
     }
   };
@@ -321,15 +338,43 @@ export function SubscriptionGroupsTable({
   const closeDialog = () => {
     setDialogOpen(false);
     setSubscriptionGroupName("");
+    setSelectedChannel(ChannelType.Email);
+  };
+
+  const handleChannelChange = (event: SelectChangeEvent<ChannelType>) => {
+    setSelectedChannel(event.target.value as ChannelType);
   };
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
-    const columnDefinitions: Record<SubscriptionGroupsAllowedColumn, ColumnDef<Row>> = {
+    const columnDefinitions: Record<
+      SubscriptionGroupsAllowedColumn,
+      ColumnDef<Row>
+    > = {
       name: {
         id: "name",
         header: "Name",
         accessorKey: "name",
         cell: NameCell,
+      },
+      channel: {
+        id: "channel",
+        header: "Channel",
+        accessorKey: "channel",
+        cell: ({ getValue }: CellContext<Row, unknown>) => {
+          const channel = getValue<ChannelType>();
+          return (
+            <Typography variant="body2">{CHANNEL_NAMES[channel]}</Typography>
+          );
+        },
+      },
+      type: {
+        id: "type",
+        header: "Type",
+        accessorKey: "type",
+        cell: ({ getValue }: CellContext<Row, unknown>) => {
+          const type = getValue<SubscriptionGroupType>();
+          return <Typography variant="body2">{type}</Typography>;
+        },
       },
       updatedAt: {
         id: "updatedAt",
@@ -369,7 +414,8 @@ export function SubscriptionGroupsTable({
     },
   });
 
-  const isFetching = subscriptionGroupsQuery.isFetching || subscriptionGroupsQuery.isLoading;
+  const isFetching =
+    subscriptionGroupsQuery.isFetching || subscriptionGroupsQuery.isLoading;
 
   return (
     <>
@@ -575,31 +621,53 @@ export function SubscriptionGroupsTable({
       >
         <DialogTitle>Create New Subscription Group</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Subscription Group Name"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={subscriptionGroupName}
-            onChange={(e) => setSubscriptionGroupName(e.target.value)}
-            inputRef={nameInputRef}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleCreateSubscriptionGroup();
-              }
-            }}
-          />
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              autoFocus
+              id="name"
+              label="Subscription Group Name"
+              type="text"
+              fullWidth
+              variant="outlined"
+              value={subscriptionGroupName}
+              onChange={(e) => setSubscriptionGroupName(e.target.value)}
+              inputRef={nameInputRef}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  handleCreateSubscriptionGroup();
+                }
+              }}
+            />
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="channel-select-label">Channel</InputLabel>
+              <Select
+                labelId="channel-select-label"
+                id="channel-select"
+                value={selectedChannel}
+                label="Channel"
+                onChange={handleChannelChange}
+              >
+                {Object.values(ChannelType).map((channel) => (
+                  <MenuItem key={channel} value={channel}>
+                    {CHANNEL_NAMES[channel]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancel</Button>
           <Button
             onClick={handleCreateSubscriptionGroup}
-            disabled={!subscriptionGroupName.trim() || createSubscriptionGroupMutation.isPending}
+            disabled={
+              !subscriptionGroupName.trim() ||
+              createSubscriptionGroupMutation.isPending
+            }
           >
-            {createSubscriptionGroupMutation.isPending ? "Creating..." : "Create"}
+            {createSubscriptionGroupMutation.isPending
+              ? "Creating..."
+              : "Create"}
           </Button>
         </DialogActions>
       </Dialog>

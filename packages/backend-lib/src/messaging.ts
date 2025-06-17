@@ -567,7 +567,7 @@ async function getEmailProviderSecretForWorkspace({
     },
   });
 
-  return defaultProvider?.emailProvider?.secret ?? null;
+  return defaultProvider?.emailProvider.secret ?? null;
 }
 
 const PROVIDER_NOT_FOUND_ERROR = {

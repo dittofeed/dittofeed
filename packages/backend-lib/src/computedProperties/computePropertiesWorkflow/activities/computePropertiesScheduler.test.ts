@@ -19,7 +19,9 @@ import { createPeriods } from "../../periods";
 import { findDueWorkspaces } from "../activities";
 
 // Define the type for the actual config module
-type ActualConfigModule = { default: () => Config };
+interface ActualConfigModule {
+  default: () => Config;
+}
 
 // Load the actual config module with the defined type
 // const actualConfigModule: ActualConfigModule = jest.requireActual("../../../config");

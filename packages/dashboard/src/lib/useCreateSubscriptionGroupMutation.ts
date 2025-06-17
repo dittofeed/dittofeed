@@ -7,16 +7,19 @@ import axios from "axios";
 import {
   CompletionStatus,
   SavedSubscriptionGroupResource,
+  SubscriptionGroupType,
   UpsertSubscriptionGroupResource,
+  UpsertSubscriptionGroupResourceOther,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SUBSCRIPTION_GROUPS_QUERY_KEY } from "./useSubscriptionGroupsQuery";
 
-type CreateSubscriptionGroupVariables = { name: string } & Partial<
-  Omit<UpsertSubscriptionGroupResource, "workspaceId" | "id">
->;
+type CreateSubscriptionGroupVariables = {
+  name: string;
+  type?: SubscriptionGroupType;
+} & Omit<UpsertSubscriptionGroupResourceOther, "workspaceId" | "type">;
 
 type CreateSubscriptionGroupHookOptions = Omit<
   UseMutationOptions<
@@ -39,13 +42,16 @@ export function useCreateSubscriptionGroupMutation(
     createData: CreateSubscriptionGroupVariables,
   ): Promise<SavedSubscriptionGroupResource> => {
     if (workspace.type !== CompletionStatus.Successful) {
-      throw new Error("Workspace not available for subscription group creation.");
+      throw new Error(
+        "Workspace not available for subscription group creation.",
+      );
     }
     const workspaceId = workspace.value.id;
 
     const requestData: UpsertSubscriptionGroupResource = {
       workspaceId,
       ...createData,
+      type: createData.type ?? SubscriptionGroupType.OptOut,
     };
 
     const response = await axios.put<SavedSubscriptionGroupResource>(

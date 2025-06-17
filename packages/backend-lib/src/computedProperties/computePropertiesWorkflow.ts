@@ -25,7 +25,7 @@ export const userJourneyInitialize = wf.defineSignal<[string]>(
   "userJourneyInitialize",
 );
 
-export const computePropertiesEarlySignal = wf.defineSignal<[]>(
+export const computePropertiesEarlySignal = wf.defineSignal(
   "computePropertiesEarlySignal",
 );
 

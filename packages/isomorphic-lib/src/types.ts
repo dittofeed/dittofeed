@@ -46,6 +46,19 @@ export type JSONValue =
   | { [x: string]: JSONValue }
   | JSONValue[];
 
+export const IdOrName = Type.Union([
+  Type.Object({
+    id: Type.String(),
+    name: Type.Optional(Type.String()),
+  }),
+  Type.Object({
+    name: Type.String(),
+    id: Type.Optional(Type.String()),
+  }),
+]);
+
+export type IdOrName = Static<typeof IdOrName>;
+
 export const ResourceTypeEnum = {
   Declarative: "Declarative",
   Internal: "Internal",
@@ -1214,7 +1227,19 @@ export const PartialSegmentResource = Type.Composite([
 
 export type PartialSegmentResource = Static<typeof PartialSegmentResource>;
 
-export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
+export const UpsertSubscriptionGroupResourceOther = Type.Pick(
+  SubscriptionGroupResource,
+  ["workspaceId", "channel", "type"],
+);
+
+export type UpsertSubscriptionGroupResourceOther = Static<
+  typeof UpsertSubscriptionGroupResourceOther
+>;
+
+export const UpsertSubscriptionGroupResource = Type.Composite([
+  IdOrName,
+  UpsertSubscriptionGroupResourceOther,
+]);
 
 export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource
@@ -2260,19 +2285,6 @@ export const SavedJourneyResource = Type.Union([
 ]);
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
-
-export const IdOrName = Type.Union([
-  Type.Object({
-    id: Type.String(),
-    name: Type.Optional(Type.String()),
-  }),
-  Type.Object({
-    name: Type.String(),
-    id: Type.Optional(Type.String()),
-  }),
-]);
-
-export type IdOrName = Static<typeof IdOrName>;
 
 export const UpsertJourneyResource = Type.Composite([
   IdOrName,
