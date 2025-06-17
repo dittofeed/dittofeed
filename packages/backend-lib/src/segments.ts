@@ -43,6 +43,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentStatus,
   SegmentStatusEnum,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
@@ -395,6 +396,10 @@ export async function upsertSegment(
           throw new Error("Existing segment definition is invalid");
         }
 
+        const wasPreviouslyManual =
+          existingDefinitionResult.value.entryNode.type ===
+          SegmentNodeType.Manual;
+
         let willBeManual: boolean;
         if (params.definition) {
           willBeManual =
@@ -404,10 +409,18 @@ export async function upsertSegment(
             existingDefinitionResult.value.entryNode.type ===
             SegmentNodeType.Manual;
         }
+        let status: SegmentStatus;
         // Ensure manual segments are not started. They're updated imperatively.
-        const status = willBeManual
-          ? SegmentStatusEnum.NotStarted
-          : params.status;
+        if (willBeManual) {
+          status = SegmentStatusEnum.NotStarted;
+        } else if (params.status) {
+          status = params.status;
+          // If the segment was previously manual, and is now not, we need to start it.
+        } else if (wasPreviouslyManual) {
+          status = SegmentStatusEnum.Running;
+        } else {
+          status = existingSegment.status;
+        }
 
         const updateResult = await txQueryResult(
           tx
@@ -505,6 +518,7 @@ export async function upsertSegment(
     updatedAt: segment.updatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
     resourceType: segment.resourceType,
+    status: segment.status,
   });
 }
 

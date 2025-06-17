@@ -20,6 +20,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentStatusEnum,
   TraitSegmentNode,
   UpsertSegmentValidationErrorType,
   UserProperty,
@@ -371,6 +372,95 @@ describe("segments", () => {
         expect(secondResult.isErr() && secondResult.error.type).toEqual(
           UpsertSegmentValidationErrorType.UniqueConstraintViolation,
         );
+      });
+    });
+  });
+  describe("upsertSegment", () => {
+    describe("when a manual segment is updated to a non-manual segment", () => {
+      let segmentId: string;
+      beforeEach(async () => {
+        segmentId = randomUUID();
+        unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Manual,
+                version: 1,
+              },
+              nodes: [],
+            },
+          }),
+        );
+      });
+      it("it sets the status to running", async () => {
+        const segment = unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              nodes: [],
+            },
+          }),
+        );
+        expect(segment.status).toBe(SegmentStatusEnum.Running);
+      });
+    });
+
+    describe("when a non-manual segment is updated to a manual segment", () => {
+      let segmentId: string;
+      beforeEach(async () => {
+        segmentId = randomUUID();
+        unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              nodes: [],
+            },
+          }),
+        );
+      });
+      it("it sets the status to not started", async () => {
+        const segment = unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Manual,
+                version: 1,
+              },
+              nodes: [],
+            },
+          }),
+        );
+        expect(segment.status).toBe(SegmentStatusEnum.NotStarted);
       });
     });
   });
