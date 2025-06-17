@@ -32,7 +32,7 @@
 <br>
 
 <a href="https://dittofeed.com/">
-  <img src="packages/docs/images/github-readme-banner.png" alt="Dittofeed Admin Panel Banner" />
+  <img src="https://storage.googleapis.com/dittofeed-public/dittofeed-github_banner_v2.png" alt="Dittofeed Github Banner" />
 </a>
 
 <br>
@@ -41,22 +41,26 @@
 
 <details>
   <summary><b>Journey Builder</b></summary>
-  <img alt="Customer Journeys" src="packages/docs/images/journeys_github.png">
+  <img alt="Customer Journeys" src="https://storage.googleapis.com/dittofeed-public/journeys_v2.png">
+</details>
+<details>
+  <summary><b>Broadcasts</b></summary>
+  <img alt="Broadcast Flow" src="https://storage.googleapis.com/dittofeed-public/broadcasts_v2.png">
 </details>
 <details>
   <summary><b>Segmentation</b></summary>
-  <img alt="User Segmentation" src="packages/docs/images/segments_github.png">
+  <img alt="User Segmentation" src="https://storage.googleapis.com/dittofeed-public/segments_v2.png">
 </details>
 <details>
   <summary><b>Template Editor</b></summary>
-  <img alt="Messaging Templates" src="packages/docs/images/templates_github.png">
+  <img alt="Message Templates" src="https://storage.googleapis.com/dittofeed-public/templates_v2.png">
 </details>
 
 ### Architecture
 
 <details>
   <summary><b>Visual Diagram</b></summary>
-  <img alt="Architecture" src="https://storage.googleapis.com/dittofeed-public/Architecture%20Diagram%20-%20Dark.png">
+  <img alt="Architecture" src="https://storage.googleapis.com/dittofeed-public/Architecture%20Diagram_Dark.png">
 </details>
 
 For the full dashboard experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).
