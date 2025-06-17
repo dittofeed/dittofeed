@@ -518,6 +518,7 @@ export async function upsertSegment(
     updatedAt: segment.updatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
     resourceType: segment.resourceType,
+    status: segment.status,
   });
 }
 

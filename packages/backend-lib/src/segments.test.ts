@@ -376,7 +376,7 @@ describe("segments", () => {
     });
   });
   describe("upsertSegment", () => {
-    describe.only("when a manual segment is updated to a non-manual segment", () => {
+    describe("when a manual segment is updated to a non-manual segment", () => {
       let segmentId: string;
       beforeEach(async () => {
         segmentId = randomUUID();
@@ -421,7 +421,47 @@ describe("segments", () => {
     });
 
     describe("when a non-manual segment is updated to a manual segment", () => {
-      it("it sets the status to not started", async () => {});
+      let segmentId: string;
+      beforeEach(async () => {
+        segmentId = randomUUID();
+        unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              nodes: [],
+            },
+          }),
+        );
+      });
+      it("it sets the status to not started", async () => {
+        const segment = unwrap(
+          await upsertSegment({
+            id: segmentId,
+            name: "test",
+            workspaceId: workspace.id,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Manual,
+                version: 1,
+              },
+              nodes: [],
+            },
+          }),
+        );
+        expect(segment.status).toBe(SegmentStatusEnum.NotStarted);
+      });
     });
   });
 });
