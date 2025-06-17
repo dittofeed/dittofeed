@@ -14,13 +14,12 @@ import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SUBSCRIPTION_GROUPS_QUERY_KEY } from "./useSubscriptionGroupsQuery";
 
-type DeleteSubscriptionGroupMutationFn = (subscriptionGroupId: string) => Promise<void>;
+type DeleteSubscriptionGroupMutationFn = (
+  subscriptionGroupId: string,
+) => Promise<void>;
 
 export function useDeleteSubscriptionGroupMutation(
-  options?: Omit<
-    UseMutationOptions<void, AxiosError, string>,
-    "mutationFn"
-  >,
+  options?: Omit<UseMutationOptions<void, AxiosError, string>, "mutationFn">,
 ): UseMutationResult<void, AxiosError, string> {
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
@@ -29,7 +28,9 @@ export function useDeleteSubscriptionGroupMutation(
 
   const mutationFn: DeleteSubscriptionGroupMutationFn = async (id) => {
     if (workspace.type !== CompletionStatus.Successful) {
-      throw new Error("Workspace not available for subscription group deletion");
+      throw new Error(
+        "Workspace not available for subscription group deletion",
+      );
     }
     const workspaceId = workspace.value.id;
 
