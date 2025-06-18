@@ -214,7 +214,7 @@ function EventDetailsSidebar({
         },
       }}
     >
-      <Stack sx={{ height: "100%", overflow: "hidden" }}>
+      <Stack sx={{ height: "100%" }}>
         {/* Header */}
         <Paper
           elevation={1}
@@ -266,14 +266,26 @@ function EventDetailsSidebar({
         </Box>
 
         {/* Content */}
-        <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+        {/* <Box sx={{ flex: 1, overflow: "auto", p: 2 }}> */}
+        <Box
+          sx={{
+            flex: 1,
+            p: 2,
+            display: "flex",
+            minHeight: 0,
+            overflow: "auto",
+          }}
+        >
           {activeTab === 0 && (
             <Stack spacing={2}>
               {/* Event Overview */}
               <Card variant="outlined">
                 <CardHeader
                   title="Event Overview"
-                  titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
+                  titleTypographyProps={{
+                    variant: "subtitle1",
+                    fontWeight: 600,
+                  }}
                   sx={{ pb: 0.5, px: 2, pt: 1.5 }}
                 />
                 <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
@@ -286,7 +298,10 @@ function EventDetailsSidebar({
                       >
                         Event Name
                       </Typography>
-                      <Typography variant="subtitle1" sx={{ fontFamily: "monospace", fontSize: "1rem" }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontFamily: "monospace", fontSize: "1rem" }}
+                      >
                         {selectedEvent.event}
                       </Typography>
                     </Box>
@@ -307,7 +322,10 @@ function EventDetailsSidebar({
               <Card variant="outlined">
                 <CardHeader
                   title="User Information"
-                  titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
+                  titleTypographyProps={{
+                    variant: "subtitle1",
+                    fontWeight: 600,
+                  }}
                   avatar={<PersonIcon color="action" />}
                   sx={{ pb: 0.5, px: 2, pt: 1.5 }}
                 />
@@ -318,7 +336,10 @@ function EventDetailsSidebar({
                       value={selectedEvent.userId}
                       monospace
                       onCopy={(value, label) =>
-                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                        setSnackbar({
+                          open: true,
+                          message: `${label} copied to clipboard`,
+                        })
                       }
                     />
                     <CopyableField
@@ -326,7 +347,10 @@ function EventDetailsSidebar({
                       value={selectedEvent.anonymousId}
                       monospace
                       onCopy={(value, label) =>
-                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                        setSnackbar({
+                          open: true,
+                          message: `${label} copied to clipboard`,
+                        })
                       }
                     />
                     <CopyableField
@@ -334,7 +358,10 @@ function EventDetailsSidebar({
                       value={selectedEvent.messageId}
                       monospace
                       onCopy={(value, label) =>
-                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                        setSnackbar({
+                          open: true,
+                          message: `${label} copied to clipboard`,
+                        })
                       }
                     />
                   </Stack>
@@ -392,74 +419,55 @@ function EventDetailsSidebar({
               )}
             </Stack>
           )}
-
           {activeTab === 1 && (
-            <Stack spacing={2}>
-              {/* Properties */}
-              {selectedEvent.traits && (
-                <Card variant="outlined">
-                  <CardHeader
-                    title="Event Properties"
-                    titleTypographyProps={{
-                      variant: "subtitle1",
-                      fontWeight: 600,
-                    }}
-                    sx={{ pb: 0.5, px: 2, pt: 1.5 }}
-                  />
-                  <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                    <Box
-                      sx={{
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 1,
-                        overflow: "hidden",
-                        height: "500px",
-                        "& .cm-editor": {
-                          fontSize: "0.7rem",
-                        },
-                        "& .cm-focused": {
-                          outline: "none",
-                        },
-                      }}
-                    >
-                      <ReactCodeMirror
-                        value={formattedTraits}
-                        readOnly
-                        height="500px"
-                        basicSetup={{
-                          lineNumbers: true,
-                          foldGutter: true,
-                          dropCursor: false,
-                          allowMultipleSelections: false,
-                        }}
-                        extensions={[
-                          codeMirrorJson(),
-                          linter(jsonParseLinter()),
-                          EditorView.lineWrapping,
-                          EditorView.theme({
-                            "&": {
-                              fontFamily:
-                                "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
-                            },
-                            ".cm-content": {
-                              padding: "8px",
-                            },
-                            ".cm-gutters": {
-                              backgroundColor: theme.palette.grey[50],
-                              borderRight: `1px solid ${theme.palette.divider}`,
-                            },
-                          }),
-                          lintGutter(),
-                        ]}
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
-              )}
-            </Stack>
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                minHeight: 0,
+                "& .cm-editor": {
+                  fontSize: "0.7rem",
+                },
+                "& .cm-focused": {
+                  outline: "none",
+                },
+              }}
+            >
+              <ReactCodeMirror
+                value={formattedTraits}
+                readOnly
+                height="100%"
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: true,
+                  dropCursor: false,
+                  allowMultipleSelections: false,
+                }}
+                extensions={[
+                  codeMirrorJson(),
+                  linter(jsonParseLinter()),
+                  EditorView.lineWrapping,
+                  EditorView.theme({
+                    "&": {
+                      fontFamily:
+                        "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+                    },
+                    ".cm-content": {
+                      padding: "8px",
+                    },
+                    ".cm-gutters": {
+                      backgroundColor: theme.palette.grey[50],
+                      borderRight: `1px solid ${theme.palette.divider}`,
+                    },
+                  }),
+                  lintGutter(),
+                ]}
+              />
+            </Box>
           )}
         </Box>
       </Stack>
-      
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={2000}
