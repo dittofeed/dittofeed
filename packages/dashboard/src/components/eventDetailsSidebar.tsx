@@ -159,12 +159,12 @@ function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
   );
 }
 
-const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
+function EventDetailsSidebar({
   open,
   onClose,
   selectedEvent,
   eventResources,
-}) => {
+}: EventDetailsSidebarProps) {
   const theme = useTheme();
 
   const formattedTraits = useMemo(() => {
@@ -230,7 +230,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
               <Typography variant="h6">Event Details</Typography>
               <Chip
                 label={selectedEvent.eventType}
-                color={getEventTypeColor(selectedEvent.eventType) as any}
+                color={getEventTypeColor(selectedEvent.eventType) as "primary" | "secondary" | "info" | "success" | "warning" | "error" | "default"}
                 size="small"
                 variant="outlined"
               />
@@ -242,8 +242,8 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
         </Paper>
 
         {/* Content */}
-        <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
-          <Stack spacing={3}>
+        <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+          <Stack spacing={2}>
             {/* Event Overview */}
             <Card variant="outlined">
               <CardHeader
@@ -307,6 +307,56 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
               </CardContent>
             </Card>
 
+            {/* Related Resources */}
+            {eventResources.length > 0 && (
+              <Card variant="outlined">
+                <CardHeader
+                  title="Related Resources"
+                  titleTypographyProps={{
+                    variant: "subtitle1",
+                    fontWeight: 600,
+                  }}
+                  avatar={<LinkIcon color="action" />}
+                  sx={{ pb: 0.5, px: 2, pt: 1.5 }}
+                />
+                <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
+                  <List disablePadding>
+                    {eventResources.map((resource, index) => (
+                      <React.Fragment key={resource.key}>
+                        <ListItem disablePadding>
+                          <ListItemButton
+                            component={Link}
+                            href={resource.link}
+                            sx={{
+                              borderRadius: 1,
+                              py: 0.5,
+                              "&:hover": {
+                                backgroundColor: theme.palette.action.hover,
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 30 }}>
+                              <LinkIcon fontSize="small" color="primary" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={resource.name}
+                              primaryTypographyProps={{
+                                fontFamily: "monospace",
+                                fontSize: "0.8rem",
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                        {index < eventResources.length - 1 && (
+                          <Divider sx={{ my: 0.25 }} />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Properties */}
             {selectedEvent.traits && (
               <Card variant="outlined">
@@ -316,16 +366,17 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
                     variant: "subtitle1",
                     fontWeight: 600,
                   }}
-                  sx={{ pb: 1 }}
+                  sx={{ pb: 0.5, px: 2, pt: 1.5 }}
                 />
-                <CardContent sx={{ pt: 0 }}>
+                <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
                   <Box
                     sx={{
                       border: `1px solid ${theme.palette.divider}`,
                       borderRadius: 1,
                       overflow: "hidden",
+                      height: "300px",
                       "& .cm-editor": {
-                        fontSize: "0.75rem",
+                        fontSize: "0.7rem",
                       },
                       "& .cm-focused": {
                         outline: "none",
@@ -335,6 +386,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
                     <ReactCodeMirror
                       value={formattedTraits}
                       readOnly
+                      height="300px"
                       basicSetup={{
                         lineNumbers: true,
                         foldGutter: true,
@@ -351,7 +403,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
                               "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
                           },
                           ".cm-content": {
-                            padding: "12px",
+                            padding: "8px",
                           },
                           ".cm-gutters": {
                             backgroundColor: theme.palette.grey[50],
@@ -365,60 +417,11 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
                 </CardContent>
               </Card>
             )}
-
-            {/* Related Resources */}
-            {eventResources.length > 0 && (
-              <Card variant="outlined">
-                <CardHeader
-                  title="Related Resources"
-                  titleTypographyProps={{
-                    variant: "subtitle1",
-                    fontWeight: 600,
-                  }}
-                  avatar={<LinkIcon color="action" />}
-                  sx={{ pb: 1 }}
-                />
-                <CardContent sx={{ pt: 0 }}>
-                  <List disablePadding>
-                    {eventResources.map((resource, index) => (
-                      <React.Fragment key={resource.key}>
-                        <ListItem disablePadding>
-                          <ListItemButton
-                            component={Link}
-                            href={resource.link}
-                            sx={{
-                              borderRadius: 1,
-                              "&:hover": {
-                                backgroundColor: theme.palette.action.hover,
-                              },
-                            }}
-                          >
-                            <ListItemIcon sx={{ minWidth: 36 }}>
-                              <LinkIcon fontSize="small" color="primary" />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={resource.name}
-                              primaryTypographyProps={{
-                                fontFamily: "monospace",
-                                fontSize: "0.875rem",
-                              }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                        {index < eventResources.length - 1 && (
-                          <Divider sx={{ my: 0.5 }} />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            )}
           </Stack>
         </Box>
       </Stack>
     </Drawer>
   );
-};
+}
 
 export default EventDetailsSidebar;
