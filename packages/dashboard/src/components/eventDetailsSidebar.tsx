@@ -230,7 +230,16 @@ function EventDetailsSidebar({
               <Typography variant="h6">Event Details</Typography>
               <Chip
                 label={selectedEvent.eventType}
-                color={getEventTypeColor(selectedEvent.eventType) as "primary" | "secondary" | "info" | "success" | "warning" | "error" | "default"}
+                color={
+                  getEventTypeColor(selectedEvent.eventType) as
+                    | "primary"
+                    | "secondary"
+                    | "info"
+                    | "success"
+                    | "warning"
+                    | "error"
+                    | "default"
+                }
                 size="small"
                 variant="outlined"
               />
