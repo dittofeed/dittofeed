@@ -26,7 +26,6 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useTheme,
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import {
@@ -54,8 +53,8 @@ import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
-import { useEventsQuery } from "../lib/useEventsQuery";
 import { EventResources } from "../lib/types";
+import { useEventsQuery } from "../lib/useEventsQuery";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 import { GreyButton } from "./greyButtonStyle";
 
@@ -78,7 +77,7 @@ type SetState = Updater<State>;
 function TimeCell({ timestamp }: { timestamp: string }) {
   const date = new Date(timestamp);
   const formatted = formatDistanceToNow(date, { addSuffix: true });
-  
+
   const tooltipContent = (
     <Typography>
       {new Intl.DateTimeFormat("en-US", {
@@ -112,7 +111,7 @@ function TimeCell({ timestamp }: { timestamp: string }) {
 
 function UserIdCell({ value }: { value: string | null }) {
   const [showCopied, setShowCopied] = useState(false);
-  
+
   if (!value) {
     return <Typography color="text.secondary">—</Typography>;
   }
@@ -274,9 +273,11 @@ function MessageIdCell({ value }: { value: string }) {
 function PreviewCell({
   row,
   setState,
+  getRelatedResources,
 }: {
   row: Row<GetEventsResponseItem>;
   setState: SetState;
+  getRelatedResources: (event: GetEventsResponseItem) => EventResources[];
 }) {
   return (
     <Stack
@@ -291,6 +292,7 @@ function PreviewCell({
           onClick={() => {
             setState((draft) => {
               draft.previewEvent = row.original;
+              draft.selectedEventResources = getRelatedResources(row.original);
               draft.isSidebarOpen = true;
             });
           }}
@@ -302,29 +304,60 @@ function PreviewCell({
   );
 }
 
-function RelatedResourcesCell({ 
-  value, 
-  messages,
-  broadcasts,
-  journeys,
-  theme 
-}: { 
-  value: string;
-  messages: any[];
-  broadcasts: any[];
-  journeys: any;
-  theme: any;
-}) {
-  const parsedTraits = jsonParseSafe(value)
-    .andThen((traits) =>
-      schemaValidateWithErr(traits, RelatedResourceProperties),
-    )
-    .unwrapOr({} satisfies RelatedResourceProperties);
+interface UserEventsTableProps {
+  userId?: string;
+  searchTerm?: string;
+  startDate?: number;
+  endDate?: number;
+}
 
-  const getResources = (parsedTraits: RelatedResourceProperties) => {
+export function UserEventsTable({
+  userId,
+  searchTerm: initialSearchTerm,
+  startDate,
+  endDate,
+}: UserEventsTableProps) {
+  const {
+    workspace,
+    messages: messagesResult,
+    broadcasts,
+    journeys,
+  } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
+
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || "");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
+
+  const [state, setState] = useImmer<State>({
+    query: {
+      offset: 0,
+      limit: 10,
+      userId,
+      searchTerm: debouncedSearchTerm || undefined,
+      startDate,
+      endDate,
+    },
+    previewEvent: null,
+    selectedEventResources: [],
+    isSidebarOpen: false,
+  });
+
+  const messages =
+    messagesResult.type === CompletionStatus.Successful
+      ? messagesResult.value
+      : [];
+
+  const getRelatedResources = (
+    event: GetEventsResponseItem,
+  ): EventResources[] => {
+    const parsedTraits = jsonParseSafe(event.traits)
+      .andThen((traits) =>
+        schemaValidateWithErr(traits, RelatedResourceProperties),
+      )
+      .unwrapOr({} as RelatedResourceProperties);
+
     const journeyId = parsedTraits.journeyId ?? "";
     const nodeId = parsedTraits.nodeId ?? "";
-    const resources = [];
+    const resources: EventResources[] = [];
 
     if (nodeId === "broadcast-message") {
       for (const broadcast of broadcasts) {
@@ -376,85 +409,6 @@ function RelatedResourcesCell({
     return resources;
   };
 
-  const relatedResources = getResources(parsedTraits);
-
-  return (
-    <Stack direction="row" spacing={1}>
-      {relatedResources.map((currResource) => {
-        return (
-          <Link
-            href={currResource.link}
-            key={currResource.key}
-            style={{ textDecoration: "none" }}
-          >
-            <Box
-              sx={{
-                padding: 1,
-                backgroundColor: theme.palette.grey[200],
-                borderRadius: theme.spacing(1),
-                maxWidth: theme.spacing(16),
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                fontFamily: "monospace",
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: theme.palette.grey[300],
-                },
-              }}
-            >
-              {currResource.name}
-            </Box>
-          </Link>
-        );
-      })}
-    </Stack>
-  );
-}
-
-interface UserEventsTableProps {
-  userId?: string;
-  searchTerm?: string;
-  startDate?: number;
-  endDate?: number;
-}
-
-export function UserEventsTable({
-  userId,
-  searchTerm: initialSearchTerm,
-  startDate,
-  endDate,
-}: UserEventsTableProps) {
-  const { workspace, messages: messagesResult, broadcasts, journeys } = useAppStorePick([
-    "workspace",
-    "messages", 
-    "broadcasts",
-    "journeys"
-  ]);
-  const theme = useTheme();
-  
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || "");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  
-  const [state, setState] = useImmer<State>({
-    query: {
-      offset: 0,
-      limit: 10,
-      userId,
-      searchTerm: debouncedSearchTerm || undefined,
-      startDate,
-      endDate,
-    },
-    previewEvent: null,
-    selectedEventResources: [],
-    isSidebarOpen: false,
-  });
-
-  const messages =
-    messagesResult.type === CompletionStatus.Successful
-      ? messagesResult.value
-      : [];
-
   const eventsQuery = useEventsQuery(
     {
       ...state.query,
@@ -489,67 +443,57 @@ export function UserEventsTable({
     });
   }, [setState]);
 
-  const columns = useMemo<ColumnDef<GetEventsResponseItem>[]>(() => [
-    {
-      id: "preview",
-      cell: ({ row }) => <PreviewCell row={row} setState={setState} />,
-    },
-    {
-      id: "userId",
-      header: "User ID",
-      accessorKey: "userId",
-      cell: ({ row }) => <UserIdCell value={row.original.userId} />,
-    },
-    {
-      id: "eventType",
-      header: "Type",
-      accessorKey: "eventType",
-      cell: ({ row }) => <EventTypeCell value={row.original.eventType} />,
-    },
-    {
-      id: "event",
-      header: "Event",
-      accessorKey: "event",
-      cell: ({ row }) => <EventNameCell value={row.original.event} />,
-    },
-    {
-      id: "traits",
-      header: "Properties",
-      accessorKey: "traits",
-      cell: ({ row }) => <TraitsCell value={row.original.traits} />,
-    },
-    {
-      id: "eventTime",
-      header: "Event Time",
-      accessorKey: "eventTime",
-      cell: ({ row }) => <TimeCell timestamp={row.original.eventTime} />,
-    },
-    {
-      id: "processingTime",
-      header: "Processing Time",
-      accessorKey: "processingTime",
-      cell: ({ row }) => <TimeCell timestamp={row.original.processingTime} />,
-    },
-    {
-      id: "messageId",
-      header: "Message ID",
-      accessorKey: "messageId",
-      cell: ({ row }) => <MessageIdCell value={row.original.messageId} />,
-    },
-    {
-      id: "relatedResources",
-      header: "Related Resources",
-      cell: ({ row }) => (
-        <RelatedResourcesCell 
-          value={row.original.traits} 
-          messages={messages}
-          broadcasts={broadcasts}
-          journeys={journeys}
-          theme={theme}
-        />
-      ),
-    },
-  ], [setState, messages, broadcasts, journeys, theme]);
+  const columns = useMemo<ColumnDef<GetEventsResponseItem>[]>(
+    () => [
+      {
+        id: "preview",
+        cell: ({ row }) => (
+          <PreviewCell
+            row={row}
+            setState={setState}
+            getRelatedResources={getRelatedResources}
+          />
+        ),
+      },
+      {
+        id: "userId",
+        header: "User ID",
+        accessorKey: "userId",
+        cell: ({ row }) => <UserIdCell value={row.original.userId} />,
+      },
+      {
+        id: "eventType",
+        header: "Type",
+        accessorKey: "eventType",
+        cell: ({ row }) => <EventTypeCell value={row.original.eventType} />,
+      },
+      {
+        id: "event",
+        header: "Event",
+        accessorKey: "event",
+        cell: ({ row }) => <EventNameCell value={row.original.event} />,
+      },
+      {
+        id: "traits",
+        header: "Properties",
+        accessorKey: "traits",
+        cell: ({ row }) => <TraitsCell value={row.original.traits} />,
+      },
+      {
+        id: "eventTime",
+        header: "Event Time",
+        accessorKey: "eventTime",
+        cell: ({ row }) => <TimeCell timestamp={row.original.eventTime} />,
+      },
+      {
+        id: "messageId",
+        header: "Message ID",
+        accessorKey: "messageId",
+        cell: ({ row }) => <MessageIdCell value={row.original.messageId} />,
+      },
+    ],
+    [setState, getRelatedResources],
+  );
 
   const data = useMemo(() => {
     const events = eventsQuery.data?.events ?? [];
@@ -559,7 +503,6 @@ export function UserEventsTable({
       return t1.getTime() > t2.getTime() ? -1 : 1;
     });
   }, [eventsQuery.data]);
-
 
   const closeSidebar = () => {
     setState((draft) => {
@@ -639,7 +582,7 @@ export function UserEventsTable({
           </Tooltip>
         </Stack>
       </Stack>
-      
+
       <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
@@ -720,7 +663,7 @@ export function UserEventsTable({
                       Next
                     </GreyButton>
                   </Stack>
-                  
+
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <Typography variant="body2" color="text.secondary">
                       {eventsQuery.data && (
