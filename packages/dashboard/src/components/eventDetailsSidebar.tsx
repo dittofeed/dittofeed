@@ -212,6 +212,7 @@ function EventDetailsSidebar({
           width: "500px",
           maxWidth: "40vw",
         },
+        zIndex: 3000,
       }}
     >
       <Stack sx={{ height: "100%" }}>
@@ -266,18 +267,16 @@ function EventDetailsSidebar({
         </Box>
 
         {/* Content */}
-        {/* <Box sx={{ flex: 1, overflow: "auto", p: 2 }}> */}
         <Box
           sx={{
             flex: 1,
-            p: 2,
             display: "flex",
             minHeight: 0,
             overflow: "auto",
           }}
         >
           {activeTab === 0 && (
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ p: 2 }}>
               {/* Event Overview */}
               <Card variant="outlined">
                 <CardHeader
