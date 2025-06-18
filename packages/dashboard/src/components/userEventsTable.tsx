@@ -5,14 +5,12 @@ import {
   KeyboardDoubleArrowLeft,
   OpenInNew,
   Refresh as RefreshIcon,
-  Search as SearchIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import {
   Box,
   CircularProgress,
   IconButton,
-  InputAdornment,
   Paper,
   Snackbar,
   Stack,
@@ -23,7 +21,6 @@ import {
   TableFooter,
   TableHead,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -48,7 +45,6 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { useDebounce } from "use-debounce";
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
@@ -336,15 +332,13 @@ export function UserEventsTable({
     journeys,
   } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
 
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm ?? "");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
   const [state, setState] = useImmer<State>({
     query: {
       offset: 0,
       limit: 10,
       userId,
-      searchTerm: debouncedSearchTerm || undefined,
+      searchTerm: initialSearchTerm,
       startDate,
       endDate,
       event,
@@ -430,10 +424,7 @@ export function UserEventsTable({
   );
 
   const eventsQuery = useEventsQuery(
-    {
-      ...state.query,
-      searchTerm: debouncedSearchTerm || undefined,
-    },
+    state.query,
     {
       placeholderData: keepPreviousData,
     },
@@ -628,22 +619,6 @@ export function UserEventsTable({
       >
         <Typography variant="h6">User Events</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          <TextField
-            id="search"
-            type="search"
-            label="Search"
-            size="small"
-            sx={{ width: "300px" }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
               onClick={onRefresh}
