@@ -1427,6 +1427,10 @@ export const GetEventsRequest = Type.Object({
   // unix timestamp units ms
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),
+  event: Type.Optional(Type.Array(Type.String())),
+  broadcastId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  eventType: Type.Optional(Type.String()),
 });
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;
