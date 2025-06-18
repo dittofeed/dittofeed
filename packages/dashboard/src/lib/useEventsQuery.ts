@@ -50,9 +50,7 @@ export function useEventsQuery<TData = GetEventsResponse>(
           headers: authHeaders,
         });
 
-        return unwrap(
-          schemaValidateWithErr(response.data, GetEventsResponse),
-        );
+        return unwrap(schemaValidateWithErr(response.data, GetEventsResponse));
       } catch (error) {
         console.error("Failed to fetch events", error);
         throw error;
