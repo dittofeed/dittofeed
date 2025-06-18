@@ -10,7 +10,7 @@ import { GetServerSideProps } from "next";
 import React from "react";
 
 import DashboardContent from "../components/dashboardContent";
-import { EventsTable } from "../components/eventsTable";
+import { UserEventsTable } from "../components/userEventsTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
@@ -60,7 +60,7 @@ export default function Events() {
         sx={{ width: "100%", height: "100%", padding: 2 }}
       >
         <Box sx={{ width: "100%", height: "100%" }}>
-          <EventsTable />
+          <UserEventsTable />
         </Box>
       </Stack>
     </DashboardContent>
