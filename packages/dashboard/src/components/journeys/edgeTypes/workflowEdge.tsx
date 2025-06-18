@@ -79,19 +79,19 @@ export default function WorkflowEdge({
   const getLabelText = (): string => {
     if (stats?.type === NodeStatsType.SegmentSplitNodeStats) {
       if (id.includes("child-0")) {
-        return round(100 - stats.proportions.falseChildEdge, 1).toString();
+        return `${round(100 - stats.proportions.falseChildEdge, 1).toString()} % (${(round((100 - stats.proportions.falseChildEdge) / 100 * stats.count, 0)).toLocaleString()})`;
       }
       if (id.includes("child-1")) {
-        return stats.proportions.falseChildEdge.toString();
+        return `${stats.proportions.falseChildEdge.toString()} % (${round(stats.proportions.falseChildEdge / 100 * stats.count, 0).toLocaleString()})`;
       }
     }
 
     if (stats?.type === NodeStatsType.WaitForNodeStats) {
       if (id.includes("child-0")) {
-        return stats.proportions.segmentChildEdge.toString();
+        return `${stats.proportions.segmentChildEdge.toString()} % (${round(stats.proportions.segmentChildEdge / 100 * stats.count, 0).toLocaleString()})`;
       }
       if (id.includes("child-1")) {
-        return round(100 - stats.proportions.segmentChildEdge, 1).toString();
+        return `${round(100 - stats.proportions.segmentChildEdge, 1).toString()} % (${round((100 - stats.proportions.segmentChildEdge) / 100 * stats.count, 0).toLocaleString()})`;
       }
     }
 
@@ -99,7 +99,7 @@ export default function WorkflowEdge({
       stats?.type === NodeStatsType.DelayNodeStats ||
       stats?.type === NodeStatsType.MessageNodeStats
     ) {
-      return stats.proportions.childEdge.toString();
+      return `${stats.proportions.childEdge.toString()} % (${stats.count.toLocaleString()})`;
     }
 
     return "";
@@ -180,7 +180,7 @@ export default function WorkflowEdge({
                 backgroundColor: "#f0f0f0",
               }}
             >
-              {`${getLabelText()} %`}
+              {getLabelText()}
             </Box>
           </Box>
         </EdgeLabelRenderer>
