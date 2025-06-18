@@ -19,8 +19,9 @@ import {
 } from "./broadcasts/broadcastsShared";
 import Configuration from "./broadcasts/configuration";
 import Content from "./broadcasts/content";
+import Deliveries from "./broadcasts/deliveries";
+import Events from "./broadcasts/events";
 import Recipients from "./broadcasts/recipients";
-import Review from "./broadcasts/review";
 
 function queryParamsToState(
   queryParams: Record<string, string | string[] | undefined>,
@@ -159,8 +160,11 @@ export default function Broadcast({
         <Configuration state={state} updateState={updateStateWithoutNull} />
       );
       break;
-    case BroadcastStepKeys.REVIEW:
-      content = <Review state={state} />;
+    case BroadcastStepKeys.DELIVERIES:
+      content = <Deliveries state={state} />;
+      break;
+    case BroadcastStepKeys.EVENTS:
+      content = <Events state={state} />;
       break;
   }
 

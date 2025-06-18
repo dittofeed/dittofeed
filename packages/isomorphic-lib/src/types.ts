@@ -4932,7 +4932,8 @@ export const BroadcastStepKeys = {
   RECIPIENTS: "RECIPIENTS",
   CONTENT: "CONTENT",
   CONFIGURATION: "CONFIGURATION",
-  REVIEW: "REVIEW",
+  DELIVERIES: "DELIVERIES",
+  EVENTS: "EVENTS",
 } as const;
 
 export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));

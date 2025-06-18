@@ -30,25 +30,9 @@ export default async function eventsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const {
-        workspaceId,
-        limit,
-        offset,
-        startDate,
-        endDate,
-        userId,
-        searchTerm,
-      } = request.query;
-
-      const { events: eventsRaw, count } = await findManyEventsWithCount({
-        workspaceId,
-        limit,
-        offset,
-        startDate,
-        endDate,
-        userId,
-        searchTerm,
-      });
+      const { events: eventsRaw, count } = await findManyEventsWithCount(
+        request.query,
+      );
 
       const events: GetEventsResponseItem[] = eventsRaw.flatMap(
         ({

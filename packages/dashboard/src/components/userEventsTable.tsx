@@ -66,6 +66,10 @@ interface State {
     searchTerm?: string;
     startDate?: number;
     endDate?: number;
+    event?: string[];
+    broadcastId?: string;
+    journeyId?: string;
+    eventType?: string;
   };
   previewEvent: GetEventsResponseItem | null;
   selectedEventResources: EventResources[];
@@ -309,6 +313,10 @@ interface UserEventsTableProps {
   searchTerm?: string;
   startDate?: number;
   endDate?: number;
+  event?: string[];
+  broadcastId?: string;
+  journeyId?: string;
+  eventType?: string;
 }
 
 export function UserEventsTable({
@@ -316,6 +324,10 @@ export function UserEventsTable({
   searchTerm: initialSearchTerm,
   startDate,
   endDate,
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
 }: UserEventsTableProps) {
   const {
     workspace,
@@ -335,32 +347,39 @@ export function UserEventsTable({
       searchTerm: debouncedSearchTerm || undefined,
       startDate,
       endDate,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
     },
     previewEvent: null,
     selectedEventResources: [],
     isSidebarOpen: false,
   });
 
-  const messages =
-    messagesResult.type === CompletionStatus.Successful
-      ? messagesResult.value
-      : [];
+  const messages = useMemo(
+    () =>
+      messagesResult.type === CompletionStatus.Successful
+        ? messagesResult.value
+        : [],
+    [messagesResult],
+  );
 
   const getRelatedResources = useCallback(
-    (event: GetEventsResponseItem): EventResources[] => {
-      const parsedTraits = jsonParseSafe(event.traits)
+    (eventItem: GetEventsResponseItem): EventResources[] => {
+      const parsedTraits = jsonParseSafe(eventItem.traits)
         .andThen((traits) =>
           schemaValidateWithErr(traits, RelatedResourceProperties),
         )
         .unwrapOr({} as RelatedResourceProperties);
 
-      const journeyId = parsedTraits.journeyId ?? "";
+      const eventJourneyId = parsedTraits.journeyId ?? "";
       const nodeId = parsedTraits.nodeId ?? "";
       const resources: EventResources[] = [];
 
       if (nodeId === "broadcast-message") {
         for (const broadcast of broadcasts) {
-          if (broadcast.journeyId === journeyId) {
+          if (broadcast.journeyId === eventJourneyId) {
             resources.push(
               {
                 name: `${broadcast.name}`,
@@ -379,9 +398,9 @@ export function UserEventsTable({
         return resources;
       }
 
-      if (journeyId && journeys.type === CompletionStatus.Successful) {
+      if (eventJourneyId && journeys.type === CompletionStatus.Successful) {
         for (const journey of journeys.value) {
-          if (journey.id === journeyId) {
+          if (journey.id === eventJourneyId) {
             resources.push({
               name: journey.name,
               link: `/journeys/${journey.id}`,
@@ -616,7 +635,7 @@ export function UserEventsTable({
             size="small"
             sx={{ width: "300px" }}
             value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">

@@ -491,9 +491,11 @@ export default function Configuration({
               onSuccess: () => {
                 updateState((draft) => {
                   if (
-                    steps.find((step) => step.key === BroadcastStepKeys.REVIEW)
+                    steps.find(
+                      (step) => step.key === BroadcastStepKeys.DELIVERIES,
+                    )
                   ) {
-                    draft.step = BroadcastStepKeys.REVIEW;
+                    draft.step = BroadcastStepKeys.DELIVERIES;
                   }
                 });
               },
