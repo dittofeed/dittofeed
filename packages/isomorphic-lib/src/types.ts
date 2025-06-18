@@ -5486,6 +5486,20 @@ export const StartBroadcastRequest = Type.Object({
 
 export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;
 
+export const PauseBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type PauseBroadcastRequest = Static<typeof PauseBroadcastRequest>;
+
+export const ResumeBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type ResumeBroadcastRequest = Static<typeof ResumeBroadcastRequest>;
+
 export const UpdateManualSegmentUsersRequest = Type.Composite([
   Type.Object({
     workspaceId: Type.String(),
