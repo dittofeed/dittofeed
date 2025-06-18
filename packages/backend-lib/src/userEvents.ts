@@ -15,7 +15,12 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
-import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
+import {
+  GetEventsRequest,
+  GetPropertiesResponse,
+  InternalEventType,
+  UserEvent,
+} from "./types";
 
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
@@ -282,16 +287,10 @@ export async function findManyEventsWithCount({
   endDate,
   userId,
   searchTerm,
-}: {
-  workspaceId: string;
-  userId?: string;
-  limit?: number;
-  offset?: number;
-  // unix timestamp units ms
-  startDate?: number;
-  endDate?: number;
-  searchTerm?: string;
-}): Promise<{ events: UserEventsWithTraits[]; count: number }> {
+}: GetEventsRequest): Promise<{
+  events: UserEventsWithTraits[];
+  count: number;
+}> {
   const qb = new ClickHouseQueryBuilder();
 
   const childWorkspaceIds = (
