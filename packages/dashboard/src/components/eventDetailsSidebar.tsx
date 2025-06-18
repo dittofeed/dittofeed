@@ -22,7 +22,10 @@ import {
   ListItemIcon,
   ListItemText,
   Paper,
+  Snackbar,
   Stack,
+  Tab,
+  Tabs,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -55,20 +58,20 @@ function CopyableField({
   label,
   value,
   monospace = false,
+  onCopy,
 }: {
   label: string;
   value: string | null;
   monospace?: boolean;
+  onCopy: (value: string, label: string) => void;
 }) {
-  const [copied, setCopied] = useState(false);
-
   if (!value) {
     return (
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 1 }}>
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ mb: 0.5, display: "block" }}
+          sx={{ mb: 0.25, display: "block" }}
         >
           {label}
         </Typography>
@@ -79,26 +82,26 @@ function CopyableField({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    onCopy(value, label);
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: 1 }}>
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ mb: 0.5, display: "block" }}
+        sx={{ mb: 0.25, display: "block" }}
       >
         {label}
       </Typography>
-      <Stack direction="row" alignItems="center" spacing={1}>
+      <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography
           variant="body2"
           sx={{
             fontFamily: monospace ? "monospace" : "inherit",
             wordBreak: "break-all",
             flex: 1,
+            fontSize: "0.8rem",
           }}
         >
           {value}
@@ -111,11 +114,6 @@ function CopyableField({
           <ContentCopyIcon fontSize="small" />
         </IconButton>
       </Stack>
-      {copied && (
-        <Typography variant="caption" color="success.main" sx={{ mt: 0.5 }}>
-          Copied!
-        </Typography>
-      )}
     </Box>
   );
 }
@@ -166,6 +164,11 @@ function EventDetailsSidebar({
   eventResources,
 }: EventDetailsSidebarProps) {
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState(0);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+  }>({ open: false, message: "" });
 
   const formattedTraits = useMemo(() => {
     if (selectedEvent?.traits) {
@@ -250,185 +253,220 @@ function EventDetailsSidebar({
           </Stack>
         </Paper>
 
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{ minHeight: 48 }}
+          >
+            <Tab label="Overview" sx={{ minHeight: 48 }} />
+            <Tab label="Properties" sx={{ minHeight: 48 }} />
+          </Tabs>
+        </Box>
+
         {/* Content */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-          <Stack spacing={2}>
-            {/* Event Overview */}
-            <Card variant="outlined">
-              <CardHeader
-                title="Event Overview"
-                titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
-                sx={{ pb: 1 }}
-              />
-              <CardContent sx={{ pt: 0 }}>
-                <Stack spacing={2}>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ mb: 0.5, display: "block" }}
-                    >
-                      Event Name
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontFamily: "monospace" }}>
-                      {selectedEvent.event}
-                    </Typography>
-                  </Box>
-
-                  <TimeField
-                    label="Event Time"
-                    timestamp={selectedEvent.eventTime}
-                  />
-                  <TimeField
-                    label="Processing Time"
-                    timestamp={selectedEvent.processingTime}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* User Information */}
-            <Card variant="outlined">
-              <CardHeader
-                title="User Information"
-                titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
-                avatar={<PersonIcon color="action" />}
-                sx={{ pb: 1 }}
-              />
-              <CardContent sx={{ pt: 0 }}>
-                <Stack spacing={2}>
-                  <CopyableField
-                    label="User ID"
-                    value={selectedEvent.userId}
-                    monospace
-                  />
-                  <CopyableField
-                    label="Anonymous ID"
-                    value={selectedEvent.anonymousId}
-                    monospace
-                  />
-                  <CopyableField
-                    label="Message ID"
-                    value={selectedEvent.messageId}
-                    monospace
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Related Resources */}
-            {eventResources.length > 0 && (
+          {activeTab === 0 && (
+            <Stack spacing={2}>
+              {/* Event Overview */}
               <Card variant="outlined">
                 <CardHeader
-                  title="Related Resources"
-                  titleTypographyProps={{
-                    variant: "subtitle1",
-                    fontWeight: 600,
-                  }}
-                  avatar={<LinkIcon color="action" />}
+                  title="Event Overview"
+                  titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
                   sx={{ pb: 0.5, px: 2, pt: 1.5 }}
                 />
                 <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                  <List disablePadding>
-                    {eventResources.map((resource, index) => (
-                      <React.Fragment key={resource.key}>
-                        <ListItem disablePadding>
-                          <ListItemButton
-                            component={Link}
-                            href={resource.link}
-                            sx={{
-                              borderRadius: 1,
-                              py: 0.5,
-                              "&:hover": {
-                                backgroundColor: theme.palette.action.hover,
-                              },
-                            }}
-                          >
-                            <ListItemIcon sx={{ minWidth: 30 }}>
-                              <LinkIcon fontSize="small" color="primary" />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={resource.name}
-                              primaryTypographyProps={{
-                                fontFamily: "monospace",
-                                fontSize: "0.8rem",
-                              }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                        {index < eventResources.length - 1 && (
-                          <Divider sx={{ my: 0.25 }} />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            )}
+                  <Stack spacing={1}>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mb: 0.25, display: "block" }}
+                      >
+                        Event Name
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ fontFamily: "monospace", fontSize: "1rem" }}>
+                        {selectedEvent.event}
+                      </Typography>
+                    </Box>
 
-            {/* Properties */}
-            {selectedEvent.traits && (
-              <Card variant="outlined">
-                <CardHeader
-                  title="Event Properties"
-                  titleTypographyProps={{
-                    variant: "subtitle1",
-                    fontWeight: 600,
-                  }}
-                  sx={{ pb: 0.5, px: 2, pt: 1.5 }}
-                />
-                <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                  <Box
-                    sx={{
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                      overflow: "hidden",
-                      height: "300px",
-                      "& .cm-editor": {
-                        fontSize: "0.7rem",
-                      },
-                      "& .cm-focused": {
-                        outline: "none",
-                      },
-                    }}
-                  >
-                    <ReactCodeMirror
-                      value={formattedTraits}
-                      readOnly
-                      height="300px"
-                      basicSetup={{
-                        lineNumbers: true,
-                        foldGutter: true,
-                        dropCursor: false,
-                        allowMultipleSelections: false,
-                      }}
-                      extensions={[
-                        codeMirrorJson(),
-                        linter(jsonParseLinter()),
-                        EditorView.lineWrapping,
-                        EditorView.theme({
-                          "&": {
-                            fontFamily:
-                              "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
-                          },
-                          ".cm-content": {
-                            padding: "8px",
-                          },
-                          ".cm-gutters": {
-                            backgroundColor: theme.palette.grey[50],
-                            borderRight: `1px solid ${theme.palette.divider}`,
-                          },
-                        }),
-                        lintGutter(),
-                      ]}
+                    <TimeField
+                      label="Event Time"
+                      timestamp={selectedEvent.eventTime}
                     />
-                  </Box>
+                    <TimeField
+                      label="Processing Time"
+                      timestamp={selectedEvent.processingTime}
+                    />
+                  </Stack>
                 </CardContent>
               </Card>
-            )}
-          </Stack>
+
+              {/* User Information */}
+              <Card variant="outlined">
+                <CardHeader
+                  title="User Information"
+                  titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
+                  avatar={<PersonIcon color="action" />}
+                  sx={{ pb: 0.5, px: 2, pt: 1.5 }}
+                />
+                <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
+                  <Stack spacing={1}>
+                    <CopyableField
+                      label="User ID"
+                      value={selectedEvent.userId}
+                      monospace
+                      onCopy={(value, label) =>
+                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                      }
+                    />
+                    <CopyableField
+                      label="Anonymous ID"
+                      value={selectedEvent.anonymousId}
+                      monospace
+                      onCopy={(value, label) =>
+                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                      }
+                    />
+                    <CopyableField
+                      label="Message ID"
+                      value={selectedEvent.messageId}
+                      monospace
+                      onCopy={(value, label) =>
+                        setSnackbar({ open: true, message: `${label} copied to clipboard` })
+                      }
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* Related Resources */}
+              {eventResources.length > 0 && (
+                <Card variant="outlined">
+                  <CardHeader
+                    title="Related Resources"
+                    titleTypographyProps={{
+                      variant: "subtitle1",
+                      fontWeight: 600,
+                    }}
+                    avatar={<LinkIcon color="action" />}
+                    sx={{ pb: 0.5, px: 2, pt: 1.5 }}
+                  />
+                  <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
+                    <List disablePadding>
+                      {eventResources.map((resource, index) => (
+                        <React.Fragment key={resource.key}>
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              component={Link}
+                              href={resource.link}
+                              sx={{
+                                borderRadius: 1,
+                                py: 0.5,
+                                "&:hover": {
+                                  backgroundColor: "action.hover",
+                                },
+                              }}
+                            >
+                              <ListItemIcon sx={{ minWidth: 30 }}>
+                                <LinkIcon fontSize="small" color="primary" />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={resource.name}
+                                primaryTypographyProps={{
+                                  fontFamily: "monospace",
+                                  fontSize: "0.8rem",
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                          {index < eventResources.length - 1 && (
+                            <Divider sx={{ my: 0.25 }} />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  </CardContent>
+                </Card>
+              )}
+            </Stack>
+          )}
+
+          {activeTab === 1 && (
+            <Stack spacing={2}>
+              {/* Properties */}
+              {selectedEvent.traits && (
+                <Card variant="outlined">
+                  <CardHeader
+                    title="Event Properties"
+                    titleTypographyProps={{
+                      variant: "subtitle1",
+                      fontWeight: 600,
+                    }}
+                    sx={{ pb: 0.5, px: 2, pt: 1.5 }}
+                  />
+                  <CardContent sx={{ pt: 0, px: 2, pb: 1.5 }}>
+                    <Box
+                      sx={{
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 1,
+                        overflow: "hidden",
+                        height: "500px",
+                        "& .cm-editor": {
+                          fontSize: "0.7rem",
+                        },
+                        "& .cm-focused": {
+                          outline: "none",
+                        },
+                      }}
+                    >
+                      <ReactCodeMirror
+                        value={formattedTraits}
+                        readOnly
+                        height="500px"
+                        basicSetup={{
+                          lineNumbers: true,
+                          foldGutter: true,
+                          dropCursor: false,
+                          allowMultipleSelections: false,
+                        }}
+                        extensions={[
+                          codeMirrorJson(),
+                          linter(jsonParseLinter()),
+                          EditorView.lineWrapping,
+                          EditorView.theme({
+                            "&": {
+                              fontFamily:
+                                "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+                            },
+                            ".cm-content": {
+                              padding: "8px",
+                            },
+                            ".cm-gutters": {
+                              backgroundColor: theme.palette.grey[50],
+                              borderRight: `1px solid ${theme.palette.divider}`,
+                            },
+                          }),
+                          lintGutter(),
+                        ]}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              )}
+            </Stack>
+          )}
         </Box>
       </Stack>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ open: false, message: "" })}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Drawer>
   );
 }
