@@ -100,3 +100,75 @@ export async function startBroadcastWorkflow({
     );
   }
 }
+
+export async function pauseBroadcast({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Pausing broadcast workflow",
+    );
+    const handle = client.getHandle(
+      generateBroadcastWorkflowV2Id({
+        workspaceId,
+        broadcastId,
+      }),
+    );
+    await handle.signal("PauseBroadcast");
+  } catch (e) {
+    logger().error(
+      {
+        workspaceId,
+        broadcastId,
+        error: e,
+      },
+      "Error pausing broadcast workflow",
+    );
+    throw e;
+  }
+}
+
+export async function resumeBroadcast({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Resuming broadcast workflow",
+    );
+    const handle = client.getHandle(
+      generateBroadcastWorkflowV2Id({
+        workspaceId,
+        broadcastId,
+      }),
+    );
+    await handle.signal("ResumeBroadcast");
+  } catch (e) {
+    logger().error(
+      {
+        workspaceId,
+        broadcastId,
+        error: e,
+      },
+      "Error resuming broadcast workflow",
+    );
+    throw e;
+  }
+}
