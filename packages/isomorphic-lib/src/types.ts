@@ -3406,6 +3406,7 @@ export const MessageNodeStats = Type.Composite([
     proportions: Type.Object({
       childEdge: Type.Number(),
     }),
+    count: Type.Number(),
   }),
 ]);
 
@@ -3416,6 +3417,7 @@ export const DelayNodeStats = Type.Object({
   proportions: Type.Object({
     childEdge: Type.Number(),
   }),
+  count: Type.Number(),
 });
 
 export type DelayNodeStats = Static<typeof DelayNodeStats>;
@@ -3425,6 +3427,7 @@ export const WaitForNodeStats = Type.Object({
   proportions: Type.Object({
     segmentChildEdge: Type.Number(),
   }),
+  count: Type.Number(),
 });
 
 export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
@@ -3434,6 +3437,7 @@ export const SegmentSplitNodeStats = Type.Object({
   proportions: Type.Object({
     falseChildEdge: Type.Number(),
   }),
+  count: Type.Number(),
 });
 
 export type SegmentSplitNodeStats = Static<typeof SegmentSplitNodeStats>;
