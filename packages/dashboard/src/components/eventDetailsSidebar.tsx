@@ -2,12 +2,10 @@ import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import {
-  AccessTime,
   Close as CloseIcon,
   ContentCopy as ContentCopyIcon,
   Link as LinkIcon,
   Person as PersonIcon,
-  Schedule as ScheduleIcon,
 } from "@mui/icons-material";
 import {
   Box,

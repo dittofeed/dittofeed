@@ -324,7 +324,7 @@ export function UserEventsTable({
     journeys,
   } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
 
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || "");
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm ?? "");
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
   const [state, setState] = useImmer<State>({
@@ -346,68 +346,69 @@ export function UserEventsTable({
       ? messagesResult.value
       : [];
 
-  const getRelatedResources = (
-    event: GetEventsResponseItem,
-  ): EventResources[] => {
-    const parsedTraits = jsonParseSafe(event.traits)
-      .andThen((traits) =>
-        schemaValidateWithErr(traits, RelatedResourceProperties),
-      )
-      .unwrapOr({} as RelatedResourceProperties);
+  const getRelatedResources = useCallback(
+    (event: GetEventsResponseItem): EventResources[] => {
+      const parsedTraits = jsonParseSafe(event.traits)
+        .andThen((traits) =>
+          schemaValidateWithErr(traits, RelatedResourceProperties),
+        )
+        .unwrapOr({} as RelatedResourceProperties);
 
-    const journeyId = parsedTraits.journeyId ?? "";
-    const nodeId = parsedTraits.nodeId ?? "";
-    const resources: EventResources[] = [];
+      const journeyId = parsedTraits.journeyId ?? "";
+      const nodeId = parsedTraits.nodeId ?? "";
+      const resources: EventResources[] = [];
 
-    if (nodeId === "broadcast-message") {
-      for (const broadcast of broadcasts) {
-        if (broadcast.journeyId === journeyId) {
-          resources.push(
-            {
-              name: `${broadcast.name}`,
-              link: `/broadcasts/review/${broadcast.id}`,
+      if (nodeId === "broadcast-message") {
+        for (const broadcast of broadcasts) {
+          if (broadcast.journeyId === journeyId) {
+            resources.push(
+              {
+                name: `${broadcast.name}`,
+                link: `/broadcasts/review/${broadcast.id}`,
+                key: uuid(),
+              },
+              {
+                name: `${broadcast.name}-Template`,
+                link: `/broadcasts/template/${broadcast.id}`,
+                key: uuid(),
+              },
+            );
+            break;
+          }
+        }
+        return resources;
+      }
+
+      if (journeyId && journeys.type === CompletionStatus.Successful) {
+        for (const journey of journeys.value) {
+          if (journey.id === journeyId) {
+            resources.push({
+              name: journey.name,
+              link: `/journeys/${journey.id}`,
               key: uuid(),
-            },
-            {
-              name: `${broadcast.name}-Template`,
-              link: `/broadcasts/template/${broadcast.id}`,
-              key: uuid(),
-            },
-          );
-          break;
+            });
+            break;
+          }
         }
       }
+
+      const templateId = parsedTraits.templateId ?? "";
+      const template = messages.find((t) => t.id === templateId);
+      const channelType = template?.type ?? null;
+      const templateName = template?.name ?? null;
+
+      if (templateId && channelType && templateName) {
+        resources.push({
+          name: templateName,
+          link: messageTemplatePath({ channel: channelType, id: templateId }),
+          key: uuid(),
+        });
+      }
+
       return resources;
-    }
-
-    if (journeyId && journeys.type === CompletionStatus.Successful) {
-      for (const journey of journeys.value) {
-        if (journey.id === journeyId) {
-          resources.push({
-            name: journey.name,
-            link: `/journeys/${journey.id}`,
-            key: uuid(),
-          });
-          break;
-        }
-      }
-    }
-
-    const templateId = parsedTraits.templateId ?? "";
-    const template = messages.find((t) => t.id === templateId);
-    const channelType = template?.type ?? null;
-    const templateName = template?.name ?? null;
-
-    if (templateId && channelType && templateName) {
-      resources.push({
-        name: templateName,
-        link: messageTemplatePath({ channel: channelType, id: templateId }),
-        key: uuid(),
-      });
-    }
-
-    return resources;
-  };
+    },
+    [broadcasts, journeys, messages],
+  );
 
   const eventsQuery = useEventsQuery(
     {
@@ -443,56 +444,111 @@ export function UserEventsTable({
     });
   }, [setState]);
 
+  const renderPreviewCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <PreviewCell
+        row={row}
+        setState={setState}
+        getRelatedResources={getRelatedResources}
+      />
+    ),
+    [setState, getRelatedResources],
+  );
+
+  const renderUserIdCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <UserIdCell value={row.original.userId} />
+    ),
+    [],
+  );
+
+  const renderEventTypeCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <EventTypeCell value={row.original.eventType} />
+    ),
+    [],
+  );
+
+  const renderEventNameCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <EventNameCell value={row.original.event} />
+    ),
+    [],
+  );
+
+  const renderTraitsCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <TraitsCell value={row.original.traits} />
+    ),
+    [],
+  );
+
+  const renderTimeCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <TimeCell timestamp={row.original.eventTime} />
+    ),
+    [],
+  );
+
+  const renderMessageIdCell = useCallback(
+    ({ row }: { row: Row<GetEventsResponseItem> }) => (
+      <MessageIdCell value={row.original.messageId} />
+    ),
+    [],
+  );
+
   const columns = useMemo<ColumnDef<GetEventsResponseItem>[]>(
     () => [
       {
         id: "preview",
-        cell: ({ row }) => (
-          <PreviewCell
-            row={row}
-            setState={setState}
-            getRelatedResources={getRelatedResources}
-          />
-        ),
+        cell: renderPreviewCell,
       },
       {
         id: "userId",
         header: "User ID",
         accessorKey: "userId",
-        cell: ({ row }) => <UserIdCell value={row.original.userId} />,
+        cell: renderUserIdCell,
       },
       {
         id: "eventType",
         header: "Type",
         accessorKey: "eventType",
-        cell: ({ row }) => <EventTypeCell value={row.original.eventType} />,
+        cell: renderEventTypeCell,
       },
       {
         id: "event",
         header: "Event",
         accessorKey: "event",
-        cell: ({ row }) => <EventNameCell value={row.original.event} />,
+        cell: renderEventNameCell,
       },
       {
         id: "traits",
         header: "Properties",
         accessorKey: "traits",
-        cell: ({ row }) => <TraitsCell value={row.original.traits} />,
+        cell: renderTraitsCell,
       },
       {
         id: "eventTime",
         header: "Event Time",
         accessorKey: "eventTime",
-        cell: ({ row }) => <TimeCell timestamp={row.original.eventTime} />,
+        cell: renderTimeCell,
       },
       {
         id: "messageId",
         header: "Message ID",
         accessorKey: "messageId",
-        cell: ({ row }) => <MessageIdCell value={row.original.messageId} />,
+        cell: renderMessageIdCell,
       },
     ],
-    [setState, getRelatedResources],
+    [
+      renderPreviewCell,
+      renderUserIdCell,
+      renderEventTypeCell,
+      renderEventNameCell,
+      renderTraitsCell,
+      renderTimeCell,
+      renderMessageIdCell,
+    ],
   );
 
   const data = useMemo(() => {
