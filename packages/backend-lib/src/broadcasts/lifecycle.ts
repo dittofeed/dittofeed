@@ -46,10 +46,12 @@ export async function startRecomputeBroadcastSegmentWorkflow({
         {
           workspaceId,
           broadcastId,
+          err: e,
         },
         "Recompute broadcast segment workflow already started.",
       );
     }
+    throw e;
   }
 }
 
@@ -91,12 +93,25 @@ export async function startBroadcastWorkflow({
       taskQueue: config().computedPropertiesTaskQueue,
     });
   } catch (e) {
+    if (e instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info(
+        {
+          workspaceId,
+          broadcastId,
+          err: e,
+        },
+        "Broadcast workflow already started.",
+      );
+      return;
+    }
     logger().error(
       {
         workspaceId,
         broadcastId,
+        err: e,
       },
       "Error starting broadcast workflow",
     );
+    throw e;
   }
 }
