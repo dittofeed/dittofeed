@@ -125,7 +125,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${CLICKHOUSE_CONTAINER_MEM_LIMIT:-1024}m
+          memory: ${CLICKHOUSE_CONTAINER_MEM_LIMIT:-2048}m
     environment:
       <<: *clickhouse-credentials
     ports:
