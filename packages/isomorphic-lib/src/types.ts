@@ -5500,6 +5500,13 @@ export const ResumeBroadcastRequest = Type.Object({
 
 export type ResumeBroadcastRequest = Static<typeof ResumeBroadcastRequest>;
 
+export const CancelBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type CancelBroadcastRequest = Static<typeof CancelBroadcastRequest>;
+
 export const UpdateManualSegmentUsersRequest = Type.Composite([
   Type.Object({
     workspaceId: Type.String(),

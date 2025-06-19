@@ -8,6 +8,7 @@ import {
   upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
 import {
+  cancelBroadcast,
   pauseBroadcast,
   resumeBroadcast,
   startBroadcastWorkflow,
@@ -21,6 +22,7 @@ import {
   BaseMessageResponse,
   BroadcastResource,
   BroadcastResourceV2,
+  CancelBroadcastRequest,
   ExecuteBroadcastRequest,
   ExecuteBroadcastResponse,
   GetBroadcastsResponse,
@@ -247,6 +249,28 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         broadcastId,
       });
       return reply.status(200).send({ message: "Broadcast resumed" });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/cancel",
+    {
+      schema: {
+        description: "Cancel a broadcast.",
+        tags: ["Broadcasts"],
+        body: CancelBroadcastRequest,
+        response: {
+          200: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, broadcastId } = request.body;
+      await cancelBroadcast({
+        workspaceId,
+        broadcastId,
+      });
+      return reply.status(200).send({ message: "Broadcast cancelled" });
     },
   );
 
