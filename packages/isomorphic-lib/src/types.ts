@@ -1424,8 +1424,13 @@ export const GetEventsRequest = Type.Object({
   userId: Type.Optional(UserId),
   offset: Type.Optional(Type.Number()),
   limit: Type.Optional(Type.Number()),
+  // unix timestamp units ms
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),
+  event: Type.Optional(Type.Array(Type.String())),
+  broadcastId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  eventType: Type.Optional(Type.String()),
 });
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;
@@ -4927,7 +4932,8 @@ export const BroadcastStepKeys = {
   RECIPIENTS: "RECIPIENTS",
   CONTENT: "CONTENT",
   CONFIGURATION: "CONFIGURATION",
-  REVIEW: "REVIEW",
+  DELIVERIES: "DELIVERIES",
+  EVENTS: "EVENTS",
 } as const;
 
 export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));
@@ -5479,6 +5485,20 @@ export const StartBroadcastRequest = Type.Object({
 });
 
 export type StartBroadcastRequest = Static<typeof StartBroadcastRequest>;
+
+export const PauseBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type PauseBroadcastRequest = Static<typeof PauseBroadcastRequest>;
+
+export const ResumeBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  broadcastId: Type.String(),
+});
+
+export type ResumeBroadcastRequest = Static<typeof ResumeBroadcastRequest>;
 
 export const UpdateManualSegmentUsersRequest = Type.Composite([
   Type.Object({

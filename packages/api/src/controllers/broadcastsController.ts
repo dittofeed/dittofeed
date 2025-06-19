@@ -8,6 +8,8 @@ import {
   upsertBroadcastV2,
 } from "backend-lib/src/broadcasts";
 import {
+  pauseBroadcast,
+  resumeBroadcast,
   startBroadcastWorkflow,
   startRecomputeBroadcastSegmentWorkflow,
 } from "backend-lib/src/broadcasts/lifecycle";
@@ -25,7 +27,9 @@ import {
   GetBroadcastsV2Request,
   GetGmailAuthorizationRequest,
   GetGmailAuthorizationResponse,
+  PauseBroadcastRequest,
   RecomputeBroadcastSegmentRequest,
+  ResumeBroadcastRequest,
   StartBroadcastRequest,
   TriggerBroadcastRequest,
   UpdateBroadcastArchiveRequest,
@@ -199,6 +203,50 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         workspaceOccupantType,
       });
       return reply.status(200).send({ message: "Broadcast started" });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/pause",
+    {
+      schema: {
+        description: "Pause a broadcast.",
+        tags: ["Broadcasts"],
+        body: PauseBroadcastRequest,
+        response: {
+          200: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, broadcastId } = request.body;
+      await pauseBroadcast({
+        workspaceId,
+        broadcastId,
+      });
+      return reply.status(200).send({ message: "Broadcast paused" });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/resume",
+    {
+      schema: {
+        description: "Resume a broadcast.",
+        tags: ["Broadcasts"],
+        body: ResumeBroadcastRequest,
+        response: {
+          200: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, broadcastId } = request.body;
+      await resumeBroadcast({
+        workspaceId,
+        broadcastId,
+      });
+      return reply.status(200).send({ message: "Broadcast resumed" });
     },
   );
 

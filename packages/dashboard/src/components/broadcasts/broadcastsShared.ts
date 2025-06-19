@@ -26,8 +26,13 @@ const BROADCAST_STEPS = [
     name: "Configuration",
   },
   {
-    key: BroadcastStepKeys.REVIEW,
-    name: "Review",
+    key: BroadcastStepKeys.DELIVERIES,
+    name: "Deliveries",
+    afterDraft: true,
+  },
+  {
+    key: BroadcastStepKeys.EVENTS,
+    name: "Events",
     afterDraft: true,
   },
 ] as const satisfies readonly BroadcastStep[];

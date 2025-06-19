@@ -809,7 +809,7 @@ export function DeliveriesTableV2({
           if (delivery.broadcastId) {
             queryParams.id = delivery.broadcastId;
           }
-          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.REVIEW;
+          queryParams[BroadcastQueryKeys.STEP] = BroadcastStepKeys.DELIVERIES;
         } else {
           uriTemplate = originUriTemplate;
         }

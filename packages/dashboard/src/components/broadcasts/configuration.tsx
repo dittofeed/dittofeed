@@ -437,6 +437,7 @@ export default function Configuration({
             type="number"
             inputProps={{
               min: 1,
+              max: 1000,
             }}
             disabled={disabled}
             value={broadcast.config.batchSize ?? ""}
@@ -490,9 +491,11 @@ export default function Configuration({
               onSuccess: () => {
                 updateState((draft) => {
                   if (
-                    steps.find((step) => step.key === BroadcastStepKeys.REVIEW)
+                    steps.find(
+                      (step) => step.key === BroadcastStepKeys.DELIVERIES,
+                    )
                   ) {
-                    draft.step = BroadcastStepKeys.REVIEW;
+                    draft.step = BroadcastStepKeys.DELIVERIES;
                   }
                 });
               },

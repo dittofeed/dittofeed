@@ -15,7 +15,12 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
-import { GetPropertiesResponse, InternalEventType, UserEvent } from "./types";
+import {
+  GetEventsRequest,
+  GetPropertiesResponse,
+  InternalEventType,
+  UserEvent,
+} from "./types";
 
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
@@ -282,16 +287,14 @@ export async function findManyEventsWithCount({
   endDate,
   userId,
   searchTerm,
-}: {
-  workspaceId: string;
-  userId?: string;
-  limit?: number;
-  offset?: number;
-  // unix timestamp units ms
-  startDate?: number;
-  endDate?: number;
-  searchTerm?: string;
-}): Promise<{ events: UserEventsWithTraits[]; count: number }> {
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
+}: GetEventsRequest): Promise<{
+  events: UserEventsWithTraits[];
+  count: number;
+}> {
   const qb = new ClickHouseQueryBuilder();
 
   const childWorkspaceIds = (
@@ -334,6 +337,23 @@ export async function findManyEventsWithCount({
       )} OR message_id = ${qb.addQueryValue(searchTerm, "String")})`
     : "";
 
+  const eventClause =
+    event && event.length > 0
+      ? `AND event IN ${qb.addQueryValue(event, "Array(String)")}`
+      : "";
+
+  const broadcastIdClause = broadcastId
+    ? `AND JSONExtractString(properties, 'broadcastId') = ${qb.addQueryValue(broadcastId, "String")}`
+    : "";
+
+  const journeyIdClause = journeyId
+    ? `AND JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(journeyId, "String")}`
+    : "";
+
+  const eventTypeClause = eventType
+    ? `AND event_type = ${qb.addQueryValue(eventType, "String")}`
+    : "";
+
   const innerQuery = `
     SELECT
         workspace_id,
@@ -354,6 +374,10 @@ export async function findManyEventsWithCount({
       ${endDateClause}
       ${userIdClause}
       ${searchClause}
+      ${eventClause}
+      ${broadcastIdClause}
+      ${journeyIdClause}
+      ${eventTypeClause}
     ORDER BY processing_time DESC
   `;
 
