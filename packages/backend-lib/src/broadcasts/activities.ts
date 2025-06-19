@@ -467,7 +467,57 @@ function canTransitionToStatus(
   currentStatus: BroadcastV2Status,
   newStatus: BroadcastV2Status,
 ): boolean {
-  return true;
+  // Cannot transition to the same status
+  if (currentStatus === newStatus) {
+    return false;
+  }
+
+  switch (currentStatus) {
+    case "Draft":
+      // From Draft, can start (Running), schedule, or cancel
+      return (
+        newStatus === "Running" ||
+        newStatus === "Scheduled" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Scheduled":
+      // From Scheduled, can start (Running) or cancel
+      return newStatus === "Running" || newStatus === "Cancelled";
+
+    case "Running":
+      // From Running, can pause, complete, fail, or cancel
+      return (
+        newStatus === "Paused" ||
+        newStatus === "Completed" ||
+        newStatus === "Failed" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Paused":
+      // From Paused, can resume (Running), fail, or cancel
+      return (
+        newStatus === "Running" ||
+        newStatus === "Failed" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Completed":
+      // Completed is a terminal state - no transitions allowed
+      return false;
+
+    case "Cancelled":
+      // Cancelled is a terminal state - no transitions allowed
+      return false;
+
+    case "Failed":
+      // Failed is a terminal state - no transitions allowed
+      return false;
+
+    default:
+      // Unknown status - disallow transition
+      return false;
+  }
 }
 
 export async function markBroadcastStatus({
