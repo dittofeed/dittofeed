@@ -1,13 +1,11 @@
 /* eslint-disable no-await-in-loop */
-import { and, eq, inArray } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
 import config from "../../../config";
 import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
-import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
-import { findManyJourneyResourcesSafe } from "../../../journeys";
+import { findRunningJourneys } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
@@ -42,15 +40,7 @@ export async function computePropertiesIncrementalArgs({
   Omit<ComputePropertiesArgs, "now">
 > {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
-    journeyIds !== undefined && journeyIds.length === 0
-      ? []
-      : findManyJourneyResourcesSafe(
-          and(
-            eq(dbJourney.workspaceId, workspaceId),
-            eq(dbJourney.status, "Running"),
-            ...(journeyIds ? [inArray(dbJourney.id, journeyIds)] : []),
-          ),
-        ),
+    findRunningJourneys({ workspaceId, ids: journeyIds }),
     userPropertyIds !== undefined && userPropertyIds.length === 0
       ? []
       : findAllUserPropertyResources({
@@ -85,19 +75,7 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
-    journeys: journeys.flatMap((j) => {
-      if (j.isErr()) {
-        logger().error(
-          { err: j.error, workspaceId },
-          "failed to enrich journey",
-        );
-        return [];
-      }
-      if (j.value.status === "NotStarted") {
-        return [];
-      }
-      return j.value;
-    }),
+    journeys,
     integrations: integrations.flatMap((i) => {
       if (i.isErr()) {
         logger().error(
@@ -246,22 +224,9 @@ export async function computePropertiesIndividual({
       break;
     }
     case WorkspaceQueueItemType.Journey: {
-      const journeyResults = await findManyJourneyResourcesSafe(
-        and(
-          eq(dbJourney.workspaceId, item.workspaceId),
-          eq(dbJourney.id, item.id),
-          eq(dbJourney.status, "Running"),
-        ),
-      );
-      const journeys = journeyResults.flatMap((j) => {
-        if (j.isErr()) {
-          logger().error(
-            { err: j.error, workspaceId: item.workspaceId },
-            "failed to get journey",
-          );
-          return [];
-        }
-        return j.value.status === "Running" ? [j.value] : [];
+      const journeys = await findRunningJourneys({
+        workspaceId: item.workspaceId,
+        ids: [item.id],
       });
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,

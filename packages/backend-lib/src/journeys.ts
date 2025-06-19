@@ -51,6 +51,7 @@ import {
   JourneyUpsertValidationErrorType,
   MessageChannelStats,
   NodeStatsType,
+  SavedHasStartedJourneyResource,
   SavedJourneyResource,
   SmsStats,
   UpsertJourneyResource,
@@ -1066,4 +1067,30 @@ export async function deleteJourney(
     return null;
   }
   return journey;
+}
+
+export async function findRunningJourneys({
+  workspaceId,
+  ids,
+}: {
+  workspaceId: string;
+  ids?: string[];
+}): Promise<SavedHasStartedJourneyResource[]> {
+  const journeys = await findManyJourneyResourcesSafe(
+    and(
+      eq(dbJourney.workspaceId, workspaceId),
+      eq(dbJourney.status, JourneyResourceStatusEnum.Running),
+      ...(ids ? [inArray(dbJourney.id, ids)] : []),
+    ),
+  );
+  return journeys.flatMap((j) => {
+    if (j.isErr()) {
+      logger().error({ err: j.error, workspaceId }, "failed to enrich journey");
+      return [];
+    }
+    if (j.value.status === "NotStarted") {
+      return [];
+    }
+    return j.value;
+  });
 }
