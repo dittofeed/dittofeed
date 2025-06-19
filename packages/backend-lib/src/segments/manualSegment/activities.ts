@@ -15,6 +15,7 @@ import { submitBatch } from "../../apps/batch";
 import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { findSubscribedRunningJourneysForSegment } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
 import { Segment } from "../../types";
@@ -140,12 +141,15 @@ export async function appendToManualSegment({
     );
     return false;
   }
-  // FIXME get subscribed journeys
+  const subscribedJourneys = await findSubscribedRunningJourneysForSegment({
+    workspaceId,
+    segmentId,
+  });
   await computePropertiesIncremental({
     workspaceId,
     segments: [segmentResource.value],
     userProperties: [],
-    journeys: [],
+    journeys: subscribedJourneys,
     integrations: [],
     now,
   });
@@ -267,12 +271,15 @@ export async function replaceManualSegment({
     );
     return false;
   }
-  // FIXME get subscribed journeys
+  const subscribedJourneys = await findSubscribedRunningJourneysForSegment({
+    workspaceId,
+    segmentId,
+  });
   await computePropertiesIncremental({
     workspaceId,
     segments: [segmentResource.value],
     userProperties: [],
-    journeys: [],
+    journeys: subscribedJourneys,
     integrations: [],
     now,
   });
