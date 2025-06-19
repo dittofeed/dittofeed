@@ -1,5 +1,8 @@
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { LoadingButton } from "@mui/lab";
 import { SxProps, Theme, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -8,10 +11,13 @@ import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
 import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { usePauseBroadcastMutation } from "../../lib/usePauseBroadcastMutation";
+import { useResumeBroadcastMutation } from "../../lib/useResumeBroadcastMutation";
+import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
 import { GreyButton } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
@@ -92,6 +98,129 @@ function PreviewContent({ id }: { id: string }) {
   );
 }
 
+function StatusButton({ broadcastId }: { broadcastId: string }) {
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const { mutate: startBroadcast, isPending: isStarting } =
+    useStartBroadcastMutation();
+  const { mutate: pauseBroadcast, isPending: isPausing } =
+    usePauseBroadcastMutation();
+  const { mutate: resumeBroadcast, isPending: isResuming } =
+    useResumeBroadcastMutation();
+
+  const isLoading = isStarting || isPausing || isResuming;
+
+  const canStart = useMemo(() => {
+    if (!broadcast || broadcast.status !== "Draft") {
+      return false;
+    }
+    // Check required conditions from configuration
+    return Boolean(
+      broadcast.messageTemplateId && broadcast.subscriptionGroupId,
+    );
+  }, [broadcast]);
+
+  const isDisabled = useMemo(() => {
+    if (isLoading) return true;
+    if (!broadcast) return true;
+
+    switch (broadcast.status) {
+      case "Draft":
+        return !canStart;
+      case "Running":
+      case "Paused":
+        return false;
+      default:
+        return true; // Disabled for Scheduled, Completed, Cancelled, Failed
+    }
+  }, [broadcast, canStart, isLoading]);
+
+  const handleClick = useCallback(() => {
+    if (!broadcast) return;
+
+    switch (broadcast.status) {
+      case "Draft":
+        if (canStart) {
+          startBroadcast({ broadcastId });
+        }
+        break;
+      case "Running":
+        pauseBroadcast({ broadcastId });
+        break;
+      case "Paused":
+        resumeBroadcast({ broadcastId });
+        break;
+      default:
+        // Do nothing for other statuses
+        break;
+    }
+  }, [
+    broadcast,
+    broadcastId,
+    canStart,
+    startBroadcast,
+    pauseBroadcast,
+    resumeBroadcast,
+  ]);
+
+  if (!broadcast) {
+    return null;
+  }
+
+  const getButtonText = () => {
+    switch (broadcast.status) {
+      case "Draft":
+        return "Start Broadcast";
+      case "Running":
+        return "Pause";
+      case "Paused":
+        return "Resume";
+      case "Scheduled":
+        return "Scheduled";
+      case "Completed":
+        return "Completed";
+      case "Cancelled":
+        return "Cancelled";
+      case "Failed":
+        return "Failed";
+      default:
+        return broadcast.status;
+    }
+  };
+
+  const getIcon = () => {
+    switch (broadcast.status) {
+      case "Draft":
+      case "Paused":
+        return <PlayArrowIcon />;
+      case "Running":
+        return <PauseIcon />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <LoadingButton
+      variant="contained"
+      onClick={handleClick}
+      disabled={isDisabled}
+      loading={isLoading}
+      startIcon={getIcon()}
+      sx={{
+        textTransform: "none",
+        backgroundColor:
+          broadcast.status === "Running" ? "warning.main" : undefined,
+        "&:hover": {
+          backgroundColor:
+            broadcast.status === "Running" ? "warning.dark" : undefined,
+        },
+      }}
+    >
+      {getButtonText()}
+    </LoadingButton>
+  );
+}
+
 export default function BroadcastLayout({
   children,
   state,
@@ -164,6 +293,7 @@ export default function BroadcastLayout({
             ))}
           </Stepper>
           <Stack direction="row" spacing={2}>
+            <StatusButton broadcastId={state.id} />
             {!state.configuration?.hideDrawer && (
               <GreyButton
                 variant="contained"
