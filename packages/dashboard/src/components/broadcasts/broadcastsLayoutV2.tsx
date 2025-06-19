@@ -14,10 +14,12 @@ import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { usePauseBroadcastMutation } from "../../lib/usePauseBroadcastMutation";
 import { useResumeBroadcastMutation } from "../../lib/useResumeBroadcastMutation";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
+import { EditableTitle } from "../editableName/v2";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
@@ -225,6 +227,7 @@ export default function BroadcastLayout({
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
   const { data: broadcast } = useBroadcastQuery(state.id);
+  const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const updateStep = useCallback(
     (step: BroadcastStepKey) => {
       updateState((draft) => {
@@ -258,35 +261,47 @@ export default function BroadcastLayout({
           justifyContent="space-between"
           sx={{ width: "100%" }}
         >
-          <Stepper
-            sx={{
-              minWidth: "720px",
-              "& .MuiStepIcon-root.Mui-active": {
-                color: "grey.600",
-              },
-            }}
-            nonLinear
-            activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
-          >
-            {broadcastSteps.map((step: BroadcastStep) => (
-              <Step key={step.key}>
-                <StepButton
-                  color="inherit"
-                  disabled={!broadcast || (step.afterDraft && isDraft)}
-                  onClick={() => {
-                    updateStep(step.key);
-                    if (step.key === "CONTENT") {
-                      setPreviewOpen(false);
-                    } else {
-                      setPreviewOpen(true);
-                    }
-                  }}
-                >
-                  {step.name}
-                </StepButton>
-              </Step>
-            ))}
-          </Stepper>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Stepper
+              sx={{
+                minWidth: "720px",
+                "& .MuiStepIcon-root.Mui-active": {
+                  color: "grey.600",
+                },
+              }}
+              nonLinear
+              activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
+            >
+              {broadcastSteps.map((step: BroadcastStep) => (
+                <Step key={step.key}>
+                  <StepButton
+                    color="inherit"
+                    disabled={!broadcast || (step.afterDraft && isDraft)}
+                    onClick={() => {
+                      updateStep(step.key);
+                      if (step.key === "CONTENT") {
+                        setPreviewOpen(false);
+                      } else {
+                        setPreviewOpen(true);
+                      }
+                    }}
+                  >
+                    {step.name}
+                  </StepButton>
+                </Step>
+              ))}
+            </Stepper>
+            {broadcast && (
+              <EditableTitle
+                text={broadcast.name}
+                onSubmit={(val) => {
+                  updateBroadcast({
+                    name: val,
+                  });
+                }}
+              />
+            )}
+          </Stack>
           <Stack direction="row" spacing={2}>
             <StatusButton broadcastId={state.id} />
             {!state.configuration?.hideDrawer && (
