@@ -1,3 +1,4 @@
+import { CalendarDate } from "@internationalized/date";
 import {
   ContentCopy as ContentCopyIcon,
   KeyboardArrowLeft,
@@ -10,8 +11,12 @@ import {
 import {
   Box,
   CircularProgress,
+  FormControl,
   IconButton,
+  MenuItem,
   Paper,
+  Popover,
+  Select,
   Snackbar,
   Stack,
   Table,
@@ -32,6 +37,7 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
+import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import {
@@ -44,15 +50,78 @@ import {
   RelatedResourceProperties,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
+import { toCalendarDate } from "../lib/dates";
 import { EventResources } from "../lib/types";
 import { useEventsQuery } from "../lib/useEventsQuery";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 import { GreyButton } from "./greyButtonStyle";
+import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
+import { RangeCalendar } from "./rangeCalendar";
+
+interface MinuteTimeOption {
+  type: "minutes";
+  id: string;
+  minutes: number;
+  label: string;
+}
+
+interface CustomTimeOption {
+  type: "custom";
+  id: "custom";
+  label: string;
+}
+
+type TimeOption = MinuteTimeOption | CustomTimeOption;
+
+const defaultTimeOption = {
+  type: "minutes",
+  id: "last-7-days",
+  minutes: 7 * 24 * 60,
+  label: "Last 7 days",
+} as const;
+
+const timeOptions: TimeOption[] = [
+  { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
+  {
+    type: "minutes",
+    id: "last-24-hours",
+    minutes: 24 * 60,
+    label: "Last 24 hours",
+  },
+  defaultTimeOption,
+  {
+    type: "minutes",
+    id: "last-30-days",
+    minutes: 30 * 24 * 60,
+    label: "Last 30 days",
+  },
+  {
+    type: "minutes",
+    id: "last-90-days",
+    minutes: 90 * 24 * 60,
+    label: "Last 90 days",
+  },
+  { type: "custom", id: "custom", label: "Custom Date Range" },
+];
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatCalendarDate(date: CalendarDate) {
+  return formatDate(
+    date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
+  );
+}
 
 interface State {
   query: {
@@ -60,8 +129,8 @@ interface State {
     limit: number;
     userId?: string;
     searchTerm?: string;
-    startDate?: number;
-    endDate?: number;
+    startDate: number;
+    endDate: number;
     event?: string[];
     broadcastId?: string;
     journeyId?: string;
@@ -70,6 +139,12 @@ interface State {
   previewEvent: GetEventsResponseItem | null;
   selectedEventResources: EventResources[];
   isSidebarOpen: boolean;
+  selectedTimeOption: string;
+  referenceDate: Date;
+  customDateRange: {
+    start: CalendarDate;
+    end: CalendarDate;
+  } | null;
 }
 
 type SetState = Updater<State>;
@@ -318,8 +393,8 @@ interface UserEventsTableProps {
 export function UserEventsTable({
   userId,
   searchTerm: initialSearchTerm,
-  startDate,
-  endDate,
+  startDate: propsStartDate,
+  endDate: propsEndDate,
   event,
   broadcastId,
   journeyId,
@@ -332,14 +407,25 @@ export function UserEventsTable({
     journeys,
   } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
 
+  const initialEndDate = useMemo(
+    () => propsEndDate || Date.now(),
+    [propsEndDate],
+  );
+  const initialStartDate = useMemo(
+    () =>
+      propsStartDate ||
+      subMinutes(initialEndDate, defaultTimeOption.minutes).getTime(),
+    [propsStartDate, initialEndDate],
+  );
+
   const [state, setState] = useImmer<State>({
     query: {
       offset: 0,
       limit: 10,
       userId,
       searchTerm: initialSearchTerm,
-      startDate,
-      endDate,
+      startDate: initialStartDate,
+      endDate: initialEndDate,
       event,
       broadcastId,
       journeyId,
@@ -348,6 +434,9 @@ export function UserEventsTable({
     previewEvent: null,
     selectedEventResources: [],
     isSidebarOpen: false,
+    selectedTimeOption: defaultTimeOption.id,
+    referenceDate: new Date(initialEndDate),
+    customDateRange: null,
   });
 
   const messages = useMemo(
@@ -439,12 +528,6 @@ export function UserEventsTable({
   }, [setState]);
 
   const onFirstPage = useCallback(() => {
-    setState((draft) => {
-      draft.query.offset = 0;
-    });
-  }, [setState]);
-
-  const onRefresh = useCallback(() => {
     setState((draft) => {
       draft.query.offset = 0;
     });
@@ -589,6 +672,19 @@ export function UserEventsTable({
     return state.query.offset > 0;
   }, [state.query.offset]);
 
+  const customDateRef = useRef<HTMLInputElement | null>(null);
+
+  const customOnClickHandler = useCallback(() => {
+    setState((draft) => {
+      if (draft.selectedTimeOption === "custom") {
+        draft.customDateRange = {
+          start: toCalendarDate(draft.referenceDate),
+          end: toCalendarDate(draft.referenceDate),
+        };
+      }
+    });
+  }, [setState]);
+
   if (workspace.type !== CompletionStatus.Successful) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
@@ -614,11 +710,93 @@ export function UserEventsTable({
         spacing={1}
         sx={{ width: "100%", height: "48px" }}
       >
-        <Typography variant="h6">User Events</Typography>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="h6">User Events</Typography>
+          <FormControl>
+            <Select
+              value={state.selectedTimeOption}
+              renderValue={(value) => {
+                const option = timeOptions.find((o) => o.id === value);
+                if (option?.type === "custom") {
+                  return `${formatDate(new Date(state.query.startDate))} - ${formatDate(new Date(state.query.endDate))}`;
+                }
+                return option?.label;
+              }}
+              ref={customDateRef}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+                transformOrigin: {
+                  vertical: "top",
+                  horizontal: "left",
+                },
+                sx: greyMenuItemStyles,
+              }}
+              sx={greySelectStyles}
+              onChange={(e) =>
+                setState((draft) => {
+                  if (e.target.value === "custom") {
+                    const dayBefore = subDays(draft.referenceDate, 1);
+                    draft.customDateRange = {
+                      start: toCalendarDate(dayBefore),
+                      end: toCalendarDate(draft.referenceDate),
+                    };
+                    return;
+                  }
+                  const option = timeOptions.find(
+                    (o) => o.id === e.target.value,
+                  );
+                  if (option === undefined || option.type !== "minutes") {
+                    return;
+                  }
+                  draft.selectedTimeOption = option.id;
+                  draft.query.startDate = subMinutes(
+                    draft.referenceDate,
+                    option.minutes,
+                  ).getTime();
+                  draft.query.endDate = draft.referenceDate.getTime();
+                  draft.query.offset = 0;
+                })
+              }
+              size="small"
+            >
+              {timeOptions.map((option) => (
+                <MenuItem
+                  key={option.id}
+                  value={option.id}
+                  onClick={
+                    option.id === "custom" ? customOnClickHandler : undefined
+                  }
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
-              onClick={onRefresh}
+              disabled={state.selectedTimeOption === "custom"}
+              onClick={() => {
+                setState((draft) => {
+                  const option = timeOptions.find(
+                    (o) => o.id === draft.selectedTimeOption,
+                  );
+                  if (option === undefined || option.type !== "minutes") {
+                    return;
+                  }
+                  draft.query.offset = 0;
+                  const endDate = new Date();
+                  draft.query.endDate = endDate.getTime();
+                  draft.query.startDate = subMinutes(
+                    endDate,
+                    option.minutes,
+                  ).getTime();
+                });
+              }}
               sx={{
                 border: "1px solid",
                 borderColor: "grey.400",
@@ -629,6 +807,86 @@ export function UserEventsTable({
           </Tooltip>
         </Stack>
       </Stack>
+
+      <Popover
+        open={Boolean(state.customDateRange)}
+        anchorEl={customDateRef.current}
+        onClose={() => {
+          setState((draft) => {
+            draft.customDateRange = null;
+          });
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+      >
+        <RangeCalendar
+          value={state.customDateRange}
+          visibleDuration={{ months: 2 }}
+          onChange={(newValue) => {
+            setState((draft) => {
+              draft.customDateRange = newValue;
+            });
+          }}
+          footer={
+            <Stack direction="row" justifyContent="space-between">
+              <Stack justifyContent="center" alignItems="center" flex={1}>
+                {state.customDateRange?.start &&
+                  formatCalendarDate(state.customDateRange.start)}
+                {" - "}
+                {state.customDateRange?.end &&
+                  formatCalendarDate(state.customDateRange.end)}
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <GreyButton
+                  onClick={() => {
+                    setState((draft) => {
+                      draft.customDateRange = null;
+                    });
+                  }}
+                >
+                  Cancel
+                </GreyButton>
+                <GreyButton
+                  onClick={() => {
+                    setState((draft) => {
+                      if (draft.customDateRange) {
+                        draft.query.startDate = draft.customDateRange.start
+                          .toDate(
+                            Intl.DateTimeFormat().resolvedOptions().timeZone,
+                          )
+                          .getTime();
+                        draft.query.endDate = draft.customDateRange.end
+                          .toDate(
+                            Intl.DateTimeFormat().resolvedOptions().timeZone,
+                          )
+                          .getTime();
+
+                        draft.customDateRange = null;
+                        draft.selectedTimeOption = "custom";
+                        draft.query.offset = 0;
+                      }
+                    });
+                  }}
+                  sx={{
+                    borderColor: "grey.400",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Apply
+                </GreyButton>
+              </Stack>
+            </Stack>
+          }
+        />
+      </Popover>
 
       <TableContainer component={Paper}>
         <Table stickyHeader>
