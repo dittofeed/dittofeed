@@ -1052,6 +1052,7 @@ export async function upsertJourney(
   }
 
   // FIXME trigger workflow to process manual segment assignments if the journey entry node is a manual segment entry node and is started and wasn't already both of those things
+  // submit to the queue workflow when able to separate by computed property
   return ok(resource);
 }
 
@@ -1106,10 +1107,6 @@ export async function findSubscribedRunningJourneysForSegment({
 
   return journeys.filter((j) => {
     const { definition } = j;
-    if (!definition) {
-      return false;
-    }
-
     const subscribedSegments = getSubscribedSegments(definition);
     return subscribedSegments.has(segmentId);
   });
