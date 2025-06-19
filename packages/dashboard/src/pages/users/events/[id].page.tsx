@@ -12,8 +12,8 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import { EventsTable } from "../../../components/eventsTable";
 import { SubtleHeader } from "../../../components/headers";
+import { UserEventsTable } from "../../../components/userEventsTable";
 import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
@@ -80,10 +80,7 @@ const UserEvents: NextPage<UserEventsPageProps> = function UserEvents({
 }) {
   return (
     <UserLayout userId={userId}>
-      <Stack spacing={2} sx={{ padding: 2, width: "100%", height: "100%" }}>
-        <SubtleHeader>Events</SubtleHeader>
-        <EventsTable userId={userId} />
-      </Stack>
+      <UserEventsTable userId={userId} />
     </UserLayout>
   );
 };
