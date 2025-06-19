@@ -10,24 +10,24 @@ import {
   BaseMessageResponse,
   BroadcastResourceV2,
   CompletionStatus,
-  StartBroadcastRequest,
+  ResumeBroadcastRequest,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { BROADCASTS_QUERY_KEY } from "./useBroadcastsQuery";
 
-export const START_BROADCAST_MUTATION_KEY = ["startBroadcast"];
+export const RESUME_BROADCAST_MUTATION_KEY = ["resumeBroadcast"];
 
 interface MutationContext {
   previousBroadcast?: BroadcastResourceV2;
 }
 
-export function useStartBroadcastMutation(
+export function useResumeBroadcastMutation(
   options?: UseMutationOptions<
     BaseMessageResponse,
     Error,
-    Omit<StartBroadcastRequest, "workspaceId">,
+    Omit<ResumeBroadcastRequest, "workspaceId">,
     MutationContext
   >,
 ) {
@@ -37,7 +37,7 @@ export function useStartBroadcastMutation(
   const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
-    params: Omit<StartBroadcastRequest, "workspaceId">,
+    params: Omit<ResumeBroadcastRequest, "workspaceId">,
   ): Promise<BaseMessageResponse> => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
@@ -45,7 +45,7 @@ export function useStartBroadcastMutation(
 
     const { id: workspaceId } = workspace.value;
     const response = await axios.post(
-      `${baseApiUrl}/broadcasts/start`,
+      `${baseApiUrl}/broadcasts/resume`,
       {
         ...params,
         workspaceId,
@@ -70,11 +70,11 @@ export function useStartBroadcastMutation(
   return useMutation<
     BaseMessageResponse,
     Error,
-    Omit<StartBroadcastRequest, "workspaceId">,
+    Omit<ResumeBroadcastRequest, "workspaceId">,
     MutationContext
   >({
     mutationFn,
-    mutationKey: START_BROADCAST_MUTATION_KEY,
+    mutationKey: RESUME_BROADCAST_MUTATION_KEY,
     ...options,
     onMutate: async (variables) => {
       if (workspace.type !== CompletionStatus.Successful) {
