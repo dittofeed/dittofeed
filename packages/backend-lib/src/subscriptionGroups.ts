@@ -44,7 +44,7 @@ import {
   SubscriptionChange,
   SubscriptionChangeEvent,
   SubscriptionGroup,
-  SubscriptionGroupType,
+  SubscriptionGroupType
   SubscriptionGroupUpsertValidationError,
   SubscriptionGroupUpsertValidationErrorType,
   SubscriptionParams,
