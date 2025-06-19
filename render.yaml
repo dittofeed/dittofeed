@@ -8,7 +8,7 @@ services:
     autoDeploy: false
     image:
       url: "dittofeed/dittofeed-worker:v0.23.0-alpha.41"
-    dockerCommand: node --max-old-space-size=724 packages/lite/dist/scripts/startLite.js
+    dockerCommand: node --max-old-space-size=724 packages/worker/dist/scripts/startWorker.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -37,8 +37,6 @@ services:
       - key: CLICKHOUSE_HOST
         sync: false
       - key: TEMPORAL_ADDRESS
-        sync: false
-      - key: PASSWORD
         sync: false
       - key: SECRET_KEY
         sync: false
