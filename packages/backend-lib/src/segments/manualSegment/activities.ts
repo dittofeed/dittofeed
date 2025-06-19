@@ -140,6 +140,7 @@ export async function appendToManualSegment({
     );
     return false;
   }
+  // FIXME get subscribed journeys
   await computePropertiesIncremental({
     workspaceId,
     segments: [segmentResource.value],
@@ -266,6 +267,7 @@ export async function replaceManualSegment({
     );
     return false;
   }
+  // FIXME get subscribed journeys
   await computePropertiesIncremental({
     workspaceId,
     segments: [segmentResource.value],

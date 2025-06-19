@@ -1050,6 +1050,7 @@ export async function upsertJourney(
     };
   }
 
+  // FIXME trigger workflow to process manual segment assignments if the journey entry node is a manual segment entry node and is started and wasn't already both of those things
   return ok(resource);
 }
 
