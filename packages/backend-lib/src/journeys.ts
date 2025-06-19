@@ -1094,3 +1094,25 @@ export async function findRunningJourneys({
     return j.value;
   });
 }
+
+export async function findSubscribedRunningJourneysForSegment({
+  workspaceId,
+  segmentId,
+}: {
+  workspaceId: string;
+  segmentId: string;
+}): Promise<SavedJourneyResource[]> {
+  const journeys = await findRunningJourneys(workspaceId);
+
+  return journeys.filter((j) => {
+    const { definition } = j;
+    if (!definition) {
+      return false;
+    }
+    const { entryNode } = definition;
+    if (entryNode.type !== JourneyNodeType.SegmentEntryNode) {
+      return false;
+    }
+    return entryNode.segment === segmentId;
+  });
+}
