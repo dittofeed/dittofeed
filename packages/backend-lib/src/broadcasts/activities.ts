@@ -7,10 +7,7 @@ import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
-import {
-  ComputePropertiesArgs,
-  processAssignments,
-} from "../computedProperties/computePropertiesIncremental";
+import { ComputePropertiesArgs } from "../computedProperties/computePropertiesIncremental";
 import { computePropertiesIncremental } from "../computedProperties/computePropertiesWorkflow/activities/computeProperties";
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -690,69 +687,5 @@ export async function recomputeBroadcastSegment({
     now,
   };
   await computePropertiesIncremental(args);
-  return true;
-}
-
-export async function processBroadcastSegment({
-  workspaceId,
-  broadcastId,
-  now,
-}: {
-  workspaceId: string;
-  broadcastId: string;
-  now: number;
-}) {
-  const broadcast = await db().query.broadcast.findFirst({
-    where: and(
-      eq(schema.broadcast.id, broadcastId),
-      eq(schema.broadcast.workspaceId, workspaceId),
-    ),
-    with: {
-      segment: true,
-    },
-  });
-  if (!broadcast) {
-    logger().error(
-      {
-        broadcastId,
-        workspaceId,
-      },
-      "Broadcast not found",
-    );
-    return false;
-  }
-  if (!broadcast.segment) {
-    logger().error(
-      {
-        broadcastId,
-        workspaceId,
-      },
-      "Broadcast segment not found",
-    );
-    return false;
-  }
-  if (broadcast.segment.resourceType !== "Internal") {
-    logger().info(
-      {
-        broadcastId,
-        workspaceId,
-      },
-      "Broadcast segment is not internal skipping recompute",
-    );
-    return false;
-  }
-  const segmentResource: SavedSegmentResource = unwrap(
-    toSegmentResource(broadcast.segment),
-  );
-  const args: ComputePropertiesArgs = {
-    workspaceId,
-    segments: [segmentResource],
-    userProperties: [],
-    journeys: [],
-    integrations: [],
-    now,
-  };
-
-  await processAssignments(args);
   return true;
 }
