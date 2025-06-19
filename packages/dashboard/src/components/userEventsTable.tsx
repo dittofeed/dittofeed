@@ -332,7 +332,6 @@ export function UserEventsTable({
     journeys,
   } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
 
-
   const [state, setState] = useImmer<State>({
     query: {
       offset: 0,
@@ -423,12 +422,9 @@ export function UserEventsTable({
     [broadcasts, journeys, messages],
   );
 
-  const eventsQuery = useEventsQuery(
-    state.query,
-    {
-      placeholderData: keepPreviousData,
-    },
-  );
+  const eventsQuery = useEventsQuery(state.query, {
+    placeholderData: keepPreviousData,
+  });
 
   const onNextPage = useCallback(() => {
     setState((draft) => {
