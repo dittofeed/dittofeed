@@ -801,9 +801,39 @@ export type RequestContextPostProcessor = (
   result: RequestContextResult,
 ) => Promise<RequestContextResult>;
 
-export interface WorkspaceQueueItem {
+export const WorkspaceQueueItemType = {
+  Workspace: "Workspace",
+  Segment: "Segment",
+  UserProperty: "UserProperty",
+} as const;
+
+export type WorkspaceQueueItemType =
+  (typeof WorkspaceQueueItemType)[keyof typeof WorkspaceQueueItemType];
+
+export interface EntireWorkspaceQueueItem {
+  id: string;
+  type?: typeof WorkspaceQueueItemType.Workspace;
+  priority?: number;
+  maxPeriod?: number;
+  insertedAt?: number; // Number representing insertion order
+}
+export interface BaseComputedPropertyQueueItem {
+  workspaceId: string;
   id: string;
   priority?: number;
   maxPeriod?: number;
   insertedAt?: number; // Number representing insertion order
 }
+
+export interface SegmentQueueItem extends BaseComputedPropertyQueueItem {
+  type: typeof WorkspaceQueueItemType.Segment;
+}
+
+export interface UserPropertyQueueItem extends BaseComputedPropertyQueueItem {
+  type: typeof WorkspaceQueueItemType.UserProperty;
+}
+
+export type WorkspaceQueueItem =
+  | EntireWorkspaceQueueItem
+  | SegmentQueueItem
+  | UserPropertyQueueItem;
