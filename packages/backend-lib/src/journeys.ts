@@ -1109,10 +1109,8 @@ export async function findSubscribedRunningJourneysForSegment({
     if (!definition) {
       return false;
     }
-    const { entryNode } = definition;
-    if (entryNode.type !== JourneyNodeType.SegmentEntryNode) {
-      return false;
-    }
-    return entryNode.segment === segmentId;
+
+    const subscribedSegments = getSubscribedSegments(definition);
+    return subscribedSegments.has(segmentId);
   });
 }
