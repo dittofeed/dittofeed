@@ -1,4 +1,3 @@
-import { Stack } from "@mui/material";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
@@ -12,7 +11,6 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
-import { SubtleHeader } from "../../../components/headers";
 import { UserEventsTable } from "../../../components/userEventsTable";
 import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
