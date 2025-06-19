@@ -497,6 +497,7 @@ export function UserEventsTable({
   );
 
   const renderMessageIdCell = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, react/no-unused-prop-types
     ({ row }: { row: Row<GetEventsResponseItem> }) => (
       <MessageIdCell value={row.original.messageId} />
     ),
