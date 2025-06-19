@@ -6,6 +6,7 @@ import {
   defineQuery,
   defineSignal,
   LoggerSinks,
+  patched,
   proxyActivities,
   proxySinks,
   setHandler,
@@ -156,10 +157,11 @@ export async function computePropertiesQueueWorkflow(
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
-  const { computePropertiesContained } = proxyActivities<typeof activities>({
-    startToCloseTimeout: "5 minutes",
-    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
-  });
+  const { computePropertiesContained, computePropertiesContainedV2 } =
+    proxyActivities<typeof activities>({
+      startToCloseTimeout: "5 minutes",
+      taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+    });
 
   logger.info("Loaded config values", {
     concurrency,
@@ -270,10 +272,16 @@ export async function computePropertiesQueueWorkflow(
     // D) Launch the activity in a background task
     const taskPromise = (async () => {
       try {
-        await computePropertiesContained({
-          workspaceId: item.id,
-          now: Date.now(),
-        });
+        if (patched("computePropertiesContainedV2")) {
+          // FIXME call computePropertiesContainedV2
+          // if it's null, we're done with this item
+          // if it's not null, we need to add the split items back to the queue
+        } else {
+          await computePropertiesContained({
+            workspaceId: item.id,
+            now: Date.now(),
+          });
+        }
         totalProcessed += 1;
         logger.info("Queue: Processed workspace", {
           itemId: item.id,

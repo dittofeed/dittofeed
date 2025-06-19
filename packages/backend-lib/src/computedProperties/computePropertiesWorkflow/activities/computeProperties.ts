@@ -7,6 +7,10 @@ import { findManyJourneyResourcesSafe } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
+import {
+  IndividualComputedPropertyQueueItem,
+  WorkspaceQueueItem,
+} from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import {
   computeAssignments,
@@ -147,4 +151,19 @@ export async function computePropertiesContained({
     ...args,
     now,
   });
+}
+
+/**
+ * @param item - The item to compute properties for
+ * @param now - The current time
+ * @returns Null if the item has been processed, and a list of items to process if the items have been split for further processing
+ */
+export async function computePropertiesContainedV2({
+  item,
+  now,
+}: {
+  item: WorkspaceQueueItem;
+  now: number;
+}): Promise<IndividualComputedPropertyQueueItem[] | null> {
+  throw new Error("Not implemented");
 }

@@ -805,6 +805,8 @@ export const WorkspaceQueueItemType = {
   Workspace: "Workspace",
   Segment: "Segment",
   UserProperty: "UserProperty",
+  Integration: "Integration",
+  Journey: "Journey",
 } as const;
 
 export type WorkspaceQueueItemType =
@@ -833,7 +835,20 @@ export interface UserPropertyQueueItem extends BaseComputedPropertyQueueItem {
   type: typeof WorkspaceQueueItemType.UserProperty;
 }
 
+export interface IntegrationQueueItem extends BaseComputedPropertyQueueItem {
+  type: typeof WorkspaceQueueItemType.Integration;
+}
+
+export interface JourneyQueueItem extends BaseComputedPropertyQueueItem {
+  type: typeof WorkspaceQueueItemType.Journey;
+}
+
+export type IndividualComputedPropertyQueueItem =
+  | SegmentQueueItem
+  | UserPropertyQueueItem
+  | IntegrationQueueItem
+  | JourneyQueueItem;
+
 export type WorkspaceQueueItem =
   | EntireWorkspaceQueueItem
-  | SegmentQueueItem
-  | UserPropertyQueueItem;
+  | IndividualComputedPropertyQueueItem;
