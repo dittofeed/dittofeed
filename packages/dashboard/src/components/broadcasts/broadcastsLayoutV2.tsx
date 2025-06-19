@@ -18,7 +18,7 @@ import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { usePauseBroadcastMutation } from "../../lib/usePauseBroadcastMutation";
 import { useResumeBroadcastMutation } from "../../lib/useResumeBroadcastMutation";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
-import { GreyButton } from "../greyButtonStyle";
+import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
@@ -207,13 +207,8 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
       loading={isLoading}
       startIcon={getIcon()}
       sx={{
+        ...greyButtonStyle,
         textTransform: "none",
-        backgroundColor:
-          broadcast.status === "Running" ? "warning.main" : undefined,
-        "&:hover": {
-          backgroundColor:
-            broadcast.status === "Running" ? "warning.dark" : undefined,
-        },
       }}
     >
       {getButtonText()}
