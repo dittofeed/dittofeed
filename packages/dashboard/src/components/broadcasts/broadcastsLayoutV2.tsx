@@ -1,3 +1,4 @@
+import CloseIcon from "@mui/icons-material/Close";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -16,6 +17,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useAppStorePick } from "../../lib/appStore";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
+import { useCancelBroadcastMutation } from "../../lib/useCancelBroadcastMutation";
 import { usePauseBroadcastMutation } from "../../lib/usePauseBroadcastMutation";
 import { useResumeBroadcastMutation } from "../../lib/useResumeBroadcastMutation";
 import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
@@ -108,8 +110,10 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
     usePauseBroadcastMutation();
   const { mutate: resumeBroadcast, isPending: isResuming } =
     useResumeBroadcastMutation();
+  const { mutate: cancelBroadcast, isPending: isCancelling } =
+    useCancelBroadcastMutation();
 
-  const isLoading = isStarting || isPausing || isResuming;
+  const isLoading = isStarting || isPausing || isResuming || isCancelling;
 
   const canStart = useMemo(() => {
     if (!broadcast || broadcast.status !== "Draft") {
@@ -120,21 +124,6 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
       broadcast.messageTemplateId && broadcast.subscriptionGroupId,
     );
   }, [broadcast]);
-
-  const isDisabled = useMemo(() => {
-    if (isLoading) return true;
-    if (!broadcast) return true;
-
-    switch (broadcast.status) {
-      case "Draft":
-        return !canStart;
-      case "Running":
-      case "Paused":
-        return false;
-      default:
-        return true; // Disabled for Scheduled, Completed, Cancelled, Failed
-    }
-  }, [broadcast, canStart, isLoading]);
 
   const handleClick = useCallback(() => {
     if (!broadcast) return;
@@ -151,6 +140,9 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
       case "Paused":
         resumeBroadcast({ broadcastId });
         break;
+      case "Scheduled":
+        cancelBroadcast({ broadcastId });
+        break;
       default:
         // Do nothing for other statuses
         break;
@@ -162,7 +154,24 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
     startBroadcast,
     pauseBroadcast,
     resumeBroadcast,
+    cancelBroadcast,
   ]);
+
+  const isDisabled = useMemo(() => {
+    if (isLoading) return true;
+    if (!broadcast) return true;
+
+    switch (broadcast.status) {
+      case "Draft":
+        return !canStart;
+      case "Running":
+      case "Paused":
+      case "Scheduled":
+        return false;
+      default:
+        return true; // Disabled for Completed, Cancelled, Failed
+    }
+  }, [broadcast, canStart, isLoading]);
 
   if (!broadcast) {
     return null;
@@ -177,7 +186,7 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
       case "Paused":
         return "Resume";
       case "Scheduled":
-        return "Scheduled";
+        return "Cancel Scheduled";
       case "Completed":
         return "Completed";
       case "Cancelled":
@@ -196,6 +205,8 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
         return <PlayArrowIcon />;
       case "Running":
         return <PauseIcon />;
+      case "Scheduled":
+        return <CloseIcon />;
       default:
         return null;
     }

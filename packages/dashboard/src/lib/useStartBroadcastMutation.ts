@@ -99,7 +99,9 @@ export function useStartBroadcastMutation(
         queryClient.setQueryData<BroadcastResourceV2[]>(broadcastQueryKey, [
           {
             ...previousBroadcast,
-            status: "Running" as const,
+            status: previousBroadcast.scheduledAt
+              ? "Scheduled"
+              : ("Running" as const),
           },
         ]);
       }
