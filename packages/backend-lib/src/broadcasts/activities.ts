@@ -463,6 +463,13 @@ export async function getZonedTimestamp({
   }
 }
 
+function canTransitionToStatus(
+  currentStatus: BroadcastV2Status,
+  newStatus: BroadcastV2Status,
+): boolean {
+  return true;
+}
+
 export async function markBroadcastStatus({
   workspaceId,
   broadcastId,
@@ -472,22 +479,58 @@ export async function markBroadcastStatus({
   broadcastId: string;
   status: BroadcastV2Status;
 }): Promise<BroadcastV2Status | null> {
-  const result = await db()
-    .update(schema.broadcast)
-    .set({
-      statusV2: status,
-    })
-    .where(
-      and(
-        eq(schema.broadcast.id, broadcastId),
-        eq(schema.broadcast.workspaceId, workspaceId),
-      ),
-    )
-    .returning();
-  if (result.length === 0) {
-    return null;
-  }
-  return result[0]?.statusV2 ?? null;
+  const result: BroadcastV2Status | null = await db().transaction(
+    async (tx) => {
+      const existing = await tx.query.broadcast.findFirst({
+        where: and(
+          eq(schema.broadcast.id, broadcastId),
+          eq(schema.broadcast.workspaceId, workspaceId),
+        ),
+      });
+      if (!existing) {
+        return null;
+      }
+      if (existing.statusV2 === status) {
+        return existing.statusV2;
+      }
+      if (existing.statusV2 === null) {
+        logger().error(
+          {
+            broadcastId,
+            workspaceId,
+            status,
+          },
+          "Broadcast status is null",
+        );
+        return null;
+      }
+      if (!canTransitionToStatus(existing.statusV2, status)) {
+        logger().error(
+          {
+            broadcastId,
+            workspaceId,
+            status,
+            currentStatus: existing.statusV2,
+          },
+          "Broadcast status transition is not valid",
+        );
+        return null;
+      }
+      await tx
+        .update(schema.broadcast)
+        .set({
+          statusV2: status,
+        })
+        .where(
+          and(
+            eq(schema.broadcast.id, broadcastId),
+            eq(schema.broadcast.workspaceId, workspaceId),
+          ),
+        );
+      return status;
+    },
+  );
+  return result;
 }
 
 export async function getBroadcastStatus({
