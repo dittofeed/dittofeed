@@ -1,9 +1,6 @@
 /* eslint-disable no-await-in-loop */
-import { and, eq } from "drizzle-orm";
-
-import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
-import { findManyJourneyResourcesSafe } from "../../../journeys";
+import { findRunningJourneys } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
@@ -21,12 +18,7 @@ export async function computePropertiesIncrementalArgs({
   workspaceId: string;
 }): Promise<Omit<ComputePropertiesArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
-    findManyJourneyResourcesSafe(
-      and(
-        eq(dbJourney.workspaceId, workspaceId),
-        eq(dbJourney.status, "Running"),
-      ),
-    ),
+    findRunningJourneys(workspaceId),
     findAllUserPropertyResources({
       workspaceId,
       requireRunning: true,
@@ -52,19 +44,7 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
-    journeys: journeys.flatMap((j) => {
-      if (j.isErr()) {
-        logger().error(
-          { err: j.error, workspaceId },
-          "failed to enrich journey",
-        );
-        return [];
-      }
-      if (j.value.status === "NotStarted") {
-        return [];
-      }
-      return j.value;
-    }),
+    journeys,
     integrations: integrations.flatMap((i) => {
       if (i.isErr()) {
         logger().error(

@@ -1067,3 +1067,24 @@ export async function deleteJourney(
   }
   return journey;
 }
+
+export async function findRunningJourneys(
+  workspaceId: string,
+): Promise<SavedJourneyResource[]> {
+  const journeys = await findManyJourneyResourcesSafe(
+    and(
+      eq(dbJourney.workspaceId, workspaceId),
+      eq(dbJourney.status, JourneyResourceStatusEnum.Running),
+    ),
+  );
+  return journeys.flatMap((j) => {
+    if (j.isErr()) {
+      logger().error({ err: j.error, workspaceId }, "failed to enrich journey");
+      return [];
+    }
+    if (j.value.status === "NotStarted") {
+      return [];
+    }
+    return j.value;
+  });
+}
