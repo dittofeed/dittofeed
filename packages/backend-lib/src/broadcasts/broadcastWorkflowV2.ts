@@ -15,6 +15,7 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 export const pauseBroadcastSignal = wf.defineSignal("PauseBroadcast");
 export const resumeBroadcastSignal = wf.defineSignal("ResumeBroadcast");
+export const cancelBroadcastSignal = wf.defineSignal("CancelBroadcast");
 
 const {
   computeTimezones,
@@ -129,6 +130,14 @@ export async function broadcastWorkflowV2({
       workspaceId,
     });
     await updateStatus("Running");
+  });
+
+  wf.setHandler(cancelBroadcastSignal, async () => {
+    logger.info("cancelling broadcast", {
+      broadcastId,
+      workspaceId,
+    });
+    await updateStatus("Cancelled");
   });
 
   const sendAllMessages = async function sendAllMessages({

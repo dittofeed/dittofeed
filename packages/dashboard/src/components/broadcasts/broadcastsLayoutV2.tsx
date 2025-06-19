@@ -1,5 +1,9 @@
+import CloseIcon from "@mui/icons-material/Close";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { LoadingButton } from "@mui/lab";
 import { SxProps, Theme, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -8,11 +12,17 @@ import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
 import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
-import { GreyButton } from "../greyButtonStyle";
+import { useCancelBroadcastMutation } from "../../lib/useCancelBroadcastMutation";
+import { usePauseBroadcastMutation } from "../../lib/usePauseBroadcastMutation";
+import { useResumeBroadcastMutation } from "../../lib/useResumeBroadcastMutation";
+import { useStartBroadcastMutation } from "../../lib/useStartBroadcastMutation";
+import { EditableTitle } from "../editableName/v2";
+import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
 import { RecomputedRecentlyIcon } from "../recomputedRecently";
 import UsersTableV2 from "../usersTableV2";
@@ -92,6 +102,133 @@ function PreviewContent({ id }: { id: string }) {
   );
 }
 
+function StatusButton({ broadcastId }: { broadcastId: string }) {
+  const { data: broadcast } = useBroadcastQuery(broadcastId);
+  const { mutate: startBroadcast, isPending: isStarting } =
+    useStartBroadcastMutation();
+  const { mutate: pauseBroadcast, isPending: isPausing } =
+    usePauseBroadcastMutation();
+  const { mutate: resumeBroadcast, isPending: isResuming } =
+    useResumeBroadcastMutation();
+  const { mutate: cancelBroadcast, isPending: isCancelling } =
+    useCancelBroadcastMutation();
+
+  const isLoading = isStarting || isPausing || isResuming || isCancelling;
+
+  const canStart = useMemo(() => {
+    if (!broadcast || broadcast.status !== "Draft") {
+      return false;
+    }
+    // Check required conditions from configuration
+    return Boolean(
+      broadcast.messageTemplateId && broadcast.subscriptionGroupId,
+    );
+  }, [broadcast]);
+
+  const handleClick = useCallback(() => {
+    if (!broadcast) return;
+
+    switch (broadcast.status) {
+      case "Draft":
+        if (canStart) {
+          startBroadcast({ broadcastId });
+        }
+        break;
+      case "Running":
+        pauseBroadcast({ broadcastId });
+        break;
+      case "Paused":
+        resumeBroadcast({ broadcastId });
+        break;
+      case "Scheduled":
+        cancelBroadcast({ broadcastId });
+        break;
+      default:
+        // Do nothing for other statuses
+        break;
+    }
+  }, [
+    broadcast,
+    broadcastId,
+    canStart,
+    startBroadcast,
+    pauseBroadcast,
+    resumeBroadcast,
+    cancelBroadcast,
+  ]);
+
+  const isDisabled = useMemo(() => {
+    if (isLoading) return true;
+    if (!broadcast) return true;
+
+    switch (broadcast.status) {
+      case "Draft":
+        return !canStart;
+      case "Running":
+      case "Paused":
+      case "Scheduled":
+        return false;
+      default:
+        return true; // Disabled for Completed, Cancelled, Failed
+    }
+  }, [broadcast, canStart, isLoading]);
+
+  if (!broadcast) {
+    return null;
+  }
+
+  const getButtonText = () => {
+    switch (broadcast.status) {
+      case "Draft":
+        return "Start Broadcast";
+      case "Running":
+        return "Pause";
+      case "Paused":
+        return "Resume";
+      case "Scheduled":
+        return "Cancel Scheduled";
+      case "Completed":
+        return "Completed";
+      case "Cancelled":
+        return "Cancelled";
+      case "Failed":
+        return "Failed";
+      default:
+        return broadcast.status;
+    }
+  };
+
+  const getIcon = () => {
+    switch (broadcast.status) {
+      case "Draft":
+      case "Paused":
+        return <PlayArrowIcon />;
+      case "Running":
+        return <PauseIcon />;
+      case "Scheduled":
+        return <CloseIcon />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <LoadingButton
+      variant="contained"
+      onClick={handleClick}
+      disabled={isDisabled}
+      loading={isLoading}
+      startIcon={getIcon()}
+      sx={{
+        ...greyButtonStyle,
+        textTransform: "none",
+      }}
+    >
+      {getButtonText()}
+    </LoadingButton>
+  );
+}
+
 export default function BroadcastLayout({
   children,
   state,
@@ -101,6 +238,7 @@ export default function BroadcastLayout({
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
   const { data: broadcast } = useBroadcastQuery(state.id);
+  const { mutate: updateBroadcast } = useBroadcastMutation(state.id);
   const updateStep = useCallback(
     (step: BroadcastStepKey) => {
       updateState((draft) => {
@@ -134,36 +272,49 @@ export default function BroadcastLayout({
           justifyContent="space-between"
           sx={{ width: "100%" }}
         >
-          <Stepper
-            sx={{
-              minWidth: "720px",
-              "& .MuiStepIcon-root.Mui-active": {
-                color: "grey.600",
-              },
-            }}
-            nonLinear
-            activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
-          >
-            {broadcastSteps.map((step: BroadcastStep) => (
-              <Step key={step.key}>
-                <StepButton
-                  color="inherit"
-                  disabled={!broadcast || (step.afterDraft && isDraft)}
-                  onClick={() => {
-                    updateStep(step.key);
-                    if (step.key === "CONTENT") {
-                      setPreviewOpen(false);
-                    } else {
-                      setPreviewOpen(true);
-                    }
-                  }}
-                >
-                  {step.name}
-                </StepButton>
-              </Step>
-            ))}
-          </Stepper>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Stepper
+              sx={{
+                minWidth: "720px",
+                "& .MuiStepIcon-root.Mui-active": {
+                  color: "grey.600",
+                },
+              }}
+              nonLinear
+              activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
+            >
+              {broadcastSteps.map((step: BroadcastStep) => (
+                <Step key={step.key}>
+                  <StepButton
+                    color="inherit"
+                    disabled={!broadcast || (step.afterDraft && isDraft)}
+                    onClick={() => {
+                      updateStep(step.key);
+                      if (step.key === "CONTENT") {
+                        setPreviewOpen(false);
+                      } else {
+                        setPreviewOpen(true);
+                      }
+                    }}
+                  >
+                    {step.name}
+                  </StepButton>
+                </Step>
+              ))}
+            </Stepper>
+            {broadcast && (
+              <EditableTitle
+                text={broadcast.name}
+                onSubmit={(val) => {
+                  updateBroadcast({
+                    name: val,
+                  });
+                }}
+              />
+            )}
+          </Stack>
           <Stack direction="row" spacing={2}>
+            <StatusButton broadcastId={state.id} />
             {!state.configuration?.hideDrawer && (
               <GreyButton
                 variant="contained"

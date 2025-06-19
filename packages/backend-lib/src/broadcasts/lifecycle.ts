@@ -144,7 +144,7 @@ export async function pauseBroadcast({
       {
         workspaceId,
         broadcastId,
-        error: e,
+        err: e,
       },
       "Error pausing broadcast workflow",
     );
@@ -180,9 +180,45 @@ export async function resumeBroadcast({
       {
         workspaceId,
         broadcastId,
-        error: e,
+        err: e,
       },
       "Error resuming broadcast workflow",
+    );
+    throw e;
+  }
+}
+
+export async function cancelBroadcast({
+  workspaceId,
+  broadcastId,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    logger().info(
+      {
+        workspaceId,
+        broadcastId,
+      },
+      "Cancelling broadcast workflow",
+    );
+    const handle = client.getHandle(
+      generateBroadcastWorkflowV2Id({
+        workspaceId,
+        broadcastId,
+      }),
+    );
+    await handle.signal("CancelBroadcast");
+  } catch (e) {
+    logger().error(
+      {
+        workspaceId,
+        broadcastId,
+        err: e,
+      },
+      "Error cancelling broadcast workflow",
     );
     throw e;
   }

@@ -10,24 +10,24 @@ import {
   BaseMessageResponse,
   BroadcastResourceV2,
   CompletionStatus,
-  StartBroadcastRequest,
+  PauseBroadcastRequest,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { BROADCASTS_QUERY_KEY } from "./useBroadcastsQuery";
 
-export const START_BROADCAST_MUTATION_KEY = ["startBroadcast"];
+export const PAUSE_BROADCAST_MUTATION_KEY = ["pauseBroadcast"];
 
 interface MutationContext {
   previousBroadcast?: BroadcastResourceV2;
 }
 
-export function useStartBroadcastMutation(
+export function usePauseBroadcastMutation(
   options?: UseMutationOptions<
     BaseMessageResponse,
     Error,
-    Omit<StartBroadcastRequest, "workspaceId">,
+    Omit<PauseBroadcastRequest, "workspaceId">,
     MutationContext
   >,
 ) {
@@ -37,7 +37,7 @@ export function useStartBroadcastMutation(
   const baseApiUrl = useBaseApiUrl();
 
   const mutationFn = async (
-    params: Omit<StartBroadcastRequest, "workspaceId">,
+    params: Omit<PauseBroadcastRequest, "workspaceId">,
   ): Promise<BaseMessageResponse> => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available");
@@ -45,7 +45,7 @@ export function useStartBroadcastMutation(
 
     const { id: workspaceId } = workspace.value;
     const response = await axios.post(
-      `${baseApiUrl}/broadcasts/start`,
+      `${baseApiUrl}/broadcasts/pause`,
       {
         ...params,
         workspaceId,
@@ -70,11 +70,11 @@ export function useStartBroadcastMutation(
   return useMutation<
     BaseMessageResponse,
     Error,
-    Omit<StartBroadcastRequest, "workspaceId">,
+    Omit<PauseBroadcastRequest, "workspaceId">,
     MutationContext
   >({
     mutationFn,
-    mutationKey: START_BROADCAST_MUTATION_KEY,
+    mutationKey: PAUSE_BROADCAST_MUTATION_KEY,
     ...options,
     onMutate: async (variables) => {
       if (workspace.type !== CompletionStatus.Successful) {
@@ -99,9 +99,7 @@ export function useStartBroadcastMutation(
         queryClient.setQueryData<BroadcastResourceV2[]>(broadcastQueryKey, [
           {
             ...previousBroadcast,
-            status: previousBroadcast.scheduledAt
-              ? "Scheduled"
-              : ("Running" as const),
+            status: "Paused" as const,
           },
         ]);
       }
