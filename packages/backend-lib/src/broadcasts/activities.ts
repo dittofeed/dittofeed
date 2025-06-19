@@ -754,4 +754,5 @@ export async function processBroadcastSegment({
   };
 
   await processAssignments(args);
+  return true;
 }
