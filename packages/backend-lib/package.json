@@ -3,7 +3,7 @@
   "version": "0.0.3",
   "private": true,
   "scripts": {
-    "build": "NODE_ENV=production tsc --build",
+    "build": "NODE_ENV=production tsc --build tsconfig.build.json",
     "lint": "eslint src/",
     "check": "tsc --build",
     "config-env": "ts-node scripts/configEnv.ts",
