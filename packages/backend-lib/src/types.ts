@@ -852,3 +852,20 @@ export type IndividualComputedPropertyQueueItem =
 export type WorkspaceQueueItem =
   | EntireWorkspaceQueueItem
   | IndividualComputedPropertyQueueItem;
+
+/**
+ * Generate a unique membership key for a queue item.
+ * - Entire workspace jobs key on workspace id.
+ * - Individual computed-property jobs key on (type, workspaceId, propertyId).
+ */
+export function generateKeyFromItem(item: WorkspaceQueueItem): string {
+  // Individual computed-property items carry a `workspaceId` field; whole-workspace items do not.
+  if ("workspaceId" in item) {
+    const { type, workspaceId, id } = item;
+    // `type` is defined on all individual items (Segment, UserProperty, etc.).
+    return `${type}:${workspaceId}:${id}`;
+  }
+
+  // Fallback: entire workspace job
+  return `${WorkspaceQueueItemType.Workspace}:${item.id}`;
+}
