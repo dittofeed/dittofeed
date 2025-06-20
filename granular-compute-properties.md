@@ -61,6 +61,9 @@ We're going to address this in two ways:
     1. Call the V2 activity with the dequeued `WorkspaceQueueItem`.
     2. If the result is an array, push those items onto `priorityQueue` **before** normal items (use priority to ensure that the split items are processed before the normal items) and add ids to `membership`.
     3. If `null`, treat as completed (same as v1).
+  - Replace the simple workspaceId membership Set with a composite-key approach:
+    - Implement `generateKeyFromItem(item)` → returns e.g. ``${item.type ?? "Workspace"}:${item.id}``.
+    - Use this key whenever adding to / checking the `membership` set so that split items (same workspace, different property) are tracked distinctly.
   - Ensure new item types are handled by `compareWorkspaceItems`.
   - Keep legacy path intact for rollback.
 
