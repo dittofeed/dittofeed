@@ -32,3 +32,8 @@ export const MESSAGE_METADATA_FIELDS = [
 export const WORKSPACE_OCCUPANT_SETTINGS_NAMES = {
   GmailTokens: "GmailTokens",
 } as const;
+
+export const QUEUE_ITEM_PRIORITIES = {
+  Split: 10,
+  Ui: 20,
+};
