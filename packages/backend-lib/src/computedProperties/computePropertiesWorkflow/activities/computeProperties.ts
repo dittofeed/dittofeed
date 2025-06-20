@@ -10,6 +10,7 @@ import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
   WorkspaceQueueItem,
+  WorkspaceQueueItemType,
 } from "../../../types";
 import { findAllUserPropertyResources } from "../../../userProperties";
 import {
@@ -153,11 +154,7 @@ export async function computePropertiesContained({
   });
 }
 
-/**
- * @param item - The item to compute properties for
- * @param now - The current time
- * @returns Null if the item has been processed, and a list of items to process if the items have been split for further processing
- */
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
 export async function computePropertiesContainedV2({
   item,
   now,
@@ -165,5 +162,64 @@ export async function computePropertiesContainedV2({
   item: WorkspaceQueueItem;
   now: number;
 }): Promise<IndividualComputedPropertyQueueItem[] | null> {
-  throw new Error("Not implemented");
+  // TODO implement splitting logic
+  return null;
+}
+
+// --- Targeted computation helper ---
+
+export async function computePropertiesIndividual({
+  item,
+  now,
+}: {
+  item: IndividualComputedPropertyQueueItem;
+  now: number;
+}): Promise<void> {
+  switch (item.type) {
+    case WorkspaceQueueItemType.Segment: {
+      const segmentsResult = await findManySegmentResourcesSafe({
+        workspaceId: item.workspaceId,
+        segmentIds: [item.id],
+        requireRunning: false,
+      });
+      const segments = segmentsResult.flatMap((r) => {
+        if (r.isErr()) {
+          logger().error(
+            { err: r.error, workspaceId: item.workspaceId },
+            "failed to get segment",
+          );
+          return [];
+        }
+        return [r.value];
+      });
+      await computePropertiesIncremental({
+        workspaceId: item.workspaceId,
+        segments,
+        userProperties: [],
+        journeys: [],
+        integrations: [],
+        now,
+      });
+      break;
+    }
+    case WorkspaceQueueItemType.UserProperty: {
+      const userProperties = await findAllUserPropertyResources({
+        workspaceId: item.workspaceId,
+        requireRunning: false,
+      });
+      const filtered = userProperties.filter((up) => up.id === item.id);
+      await computePropertiesIncremental({
+        workspaceId: item.workspaceId,
+        segments: [],
+        userProperties: filtered,
+        journeys: [],
+        integrations: [],
+        now,
+      });
+      break;
+    }
+    default:
+      // For Integration/Journey leave for future.
+      throw new Error(`Unsupported individual item type ${item.type}`);
+  }
 }
