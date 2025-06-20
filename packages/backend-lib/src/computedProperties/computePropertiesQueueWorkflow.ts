@@ -14,7 +14,8 @@ import {
 
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
-import { generateKeyFromItem, WorkspaceQueueItem } from "../types";
+import { WorkspaceQueueItem } from "../types";
+import { generateKeyFromItem, getWorkspaceIdFromItem } from "./queueUtils";
 
 export const COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID =
   "compute-properties-queue-workflow";
@@ -60,7 +61,7 @@ export interface ComputePropertiesQueueWorkflowParams {
 
 interface InFlightTask {
   task: Promise<void>;
-  id: string;
+  key: string;
 }
 
 /**
@@ -93,8 +94,10 @@ export function compareWorkspaceItems(
     return a.insertedAt - b.insertedAt;
   }
 
-  // If no insertedAt, fall back to string ID comparison
-  return a.id.localeCompare(b.id);
+  const aKey = generateKeyFromItem(a);
+  const bKey = generateKeyFromItem(b);
+  // If no insertedAt, fall back to string key comparison
+  return aKey.localeCompare(bKey);
 }
 
 /**
@@ -124,26 +127,18 @@ export async function computePropertiesQueueWorkflow(
           insertedAt: now, // Use current timestamp
         };
         priorityQueue.push(item);
-        membership.add(generateKeyFromItem(item));
+        membership.add(key);
       }
     }
   }
 
   // Handle queueStateV2 (WorkspaceQueueItem array)
   if (params.queueStateV2 && params.queueStateV2.length > 0) {
-    const now = Date.now();
     for (const item of params.queueStateV2) {
       const key = generateKeyFromItem(item);
       if (!membership.has(key)) {
-        // Preserve the insertedAt if it exists, otherwise assign current timestamp
-        const queueItem: WorkspaceQueueItem = {
-          id: item.id,
-          priority: item.priority,
-          maxPeriod: item.maxPeriod,
-          insertedAt: item.insertedAt !== undefined ? item.insertedAt : now,
-        };
-        priorityQueue.push(queueItem);
-        membership.add(generateKeyFromItem(queueItem));
+        priorityQueue.push(item);
+        membership.add(key);
       }
     }
   }
@@ -212,14 +207,8 @@ export async function computePropertiesQueueWorkflow(
     for (const item of signal.workspaces) {
       const key = generateKeyFromItem(item);
       if (priorityQueue.length < capacity && !membership.has(key)) {
-        const queueItem: WorkspaceQueueItem = {
-          id: item.id,
-          priority: item.priority,
-          maxPeriod: item.maxPeriod,
-          insertedAt: item.insertedAt,
-        };
-        priorityQueue.push(queueItem);
-        membership.add(generateKeyFromItem(queueItem));
+        priorityQueue.push(item);
+        membership.add(key);
       }
     }
   });
@@ -237,7 +226,7 @@ export async function computePropertiesQueueWorkflow(
     (): QueueState => ({
       priorityQueue,
       membership: Array.from(membership),
-      inFlightTaskIds: inFlight.map((task) => task.id),
+      inFlightTaskIds: inFlight.map((task) => task.key),
       totalProcessed,
     }),
   );
@@ -255,9 +244,12 @@ export async function computePropertiesQueueWorkflow(
     // B) Sort and dequeue the highest priority item
     priorityQueue.sort(compareWorkspaceItems);
     const item = priorityQueue.shift()!;
+    const key = generateKeyFromItem(item);
+    const workspaceId = getWorkspaceIdFromItem(item);
 
-    logger.info("Queue: Dequeued workspace", {
-      workspaceId: item.id,
+    logger.info("Queue: Dequeued workspace item", {
+      workspaceId,
+      key,
       priority: item.priority,
       maxPeriod: item.maxPeriod,
       queueSize: priorityQueue.length,
@@ -266,10 +258,11 @@ export async function computePropertiesQueueWorkflow(
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
 
-    membership.delete(generateKeyFromItem(item));
+    membership.delete(key);
 
     logger.info("Queue: Acquired semaphore slot", {
-      workspaceId: item.id,
+      workspaceId,
+      key,
     });
 
     // D) Launch the activity in a background task
@@ -281,29 +274,28 @@ export async function computePropertiesQueueWorkflow(
           // if it's not null, we need to add the split items back to the queue
         } else {
           await computePropertiesContained({
-            workspaceId: item.id,
+            workspaceId,
             now: Date.now(),
           });
         }
         totalProcessed += 1;
-        logger.info("Queue: Processed workspace", {
-          itemId: item.id,
-          workspaceId: item.id,
+        logger.info("Queue: Processed workspace item", {
+          key,
         });
       } catch (err) {
-        logger.error("Error processing workspace from queue", {
-          workspaceId: item.id,
+        logger.error("Error processing workspace item from queue", {
+          key,
           err,
         });
       } finally {
         inFlight.splice(
-          inFlight.findIndex((t) => t.id === item.id),
+          inFlight.findIndex((t) => t.key === key),
           1,
         );
         semaphore.release();
       }
     })();
-    inFlight.push({ task: taskPromise, id: item.id });
+    inFlight.push({ task: taskPromise, key });
 
     // E) Check if we've processed enough items to continueAsNew
     if (totalProcessed >= maxLoopIterations) {
