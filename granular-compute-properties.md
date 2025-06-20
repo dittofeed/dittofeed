@@ -29,19 +29,34 @@ We're going to address this in two ways:
 
 ## Implementation
 
-### High-level tasks
+### High-level tasks (execution order)
+
+- [ ] **Extend queue item types & priorities (foundation)**
+  - Confirm/extend definitions in `packages/backend-lib/src/types.ts` for:
+    - `EntireWorkspaceQueueItem` (represents full workspace job).
+    - `IndividualComputedPropertyQueueItem` (represents one segment / user-property / journey / integration).
+  - Ensure each queue item has `insertedAt`, `priority`, and optional `maxPeriod`.
+  - All computed properties are prioritised **equally**; we will simply inherit the parent workspace's priority when splitting.
 
 - [ ] **Introduce configuration for granular batching**
   - Add `computePropertiesBatchThreshold` (maximum `events × properties` allowed in a single batch) to `packages/backend-lib/src/config` and expose via env/helm values.
   - **Default:** start with `500_000` (half-million) as a reasonable midpoint within the "hundreds-of-thousands to several-million" guidance; operators can tune per-deployment.
   - Wire this value into Temporal activities through the existing `config` activity so it is available inside `computePropertiesContainedV2` and the queue workflow.
 
-- [ ] **Extend queue item types & priorities (if required)**
-  - Confirm/extend definitions in `packages/backend-lib/src/types.ts` for:
-    - `EntireWorkspaceQueueItem` (represents full workspace job).
-    - `IndividualComputedPropertyQueueItem` (represents one segment / user-property / journey / integration).
-  - Ensure each queue item has `insertedAt`, `priority`, and optional `maxPeriod`.
-  - All computed properties are prioritised **equally**; we will simply inherit the parent workspace's priority when splitting.
+- [ ] **Update `computePropertiesQueueWorkflow.ts` (plumbing & fairness)**
+  - Inside the `patched("computePropertiesContainedV2")` branch:
+    1. Call the V2 activity with the dequeued `WorkspaceQueueItem`.
+    2. If the result is an array, push those items onto `priorityQueue` **before** normal items (use priority to ensure that the split items are processed before the normal items) and add ids to `membership`.
+    3. If `null`, treat as completed (same as v1).
+  - Replace the simple workspaceId membership Set with a composite-key approach:
+    - Implement `generateKeyFromItem(item)` → returns e.g. ``${item.type ?? "Workspace"}:${item.id}``.
+    - Use this key whenever adding to / checking the `membership` set so that split items (same workspace, different property) are tracked distinctly.
+  - Ensure new item types are handled by `compareWorkspaceItems`.
+  - Keep legacy path intact for rollback.
+
+- [ ] **Add targeted computation helpers**
+  - Provide helper that runs `computePropertiesIncremental` while restricting to a single segment / user-property etc. (`computePropertiesIndividual`).
+  - Used by V2 when processing `IndividualComputedPropertyQueueItem`s.
 
 - [ ] **Implement `computePropertiesContainedV2`**
   - Signature: `({ item, now }): Promise<IndividualComputedPropertyQueueItem[] | null>`.
@@ -56,26 +71,11 @@ We're going to address this in two ways:
           • Produce an `IndividualComputedPropertyQueueItem` *only* for segments and user-properties that still need work, copying `priority`/`insertedAt` from the parent item.
           • Return this array so the queue can push it back for immediate processing.
 
-- [ ] **Update `computePropertiesQueueWorkflow.ts`**
-  - Inside the `patched("computePropertiesContainedV2")` branch:
-    1. Call the V2 activity with the dequeued `WorkspaceQueueItem`.
-    2. If the result is an array, push those items onto `priorityQueue` **before** normal items (use priority to ensure that the split items are processed before the normal items) and add ids to `membership`.
-    3. If `null`, treat as completed (same as v1).
-  - Replace the simple workspaceId membership Set with a composite-key approach:
-    - Implement `generateKeyFromItem(item)` → returns e.g. ``${item.type ?? "Workspace"}:${item.id}``.
-    - Use this key whenever adding to / checking the `membership` set so that split items (same workspace, different property) are tracked distinctly.
-  - Ensure new item types are handled by `compareWorkspaceItems`.
-  - Keep legacy path intact for rollback.
-
 - [ ] **Enhance `computePropertiesScheduler`**
   - Create a new activity, `findDueWorkspacesV3`. This should use a new method, `findDueWorkspaceMinTos`, which will return a list workspaces, sorted by the minimum time of the last processed computed property for that workspace.
   - This change will allow us to re-process individual computed properties, without delaying the processing of other computed properties in the workspace.
   - It should be careful to not include segments and user properties which don't have the running status.
   - We should write new tests in `packages/backend-lib/src/computedProperties/periods.test.ts`.
-
-- [ ] **Add targeted computation helpers (optional)**
-  - Provide helper that runs `computePropertiesIncremental` while restricting to a single segment / user-property etc. (`computePropertiesIndividual`).
-  - Used by V2 when processing `IndividualComputedPropertyQueueItem`s.
 
 - [ ] **Testing**
   - Implement new cases in `packages/backend-lib/src/computedProperties/computePropertiesQueueWorkflow.test.ts`
