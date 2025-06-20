@@ -43,7 +43,7 @@ We're going to address this in two ways:
   - **Default:** start with `500_000` (half-million) as a reasonable midpoint within the "hundreds-of-thousands to several-million" guidance; operators can tune per-deployment.
   - Wire this value into Temporal activities through the existing `config` activity so it is available inside `computePropertiesContainedV2` and the queue workflow.
 
-- [ ] **Update `computePropertiesQueueWorkflow.ts` (plumbing & fairness)**
+- [x] **Update `computePropertiesQueueWorkflow.ts` (plumbing & fairness)**
   - Inside the `patched("computePropertiesContainedV2")` branch:
     1. Call the V2 activity with the dequeued `WorkspaceQueueItem`.
     2. If the result is an array, push those items onto `priorityQueue` **before** normal items (use priority to ensure that the split items are processed before the normal items) and add ids to `membership`.

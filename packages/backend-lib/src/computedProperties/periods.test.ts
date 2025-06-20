@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { db, insert } from "../db";
@@ -12,6 +13,7 @@ import {
 } from "../types";
 import {
   createPeriods,
+  findDueWorkspaceMinTos,
   getEarliestComputePropertyPeriod,
   getPeriodsByComputedPropertyId,
 } from "./periods";
@@ -211,6 +213,131 @@ describe("periods", () => {
           to: new Date(now),
         }),
       ]);
+    });
+  });
+
+  describe("findDueWorkspaceMinTos", () => {
+    let segment1: SavedSegmentResource;
+    let segment2: SavedSegmentResource;
+    let now: number;
+
+    beforeEach(async () => {
+      now = Date.now();
+      const segment1Db = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            workspaceId: workspace.id,
+            name: `segment1-${randomUUID()}`,
+            id: randomUUID(),
+            status: "Running",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "email",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "example@test.com",
+                },
+              },
+              nodes: [],
+            },
+            updatedAt: new Date(),
+          },
+        }),
+      );
+      segment1 = unwrap(toSegmentResource(segment1Db));
+
+      const segment2Db = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            workspaceId: workspace.id,
+            name: `segment2-${randomUUID()}`,
+            id: randomUUID(),
+            status: "Running",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "max",
+                },
+              },
+              nodes: [],
+            },
+            updatedAt: new Date(),
+          },
+        }),
+      );
+      segment2 = unwrap(toSegmentResource(segment2Db));
+    });
+
+    it("should return workspaces with properties that are due", async () => {
+      const interval = 1000 * 60; // 1 minute
+      const dueTime = now - interval * 2;
+      const recentTime = now - interval / 2;
+
+      // segment1 is due
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment1],
+        userProperties: [],
+        now: dueTime,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+
+      // segment2 is not due
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment2],
+        userProperties: [],
+        now: recentTime,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+
+      const dueWorkspaces = await findDueWorkspaceMinTos({
+        now,
+        interval,
+      });
+
+      expect(dueWorkspaces).toHaveLength(1);
+      expect(dueWorkspaces[0]?.workspaceId).toEqual(workspace.id);
+      expect(dueWorkspaces[0]?.min?.getTime()).toBeCloseTo(dueTime);
+    });
+
+    it("should return workspaces with properties that have never been computed (cold start)", async () => {
+      const interval = 1000 * 60; // 1 minute
+
+      // segment1 has no period records, so it's a cold start
+
+      const dueWorkspaces = await findDueWorkspaceMinTos({
+        now,
+        interval,
+      });
+
+      expect(dueWorkspaces).toHaveLength(1);
+      expect(dueWorkspaces[0]?.workspaceId).toEqual(workspace.id);
+      expect(dueWorkspaces[0]?.min).toBeNull();
+    });
+
+    it("should not return workspaces with non-running properties", async () => {
+      await db()
+        .update(dbSegment)
+        .set({ status: "NotStarted" })
+        .where(eq(dbSegment.id, segment1.id));
+
+      const interval = 1000 * 60; // 1 minute
+
+      const dueWorkspaces = await findDueWorkspaceMinTos({
+        now,
+        interval,
+      });
+
+      expect(dueWorkspaces).toHaveLength(0);
     });
   });
 });

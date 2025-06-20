@@ -439,6 +439,64 @@ export async function findDueWorkspaceMaxTos({
   return periodsQuery;
 }
 
+export async function findDueWorkspaceMinTos({
+  now,
+  interval = config().computePropertiesInterval,
+  limit = 100,
+}: FindDueWorkspacesParams): Promise<
+  { min: Date | null; workspaceId: string }[]
+> {
+  const secondsInterval = Math.floor(interval / 1000);
+  const nowTime = new Date(now);
+
+  const query = sql`
+    WITH due_properties AS (
+        -- Due Segments
+        SELECT
+            s.workspace_id,
+            MAX(cpp.to) as last_computed
+        FROM segments s
+        LEFT JOIN computed_property_periods cpp ON cpp.computed_property_id = s.id AND cpp.type = 'Segment'
+        WHERE s.status = 'Running'
+        GROUP BY s.id
+        HAVING (
+            MAX(cpp.to) IS NULL OR
+            ${nowTime} - MAX(cpp.to) > MAKE_INTERVAL(secs => ${secondsInterval})
+        )
+
+        UNION ALL
+
+        -- Due User Properties
+        SELECT
+            up.workspace_id,
+            MAX(cpp.to) as last_computed
+        FROM user_properties up
+        LEFT JOIN computed_property_periods cpp ON cpp.computed_property_id = up.id AND cpp.type = 'UserProperty'
+        WHERE up.status = 'Running'
+        GROUP BY up.id
+        HAVING (
+            MAX(cpp.to) IS NULL OR
+            ${nowTime} - MAX(cpp.to) > MAKE_INTERVAL(secs => ${secondsInterval})
+        )
+    )
+    -- Aggregate to get the oldest due property per workspace
+    SELECT
+        dp.workspace_id as "workspaceId",
+        MIN(dp.last_computed) as "min"
+    FROM due_properties dp
+    JOIN workspaces w ON w.id = dp.workspace_id
+    WHERE w.status = 'Active' AND w.type != 'Parent'
+    GROUP BY dp.workspace_id
+    ORDER BY "min" ASC NULLS FIRST
+    LIMIT ${limit};
+  `;
+
+  const results = await db().execute<{ workspaceId: string; min: Date | null }>(
+    query,
+  );
+  return results.rows;
+}
+
 export async function getComputedPropertyPeriods({
   workspaceId,
   step,

@@ -5,7 +5,11 @@ import {
   computePropertiesQueueWorkflow,
   getQueueSizeQuery,
 } from "../../computePropertiesQueueWorkflow";
-import { findDueWorkspaceMaxTos, FindDueWorkspacesParams } from "../../periods";
+import {
+  findDueWorkspaceMaxTos,
+  FindDueWorkspacesParams,
+  findDueWorkspaceMinTos,
+} from "../../periods";
 
 export async function findDueWorkspaces(
   params: FindDueWorkspacesParams,
@@ -34,4 +38,16 @@ export async function getQueueSize(): Promise<number> {
     typeof computePropertiesQueueWorkflow
   >(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID);
   return handle.query(getQueueSizeQuery);
+}
+
+export async function findDueWorkspacesV3(
+  params: FindDueWorkspacesParams,
+): Promise<{ workspaces: WorkspaceQueueItem[] }> {
+  const minTos = await findDueWorkspaceMinTos(params);
+  return {
+    workspaces: minTos.map(({ workspaceId, min }) => ({
+      id: workspaceId,
+      maxPeriod: min?.getTime(),
+    })),
+  };
 }
