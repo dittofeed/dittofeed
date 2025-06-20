@@ -2,6 +2,8 @@
 import { and, eq } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
+import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
+import config from "../../../config";
 import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
@@ -22,6 +24,7 @@ import {
   computeState,
   processAssignments,
 } from "../../computePropertiesIncremental";
+import { getEarliestComputePropertyPeriod } from "../../periods";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
@@ -141,36 +144,6 @@ export async function computePropertiesIncremental({
   });
 }
 
-export async function computePropertiesContained({
-  workspaceId,
-  now,
-}: {
-  workspaceId: string;
-  now: number;
-}) {
-  const args = await computePropertiesIncrementalArgs({
-    workspaceId,
-  });
-  await computePropertiesIncremental({
-    ...args,
-    now,
-  });
-}
-
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
-export async function computePropertiesContainedV2({
-  item,
-  now,
-}: {
-  item: WorkspaceQueueItem;
-  now: number;
-}): Promise<IndividualComputedPropertyQueueItem[] | null> {
-  // TODO implement splitting logic
-  return null;
-}
-
-// --- Targeted computation helper ---
-
 export async function computePropertiesIndividual({
   item,
   now,
@@ -224,4 +197,110 @@ export async function computePropertiesIndividual({
     default:
       assertUnreachable(item);
   }
+}
+
+export async function computePropertiesContained({
+  workspaceId,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+}) {
+  const args = await computePropertiesIncrementalArgs({
+    workspaceId,
+  });
+  await computePropertiesIncremental({
+    ...args,
+    now,
+  });
+}
+
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
+export async function computePropertiesContainedV2({
+  item,
+  now,
+}: {
+  item: WorkspaceQueueItem;
+  now: number;
+}): Promise<IndividualComputedPropertyQueueItem[] | null> {
+  const threshold = config().computePropertiesBatchThreshold;
+
+  // Determine if this is a workspace-level item (no workspaceId field)
+  if (!("workspaceId" in item)) {
+    const workspaceId = item.id;
+
+    // Fetch segments and user properties for this workspace
+    const args = await computePropertiesIncrementalArgs({ workspaceId });
+    const totalProperties = args.segments.length + args.userProperties.length;
+
+    if (totalProperties === 0) {
+      // Nothing to do
+      return null;
+    }
+
+    // Determine the starting point for event counting (earliest period)
+    const earliest = await getEarliestComputePropertyPeriod({
+      workspaceId,
+    });
+
+    const qb = new ClickHouseQueryBuilder();
+    const query = `SELECT count() AS cnt FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+      workspaceId,
+      "String",
+    )} AND processing_time => toDateTime64(${qb.addQueryValue(
+      Math.floor(earliest / 1000),
+      "Int64",
+    )}, 3)`;
+
+    const result = await chQuery({
+      query,
+      query_params: qb.getQueries(),
+    });
+    const rows = await result.json<{ cnt: number }>();
+    const events = rows[0]?.cnt ?? 0;
+
+    const workload = events * totalProperties;
+
+    if (workload <= threshold) {
+      // Process entire workspace in one go (reuse v1 path elsewhere)
+      await computePropertiesIncremental({
+        ...args,
+        now,
+      });
+      return null;
+    }
+
+    // Build split items for segments and user properties
+    const splitItems: IndividualComputedPropertyQueueItem[] = [
+      ...args.segments.map((s) => ({
+        type: WorkspaceQueueItemType.Segment,
+        workspaceId,
+        id: s.id,
+        priority: item.priority,
+        insertedAt: Date.now(),
+      })),
+      ...args.userProperties.map((up) => ({
+        type: WorkspaceQueueItemType.UserProperty,
+        workspaceId,
+        id: up.id,
+        priority: item.priority,
+        insertedAt: Date.now(),
+      })),
+    ];
+
+    return splitItems;
+  }
+
+  if (
+    item.type === WorkspaceQueueItemType.Segment ||
+    item.type === WorkspaceQueueItemType.UserProperty
+  ) {
+    await computePropertiesIndividual({
+      item,
+      now,
+    });
+  }
+
+  // For Journey / Integration items we intentionally fall through; they'll be processed via the legacy whole-workspace path.
+  return null;
 }
