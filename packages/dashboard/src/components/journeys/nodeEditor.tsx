@@ -599,6 +599,8 @@ function MessageNodeFields({
           />
         </Stack>
       ) : null}
+      {providerOverrideEl}
+      {providerOverrideConfigEl}
       <Stack direction="row" spacing={1}>
         <InfoTooltip title="When enabled, message failures won't cause the journey to exit. The user will continue to the next step even if the message fails to send." />
         <FormControlLabel
@@ -621,8 +623,6 @@ function MessageNodeFields({
           disabled={disabled}
         />
       </Stack>
-      {providerOverrideEl}
-      {providerOverrideConfigEl}
     </>
   );
 }
