@@ -807,6 +807,7 @@ export const WorkspaceQueueItemType = {
   UserProperty: "UserProperty",
   Integration: "Integration",
   Journey: "Journey",
+  Batch: "Batch",
 } as const;
 
 export type WorkspaceQueueItemType =
@@ -819,7 +820,8 @@ export interface EntireWorkspaceQueueItem {
   maxPeriod?: number;
   insertedAt?: number; // Number representing insertion order
 }
-export interface BaseComputedPropertyQueueItem {
+
+export interface BaseComputedPropertyBatchQueueItem {
   workspaceId: string;
   id: string;
   priority?: number;
@@ -827,19 +829,28 @@ export interface BaseComputedPropertyQueueItem {
   insertedAt?: number; // Number representing insertion order
 }
 
-export interface SegmentQueueItem extends BaseComputedPropertyQueueItem {
+export interface BaseComputedPropertyIndividualQueueItem
+  extends BaseComputedPropertyBatchQueueItem {
+  id: string;
+}
+
+export interface SegmentQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
   type: typeof WorkspaceQueueItemType.Segment;
 }
 
-export interface UserPropertyQueueItem extends BaseComputedPropertyQueueItem {
+export interface UserPropertyQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
   type: typeof WorkspaceQueueItemType.UserProperty;
 }
 
-export interface IntegrationQueueItem extends BaseComputedPropertyQueueItem {
+export interface IntegrationQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
   type: typeof WorkspaceQueueItemType.Integration;
 }
 
-export interface JourneyQueueItem extends BaseComputedPropertyQueueItem {
+export interface JourneyQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
   type: typeof WorkspaceQueueItemType.Journey;
 }
 
@@ -849,9 +860,15 @@ export type IndividualComputedPropertyQueueItem =
   | IntegrationQueueItem
   | JourneyQueueItem;
 
+export interface BatchQueueItem extends BaseComputedPropertyBatchQueueItem {
+  type: typeof WorkspaceQueueItemType.Batch;
+  items: IndividualComputedPropertyQueueItem[];
+}
+
 export type WorkspaceQueueItem =
   | EntireWorkspaceQueueItem
-  | IndividualComputedPropertyQueueItem;
+  | IndividualComputedPropertyQueueItem
+  | BatchQueueItem;
 
 /**
  * Generate a unique membership key for a queue item.
