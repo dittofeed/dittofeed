@@ -379,6 +379,7 @@ function journeyDefinitionFromStateBranch(
           name: uiNode.name,
           subscriptionGroupId: uiNode.subscriptionGroupId,
           syncProperties: uiNode.syncProperties,
+          skipOnFailure: uiNode.skipOnFailure,
           variant,
           child,
         };
@@ -1258,6 +1259,7 @@ export function journeyBranchToState(
           name: node.name ?? "",
           subscriptionGroupId: node.subscriptionGroupId,
           syncProperties: node.syncProperties,
+          skipOnFailure: node.skipOnFailure,
         };
 
         let messageNode: MessageUiNodeProps;
