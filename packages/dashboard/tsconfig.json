@@ -7,8 +7,11 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "src/**/*.js",
     "test/**/*.ts",
+    "test/**/*.js",
     "scripts/**/*.ts",
+    "scripts/**/*.js",
     "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
   "exclude": ["node_modules", "dist"],
