@@ -32,7 +32,8 @@ We're going to address this in two ways:
 ### High-level tasks
 
 - [ ] **Introduce configuration for granular batching**
-  - Add `computePropertiesBatchThreshold` (max `events × properties`) to `packages/backend-lib/src/config` and expose via env/helm values.
+  - Add `computePropertiesBatchThreshold` (maximum `events × properties` allowed in a single batch) to `packages/backend-lib/src/config` and expose via env/helm values.
+  - **Default:** start with `500_000` (half-million) as a reasonable midpoint within the "hundreds-of-thousands to several-million" guidance; operators can tune per-deployment.
   - Wire this value into Temporal activities through the existing `config` activity so it is available inside `computePropertiesContainedV2` and the queue workflow.
 
 - [ ] **Extend queue item types & priorities (if required)**
@@ -40,7 +41,7 @@ We're going to address this in two ways:
     - `EntireWorkspaceQueueItem` (represents full workspace job).
     - `IndividualComputedPropertyQueueItem` (represents one segment / user-property / journey / integration).
   - Ensure each queue item has `insertedAt`, `priority`, and optional `maxPeriod`.
-  - Decide on a deterministic priority scheme (e.g. high `priority` when `events × properties` is large).
+  - All computed properties are prioritised **equally**; we will simply inherit the parent workspace's priority when splitting.
 
 - [ ] **Implement `computePropertiesContainedV2`**
   - Signature: `({ item, now }): Promise<IndividualComputedPropertyQueueItem[] | null>`.
@@ -51,8 +52,8 @@ We're going to address this in two ways:
        b. Calculate `numEvents` in the window since the last processed timestamp for each property.
        c. Compute `workload = numEvents × totalProperties`.
        d. If `workload ≤ threshold`, invoke `computePropertiesIncremental` (same as v1) and return `null`.
-       e. Otherwise split the work:
-          • Produce an `IndividualComputedPropertyQueueItem` for each property that still needs work, copying `priority`/`insertedAt` from the parent item.
+       e. Otherwise split the work (journeys & integrations remain full-workspace jobs):
+          • Produce an `IndividualComputedPropertyQueueItem` *only* for segments and user-properties that still need work, copying `priority`/`insertedAt` from the parent item.
           • Return this array so the queue can push it back for immediate processing.
 
 - [ ] **Update `computePropertiesQueueWorkflow.ts`**
@@ -76,11 +77,9 @@ We're going to address this in two ways:
 - [ ] **Testing**
   - Implement new cases in `packages/backend-lib/src/computedProperties/computePropertiesQueueWorkflow.test.ts`
 
-### Open questions / clarification needed
+### Status of previous open questions (resolved)
 
-1. What default value should we ship for `computePropertiesBatchThreshold`?  (e.g. 50 000, 100 000…)
-2. When splitting, should we break down only by computed property (segment/user-property) or also by event window (e.g. slice the time window further)?
-3. Do we need per-property prioritisation (e.g. segments before user-properties) or treat all equally?
-4. Should journeys and integrations also participate in granular batching now, or remain full-workspace jobs?
-
-Please let me know the answers so I can refine the implementation plan.
+1. **Default threshold** – use `500 000` by default; configurable.
+2. **Further slicing of event window** – not required for this phase.
+3. **Per-property prioritisation** – unnecessary; treat uniformly.
+4. **Journeys & integrations** – remain full-workspace jobs for now.
