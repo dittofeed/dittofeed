@@ -876,13 +876,16 @@ export type WorkspaceQueueItem =
  * - Individual computed-property jobs key on (type, workspaceId, propertyId).
  */
 export function generateKeyFromItem(item: WorkspaceQueueItem): string {
-  // Individual computed-property items carry a `workspaceId` field; whole-workspace items do not.
-  if ("workspaceId" in item) {
-    const { type, workspaceId, id } = item;
-    // `type` is defined on all individual items (Segment, UserProperty, etc.).
-    return `${type}:${workspaceId}:${id}`;
+  switch (item.type) {
+    case WorkspaceQueueItemType.Batch:
+      return `${item.type}:${item.workspaceId}`;
+    case WorkspaceQueueItemType.Segment:
+    case WorkspaceQueueItemType.UserProperty:
+    case WorkspaceQueueItemType.Integration:
+    case WorkspaceQueueItemType.Journey:
+      return `${item.type}:${item.workspaceId}:${item.id}`;
+    case WorkspaceQueueItemType.Workspace:
+    default:
+      return `${WorkspaceQueueItemType.Workspace}:${item.id}`;
   }
-
-  // Fallback: entire workspace job
-  return `${WorkspaceQueueItemType.Workspace}:${item.id}`;
 }
