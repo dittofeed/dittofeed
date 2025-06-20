@@ -646,7 +646,7 @@ export async function userJourneyWorkflow(
           }
         }
 
-        const shouldContinue = await sendMessageV2({
+        const messageSucceeded = await sendMessageV2({
           ...messagePayload,
           ...variant,
           events: keyedEvents,
@@ -654,7 +654,7 @@ export async function userJourneyWorkflow(
           isHidden,
         });
 
-        if (!shouldContinue) {
+        if (!messageSucceeded && !currentNode.skipOnFailure) {
           logger.info("message node early exit", {
             ...defaultLoggingFields,
             child: currentNode.child,

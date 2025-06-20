@@ -1088,6 +1088,7 @@ export const MessageNode = Type.Object(
     variant: MessageVariant,
     child: Type.String(),
     syncProperties: Type.Optional(Type.Boolean()),
+    skipOnFailure: Type.Optional(Type.Boolean()),
   },
   {
     title: "Message Node",
@@ -2075,6 +2076,7 @@ export const BaseMessageUiNodeProps = Type.Object({
   templateId: Type.Optional(Type.String()),
   subscriptionGroupId: Type.Optional(Type.String()),
   syncProperties: Type.Optional(Type.Boolean()),
+  skipOnFailure: Type.Optional(Type.Boolean()),
 });
 
 export type BaseMessageUiNodeProps = Static<typeof BaseMessageUiNodeProps>;

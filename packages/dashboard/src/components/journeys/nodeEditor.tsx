@@ -601,6 +601,28 @@ function MessageNodeFields({
       ) : null}
       {providerOverrideEl}
       {providerOverrideConfigEl}
+      <Stack direction="row" spacing={1}>
+        <InfoTooltip title="When enabled, message failures won't cause the journey to exit. The user will continue to the next step even if the message fails to send." />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={nodeProps.skipOnFailure ?? false}
+              onChange={(event) => {
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (props.type === JourneyNodeType.MessageNode) {
+                    props.skipOnFailure = event.target.checked;
+                  }
+                });
+              }}
+              name="skipOnFailure"
+              color="primary"
+            />
+          }
+          label="Skip on Failure"
+          disabled={disabled}
+        />
+      </Stack>
     </>
   );
 }
