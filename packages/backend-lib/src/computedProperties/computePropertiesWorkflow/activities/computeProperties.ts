@@ -12,8 +12,6 @@ import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
-  SegmentQueueItem,
-  UserPropertyQueueItem,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
 } from "../../../types";
@@ -148,7 +146,7 @@ export async function computePropertiesIndividual({
   item,
   now,
 }: {
-  item: SegmentQueueItem | UserPropertyQueueItem;
+  item: IndividualComputedPropertyQueueItem;
   now: number;
 }): Promise<void> {
   switch (item.type) {
@@ -189,6 +187,60 @@ export async function computePropertiesIndividual({
         segments: [],
         userProperties: filtered,
         journeys: [],
+        integrations: [],
+        now,
+      });
+      break;
+    }
+    case WorkspaceQueueItemType.Integration: {
+      const integrationResults = await findAllIntegrationResources({
+        workspaceId: item.workspaceId,
+      });
+      const integrations = integrationResults.flatMap((r) => {
+        if (r.isErr()) {
+          logger().error(
+            { err: r.error, workspaceId: item.workspaceId },
+            "failed to get integration",
+          );
+          return [];
+        }
+        if (r.value.id === item.id) {
+          return [r.value];
+        }
+        return [];
+      });
+      await computePropertiesIncremental({
+        workspaceId: item.workspaceId,
+        segments: [],
+        userProperties: [],
+        journeys: [],
+        integrations,
+        now,
+      });
+      break;
+    }
+    case WorkspaceQueueItemType.Journey: {
+      const journeyResults = await findManyJourneyResourcesSafe(
+        and(
+          eq(dbJourney.workspaceId, item.workspaceId),
+          eq(dbJourney.id, item.id),
+        ),
+      );
+      const journeys = journeyResults.flatMap((j) => {
+        if (j.isErr()) {
+          logger().error(
+            { err: j.error, workspaceId: item.workspaceId },
+            "failed to get journey",
+          );
+          return [];
+        }
+        return j.value.status === "Running" ? [j.value] : [];
+      });
+      await computePropertiesIncremental({
+        workspaceId: item.workspaceId,
+        segments: [],
+        userProperties: [],
+        journeys,
         integrations: [],
         now,
       });
@@ -299,6 +351,36 @@ export async function computePropertiesContainedV2({
       item,
       now,
     });
+  }
+
+  if (item.type === WorkspaceQueueItemType.Batch) {
+    const { workspaceId } = item;
+    const args = await computePropertiesIncrementalArgs({ workspaceId });
+
+    // Filter journeys and integrations to those included in the batch items
+    const journeyIds = item.items
+      .filter(({ type }) => type === WorkspaceQueueItemType.Journey)
+      .map(({ id }) => id);
+    const integrationIds = item.items
+      .filter(({ type }) => type === WorkspaceQueueItemType.Integration)
+      .map(({ id }) => id);
+
+    const journeys = args.journeys.filter(({ id }) => journeyIds.includes(id));
+    const integrations = args.integrations.filter(({ id }) =>
+      integrationIds.includes(id),
+    );
+
+    if (journeys.length > 0 || integrations.length > 0) {
+      await computePropertiesIncremental({
+        workspaceId,
+        segments: [],
+        userProperties: [],
+        journeys,
+        integrations,
+        now,
+      });
+    }
+    return null;
   }
 
   // For Journey / Integration items we intentionally fall through; they'll be processed via the legacy whole-workspace path.
