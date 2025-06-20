@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "outDir": "dist",
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"],
+  "include": [
+    "./src/**/*.ts",
+    "./scripts/**/*.ts",
+    "./test/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../isomorphic-lib"
+    }
+  ]
+}

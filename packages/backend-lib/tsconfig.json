@@ -1,19 +1,15 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["node", "jest"],
-    "outDir": "dist",
-    "skipLibCheck": true
-  },
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"],
+  "extends": "./tsconfig.build.json",
   "include": [
-    "./src/**/*.ts",
-    "./scripts/**/*.ts",
-    "./test/**/*.ts",
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
+    "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
       "path": "../isomorphic-lib"
     }
   ]
-}
+} 

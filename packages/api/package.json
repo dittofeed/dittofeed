@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only scripts/startServer.ts",
-    "build": "NODE_ENV=production tsc --build",
+    "build": "NODE_ENV=production tsc --build tsconfig.build.json",
     "check": "tsc --build",
     "lint": "eslint src/",
     "segment-test": "ts-node scripts/segmentTest.ts"

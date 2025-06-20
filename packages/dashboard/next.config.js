@@ -2,6 +2,9 @@ const path = require("path");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    tsconfigPath: "./tsconfig.build.json",
+  },
   basePath: "/dashboard",
   output: process.env.NEXT_STANDALONE !== "false" ? "standalone" : undefined,
   pageExtensions: ["page.tsx", "page.ts"],

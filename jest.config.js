@@ -25,7 +25,7 @@ const config = {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
-            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.jest.json",
+            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.json",
           },
         ],
       },
@@ -41,7 +41,7 @@ const config = {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
-            tsconfig: "<rootDir>/packages/dashboard/tsconfig.jest.json",
+            tsconfig: "<rootDir>/packages/dashboard/tsconfig.json",
           },
         ],
       },
@@ -60,20 +60,7 @@ const config = {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
-            tsconfig: "<rootDir>/packages/api/tsconfig.jest.json",
-          },
-        ],
-      },
-    },
-    {
-      ...BASE_CONFIG,
-      displayName: "isomorphic-lib",
-      roots: ["<rootDir>/packages/isomorphic-lib/src"],
-      transform: {
-        "^.+\\.tsx?$": [
-          "ts-jest",
-          {
-            tsconfig: "<rootDir>/packages/dashboard/tsconfig.jest.json",
+            tsconfig: "<rootDir>/packages/api/tsconfig.json",
           },
         ],
       },

@@ -1,20 +1,21 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["node", "jest"],
-    "outDir": "dist",
-  },
-  "exclude": ["node_modules", "dist", "../lite/**/*", "../dashboard/**/*", "../docs/**/*", "../admin-cli/**/*", "**/*.test.ts", "**/*.test.tsx"],
-  "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
+  "extends": "./tsconfig.build.json",
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
+    "../../node_modules/jest-expect-message/types/index.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
-      "path": "../isomorphic-lib",
+      "path": "../isomorphic-lib"
     },
     {
-      "path": "../backend-lib",
+      "path": "../backend-lib"
     },
     {
-      "path": "../emailo",
+      "path": "../emailo"
     }
-  ],
-}
+  ]
+} 
