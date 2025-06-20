@@ -6,5 +6,16 @@
     "scripts",
     "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    {
+      "path": "../isomorphic-lib"
+    },
+    {
+      "path": "../backend-lib"
+    },
+    {
+      "path": "../emailo"
+    }
+  ]
 } 
