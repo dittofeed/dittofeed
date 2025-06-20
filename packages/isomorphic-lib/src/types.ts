@@ -1088,6 +1088,7 @@ export const MessageNode = Type.Object(
     variant: MessageVariant,
     child: Type.String(),
     syncProperties: Type.Optional(Type.Boolean()),
+    skipOnFailure: Type.Optional(Type.Boolean()),
   },
   {
     title: "Message Node",
