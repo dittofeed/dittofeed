@@ -823,7 +823,6 @@ export interface EntireWorkspaceQueueItem {
 
 export interface BaseComputedPropertyBatchQueueItem {
   workspaceId: string;
-  id: string;
   priority?: number;
   maxPeriod?: number;
   insertedAt?: number; // Number representing insertion order
