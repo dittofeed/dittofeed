@@ -154,10 +154,11 @@ export async function computePropertiesQueueWorkflow(
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
-  const { computePropertiesContained } = proxyActivities<typeof activities>({
-    startToCloseTimeout: "5 minutes",
-    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
-  });
+  const { computePropertiesContained, computePropertiesContainedV2 } =
+    proxyActivities<typeof activities>({
+      startToCloseTimeout: "5 minutes",
+      taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+    });
 
   logger.info("Loaded config values", {
     concurrency,
@@ -269,9 +270,21 @@ export async function computePropertiesQueueWorkflow(
     const taskPromise = (async () => {
       try {
         if (patched("computePropertiesContainedV2")) {
-          // FIXME call computePropertiesContainedV2
-          // if it's null, we're done with this item
-          // if it's not null, we need to add the split items back to the queue
+          const now = Date.now();
+          const newItems = await computePropertiesContainedV2({
+            item,
+            now,
+          });
+
+          if (newItems) {
+            for (const newItem of newItems) {
+              const newKey = generateKeyFromItem(newItem);
+              if (priorityQueue.length < capacity && !membership.has(newKey)) {
+                priorityQueue.push(newItem);
+                membership.add(newKey);
+              }
+            }
+          }
         } else {
           await computePropertiesContained({
             workspaceId,

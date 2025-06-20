@@ -4,6 +4,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
 import config from "../../../config";
+import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
 import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
@@ -328,14 +329,14 @@ export async function computePropertiesContainedV2({
         type: WorkspaceQueueItemType.Segment,
         workspaceId,
         id: s.id,
-        priority: item.priority,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
         insertedAt: Date.now(),
       })),
       ...args.userProperties.map((up) => ({
         type: WorkspaceQueueItemType.UserProperty,
         workspaceId,
         id: up.id,
-        priority: item.priority,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
         insertedAt: Date.now(),
       })),
     ];
