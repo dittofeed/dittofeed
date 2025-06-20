@@ -355,6 +355,7 @@ export async function computePropertiesContainedV2({
 
   if (item.type === WorkspaceQueueItemType.Batch) {
     const { workspaceId } = item;
+    // TODO: move filtering into database queries
     const args = await computePropertiesIncrementalArgs({ workspaceId });
 
     // Filter journeys and integrations to those included in the batch items
