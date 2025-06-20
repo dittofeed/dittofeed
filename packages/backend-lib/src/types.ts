@@ -860,7 +860,8 @@ export type IndividualComputedPropertyQueueItem =
   | IntegrationQueueItem
   | JourneyQueueItem;
 
-export interface BatchQueueItem extends BaseComputedPropertyBatchQueueItem {
+export interface BatchComputedPropertyQueueItem
+  extends BaseComputedPropertyBatchQueueItem {
   type: typeof WorkspaceQueueItemType.Batch;
   items: IndividualComputedPropertyQueueItem[];
 }
@@ -868,7 +869,7 @@ export interface BatchQueueItem extends BaseComputedPropertyBatchQueueItem {
 export type WorkspaceQueueItem =
   | EntireWorkspaceQueueItem
   | IndividualComputedPropertyQueueItem
-  | BatchQueueItem;
+  | BatchComputedPropertyQueueItem;
 
 /**
  * Generate a unique membership key for a queue item.
