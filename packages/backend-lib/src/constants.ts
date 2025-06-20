@@ -35,5 +35,4 @@ export const WORKSPACE_OCCUPANT_SETTINGS_NAMES = {
 
 export const QUEUE_ITEM_PRIORITIES = {
   Split: 10,
-  Ui: 20,
-};
+} as const;
