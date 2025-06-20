@@ -31,14 +31,14 @@ We're going to address this in two ways:
 
 ### High-level tasks (execution order)
 
-- [ ] **Extend queue item types & priorities (foundation)**
+- [x] **Extend queue item types & priorities (foundation)**
   - Confirm/extend definitions in `packages/backend-lib/src/types.ts` for:
     - `EntireWorkspaceQueueItem` (represents full workspace job).
     - `IndividualComputedPropertyQueueItem` (represents one segment / user-property / journey / integration).
   - Ensure each queue item has `insertedAt`, `priority`, and optional `maxPeriod`.
   - All computed properties are prioritised **equally**; we will simply inherit the parent workspace's priority when splitting.
 
-- [ ] **Introduce configuration for granular batching**
+- [x] **Introduce configuration for granular batching**
   - Add `computePropertiesBatchThreshold` (maximum `events × properties` allowed in a single batch) to `packages/backend-lib/src/config` and expose via env/helm values.
   - **Default:** start with `500_000` (half-million) as a reasonable midpoint within the "hundreds-of-thousands to several-million" guidance; operators can tune per-deployment.
   - Wire this value into Temporal activities through the existing `config` activity so it is available inside `computePropertiesContainedV2` and the queue workflow.

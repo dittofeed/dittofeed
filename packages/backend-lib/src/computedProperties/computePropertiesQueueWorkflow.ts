@@ -14,7 +14,7 @@ import {
 
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
-import { WorkspaceQueueItem } from "../types";
+import { generateKeyFromItem, WorkspaceQueueItem } from "../types";
 
 export const COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID =
   "compute-properties-queue-workflow";
@@ -117,13 +117,14 @@ export async function computePropertiesQueueWorkflow(
   if (params.queueState && params.queueState.length > 0) {
     const now = Date.now();
     for (const workspaceId of params.queueState) {
-      if (workspaceId && !membership.has(workspaceId)) {
+      const key = generateKeyFromItem({ id: workspaceId });
+      if (workspaceId && !membership.has(key)) {
         const item: WorkspaceQueueItem = {
           id: workspaceId,
           insertedAt: now, // Use current timestamp
         };
         priorityQueue.push(item);
-        membership.add(workspaceId);
+        membership.add(generateKeyFromItem(item));
       }
     }
   }
@@ -132,7 +133,8 @@ export async function computePropertiesQueueWorkflow(
   if (params.queueStateV2 && params.queueStateV2.length > 0) {
     const now = Date.now();
     for (const item of params.queueStateV2) {
-      if (!membership.has(item.id)) {
+      const key = generateKeyFromItem(item);
+      if (!membership.has(key)) {
         // Preserve the insertedAt if it exists, otherwise assign current timestamp
         const queueItem: WorkspaceQueueItem = {
           id: item.id,
@@ -141,7 +143,7 @@ export async function computePropertiesQueueWorkflow(
           insertedAt: item.insertedAt !== undefined ? item.insertedAt : now,
         };
         priorityQueue.push(queueItem);
-        membership.add(item.id);
+        membership.add(generateKeyFromItem(queueItem));
       }
     }
   }
@@ -157,11 +159,10 @@ export async function computePropertiesQueueWorkflow(
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
-  const { computePropertiesContained, computePropertiesContainedV2 } =
-    proxyActivities<typeof activities>({
-      startToCloseTimeout: "5 minutes",
-      taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
-    });
+  const { computePropertiesContained } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "5 minutes",
+    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+  });
 
   logger.info("Loaded config values", {
     concurrency,
@@ -188,13 +189,14 @@ export async function computePropertiesQueueWorkflow(
 
     const now = Date.now();
     for (const id of workspaceIds) {
-      if (id && priorityQueue.length < capacity && !membership.has(id)) {
-        const item: WorkspaceQueueItem = {
+      const key = generateKeyFromItem({ id });
+      if (id && priorityQueue.length < capacity && !membership.has(key)) {
+        const queueItem: WorkspaceQueueItem = {
           id,
           insertedAt: now, // Use timestamp
         };
-        priorityQueue.push(item);
-        membership.add(id);
+        priorityQueue.push(queueItem);
+        membership.add(generateKeyFromItem(queueItem));
       }
     }
   });
@@ -208,7 +210,8 @@ export async function computePropertiesQueueWorkflow(
     });
 
     for (const item of signal.workspaces) {
-      if (priorityQueue.length < capacity && !membership.has(item.id)) {
+      const key = generateKeyFromItem(item);
+      if (priorityQueue.length < capacity && !membership.has(key)) {
         const queueItem: WorkspaceQueueItem = {
           id: item.id,
           priority: item.priority,
@@ -216,7 +219,7 @@ export async function computePropertiesQueueWorkflow(
           insertedAt: item.insertedAt,
         };
         priorityQueue.push(queueItem);
-        membership.add(item.id);
+        membership.add(generateKeyFromItem(queueItem));
       }
     }
   });
@@ -263,7 +266,7 @@ export async function computePropertiesQueueWorkflow(
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
 
-    membership.delete(item.id);
+    membership.delete(generateKeyFromItem(item));
 
     logger.info("Queue: Acquired semaphore slot", {
       workspaceId: item.id,
