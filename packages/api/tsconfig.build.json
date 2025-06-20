@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "outDir": "dist",
+  },
+  "exclude": ["node_modules", "dist", "../lite/**/*", "../dashboard/**/*", "../docs/**/*", "../admin-cli/**/*", "**/*.test.ts", "**/*.test.tsx"],
+  "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
+  "references": [
+    {
+      "path": "../isomorphic-lib",
+    },
+    {
+      "path": "../backend-lib",
+    },
+    {
+      "path": "../emailo",
+    }
+  ],
+}

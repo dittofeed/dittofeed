@@ -60,7 +60,7 @@ const config = {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
-            tsconfig: "<rootDir>/packages/api/tsconfig.jest.json",
+            tsconfig: "<rootDir>/packages/api/tsconfig.json",
           },
         ],
       },
