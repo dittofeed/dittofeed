@@ -117,6 +117,9 @@ const BaseRawConfigProps = {
   computePropertiesQueueCapacity: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesBatchThreshold: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   computedPropertiesActivityTaskQueue: Type.Optional(Type.String()),
   computePropertiesSchedulerInterval: Type.Optional(
     Type.String({ format: "naturalNumber" }),
@@ -263,6 +266,7 @@ export type Config = Overwrite<
     clickhouseComputePropertiesRequestTimeout?: number;
     clickhouseComputePropertiesMaxExecutionTime?: number;
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
+    computePropertiesBatchThreshold: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -467,6 +471,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     rawConfig.computedPropertiesActivityTaskQueue ??
     computedPropertiesTaskQueue;
 
+  const computePropertiesBatchThreshold =
+    rawConfig.computePropertiesBatchThreshold
+      ? parseInt(rawConfig.computePropertiesBatchThreshold)
+      : 500_000;
+
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -605,6 +614,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
         : undefined,
+    computePropertiesBatchThreshold,
   };
 
   return parsedConfig;
