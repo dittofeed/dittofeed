@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import { and, eq } from "drizzle-orm";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
@@ -9,6 +10,8 @@ import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
+  SegmentQueueItem,
+  UserPropertyQueueItem,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
 } from "../../../types";
@@ -172,7 +175,7 @@ export async function computePropertiesIndividual({
   item,
   now,
 }: {
-  item: IndividualComputedPropertyQueueItem;
+  item: SegmentQueueItem | UserPropertyQueueItem;
   now: number;
 }): Promise<void> {
   switch (item.type) {
@@ -219,7 +222,6 @@ export async function computePropertiesIndividual({
       break;
     }
     default:
-      // For Integration/Journey leave for future.
-      throw new Error(`Unsupported individual item type ${item.type}`);
+      assertUnreachable(item);
   }
 }
