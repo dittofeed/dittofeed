@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.build.json",
   "include": [
-    "src",
-    "test",
-    "scripts",
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
     "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
   "exclude": ["dist", "node_modules"],

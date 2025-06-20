@@ -5,9 +5,10 @@
   },
   "include": [
     "next-env.d.ts",
-    "src",
-    "test",
-    "scripts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
     "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
   "exclude": ["node_modules", "dist"],
