@@ -7,6 +7,7 @@ import {
   RawRequestDefaultExpression,
   RawServerDefault,
 } from "fastify";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   DFRequestContext,
   EventType,
@@ -885,7 +886,9 @@ export function generateKeyFromItem(item: WorkspaceQueueItem): string {
     case WorkspaceQueueItemType.Journey:
       return `${item.type}:${item.workspaceId}:${item.id}`;
     case WorkspaceQueueItemType.Workspace:
-    default:
+    case undefined:
       return `${WorkspaceQueueItemType.Workspace}:${item.id}`;
+    default:
+      assertUnreachable(item);
   }
 }
