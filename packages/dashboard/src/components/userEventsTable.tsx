@@ -1,6 +1,8 @@
 import { CalendarDate } from "@internationalized/date";
 import {
+  Computer,
   ContentCopy as ContentCopyIcon,
+  Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
@@ -154,18 +156,50 @@ function TimeCell({ timestamp }: { timestamp: string }) {
   const formatted = formatDistanceToNow(date, { addSuffix: true });
 
   const tooltipContent = (
-    <Typography>
-      {new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        hour12: true,
-      }).format(date)}
-    </Typography>
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 
   return (
