@@ -3,7 +3,9 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import {
   Close as CloseIcon,
+  Computer,
   ContentCopy as ContentCopyIcon,
+  Home,
   Link as LinkIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
@@ -26,6 +28,7 @@ import {
   Stack,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -120,17 +123,54 @@ function CopyableField({
 
 function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
   const date = new Date(timestamp);
-  const relative = formatDistanceToNow(date, { addSuffix: true });
-  const absolute = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hour12: true,
-  }).format(date);
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
+
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -141,18 +181,22 @@ function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
       >
         {label}
       </Typography>
-      <Stack spacing={0.5}>
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {relative}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontFamily: "monospace" }}
-        >
-          {absolute}
-        </Typography>
-      </Stack>
+      <Tooltip
+        title={tooltipContent}
+        placement="bottom-start"
+        arrow
+        PopperProps={{
+          sx: {
+            zIndex: 3001, // Higher than the drawer's zIndex of 3000
+          },
+        }}
+      >
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {formatted}
+          </Typography>
+        </Box>
+      </Tooltip>
     </Box>
   );
 }
