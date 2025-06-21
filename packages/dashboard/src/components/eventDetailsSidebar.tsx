@@ -26,6 +26,7 @@ import {
   Stack,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -120,17 +121,22 @@ function CopyableField({
 
 function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
   const date = new Date(timestamp);
-  const relative = formatDistanceToNow(date, { addSuffix: true });
-  const absolute = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hour12: true,
-  }).format(date);
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
+
+  const tooltipContent = (
+    <Typography>
+      {new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: true,
+      }).format(date)}
+    </Typography>
+  );
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -141,18 +147,13 @@ function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
       >
         {label}
       </Typography>
-      <Stack spacing={0.5}>
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {relative}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontFamily: "monospace" }}
-        >
-          {absolute}
-        </Typography>
-      </Stack>
+      <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {formatted}
+          </Typography>
+        </Box>
+      </Tooltip>
     </Box>
   );
 }
