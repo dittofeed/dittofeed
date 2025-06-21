@@ -147,7 +147,16 @@ function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
       >
         {label}
       </Typography>
-      <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Tooltip
+        title={tooltipContent}
+        placement="bottom-start"
+        arrow
+        PopperProps={{
+          sx: {
+            zIndex: 3001, // Higher than the drawer's zIndex of 3000
+          },
+        }}
+      >
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             {formatted}
