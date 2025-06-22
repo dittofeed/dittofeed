@@ -3,8 +3,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
-import config from "../../../config";
-import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
 import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
@@ -12,7 +10,6 @@ import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
-  BatchComputedPropertyQueueItem,
   IndividualComputedPropertyQueueItem,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
@@ -24,7 +21,6 @@ import {
   computeState,
   processAssignments,
 } from "../../computePropertiesIncremental";
-import { getEarliestComputePropertyPeriod } from "../../periods";
 
 export interface ComputePropertiesIncrementalArgsParams {
   workspaceId: string;
@@ -44,27 +40,35 @@ export async function computePropertiesIncrementalArgs({
   Omit<ComputePropertiesArgs, "now">
 > {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
-    findManyJourneyResourcesSafe(
-      and(
-        eq(dbJourney.workspaceId, workspaceId),
-        eq(dbJourney.status, "Running"),
-        ...(journeyIds ? [inArray(dbJourney.id, journeyIds)] : []),
-      ),
-    ),
-    findAllUserPropertyResources({
-      workspaceId,
-      requireRunning: true,
-      ids: userPropertyIds,
-    }),
-    findManySegmentResourcesSafe({
-      workspaceId,
-      requireRunning: true,
-      segmentIds,
-    }),
-    findAllIntegrationResources({
-      workspaceId,
-      ids: integrationIds,
-    }),
+    journeyIds !== undefined && journeyIds.length === 0
+      ? []
+      : findManyJourneyResourcesSafe(
+          and(
+            eq(dbJourney.workspaceId, workspaceId),
+            eq(dbJourney.status, "Running"),
+            ...(journeyIds ? [inArray(dbJourney.id, journeyIds)] : []),
+          ),
+        ),
+    userPropertyIds !== undefined && userPropertyIds.length === 0
+      ? []
+      : findAllUserPropertyResources({
+          workspaceId,
+          requireRunning: true,
+          ids: userPropertyIds,
+        }),
+    segmentIds !== undefined && segmentIds.length === 0
+      ? []
+      : findManySegmentResourcesSafe({
+          workspaceId,
+          requireRunning: true,
+          ids: segmentIds,
+        }),
+    integrationIds !== undefined && integrationIds.length === 0
+      ? []
+      : findAllIntegrationResources({
+          workspaceId,
+          ids: integrationIds,
+        }),
   ]);
   const args = {
     workspaceId,
@@ -315,7 +319,10 @@ async function computePropertiesGroup({
   now: number;
 } & ComputePropertiesIncrementalArgsParams): Promise<
   IndividualComputedPropertyQueueItem[] | null
-> {}
+> {
+  const args = await computePropertiesIncrementalArgs(params);
+  return null;
+}
 
 export async function computePropertiesContainedV2({
   item,
@@ -333,195 +340,162 @@ export async function computePropertiesContainedV2({
         item,
         now,
       });
+      return null;
       break;
-    // FIXME wrong abstract so don't have to double lookup args
     case WorkspaceQueueItemType.Workspace:
     case undefined: {
-      const workspaceId = item.id;
-      const args = await computePropertiesIncrementalArgs({ workspaceId });
-      const userPropertyItems = args.userProperties.map((up) => ({
-        type: WorkspaceQueueItemType.UserProperty,
-        workspaceId,
-        id: up.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      }));
-      const segmentItems = args.segments.map((s) => ({
-        type: WorkspaceQueueItemType.Segment,
-        workspaceId,
-        id: s.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      }));
-      const journeyItems = args.journeys.map((j) => ({
-        type: WorkspaceQueueItemType.Journey,
-        workspaceId,
-        id: j.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      }));
-      const integrationItems = args.integrations.map((i) => ({
-        type: WorkspaceQueueItemType.Integration,
-        workspaceId,
-        id: i.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      }));
-      const batch: BatchComputedPropertyQueueItem = {
-        type: WorkspaceQueueItemType.Batch,
-        workspaceId,
-        items: [
-          ...userPropertyItems,
-          ...segmentItems,
-          ...journeyItems,
-          ...integrationItems,
-        ],
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      };
-      await computePropertiesContainedV2({
-        item: batch,
+      return computePropertiesGroup({
+        workspaceId: item.id,
         now,
       });
-      return null;
+      break;
     }
     case WorkspaceQueueItemType.Batch: {
       const { workspaceId } = item;
-      // FIXME later: this method doesn't do what we wanter
-      const earliest = await getEarliestComputePropertyPeriod({
-        workspaceId,
-      });
-      const events = await getEventCountInPeriod({
-        workspaceId,
-        period: earliest,
-      });
-      const totalProperties = item.items.filter(
-        (i) =>
-          i.type === WorkspaceQueueItemType.Segment ||
-          i.type === WorkspaceQueueItemType.UserProperty,
-      ).length;
-      const workload = events * totalProperties;
-      if (workload <= config().computePropertiesBatchThreshold) {
-        await computePropertiesIncremental({
-          ...args,
-          now,
-        });
+      const journeyIds = [];
+      const integrationIds = [];
+      const segmentIds = [];
+      const userPropertyIds = [];
+      for (const i of item.items) {
+        switch (i.type) {
+          case WorkspaceQueueItemType.Journey:
+            journeyIds.push(i.id);
+            break;
+          case WorkspaceQueueItemType.Integration:
+            integrationIds.push(i.id);
+            break;
+          case WorkspaceQueueItemType.Segment:
+            segmentIds.push(i.id);
+            break;
+          case WorkspaceQueueItemType.UserProperty:
+            userPropertyIds.push(i.id);
+            break;
+          default:
+            assertUnreachable(i);
+        }
       }
-      return null;
+      return computePropertiesGroup({
+        workspaceId,
+        journeyIds,
+        integrationIds,
+        segmentIds,
+        userPropertyIds,
+        now,
+      });
     }
     default:
       assertUnreachable(item);
   }
-  const threshold = config().computePropertiesBatchThreshold;
+  // const threshold = config().computePropertiesBatchThreshold;
 
-  // Determine if this is a workspace-level item (no workspaceId field)
-  if (!("workspaceId" in item)) {
-    const workspaceId = item.id;
+  // // Determine if this is a workspace-level item (no workspaceId field)
+  // if (!("workspaceId" in item)) {
+  //   const workspaceId = item.id;
 
-    // Fetch segments and user properties for this workspace
-    const args = await computePropertiesIncrementalArgs({ workspaceId });
-    const totalProperties = args.segments.length + args.userProperties.length;
+  //   // Fetch segments and user properties for this workspace
+  //   const args = await computePropertiesIncrementalArgs({ workspaceId });
+  //   const totalProperties = args.segments.length + args.userProperties.length;
 
-    if (totalProperties === 0) {
-      // Nothing to do
-      return null;
-    }
+  //   if (totalProperties === 0) {
+  //     // Nothing to do
+  //     return null;
+  //   }
 
-    // Determine the starting point for event counting (earliest period)
+  //   // Determine the starting point for event counting (earliest period)
 
-    const earliest = await getEarliestComputePropertyPeriod({
-      workspaceId,
-    });
+  //   const earliest = await getEarliestComputePropertyPeriod({
+  //     workspaceId,
+  //   });
 
-    const qb = new ClickHouseQueryBuilder();
-    const query = `SELECT count() AS cnt FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND processing_time => toDateTime64(${qb.addQueryValue(
-      Math.floor(earliest / 1000),
-      "Int64",
-    )}, 3)`;
+  //   const qb = new ClickHouseQueryBuilder();
+  //   const query = `SELECT count() AS cnt FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+  //     workspaceId,
+  //     "String",
+  //   )} AND processing_time => toDateTime64(${qb.addQueryValue(
+  //     Math.floor(earliest / 1000),
+  //     "Int64",
+  //   )}, 3)`;
 
-    const result = await chQuery({
-      query,
-      query_params: qb.getQueries(),
-    });
-    const rows = await result.json<{ cnt: number }>();
-    const events = rows[0]?.cnt ?? 0;
+  //   const result = await chQuery({
+  //     query,
+  //     query_params: qb.getQueries(),
+  //   });
+  //   const rows = await result.json<{ cnt: number }>();
+  //   const events = rows[0]?.cnt ?? 0;
 
-    const workload = events * totalProperties;
+  //   const workload = events * totalProperties;
 
-    if (workload <= threshold) {
-      // Process entire workspace in one go (reuse v1 path elsewhere)
-      await computePropertiesIncremental({
-        ...args,
-        now,
-      });
-      return null;
-    }
+  //   if (workload <= threshold) {
+  //     // Process entire workspace in one go (reuse v1 path elsewhere)
+  //     await computePropertiesIncremental({
+  //       ...args,
+  //       now,
+  //     });
+  //     return null;
+  //   }
 
-    // Build split items for segments and user properties
-    const splitItems: IndividualComputedPropertyQueueItem[] = [
-      ...args.segments.map((s) => ({
-        type: WorkspaceQueueItemType.Segment,
-        workspaceId,
-        id: s.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      })),
-      ...args.userProperties.map((up) => ({
-        type: WorkspaceQueueItemType.UserProperty,
-        workspaceId,
-        id: up.id,
-        priority: QUEUE_ITEM_PRIORITIES.Split,
-        insertedAt: Date.now(),
-      })),
-    ];
+  //   // Build split items for segments and user properties
+  //   const splitItems: IndividualComputedPropertyQueueItem[] = [
+  //     ...args.segments.map((s) => ({
+  //       type: WorkspaceQueueItemType.Segment,
+  //       workspaceId,
+  //       id: s.id,
+  //       priority: QUEUE_ITEM_PRIORITIES.Split,
+  //       insertedAt: Date.now(),
+  //     })),
+  //     ...args.userProperties.map((up) => ({
+  //       type: WorkspaceQueueItemType.UserProperty,
+  //       workspaceId,
+  //       id: up.id,
+  //       priority: QUEUE_ITEM_PRIORITIES.Split,
+  //       insertedAt: Date.now(),
+  //     })),
+  //   ];
 
-    return splitItems;
-  }
+  //   return splitItems;
+  // }
 
-  if (
-    item.type === WorkspaceQueueItemType.Segment ||
-    item.type === WorkspaceQueueItemType.UserProperty
-  ) {
-    await computePropertiesIndividual({
-      item,
-      now,
-    });
-  }
+  // if (
+  //   item.type === WorkspaceQueueItemType.Segment ||
+  //   item.type === WorkspaceQueueItemType.UserProperty
+  // ) {
+  //   await computePropertiesIndividual({
+  //     item,
+  //     now,
+  //   });
+  // }
 
-  if (item.type === WorkspaceQueueItemType.Batch) {
-    const { workspaceId } = item;
-    // TODO: move filtering into database queries
-    const args = await computePropertiesIncrementalArgs({ workspaceId });
+  // if (item.type === WorkspaceQueueItemType.Batch) {
+  //   const { workspaceId } = item;
+  //   // TODO: move filtering into database queries
+  //   const args = await computePropertiesIncrementalArgs({ workspaceId });
 
-    // Filter journeys and integrations to those included in the batch items
-    const journeyIds = item.items
-      .filter(({ type }) => type === WorkspaceQueueItemType.Journey)
-      .map(({ id }) => id);
-    const integrationIds = item.items
-      .filter(({ type }) => type === WorkspaceQueueItemType.Integration)
-      .map(({ id }) => id);
+  //   // Filter journeys and integrations to those included in the batch items
+  //   const journeyIds = item.items
+  //     .filter(({ type }) => type === WorkspaceQueueItemType.Journey)
+  //     .map(({ id }) => id);
+  //   const integrationIds = item.items
+  //     .filter(({ type }) => type === WorkspaceQueueItemType.Integration)
+  //     .map(({ id }) => id);
 
-    const journeys = args.journeys.filter(({ id }) => journeyIds.includes(id));
-    const integrations = args.integrations.filter(({ id }) =>
-      integrationIds.includes(id),
-    );
+  //   const journeys = args.journeys.filter(({ id }) => journeyIds.includes(id));
+  //   const integrations = args.integrations.filter(({ id }) =>
+  //     integrationIds.includes(id),
+  //   );
 
-    if (journeys.length > 0 || integrations.length > 0) {
-      await computePropertiesIncremental({
-        workspaceId,
-        segments: [],
-        userProperties: [],
-        journeys,
-        integrations,
-        now,
-      });
-    }
-    return null;
-  }
+  //   if (journeys.length > 0 || integrations.length > 0) {
+  //     await computePropertiesIncremental({
+  //       workspaceId,
+  //       segments: [],
+  //       userProperties: [],
+  //       journeys,
+  //       integrations,
+  //       now,
+  //     });
+  //   }
+  //   return null;
+  // }
 
-  // For Journey / Integration items we intentionally fall through; they'll be processed via the legacy whole-workspace path.
-  return null;
+  // // For Journey / Integration items we intentionally fall through; they'll be processed via the legacy whole-workspace path.
+  // return null;
 }
