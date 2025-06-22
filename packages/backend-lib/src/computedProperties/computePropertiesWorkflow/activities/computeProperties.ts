@@ -12,6 +12,7 @@ import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
+  BatchComputedPropertyQueueItem,
   IndividualComputedPropertyQueueItem,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
@@ -268,7 +269,6 @@ export async function computePropertiesContained({
   });
 }
 
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
 export async function computePropertiesContainedV2({
   item,
   now,
@@ -276,6 +276,69 @@ export async function computePropertiesContainedV2({
   item: WorkspaceQueueItem;
   now: number;
 }): Promise<IndividualComputedPropertyQueueItem[] | null> {
+  switch (item.type) {
+    case WorkspaceQueueItemType.Journey:
+    case WorkspaceQueueItemType.Integration:
+    case WorkspaceQueueItemType.Segment:
+    case WorkspaceQueueItemType.UserProperty:
+      await computePropertiesIndividual({
+        item,
+        now,
+      });
+      break;
+    case WorkspaceQueueItemType.Workspace:
+    case undefined: {
+      const workspaceId = item.id;
+      const args = await computePropertiesIncrementalArgs({ workspaceId });
+      const userPropertyItems = args.userProperties.map((up) => ({
+        type: WorkspaceQueueItemType.UserProperty,
+        workspaceId,
+        id: up.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+        insertedAt: Date.now(),
+      }));
+      const segmentItems = args.segments.map((s) => ({
+        type: WorkspaceQueueItemType.Segment,
+        workspaceId,
+        id: s.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+        insertedAt: Date.now(),
+      }));
+      const journeyItems = args.journeys.map((j) => ({
+        type: WorkspaceQueueItemType.Journey,
+        workspaceId,
+        id: j.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+        insertedAt: Date.now(),
+      }));
+      const integrationItems = args.integrations.map((i) => ({
+        type: WorkspaceQueueItemType.Integration,
+        workspaceId,
+        id: i.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+        insertedAt: Date.now(),
+      }));
+      const batch: BatchComputedPropertyQueueItem = {
+        type: WorkspaceQueueItemType.Batch,
+        workspaceId,
+        items: [
+          ...userPropertyItems,
+          ...segmentItems,
+          ...journeyItems,
+          ...integrationItems,
+        ],
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+        insertedAt: Date.now(),
+      };
+      await computePropertiesContainedV2({
+        item: batch,
+        now,
+      });
+      return null;
+    }
+    default:
+      assertUnreachable(item);
+  }
   const threshold = config().computePropertiesBatchThreshold;
 
   // Determine if this is a workspace-level item (no workspaceId field)

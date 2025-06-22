@@ -27,6 +27,10 @@ We're going to address this in two ways:
 - Set some threshold for the number of events x properties that we're willing to process in a single batch.
 - If the number of events x properties is greater than the threshold, we'll split the work into multiple batches, using the new computePropertiesContainedV2 method to return the split items, where those split items will be re-submitted back to the queue at the top so that they're processed immediately.
 
+## Unaddressed Issues
+
+- There's existing logic for recomputing a property from scratch if its definition is updated. This logic is contained in `packages/backend-lib/src/computedProperties/computePropertiesIncremental.ts`. Given this logic, if we simply check the number of events in the processing window, this might substantially under-estimate the amount of work that needs to be done.
+
 ## Implementation
 
 ### High-level tasks (execution order)
