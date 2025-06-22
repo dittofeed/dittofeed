@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
@@ -28,26 +28,38 @@ import { getEarliestComputePropertyPeriod } from "../../periods";
 
 export async function computePropertiesIncrementalArgs({
   workspaceId,
+  journeyIds,
+  integrationIds,
+  segmentIds,
+  userPropertyIds,
 }: {
   workspaceId: string;
+  journeyIds?: string[];
+  integrationIds?: string[];
+  segmentIds?: string[];
+  userPropertyIds?: string[];
 }): Promise<Omit<ComputePropertiesArgs, "now">> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findManyJourneyResourcesSafe(
       and(
         eq(dbJourney.workspaceId, workspaceId),
         eq(dbJourney.status, "Running"),
+        ...(journeyIds ? [inArray(dbJourney.id, journeyIds)] : []),
       ),
     ),
     findAllUserPropertyResources({
       workspaceId,
       requireRunning: true,
+      ids: userPropertyIds,
     }),
     findManySegmentResourcesSafe({
       workspaceId,
       requireRunning: true,
+      segmentIds,
     }),
     findAllIntegrationResources({
       workspaceId,
+      ids: integrationIds,
     }),
   ]);
   const args = {
@@ -253,6 +265,29 @@ export async function computePropertiesIndividual({
   }
 }
 
+export async function getEventCountInPeriod({
+  workspaceId,
+  period,
+}: {
+  workspaceId: string;
+  period: number;
+}): Promise<number> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `SELECT count() AS cnt FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+    workspaceId,
+    "String",
+  )} AND processing_time => toDateTime64(${qb.addQueryValue(
+    Math.floor(period / 1000),
+    "Int64",
+  )}, 3)`;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{ cnt: number }>();
+  return rows[0]?.cnt ?? 0;
+}
+
 export async function computePropertiesContained({
   workspaceId,
   now,
@@ -336,6 +371,30 @@ export async function computePropertiesContainedV2({
       });
       return null;
     }
+    case WorkspaceQueueItemType.Batch: {
+      const { workspaceId } = item;
+      // FIXME later: this method doesn't do what we wanter
+      const earliest = await getEarliestComputePropertyPeriod({
+        workspaceId,
+      });
+      const events = await getEventCountInPeriod({
+        workspaceId,
+        period: earliest,
+      });
+      const totalProperties = item.items.filter(
+        (i) =>
+          i.type === WorkspaceQueueItemType.Segment ||
+          i.type === WorkspaceQueueItemType.UserProperty,
+      ).length;
+      const workload = events * totalProperties;
+      if (workload <= config().computePropertiesBatchThreshold) {
+        await computePropertiesIncremental({
+          ...args,
+          now,
+        });
+      }
+      return null;
+    }
     default:
       assertUnreachable(item);
   }
@@ -355,6 +414,7 @@ export async function computePropertiesContainedV2({
     }
 
     // Determine the starting point for event counting (earliest period)
+
     const earliest = await getEarliestComputePropertyPeriod({
       workspaceId,
     });
