@@ -26,19 +26,23 @@ import {
 } from "../../computePropertiesIncremental";
 import { getEarliestComputePropertyPeriod } from "../../periods";
 
+export interface ComputePropertiesIncrementalArgsParams {
+  workspaceId: string;
+  journeyIds?: string[];
+  integrationIds?: string[];
+  segmentIds?: string[];
+  userPropertyIds?: string[];
+}
+
 export async function computePropertiesIncrementalArgs({
   workspaceId,
   journeyIds,
   integrationIds,
   segmentIds,
   userPropertyIds,
-}: {
-  workspaceId: string;
-  journeyIds?: string[];
-  integrationIds?: string[];
-  segmentIds?: string[];
-  userPropertyIds?: string[];
-}): Promise<Omit<ComputePropertiesArgs, "now">> {
+}: ComputePropertiesIncrementalArgsParams): Promise<
+  Omit<ComputePropertiesArgs, "now">
+> {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findManyJourneyResourcesSafe(
       and(
@@ -303,6 +307,15 @@ export async function computePropertiesContained({
     now,
   });
 }
+
+async function computePropertiesGroup({
+  now,
+  ...params
+}: {
+  now: number;
+} & ComputePropertiesIncrementalArgsParams): Promise<
+  IndividualComputedPropertyQueueItem[] | null
+> {}
 
 export async function computePropertiesContainedV2({
   item,
