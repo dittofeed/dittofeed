@@ -321,6 +321,7 @@ export async function computePropertiesContainedV2({
         now,
       });
       break;
+    // FIXME wrong abstract so don't have to double lookup args
     case WorkspaceQueueItemType.Workspace:
     case undefined: {
       const workspaceId = item.id;
