@@ -326,6 +326,10 @@ async function computePropertiesGroup({
 > {
   const args = await computePropertiesIncrementalArgs(params);
   if (split) {
+    logger().info(
+      { workspaceId: params.workspaceId },
+      "Splitting compute properties",
+    );
     const individualItems: IndividualComputedPropertyQueueItem[] = [];
     for (const userProperty of args.userProperties) {
       individualItems.push({
