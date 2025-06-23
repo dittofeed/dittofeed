@@ -33,7 +33,7 @@ describe("periods", () => {
     );
   });
 
-  describe.only("getEarliestComputePropertyPeriod", () => {
+  describe("getEarliestComputePropertyPeriod", () => {
     let date1: number;
     let date2: number;
     let segment1: SavedSegmentResource;
@@ -236,7 +236,7 @@ describe("periods", () => {
     });
   });
 
-  describe("findDueWorkspaceMinTos", () => {
+  describe.only("findDueWorkspaceMinTos", () => {
     let segment1: SavedSegmentResource;
     let segment2: SavedSegmentResource;
     let now: number;
