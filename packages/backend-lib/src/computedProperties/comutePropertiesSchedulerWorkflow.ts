@@ -20,7 +20,7 @@ export const COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID =
 //
 // Activities proxy
 //
-const { findDueWorkspacesV2, getQueueSize, config } = proxyActivities<
+const { findDueWorkspacesV3, getQueueSize, config } = proxyActivities<
   typeof activities
 >({
   startToCloseTimeout: "1 minute",
@@ -76,7 +76,7 @@ export async function computePropertiesSchedulerWorkflow(
         size,
         computePropertiesQueueCapacity,
       });
-      const dueWorkspaces = await findDueWorkspacesV2({
+      const dueWorkspaces = await findDueWorkspacesV3({
         now: Date.now(),
       });
 
@@ -90,7 +90,10 @@ export async function computePropertiesSchedulerWorkflow(
         });
         // (C) Signal the queue workflow with new items
         await queueWf.signal(addWorkspacesSignalV2, {
-          workspaces: dueWorkspaces.workspaces,
+          workspaces: dueWorkspaces.workspaces.map((w) => ({
+            id: w.id,
+            period: w.minPeriod,
+          })),
         });
       }
     } else {

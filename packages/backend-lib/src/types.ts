@@ -818,14 +818,18 @@ export interface EntireWorkspaceQueueItem {
   id: string;
   type?: typeof WorkspaceQueueItemType.Workspace;
   priority?: number;
+  // for backwards compatibility
   maxPeriod?: number;
+  period?: number;
   insertedAt?: number; // Number representing insertion order
 }
 
 export interface BaseComputedPropertyBatchQueueItem {
   workspaceId: string;
   priority?: number;
+  // for backwards compatibility
   maxPeriod?: number;
+  period?: number;
   insertedAt?: number; // Number representing insertion order
 }
 

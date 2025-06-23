@@ -6,7 +6,6 @@ import {
   defineQuery,
   defineSignal,
   LoggerSinks,
-  patched,
   proxyActivities,
   proxySinks,
   setHandler,
@@ -67,7 +66,7 @@ interface InFlightTask {
 /**
  * Comparator function for WorkspaceQueueItems that implements priority ordering:
  * 1. Higher priority (higher number) comes first
- * 2. Longer maxPeriod comes first
+ * 2. Longer period comes first
  * 3. Earlier insertion order comes first
  */
 export function compareWorkspaceItems(
@@ -81,12 +80,14 @@ export function compareWorkspaceItems(
     if (a.priority !== b.priority) return b.priority - a.priority; // Reverse the order so higher numbers come first
   }
 
+  const aPeriod = a.period ?? a.maxPeriod;
+  const bPeriod = b.period ?? b.maxPeriod;
   // Next, compare by maxPeriod (undefined comes FIRST)
-  if (a.maxPeriod === undefined && b.maxPeriod !== undefined) return -1; // a (undefined) comes first
-  if (a.maxPeriod !== undefined && b.maxPeriod === undefined) return 1; // b (undefined) comes first
-  if (a.maxPeriod !== undefined && b.maxPeriod !== undefined) {
+  if (aPeriod === undefined && bPeriod !== undefined) return -1; // a (undefined) comes first
+  if (aPeriod !== undefined && bPeriod === undefined) return 1; // b (undefined) comes first
+  if (aPeriod !== undefined && bPeriod !== undefined) {
     // If both are defined, longer maxPeriod comes first
-    if (a.maxPeriod !== b.maxPeriod) return a.maxPeriod - b.maxPeriod;
+    if (aPeriod !== bPeriod) return aPeriod - bPeriod;
   }
 
   // Finally, compare by insertion order
@@ -154,11 +155,10 @@ export async function computePropertiesQueueWorkflow(
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
-  const { computePropertiesContained, computePropertiesContainedV2 } =
-    proxyActivities<typeof activities>({
-      startToCloseTimeout: "5 minutes",
-      taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
-    });
+  const { computePropertiesContainedV2 } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "5 minutes",
+    taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+  });
 
   logger.info("Loaded config values", {
     concurrency,
@@ -252,7 +252,7 @@ export async function computePropertiesQueueWorkflow(
       workspaceId,
       key,
       priority: item.priority,
-      maxPeriod: item.maxPeriod,
+      period: item.period ?? item.maxPeriod,
       queueSize: priorityQueue.length,
     });
 
