@@ -325,7 +325,6 @@ describe("periods", () => {
         interval,
       });
 
-      logger().info({ dueWorkspaces }, "dueWorkspaces");
       const dueWorkspace = dueWorkspaces.find(
         (w) => w.workspaceId === workspace.id,
       );
@@ -351,12 +350,31 @@ describe("periods", () => {
     });
 
     it("should not return workspaces with non-running properties", async () => {
+      const interval = 1000 * 60; // 1 minute
+      const dueTime = now - interval * 2;
+      const recentTime = now - interval / 2;
+
+      // segment1 is due
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment1],
+        userProperties: [],
+        now: dueTime,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+
+      // segment2 is not due
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment2],
+        userProperties: [],
+        now: recentTime,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
       await db()
         .update(dbSegment)
         .set({ status: "NotStarted" })
         .where(eq(dbSegment.id, segment1.id));
-
-      const interval = 1000 * 60; // 1 minute
 
       const dueWorkspaces = await findDueWorkspaceMinTos({
         now,
