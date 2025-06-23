@@ -14,6 +14,7 @@ import {
 import type * as activities from "../temporal/activities";
 import { Semaphore } from "../temporal/semaphore";
 import { WorkspaceQueueItem } from "../types";
+import { generateKeyFromItem, getWorkspaceIdFromItem } from "./queueUtils";
 
 export const COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID =
   "compute-properties-queue-workflow";
@@ -59,13 +60,13 @@ export interface ComputePropertiesQueueWorkflowParams {
 
 interface InFlightTask {
   task: Promise<void>;
-  id: string;
+  key: string;
 }
 
 /**
  * Comparator function for WorkspaceQueueItems that implements priority ordering:
  * 1. Higher priority (higher number) comes first
- * 2. Longer maxPeriod comes first
+ * 2. Longer period comes first
  * 3. Earlier insertion order comes first
  */
 export function compareWorkspaceItems(
@@ -79,12 +80,14 @@ export function compareWorkspaceItems(
     if (a.priority !== b.priority) return b.priority - a.priority; // Reverse the order so higher numbers come first
   }
 
+  const aPeriod = a.period ?? a.maxPeriod;
+  const bPeriod = b.period ?? b.maxPeriod;
   // Next, compare by maxPeriod (undefined comes FIRST)
-  if (a.maxPeriod === undefined && b.maxPeriod !== undefined) return -1; // a (undefined) comes first
-  if (a.maxPeriod !== undefined && b.maxPeriod === undefined) return 1; // b (undefined) comes first
-  if (a.maxPeriod !== undefined && b.maxPeriod !== undefined) {
+  if (aPeriod === undefined && bPeriod !== undefined) return -1; // a (undefined) comes first
+  if (aPeriod !== undefined && bPeriod === undefined) return 1; // b (undefined) comes first
+  if (aPeriod !== undefined && bPeriod !== undefined) {
     // If both are defined, longer maxPeriod comes first
-    if (a.maxPeriod !== b.maxPeriod) return a.maxPeriod - b.maxPeriod;
+    if (aPeriod !== bPeriod) return aPeriod - bPeriod;
   }
 
   // Finally, compare by insertion order
@@ -92,8 +95,10 @@ export function compareWorkspaceItems(
     return a.insertedAt - b.insertedAt;
   }
 
-  // If no insertedAt, fall back to string ID comparison
-  return a.id.localeCompare(b.id);
+  const aKey = generateKeyFromItem(a);
+  const bKey = generateKeyFromItem(b);
+  // If no insertedAt, fall back to string key comparison
+  return aKey.localeCompare(bKey);
 }
 
 /**
@@ -116,31 +121,25 @@ export async function computePropertiesQueueWorkflow(
   if (params.queueState && params.queueState.length > 0) {
     const now = Date.now();
     for (const workspaceId of params.queueState) {
-      if (workspaceId && !membership.has(workspaceId)) {
+      const key = generateKeyFromItem({ id: workspaceId });
+      if (workspaceId && !membership.has(key)) {
         const item: WorkspaceQueueItem = {
           id: workspaceId,
           insertedAt: now, // Use current timestamp
         };
         priorityQueue.push(item);
-        membership.add(workspaceId);
+        membership.add(key);
       }
     }
   }
 
   // Handle queueStateV2 (WorkspaceQueueItem array)
   if (params.queueStateV2 && params.queueStateV2.length > 0) {
-    const now = Date.now();
     for (const item of params.queueStateV2) {
-      if (!membership.has(item.id)) {
-        // Preserve the insertedAt if it exists, otherwise assign current timestamp
-        const queueItem: WorkspaceQueueItem = {
-          id: item.id,
-          priority: item.priority,
-          maxPeriod: item.maxPeriod,
-          insertedAt: item.insertedAt !== undefined ? item.insertedAt : now,
-        };
-        priorityQueue.push(queueItem);
-        membership.add(item.id);
+      const key = generateKeyFromItem(item);
+      if (!membership.has(key)) {
+        priorityQueue.push(item);
+        membership.add(key);
       }
     }
   }
@@ -156,7 +155,7 @@ export async function computePropertiesQueueWorkflow(
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
-  const { computePropertiesContained } = proxyActivities<typeof activities>({
+  const { computePropertiesContainedV2 } = proxyActivities<typeof activities>({
     startToCloseTimeout: "5 minutes",
     taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
   });
@@ -186,13 +185,14 @@ export async function computePropertiesQueueWorkflow(
 
     const now = Date.now();
     for (const id of workspaceIds) {
-      if (id && priorityQueue.length < capacity && !membership.has(id)) {
-        const item: WorkspaceQueueItem = {
+      const key = generateKeyFromItem({ id });
+      if (id && priorityQueue.length < capacity && !membership.has(key)) {
+        const queueItem: WorkspaceQueueItem = {
           id,
           insertedAt: now, // Use timestamp
         };
-        priorityQueue.push(item);
-        membership.add(id);
+        priorityQueue.push(queueItem);
+        membership.add(generateKeyFromItem(queueItem));
       }
     }
   });
@@ -206,15 +206,10 @@ export async function computePropertiesQueueWorkflow(
     });
 
     for (const item of signal.workspaces) {
-      if (priorityQueue.length < capacity && !membership.has(item.id)) {
-        const queueItem: WorkspaceQueueItem = {
-          id: item.id,
-          priority: item.priority,
-          maxPeriod: item.maxPeriod,
-          insertedAt: item.insertedAt,
-        };
-        priorityQueue.push(queueItem);
-        membership.add(item.id);
+      const key = generateKeyFromItem(item);
+      if (priorityQueue.length < capacity && !membership.has(key)) {
+        priorityQueue.push(item);
+        membership.add(key);
       }
     }
   });
@@ -232,7 +227,7 @@ export async function computePropertiesQueueWorkflow(
     (): QueueState => ({
       priorityQueue,
       membership: Array.from(membership),
-      inFlightTaskIds: inFlight.map((task) => task.id),
+      inFlightTaskIds: inFlight.map((task) => task.key),
       totalProcessed,
     }),
   );
@@ -250,49 +245,63 @@ export async function computePropertiesQueueWorkflow(
     // B) Sort and dequeue the highest priority item
     priorityQueue.sort(compareWorkspaceItems);
     const item = priorityQueue.shift()!;
+    const key = generateKeyFromItem(item);
+    const workspaceId = getWorkspaceIdFromItem(item);
 
-    logger.info("Queue: Dequeued workspace", {
-      workspaceId: item.id,
+    logger.info("Queue: Dequeued workspace item", {
+      workspaceId,
+      key,
       priority: item.priority,
-      maxPeriod: item.maxPeriod,
+      period: item.period ?? item.maxPeriod,
       queueSize: priorityQueue.length,
     });
 
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
 
-    membership.delete(item.id);
+    membership.delete(key);
 
     logger.info("Queue: Acquired semaphore slot", {
-      workspaceId: item.id,
+      workspaceId,
+      key,
     });
 
     // D) Launch the activity in a background task
     const taskPromise = (async () => {
       try {
-        await computePropertiesContained({
-          workspaceId: item.id,
-          now: Date.now(),
+        const now = Date.now();
+        const newItems = await computePropertiesContainedV2({
+          item,
+          now,
         });
+
+        if (newItems) {
+          for (const newItem of newItems) {
+            const newKey = generateKeyFromItem(newItem);
+            if (priorityQueue.length < capacity && !membership.has(newKey)) {
+              priorityQueue.push(newItem);
+              membership.add(newKey);
+            }
+          }
+        }
         totalProcessed += 1;
-        logger.info("Queue: Processed workspace", {
-          itemId: item.id,
-          workspaceId: item.id,
+        logger.info("Queue: Processed workspace item", {
+          key,
         });
       } catch (err) {
-        logger.error("Error processing workspace from queue", {
-          workspaceId: item.id,
+        logger.error("Error processing workspace item from queue", {
+          key,
           err,
         });
       } finally {
         inFlight.splice(
-          inFlight.findIndex((t) => t.id === item.id),
+          inFlight.findIndex((t) => t.key === key),
           1,
         );
         semaphore.release();
       }
     })();
-    inFlight.push({ task: taskPromise, id: item.id });
+    inFlight.push({ task: taskPromise, key });
 
     // E) Check if we've processed enough items to continueAsNew
     if (totalProcessed >= maxLoopIterations) {

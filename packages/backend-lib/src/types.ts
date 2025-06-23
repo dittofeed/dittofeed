@@ -7,6 +7,7 @@ import {
   RawRequestDefaultExpression,
   RawServerDefault,
 } from "fastify";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   DFRequestContext,
   EventType,
@@ -801,9 +802,75 @@ export type RequestContextPostProcessor = (
   result: RequestContextResult,
 ) => Promise<RequestContextResult>;
 
-export interface WorkspaceQueueItem {
+export const WorkspaceQueueItemType = {
+  Workspace: "Workspace",
+  Segment: "Segment",
+  UserProperty: "UserProperty",
+  Integration: "Integration",
+  Journey: "Journey",
+  Batch: "Batch",
+} as const;
+
+export type WorkspaceQueueItemType =
+  (typeof WorkspaceQueueItemType)[keyof typeof WorkspaceQueueItemType];
+
+export interface EntireWorkspaceQueueItem {
   id: string;
+  type?: typeof WorkspaceQueueItemType.Workspace;
   priority?: number;
+  // for backwards compatibility
   maxPeriod?: number;
+  period?: number;
   insertedAt?: number; // Number representing insertion order
 }
+
+export interface BaseComputedPropertyBatchQueueItem {
+  workspaceId: string;
+  priority?: number;
+  // for backwards compatibility
+  maxPeriod?: number;
+  period?: number;
+  insertedAt?: number; // Number representing insertion order
+}
+
+export interface BaseComputedPropertyIndividualQueueItem
+  extends BaseComputedPropertyBatchQueueItem {
+  id: string;
+}
+
+export interface SegmentQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
+  type: typeof WorkspaceQueueItemType.Segment;
+}
+
+export interface UserPropertyQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
+  type: typeof WorkspaceQueueItemType.UserProperty;
+}
+
+export interface IntegrationQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
+  type: typeof WorkspaceQueueItemType.Integration;
+}
+
+export interface JourneyQueueItem
+  extends BaseComputedPropertyIndividualQueueItem {
+  type: typeof WorkspaceQueueItemType.Journey;
+}
+
+export type IndividualComputedPropertyQueueItem =
+  | SegmentQueueItem
+  | UserPropertyQueueItem
+  | IntegrationQueueItem
+  | JourneyQueueItem;
+
+export interface BatchComputedPropertyQueueItem
+  extends BaseComputedPropertyBatchQueueItem {
+  type: typeof WorkspaceQueueItemType.Batch;
+  items: IndividualComputedPropertyQueueItem[];
+}
+
+export type WorkspaceQueueItem =
+  | EntireWorkspaceQueueItem
+  | IndividualComputedPropertyQueueItem
+  | BatchComputedPropertyQueueItem;

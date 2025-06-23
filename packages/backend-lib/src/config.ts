@@ -117,6 +117,9 @@ const BaseRawConfigProps = {
   computePropertiesQueueCapacity: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesBatchThreshold: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   computedPropertiesActivityTaskQueue: Type.Optional(Type.String()),
   computePropertiesSchedulerInterval: Type.Optional(
     Type.String({ format: "naturalNumber" }),
@@ -139,6 +142,7 @@ const BaseRawConfigProps = {
   clickhouseMaxBytesBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesSplit: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -263,6 +267,7 @@ export type Config = Overwrite<
     clickhouseComputePropertiesRequestTimeout?: number;
     clickhouseComputePropertiesMaxExecutionTime?: number;
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
+    computePropertiesSplit: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -605,6 +610,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
         : undefined,
+    computePropertiesSplit: rawConfig.computePropertiesSplit === "true",
   };
 
   return parsedConfig;
