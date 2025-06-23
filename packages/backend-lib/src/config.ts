@@ -142,6 +142,7 @@ const BaseRawConfigProps = {
   clickhouseMaxBytesBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesSplit: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
