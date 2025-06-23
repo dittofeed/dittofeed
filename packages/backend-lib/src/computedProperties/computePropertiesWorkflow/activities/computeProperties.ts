@@ -3,6 +3,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
+import config from "../../../config";
+import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
 import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
 import { findManyJourneyResourcesSafe } from "../../../journeys";
@@ -314,13 +316,51 @@ export async function computePropertiesContained({
 
 async function computePropertiesGroup({
   now,
+  split = false,
   ...params
 }: {
   now: number;
+  split?: boolean;
 } & ComputePropertiesIncrementalArgsParams): Promise<
   IndividualComputedPropertyQueueItem[] | null
 > {
   const args = await computePropertiesIncrementalArgs(params);
+  if (split) {
+    const individualItems: IndividualComputedPropertyQueueItem[] = [];
+    for (const userProperty of args.userProperties) {
+      individualItems.push({
+        type: WorkspaceQueueItemType.UserProperty,
+        workspaceId: params.workspaceId,
+        id: userProperty.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+      });
+    }
+    for (const segment of args.segments) {
+      individualItems.push({
+        type: WorkspaceQueueItemType.Segment,
+        workspaceId: params.workspaceId,
+        id: segment.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+      });
+    }
+    for (const integration of args.integrations) {
+      individualItems.push({
+        type: WorkspaceQueueItemType.Integration,
+        workspaceId: params.workspaceId,
+        id: integration.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+      });
+    }
+    for (const journey of args.journeys) {
+      individualItems.push({
+        type: WorkspaceQueueItemType.Journey,
+        workspaceId: params.workspaceId,
+        id: journey.id,
+        priority: QUEUE_ITEM_PRIORITIES.Split,
+      });
+    }
+    return individualItems;
+  }
   await computePropertiesIncremental({
     ...args,
     now,
@@ -351,6 +391,7 @@ export async function computePropertiesContainedV2({
       return computePropertiesGroup({
         workspaceId: item.id,
         now,
+        split: config().computePropertiesSplit,
       });
       break;
     }
@@ -390,116 +431,4 @@ export async function computePropertiesContainedV2({
     default:
       assertUnreachable(item);
   }
-  // const threshold = config().computePropertiesBatchThreshold;
-
-  // // Determine if this is a workspace-level item (no workspaceId field)
-  // if (!("workspaceId" in item)) {
-  //   const workspaceId = item.id;
-
-  //   // Fetch segments and user properties for this workspace
-  //   const args = await computePropertiesIncrementalArgs({ workspaceId });
-  //   const totalProperties = args.segments.length + args.userProperties.length;
-
-  //   if (totalProperties === 0) {
-  //     // Nothing to do
-  //     return null;
-  //   }
-
-  //   // Determine the starting point for event counting (earliest period)
-
-  //   const earliest = await getEarliestComputePropertyPeriod({
-  //     workspaceId,
-  //   });
-
-  //   const qb = new ClickHouseQueryBuilder();
-  //   const query = `SELECT count() AS cnt FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
-  //     workspaceId,
-  //     "String",
-  //   )} AND processing_time => toDateTime64(${qb.addQueryValue(
-  //     Math.floor(earliest / 1000),
-  //     "Int64",
-  //   )}, 3)`;
-
-  //   const result = await chQuery({
-  //     query,
-  //     query_params: qb.getQueries(),
-  //   });
-  //   const rows = await result.json<{ cnt: number }>();
-  //   const events = rows[0]?.cnt ?? 0;
-
-  //   const workload = events * totalProperties;
-
-  //   if (workload <= threshold) {
-  //     // Process entire workspace in one go (reuse v1 path elsewhere)
-  //     await computePropertiesIncremental({
-  //       ...args,
-  //       now,
-  //     });
-  //     return null;
-  //   }
-
-  //   // Build split items for segments and user properties
-  //   const splitItems: IndividualComputedPropertyQueueItem[] = [
-  //     ...args.segments.map((s) => ({
-  //       type: WorkspaceQueueItemType.Segment,
-  //       workspaceId,
-  //       id: s.id,
-  //       priority: QUEUE_ITEM_PRIORITIES.Split,
-  //       insertedAt: Date.now(),
-  //     })),
-  //     ...args.userProperties.map((up) => ({
-  //       type: WorkspaceQueueItemType.UserProperty,
-  //       workspaceId,
-  //       id: up.id,
-  //       priority: QUEUE_ITEM_PRIORITIES.Split,
-  //       insertedAt: Date.now(),
-  //     })),
-  //   ];
-
-  //   return splitItems;
-  // }
-
-  // if (
-  //   item.type === WorkspaceQueueItemType.Segment ||
-  //   item.type === WorkspaceQueueItemType.UserProperty
-  // ) {
-  //   await computePropertiesIndividual({
-  //     item,
-  //     now,
-  //   });
-  // }
-
-  // if (item.type === WorkspaceQueueItemType.Batch) {
-  //   const { workspaceId } = item;
-  //   // TODO: move filtering into database queries
-  //   const args = await computePropertiesIncrementalArgs({ workspaceId });
-
-  //   // Filter journeys and integrations to those included in the batch items
-  //   const journeyIds = item.items
-  //     .filter(({ type }) => type === WorkspaceQueueItemType.Journey)
-  //     .map(({ id }) => id);
-  //   const integrationIds = item.items
-  //     .filter(({ type }) => type === WorkspaceQueueItemType.Integration)
-  //     .map(({ id }) => id);
-
-  //   const journeys = args.journeys.filter(({ id }) => journeyIds.includes(id));
-  //   const integrations = args.integrations.filter(({ id }) =>
-  //     integrationIds.includes(id),
-  //   );
-
-  //   if (journeys.length > 0 || integrations.length > 0) {
-  //     await computePropertiesIncremental({
-  //       workspaceId,
-  //       segments: [],
-  //       userProperties: [],
-  //       journeys,
-  //       integrations,
-  //       now,
-  //     });
-  //   }
-  //   return null;
-  // }
-
-  // // For Journey / Integration items we intentionally fall through; they'll be processed via the legacy whole-workspace path.
-  // return null;
 }

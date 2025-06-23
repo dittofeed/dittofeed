@@ -269,27 +269,20 @@ export async function computePropertiesQueueWorkflow(
     // D) Launch the activity in a background task
     const taskPromise = (async () => {
       try {
-        if (patched("computePropertiesContainedV2")) {
-          const now = Date.now();
-          const newItems = await computePropertiesContainedV2({
-            item,
-            now,
-          });
+        const now = Date.now();
+        const newItems = await computePropertiesContainedV2({
+          item,
+          now,
+        });
 
-          if (newItems) {
-            for (const newItem of newItems) {
-              const newKey = generateKeyFromItem(newItem);
-              if (priorityQueue.length < capacity && !membership.has(newKey)) {
-                priorityQueue.push(newItem);
-                membership.add(newKey);
-              }
+        if (newItems) {
+          for (const newItem of newItems) {
+            const newKey = generateKeyFromItem(newItem);
+            if (priorityQueue.length < capacity && !membership.has(newKey)) {
+              priorityQueue.push(newItem);
+              membership.add(newKey);
             }
           }
-        } else {
-          await computePropertiesContained({
-            workspaceId,
-            now: Date.now(),
-          });
         }
         totalProcessed += 1;
         logger.info("Queue: Processed workspace item", {

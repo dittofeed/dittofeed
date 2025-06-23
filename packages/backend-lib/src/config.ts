@@ -142,6 +142,7 @@ const BaseRawConfigProps = {
   clickhouseMaxBytesBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesSplit: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -267,6 +268,7 @@ export type Config = Overwrite<
     clickhouseComputePropertiesMaxExecutionTime?: number;
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
     computePropertiesBatchThreshold: number;
+    computePropertiesSplit: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -596,6 +598,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesSchedulerInterval
         ? parseInt(rawConfig.computePropertiesSchedulerInterval)
         : 10 * 1000,
+    computePropertiesSplit: rawConfig.computePropertiesSplit === "true",
     enableAdditionalDashboardSettings:
       rawConfig.enableAdditionalDashboardSettings === "true",
     useGlobalComputedProperties:
