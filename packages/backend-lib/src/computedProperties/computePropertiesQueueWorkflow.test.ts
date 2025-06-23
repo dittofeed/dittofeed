@@ -4,11 +4,11 @@ import { compareWorkspaceItems } from "./computePropertiesQueueWorkflow";
 
 describe("computePropertiesQueueWorkflow", () => {
   describe("compareWorkspaceItems", () => {
-    describe("when you have two items, one with a maxPeriod and one without", () => {
-      it("should return the item without a maxPeriod first", () => {
+    describe("when you have two items, one with a period and one without", () => {
+      it("should return the item without a period first", () => {
         const item1 = {
           id: randomUUID(),
-          maxPeriod: 1000,
+          period: 1000,
         };
         const item2 = {
           id: randomUUID(),
@@ -20,15 +20,15 @@ describe("computePropertiesQueueWorkflow", () => {
       });
     });
 
-    describe("when you have two items with different maxPeriods", () => {
-      it("should return the item with the earlier maxPeriod first", () => {
+    describe("when you have two items with different periods", () => {
+      it("should return the item with the earlier period first", () => {
         const item1 = {
           id: randomUUID(),
-          maxPeriod: 2000, // Later
+          period: 2000, // Later
         };
         const item2 = {
           id: randomUUID(),
-          maxPeriod: 1000, // Earlier
+          period: 1000, // Earlier
         };
         const items = [item1, item2];
         items.sort(compareWorkspaceItems);
@@ -37,7 +37,7 @@ describe("computePropertiesQueueWorkflow", () => {
       });
     });
 
-    describe("when you have two items with same priority and maxPeriod (or undefined) but different insertedAt times", () => {
+    describe("when you have two items with same priority and period (or undefined) but different insertedAt times", () => {
       it("should return the item with the earlier insertedAt first", () => {
         const item1 = {
           id: randomUUID(),
@@ -53,15 +53,15 @@ describe("computePropertiesQueueWorkflow", () => {
         expect(items[1]).toBe(item1);
       });
 
-      it("should return the item with the earlier insertedAt first when maxPeriods are the same", () => {
+      it("should return the item with the earlier insertedAt first when periods are the same", () => {
         const item1 = {
           id: randomUUID(),
-          maxPeriod: 1000,
+          period: 1000,
           insertedAt: 200, // Later
         };
         const item2 = {
           id: randomUUID(),
-          maxPeriod: 1000,
+          period: 1000,
           insertedAt: 100, // Earlier
         };
         const items = [item1, item2];
