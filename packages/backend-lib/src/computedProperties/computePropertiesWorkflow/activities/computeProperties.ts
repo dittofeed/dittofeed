@@ -204,6 +204,7 @@ export async function computePropertiesIndividual({
       const userProperties = await findAllUserPropertyResources({
         workspaceId: item.workspaceId,
         requireRunning: false,
+        ids: [item.id],
       });
       const filtered = userProperties.filter((up) => up.id === item.id);
       await computePropertiesIncremental({
@@ -219,6 +220,7 @@ export async function computePropertiesIndividual({
     case WorkspaceQueueItemType.Integration: {
       const integrationResults = await findAllIntegrationResources({
         workspaceId: item.workspaceId,
+        ids: [item.id],
       });
       const integrations = integrationResults.flatMap((r) => {
         if (r.isErr()) {
@@ -248,6 +250,7 @@ export async function computePropertiesIndividual({
         and(
           eq(dbJourney.workspaceId, item.workspaceId),
           eq(dbJourney.id, item.id),
+          eq(dbJourney.status, "Running"),
         ),
       );
       const journeys = journeyResults.flatMap((j) => {
