@@ -610,6 +610,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
         : undefined,
+    computePropertiesSplit: rawConfig.computePropertiesSplit === "true",
   };
 
   return parsedConfig;
