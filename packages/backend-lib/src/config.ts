@@ -142,7 +142,6 @@ const BaseRawConfigProps = {
   clickhouseMaxBytesBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
-  computePropertiesSplit: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -267,7 +266,6 @@ export type Config = Overwrite<
     clickhouseComputePropertiesRequestTimeout?: number;
     clickhouseComputePropertiesMaxExecutionTime?: number;
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
-    computePropertiesBatchThreshold: number;
     computePropertiesSplit: boolean;
   }
 > & {
@@ -473,11 +471,6 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     rawConfig.computedPropertiesActivityTaskQueue ??
     computedPropertiesTaskQueue;
 
-  const computePropertiesBatchThreshold =
-    rawConfig.computePropertiesBatchThreshold
-      ? parseInt(rawConfig.computePropertiesBatchThreshold)
-      : 500_000;
-
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -598,7 +591,6 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesSchedulerInterval
         ? parseInt(rawConfig.computePropertiesSchedulerInterval)
         : 10 * 1000,
-    computePropertiesSplit: rawConfig.computePropertiesSplit === "true",
     enableAdditionalDashboardSettings:
       rawConfig.enableAdditionalDashboardSettings === "true",
     useGlobalComputedProperties:
@@ -617,7 +609,6 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
         : undefined,
-    computePropertiesBatchThreshold,
   };
 
   return parsedConfig;
