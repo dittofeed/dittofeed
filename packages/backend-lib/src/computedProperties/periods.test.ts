@@ -33,7 +33,7 @@ describe("periods", () => {
     );
   });
 
-  describe("getEarliestComputePropertyPeriod", () => {
+  describe.only("getEarliestComputePropertyPeriod", () => {
     let date1: number;
     let date2: number;
     let segment1: SavedSegmentResource;
@@ -116,7 +116,7 @@ describe("periods", () => {
       expect(period).toEqual(date1);
     });
 
-    describe.only("when a segment is paused", () => {
+    describe("when a segment is paused", () => {
       beforeEach(async () => {
         await db()
           .update(dbSegment)

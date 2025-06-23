@@ -285,7 +285,6 @@ export async function getEarliestComputePropertyPeriod({
 }: {
   workspaceId: string;
 }): Promise<number> {
-  // FIXME check if segment and user property are running
   const maxPerComputedProperty = db()
     .select({
       type: dbComputedPropertyPeriod.type,
