@@ -543,14 +543,14 @@ export async function findDueWorkspaceMinTos({
     )
     .where(and(...whereConditions))
     .groupBy(w.id)
-    // .having(
-    //   or(
-    //     // Cold start: aggregatedMax is null => no existing compute records
-    //     sql`${aggregatedMin} IS NULL`,
-    //     // Overdue: last computation older than our interval
-    //     sql`(to_timestamp(${timestampNow}) - ${aggregatedMin}) > ${secondsInterval}::interval`,
-    //   ),
-    // )
+    .having(
+      or(
+        // Cold start: aggregatedMax is null => no existing compute records
+        sql`${aggregatedMin} IS NULL`,
+        // Overdue: last computation older than our interval
+        sql`(to_timestamp(${timestampNow}) - ${aggregatedMin}) > ${secondsInterval}::interval`,
+      ),
+    )
     .orderBy(sql`${aggregatedMin} ASC NULLS FIRST`)
     .limit(limit);
 

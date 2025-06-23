@@ -4,6 +4,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { db, insert } from "../db";
 import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
+import logger from "../logger";
 import { toSegmentResource } from "../segments";
 import {
   ComputedPropertyStepEnum,
@@ -17,7 +18,6 @@ import {
   getEarliestComputePropertyPeriod,
   getPeriodsByComputedPropertyId,
 } from "./periods";
-import logger from "../logger";
 
 describe("periods", () => {
   let workspace: typeof dbWorkspace.$inferSelect;
