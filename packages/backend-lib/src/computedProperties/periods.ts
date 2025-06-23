@@ -37,7 +37,7 @@ import {
   WorkspaceTypeAppEnum,
 } from "../types";
 import {
-  signalAddWorkspacesV2,
+  enqueueRecompute,
   signalComputePropertiesEarly,
 } from "./computePropertiesWorkflow/lifecycle";
 
@@ -587,7 +587,7 @@ export async function triggerWorkspaceRecompute({
     workspaceId,
   });
   if (feature) {
-    await signalAddWorkspacesV2({
+    await enqueueRecompute({
       // choosing a priority of 10 to be higher than the default of 0 but with
       // some room to add lower priority items
       items: [{ id: workspaceId, priority: 10 }],
