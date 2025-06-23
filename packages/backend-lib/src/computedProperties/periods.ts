@@ -298,6 +298,7 @@ export async function getEarliestComputePropertyPeriod({
       and(
         eq(dbComputedPropertyPeriod.computedPropertyId, dbSegment.id),
         eq(dbComputedPropertyPeriod.type, "Segment"),
+        eq(dbSegment.status, "Running"),
       ),
     )
     .leftJoin(
@@ -305,6 +306,7 @@ export async function getEarliestComputePropertyPeriod({
       and(
         eq(dbComputedPropertyPeriod.computedPropertyId, dbUserProperty.id),
         eq(dbComputedPropertyPeriod.type, "UserProperty"),
+        eq(dbUserProperty.status, "Running"),
       ),
     )
     .where(

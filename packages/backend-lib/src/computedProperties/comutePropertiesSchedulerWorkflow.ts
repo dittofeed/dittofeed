@@ -9,8 +9,8 @@ import {
   sleep,
 } from "@temporalio/workflow";
 
-import type * as activities from "../temporal/activities";
 import { addWorkspacesSignalV2 } from "./computePropertiesQueueWorkflow";
+import type * as activities from "./computePropertiesWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 

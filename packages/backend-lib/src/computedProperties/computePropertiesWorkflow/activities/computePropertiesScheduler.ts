@@ -7,8 +7,8 @@ import {
 } from "../../computePropertiesQueueWorkflow";
 import {
   findDueWorkspaceMaxTos,
-  FindDueWorkspacesParams,
   findDueWorkspaceMinTos,
+  FindDueWorkspacesParams,
 } from "../../periods";
 
 export async function findDueWorkspaces(
@@ -20,9 +20,14 @@ export async function findDueWorkspaces(
   };
 }
 
+export interface DueWorkspace {
+  id: string;
+  maxPeriod?: number;
+}
+
 export async function findDueWorkspacesV2(
   params: FindDueWorkspacesParams,
-): Promise<{ workspaces: WorkspaceQueueItem[] }> {
+): Promise<{ workspaces: DueWorkspace[] }> {
   const maxTos = await findDueWorkspaceMaxTos(params);
   return {
     workspaces: maxTos.map(({ workspaceId, max }) => ({

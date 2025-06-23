@@ -36,9 +36,11 @@ describe("periods", () => {
   describe("getEarliestComputePropertyPeriod", () => {
     let date1: number;
     let date2: number;
+    let segment1: SavedSegmentResource;
+    let segment2: SavedSegmentResource;
 
     beforeEach(async () => {
-      const segment1 = unwrap(
+      const segment1Db = unwrap(
         await insert({
           table: dbSegment,
           values: {
@@ -61,8 +63,9 @@ describe("periods", () => {
           },
         }),
       );
+      segment1 = unwrap(toSegmentResource(segment1Db));
 
-      const segment2 = unwrap(
+      const segment2Db = unwrap(
         await insert({
           table: dbSegment,
           values: {
@@ -85,11 +88,12 @@ describe("periods", () => {
           },
         }),
       );
+      segment2 = unwrap(toSegmentResource(segment2Db));
 
       date1 = Date.now();
       await createPeriods({
         workspaceId: workspace.id,
-        segments: [unwrap(toSegmentResource(segment1))],
+        segments: [segment1],
         userProperties: [],
         now: date1,
         step: ComputedPropertyStepEnum.ComputeAssignments,
@@ -98,7 +102,7 @@ describe("periods", () => {
       date2 = date1 + 1000 * 60 * 3;
       await createPeriods({
         workspaceId: workspace.id,
-        segments: [unwrap(toSegmentResource(segment2))],
+        segments: [segment2],
         userProperties: [],
         now: date2,
         step: ComputedPropertyStepEnum.ComputeAssignments,
@@ -110,6 +114,22 @@ describe("periods", () => {
         workspaceId: workspace.id,
       });
       expect(period).toEqual(date1);
+    });
+
+    describe.only("when a segment is paused", () => {
+      beforeEach(async () => {
+        await db()
+          .update(dbSegment)
+          .set({ status: "Paused" })
+          .where(eq(dbSegment.id, segment1.id));
+      });
+
+      it("should only return periods from running properties", async () => {
+        const period = await getEarliestComputePropertyPeriod({
+          workspaceId: workspace.id,
+        });
+        expect(period).toEqual(date2);
+      });
     });
   });
 
@@ -159,7 +179,7 @@ describe("periods", () => {
         }),
       );
       let periods = await db().query.computedPropertyPeriod.findMany({
-        where: (table, { eq }) => eq(table.workspaceId, workspace.id),
+        where: (table, { eq: eqOp }) => eqOp(table.workspaceId, workspace.id),
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
       expect(periods).toEqual(
@@ -199,7 +219,7 @@ describe("periods", () => {
       );
 
       periods = await db().query.computedPropertyPeriod.findMany({
-        where: (table, { eq }) => eq(table.workspaceId, workspace.id),
+        where: (table, { eq: eqOp }) => eqOp(table.workspaceId, workspace.id),
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
 

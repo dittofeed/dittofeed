@@ -321,6 +321,10 @@ async function computePropertiesGroup({
   IndividualComputedPropertyQueueItem[] | null
 > {
   const args = await computePropertiesIncrementalArgs(params);
+  await computePropertiesIncremental({
+    ...args,
+    now,
+  });
   return null;
 }
 
