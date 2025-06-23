@@ -61,7 +61,7 @@ export async function computePropertiesIncrementalArgs({
       : findManySegmentResourcesSafe({
           workspaceId,
           requireRunning: true,
-          ids: segmentIds,
+          segmentIds,
         }),
     integrationIds !== undefined && integrationIds.length === 0
       ? []
