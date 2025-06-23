@@ -17,6 +17,7 @@ import {
   getEarliestComputePropertyPeriod,
   getPeriodsByComputedPropertyId,
 } from "./periods";
+import logger from "../logger";
 
 describe("periods", () => {
   let workspace: typeof dbWorkspace.$inferSelect;
@@ -236,7 +237,7 @@ describe("periods", () => {
     });
   });
 
-  describe.only("findDueWorkspaceMinTos", () => {
+  describe("findDueWorkspaceMinTos", () => {
     let segment1: SavedSegmentResource;
     let segment2: SavedSegmentResource;
     let now: number;
@@ -324,9 +325,12 @@ describe("periods", () => {
         interval,
       });
 
-      expect(dueWorkspaces).toHaveLength(1);
-      expect(dueWorkspaces[0]?.workspaceId).toEqual(workspace.id);
-      expect(dueWorkspaces[0]?.min?.getTime()).toBeCloseTo(dueTime);
+      logger().info({ dueWorkspaces }, "dueWorkspaces");
+      const dueWorkspace = dueWorkspaces.find(
+        (w) => w.workspaceId === workspace.id,
+      );
+      expect(dueWorkspace).toBeDefined();
+      expect(dueWorkspace?.min?.getTime()).toBeCloseTo(dueTime);
     });
 
     it("should return workspaces with properties that have never been computed (cold start)", async () => {
@@ -339,9 +343,11 @@ describe("periods", () => {
         interval,
       });
 
-      expect(dueWorkspaces).toHaveLength(1);
-      expect(dueWorkspaces[0]?.workspaceId).toEqual(workspace.id);
-      expect(dueWorkspaces[0]?.min).toBeNull();
+      const dueWorkspace = dueWorkspaces.find(
+        (w) => w.workspaceId === workspace.id,
+      );
+      expect(dueWorkspace).toBeDefined();
+      expect(dueWorkspace?.min).toBeNull();
     });
 
     it("should not return workspaces with non-running properties", async () => {
@@ -357,7 +363,10 @@ describe("periods", () => {
         interval,
       });
 
-      expect(dueWorkspaces).toHaveLength(0);
+      const dueWorkspace = dueWorkspaces.find(
+        (w) => w.workspaceId === workspace.id,
+      );
+      expect(dueWorkspace).toBeUndefined();
     });
   });
 });

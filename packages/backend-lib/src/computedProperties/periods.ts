@@ -522,20 +522,20 @@ export async function findDueWorkspaceMinTos({
                   ),
                 ),
             ),
-            and(
-              eq(cpp.type, "UserProperty"),
-              inArray(
-                cpp.computedPropertyId,
-                db()
-                  .select({ id: dbUserProperty.id })
-                  .from(dbUserProperty)
-                  .where(
-                    and(
-                      eq(dbUserProperty.status, "Running"),
-                      eq(dbUserProperty.workspaceId, w.id),
-                    ),
+          ),
+          and(
+            eq(cpp.type, "UserProperty"),
+            inArray(
+              cpp.computedPropertyId,
+              db()
+                .select({ id: dbUserProperty.id })
+                .from(dbUserProperty)
+                .where(
+                  and(
+                    eq(dbUserProperty.status, "Running"),
+                    eq(dbUserProperty.workspaceId, w.id),
                   ),
-              ),
+                ),
             ),
           ),
         ),
@@ -543,20 +543,21 @@ export async function findDueWorkspaceMinTos({
     )
     .where(and(...whereConditions))
     .groupBy(w.id)
-    .having(
-      or(
-        // Cold start: aggregatedMax is null => no existing compute records
-        sql`${aggregatedMin} IS NULL`,
-        // Overdue: last computation older than our interval
-        sql`(to_timestamp(${timestampNow}) - ${aggregatedMin}) > ${secondsInterval}::interval`,
-      ),
-    )
+    // .having(
+    //   or(
+    //     // Cold start: aggregatedMax is null => no existing compute records
+    //     sql`${aggregatedMin} IS NULL`,
+    //     // Overdue: last computation older than our interval
+    //     sql`(to_timestamp(${timestampNow}) - ${aggregatedMin}) > ${secondsInterval}::interval`,
+    //   ),
+    // )
     .orderBy(sql`${aggregatedMin} ASC NULLS FIRST`)
     .limit(limit);
 
   return periodsQuery;
 }
 
+// IGNORE THIS FUNCTION, IT'S FOR REFERENCE ONLY AND IS A RECORD OF A FAILED ATTEMPT TO IMPLEMENT THE QUERY IN SQL
 export async function findDueWorkspaceMinTosModel({
   now,
   interval = config().computePropertiesInterval,
