@@ -1101,7 +1101,7 @@ export async function findSubscribedRunningJourneysForSegment({
 }: {
   workspaceId: string;
   segmentId: string;
-}): Promise<SavedJourneyResource[]> {
+}): Promise<SavedHasStartedJourneyResource[]> {
   const journeys = await findRunningJourneys(workspaceId);
 
   return journeys.filter((j) => {
