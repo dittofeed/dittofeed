@@ -510,27 +510,31 @@ export async function findDueWorkspaceMinTos({
         or(
           and(
             eq(cpp.type, "Segment"),
-            eq(
+            inArray(
               cpp.computedPropertyId,
-              inArray(
-                cpp.computedPropertyId,
-                db()
-                  .select({ id: dbSegment.id })
-                  .from(dbSegment)
-                  .where(eq(dbSegment.status, "Running")),
-              ),
+              db()
+                .select({ id: dbSegment.id })
+                .from(dbSegment)
+                .where(
+                  and(
+                    eq(dbSegment.status, "Running"),
+                    eq(dbSegment.workspaceId, w.id),
+                  ),
+                ),
             ),
             and(
               eq(cpp.type, "UserProperty"),
-              eq(
+              inArray(
                 cpp.computedPropertyId,
-                inArray(
-                  cpp.computedPropertyId,
-                  db()
-                    .select({ id: dbUserProperty.id })
-                    .from(dbUserProperty)
-                    .where(eq(dbUserProperty.status, "Running")),
-                ),
+                db()
+                  .select({ id: dbUserProperty.id })
+                  .from(dbUserProperty)
+                  .where(
+                    and(
+                      eq(dbUserProperty.status, "Running"),
+                      eq(dbUserProperty.workspaceId, w.id),
+                    ),
+                  ),
               ),
             ),
           ),
