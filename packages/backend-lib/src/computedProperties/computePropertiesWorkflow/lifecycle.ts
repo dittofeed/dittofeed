@@ -304,7 +304,7 @@ export async function signalComputePropertiesEarly({
   }
 }
 
-export async function signalAddWorkspacesV2({
+export async function enqueueRecompute({
   items,
 }: {
   items: WorkspaceQueueSignal["workspaces"];

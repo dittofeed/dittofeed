@@ -344,6 +344,22 @@ export async function findManySegmentResourcesSafe({
   return results;
 }
 
+export async function findSegmentResource({
+  workspaceId,
+  id,
+}: {
+  workspaceId: string;
+  id: string;
+}): Promise<Result<SavedSegmentResource | null, Error>> {
+  const segment = await db().query.segment.findFirst({
+    where: and(eq(dbSegment.workspaceId, workspaceId), eq(dbSegment.id, id)),
+  });
+  if (!segment) {
+    return ok(null);
+  }
+  return toSegmentResource(segment);
+}
+
 /**
  * Upsert segment resource if the existing segment is not internal.
  * @param segment

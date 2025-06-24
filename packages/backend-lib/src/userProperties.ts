@@ -145,7 +145,7 @@ export async function findAllUserPropertyResources({
   const userProperties = await findAllUserProperties({
     workspaceId,
     requireRunning,
-    ids,
+    ids: ids?.length ? ids : undefined,
   });
 
   return userProperties.map((up) => ({

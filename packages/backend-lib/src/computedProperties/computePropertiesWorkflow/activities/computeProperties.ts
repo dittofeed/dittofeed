@@ -1,18 +1,17 @@
 /* eslint-disable no-await-in-loop */
-import { and, eq, inArray } from "drizzle-orm";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
 import config from "../../../config";
 import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
-import { journey as dbJourney } from "../../../db/schema";
 import { findAllIntegrationResources } from "../../../integrations";
-import { findManyJourneyResourcesSafe } from "../../../journeys";
+import { findRunningJourneys, getSubscribedSegments } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
+  SavedUserPropertyResource,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
 } from "../../../types";
@@ -32,6 +31,21 @@ export interface ComputePropertiesIncrementalArgsParams {
   userPropertyIds?: string[];
 }
 
+export async function getComputedUserPropertyArgs({
+  workspaceId,
+  userPropertyIds,
+}: {
+  workspaceId: string;
+  userPropertyIds?: string[];
+}): Promise<SavedUserPropertyResource[]> {
+  const userProperties = await findAllUserPropertyResources({
+    workspaceId,
+    requireRunning: true,
+    ids: userPropertyIds,
+  });
+  return userProperties;
+}
+
 export async function computePropertiesIncrementalArgs({
   workspaceId,
   journeyIds,
@@ -42,22 +56,8 @@ export async function computePropertiesIncrementalArgs({
   Omit<ComputePropertiesArgs, "now">
 > {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
-    journeyIds !== undefined && journeyIds.length === 0
-      ? []
-      : findManyJourneyResourcesSafe(
-          and(
-            eq(dbJourney.workspaceId, workspaceId),
-            eq(dbJourney.status, "Running"),
-            ...(journeyIds ? [inArray(dbJourney.id, journeyIds)] : []),
-          ),
-        ),
-    userPropertyIds !== undefined && userPropertyIds.length === 0
-      ? []
-      : findAllUserPropertyResources({
-          workspaceId,
-          requireRunning: true,
-          ids: userPropertyIds,
-        }),
+    findRunningJourneys({ workspaceId, ids: journeyIds }),
+    getComputedUserPropertyArgs({ workspaceId, userPropertyIds }),
     segmentIds !== undefined && segmentIds.length === 0
       ? []
       : findManySegmentResourcesSafe({
@@ -85,19 +85,7 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
-    journeys: journeys.flatMap((j) => {
-      if (j.isErr()) {
-        logger().error(
-          { err: j.error, workspaceId },
-          "failed to enrich journey",
-        );
-        return [];
-      }
-      if (j.value.status === "NotStarted") {
-        return [];
-      }
-      return j.value;
-    }),
+    journeys,
     integrations: integrations.flatMap((i) => {
       if (i.isErr()) {
         logger().error(
@@ -235,10 +223,33 @@ export async function computePropertiesIndividual({
         }
         return [];
       });
+      const segmentIds = integrations.flatMap((i) => {
+        return i.definition.subscribedSegments;
+      });
+      const userPropertyIds = integrations.flatMap((i) => {
+        return i.definition.subscribedUserProperties;
+      });
+      const [subscribedSegments, subscribedUserProperties] = await Promise.all([
+        findManySegmentResourcesSafe({
+          workspaceId: item.workspaceId,
+          segmentIds,
+        }).then((results) =>
+          results.flatMap((r) => {
+            if (r.isErr()) {
+              return [];
+            }
+            return [r.value];
+          }),
+        ),
+        findAllUserPropertyResources({
+          workspaceId: item.workspaceId,
+          ids: userPropertyIds,
+        }),
+      ]);
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
-        segments: [],
-        userProperties: [],
+        segments: subscribedSegments,
+        userProperties: subscribedUserProperties,
         journeys: [],
         integrations,
         now,
@@ -246,26 +257,27 @@ export async function computePropertiesIndividual({
       break;
     }
     case WorkspaceQueueItemType.Journey: {
-      const journeyResults = await findManyJourneyResourcesSafe(
-        and(
-          eq(dbJourney.workspaceId, item.workspaceId),
-          eq(dbJourney.id, item.id),
-          eq(dbJourney.status, "Running"),
-        ),
-      );
-      const journeys = journeyResults.flatMap((j) => {
-        if (j.isErr()) {
-          logger().error(
-            { err: j.error, workspaceId: item.workspaceId },
-            "failed to get journey",
-          );
-          return [];
-        }
-        return j.value.status === "Running" ? [j.value] : [];
+      const journeys = await findRunningJourneys({
+        workspaceId: item.workspaceId,
+        ids: [item.id],
       });
+      const subscribedSegments = journeys.flatMap((j) =>
+        Array.from(getSubscribedSegments(j.definition)),
+      );
+      const segments = await findManySegmentResourcesSafe({
+        workspaceId: item.workspaceId,
+        segmentIds: subscribedSegments,
+      }).then((results) =>
+        results.flatMap((r) => {
+          if (r.isErr()) {
+            return [];
+          }
+          return [r.value];
+        }),
+      );
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
-        segments: [],
+        segments,
         userProperties: [],
         journeys,
         integrations: [],

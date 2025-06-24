@@ -1,23 +1,70 @@
 import { and, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
+import { sleep } from "isomorphic-lib/src/time";
 import {
   BatchItem,
   EventType,
   InternalEventType,
   ManualSegmentNode,
+  SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
 import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
-import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
+import {
+  computePropertiesIncremental,
+  getComputedUserPropertyArgs,
+} from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { findSubscribedRunningJourneysForSegment } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
 import { Segment } from "../../types";
+
+async function computePropertiesForManualSegment({
+  workspaceId,
+  segment,
+  now,
+}: {
+  workspaceId: string;
+  segment: SavedSegmentResource;
+  now: number;
+}) {
+  const [subscribedJourneys, userProperties] = await Promise.all([
+    findSubscribedRunningJourneysForSegment({
+      workspaceId,
+      segmentId: segment.id,
+    }),
+    getComputedUserPropertyArgs({
+      workspaceId,
+    }),
+  ]);
+
+  await computePropertiesIncremental({
+    workspaceId,
+    segments: [segment],
+    userProperties,
+    journeys: [],
+    integrations: [],
+    now,
+  });
+
+  // Hack to ensure that the user property values are ready to be read by the time the journeys are processed
+  await sleep(1000);
+
+  await computePropertiesIncremental({
+    workspaceId,
+    userProperties: [],
+    segments: [],
+    journeys: subscribedJourneys,
+    integrations: [],
+    now,
+  });
+}
 
 function getManualSegmentDefinition(
   segment: Segment,
@@ -140,12 +187,9 @@ export async function appendToManualSegment({
     );
     return false;
   }
-  await computePropertiesIncremental({
+  await computePropertiesForManualSegment({
     workspaceId,
-    segments: [segmentResource.value],
-    userProperties: [],
-    journeys: [],
-    integrations: [],
+    segment: segmentResource.value,
     now,
   });
   return true;
@@ -266,12 +310,9 @@ export async function replaceManualSegment({
     );
     return false;
   }
-  await computePropertiesIncremental({
+  await computePropertiesForManualSegment({
     workspaceId,
-    segments: [segmentResource.value],
-    userProperties: [],
-    journeys: [],
-    integrations: [],
+    segment: segmentResource.value,
     now,
   });
   return true;
