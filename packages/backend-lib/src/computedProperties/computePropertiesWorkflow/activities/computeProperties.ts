@@ -11,6 +11,7 @@ import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
+  SavedUserPropertyResource,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
 } from "../../../types";
@@ -30,6 +31,21 @@ export interface ComputePropertiesIncrementalArgsParams {
   userPropertyIds?: string[];
 }
 
+export async function getComputedUserPropertyArgs({
+  workspaceId,
+  userPropertyIds,
+}: {
+  workspaceId: string;
+  userPropertyIds?: string[];
+}): Promise<SavedUserPropertyResource[]> {
+  const userProperties = await findAllUserPropertyResources({
+    workspaceId,
+    requireRunning: true,
+    ids: userPropertyIds,
+  });
+  return userProperties;
+}
+
 export async function computePropertiesIncrementalArgs({
   workspaceId,
   journeyIds,
@@ -41,13 +57,7 @@ export async function computePropertiesIncrementalArgs({
 > {
   const [journeys, userProperties, segments, integrations] = await Promise.all([
     findRunningJourneys({ workspaceId, ids: journeyIds }),
-    userPropertyIds !== undefined && userPropertyIds.length === 0
-      ? []
-      : findAllUserPropertyResources({
-          workspaceId,
-          requireRunning: true,
-          ids: userPropertyIds,
-        }),
+    getComputedUserPropertyArgs({ workspaceId, userPropertyIds }),
     segmentIds !== undefined && segmentIds.length === 0
       ? []
       : findManySegmentResourcesSafe({
