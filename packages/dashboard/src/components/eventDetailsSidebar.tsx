@@ -122,7 +122,7 @@ function CopyableField({
 }
 
 function TimeField({ label, timestamp }: { label: string; timestamp: string }) {
-  const date = new Date(timestamp);
+  const date = new Date(`${timestamp}Z`);
   const formatted = formatDistanceToNow(date, { addSuffix: true });
 
   const tooltipContent = (
