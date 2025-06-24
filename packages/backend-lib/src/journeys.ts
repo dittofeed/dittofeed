@@ -1107,18 +1107,18 @@ export async function upsertJourney(
     };
   }
 
-  await enqueueRecompute({
-    items: [
-      {
-        type: WorkspaceQueueItemType.Journey,
-        workspaceId,
-        id: journey.id,
-        priority: QUEUE_ITEM_PRIORITIES.Explicit,
-      },
-    ],
-  });
-  // FIXME trigger workflow to process manual segment assignments if the journey entry node is a manual segment entry node and is started and wasn't already both of those things
-  // submit to the queue workflow when able to separate by computed property
+  if (txResult.value.isNewlyRunningWithManualEntry) {
+    await enqueueRecompute({
+      items: [
+        {
+          type: WorkspaceQueueItemType.Journey,
+          workspaceId,
+          id: journey.id,
+          priority: QUEUE_ITEM_PRIORITIES.Explicit,
+        },
+      ],
+    });
+  }
   return ok(resource);
 }
 
