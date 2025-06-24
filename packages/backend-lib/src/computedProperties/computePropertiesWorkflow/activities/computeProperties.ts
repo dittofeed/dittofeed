@@ -5,7 +5,7 @@ import { ClickHouseQueryBuilder, query as chQuery } from "../../../clickhouse";
 import config from "../../../config";
 import { QUEUE_ITEM_PRIORITIES } from "../../../constants";
 import { findAllIntegrationResources } from "../../../integrations";
-import { findRunningJourneys } from "../../../journeys";
+import { findRunningJourneys, getSubscribedSegments } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
@@ -251,9 +251,23 @@ export async function computePropertiesIndividual({
         workspaceId: item.workspaceId,
         ids: [item.id],
       });
+      const subscribedSegments = journeys.flatMap((j) =>
+        Array.from(getSubscribedSegments(j.definition)),
+      );
+      const segments = await findManySegmentResourcesSafe({
+        workspaceId: item.workspaceId,
+        segmentIds: subscribedSegments,
+      }).then((results) =>
+        results.flatMap((r) => {
+          if (r.isErr()) {
+            return [];
+          }
+          return [r.value];
+        }),
+      );
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
-        segments: [],
+        segments,
         userProperties: [],
         journeys,
         integrations: [],
