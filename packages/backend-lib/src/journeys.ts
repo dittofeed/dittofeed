@@ -1169,7 +1169,7 @@ export async function findSubscribedRunningJourneysForSegment({
   workspaceId: string;
   segmentId: string;
 }): Promise<SavedHasStartedJourneyResource[]> {
-  const journeys = await findRunningJourneys(workspaceId);
+  const journeys = await findRunningJourneys({ workspaceId });
 
   return journeys.filter((j) => {
     const { definition } = j;
