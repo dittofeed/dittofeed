@@ -25,6 +25,8 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
+import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
 import * as schema from "./db/schema";
 import {
@@ -33,7 +35,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
-import { findManySegmentResourcesSafe } from "./segments";
+import { findManySegmentResourcesSafe, findSegmentResource } from "./segments";
 import {
   BaseMessageNodeStats,
   ChannelType,
@@ -53,8 +55,10 @@ import {
   NodeStatsType,
   SavedHasStartedJourneyResource,
   SavedJourneyResource,
+  SegmentNodeType,
   SmsStats,
   UpsertJourneyResource,
+  WorkspaceQueueItemType,
 } from "./types";
 
 const { journey: dbJourney } = schema;
@@ -853,111 +857,163 @@ export async function upsertJourney(
   // explicitly set to null
   const nullableDraft = definition || draft === null ? null : draft;
 
-  const txResult: Result<Journey, JourneyUpsertValidationError> =
-    await db().transaction(async (tx) => {
-      const conditions: SQL[] = [eq(dbJourney.workspaceId, workspaceId)];
-      if (id) {
-        conditions.push(eq(dbJourney.id, id));
-      } else if (name) {
-        conditions.push(eq(dbJourney.name, name));
-      }
+  const txResult: Result<
+    { journey: Journey; isNewlyRunningWithManualEntry?: boolean },
+    JourneyUpsertValidationError
+  > = await db().transaction(async (tx) => {
+    const conditions: SQL[] = [eq(dbJourney.workspaceId, workspaceId)];
+    if (id) {
+      conditions.push(eq(dbJourney.id, id));
+    } else if (name) {
+      conditions.push(eq(dbJourney.name, name));
+    }
 
-      const journey = await tx.query.journey.findFirst({
-        where: and(...conditions),
-      });
-      if (!journey) {
-        if (!name) {
-          return err({
-            type: JourneyUpsertValidationErrorType.BadValues,
-            message: "Name is required when creating a journey",
-          });
-        }
-        const created = (
-          await insert({
-            table: dbJourney,
-            tx,
-            doNothingOnConflict: true,
-            values: {
-              id,
-              workspaceId,
-              name,
-              definition,
-              draft: nullableDraft,
-              status,
-              canRunMultiple,
-            },
-          })
-        ).mapErr(mapUpsertValidationError);
-        return created.andThen((c) => {
-          if (!c) {
-            return err({
-              type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
-              message: "Journey with this name already exists",
-            } satisfies JourneyUpsertValidationError);
-          }
-          return ok(c);
-        });
-      }
-      if (
-        status === JourneyResourceStatusEnum.Paused &&
-        journey.status === JourneyResourceStatusEnum.NotStarted
-      ) {
+    const journey = await tx.query.journey.findFirst({
+      where: and(...conditions),
+    });
+    if (!journey) {
+      if (!name) {
         return err({
-          type: JourneyUpsertValidationErrorType.StatusTransitionError,
-          message: "Cannot pause a journey that has not been started",
+          type: JourneyUpsertValidationErrorType.BadValues,
+          message: "Name is required when creating a journey",
         });
       }
-
-      if (
-        status === JourneyResourceStatusEnum.NotStarted &&
-        journey.status !== JourneyResourceStatusEnum.NotStarted
-      ) {
-        return err({
-          type: JourneyUpsertValidationErrorType.StatusTransitionError,
-          message:
-            "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
-        });
-      }
-
-      let statusUpdatedAt: Date | undefined;
-      if (status && status !== journey.status) {
-        statusUpdatedAt = new Date();
-      }
-
-      const updateResult = await queryResult(
-        tx
-          .update(dbJourney)
-          .set({
+      const created = (
+        await insert({
+          table: dbJourney,
+          tx,
+          doNothingOnConflict: true,
+          values: {
+            id,
+            workspaceId,
             name,
             definition,
             draft: nullableDraft,
             status,
-            statusUpdatedAt,
             canRunMultiple,
-          })
-          .where(and(...conditions))
-          .returning(),
-      );
-      return updateResult
-        .map(([updated]) => {
-          if (!updated) {
-            logger().error(
-              {
-                workspaceId,
-                journeyId: journey.id,
-              },
-              "No result returned from update",
-            );
-            throw new Error("No result returned from update");
-          }
-          return updated;
+          },
         })
-        .mapErr(mapUpsertValidationError);
-    });
+      ).mapErr(mapUpsertValidationError);
+      let isNewlyRunningWithManualEntry = false;
+      if (
+        definition?.entryNode.type === JourneyNodeType.SegmentEntryNode &&
+        status === JourneyResourceStatusEnum.Running
+      ) {
+        const segment = await findSegmentResource({
+          workspaceId,
+          id: definition.entryNode.segment,
+        });
+
+        if (segment.isOk()) {
+          isNewlyRunningWithManualEntry =
+            segment.value?.definition.entryNode.type === SegmentNodeType.Manual;
+        } else {
+          logger().error(
+            {
+              workspaceId,
+              journeyName: name,
+              segmentId: definition.entryNode.segment,
+              err: segment.error,
+            },
+            "Failed parse segment",
+          );
+        }
+      }
+      return created.andThen((c) => {
+        if (!c) {
+          return err({
+            type: JourneyUpsertValidationErrorType.UniqueConstraintViolation,
+            message: "Journey with this name already exists",
+          } satisfies JourneyUpsertValidationError);
+        }
+        return ok({ journey: c, isNewlyRunningWithManualEntry });
+      });
+    }
+    if (
+      status === JourneyResourceStatusEnum.Paused &&
+      journey.status === JourneyResourceStatusEnum.NotStarted
+    ) {
+      return err({
+        type: JourneyUpsertValidationErrorType.StatusTransitionError,
+        message: "Cannot pause a journey that has not been started",
+      });
+    }
+
+    if (
+      status === JourneyResourceStatusEnum.NotStarted &&
+      journey.status !== JourneyResourceStatusEnum.NotStarted
+    ) {
+      return err({
+        type: JourneyUpsertValidationErrorType.StatusTransitionError,
+        message:
+          "Cannot set a journey to NotStarted if it has already been started. Pause the journey instead.",
+      });
+    }
+
+    let statusUpdatedAt: Date | undefined;
+    if (status && status !== journey.status) {
+      statusUpdatedAt = new Date();
+    }
+
+    const updateResult = await queryResult(
+      tx
+        .update(dbJourney)
+        .set({
+          name,
+          definition,
+          draft: nullableDraft,
+          status,
+          statusUpdatedAt,
+          canRunMultiple,
+        })
+        .where(and(...conditions))
+        .returning(),
+    );
+    const priorDefinition = schemaValidateWithErr(
+      journey.definition,
+      JourneyDefinition,
+    );
+
+    let isNewlyRunningWithManualEntry = false;
+    if (
+      definition?.entryNode.type === JourneyNodeType.SegmentEntryNode &&
+      status === JourneyResourceStatusEnum.Running &&
+      !(
+        journey.status === JourneyResourceStatusEnum.Running &&
+        priorDefinition.isOk() &&
+        priorDefinition.value.entryNode.type ===
+          JourneyNodeType.SegmentEntryNode
+      )
+    ) {
+      const segment = await findSegmentResource({
+        workspaceId,
+        id: definition.entryNode.segment,
+      });
+      if (segment.isOk()) {
+        isNewlyRunningWithManualEntry =
+          segment.value?.definition.entryNode.type === SegmentNodeType.Manual;
+      }
+    }
+    return updateResult
+      .map(([updated]) => {
+        if (!updated) {
+          logger().error(
+            {
+              workspaceId,
+              journeyId: journey.id,
+            },
+            "No result returned from update",
+          );
+          throw new Error("No result returned from update");
+        }
+        return { journey: updated, isNewlyRunningWithManualEntry };
+      })
+      .mapErr(mapUpsertValidationError);
+  });
   if (txResult.isErr()) {
     return err(txResult.error);
   }
-  const journey = txResult.value;
+  const { journey } = txResult.value;
   const journeyDefinitionResult = journey.definition
     ? schemaValidate(journey.definition, JourneyDefinition)
     : undefined;
@@ -1051,6 +1107,16 @@ export async function upsertJourney(
     };
   }
 
+  await enqueueRecompute({
+    items: [
+      {
+        type: WorkspaceQueueItemType.Journey,
+        workspaceId,
+        id: journey.id,
+        priority: QUEUE_ITEM_PRIORITIES.Explicit,
+      },
+    ],
+  });
   // FIXME trigger workflow to process manual segment assignments if the journey entry node is a manual segment entry node and is started and wasn't already both of those things
   // submit to the queue workflow when able to separate by computed property
   return ok(resource);
