@@ -213,10 +213,33 @@ export async function computePropertiesIndividual({
         }
         return [];
       });
+      const segmentIds = integrations.flatMap((i) => {
+        return i.definition.subscribedSegments;
+      });
+      const userPropertyIds = integrations.flatMap((i) => {
+        return i.definition.subscribedUserProperties;
+      });
+      const [subscribedSegments, subscribedUserProperties] = await Promise.all([
+        findManySegmentResourcesSafe({
+          workspaceId: item.workspaceId,
+          segmentIds,
+        }).then((results) =>
+          results.flatMap((r) => {
+            if (r.isErr()) {
+              return [];
+            }
+            return [r.value];
+          }),
+        ),
+        findAllUserPropertyResources({
+          workspaceId: item.workspaceId,
+          ids: userPropertyIds,
+        }),
+      ]);
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
-        segments: [],
-        userProperties: [],
+        segments: subscribedSegments,
+        userProperties: subscribedUserProperties,
         journeys: [],
         integrations,
         now,
