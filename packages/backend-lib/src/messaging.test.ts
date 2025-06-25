@@ -345,6 +345,13 @@ describe("messaging", () => {
       });
     });
   });
+
+  describe("sendWebhook", () => {
+    describe("when your webhook includes screts", () => {
+      it("the returned message sent event should replace secrets with placeholder text", async () => {});
+    });
+  });
+
   describe("upsertMessageTemplate", () => {
     describe("when a message template is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;
