@@ -37,6 +37,7 @@ import {
   UpsertMessageTemplateValidationErrorType,
   Workspace,
 } from "./types";
+import logger from "./logger";
 
 jest.mock("axios");
 
@@ -442,10 +443,13 @@ describe("messaging", () => {
         if (value.variant.type !== ChannelType.Webhook) {
           throw new Error(`Expected webhook event, got ${value.variant.type}`);
         }
+        logger().debug(value.variant);
         expect(
-          value.variant.response.headers?.Authorization,
+          value.variant.request.headers?.Authorization,
         ).not.toBeUndefined();
-        expect(value.variant.response.headers?.Authorization).not.toBe("1234");
+        expect(value.variant.request.headers?.Authorization).not.toContain(
+          "1234",
+        );
       });
     });
   });

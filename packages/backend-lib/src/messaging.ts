@@ -1880,6 +1880,16 @@ export async function sendWebhook({
   const parsedConfigResult: Record<string, string> = secret?.configValue
     ? schemaValidateWithErr(secret.configValue, WebhookSecret)
         .map((c) => R.omit(c, ["type"]))
+        .mapErr((e) => {
+          logger().error(
+            {
+              ...messageTags,
+              err: e,
+            },
+            "failed to parse webhook secret",
+          );
+          return e;
+        })
         .unwrapOr({})
     : {};
 
@@ -1990,6 +2000,13 @@ export async function sendWebhook({
   }
 
   try {
+    logger().debug(
+      {
+        renderedSecret,
+        renderedConfig,
+      },
+      "webhook request",
+    );
     const data: unknown = renderedSecret?.data ?? renderedConfig.data;
     const params: unknown = renderedSecret?.params ?? renderedConfig.params;
     const method = renderedSecret?.method ?? renderedConfig.method;
@@ -1997,7 +2014,7 @@ export async function sendWebhook({
       renderedSecret?.responseType ?? renderedConfig.responseType;
     const url = renderedSecret?.url ?? renderedConfig.url;
 
-    const response = await axios({
+    const response = await axios.request({
       url,
       method,
       params,
@@ -2036,6 +2053,13 @@ export async function sendWebhook({
         headers: responseHeaders,
       };
     }
+    logger().debug(
+      {
+        ...messageTags,
+        err: e,
+      },
+      "webhook error",
+    );
     return err({
       type: InternalEventType.MessageFailure,
       variant: {
