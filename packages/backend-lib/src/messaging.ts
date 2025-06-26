@@ -346,13 +346,6 @@ async function getSendMessageModels({
     definitionFromDraft ?? messageTemplate.definition ?? null;
 
   if (!messageTemplateDefinition) {
-    logger().debug(
-      {
-        messageTemplate,
-      },
-      "message template has no definition",
-    );
-
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -497,7 +490,6 @@ async function getSmsProvider({
     workspaceId,
     providerOverride,
   });
-  logger().debug({ provider }, "sms provider");
   if (provider) {
     return provider;
   }
@@ -1893,15 +1885,6 @@ export async function sendWebhook({
         .unwrapOr({})
     : {};
 
-  logger().debug(
-    {
-      configValue: secret?.configValue,
-      parsedConfigResult,
-      ...messageTags,
-    },
-    "webhook secret",
-  );
-
   if (messageTemplateDefinition.type !== ChannelType.Webhook) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -2009,14 +1992,6 @@ export async function sendWebhook({
   }
 
   try {
-    logger().debug(
-      {
-        renderedSecret,
-        renderedConfig,
-        renderedHeaders,
-      },
-      "webhook request",
-    );
     const data: unknown = renderedSecret?.data ?? renderedConfig.data;
     const params: unknown = renderedSecret?.params ?? renderedConfig.params;
     const method = renderedSecret?.method ?? renderedConfig.method;
@@ -2063,13 +2038,6 @@ export async function sendWebhook({
         headers: responseHeaders,
       };
     }
-    logger().debug(
-      {
-        ...messageTags,
-        err: e,
-      },
-      "webhook error",
-    );
     return err({
       type: InternalEventType.MessageFailure,
       variant: {
