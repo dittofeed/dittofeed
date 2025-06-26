@@ -1,6 +1,9 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { WorkspaceTypeAppEnum } from "isomorphic-lib/src/types";
+import {
+  WebhookTemplateResource,
+  WorkspaceTypeAppEnum,
+} from "isomorphic-lib/src/types";
 
 import { insert } from "./db";
 import {
@@ -348,6 +351,32 @@ describe("messaging", () => {
 
   describe("sendWebhook", () => {
     describe("when your webhook includes screts", () => {
+      const templateId: string;
+      beforeEach(async () => {
+        const template = unwrap(
+          await upsertMessageTemplate({
+            name: randomUUID(),
+            workspaceId: workspace.id,
+            definition: {
+              type: ChannelType.Webhook,
+              identifierKey: "id",
+              body: `{
+                "config": {
+                  "url": "https://dittofeed-test.com",
+                  "method": "POST",
+                  "responseType": "json"
+                },
+                "secret": {
+                  "headers": {
+                    "Authorization": "{{ secrets.ApiKey }}"
+                  }
+                },
+              }`,
+            } satisfies WebhookTemplateResource,
+          }),
+        );
+        templateId = template.id;
+      });
       it("the returned message sent event should replace secrets with placeholder text", async () => {});
     });
   });
