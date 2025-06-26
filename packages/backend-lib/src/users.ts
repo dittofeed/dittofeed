@@ -471,6 +471,14 @@ export async function deleteUsers({
   ]);
 }
 
+export async function deleteAllUsers({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  throw new Error("Not implemented");
+}
+
 export async function getUsersCount({
   workspaceId,
   segmentFilter,
