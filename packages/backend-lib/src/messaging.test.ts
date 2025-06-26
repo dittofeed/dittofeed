@@ -11,7 +11,12 @@ import {
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
 } from "./db/schema";
-import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
+import {
+  sendEmail,
+  sendSms,
+  sendWebhook,
+  upsertMessageTemplate,
+} from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
@@ -377,7 +382,27 @@ describe("messaging", () => {
         );
         templateId = template.id;
       });
-      it("the returned message sent event should replace secrets with placeholder text", async () => {});
+
+      it("the returned message sent event should replace secrets with placeholder text", async () => {
+        const userId = randomUUID();
+        const result = await sendWebhook({
+          workspaceId: workspace.id,
+          templateId,
+          userPropertyAssignments: {
+            id: randomUUID(),
+          },
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId,
+            runId: randomUUID(),
+            nodeId: randomUUID(),
+            messageId: randomUUID(),
+            userId,
+          } satisfies MessageTags,
+          useDraft: false,
+          userId,
+        });
+      });
     });
   });
 
