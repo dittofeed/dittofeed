@@ -1,14 +1,27 @@
+import axios from "axios";
 import { randomUUID } from "crypto";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { WorkspaceTypeAppEnum } from "isomorphic-lib/src/types";
+import {
+  BadWorkspaceConfigurationType,
+  ParsedWebhookBody,
+  WebhookTemplateResource,
+  WorkspaceTypeAppEnum,
+} from "isomorphic-lib/src/types";
 
 import { insert } from "./db";
 import {
   messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
 } from "./db/schema";
-import { sendEmail, sendSms, upsertMessageTemplate } from "./messaging";
+import {
+  sendEmail,
+  sendSms,
+  sendWebhook,
+  upsertMessageTemplate,
+} from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
@@ -26,6 +39,10 @@ import {
   UpsertMessageTemplateValidationErrorType,
   Workspace,
 } from "./types";
+
+jest.mock("axios");
+
+const mockAxios = axios as jest.Mocked<typeof axios>;
 
 async function setupEmailTemplate(workspace: Workspace) {
   const templatePromise = insert({
@@ -345,6 +362,160 @@ describe("messaging", () => {
       });
     });
   });
+
+  describe("sendWebhook", () => {
+    describe("when your webhook includes screts", () => {
+      let templateId: string;
+      beforeEach(async () => {
+        const mockResponse = {
+          data: { message: "Data from base axios call" },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config: {},
+        };
+
+        mockAxios.request.mockResolvedValue(mockResponse);
+
+        unwrap(
+          await insert({
+            table: dbSecret,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: SecretNames.Webhook,
+              configValue: {
+                type: ChannelType.Webhook,
+                ApiKey: "1234",
+              },
+            },
+          }),
+        );
+      });
+
+      describe("when the template is successfully sent", () => {
+        beforeEach(async () => {
+          const template = unwrap(
+            await upsertMessageTemplate({
+              name: randomUUID(),
+              workspaceId: workspace.id,
+              definition: {
+                type: ChannelType.Webhook,
+                identifierKey: "id",
+                body: JSON.stringify({
+                  config: {
+                    url: "https://dittofeed-test.com",
+                    method: "POST",
+                    responseType: "json",
+                    data: {
+                      message: "{{ user.firstName }}",
+                    },
+                  },
+                  secret: {
+                    headers: {
+                      Authorization: "{{ secrets.ApiKey }}",
+                    },
+                  },
+                } satisfies ParsedWebhookBody),
+              } satisfies WebhookTemplateResource,
+            }),
+          );
+          templateId = template.id;
+        });
+        it("the returned message sent event should replace secrets with placeholder text", async () => {
+          const userId = randomUUID();
+          const result = await sendWebhook({
+            workspaceId: workspace.id,
+            templateId,
+            userPropertyAssignments: {
+              id: randomUUID(),
+              firstName: "John",
+            },
+            messageTags: {
+              workspaceId: workspace.id,
+              templateId,
+              runId: randomUUID(),
+              nodeId: randomUUID(),
+              messageId: randomUUID(),
+              userId,
+            } satisfies MessageTags,
+            useDraft: false,
+            userId,
+          });
+          if (result.isErr()) {
+            throw new Error(JSON.stringify(result.error));
+          }
+          const { value } = result;
+          if (value.type !== InternalEventType.MessageSent) {
+            throw new Error(`Expected message sent event, got ${value.type}`);
+          }
+          if (value.variant.type !== ChannelType.Webhook) {
+            throw new Error(
+              `Expected webhook event, got ${value.variant.type}`,
+            );
+          }
+          expect(value.variant.request.headers?.Authorization).toBeUndefined();
+        });
+        describe("with a rendering error", () => {
+          beforeEach(async () => {
+            const template = unwrap(
+              await upsertMessageTemplate({
+                name: randomUUID(),
+                workspaceId: workspace.id,
+                definition: {
+                  type: ChannelType.Webhook,
+                  identifierKey: "id",
+                  body: JSON.stringify({
+                    myInvalidKey: "{{ secrets.ApiKey }}",
+                  }),
+                } satisfies WebhookTemplateResource,
+              }),
+            );
+            templateId = template.id;
+          });
+          it("should not expose secret in event", async () => {
+            const userId = randomUUID();
+            const result = await sendWebhook({
+              workspaceId: workspace.id,
+              templateId,
+              userPropertyAssignments: {
+                id: randomUUID(),
+              },
+              messageTags: {
+                workspaceId: workspace.id,
+                templateId,
+                runId: randomUUID(),
+                nodeId: randomUUID(),
+                messageId: randomUUID(),
+                userId,
+              } satisfies MessageTags,
+              useDraft: false,
+              userId,
+            });
+            if (result.isOk()) {
+              throw new Error("Expected error, got ok");
+            }
+            const { error } = result;
+            if (error.type !== InternalEventType.BadWorkspaceConfiguration) {
+              throw new Error(
+                `Expected message template render error event, got ${error.type}`,
+              );
+            }
+            if (
+              error.variant.type !==
+              BadWorkspaceConfigurationType.MessageTemplateRenderError
+            ) {
+              throw new Error(
+                `Expected message template render error event, got ${error.variant.type}`,
+              );
+            }
+            expect(error.variant.error).not.toContain("1234");
+          });
+        });
+      });
+    });
+  });
+
   describe("upsertMessageTemplate", () => {
     describe("when a message template is created in a second workspace with a re-used id", () => {
       let secondWorkspace: Workspace;

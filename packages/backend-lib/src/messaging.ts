@@ -346,13 +346,6 @@ async function getSendMessageModels({
     definitionFromDraft ?? messageTemplate.definition ?? null;
 
   if (!messageTemplateDefinition) {
-    logger().debug(
-      {
-        messageTemplate,
-      },
-      "message template has no definition",
-    );
-
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -497,7 +490,6 @@ async function getSmsProvider({
     workspaceId,
     providerOverride,
   });
-  logger().debug({ provider }, "sms provider");
   if (provider) {
     return provider;
   }
@@ -1880,6 +1872,16 @@ export async function sendWebhook({
   const parsedConfigResult: Record<string, string> = secret?.configValue
     ? schemaValidateWithErr(secret.configValue, WebhookSecret)
         .map((c) => R.omit(c, ["type"]))
+        .mapErr((e) => {
+          logger().error(
+            {
+              ...messageTags,
+              err: e,
+            },
+            "failed to parse webhook secret",
+          );
+          return e;
+        })
         .unwrapOr({})
     : {};
 
@@ -1930,7 +1932,7 @@ export async function sendWebhook({
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
         field: "body",
-        error: `Failed to parse webhook json payload: ${parsedBody.error.message}`,
+        error: "Failed to parse webhook json payload",
       },
     });
   }
@@ -1945,7 +1947,7 @@ export async function sendWebhook({
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
         field: "body",
-        error: `Failed to validate webhook json payload: ${validatedBody.error.message}`,
+        error: `Failed to validate webhook json payload`,
       },
     });
   }
@@ -1997,7 +1999,7 @@ export async function sendWebhook({
       renderedSecret?.responseType ?? renderedConfig.responseType;
     const url = renderedSecret?.url ?? renderedConfig.url;
 
-    const response = await axios({
+    const response = await axios.request({
       url,
       method,
       params,
