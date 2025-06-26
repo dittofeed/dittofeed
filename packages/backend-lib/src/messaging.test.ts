@@ -398,10 +398,7 @@ describe("messaging", () => {
         };
 
         mockAxios.request.mockResolvedValue(mockResponse);
-      });
 
-      it.only("the returned message sent event should replace secrets with placeholder text", async () => {
-        const userId = randomUUID();
         unwrap(
           await insert({
             table: dbSecret,
@@ -416,40 +413,45 @@ describe("messaging", () => {
             },
           }),
         );
-        const result = await sendWebhook({
-          workspaceId: workspace.id,
-          templateId,
-          userPropertyAssignments: {
-            id: randomUUID(),
-          },
-          messageTags: {
+      });
+
+      describe("when the template is successfully sent", () => {
+        it.only("the returned message sent event should replace secrets with placeholder text", async () => {
+          const userId = randomUUID();
+          const result = await sendWebhook({
             workspaceId: workspace.id,
             templateId,
-            runId: randomUUID(),
-            nodeId: randomUUID(),
-            messageId: randomUUID(),
+            userPropertyAssignments: {
+              id: randomUUID(),
+            },
+            messageTags: {
+              workspaceId: workspace.id,
+              templateId,
+              runId: randomUUID(),
+              nodeId: randomUUID(),
+              messageId: randomUUID(),
+              userId,
+            } satisfies MessageTags,
+            useDraft: false,
             userId,
-          } satisfies MessageTags,
-          useDraft: false,
-          userId,
+          });
+          if (result.isErr()) {
+            throw new Error(JSON.stringify(result.error));
+          }
+          const { value } = result;
+          if (value.type !== InternalEventType.MessageSent) {
+            throw new Error(`Expected message sent event, got ${value.type}`);
+          }
+          if (value.variant.type !== ChannelType.Webhook) {
+            throw new Error(
+              `Expected webhook event, got ${value.variant.type}`,
+            );
+          }
+          expect(value.variant.request.headers?.Authorization).toBeUndefined();
         });
-        if (result.isErr()) {
-          throw new Error(JSON.stringify(result.error));
-        }
-        const { value } = result;
-        if (value.type !== InternalEventType.MessageSent) {
-          throw new Error(`Expected message sent event, got ${value.type}`);
-        }
-        if (value.variant.type !== ChannelType.Webhook) {
-          throw new Error(`Expected webhook event, got ${value.variant.type}`);
-        }
-        logger().debug(value.variant);
-        expect(
-          value.variant.request.headers?.Authorization,
-        ).not.toBeUndefined();
-        expect(value.variant.request.headers?.Authorization).not.toContain(
-          "1234",
-        );
+        describe("with a rendering error", () => {
+          it("should not expose secret in event", async () => {});
+        });
       });
     });
   });

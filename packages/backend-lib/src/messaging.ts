@@ -1893,6 +1893,15 @@ export async function sendWebhook({
         .unwrapOr({})
     : {};
 
+  logger().debug(
+    {
+      configValue: secret?.configValue,
+      parsedConfigResult,
+      ...messageTags,
+    },
+    "webhook secret",
+  );
+
   if (messageTemplateDefinition.type !== ChannelType.Webhook) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -2004,6 +2013,7 @@ export async function sendWebhook({
       {
         renderedSecret,
         renderedConfig,
+        renderedHeaders,
       },
       "webhook request",
     );
