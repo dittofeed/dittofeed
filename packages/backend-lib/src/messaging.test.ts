@@ -372,18 +372,18 @@ describe("messaging", () => {
             definition: {
               type: ChannelType.Webhook,
               identifierKey: "id",
-              body: `{
-                "config": {
-                  "url": "https://dittofeed-test.com",
-                  "method": "POST",
-                  "responseType": "json"
+              body: JSON.stringify({
+                config: {
+                  url: "https://dittofeed-test.com",
+                  method: "POST",
+                  responseType: "json",
                 },
-                "secret": {
-                  "headers": {
-                    "Authorization": "{{ secrets.ApiKey }}"
-                  }
+                secret: {
+                  headers: {
+                    Authorization: "{{ secrets.ApiKey }}",
+                  },
                 },
-              }`,
+              }),
             } satisfies WebhookTemplateResource,
           }),
         );
@@ -443,9 +443,9 @@ describe("messaging", () => {
           throw new Error(`Expected webhook event, got ${value.variant.type}`);
         }
         expect(
-          value.variant.response.headers.Authorization,
+          value.variant.response.headers?.Authorization,
         ).not.toBeUndefined();
-        expect(value.variant.response.headers.Authorization).not.toBe("1234");
+        expect(value.variant.response.headers?.Authorization).not.toBe("1234");
       });
     });
   });
