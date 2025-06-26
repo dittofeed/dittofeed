@@ -30,6 +30,7 @@ import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClien
 import { transferResources } from "backend-lib/src/transferResources";
 import { NodeEnvEnum, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
+import { deleteAllUsers } from "backend-lib/src/users";
 import {
   activateTombstonedWorkspace,
   pauseWorkspace,
@@ -987,6 +988,80 @@ export function createCommands(yargs: Argv): Argv {
           );
         } catch (error) {
           logger().error({ error }, "Failed to delete workspace.");
+        }
+      },
+    )
+    .command(
+      "delete-all-users",
+      "Delete all users from a workspace (only works in development environment).",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            describe: "The ID of the workspace to delete all users from.",
+          },
+          force: {
+            type: "boolean",
+            default: false,
+            describe: "Force deletion without confirmation.",
+          },
+        }),
+      async ({ workspaceId, force }) => {
+        if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
+          logger().error(
+            "This command can only be run in development environment.",
+          );
+          return;
+        }
+
+        if (!validateUuid(workspaceId)) {
+          logger().error("Invalid workspace ID format.");
+          return;
+        }
+
+        const workspace = await db().query.workspace.findFirst({
+          where: eq(dbWorkspace.id, workspaceId),
+        });
+
+        if (!workspace) {
+          logger().error("Workspace not found.");
+          return;
+        }
+
+        if (!force) {
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+
+          const answer = await new Promise<string>((resolve) => {
+            rl.question(
+              `WARNING: This will delete ALL users from workspace "${workspace.name}" (${workspace.id}).\nThis action cannot be undone. Are you sure? [y/N]: `,
+              resolve,
+            );
+          });
+
+          rl.close();
+
+          if (answer.toLowerCase() !== "y") {
+            logger().info("Deletion cancelled.");
+            return;
+          }
+        }
+
+        logger().info(
+          `Deleting all users from workspace "${workspace.name}" (${workspace.id})...`,
+        );
+
+        try {
+          await deleteAllUsers({ workspaceId });
+          logger().info(
+            `All users have been deleted from workspace "${workspace.name}" (${workspace.id}).`,
+          );
+        } catch (err) {
+          logger().error({ err }, "Failed to delete all users.");
         }
       },
     )

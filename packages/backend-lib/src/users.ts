@@ -476,7 +476,53 @@ export async function deleteAllUsers({
 }: {
   workspaceId: string;
 }): Promise<void> {
-  throw new Error("Not implemented");
+  const qb = new ClickHouseQueryBuilder();
+
+  // Define shared query value
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
+  const queries = [
+    // Delete from user_events_v2
+    `DELETE FROM user_events_v2 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from computed_property_state_v2
+    `DELETE FROM computed_property_state_v2 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from computed_property_assignments_v2
+    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from processed_computed_properties_v2
+    `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from computed_property_state_index
+    `DELETE FROM computed_property_state_index WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from resolved_segment_state
+    `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+  ];
+
+  await Promise.all([
+    // Execute all Clickhouse deletion queries
+    ...queries.map((query) =>
+      chCommand({
+        query,
+        query_params: qb.getQueries(),
+      }),
+    ),
+    // Delete from postgres tables
+    db()
+      .delete(dbUserPropertyAssignment)
+      .where(eq(dbUserPropertyAssignment.workspaceId, workspaceId)),
+    db()
+      .delete(dbSegmentAssignment)
+      .where(eq(dbSegmentAssignment.workspaceId, workspaceId)),
+  ]);
 }
 
 export async function getUsersCount({
