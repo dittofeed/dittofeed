@@ -1932,7 +1932,7 @@ export async function sendWebhook({
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
         field: "body",
-        error: `Failed to parse webhook json payload: ${parsedBody.error.message}`,
+        error: "Failed to parse webhook json payload",
       },
     });
   }
@@ -1947,7 +1947,7 @@ export async function sendWebhook({
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
         field: "body",
-        error: `Failed to validate webhook json payload: ${validatedBody.error.message}`,
+        error: `Failed to validate webhook json payload`,
       },
     });
   }
