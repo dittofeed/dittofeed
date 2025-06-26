@@ -1,4 +1,5 @@
 import createEmotionServer from "@emotion/server/create-instance";
+import backendConfig from "backend-lib/src/config";
 import { AppType } from "next/app";
 import Document, {
   DocumentContext,
@@ -14,10 +15,12 @@ import createEmotionCache from "../lib/createEmotionCache";
 
 export interface DittofeedDocumentProps extends DocumentInitialProps {
   emotionStyleTags: React.ReactNode[];
+  appVersion?: string;
 }
 
 export default function DittofeedDocument({
   emotionStyleTags,
+  appVersion,
 }: DittofeedDocumentProps) {
   return (
     <Html>
@@ -31,6 +34,10 @@ export default function DittofeedDocument({
         <meta name="emotion-insertion-point" content="" />
         {/* disable indexing the dashboard */}
         <meta name="robots" content="noindex, nofollow" />
+        {/* Hidden app version meta tag */}
+        {appVersion && (
+          <meta name="dittofeed-app-version" content={appVersion} />
+        )}
         {emotionStyleTags}
       </Head>
       <body>
@@ -98,8 +105,11 @@ DittofeedDocument.getInitialProps = async (
     />
   ));
 
+  // Get app version from backend config
+  const { appVersion } = backendConfig();
   return {
     ...initialProps,
     emotionStyleTags,
+    appVersion,
   };
 };
