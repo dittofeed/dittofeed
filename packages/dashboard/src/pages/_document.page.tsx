@@ -105,8 +105,16 @@ DittofeedDocument.getInitialProps = async (
     />
   ));
 
-  // Get app version from backend config
-  const { appVersion } = backendConfig();
+  let appVersion: string | undefined;
+  try {
+    // Get app version from backend config
+    const { appVersion: configAppVersion } = backendConfig();
+    appVersion = configAppVersion;
+  } catch (error) {
+    // If config is not available (e.g., in some build contexts), just continue without it
+    console.warn("Unable to get app version from config:", error);
+  }
+
   return {
     ...initialProps,
     emotionStyleTags,
