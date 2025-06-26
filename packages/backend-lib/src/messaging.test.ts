@@ -1,4 +1,6 @@
+import axios from "axios";
 import { randomUUID } from "crypto";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   WebhookTemplateResource,
@@ -8,6 +10,7 @@ import {
 import { insert } from "./db";
 import {
   messageTemplate as dbMessageTemplate,
+  secret as dbSecret,
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
 } from "./db/schema";
@@ -34,6 +37,10 @@ import {
   UpsertMessageTemplateValidationErrorType,
   Workspace,
 } from "./types";
+
+jest.mock("axios");
+
+const mockAxios = axios as jest.Mocked<typeof axios>;
 
 async function setupEmailTemplate(workspace: Workspace) {
   const templatePromise = insert({
@@ -356,7 +363,7 @@ describe("messaging", () => {
 
   describe("sendWebhook", () => {
     describe("when your webhook includes screts", () => {
-      const templateId: string;
+      let templateId: string;
       beforeEach(async () => {
         const template = unwrap(
           await upsertMessageTemplate({
@@ -381,10 +388,33 @@ describe("messaging", () => {
           }),
         );
         templateId = template.id;
+        const mockResponse = {
+          data: { message: "Data from base axios call" },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config: {},
+        };
+
+        mockAxios.request.mockResolvedValue(mockResponse);
       });
 
-      it("the returned message sent event should replace secrets with placeholder text", async () => {
+      it.only("the returned message sent event should replace secrets with placeholder text", async () => {
         const userId = randomUUID();
+        unwrap(
+          await insert({
+            table: dbSecret,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: SecretNames.Webhook,
+              configValue: {
+                type: ChannelType.Webhook,
+                ApiKey: "1234",
+              },
+            },
+          }),
+        );
         const result = await sendWebhook({
           workspaceId: workspace.id,
           templateId,
@@ -402,6 +432,20 @@ describe("messaging", () => {
           useDraft: false,
           userId,
         });
+        if (result.isErr()) {
+          throw new Error(JSON.stringify(result.error));
+        }
+        const { value } = result;
+        if (value.type !== InternalEventType.MessageSent) {
+          throw new Error(`Expected message sent event, got ${value.type}`);
+        }
+        if (value.variant.type !== ChannelType.Webhook) {
+          throw new Error(`Expected webhook event, got ${value.variant.type}`);
+        }
+        expect(
+          value.variant.response.headers.Authorization,
+        ).not.toBeUndefined();
+        expect(value.variant.response.headers.Authorization).not.toBe("1234");
       });
     });
   });
