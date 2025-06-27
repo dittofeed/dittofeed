@@ -147,6 +147,7 @@ export async function findAllUserPropertyResources({
   workspaceId,
   requireRunning,
   ids,
+  names,
 }: {
   workspaceId: string;
   requireRunning?: boolean;

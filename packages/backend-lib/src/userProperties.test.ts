@@ -20,8 +20,10 @@ import {
 import {
   findAllUserPropertyAssignments,
   findAllUserPropertyAssignmentsForWorkspace,
+  findAllUserPropertyResources,
   findUserIdsByUserPropertyValue,
   insertUserPropertyAssignments,
+  upsertUserProperty,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
 
@@ -452,6 +454,51 @@ describe("userProperties", () => {
       });
 
       expect(actual).toEqual([userId]);
+    });
+  });
+  describe("findAllUserPropertyResources", () => {
+    describe("when passing ids and names", () => {
+      let idUpId: string;
+      let nameUpId: string;
+
+      beforeEach(async () => {
+        const [idUp, nameUp] = await Promise.all([
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: workspace.id,
+              name: "id",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "id",
+              } satisfies UserPropertyDefinition,
+            },
+          }).then(unwrap),
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: workspace.id,
+              name: "name",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "name",
+              } satisfies UserPropertyDefinition,
+            },
+          }).then(unwrap),
+        ]);
+        idUpId = idUp.id;
+        nameUpId = nameUp.id;
+      });
+      it("should return the user property resources which match either id or name", async () => {
+        const actual = await findAllUserPropertyResources({
+          workspaceId: workspace.id,
+          ids: [idUpId],
+          names: ["name"],
+        });
+        const actualIds = actual.map((up) => up.id);
+        expect(actualIds).toContain(idUpId);
+        expect(actualIds).toContain(nameUpId);
+      });
     });
   });
 });
