@@ -163,11 +163,17 @@ export async function computePropertiesIndividual({
 }): Promise<void> {
   switch (item.type) {
     case WorkspaceQueueItemType.Segment: {
-      const segmentsResult = await findManySegmentResourcesSafe({
-        workspaceId: item.workspaceId,
-        segmentIds: [item.id],
-        requireRunning: false,
-      });
+      const [segmentsResult, userProperties] = await Promise.all([
+        findManySegmentResourcesSafe({
+          workspaceId: item.workspaceId,
+          segmentIds: [item.id],
+          requireRunning: false,
+        }),
+        findAllUserPropertyResources({
+          workspaceId: item.workspaceId,
+          names: ["id", "anonymousId"],
+        }),
+      ]);
       const segments = segmentsResult.flatMap((r) => {
         if (r.isErr()) {
           logger().error(
@@ -181,7 +187,7 @@ export async function computePropertiesIndividual({
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments,
-        userProperties: [],
+        userProperties,
         journeys: [],
         integrations: [],
         now,
@@ -193,6 +199,7 @@ export async function computePropertiesIndividual({
         workspaceId: item.workspaceId,
         requireRunning: false,
         ids: [item.id],
+        names: ["id", "anonymousId"],
       });
       const filtered = userProperties.filter((up) => up.id === item.id);
       await computePropertiesIncremental({
@@ -244,6 +251,7 @@ export async function computePropertiesIndividual({
         findAllUserPropertyResources({
           workspaceId: item.workspaceId,
           ids: userPropertyIds,
+          names: ["id", "anonymousId"],
         }),
       ]);
       await computePropertiesIncremental({
