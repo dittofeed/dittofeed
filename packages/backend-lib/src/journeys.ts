@@ -599,6 +599,7 @@ export async function getJourneysStats({
     const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {
+      const nodeCount = nodeProcessedMap.get(node.id) ?? 0;
       switch (node.type) {
         case JourneyNodeType.MessageNode: {
           const nodeMessageStats =
@@ -610,6 +611,7 @@ export async function getJourneysStats({
             proportions: {
               childEdge: 100,
             },
+            count: nodeCount,
             ...nodeMessageStats,
           };
           break;
@@ -620,6 +622,7 @@ export async function getJourneysStats({
             proportions: {
               childEdge: 100,
             },
+            count: nodeCount,
           };
           break;
         }
@@ -638,6 +641,7 @@ export async function getJourneysStats({
             proportions: {
               falseChildEdge: percent,
             },
+            count: nodeCount,
           };
           break;
         }
@@ -658,6 +662,7 @@ export async function getJourneysStats({
               proportions: {
                 segmentChildEdge: percent,
               },
+              count: nodeCount,
             };
           }
           break;
