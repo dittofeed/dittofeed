@@ -71,10 +71,19 @@ export async function tombstoneWorkspace(
 
 export enum ActivateTombstonedWorkspaceErrorType {
   WorkspaceNotFound = "WorkspaceNotFound",
+  WorkspaceConflict = "WorkspaceConflict",
 }
-export interface ActivateTombstonedWorkspaceError {
+export interface ActivateTombstonedWorkspaceNotFoundError {
   type: ActivateTombstonedWorkspaceErrorType.WorkspaceNotFound;
 }
+
+export interface ActivateTombstonedWorkspaceConflictError {
+  type: ActivateTombstonedWorkspaceErrorType.WorkspaceConflict;
+}
+
+export type ActivateTombstonedWorkspaceError =
+  | ActivateTombstonedWorkspaceNotFoundError
+  | ActivateTombstonedWorkspaceConflictError;
 
 export async function activateTombstonedWorkspace(
   workspaceId: string,
@@ -95,11 +104,16 @@ export async function activateTombstonedWorkspace(
       `${WORKSPACE_TOMBSTONE_PREFIX}-`,
       "",
     );
+    const newExternalId = workspace.externalId?.replace(
+      `${WORKSPACE_TOMBSTONE_PREFIX}-`,
+      "",
+    );
     await tx
       .update(dbWorkspace)
       .set({
         status: WorkspaceStatusDbEnum.Active,
         name: newName,
+        externalId: newExternalId,
       })
       .where(eq(dbWorkspace.id, workspaceId));
     return ok(undefined);

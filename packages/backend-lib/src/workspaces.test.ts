@@ -9,7 +9,11 @@ import {
   WorkspaceTypeAppEnum,
 } from "./types";
 import { upsertUserProperty } from "./userProperties";
-import { tombstoneWorkspace } from "./workspaces";
+import {
+  activateTombstonedWorkspace,
+  ActivateTombstonedWorkspaceErrorType,
+  tombstoneWorkspace,
+} from "./workspaces";
 
 describe("workspaces", () => {
   describe("after tombstoning a workspace", () => {
@@ -63,7 +67,7 @@ describe("workspaces", () => {
       });
     });
 
-    it.only("should be able to create a new workspace with the same external id", async () => {
+    it("should be able to create a new workspace with the same external id", async () => {
       const externalId = randomUUID();
       // create workspace
       const [workspace] = await db()
@@ -82,7 +86,7 @@ describe("workspaces", () => {
       // tombstone workspace
       await tombstoneWorkspace(workspace.id);
 
-      // create new workspace with same name
+      // create new workspace with same external id
       const [newWorkspace] = await db()
         .insert(schema.workspace)
         .values({
@@ -104,18 +108,17 @@ describe("workspaces", () => {
           type: UserPropertyDefinitionType.Id,
         } satisfies IdUserPropertyDefinition,
       });
-    });
 
-    it("should fail to activate the tombstoned workspace after creating a new workspace with the same name", async () => {
-      // create workspace
-      // tombstone workspace
-      // create new workspace with same name
-      // add resource to new workspace
-      // activate tombstoned workspace
-      // expect error
+      const result = await activateTombstonedWorkspace(workspace.id);
+      if (result.isOk()) {
+        throw new Error("Should have failed to activate tombstoned workspace");
+      }
+      expect(result.error).toEqual(
+        expect.objectContaining({
+          type: ActivateTombstonedWorkspaceErrorType.WorkspaceConflict,
+        }),
+      );
     });
-
-    it("should fail to activate the tombstoned workspace after creating a new workspace with the same external id", async () => {});
 
     it("should be able to activate a tombstoned workspace with an external id", async () => {});
   });
