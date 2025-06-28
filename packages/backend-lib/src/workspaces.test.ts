@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { db } from "./db";
 import * as schema from "./db/schema";
@@ -120,6 +122,35 @@ describe("workspaces", () => {
       );
     });
 
-    it("should be able to activate a tombstoned workspace with an external id", async () => {});
+    it("should be able to activate a tombstoned workspace with an external id", async () => {
+      const externalId = randomUUID();
+
+      // create workspace
+      const [workspace] = await db()
+        .insert(schema.workspace)
+        .values({
+          name: randomUUID(),
+          externalId,
+          parentWorkspaceId,
+          type: WorkspaceTypeAppEnum.Child,
+          status: WorkspaceStatusDbEnum.Active,
+        })
+        .returning();
+      if (!workspace) {
+        throw new Error("Workspace not created");
+      }
+      // tombstone workspace
+      await tombstoneWorkspace(workspace.id);
+
+      unwrap(await activateTombstonedWorkspace(workspace.id));
+      const activatedWorkspace = await db().query.workspace.findFirst({
+        where: eq(schema.workspace.id, workspace.id),
+      });
+      if (!activatedWorkspace) {
+        throw new Error("Workspace not activated");
+      }
+      expect(activatedWorkspace.status).toBe(WorkspaceStatusDbEnum.Active);
+      expect(activatedWorkspace.externalId).toBe(externalId);
+    });
   });
 });
