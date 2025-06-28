@@ -48,10 +48,15 @@ export async function tombstoneWorkspace(
     if (workspace.status !== WorkspaceStatusDbEnum.Active) {
       return ok(undefined);
     }
+    const externalId = workspace.externalId
+      ? `${WORKSPACE_TOMBSTONE_PREFIX}-${workspace.externalId}`
+      : undefined;
+
     await tx
       .update(dbWorkspace)
       .set({
         name: `${WORKSPACE_TOMBSTONE_PREFIX}-${workspace.name}`,
+        externalId,
         status: WorkspaceStatusDbEnum.Tombstoned,
       })
       .where(eq(dbWorkspace.id, workspaceId));

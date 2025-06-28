@@ -114,5 +114,9 @@ describe("workspaces", () => {
       // activate tombstoned workspace
       // expect error
     });
+
+    it("should fail to activate the tombstoned workspace after creating a new workspace with the same external id", async () => {});
+
+    it("should be able to activate a tombstoned workspace with an external id", async () => {});
   });
 });
