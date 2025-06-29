@@ -17,6 +17,10 @@ import {
   tombstoneWorkspace,
 } from "./workspaces";
 
+jest.mock("./bootstrap", () => ({
+  bootstrapComputeProperties: jest.fn(),
+}));
+
 jest.setTimeout(15000);
 
 describe("workspaces", () => {
