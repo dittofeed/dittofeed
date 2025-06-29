@@ -9,7 +9,7 @@ import {
   stopComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
 } from "./computedProperties/computePropertiesWorkflow/lifecycle";
-import { db } from "./db";
+import { db, PostgresError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
   userProperty as dbUserProperty,
@@ -48,10 +48,15 @@ export async function tombstoneWorkspace(
     if (workspace.status !== WorkspaceStatusDbEnum.Active) {
       return ok(undefined);
     }
+    const externalId = workspace.externalId
+      ? `${WORKSPACE_TOMBSTONE_PREFIX}-${workspace.externalId}`
+      : undefined;
+
     await tx
       .update(dbWorkspace)
       .set({
         name: `${WORKSPACE_TOMBSTONE_PREFIX}-${workspace.name}`,
+        externalId,
         status: WorkspaceStatusDbEnum.Tombstoned,
       })
       .where(eq(dbWorkspace.id, workspaceId));
@@ -66,10 +71,19 @@ export async function tombstoneWorkspace(
 
 export enum ActivateTombstonedWorkspaceErrorType {
   WorkspaceNotFound = "WorkspaceNotFound",
+  WorkspaceConflict = "WorkspaceConflict",
 }
-export interface ActivateTombstonedWorkspaceError {
+export interface ActivateTombstonedWorkspaceNotFoundError {
   type: ActivateTombstonedWorkspaceErrorType.WorkspaceNotFound;
 }
+
+export interface ActivateTombstonedWorkspaceConflictError {
+  type: ActivateTombstonedWorkspaceErrorType.WorkspaceConflict;
+}
+
+export type ActivateTombstonedWorkspaceError =
+  | ActivateTombstonedWorkspaceNotFoundError
+  | ActivateTombstonedWorkspaceConflictError;
 
 export async function activateTombstonedWorkspace(
   workspaceId: string,
@@ -90,13 +104,33 @@ export async function activateTombstonedWorkspace(
       `${WORKSPACE_TOMBSTONE_PREFIX}-`,
       "",
     );
-    await tx
-      .update(dbWorkspace)
-      .set({
-        status: WorkspaceStatusDbEnum.Active,
-        name: newName,
-      })
-      .where(eq(dbWorkspace.id, workspaceId));
+    const newExternalId = workspace.externalId?.replace(
+      `${WORKSPACE_TOMBSTONE_PREFIX}-`,
+      "",
+    );
+    const updateResult = await txQueryResult(
+      tx
+        .update(dbWorkspace)
+        .set({
+          status: WorkspaceStatusDbEnum.Active,
+          name: newName,
+          externalId: newExternalId,
+        })
+        .where(eq(dbWorkspace.id, workspaceId)),
+    );
+    if (updateResult.isErr()) {
+      if (
+        updateResult.error.code === PostgresError.UNIQUE_VIOLATION ||
+        updateResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION
+      ) {
+        return err({
+          type: ActivateTombstonedWorkspaceErrorType.WorkspaceConflict,
+        });
+      }
+      throw new Error(
+        `Unexpected error in activateTombstonedWorkspace: ${updateResult.error.code}`,
+      );
+    }
     return ok(undefined);
   });
   if (result.isErr()) {
