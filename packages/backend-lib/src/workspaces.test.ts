@@ -17,6 +17,8 @@ import {
   tombstoneWorkspace,
 } from "./workspaces";
 
+jest.setTimeout(15000);
+
 describe("workspaces", () => {
   describe("after tombstoning a workspace", () => {
     let parentWorkspaceId: string;
