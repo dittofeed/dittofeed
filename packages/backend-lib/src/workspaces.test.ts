@@ -21,6 +21,12 @@ jest.mock("./bootstrap", () => ({
   bootstrapComputeProperties: jest.fn(),
 }));
 
+jest.mock("./computedProperties/computePropertiesWorkflow/lifecycle", () => ({
+  startComputePropertiesWorkflow: jest.fn(),
+  stopComputePropertiesWorkflow: jest.fn(),
+  terminateComputePropertiesWorkflow: jest.fn(),
+}));
+
 jest.setTimeout(15000);
 
 describe("workspaces", () => {
