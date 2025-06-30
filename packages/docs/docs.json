@@ -262,8 +262,7 @@
       {
         "tab": "Embedded Components",
         "pages": [
-          "embedded/getting-started",
-          "embedded/introduction"
+          "embedded/getting-started"
         ]
       }
     ],
@@ -327,5 +326,15 @@
     "posthog": {
       "apiKey": "phc_nAONMdL3n31UGZLr5QmIpPlyHqHV327DgxPCRjMusrG"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/embedded/introduction",
+      "destination": "/embedded/getting-started"
+    },
+    {
+      "source": "/embedded",
+      "destination": "/embedded/getting-started"
+    }
+  ]
 }
