@@ -33,6 +33,75 @@ describe("deliveries", () => {
     );
     workspaceId = workspace.id;
   });
+
+  describe("getDeliveryBody", () => {
+    describe("when submitting a batch of events containing a hidden track event", () => {
+      let messageId: string;
+      let templateId: string;
+      let userId: string;
+
+      beforeEach(async () => {
+        messageId = randomUUID();
+        templateId = randomUUID();
+        userId = randomUUID();
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.SendGrid,
+            },
+          },
+        };
+        await submitBatch({
+          workspaceId,
+          data: {
+            context: {
+              hidden: true,
+            },
+            batch: [
+              {
+                userId,
+                timestamp: new Date().toISOString(),
+                type: EventType.Track,
+                messageId,
+                event: "my-triggering-event",
+              },
+              {
+                userId,
+                timestamp: new Date().toISOString(),
+                type: EventType.Track,
+                messageId: randomUUID(),
+                event: InternalEventType.MessageSent,
+                properties: {
+                  workspaceId,
+                  journeyId: randomUUID(),
+                  nodeId: randomUUID(),
+                  runId: randomUUID(),
+                  messageId: randomUUID(),
+                  templateId,
+                  triggeringMessageId: messageId,
+                  ...messageSentEvent,
+                },
+              },
+            ],
+          },
+        });
+      });
+      it("returns a delivery", async () => {
+        const delivery = await getDeliveryBody({
+          workspaceId,
+          triggeringMessageId: messageId,
+          userId,
+          templateId,
+        });
+        expect(delivery).not.toBeNull();
+      });
+    });
+  });
   describe("searchDeliveries", () => {
     describe("when the original sent message includes a triggeringMessageId", () => {
       let triggeringMessageId: string;
