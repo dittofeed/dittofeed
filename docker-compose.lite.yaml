@@ -77,6 +77,9 @@ services:
       - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
       kompose.volume.type: configMap
