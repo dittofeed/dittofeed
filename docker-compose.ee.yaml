@@ -42,6 +42,9 @@ services:
       BOOTSTRAP: "true"
       PORT: "3000"
       HOST: "0.0.0.0"
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     networks:
       - dittofeed-network-ee
   postgres:
@@ -93,6 +96,9 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     networks:
       - dittofeed-network-ee
   temporal:
@@ -105,6 +111,9 @@ services:
       - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
       kompose.volume.type: configMap
