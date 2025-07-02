@@ -95,9 +95,6 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
 | Replace Prisma with Drizzle  | Enhance memory efficiency and stability.                                                                        | - ✅  |
 | User grouping                | Provide a way to represent a collection of users (e.g., club, company, team) for segment membership conditions. | - ✅  |
-| Identity resolution          | Enable joining of users based on traits or behavior. Important for identifying anonymous users post sign-up/sign-in. | - ☑️  |
-| Embedded components (public release)  | Implement internal dashboard for embedded low code components. Write great docs. Create demo projects. | - ☑️  |
-| Expand Emailo functionality  | Add more commands to the low code email editor command palette to improve email editing experience.             | - \[ ]  |
 | Deprecate Postgres user property & segment assignments  | Improve computed properties efficiency.                                              | - ✅  |
 
 ---
@@ -106,13 +103,22 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 | Feature                      | Purpose                                                                                                         | Status  |
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
-| LLM Integration              | Drive quicker, easier generation of journeys, segments, and templates.                                          | - \[ ]  |
-| Stripe integration           | Sync customer data between Stripe and Dittofeed.                                                                | - \[ ]  |
-| Git-based resources          | Track changes, audit, and transfer resources between workspaces.                                                | - \[ ]  |
-
+| Identity resolution          | Enable joining of users based on traits or behavior. Important for identifying anonymous users post sign-up/sign-in. | - ☑️ |
+| Embedded components (public release)  | Implement internal dashboard for embedded low code components. Write great docs. Create demo projects. | - ✅ |
+| Expand Emailo functionality  | Add more commands to the low code email editor command palette to improve email editing experience.             | - ☑️ |
+| Expand analytics | Create a fully featured analytics dashboard UI to better display message engagement and campaign progress metrics.          | - ☑️ |
 
 ---
 
+### Q3 2025: Jul 1 to Sept 30
+
+| Feature                      | Purpose                                                                                                         | Status  |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------|---------|
+| LLM integration                        | Drive quicker, easier generation of journeys, segments, and templates.                                | - \[ ]  |
+| Stripe integration                     | Sync customer data between Stripe and Dittofeed.                                                      | - \[ ]  |
+| Git-based resources & campaign testing | Track changes, audit, and transfer resources between workspaces. Test journeys in CI.                 | - \[ ]  |
+
+---
 
 ## Developer-centric
 
