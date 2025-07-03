@@ -18,6 +18,15 @@ import { DBWorkspaceOccupantType } from "./types";
 function getSecretName(settingName: string) {
   return `workspace-occupant-setting-${settingName}`;
 }
+// function getSecretName({
+//   settingName,
+//   workspaceOccupantId,
+// }: {
+//   settingName: string;
+//   workspaceOccupantId: string;
+// }) {
+//   return `workspace-occupant-setting-${workspaceOccupantId}-${settingName}`;
+// }
 
 export async function writeSecretWorkspaceOccupantSettings<
   T extends WorkspaceMemberSetting,
@@ -37,6 +46,7 @@ export async function writeSecretWorkspaceOccupantSettings<
       .insert(schema.secret)
       .values({
         workspaceId,
+        // fixme name should be scoped by occupant
         name: getSecretName(config.type),
         configValue: config,
       })
