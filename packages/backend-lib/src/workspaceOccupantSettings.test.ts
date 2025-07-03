@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import logger from "./logger";
 import {
   Workspace,
   WorkspaceMemberSettingTypeEnum,
@@ -90,7 +89,6 @@ describe("workspaceOccupantSettings", () => {
         if (!settings2.isOk()) {
           throw settings2.error;
         }
-        logger().debug({ settings2 }, "settings2");
         expect(settings2.value?.config).toEqual(
           expect.objectContaining({
             type: WorkspaceMemberSettingTypeEnum.GmailTokens,

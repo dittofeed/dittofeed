@@ -56,7 +56,6 @@ export async function writeSecretWorkspaceOccupantSettings<
         },
       })
       .returning();
-    logger().debug({ secret }, "created secret");
     if (!secret) {
       throw new Error("Failed to create secret");
     }
