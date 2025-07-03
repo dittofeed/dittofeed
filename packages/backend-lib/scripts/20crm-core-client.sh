@@ -18,4 +18,8 @@ openapi-generator-cli generate \
   -g typescript-axios \
   -o ./packages/backend-lib/src/twentyCrm/coreClient \
   --skip-validate-spec \
-  --additional-properties="supportsES6=true,withSeparateModelsAndApi=true,apiPackage=apis,modelPackage=models"
+  --openapi-normalizer FILTER="operation:findManyPeople,createOnePerson,findOnePerson,deleteOnePerson,UpdateOnePerson,findPersonDuplicates" \
+  --type-mappings="CompanyForResponse=object,OpportunityForResponse=object,TaskTargetForResponse=object,NoteTargetForResponse=object,AttachmentForResponse=object,FavoriteForResponse=object,MessageParticipantForResponse=object,CalendarEventParticipantForResponse=object,TimelineActivityForResponse=object" \
+  --additional-properties="supportsES6=true,withSeparateModelsAndApi=true,apiPackage=api,modelPackage=model"
+
+find ./packages/backend-lib/src/twentyCrm/coreClient/api -type f ! -name 'people-api.ts' -delete
