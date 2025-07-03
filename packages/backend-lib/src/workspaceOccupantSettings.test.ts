@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import logger from "./logger";
 import {
   Workspace,
   WorkspaceMemberSettingTypeEnum,
@@ -17,14 +18,12 @@ describe("workspaceOccupantSettings", () => {
   beforeEach(async () => {
     const parentWorkspace = unwrap(
       await createWorkspace({
-        id: randomUUID(),
         name: randomUUID(),
         type: WorkspaceTypeAppEnum.Parent,
       }),
     );
     workspace = unwrap(
       await createWorkspace({
-        id: randomUUID(),
         name: randomUUID(),
         parentWorkspaceId: parentWorkspace.id,
         type: WorkspaceTypeAppEnum.Child,
@@ -33,14 +32,18 @@ describe("workspaceOccupantSettings", () => {
   });
   describe("writeSecretWorkspaceOccupantSettings", () => {
     describe("when writing the same setting for multiple occupants", () => {
+      let occupantId1: string;
+      let occupantId2: string;
       it("should not conflict with the setting for the other occupant", async () => {
+        occupantId1 = "occupant-id-1";
+        occupantId2 = "occupant-id-2";
         await writeSecretWorkspaceOccupantSettings({
           workspaceId: workspace.id,
-          workspaceOccupantId: "occupant-id-1",
+          workspaceOccupantId: occupantId1,
           occupantType: "ChildWorkspaceOccupant",
           config: {
             type: WorkspaceMemberSettingTypeEnum.GmailTokens,
-            email: `occupant-id-1@example.com`,
+            email: `${occupantId1}@example.com`,
             accessToken: randomUUID(),
             accessTokenIv: randomUUID(),
             accessTokenAuthTag: randomUUID(),
@@ -51,11 +54,11 @@ describe("workspaceOccupantSettings", () => {
 
         await writeSecretWorkspaceOccupantSettings({
           workspaceId: workspace.id,
-          workspaceOccupantId: "occupant-id-2",
+          workspaceOccupantId: occupantId2,
           occupantType: "ChildWorkspaceOccupant",
           config: {
             type: WorkspaceMemberSettingTypeEnum.GmailTokens,
-            email: `occupant-id-2@example.com`,
+            email: `${occupantId2}@example.com`,
             accessToken: randomUUID(),
             accessTokenIv: randomUUID(),
             accessTokenAuthTag: randomUUID(),
@@ -66,7 +69,7 @@ describe("workspaceOccupantSettings", () => {
 
         const settings1 = await getSecretWorkspaceSettingsResource({
           workspaceId: workspace.id,
-          workspaceOccupantId: "occupant-id-1",
+          workspaceOccupantId: occupantId1,
           name: WorkspaceMemberSettingTypeEnum.GmailTokens,
         });
         if (!settings1.isOk()) {
@@ -75,22 +78,23 @@ describe("workspaceOccupantSettings", () => {
         expect(settings1.value?.config).toEqual(
           expect.objectContaining({
             type: WorkspaceMemberSettingTypeEnum.GmailTokens,
-            email: `occupant-id-1@example.com`,
+            email: `${occupantId1}@example.com`,
           }),
         );
 
         const settings2 = await getSecretWorkspaceSettingsResource({
           workspaceId: workspace.id,
-          workspaceOccupantId: "occupant-id-2",
+          workspaceOccupantId: occupantId2,
           name: WorkspaceMemberSettingTypeEnum.GmailTokens,
         });
         if (!settings2.isOk()) {
           throw settings2.error;
         }
+        logger().debug({ settings2 }, "settings2");
         expect(settings2.value?.config).toEqual(
           expect.objectContaining({
             type: WorkspaceMemberSettingTypeEnum.GmailTokens,
-            email: `occupant-id-2@example.com`,
+            email: `${occupantId2}@example.com`,
           }),
         );
       });
