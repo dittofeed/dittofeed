@@ -15,8 +15,14 @@ import * as schema from "./db/schema";
 import logger from "./logger";
 import { DBWorkspaceOccupantType } from "./types";
 
-function getSecretName(settingName: string) {
-  return `workspace-occupant-setting-${settingName}`;
+function getSecretName({
+  settingName,
+  workspaceOccupantId,
+}: {
+  settingName: string;
+  workspaceOccupantId: string;
+}) {
+  return `workspace-occupant-setting-${workspaceOccupantId}-${settingName}`;
 }
 
 export async function writeSecretWorkspaceOccupantSettings<
@@ -37,7 +43,10 @@ export async function writeSecretWorkspaceOccupantSettings<
       .insert(schema.secret)
       .values({
         workspaceId,
-        name: getSecretName(config.type),
+        name: getSecretName({
+          settingName: config.type,
+          workspaceOccupantId,
+        }),
         configValue: config,
       })
       .onConflictDoUpdate({
@@ -59,7 +68,16 @@ export async function writeSecretWorkspaceOccupantSettings<
         name: config.type,
         occupantType,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: [
+          schema.workspaceOccupantSetting.workspaceId,
+          schema.workspaceOccupantSetting.workspaceOccupantId,
+          schema.workspaceOccupantSetting.name,
+        ],
+        set: {
+          secretId: secret.id,
+        },
+      });
   });
 }
 
@@ -77,7 +95,10 @@ export async function updateSecretWorkspaceOccupantSettings<
   update: (existingConfig: Static<S>) => Static<S>;
 }): Promise<Static<S> | null> {
   return await db().transaction(async (tx) => {
-    const secretName = getSecretName(name);
+    const secretName = getSecretName({
+      settingName: name,
+      workspaceOccupantId,
+    });
     const existingSecret = await tx.query.secret.findFirst({
       where: and(
         eq(schema.secret.workspaceId, workspaceId),

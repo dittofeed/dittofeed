@@ -1053,15 +1053,11 @@ export const workspaceOccupantSetting = pgTable(
   },
   (table) => [
     uniqueIndex(
-      "WorkspaceOccupantSetting_workspaceId_workspaceOccupantId_key",
+      "WorkspaceOccupantSetting_workspaceId_occupantId_name_key",
     ).using(
       "btree",
       table.workspaceId.asc().nullsLast().op("uuid_ops"),
       table.workspaceOccupantId.asc().nullsLast().op("text_ops"),
-    ),
-    uniqueIndex("WorkspaceOccupantSetting_workspaceId_name_key").using(
-      "btree",
-      table.workspaceId.asc().nullsLast().op("uuid_ops"),
       table.name.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
