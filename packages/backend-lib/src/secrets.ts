@@ -65,11 +65,6 @@ export function encrypt(
     );
   }
 
-  // Convert the secretKeyString from config to a 32-byte Buffer for AES-256-GCM.
-  // IMPORTANT: If your key is generated using crypto.randomBytes(32).toString('base64'),
-  // as in the example `generateSecretKey` function, it MUST be decoded from base64.
-  // If your key is stored in a different format (e.g., hex or a raw UTF-8 string that results in 32 bytes),
-  // you would need to adjust the encoding parameter below accordingly (e.g., 'hex' or 'utf-8').
   const keyBuffer = Buffer.from(secretKeyString, "base64");
 
   if (keyBuffer.length !== 32) {
