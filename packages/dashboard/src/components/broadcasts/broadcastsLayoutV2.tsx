@@ -357,7 +357,7 @@ export default function BroadcastLayout({
               </Stack>
               <Stepper
                 sx={{
-                  minWidth: "720px",
+                  minWidth: "640px",
                   "& .MuiStepIcon-root.Mui-active": {
                     color: "grey.600",
                   },
