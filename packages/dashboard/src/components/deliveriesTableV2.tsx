@@ -574,7 +574,7 @@ const timeOptions: TimeOption[] = [
     label: "Last 90 days",
   },
   { type: "custom", id: TimeOptionId.Custom, label: "Custom Date Range" },
-] as const;
+];
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
   templateUriTemplate: "/templates/{channel}/{templateId}",
