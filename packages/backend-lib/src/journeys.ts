@@ -40,6 +40,7 @@ import {
   BaseMessageNodeStats,
   ChannelType,
   DeleteJourneyRequest,
+  DeleteMessageTemplateRequest,
   EmailStats,
   EnrichedJourney,
   InternalEventType,
@@ -52,6 +53,7 @@ import {
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
   MessageChannelStats,
+  MessageTemplate,
   NodeStatsType,
   SavedHasStartedJourneyResource,
   SavedJourneyResource,
@@ -1176,4 +1178,22 @@ export async function findSubscribedRunningJourneysForSegment({
     const subscribedSegments = getSubscribedSegments(definition);
     return subscribedSegments.has(segmentId);
   });
+}
+
+export async function deleteMessageTemplate(
+  params: DeleteMessageTemplateRequest,
+): Promise<MessageTemplate | null> {
+  const [messageTemplate] = await db()
+    .delete(schema.messageTemplate)
+    .where(
+      and(
+        eq(schema.messageTemplate.id, params.id),
+        eq(schema.messageTemplate.workspaceId, params.workspaceId),
+      ),
+    )
+    .returning();
+  if (!messageTemplate) {
+    return null;
+  }
+  return messageTemplate;
 }

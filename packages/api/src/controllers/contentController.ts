@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { deleteMessageTemplate } from "backend-lib/src/journeys";
 import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
@@ -579,6 +580,32 @@ export default async function contentController(fastify: FastifyInstance) {
         .returning();
 
       if (result.length === 0) {
+        return reply.status(404).send();
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/templates/v2",
+    {
+      schema: {
+        description: "Delete a message template.",
+        tags: ["Content"],
+        querystring: DeleteMessageTemplateRequest,
+        response: {
+          204: EmptyResponse,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const messageTemplate = await deleteMessageTemplate({
+        id: request.query.id,
+        workspaceId: request.query.workspaceId,
+        type: request.query.type,
+      });
+      if (!messageTemplate) {
         return reply.status(404).send();
       }
       return reply.status(204).send();
