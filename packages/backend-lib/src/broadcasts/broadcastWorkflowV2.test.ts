@@ -554,6 +554,109 @@ describe("broadcastWorkflowV2", () => {
       });
     });
   });
+
+  describe("when a broadcast receives a non-retryable error and is configured to skip on error", () => {
+    let shouldError: boolean;
+    let userId1: string;
+    let userId2: string;
+    beforeEach(async () => {
+      shouldError = true;
+      userId1 = randomUUID();
+      userId2 = randomUUID();
+
+      await createTestEnvAndWorker({
+        sendMessageOverride: (params) => {
+          if (shouldError && params.userId === userId1) {
+            return Promise.resolve(
+              err({
+                type: InternalEventType.MessageFailure,
+                variant: {
+                  type: ChannelType.Email,
+                  provider: {
+                    type: EmailProviderType.SendGrid,
+                    status: 403,
+                    body: "missing permissions",
+                  },
+                } satisfies MessageEmailServiceFailure,
+              }),
+            );
+          }
+          return Promise.resolve(ok(successMessageSentResult));
+        },
+      });
+      await createBroadcast({
+        config: {
+          type: "V2",
+          message: { type: ChannelType.Email },
+          errorHandling: "SkipOnError",
+          batchSize: 1,
+        },
+      });
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId: workspace.id,
+          userId: userId1,
+          userPropertyId: idUserProperty.id,
+          value: userId1,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId1,
+          userPropertyId: emailUserProperty.id,
+          value: "test@test.com",
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: idUserProperty.id,
+          value: userId2,
+        },
+        {
+          workspaceId: workspace.id,
+          userId: userId2,
+          userPropertyId: emailUserProperty.id,
+          value: "test2@test.com",
+        },
+      ]);
+
+      await updateUserSubscriptions({
+        workspaceId: workspace.id,
+        userUpdates: [
+          { userId: userId1, changes: { [subscriptionGroupId]: true } },
+          { userId: userId2, changes: { [subscriptionGroupId]: true } },
+        ],
+      });
+    });
+    it("should skip the message to the user", async () => {
+      await worker.runUntil(async () => {
+        const handle = await testEnv.client.workflow.start(
+          broadcastWorkflowV2,
+          {
+            workflowId: generateBroadcastWorkflowV2Id({
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            }),
+            taskQueue: "default",
+            args: [
+              {
+                workspaceId: workspace.id,
+                broadcastId: broadcast.id,
+              } satisfies BroadcastWorkflowV2Params,
+            ],
+          },
+        );
+        await handle.result();
+        expect(senderMock).toHaveBeenCalledTimes(2);
+
+        let deliveries = await searchDeliveries({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        });
+        expect(deliveries.items).toHaveLength(1);
+      });
+    });
+  });
   describe("when sending a broadcast with a scheduled time", () => {
     describe("when just using a default timezone", () => {
       let userId: string;
