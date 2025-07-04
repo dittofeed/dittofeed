@@ -1,6 +1,8 @@
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { LoadingButton } from "@mui/lab";
@@ -252,10 +254,59 @@ export default function BroadcastLayout({
   const activeStepIndex: number = broadcastSteps.findIndex(
     (step) => step.key === state.step,
   );
+
+  const isDraft = broadcast?.status === "Draft";
+
+  const isStepDisabled = useCallback(
+    (step: BroadcastStep) => {
+      return !broadcast || (step.afterDraft && isDraft);
+    },
+    [broadcast, isDraft],
+  );
+
+  const canGoToPrevious = useMemo(() => {
+    if (activeStepIndex <= 0) return false;
+    const previousStep = broadcastSteps[activeStepIndex - 1];
+    return previousStep && !isStepDisabled(previousStep);
+  }, [activeStepIndex, broadcastSteps, isStepDisabled]);
+
+  const canGoToNext = useMemo(() => {
+    if (activeStepIndex >= broadcastSteps.length - 1) return false;
+    const nextStep = broadcastSteps[activeStepIndex + 1];
+    return nextStep && !isStepDisabled(nextStep);
+  }, [activeStepIndex, broadcastSteps, isStepDisabled]);
+
+  const handlePrevious = useCallback(() => {
+    if (canGoToPrevious && activeStepIndex > 0) {
+      const previousStep = broadcastSteps[activeStepIndex - 1];
+      if (previousStep) {
+        updateStep(previousStep.key);
+        if (previousStep.key === "CONTENT") {
+          setPreviewOpen(false);
+        } else {
+          setPreviewOpen(true);
+        }
+      }
+    }
+  }, [canGoToPrevious, broadcastSteps, activeStepIndex, updateStep]);
+
+  const handleNext = useCallback(() => {
+    if (canGoToNext && activeStepIndex < broadcastSteps.length - 1) {
+      const nextStep = broadcastSteps[activeStepIndex + 1];
+      if (nextStep) {
+        updateStep(nextStep.key);
+        if (nextStep.key === "CONTENT") {
+          setPreviewOpen(false);
+        } else {
+          setPreviewOpen(true);
+        }
+      }
+    }
+  }, [canGoToNext, broadcastSteps, activeStepIndex, updateStep]);
+
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
-  const isDraft = broadcast?.status === "Draft";
   const hasDrawer = !state.configuration?.hideDrawer && isDraft;
 
   return (
@@ -273,35 +324,67 @@ export default function BroadcastLayout({
           sx={{ width: "100%" }}
         >
           <Stack direction="row" spacing={2} alignItems="center">
-            <Stepper
-              sx={{
-                minWidth: "720px",
-                "& .MuiStepIcon-root.Mui-active": {
-                  color: "grey.600",
-                },
-              }}
-              nonLinear
-              activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
-            >
-              {broadcastSteps.map((step: BroadcastStep) => (
-                <Step key={step.key}>
-                  <StepButton
-                    color="inherit"
-                    disabled={!broadcast || (step.afterDraft && isDraft)}
-                    onClick={() => {
-                      updateStep(step.key);
-                      if (step.key === "CONTENT") {
-                        setPreviewOpen(false);
-                      } else {
-                        setPreviewOpen(true);
-                      }
-                    }}
-                  >
-                    {step.name}
-                  </StepButton>
-                </Step>
-              ))}
-            </Stepper>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <GreyButton
+                  variant="contained"
+                  onClick={handlePrevious}
+                  disabled={!canGoToPrevious}
+                  startIcon={<NavigateBeforeIcon />}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: "12px",
+                    pl: 1,
+                    pr: 1,
+                  }}
+                >
+                  Previous
+                </GreyButton>
+                <GreyButton
+                  variant="contained"
+                  onClick={handleNext}
+                  disabled={!canGoToNext}
+                  startIcon={<NavigateNextIcon />}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: "12px",
+                    pl: 1,
+                    pr: 1,
+                  }}
+                >
+                  Next
+                </GreyButton>
+              </Stack>
+              <Stepper
+                sx={{
+                  minWidth: "640px",
+                  "& .MuiStepIcon-root.Mui-active": {
+                    color: "grey.600",
+                  },
+                }}
+                nonLinear
+                activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
+              >
+                {broadcastSteps.map((step: BroadcastStep) => (
+                  <Step key={step.key}>
+                    <StepButton
+                      color="inherit"
+                      disabled={isStepDisabled(step)}
+                      onClick={() => {
+                        updateStep(step.key);
+                        if (step.key === "CONTENT") {
+                          setPreviewOpen(false);
+                        } else {
+                          setPreviewOpen(true);
+                        }
+                      }}
+                    >
+                      {step.name}
+                    </StepButton>
+                  </Step>
+                ))}
+              </Stepper>
+            </Stack>
             {broadcast && (
               <EditableTitle
                 text={broadcast.name}

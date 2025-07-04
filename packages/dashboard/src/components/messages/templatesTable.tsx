@@ -683,7 +683,7 @@ export default function TemplatesTable() {
                   <Button
                     size="small"
                     onClick={() => setDialogOpen(true)}
-                    sx={{ ml: 1 }}
+                    sx={{ ...greyButtonStyle, ml: 1 }}
                   >
                     Create One
                   </Button>

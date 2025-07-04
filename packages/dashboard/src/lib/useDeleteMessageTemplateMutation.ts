@@ -44,8 +44,8 @@ export function useDeleteMessageTemplateMutation(
     const workspaceId = workspace.value.id;
     const { id, channelType } = variables;
 
-    await axios.delete(`${baseApiUrl}/content/templates`, {
-      data: {
+    await axios.delete(`${baseApiUrl}/content/templates/v2`, {
+      params: {
         workspaceId,
         id,
         type: channelType,
