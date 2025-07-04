@@ -9,6 +9,7 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -24,6 +25,7 @@ import { isEmailProviderType } from "isomorphic-lib/src/email";
 import { isSmsProviderType } from "isomorphic-lib/src/sms";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  BroadcastErrorHandling,
   BroadcastSmsMessageVariant,
   BroadcastStepKeys,
   BroadcastV2Config,
@@ -284,19 +286,23 @@ export default function Configuration({
         </Box>
       )}
       {!state.configuration?.hideScheduledSelect && (
-        <ToggleButtonGroup
-          value={scheduledStatus}
-          exclusive
-          disabled={disabled}
-          onChange={(_, newValue) => {
-            updateBroadcast({
-              scheduledAt: newValue === "scheduled" ? getTomorrowAt8AM() : null,
-            });
-          }}
-        >
-          <ToggleButton value="immediate">Immediate</ToggleButton>
-          <ToggleButton value="scheduled">Scheduled</ToggleButton>
-        </ToggleButtonGroup>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="subtitle1">Schedule Status</Typography>
+          <ToggleButtonGroup
+            value={scheduledStatus}
+            exclusive
+            disabled={disabled}
+            onChange={(_, newValue) => {
+              updateBroadcast({
+                scheduledAt:
+                  newValue === "scheduled" ? getTomorrowAt8AM() : null,
+              });
+            }}
+          >
+            <ToggleButton value="immediate">Immediate</ToggleButton>
+            <ToggleButton value="scheduled">Scheduled</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
       )}
       {scheduledStatus === "scheduled" && (
         <>
@@ -345,6 +351,88 @@ export default function Configuration({
           />
         </>
       )}
+      {!state.configuration?.hideRateLimit && (
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="subtitle1">Rate Limiting</Typography>
+          <TextField
+            label="Rate Limit (messages / second)"
+            type="number"
+            inputProps={{
+              min: 1,
+            }}
+            disabled={disabled}
+            value={broadcast.config.rateLimit ?? ""}
+            onChange={(e) => {
+              if (!broadcast) {
+                return;
+              }
+              const { value } = e.target;
+              const intValue = parseInt(value, 10);
+              updateBroadcast({
+                config: {
+                  ...broadcast.config,
+                  rateLimit:
+                    !value || Number.isNaN(intValue) ? undefined : intValue,
+                },
+              });
+            }}
+          />
+          <TextField
+            label="Batch Size"
+            type="number"
+            inputProps={{
+              min: 1,
+              max: 1000,
+            }}
+            disabled={disabled}
+            value={broadcast.config.batchSize ?? ""}
+            onChange={(e) => {
+              if (!broadcast) {
+                return;
+              }
+              const { value } = e.target;
+              const intValue = parseInt(value, 10);
+              updateBroadcast({
+                config: {
+                  ...broadcast.config,
+                  batchSize:
+                    !value || Number.isNaN(intValue) ? undefined : intValue,
+                },
+              });
+            }}
+          />
+        </Stack>
+      )}
+
+      {state.configuration?.showErrorHandling !== false && (
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+          <Typography variant="subtitle1">Error Handling</Typography>
+          <ToggleButtonGroup
+            value={broadcast.config.errorHandling ?? "PauseOnError"}
+            exclusive
+            disabled={disabled}
+            onChange={(_, newValue) => {
+              if (!broadcast || !newValue) {
+                return;
+              }
+              updateBroadcast({
+                config: {
+                  ...broadcast.config,
+                  errorHandling: newValue as BroadcastErrorHandling,
+                },
+              });
+            }}
+          >
+            <Tooltip title="Pause the broadcast if non-retryable error occurs.">
+              <ToggleButton value="PauseOnError">Pause on Error</ToggleButton>
+            </Tooltip>
+            <Tooltip title="Skip a message to a user if a non-retryable error occurs.">
+              <ToggleButton value="SkipOnError">Skip on Error</ToggleButton>
+            </Tooltip>
+          </ToggleButtonGroup>
+        </Stack>
+      )}
+
       {!state.configuration?.hideOverrideSelect && (
         <Autocomplete
           options={availableProviderOverrides}
@@ -406,57 +494,6 @@ export default function Configuration({
             });
           }}
         />
-      )}
-      {!state.configuration?.hideRateLimit && (
-        <Stack direction="row" spacing={2}>
-          <TextField
-            label="Rate Limit (messages / second)"
-            type="number"
-            inputProps={{
-              min: 1,
-            }}
-            disabled={disabled}
-            value={broadcast.config.rateLimit ?? ""}
-            onChange={(e) => {
-              if (!broadcast) {
-                return;
-              }
-              const { value } = e.target;
-              const intValue = parseInt(value, 10);
-              updateBroadcast({
-                config: {
-                  ...broadcast.config,
-                  rateLimit:
-                    !value || Number.isNaN(intValue) ? undefined : intValue,
-                },
-              });
-            }}
-          />
-          <TextField
-            label="Batch Size"
-            type="number"
-            inputProps={{
-              min: 1,
-              max: 1000,
-            }}
-            disabled={disabled}
-            value={broadcast.config.batchSize ?? ""}
-            onChange={(e) => {
-              if (!broadcast) {
-                return;
-              }
-              const { value } = e.target;
-              const intValue = parseInt(value, 10);
-              updateBroadcast({
-                config: {
-                  ...broadcast.config,
-                  batchSize:
-                    !value || Number.isNaN(intValue) ? undefined : intValue,
-                },
-              });
-            }}
-          />
-        </Stack>
       )}
 
       {providerOverride?.id === EmailProviderType.Gmail && (

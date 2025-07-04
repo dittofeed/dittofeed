@@ -65,6 +65,17 @@ import { GreyButton } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 
+export const TimeOptionId = {
+  LastSevenDays: "last-7-days",
+  LastThirtyDays: "last-30-days",
+  LastNinetyDays: "last-90-days",
+  LastHour: "last-hour",
+  Last24Hours: "last-24-hours",
+  Custom: "custom",
+} as const;
+
+export type TimeOptionId = (typeof TimeOptionId)[keyof typeof TimeOptionId];
+
 interface MinuteTimeOption {
   type: "minutes";
   id: string;
@@ -86,6 +97,8 @@ const defaultTimeOption = {
   minutes: 7 * 24 * 60,
   label: "Last 7 days",
 } as const;
+
+const defaultTimeOptionId = defaultTimeOption.id;
 
 const timeOptions: TimeOption[] = [
   { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
@@ -422,6 +435,7 @@ interface UserEventsTableProps {
   broadcastId?: string;
   journeyId?: string;
   eventType?: string;
+  defaultTimeOption?: TimeOptionId;
 }
 
 export function UserEventsTable({
@@ -433,6 +447,7 @@ export function UserEventsTable({
   broadcastId,
   journeyId,
   eventType,
+  defaultTimeOption: defaultTimeOptionOverride = defaultTimeOptionId,
 }: UserEventsTableProps) {
   const {
     workspace,
@@ -468,7 +483,7 @@ export function UserEventsTable({
     previewEvent: null,
     selectedEventResources: [],
     isSidebarOpen: false,
-    selectedTimeOption: defaultTimeOption.id,
+    selectedTimeOption: defaultTimeOptionOverride,
     referenceDate: new Date(initialEndDate),
     customDateRange: null,
   });
