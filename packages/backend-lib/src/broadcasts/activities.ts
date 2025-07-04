@@ -412,9 +412,11 @@ export function sendMessagesFactory(sender: Sender) {
           batch: events,
         },
       });
-      const includesNonRetryableError = results.some(
-        ({ result }) => result.isErr() && isNonRetryableError(result.error),
-      );
+      const includesNonRetryableError =
+        config.errorHandling === "PauseOnError" &&
+        results.some(
+          ({ result }) => result.isErr() && isNonRetryableError(result.error),
+        );
       return {
         messagesSent: results.length,
         nextCursor,
