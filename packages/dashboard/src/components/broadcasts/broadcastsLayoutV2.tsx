@@ -324,17 +324,37 @@ export default function BroadcastLayout({
           sx={{ width: "100%" }}
         >
           <Stack direction="row" spacing={2} alignItems="center">
-            <Stack direction="row" spacing={1} alignItems="center">
-              <IconButton
-                onClick={handlePrevious}
-                disabled={!canGoToPrevious}
-                size="small"
-                sx={{
-                  color: canGoToPrevious ? "grey.600" : "grey.400",
-                }}
-              >
-                <NavigateBeforeIcon />
-              </IconButton>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <GreyButton
+                  variant="contained"
+                  onClick={handlePrevious}
+                  disabled={!canGoToPrevious}
+                  startIcon={<NavigateBeforeIcon />}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: "12px",
+                    pl: 1,
+                    pr: 1,
+                  }}
+                >
+                  Previous
+                </GreyButton>
+                <GreyButton
+                  variant="contained"
+                  onClick={handleNext}
+                  disabled={!canGoToNext}
+                  startIcon={<NavigateNextIcon />}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: "12px",
+                    pl: 1,
+                    pr: 1,
+                  }}
+                >
+                  Next
+                </GreyButton>
+              </Stack>
               <Stepper
                 sx={{
                   minWidth: "720px",
@@ -364,16 +384,6 @@ export default function BroadcastLayout({
                   </Step>
                 ))}
               </Stepper>
-              <IconButton
-                onClick={handleNext}
-                disabled={!canGoToNext}
-                size="small"
-                sx={{
-                  color: canGoToNext ? "grey.600" : "grey.400",
-                }}
-              >
-                <NavigateNextIcon />
-              </IconButton>
             </Stack>
             {broadcast && (
               <EditableTitle
