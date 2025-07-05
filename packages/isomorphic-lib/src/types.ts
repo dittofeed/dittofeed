@@ -1,4 +1,12 @@
-import { Static, TSchema, Type } from "@sinclair/typebox";
+import {
+  type Static,
+  type TLiteral,
+  type TObject,
+  type TProperties,
+  type TSchema,
+  type TString,
+  Type,
+} from "@sinclair/typebox";
 import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
@@ -5622,3 +5630,72 @@ export const SetCsrfCookieRequest = Type.Object({
 });
 
 export type SetCsrfCookieRequest = Static<typeof SetCsrfCookieRequest>;
+
+/**
+ * This is a mapped type that defines the shape of our encrypted output.
+ * For a given set of property keys `K`, it creates three new keys for each:
+ * - KEncrypted: string
+ * - KIv: string
+ * - KAuthTag: string
+ */
+type EncryptedProperties<K extends string> = {
+  [P in K as `${P}Encrypted`]: TString;
+} & {
+  [P in K as `${P}Iv`]: TString;
+} & {
+  [P in K as `${P}AuthTag`]: TString;
+};
+
+/**
+ * This is the full static type for the output schema.
+ * It takes an input type `T`, preserves the 'type' property, and applies
+ * the `EncryptedProperties` transformation to all other string keys.
+ */
+type Encrypted<T extends TProperties> = {
+  type: T["type"];
+} & EncryptedProperties<Exclude<keyof T, "type"> & string>;
+
+/**
+ * A generic function that creates an "encrypted" version of a TypeBox schema.
+ * It preserves a 'type' discriminator field and transforms all other properties
+ * into a set of three fields for the encrypted value, IV, and auth tag.
+ *
+ * @param inputSchema - The TObject schema to transform. It must contain a
+ * 'type' property that is a TLiteral.
+ * @returns A new TObject schema representing the encrypted data structure.
+ */
+function createEncryptedSchema<T extends TObject<{ type: TLiteral<string> }>>(
+  inputSchema: T,
+): TObject<Encrypted<T["properties"]>> {
+  // Destructure to separate properties from other schema options to preserve them.
+  const { properties: inputProperties, ...options } = inputSchema;
+
+  // The output schema will always start with the original 'type' discriminator.
+  const outputProperties: TProperties = {
+    type: Type.Clone(inputProperties.type),
+  };
+
+  // Iterate over the keys of the input properties.
+  for (const key of Object.keys(
+    inputProperties,
+  ) as (keyof typeof inputProperties)[]) {
+    // We only transform keys that are NOT 'type'.
+    if (key !== "type" && typeof key === "string") {
+      // For each key, create the three corresponding properties for the encrypted data.
+      outputProperties[`${key}Encrypted`] = Type.String({
+        description: `AES-256-GCM encrypted value for ${key}`,
+      });
+      outputProperties[`${key}Iv`] = Type.String({
+        description: `Initialization Vector for ${key}`,
+      });
+      outputProperties[`${key}AuthTag`] = Type.String({
+        description: `Authentication Tag for ${key}`,
+      });
+    }
+  }
+
+  // Construct and return the new TObject with the transformed properties and preserved options.
+  return Type.Object(outputProperties, options) as TObject<
+    Encrypted<T["properties"]>
+  >;
+}
