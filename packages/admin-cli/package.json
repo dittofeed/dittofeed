@@ -12,7 +12,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@sinclair/typebox": "0.32.29",
+    "@sinclair/typebox": "0.34.37",
     "@temporalio/client": "1.11.6",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
