@@ -2984,12 +2984,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/type-provider-typebox@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@fastify/type-provider-typebox@npm:4.0.0"
+"@fastify/type-provider-typebox@npm:4.1.0":
+  version: 4.1.0
+  resolution: "@fastify/type-provider-typebox@npm:4.1.0"
   peerDependencies:
-    "@sinclair/typebox": ">=0.26 <=0.32"
-  checksum: 10/7f601927fc81de4991d5ce73734a3b2f76f9c197edf8bfe7d1cfcd4e382a3a328a39fb9f48ae8eb71e59e8fdd085095c381d056988069417122dd93cec264564
+    "@sinclair/typebox": ">=0.26 <=0.33"
+  checksum: 10/147613351fcfeeff664859e9b5eadbb954b2606d1a13061060a5eac688d7d6a89e0b5a1290f020fd44a4557c6f1bfce7fe72a57679364baf444b855f45364897
   languageName: node
   linkType: hard
 
@@ -8653,24 +8653,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:0.32.29":
-  version: 0.32.29
-  resolution: "@sinclair/typebox@npm:0.32.29"
-  checksum: 10/d8a9eb5d953dce7b0bb35451cff2506c53df277ee9aa5cf866dd011a063ff43a430f038b8c5164df3ec45aa6ef42177eda7e42a29bca413e0dbbbdf97c0301d9
-  languageName: node
-  linkType: hard
-
-"@sinclair/typebox@npm:^0.25.16":
-  version: 0.25.24
-  resolution: "@sinclair/typebox@npm:0.25.24"
-  checksum: 10/d415546153478befa3c8386a4723e3061ac065867c7e22fe0374d36091991676d231e5381e66daa0ed21639217c6c80e0d6224a9c89aaac269e58b82b2f4a2f4
-  languageName: node
-  linkType: hard
-
-"@sinclair/typebox@npm:^0.27.8":
-  version: 0.27.8
-  resolution: "@sinclair/typebox@npm:0.27.8"
-  checksum: 10/297f95ff77c82c54de8c9907f186076e715ff2621c5222ba50b8d40a170661c0c5242c763cba2a4791f0f91cb1d8ffa53ea1d7294570cf8cd4694c0e383e484d
+"@sinclair/typebox@npm:0.34.37":
+  version: 0.34.37
+  resolution: "@sinclair/typebox@npm:0.34.37"
+  checksum: 10/bd2ba20a9f7446a353719bc0e6dfab75a13e47af6470fb792e418c585a4eb3bae4f806f87e4067efe2fb0c7686de11e6cf11823a1fe13660892e51cefcfceaea
   languageName: node
   linkType: hard
 
@@ -12178,7 +12164,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "admin-cli@workspace:packages/admin-cli"
   dependencies:
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/client": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"
     "@types/yargs": "npm:^17.0.24"
@@ -12448,7 +12434,7 @@ __metadata:
     "@fastify/secure-session": "npm:7.1.0"
     "@fastify/swagger": "npm:^8.1.0"
     "@fastify/swagger-ui": "npm:^1.1.0"
-    "@fastify/type-provider-typebox": "npm:4.0.0"
+    "@fastify/type-provider-typebox": "npm:4.1.0"
     "@opentelemetry/api": "npm:1.9.0"
     "@opentelemetry/instrumentation": "npm:0.41.0"
     "@opentelemetry/resources": "npm:1.12.0"
@@ -12456,7 +12442,7 @@ __metadata:
     "@opentelemetry/sdk-trace-node": "npm:1.12.0"
     "@opentelemetry/semantic-conventions": "npm:1.12.0"
     "@sendgrid/mail": "npm:^7.7.0"
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/testing": "npm:1.11.6"
     "@temporalio/worker": "npm:1.11.6"
     "@types/analytics-node": "npm:^3.1.9"
@@ -12905,7 +12891,7 @@ __metadata:
     "@aws-sdk/client-sesv2": "npm:^3.535.0"
     "@clickhouse/client": "npm:1.11.1"
     "@fast-csv/format": "npm:^4.3.5"
-    "@fastify/type-provider-typebox": "npm:4.0.0"
+    "@fastify/type-provider-typebox": "npm:4.1.0"
     "@googleapis/gmail": "npm:^12.0.1"
     "@googleapis/oauth2": "npm:^1.0.7"
     "@hyperdx/node-opentelemetry": "npm:^0.8.0"
@@ -12920,7 +12906,7 @@ __metadata:
     "@opentelemetry/semantic-conventions": "npm:1.12.0"
     "@sendgrid/helpers": "npm:^7.7.0"
     "@sendgrid/mail": "npm:^7.7.0"
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/activity": "npm:1.11.6"
     "@temporalio/client": "npm:1.11.6"
     "@temporalio/common": "npm:1.11.6"
@@ -14441,7 +14427,7 @@ __metadata:
     "@mui/x-date-pickers": "npm:^7.24.0"
     "@next/swc-linux-arm64-gnu": "npm:13.5.6"
     "@next/swc-linux-arm64-musl": "npm:13.5.6"
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@tanstack/eslint-plugin-query": "npm:^5.62.16"
     "@tanstack/react-query": "npm:^5.64.1"
     "@tanstack/react-table": "npm:^8.20.6"
@@ -19247,7 +19233,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "isomorphic-lib@workspace:packages/isomorphic-lib"
   dependencies:
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@types/jest": "npm:^29.2.6"
     "@types/json-bigint": "npm:^1.0.4"
     "@types/json-stable-stringify": "npm:^1.0.36"
@@ -20444,7 +20430,7 @@ __metadata:
   resolution: "lite@workspace:packages/lite"
   dependencies:
     "@fastify/secure-session": "npm:7.1.0"
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/worker": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"
     "@types/node": "npm:20.14.8"
@@ -28638,7 +28624,7 @@ __metadata:
   resolution: "worker@workspace:packages/worker"
   dependencies:
     "@opentelemetry/sdk-metrics": "npm:1.12.0"
-    "@sinclair/typebox": "npm:0.32.29"
+    "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/interceptors-opentelemetry": "npm:1.11.6"
     "@temporalio/worker": "npm:1.11.6"
     "@types/jest": "npm:^29.2.6"

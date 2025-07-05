@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@opentelemetry/sdk-metrics": "1.12.0",
-    "@sinclair/typebox": "0.32.29",
+    "@sinclair/typebox": "0.34.37",
     "@temporalio/interceptors-opentelemetry": "1.11.6",
     "@temporalio/worker": "1.11.6",
     "backend-lib": "0.0.3",

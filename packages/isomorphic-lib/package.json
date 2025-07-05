@@ -11,7 +11,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@sinclair/typebox": "0.32.29",
+    "@sinclair/typebox": "0.34.37",
     "emailo": "workspace:*",
     "json-bigint": "^1.0.0",
     "json-stable-stringify": "^1.1.1",
