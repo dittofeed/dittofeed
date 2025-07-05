@@ -7,6 +7,7 @@ import {
   type TString,
   Type,
 } from "@sinclair/typebox";
+import { Value } from "@sinclair/typebox/value";
 import { Result } from "neverthrow";
 
 import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
@@ -5664,15 +5665,15 @@ type Encrypted<T extends TProperties> = {
  * 'type' property that is a TLiteral.
  * @returns A new TObject schema representing the encrypted data structure.
  */
-function createEncryptedSchema<T extends TObject<{ type: TLiteral<string> }>>(
-  inputSchema: T,
-): TObject<Encrypted<T["properties"]>> {
+export function createEncryptedSchema<
+  T extends TObject<{ type: TLiteral<string> }>,
+>(inputSchema: T): TObject<Encrypted<T["properties"]>> {
   // Destructure to separate properties from other schema options to preserve them.
   const { properties: inputProperties, ...options } = inputSchema;
 
   // The output schema will always start with the original 'type' discriminator.
   const outputProperties: TProperties = {
-    type: Type.Clone(inputProperties.type),
+    type: Value.Clone(inputProperties.type),
   };
 
   // Iterate over the keys of the input properties.
