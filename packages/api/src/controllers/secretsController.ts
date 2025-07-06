@@ -1,18 +1,24 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
-import { getPlainTextSecretAvailablity } from "backend-lib/src/secrets";
+import {
+  deletePlainTextSecret,
+  getPlainTextSecretAvailablity,
+  upsertPlainTextSecret,
+} from "backend-lib/src/secrets";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { isObject } from "isomorphic-lib/src/objects";
 import {
   DeleteSecretRequest,
+  DeleteSecretV2Request,
   EmptyResponse,
   JSONValue,
   ListSecretsRequest,
   ListSecretsResponse,
   SecretResource,
   UpsertSecretRequest,
+  UpsertSecretV2Request,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -166,6 +172,50 @@ export default async function secretsController(fastify: FastifyInstance) {
         names,
       });
       return reply.status(200).send({ names: availability });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/v2",
+    {
+      schema: {
+        description: "Delete a secret.",
+        querystring: DeleteSecretV2Request,
+        tags: ["Secrets"],
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, name } = request.query;
+      const result = await deletePlainTextSecret({
+        workspaceId,
+        name,
+      });
+      if (!result) {
+        return reply.status(404).send();
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/v2",
+    {
+      schema: {
+        description:
+          "Create or update a secret. Will patch the secret definition if passed.",
+        tags: ["Secrets"],
+        body: UpsertSecretV2Request,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await upsertPlainTextSecret(request.body);
+      return reply.status(204).send();
     },
   );
 }

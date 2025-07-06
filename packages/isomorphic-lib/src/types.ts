@@ -3275,12 +3275,26 @@ export const UpsertSecretRequest = Type.Object({
 
 export type UpsertSecretRequest = Static<typeof UpsertSecretRequest>;
 
+export const UpsertSecretV2Request = Type.Object({
+  name: Type.String(),
+  value: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type UpsertSecretV2Request = Static<typeof UpsertSecretV2Request>;
+
 export const DeleteSecretRequest = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
 });
 
 export type DeleteSecretRequest = Static<typeof DeleteSecretRequest>;
+
+export const DeleteSecretV2Request = Type.Object({
+  name: Type.String(),
+  workspaceId: Type.String(),
+});
+export type DeleteSecretV2Request = Static<typeof DeleteSecretV2Request>;
 
 export const ListSecretsRequest = Type.Object({
   workspaceId: Type.String(),

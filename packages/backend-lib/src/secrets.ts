@@ -180,11 +180,15 @@ export function decrypt(parts: {
   }
 }
 
-export async function upsertPlainTextSecret(
-  workspaceId: string,
-  name: string,
-  value: string,
-) {
+export async function upsertPlainTextSecret({
+  workspaceId,
+  name,
+  value,
+}: {
+  workspaceId: string;
+  name: string;
+  value: string;
+}) {
   const encrypted = encrypt(value);
   const configValue: PlainTextSecretEncrypted = {
     type: SecretTypeEnum.PlainText,
@@ -213,10 +217,12 @@ export async function deletePlainTextSecret({
 }: {
   workspaceId: string;
   name: string;
-}) {
-  await db()
+}): Promise<boolean> {
+  const result = await db()
     .delete(dbSecret)
-    .where(and(eq(dbSecret.workspaceId, workspaceId), eq(dbSecret.name, name)));
+    .where(and(eq(dbSecret.workspaceId, workspaceId), eq(dbSecret.name, name)))
+    .returning();
+  return result.length > 0;
 }
 
 export async function getPlainTextSecretAvailablity({
