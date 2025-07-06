@@ -5702,20 +5702,20 @@ export function createEncryptedSchema<
 }
 
 export const SecretTypeEnum = {
-  ApiKey: "ApiKey",
+  PlainText: "PlainText",
 } as const;
 
 export const SecretType = Type.KeyOf(Type.Const(SecretTypeEnum));
 
 export type SecretType = Static<typeof SecretType>;
 
-export const ApiKey = Type.Object({
-  type: Type.Literal(SecretTypeEnum.ApiKey),
+export const PlainTextSecret = Type.Object({
+  type: Type.Literal(SecretTypeEnum.PlainText),
   key: Type.String(),
 });
 
-export type ApiKey = Static<typeof ApiKey>;
+export type PlainTextSecret = Static<typeof PlainTextSecret>;
 
-export const ApiKeySecret = createEncryptedSchema(ApiKey);
+export const PlainTextSecretEncrypted = createEncryptedSchema(PlainTextSecret);
 
-export type ApiKeySecret = Static<typeof ApiKeySecret>;
+export type PlainTextSecretEncrypted = Static<typeof PlainTextSecretEncrypted>;

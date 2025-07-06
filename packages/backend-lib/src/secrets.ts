@@ -6,7 +6,11 @@ import config from "./config";
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import logger from "./logger";
-import { SecretAvailabilityResource } from "./types";
+import {
+  PlainTextSecretEncrypted,
+  SecretAvailabilityResource,
+  SecretTypeEnum,
+} from "./types";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -174,4 +178,62 @@ export function decrypt(parts: {
     );
     return null;
   }
+}
+
+export async function upsertPlainTextSecret(
+  workspaceId: string,
+  name: string,
+  value: string,
+) {
+  const encrypted = encrypt(value);
+  const configValue: PlainTextSecretEncrypted = {
+    type: SecretTypeEnum.PlainText,
+    keyEncrypted: encrypted.encryptedData,
+    keyIv: encrypted.iv,
+    keyAuthTag: encrypted.authTag,
+  };
+  await db()
+    .insert(dbSecret)
+    .values({
+      workspaceId,
+      name,
+      configValue,
+    })
+    .onConflictDoUpdate({
+      target: [dbSecret.workspaceId, dbSecret.name],
+      set: {
+        value,
+      },
+    });
+}
+
+export async function deletePlainTextSecret({
+  workspaceId,
+  name,
+}: {
+  workspaceId: string;
+  name: string;
+}) {
+  await db()
+    .delete(dbSecret)
+    .where(and(eq(dbSecret.workspaceId, workspaceId), eq(dbSecret.name, name)));
+}
+
+export async function getPlainTextSecretAvailablity({
+  workspaceId,
+  names,
+}: {
+  workspaceId: string;
+  names?: string[];
+}): Promise<string[]> {
+  const secrets = await db().query.secret.findMany({
+    where: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      names ? inArray(dbSecret.name, names) : undefined,
+    ),
+    columns: {
+      name: true,
+    },
+  });
+  return secrets.map((secret) => secret.name);
 }
