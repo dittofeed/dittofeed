@@ -3289,6 +3289,12 @@ export const ListSecretsRequest = Type.Object({
 
 export type ListSecretsRequest = Static<typeof ListSecretsRequest>;
 
+export const ListSecretsResponse = Type.Object({
+  names: Type.Array(Type.String()),
+});
+
+export type ListSecretsResponse = Static<typeof ListSecretsResponse>;
+
 export const SecretResource = Type.Object({
   name: Type.String(),
   value: Type.String(),

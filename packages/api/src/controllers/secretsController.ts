@@ -1,6 +1,7 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import { getPlainTextSecretAvailablity } from "backend-lib/src/secrets";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { isObject } from "isomorphic-lib/src/objects";
@@ -9,6 +10,7 @@ import {
   EmptyResponse,
   JSONValue,
   ListSecretsRequest,
+  ListSecretsResponse,
   SecretResource,
   UpsertSecretRequest,
 } from "isomorphic-lib/src/types";
@@ -142,6 +144,28 @@ export default async function secretsController(fastify: FastifyInstance) {
         return reply.status(404).send();
       }
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/v2",
+    {
+      schema: {
+        description: "List secrets availability.",
+        querystring: ListSecretsRequest,
+        tags: ["Secrets"],
+        response: {
+          200: ListSecretsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, names } = request.query;
+      const availability = await getPlainTextSecretAvailablity({
+        workspaceId,
+        names,
+      });
+      return reply.status(200).send({ names: availability });
     },
   );
 }
