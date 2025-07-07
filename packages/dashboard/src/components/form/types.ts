@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import { PropsWithChildren } from "react";
 
-import { SecretEditorKeyedProps } from "../secretEditor";
+import { SecretEditorKeyedProps, SecretEditorPropsV2 } from "../secretEditor";
 import { SelectFieldProps } from "./select";
 
 type ID = string;
@@ -40,6 +40,11 @@ export interface SecretField extends Field {
   fieldProps: SecretEditorKeyedProps;
 }
 
+export interface SecretV2Field extends Field {
+  type: "secretV2";
+  fieldProps: SecretEditorPropsV2;
+}
+
 export interface SelectField extends Field {
   type: "select";
   fieldProps: SelectFieldProps;
@@ -50,7 +55,8 @@ export type FieldComponents =
   | SecretField
   | ToggleField
   | ButtonField
-  | SelectField;
+  | SelectField
+  | SecretV2Field;
 
 export type FieldGroupProps = PropsWithChildren<{
   id: ID;

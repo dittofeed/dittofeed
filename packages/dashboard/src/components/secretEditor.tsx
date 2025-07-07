@@ -400,11 +400,13 @@ export function SecretEditorBase(
   return <SecretEditorLoaded {...props} saved={saved} />;
 }
 
-export function KeyedSecretEditorV2({
+export type SecretEditorPropsV2 = Omit<SecretEditorProps, "secretKey">;
+
+export function SecretEditorV2({
   name,
   label,
   helperText,
-}: Omit<SecretEditorKeyedProps, "type" | "secretKey">) {
+}: SecretEditorPropsV2) {
   const { data: secretNames, isLoading } = useListSecretsQuery();
   const { mutateAsync: upsertSecret } = useUpsertSecretMutation();
   const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
