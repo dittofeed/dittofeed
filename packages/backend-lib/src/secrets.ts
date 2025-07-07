@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 
 import config from "./config";
@@ -11,7 +12,6 @@ import {
   SecretAvailabilityResource,
   SecretTypeEnum,
 } from "./types";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export async function getSecretAvailability({
   workspaceId,
