@@ -70,7 +70,7 @@ export interface SecretEditorProps {
   // the name of the secret entry
   name: string;
   // the key within the secret config referenced by this component
-  secretKey: string;
+  secretKey?: string;
   // whether the secret is saved or not on page load. value is undefined while
   // loading
   saved?: boolean;
@@ -197,6 +197,8 @@ function SecretEditorLoaded({
   const [{ editingState, updateRequest, showValue }, setState] =
     useImmer<SecretState>(() => initialState(saved));
 
+  const key = secretKey ?? name;
+
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;
   }
@@ -228,14 +230,14 @@ function SecretEditorLoaded({
             loading={updateRequest.type === CompletionStatus.InProgress}
             onClick={() => {
               handleDelete({
-                key: secretKey,
+                key,
                 request: updateRequest,
                 setRequest,
                 onResponse: () => {
                   patchSecretAvailability({
                     workspaceId: workspaceResult.value.id,
                     name,
-                    key: secretKey,
+                    key,
                     value: false,
                   });
                   setState((draft) => {
@@ -260,7 +262,7 @@ function SecretEditorLoaded({
           <SecretTextField
             helperText={helperText}
             label={label}
-            name={secretKey}
+            name={key}
             onChange={(e) => {
               setState((draft) => {
                 if (draft.editingState.type !== SecretStateType.SavedEditing) {
@@ -276,7 +278,7 @@ function SecretEditorLoaded({
           <SecretButton
             onClick={() =>
               handleUpdate({
-                key: secretKey,
+                key,
                 value: editingState.value,
                 request: updateRequest,
                 setRequest,
@@ -284,7 +286,7 @@ function SecretEditorLoaded({
                   patchSecretAvailability({
                     workspaceId: workspaceResult.value.id,
                     name,
-                    key: secretKey,
+                    key,
                     value: true,
                   });
 
@@ -313,7 +315,7 @@ function SecretEditorLoaded({
           <SecretTextField
             label={label}
             helperText={helperText}
-            name={secretKey}
+            name={key}
             onVisibilityChange={() => setState(toggleVisibility)}
             onChange={(e) => {
               setState((draft) => {
@@ -332,7 +334,7 @@ function SecretEditorLoaded({
             loading={updateRequest.type === CompletionStatus.InProgress}
             onClick={() =>
               handleUpdate({
-                key: secretKey,
+                key,
                 value: editingState.value,
                 request: updateRequest,
                 setRequest,
@@ -340,7 +342,7 @@ function SecretEditorLoaded({
                   patchSecretAvailability({
                     workspaceId: workspaceResult.value.id,
                     name,
-                    key: secretKey,
+                    key,
                     value: true,
                   });
                   setState((draft) => {
@@ -402,55 +404,50 @@ export function KeyedSecretEditorV2({
   name,
   label,
   helperText,
-}: SecretEditorKeyedProps) {
+}: Omit<SecretEditorKeyedProps, "type" | "secretKey">) {
   const { data: secretNames, isLoading } = useListSecretsQuery();
   const { mutateAsync: upsertSecret } = useUpsertSecretMutation();
   const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
 
   const handleUpdate: HandleUpdate = useCallback(
-    async ({
-      value,
-      onResponse,
-      setRequest: setUpdateRequest,
-    }: Parameters<HandleUpdate>[0]) => {
-      setUpdateRequest({ type: CompletionStatus.InProgress });
+    async (props) => {
+      props.setRequest({ type: CompletionStatus.InProgress });
       try {
-        await upsertSecret({ name, value });
-        setUpdateRequest({ type: CompletionStatus.NotStarted });
-        onResponse();
+        await upsertSecret({ name, value: props.value });
+        props.setRequest({ type: CompletionStatus.NotStarted });
+        props.onResponse();
       } catch (e) {
         const error = e as Error;
-        setUpdateRequest({ type: CompletionStatus.Failed, error });
+        props.setRequest({ type: CompletionStatus.Failed, error });
       }
     },
     [upsertSecret, name],
   );
 
   const handleDelete: HandleDelete = useCallback(
-    async ({
-      onResponse,
-      setRequest: setUpdateRequest,
-    }: Parameters<HandleDelete>[0]) => {
-      setUpdateRequest({ type: CompletionStatus.InProgress });
+    async (props) => {
+      props.setRequest({ type: CompletionStatus.InProgress });
       try {
         await deleteSecret(name);
-        setUpdateRequest({ type: CompletionStatus.NotStarted });
-        onResponse();
+        props.setRequest({ type: CompletionStatus.NotStarted });
+        props.onResponse();
       } catch (e) {
         const error = e as Error;
-        setUpdateRequest({ type: CompletionStatus.Failed, error });
+        props.setRequest({ type: CompletionStatus.Failed, error });
       }
     },
     [deleteSecret, name],
   );
 
-  const saved = isLoading ? undefined : secretNames?.includes(name);
+  let saved: boolean | undefined;
+  if (!isLoading) {
+    saved = secretNames?.includes(name) ?? false;
+  }
 
   return (
     <SecretEditorBase
       saved={saved}
       name={name}
-      secretKey={name}
       label={label}
       helperText={helperText}
       handleUpdate={handleUpdate}
@@ -469,6 +466,7 @@ export function KeyedSecretEditor({
   name,
   label,
   type,
+  secretKey,
   ...rest
 }: SecretEditorKeyedProps) {
   const { workspace: workspaceResult, apiBase } = useAppStorePick([
@@ -555,6 +553,7 @@ export function KeyedSecretEditor({
       handleDelete={handleDelete}
       label={label}
       name={name}
+      secretKey={secretKey}
       {...rest}
     />
   );
