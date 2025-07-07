@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev ${DASHBOARD_PORT:+--port $DASHBOARD_PORT}",
     "build": "next build",
     "start": "next start",
     "check": "tsc --build",

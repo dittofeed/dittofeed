@@ -146,6 +146,7 @@ const BaseRawConfigProps = {
   computePropertiesTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  twentyCrmUrl: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
