@@ -20,6 +20,9 @@ import { Overwrite } from "utility-types";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { useDeleteSecretMutation } from "../lib/useDeleteSecretMutation";
+import { useListSecretsQuery } from "../lib/useListSecretsQuery";
+import { useUpsertSecretMutation } from "../lib/useUpsertSecretMutation";
 import SimpleTextField, { TEXT_FIELD_HEIGHT } from "./form/SimpleTextField";
 
 export enum SecretStateType {
@@ -393,6 +396,67 @@ export function SecretEditorBase(
   }
 
   return <SecretEditorLoaded {...props} saved={saved} />;
+}
+
+export function KeyedSecretEditorV2({
+  name,
+  label,
+  helperText,
+}: SecretEditorKeyedProps) {
+  const { data: secretNames, isLoading } = useListSecretsQuery();
+  const { mutateAsync: upsertSecret } = useUpsertSecretMutation();
+  const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
+
+  const handleUpdate: HandleUpdate = useCallback(
+    async ({
+      value,
+      onResponse,
+      setRequest: setUpdateRequest,
+    }: Parameters<HandleUpdate>[0]) => {
+      setUpdateRequest({ type: CompletionStatus.InProgress });
+      try {
+        await upsertSecret({ name, value });
+        setUpdateRequest({ type: CompletionStatus.NotStarted });
+        onResponse();
+      } catch (e) {
+        const error = e as Error;
+        setUpdateRequest({ type: CompletionStatus.Failed, error });
+      }
+    },
+    [upsertSecret, name],
+  );
+
+  const handleDelete: HandleDelete = useCallback(
+    async ({
+      onResponse,
+      setRequest: setUpdateRequest,
+    }: Parameters<HandleDelete>[0]) => {
+      setUpdateRequest({ type: CompletionStatus.InProgress });
+      try {
+        await deleteSecret(name);
+        setUpdateRequest({ type: CompletionStatus.NotStarted });
+        onResponse();
+      } catch (e) {
+        const error = e as Error;
+        setUpdateRequest({ type: CompletionStatus.Failed, error });
+      }
+    },
+    [deleteSecret, name],
+  );
+
+  const saved = isLoading ? undefined : secretNames?.includes(name);
+
+  return (
+    <SecretEditorBase
+      saved={saved}
+      name={name}
+      secretKey={name}
+      label={label}
+      helperText={helperText}
+      handleUpdate={handleUpdate}
+      handleDelete={handleDelete}
+    />
+  );
 }
 
 /**
