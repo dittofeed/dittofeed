@@ -305,6 +305,7 @@ const settingsSectionIds = {
   writeKey: "write-key",
   adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
+  twentyCrmIntegration: "twenty-crm-integration",
   workspaceMetadata: "workspace-metadata",
 } as const;
 
@@ -399,6 +400,14 @@ const menuItems: MenuItemGroup[] = [
         url: `/settings#${settingsSectionIds.hubspotIntegration}`,
         icon: HubspotIcon,
         description: "Configure Hubspot integration.",
+      },
+      {
+        id: "twenty-crm",
+        title: "20 CRM",
+        type: "item",
+        url: `/settings#${settingsSectionIds.twentyCrmIntegration}`,
+        icon: Webhook,
+        description: "Configure 20 CRM integration.",
       },
     ],
     url: `/settings#${settingsSectionIds.hubspotIntegration}`,
