@@ -15,8 +15,7 @@ import {
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
-
-export const INTEGRATIONS_QUERY_KEY = "integrations";
+import { INTEGRATIONS_QUERY_KEY } from "./useIntegrationsQuery";
 
 export type UpdateIntegrationMutationParams = Omit<
   UpsertIntegrationResource,
