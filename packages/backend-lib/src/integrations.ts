@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, SQL } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -13,6 +13,8 @@ import {
   Integration,
   IntegrationDefinition,
   IntegrationResource,
+  ListIntegrationsRequest,
+  ListIntegrationsResponse,
   SavedIntegrationResource,
   UpsertIntegrationResource,
 } from "./types";
@@ -103,6 +105,20 @@ export async function findEnrichedIntegration({
     return ok(null);
   }
   return enrichIntegration(integration);
+}
+
+export async function findManyIntegrations({
+  workspaceId,
+  names,
+}: ListIntegrationsRequest): Promise<ListIntegrationsResponse> {
+  const where: SQL[] = [eq(dbIntegration.workspaceId, workspaceId)];
+  if (names) {
+    where.push(inArray(dbIntegration.name, names));
+  }
+  const integrations = await db().query.integration.findMany({
+    where: and(...where),
+  });
+  return integrations.map(toIntegrationResource).map(unwrap);
 }
 
 export async function upsertIntegration({

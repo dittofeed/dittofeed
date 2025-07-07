@@ -1,7 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { upsertIntegration } from "backend-lib/src/integrations";
+import {
+  findManyIntegrations,
+  upsertIntegration,
+} from "backend-lib/src/integrations";
 import {
   IntegrationResource,
+  ListIntegrationsRequest,
+  ListIntegrationsResponse,
   UpsertIntegrationResource,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
@@ -23,6 +28,23 @@ export default async function integrationsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const integration = await upsertIntegration(request.body);
       return reply.status(200).send(integration);
+    },
+  );
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "List integrations.",
+        tags: ["Integrations"],
+        querystring: ListIntegrationsRequest,
+        response: {
+          200: ListIntegrationsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const integrations = await findManyIntegrations(request.query);
+      return reply.status(200).send(integrations);
     },
   );
 }

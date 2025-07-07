@@ -3372,6 +3372,17 @@ export type UpsertIntegrationResource = Static<
   typeof UpsertIntegrationResource
 >;
 
+export const ListIntegrationsRequest = Type.Object({
+  workspaceId: Type.String(),
+  names: Type.Optional(Type.Array(Type.String())),
+});
+
+export type ListIntegrationsRequest = Static<typeof ListIntegrationsRequest>;
+
+export const ListIntegrationsResponse = Type.Array(IntegrationResource);
+
+export type ListIntegrationsResponse = Static<typeof ListIntegrationsResponse>;
+
 export const OauthTokenResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),

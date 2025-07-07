@@ -1743,7 +1743,7 @@ function TwentyCrmIntegration() {
         },
       }}
     >
-      Connect 20 CRM
+      Enable 20 CRM
     </Button>
   );
 }
