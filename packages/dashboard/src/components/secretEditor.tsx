@@ -110,6 +110,7 @@ function SecretTextField({
   onChange,
   helperText,
   label,
+  name,
 }: {
   autoFocus?: boolean;
   onVisibilityChange: () => void;
@@ -117,6 +118,7 @@ function SecretTextField({
   label?: string;
   onChange: React.ComponentProps<typeof TextField>["onChange"];
   helperText?: string;
+  name?: string;
 }) {
   return (
     <SimpleTextField
@@ -126,6 +128,9 @@ function SecretTextField({
       label={label}
       onChange={onChange}
       helperText={helperText}
+      name={name}
+      id={name}
+      autoComplete="off"
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
@@ -218,7 +223,7 @@ function SecretEditorLoaded({
           </SecretButton>
           <SecretButton
             loading={updateRequest.type === CompletionStatus.InProgress}
-            onClick={() =>
+            onClick={() => {
               handleDelete({
                 key: secretKey,
                 request: updateRequest,
@@ -237,8 +242,8 @@ function SecretEditorLoaded({
                     };
                   });
                 },
-              })
-            }
+              });
+            }}
           >
             Delete
           </SecretButton>
@@ -252,6 +257,7 @@ function SecretEditorLoaded({
           <SecretTextField
             helperText={helperText}
             label={label}
+            name={secretKey}
             onChange={(e) => {
               setState((draft) => {
                 if (draft.editingState.type !== SecretStateType.SavedEditing) {
@@ -304,6 +310,7 @@ function SecretEditorLoaded({
           <SecretTextField
             label={label}
             helperText={helperText}
+            name={secretKey}
             onVisibilityChange={() => setState(toggleVisibility)}
             onChange={(e) => {
               setState((draft) => {
