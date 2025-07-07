@@ -5759,3 +5759,11 @@ export const ValidateTwentyCrmApiKeyRequest = Type.Object({
 export type ValidateTwentyCrmApiKeyRequest = Static<
   typeof ValidateTwentyCrmApiKeyRequest
 >;
+
+export const ValidateTwentyCrmApiKeyResponse = Type.Object({
+  success: Type.Boolean(),
+});
+
+export type ValidateTwentyCrmApiKeyResponse = Static<
+  typeof ValidateTwentyCrmApiKeyResponse
+>;
