@@ -1732,6 +1732,22 @@ function HubspotIntegration() {
   return <>{hubspotContents}</>;
 }
 
+function TwentyCrmIntegration() {
+  return (
+    <Button
+      variant="contained"
+      sx={{
+        alignSelf: {
+          xs: "start",
+          sm: "end",
+        },
+      }}
+    >
+      Connect 20 CRM
+    </Button>
+  );
+}
+
 function IntegrationSettings() {
   return (
     <Stack spacing={3}>
@@ -1746,6 +1762,21 @@ function IntegrationSettings() {
                 name: "Hubspot",
                 fields: [],
                 children: <HubspotIntegration />,
+              },
+            ],
+          },
+        ]}
+      />
+      <Fields
+        sections={[
+          {
+            id: settingsSectionIds.twentyCrmIntegration,
+            fieldGroups: [
+              {
+                id: "twenty-crm-fields",
+                name: "20 CRM",
+                fields: [],
+                children: <TwentyCrmIntegration />,
               },
             ],
           },
