@@ -18,6 +18,9 @@
 import type { CompanyForResponseCreatedBy } from './company-for-response-created-by';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { ObjeGct } from './obje-gct';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { PersonEmails } from './person-emails';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -166,10 +169,10 @@ export interface PersonForResponse {
     'favorites'?: Array<object>;
     /**
      * Message Participants
-     * @type {Array<object>}
+     * @type {Array<ObjeGct>}
      * @memberof PersonForResponse
      */
-    'messageParticipants'?: Array<object>;
+    'messageParticipants'?: Array<ObjeGct>;
     /**
      * Calendar Event Participants
      * @type {Array<object>}

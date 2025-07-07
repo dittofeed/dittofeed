@@ -27,7 +27,7 @@ Name | Type | Description | Notes
 **noteTargets** | **Array&lt;object&gt;** | Notes tied to the contact | [optional] [default to undefined]
 **attachments** | **Array&lt;object&gt;** | Attachments linked to the contact. | [optional] [default to undefined]
 **favorites** | **Array&lt;object&gt;** | Favorites linked to the contact | [optional] [default to undefined]
-**messageParticipants** | **Array&lt;object&gt;** | Message Participants | [optional] [default to undefined]
+**messageParticipants** | [**Array&lt;ObjeGct&gt;**](ObjeGct.md) | Message Participants | [optional] [default to undefined]
 **calendarEventParticipants** | **Array&lt;object&gt;** | Calendar Event Participants | [optional] [default to undefined]
 **timelineActivities** | **Array&lt;object&gt;** | Events linked to the person | [optional] [default to undefined]
 
