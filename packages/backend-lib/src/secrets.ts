@@ -11,6 +11,7 @@ import {
   SecretAvailabilityResource,
   SecretTypeEnum,
 } from "./types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -242,4 +243,42 @@ export async function getPlainTextSecretAvailablity({
     },
   });
   return secrets.map((secret) => secret.name);
+}
+
+/**
+ * Should not be exposed through the API or frontend.
+ * @param param0
+ */
+export async function getSecretValue({
+  workspaceId,
+  name,
+}: {
+  workspaceId: string;
+  name: string;
+}): Promise<string | null> {
+  const secret = await db().query.secret.findFirst({
+    where: and(eq(dbSecret.workspaceId, workspaceId), eq(dbSecret.name, name)),
+  });
+  if (!secret) {
+    return null;
+  }
+  const configValue = schemaValidateWithErr(
+    secret.configValue,
+    PlainTextSecretEncrypted,
+  );
+  if (configValue.isErr()) {
+    logger().error(
+      {
+        workspaceId,
+        name,
+      },
+      "Failed to validate plain text secret config value",
+    );
+    return null;
+  }
+  return decrypt({
+    iv: configValue.value.keyIv,
+    encryptedData: configValue.value.keyEncrypted,
+    authTag: configValue.value.keyAuthTag,
+  });
 }

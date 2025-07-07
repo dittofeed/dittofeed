@@ -31,6 +31,7 @@ export enum SecretNames {
   Webhook = "webhook-channel",
   SmsTestProvider = "SmsTestProvider",
   EmailTestProvider = "EmailTestProvider",
+  TwentyCrmApiKey = "twentycrm-api-key",
 }
 
 export enum DataSources {

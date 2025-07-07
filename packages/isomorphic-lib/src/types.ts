@@ -5767,3 +5767,55 @@ export const ValidateTwentyCrmApiKeyResponse = Type.Object({
 export type ValidateTwentyCrmApiKeyResponse = Static<
   typeof ValidateTwentyCrmApiKeyResponse
 >;
+
+export const CreateCustomSegmentObjectRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type CreateCustomSegmentObjectRequest = Static<
+  typeof CreateCustomSegmentObjectRequest
+>;
+
+export const CreateCustomSegmentObjectErrorTypeEnum = {
+  InvalidApiKey: "InvalidApiKey",
+  AlreadyExists: "AlreadyExists",
+} as const;
+
+export const CreateCustomSegmentObjectErrorType = Type.KeyOf(
+  Type.Const(CreateCustomSegmentObjectErrorTypeEnum),
+);
+
+export type CreateCustomSegmentObjectErrorType = Static<
+  typeof CreateCustomSegmentObjectErrorType
+>;
+
+export const CreateCustomSegmentObjectAlreadyExistsError = Type.Object({
+  type: Type.Literal(CreateCustomSegmentObjectErrorTypeEnum.AlreadyExists),
+  message: Type.String(),
+});
+
+export const CreateCustomSegmentObjectInvalidApiKeyError = Type.Object({
+  type: Type.Literal(CreateCustomSegmentObjectErrorTypeEnum.InvalidApiKey),
+  message: Type.String(),
+});
+
+export type CreateCustomSegmentObjectInvalidApiKeyError = Static<
+  typeof CreateCustomSegmentObjectInvalidApiKeyError
+>;
+
+export const CreateCustomSegmentObjectError = Type.Union([
+  CreateCustomSegmentObjectAlreadyExistsError,
+  CreateCustomSegmentObjectInvalidApiKeyError,
+]);
+
+export type CreateCustomSegmentObjectError = Static<
+  typeof CreateCustomSegmentObjectError
+>;
+
+export const CreateCustomSegmentObjectResponse = Type.Object({
+  success: Type.Boolean(),
+});
+
+export type CreateCustomSegmentObjectResponse = Static<
+  typeof CreateCustomSegmentObjectResponse
+>;
