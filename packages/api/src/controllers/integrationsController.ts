@@ -3,11 +3,14 @@ import {
   findManyIntegrations,
   upsertIntegration,
 } from "backend-lib/src/integrations";
+import { validateTwentyCrmApiKey } from "backend-lib/src/twentyCrm";
 import {
   IntegrationResource,
   ListIntegrationsRequest,
   ListIntegrationsResponse,
   UpsertIntegrationResource,
+  ValidateTwentyCrmApiKeyRequest,
+  ValidateTwentyCrmApiKeyResponse,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 
@@ -30,6 +33,7 @@ export default async function integrationsController(fastify: FastifyInstance) {
       return reply.status(200).send(integration);
     },
   );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
     "/",
     {
@@ -45,6 +49,24 @@ export default async function integrationsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const integrations = await findManyIntegrations(request.query);
       return reply.status(200).send(integrations);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/twentycrm/validate-api-key",
+    {
+      schema: {
+        description: "Validate a TwentyCRM API key.",
+        tags: ["Integrations"],
+        body: ValidateTwentyCrmApiKeyRequest,
+        response: {
+          200: ValidateTwentyCrmApiKeyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const response = await validateTwentyCrmApiKey(request.body);
+      return reply.status(200).send(response);
     },
   );
 }

@@ -5750,3 +5750,12 @@ export type PlainTextSecret = Static<typeof PlainTextSecret>;
 export const PlainTextSecretEncrypted = createEncryptedSchema(PlainTextSecret);
 
 export type PlainTextSecretEncrypted = Static<typeof PlainTextSecretEncrypted>;
+
+export const ValidateTwentyCrmApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  apiKey: Type.String(),
+});
+
+export type ValidateTwentyCrmApiKeyRequest = Static<
+  typeof ValidateTwentyCrmApiKeyRequest
+>;
