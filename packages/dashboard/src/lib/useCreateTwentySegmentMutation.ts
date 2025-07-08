@@ -16,34 +16,34 @@ import {
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 
-export type CreateCustomSegmentObjectMutationParams = Omit<
+export type CreateTwentySegmentMutationParams = Omit<
   CreateCustomSegmentObjectRequest,
   "workspaceId"
 >;
 
-type CreateCustomSegmentObjectMutationFn = (
-  data: CreateCustomSegmentObjectMutationParams,
+type CreateTwentySegmentMutationFn = (
+  data: CreateTwentySegmentMutationParams,
 ) => Promise<CreateCustomSegmentObjectResponse>;
 
-export function useCreateCustomSegmentObjectMutation(
+export function useCreateTwentySegmentMutation(
   options?: Omit<
     UseMutationOptions<
       CreateCustomSegmentObjectResponse,
       AxiosError<CreateCustomSegmentObjectError>,
-      CreateCustomSegmentObjectMutationParams
+      CreateTwentySegmentMutationParams
     >,
     "mutationFn"
   >,
 ): UseMutationResult<
   CreateCustomSegmentObjectResponse,
   AxiosError<CreateCustomSegmentObjectError>,
-  CreateCustomSegmentObjectMutationParams
+  CreateTwentySegmentMutationParams
 > {
   const { workspace } = useAppStorePick(["workspace"]);
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn: CreateCustomSegmentObjectMutationFn = async (data) => {
+  const mutationFn: CreateTwentySegmentMutationFn = async (data) => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available for segment mutation");
     }
@@ -73,7 +73,7 @@ export function useCreateCustomSegmentObjectMutation(
   const mutation = useMutation<
     CreateCustomSegmentObjectResponse,
     AxiosError<CreateCustomSegmentObjectError>,
-    CreateCustomSegmentObjectMutationParams
+    CreateTwentySegmentMutationParams
   >({
     mutationFn,
     ...options,
