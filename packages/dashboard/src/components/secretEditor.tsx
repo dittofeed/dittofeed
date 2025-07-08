@@ -400,7 +400,10 @@ export function SecretEditorBase(
   return <SecretEditorLoaded {...props} saved={saved} />;
 }
 
-export type SecretEditorPropsV2 = Omit<SecretEditorProps, "secretKey">;
+export type SecretEditorPropsV2 = Omit<
+  SecretEditorProps,
+  "secretKey" | "saved"
+>;
 
 export function SecretEditorV2({
   name,
