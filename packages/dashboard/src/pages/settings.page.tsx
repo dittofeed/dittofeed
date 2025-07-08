@@ -1872,7 +1872,7 @@ function TwentyCrmIntegration() {
           label="TwentyCRM API Key"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          helperText="You can find your API key in your TwentyCRM settings."
+          helperText="You can create an API key in your advanced TwentyCRM settings."
         />
         <Box>
           <LoadingButton
