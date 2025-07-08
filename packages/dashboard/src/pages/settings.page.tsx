@@ -95,6 +95,7 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
+import { useIntegrationsQuery } from "../lib/useIntegrationsQuery";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
@@ -1740,10 +1741,9 @@ function HubspotIntegration() {
 }
 
 function TwentyCrmIntegration() {
-  const { integrations, workspace } = useAppStorePick([
-    "integrations",
-    "workspace",
-  ]);
+  const { workspace } = useAppStorePick(["workspace"]);
+  const { data: integrations, isLoading: integrationsIsLoading } =
+    useIntegrationsQuery({});
   const { data: secrets, isLoading: secretsIsLoading } = useListSecretsQuery();
   const { data: segmentsData, isLoading: segmentsIsLoading } =
     useSegmentsQuery();
@@ -1823,54 +1823,42 @@ function TwentyCrmIntegration() {
     });
   }, [apiKey, createCustomObject, upsertSecret, workspace, updateIntegration]);
 
-  const twentyCrmIntegration = integrations.find(
-    (i) => i.name === TWENTY_CRM_INTEGRATION,
+  const twentyCrmIntegration = useMemo(
+    () => (integrations ?? []).find((i) => i.name === TWENTY_CRM_INTEGRATION),
+    [integrations],
   );
 
-  const segments = segmentsData?.value ?? [];
+  const segments = useMemo(
+    () => segmentsData?.segments ?? [],
+    [segmentsData?.segments],
+  );
 
   const [subscribedSegments, setSubscribedSegments] = useState<
     PartialSegmentResource[]
   >(() => {
-    if (
-      !twentyCrmIntegration ||
-      twentyCrmIntegration.definition.type !== IntegrationType.Sync
-    ) {
+    if (!twentyCrmIntegration) {
       return [];
     }
-    const subbed = new Set(
-      twentyCrmIntegration.definition.subscribedSegments ?? [],
-    );
+    const subbed = new Set(twentyCrmIntegration.definition.subscribedSegments);
     return segments.filter((segment) => subbed.has(segment.name));
   });
 
   useEffect(() => {
-    if (
-      twentyCrmIntegration &&
-      twentyCrmIntegration.definition.type === IntegrationType.Sync
-    ) {
+    if (twentyCrmIntegration) {
       const subbed = new Set(
-        twentyCrmIntegration.definition.subscribedSegments ?? [],
+        twentyCrmIntegration.definition.subscribedSegments,
       );
       setSubscribedSegments(
         segments.filter((segment) => subbed.has(segment.name)),
       );
     }
-  }, [
-    twentyCrmIntegration,
-    segments,
-    twentyCrmIntegration?.definition,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    twentyCrmIntegration?.definition.type === IntegrationType.Sync
-      ? // eslint-disable-next-line react-hooks/exhaustive-deps
-        twentyCrmIntegration.definition.subscribedSegments
-      : undefined,
-  ]);
+  }, [twentyCrmIntegration, segments]);
 
   if (
     workspace.type !== CompletionStatus.Successful ||
     secretsIsLoading ||
-    segmentsIsLoading
+    segmentsIsLoading ||
+    integrationsIsLoading
   ) {
     return null;
   }
@@ -1900,10 +1888,7 @@ function TwentyCrmIntegration() {
     );
   }
 
-  if (
-    !twentyCrmIntegration ||
-    twentyCrmIntegration.definition.type !== IntegrationType.Sync
-  ) {
+  if (!twentyCrmIntegration) {
     return null;
   }
 
