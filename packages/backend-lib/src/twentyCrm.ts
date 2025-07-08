@@ -5,9 +5,9 @@ import {
   TWENTY_CRM_SEGMENT_OBJECT_NAME,
 } from "isomorphic-lib/src/constants";
 import {
-  CreateAdminApiKeyRequest,
   CreateCustomSegmentObjectError,
   CreateCustomSegmentObjectErrorTypeEnum,
+  CreateCustomSegmentObjectRequest,
   CreateCustomSegmentObjectResponse,
   ValidateTwentyCrmApiKeyRequest,
   ValidateTwentyCrmApiKeyResponse,
@@ -67,7 +67,7 @@ export async function validateTwentyCrmApiKey(
 }
 
 export async function createCustomSegmentObject(
-  params: CreateAdminApiKeyRequest,
+  params: CreateCustomSegmentObjectRequest,
 ): Promise<
   Result<CreateCustomSegmentObjectResponse, CreateCustomSegmentObjectError>
 > {
