@@ -403,16 +403,25 @@ export function SecretEditorBase(
 export type SecretEditorPropsV2 = Omit<
   SecretEditorProps,
   "secretKey" | "saved"
->;
+> & {
+  onUpsert: () => void;
+  onDelete: () => void;
+};
 
 export function SecretEditorV2({
   name,
   label,
   helperText,
+  onUpsert,
+  onDelete,
 }: SecretEditorPropsV2) {
   const { data: secretNames, isLoading } = useListSecretsQuery();
-  const { mutateAsync: upsertSecret } = useUpsertSecretMutation();
-  const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
+  const { mutateAsync: upsertSecret } = useUpsertSecretMutation({
+    onSuccess: onUpsert,
+  });
+  const { mutateAsync: deleteSecret } = useDeleteSecretMutation({
+    onSuccess: onDelete,
+  });
 
   const handleUpdate: HandleUpdate = useCallback(
     async (props) => {
