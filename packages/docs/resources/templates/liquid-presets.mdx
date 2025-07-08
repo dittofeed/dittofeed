@@ -12,7 +12,7 @@ Dittofeed comes with a number of built-in liquid tags, filters. These are availa
 The `unsubscribe_link` tag outputs a link to unsubscribe from the message's [subscription group](/resources/subscription-groups). 
 
 ```html
-{{ unsubscribe_link }}
+{% unsubscribe_link %}
 ```
 
 This renders a link of the form,
@@ -26,7 +26,7 @@ This tag is only usable in templates used within a [journey message node](resour
 The link's text can also be overridden by passing a parameter to the tag e.g.
 
 ```html
-You can unsubscribe by clicking {{ unsubscribe_link here }}.
+You can unsubscribe by clicking {% unsubscribe_link here %}.
 ```
 
 Including an `unsubscribe_link` is critical for marketing emails, for both legal and user experience reasons. It should be included in the footer of your email, along with your company name, and address e.g.
@@ -41,4 +41,12 @@ Including an `unsubscribe_link` is critical for marketing emails, for both legal
   <br/>
   Powered by <a href="https://dittofeed.com" target="_blank" rel="noopener noreferrer">Dittofeed</a>.
 </mj-text>
+```
+
+### `unsubscribe_url`
+
+If you need to customize the unsubscribe link, you can use the `unsubscribe_url` tag to only output the URL.
+
+```html
+<a class="df-unsubscribe" clicktracking=off href="{% unsubscribe_url %}" target="_blank">unsubscribe</a>
 ```
