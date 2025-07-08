@@ -87,7 +87,7 @@ export async function createCustomSegmentObject(
   }
   const metaConfiguration = new MetaConfiguration({
     accessToken: apiKey,
-    basePath: twentyCrmUrl,
+    basePath: `${twentyCrmUrl}/rest/metadata`,
   });
   const objectsApi = new ObjectsApi(metaConfiguration);
   const fieldsApi = new FieldsApi(metaConfiguration);
@@ -95,7 +95,8 @@ export async function createCustomSegmentObject(
   const segmentObjectName = TWENTY_CRM_SEGMENT_OBJECT_NAME;
 
   try {
-    const { data: objects } = await objectsApi.objectsGet();
+    const { data: objects } = await objectsApi.objectsGet(1000);
+    // FIXME objects is just an html string
     const personObject = objects.data?.objects?.find(
       (o: ObjectForResponse) => o.nameSingular === "person",
     );
