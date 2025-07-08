@@ -24,7 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
@@ -47,6 +47,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
+  CreateCustomSegmentObjectError,
   DataSourceVariantType,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
@@ -68,7 +69,7 @@ import {
   NextPage,
 } from "next";
 import { enqueueSnackbar } from "notistack";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
@@ -97,6 +98,11 @@ import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
+import { useListSecretsQuery } from "../lib/useListSecretsQuery";
+import { useUpsertSecretMutation } from "../lib/useUpsertSecretMutation";
+import { useCreateTwentySegmentMutation } from "../lib/useCreateTwentySegmentMutation";
+import { useDeleteSecretMutation } from "../lib/useDeleteSecretMutation";
+import { useUpdateIntegrationMutation } from "../lib/useUpdateIntegrationMutation";
 
 function useSecretAvailability(): AppState["secretAvailability"] | undefined {
   const { secretAvailability, inTransition } = useAppStorePick([
@@ -1553,14 +1559,12 @@ function HubspotIntegration() {
     integrations,
     dashboardUrl,
     upsertIntegration,
-    apiBase,
     workspace,
     segments: segmentsRequest,
   } = useAppStorePick([
     "integrations",
     "dashboardUrl",
     "upsertIntegration",
-    "apiBase",
     "workspace",
     "segments",
   ]);
@@ -1733,18 +1737,269 @@ function HubspotIntegration() {
 }
 
 function TwentyCrmIntegration() {
-  return (
-    <Button
-      variant="contained"
-      sx={{
-        alignSelf: {
-          xs: "start",
-          sm: "end",
+  const {
+    integrations,
+    upsertIntegration,
+    workspace,
+    segments: segmentsRequest,
+  } = useAppStorePick([
+    "integrations",
+    "upsertIntegration",
+    "workspace",
+    "segments",
+  ]);
+  const { data: secretNames, isLoading: secretsIsLoading } =
+    useListSecretsQuery();
+  const { mutateAsync: upsertSecret, isPending: upsertSecretIsPending } =
+    useUpsertSecretMutation();
+  const {
+    mutateAsync: createCustomObject,
+    isPending: createCustomObjectIsPending,
+  } = useCreateTwentySegmentMutation();
+  const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
+  const [inProgress, setInProgress] = useState<
+    "segments" | "enabled" | "key" | null
+  >(null);
+  const { mutate: updateIntegration } = useUpdateIntegrationMutation({
+    onSuccess: (integration) => {
+      upsertIntegration(integration);
+      enqueueSnackbar(`Updated TwentyCRM integration.`, {
+        variant: "success",
+        anchorOrigin: noticeAnchorOrigin,
+      });
+      setInProgress(null);
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `API Error: Failed to update TwentyCRM integration. ${error.message}`,
+        {
+          variant: "error",
+          anchorOrigin: noticeAnchorOrigin,
         },
-      }}
-    >
-      Enable 20 CRM
-    </Button>
+      );
+      setInProgress(null);
+    },
+  });
+
+  const [apiKey, setApiKey] = useState("");
+
+  const TWENTY_CRM_INTEGRATION = "TwentyCrm";
+  const TWENTY_CRM_API_KEY_SECRET_NAME = "TwentyCrmApiKey";
+
+  const handleConnect = useCallback(async () => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    try {
+      await createCustomObject({ apiKey });
+    } catch (e) {
+      const error = e as AxiosError<CreateCustomSegmentObjectError>;
+      const message = error.response?.data.message ?? error.message;
+      enqueueSnackbar(`Failed to connect to TwentyCRM: ${message}`, {
+        variant: "error",
+        anchorOrigin: noticeAnchorOrigin,
+      });
+      return;
+    }
+
+    try {
+      await upsertSecret({
+        name: TWENTY_CRM_API_KEY_SECRET_NAME,
+        value: apiKey,
+      });
+    } catch (e) {
+      const error = e as Error;
+      enqueueSnackbar(`Failed to save API key: ${error.message}`, {
+        variant: "error",
+        anchorOrigin: noticeAnchorOrigin,
+      });
+      return;
+    }
+
+    updateIntegration({
+      name: TWENTY_CRM_INTEGRATION,
+      definition: {
+        type: IntegrationType.Sync,
+        subscribedSegments: [],
+        subscribedUserProperties: [],
+      },
+      enabled: false,
+    });
+  }, [apiKey, createCustomObject, upsertSecret, workspace, updateIntegration]);
+
+  const twentyCrmIntegration = integrations.find(
+    (i) => i.name === TWENTY_CRM_INTEGRATION,
+  );
+
+  const segments =
+    segmentsRequest.type === CompletionStatus.Successful
+      ? segmentsRequest.value
+      : [];
+
+  const [subscribedSegments, setSubscribedSegments] = useState<
+    PartialSegmentResource[]
+  >(() => {
+    if (
+      !twentyCrmIntegration ||
+      twentyCrmIntegration.definition.type !== IntegrationType.Sync
+    ) {
+      return [];
+    }
+    const subbed = new Set(
+      twentyCrmIntegration.definition.subscribedSegments ?? [],
+    );
+    return segments.filter((segment) => subbed.has(segment.name));
+  });
+
+  useEffect(() => {
+    if (
+      twentyCrmIntegration &&
+      twentyCrmIntegration.definition.type === IntegrationType.Sync
+    ) {
+      const subbed = new Set(
+        twentyCrmIntegration.definition.subscribedSegments ?? [],
+      );
+      setSubscribedSegments(
+        segments.filter((segment) => subbed.has(segment.name)),
+      );
+    }
+  }, [
+    twentyCrmIntegration,
+    segments,
+    twentyCrmIntegration?.definition,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    twentyCrmIntegration?.definition.type === IntegrationType.Sync
+      ? // eslint-disable-next-line react-hooks/exhaustive-deps
+        twentyCrmIntegration.definition.subscribedSegments
+      : undefined,
+  ]);
+
+  if (workspace.type !== CompletionStatus.Successful || secretsIsLoading) {
+    return null;
+  }
+
+  const isApiKeySaved = secretNames?.includes(TWENTY_CRM_API_KEY_SECRET_NAME);
+
+  if (!isApiKeySaved) {
+    return (
+      <Stack spacing={1}>
+        <InfoBox>Connect to TwentyCRM to sync segments as lists.</InfoBox>
+        <TextField
+          label="TwentyCRM API Key"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          helperText="You can find your API key in your TwentyCRM settings."
+        />
+        <Box>
+          <LoadingButton
+            variant="contained"
+            onClick={handleConnect}
+            loading={createCustomObjectIsPending || upsertSecretIsPending}
+          >
+            Connect
+          </LoadingButton>
+        </Box>
+      </Stack>
+    );
+  }
+
+  if (
+    !twentyCrmIntegration ||
+    twentyCrmIntegration.definition.type !== IntegrationType.Sync
+  ) {
+    return null;
+  }
+
+  const handleSaveSegments = () => {
+    setInProgress("segments");
+    updateIntegration({
+      name: TWENTY_CRM_INTEGRATION,
+      definition: {
+        ...twentyCrmIntegration.definition,
+        subscribedSegments: subscribedSegments.map((s) => s.name),
+      },
+    });
+  };
+
+  const handleToggle = (enabled: boolean) => {
+    setInProgress("enabled");
+    updateIntegration({
+      name: TWENTY_CRM_INTEGRATION,
+      enabled,
+    });
+  };
+
+  const handleChangeKey = async () => {
+    setInProgress("key");
+    await deleteSecret(TWENTY_CRM_API_KEY_SECRET_NAME);
+    setInProgress(null);
+  };
+
+  return (
+    <Stack spacing={1}>
+      <InfoBox>
+        Segments can be synced to 20 CRM as lists. See{" "}
+        <ExternalLink
+          disableNewTab
+          enableLinkStyling
+          href="https://www.twenty.com/docs"
+        >
+          the docs
+        </ExternalLink>{" "}
+        for more information on 20 CRM lists.
+      </InfoBox>
+      <Autocomplete
+        multiple
+        options={segments}
+        value={subscribedSegments}
+        onChange={(_event, newValue) => {
+          setSubscribedSegments(newValue);
+        }}
+        getOptionLabel={(option) => option.name}
+        renderInput={(params) => (
+          <TextField {...params} variant="outlined" label="Synced Segments" />
+        )}
+      />
+      <Stack direction="row" spacing={1}>
+        <LoadingButton
+          variant="contained"
+          onClick={handleSaveSegments}
+          loading={inProgress === "segments"}
+          disabled={inProgress !== null && inProgress !== "segments"}
+        >
+          Save Synced Segments
+        </LoadingButton>
+        {twentyCrmIntegration.enabled ? (
+          <LoadingButton
+            variant="outlined"
+            color="error"
+            onClick={() => handleToggle(false)}
+            loading={inProgress === "enabled"}
+            disabled={inProgress !== null && inProgress !== "enabled"}
+          >
+            Disable
+          </LoadingButton>
+        ) : (
+          <LoadingButton
+            variant="contained"
+            onClick={() => handleToggle(true)}
+            loading={inProgress === "enabled"}
+            disabled={inProgress !== null && inProgress !== "enabled"}
+          >
+            Enable
+          </LoadingButton>
+        )}
+        <LoadingButton
+          variant="outlined"
+          color="secondary"
+          onClick={handleChangeKey}
+          loading={inProgress === "key"}
+          disabled={inProgress !== null && inProgress !== "key"}
+        >
+          Change API Key
+        </LoadingButton>
+      </Stack>
+    </Stack>
   );
 }
 
