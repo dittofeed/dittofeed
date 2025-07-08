@@ -69,7 +69,7 @@ import {
   NextPage,
 } from "next";
 import { enqueueSnackbar } from "notistack";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
@@ -98,11 +98,12 @@ import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
-import { useListSecretsQuery } from "../lib/useListSecretsQuery";
-import { useUpsertSecretMutation } from "../lib/useUpsertSecretMutation";
 import { useCreateTwentySegmentMutation } from "../lib/useCreateTwentySegmentMutation";
 import { useDeleteSecretMutation } from "../lib/useDeleteSecretMutation";
+import { useListSecretsQuery } from "../lib/useListSecretsQuery";
+import { useSegmentsQuery } from "../lib/useSegmentsQuery";
 import { useUpdateIntegrationMutation } from "../lib/useUpdateIntegrationMutation";
+import { useUpsertSecretMutation } from "../lib/useUpsertSecretMutation";
 
 function useSecretAvailability(): AppState["secretAvailability"] | undefined {
   const { secretAvailability, inTransition } = useAppStorePick([
@@ -1556,12 +1557,14 @@ function AuthenticationSettings() {
 
 function HubspotIntegration() {
   const {
+    apiBase,
     integrations,
     dashboardUrl,
     upsertIntegration,
     workspace,
     segments: segmentsRequest,
   } = useAppStorePick([
+    "apiBase",
     "integrations",
     "dashboardUrl",
     "upsertIntegration",
@@ -1737,19 +1740,13 @@ function HubspotIntegration() {
 }
 
 function TwentyCrmIntegration() {
-  const {
-    integrations,
-    upsertIntegration,
-    workspace,
-    segments: segmentsRequest,
-  } = useAppStorePick([
+  const { integrations, workspace } = useAppStorePick([
     "integrations",
-    "upsertIntegration",
     "workspace",
-    "segments",
   ]);
-  const { data: secretNames, isLoading: secretsIsLoading } =
-    useListSecretsQuery();
+  const { data: secrets, isLoading: secretsIsLoading } = useListSecretsQuery();
+  const { data: segmentsData, isLoading: segmentsIsLoading } =
+    useSegmentsQuery();
   const { mutateAsync: upsertSecret, isPending: upsertSecretIsPending } =
     useUpsertSecretMutation();
   const {
@@ -1761,8 +1758,7 @@ function TwentyCrmIntegration() {
     "segments" | "enabled" | "key" | null
   >(null);
   const { mutate: updateIntegration } = useUpdateIntegrationMutation({
-    onSuccess: (integration) => {
-      upsertIntegration(integration);
+    onSuccess: () => {
       enqueueSnackbar(`Updated TwentyCRM integration.`, {
         variant: "success",
         anchorOrigin: noticeAnchorOrigin,
@@ -1831,10 +1827,7 @@ function TwentyCrmIntegration() {
     (i) => i.name === TWENTY_CRM_INTEGRATION,
   );
 
-  const segments =
-    segmentsRequest.type === CompletionStatus.Successful
-      ? segmentsRequest.value
-      : [];
+  const segments = segmentsData?.value ?? [];
 
   const [subscribedSegments, setSubscribedSegments] = useState<
     PartialSegmentResource[]
@@ -1874,11 +1867,15 @@ function TwentyCrmIntegration() {
       : undefined,
   ]);
 
-  if (workspace.type !== CompletionStatus.Successful || secretsIsLoading) {
+  if (
+    workspace.type !== CompletionStatus.Successful ||
+    secretsIsLoading ||
+    segmentsIsLoading
+  ) {
     return null;
   }
 
-  const isApiKeySaved = secretNames?.includes(TWENTY_CRM_API_KEY_SECRET_NAME);
+  const isApiKeySaved = secrets?.includes(TWENTY_CRM_API_KEY_SECRET_NAME);
 
   if (!isApiKeySaved) {
     return (
