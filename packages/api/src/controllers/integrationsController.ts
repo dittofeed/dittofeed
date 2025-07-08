@@ -3,8 +3,14 @@ import {
   findManyIntegrations,
   upsertIntegration,
 } from "backend-lib/src/integrations";
-import { validateTwentyCrmApiKey } from "backend-lib/src/twentyCrm";
 import {
+  createCustomSegmentObject,
+  validateTwentyCrmApiKey,
+} from "backend-lib/src/twentyCrm";
+import {
+  CreateCustomSegmentObjectError,
+  CreateCustomSegmentObjectRequest,
+  CreateCustomSegmentObjectResponse,
   IntegrationResource,
   ListIntegrationsRequest,
   ListIntegrationsResponse,
@@ -67,6 +73,28 @@ export default async function integrationsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const response = await validateTwentyCrmApiKey(request.body);
       return reply.status(200).send(response);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/twentycrm/create-custom-segment-object",
+    {
+      schema: {
+        description: "Create a custom segment object in TwentyCRM.",
+        tags: ["Integrations"],
+        body: CreateCustomSegmentObjectRequest,
+        response: {
+          200: CreateCustomSegmentObjectResponse,
+          400: CreateCustomSegmentObjectError,
+        },
+      },
+    },
+    async (request, reply) => {
+      const response = await createCustomSegmentObject(request.body);
+      if (response.isErr()) {
+        return reply.status(400).send(response.error);
+      }
+      return reply.status(200).send(response.value);
     },
   );
 }
