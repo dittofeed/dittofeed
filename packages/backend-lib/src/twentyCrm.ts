@@ -42,7 +42,7 @@ export async function validateTwentyCrmApiKey(
   }
   const configuration = new Configuration({
     accessToken: request.apiKey,
-    basePath: twentyCrmUrl,
+    basePath: `${twentyCrmUrl}/rest/core`,
   });
   const peopleApi = new PeopleApi(configuration);
   try {

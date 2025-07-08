@@ -27,7 +27,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
-import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
+import {
+  HUBSPOT_INTEGRATION,
+  TWENTY_CRM_INTEGRATION,
+} from "backend-lib/src/constants";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
@@ -1744,18 +1747,14 @@ function TwentyCrmIntegration() {
   const { workspace } = useAppStorePick(["workspace"]);
   const { data: integrations, isLoading: integrationsIsLoading } =
     useIntegrationsQuery({});
-  const { data: secrets, isLoading: secretsIsLoading } = useListSecretsQuery();
+  const { data: secrets, isPending: secretsIsPending } = useListSecretsQuery();
   const { data: segmentsData, isLoading: segmentsIsLoading } =
     useSegmentsQuery();
-  const { mutateAsync: upsertSecret, isPending: upsertSecretIsPending } =
-    useUpsertSecretMutation();
-  const {
-    mutateAsync: createCustomObject,
-    isPending: createCustomObjectIsPending,
-  } = useCreateTwentySegmentMutation();
+  const { mutateAsync: upsertSecret } = useUpsertSecretMutation();
+  const { mutateAsync: createCustomObject } = useCreateTwentySegmentMutation();
   const { mutateAsync: deleteSecret } = useDeleteSecretMutation();
   const [inProgress, setInProgress] = useState<
-    "segments" | "enabled" | "key" | null
+    "segments" | "enabled" | "key" | "connect" | null
   >(null);
   const { mutate: updateIntegration } = useUpdateIntegrationMutation({
     onSuccess: () => {
@@ -1779,13 +1778,27 @@ function TwentyCrmIntegration() {
 
   const [apiKey, setApiKey] = useState("");
 
-  const TWENTY_CRM_INTEGRATION = "TwentyCrm";
-  const TWENTY_CRM_API_KEY_SECRET_NAME = "TwentyCrmApiKey";
-
   const handleConnect = useCallback(async () => {
+    setInProgress("connect");
     if (workspace.type !== CompletionStatus.Successful) {
+      setInProgress(null);
       return;
     }
+    try {
+      await upsertSecret({
+        name: SecretNames.TwentyCrmApiKey,
+        value: apiKey,
+      });
+    } catch (e) {
+      const error = e as Error;
+      enqueueSnackbar(`Failed to save API key: ${error.message}`, {
+        variant: "error",
+        anchorOrigin: noticeAnchorOrigin,
+      });
+      setInProgress(null);
+      return;
+    }
+
     try {
       await createCustomObject({ apiKey });
     } catch (e) {
@@ -1795,20 +1808,19 @@ function TwentyCrmIntegration() {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });
-      return;
-    }
-
-    try {
-      await upsertSecret({
-        name: TWENTY_CRM_API_KEY_SECRET_NAME,
-        value: apiKey,
-      });
-    } catch (e) {
-      const error = e as Error;
-      enqueueSnackbar(`Failed to save API key: ${error.message}`, {
-        variant: "error",
-        anchorOrigin: noticeAnchorOrigin,
-      });
+      try {
+        await deleteSecret(SecretNames.TwentyCrmApiKey);
+      } catch (e2) {
+        const error2 = e2 as Error;
+        enqueueSnackbar(
+          `Failed to delete temporary API key: ${error2.message}`,
+          {
+            variant: "warning",
+            anchorOrigin: noticeAnchorOrigin,
+          },
+        );
+      }
+      setInProgress(null);
       return;
     }
 
@@ -1821,7 +1833,14 @@ function TwentyCrmIntegration() {
       },
       enabled: false,
     });
-  }, [apiKey, createCustomObject, upsertSecret, workspace, updateIntegration]);
+  }, [
+    apiKey,
+    createCustomObject,
+    upsertSecret,
+    workspace,
+    updateIntegration,
+    deleteSecret,
+  ]);
 
   const twentyCrmIntegration = useMemo(
     () => (integrations ?? []).find((i) => i.name === TWENTY_CRM_INTEGRATION),
@@ -1856,16 +1875,16 @@ function TwentyCrmIntegration() {
 
   if (
     workspace.type !== CompletionStatus.Successful ||
-    secretsIsLoading ||
     segmentsIsLoading ||
-    integrationsIsLoading
+    integrationsIsLoading ||
+    secretsIsPending
   ) {
     return null;
   }
 
-  const isApiKeySaved = secrets?.includes(TWENTY_CRM_API_KEY_SECRET_NAME);
+  const isApiKeySaved = secrets?.includes(SecretNames.TwentyCrmApiKey);
 
-  if (!isApiKeySaved) {
+  if (!isApiKeySaved || inProgress === "connect") {
     return (
       <Stack spacing={1}>
         <TextField
@@ -1878,7 +1897,7 @@ function TwentyCrmIntegration() {
           <LoadingButton
             variant="contained"
             onClick={handleConnect}
-            loading={createCustomObjectIsPending || upsertSecretIsPending}
+            loading={inProgress === "connect"}
           >
             Connect
           </LoadingButton>
@@ -1927,7 +1946,7 @@ function TwentyCrmIntegration() {
 
   const handleChangeKey = async () => {
     setInProgress("key");
-    await deleteSecret(TWENTY_CRM_API_KEY_SECRET_NAME);
+    await deleteSecret(SecretNames.TwentyCrmApiKey);
     setInProgress(null);
   };
 

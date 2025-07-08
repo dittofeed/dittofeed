@@ -116,6 +116,6 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
 
 export const OAUTH_COOKIE_NAME = "oauth_csrf_token";
 
-export const TWENTY_CRM_SEGMENT_OBJECT_NAME = "dittofeed_segment" as const;
+export const TWENTY_CRM_SEGMENT_OBJECT_NAME = "dittofeedSegment" as const;
 
-export const TWENTY_CRM_SEGMENT_OBJECT_FIELD_NAME = "dittofeed_people" as const;
+export const TWENTY_CRM_SEGMENT_OBJECT_FIELD_NAME = "dittofeedPeople" as const;
