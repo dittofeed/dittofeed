@@ -95,12 +95,12 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
-import { useIntegrationsQuery } from "../lib/useIntegrationsQuery";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 import { useCreateTwentySegmentMutation } from "../lib/useCreateTwentySegmentMutation";
 import { useDeleteSecretMutation } from "../lib/useDeleteSecretMutation";
+import { useIntegrationsQuery } from "../lib/useIntegrationsQuery";
 import { useListSecretsQuery } from "../lib/useListSecretsQuery";
 import { useSegmentsQuery } from "../lib/useSegmentsQuery";
 import { useUpdateIntegrationMutation } from "../lib/useUpdateIntegrationMutation";
@@ -1868,7 +1868,6 @@ function TwentyCrmIntegration() {
   if (!isApiKeySaved) {
     return (
       <Stack spacing={1}>
-        <InfoBox>Connect to TwentyCRM to sync segments as lists.</InfoBox>
         <TextField
           label="TwentyCRM API Key"
           value={apiKey}
@@ -1888,7 +1887,10 @@ function TwentyCrmIntegration() {
     );
   }
 
-  if (!twentyCrmIntegration) {
+  if (
+    !twentyCrmIntegration ||
+    twentyCrmIntegration.definition.type !== IntegrationType.Sync
+  ) {
     return null;
   }
 
@@ -1911,6 +1913,18 @@ function TwentyCrmIntegration() {
     });
   };
 
+  const handleEnable = () => {
+    setInProgress("enabled");
+    updateIntegration({
+      name: TWENTY_CRM_INTEGRATION,
+      definition: {
+        ...twentyCrmIntegration.definition,
+        subscribedSegments: subscribedSegments.map((s) => s.name),
+      },
+      enabled: true,
+    });
+  };
+
   const handleChangeKey = async () => {
     setInProgress("key");
     await deleteSecret(TWENTY_CRM_API_KEY_SECRET_NAME);
@@ -1919,17 +1933,6 @@ function TwentyCrmIntegration() {
 
   return (
     <Stack spacing={1}>
-      <InfoBox>
-        Segments can be synced to 20 CRM as lists. See{" "}
-        <ExternalLink
-          disableNewTab
-          enableLinkStyling
-          href="https://www.twenty.com/docs"
-        >
-          the docs
-        </ExternalLink>{" "}
-        for more information on 20 CRM lists.
-      </InfoBox>
       <Autocomplete
         multiple
         options={segments}
@@ -1943,32 +1946,34 @@ function TwentyCrmIntegration() {
         )}
       />
       <Stack direction="row" spacing={1}>
-        <LoadingButton
-          variant="contained"
-          onClick={handleSaveSegments}
-          loading={inProgress === "segments"}
-          disabled={inProgress !== null && inProgress !== "segments"}
-        >
-          Save Synced Segments
-        </LoadingButton>
         {twentyCrmIntegration.enabled ? (
-          <LoadingButton
-            variant="outlined"
-            color="error"
-            onClick={() => handleToggle(false)}
-            loading={inProgress === "enabled"}
-            disabled={inProgress !== null && inProgress !== "enabled"}
-          >
-            Disable
-          </LoadingButton>
+          <>
+            <LoadingButton
+              variant="contained"
+              onClick={handleSaveSegments}
+              loading={inProgress === "segments"}
+              disabled={inProgress !== null && inProgress !== "segments"}
+            >
+              Save Changes
+            </LoadingButton>
+            <LoadingButton
+              variant="outlined"
+              color="error"
+              onClick={() => handleToggle(false)}
+              loading={inProgress === "enabled"}
+              disabled={inProgress !== null && inProgress !== "enabled"}
+            >
+              Disable Sync
+            </LoadingButton>
+          </>
         ) : (
           <LoadingButton
             variant="contained"
-            onClick={() => handleToggle(true)}
+            onClick={handleEnable}
             loading={inProgress === "enabled"}
             disabled={inProgress !== null && inProgress !== "enabled"}
           >
-            Enable
+            Enable Sync
           </LoadingButton>
         )}
         <LoadingButton
