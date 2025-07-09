@@ -150,13 +150,14 @@ export async function computePropertiesQueueWorkflow(
     "computePropertiesQueueCapacity",
     "computePropertiesAttempts",
     "computedPropertiesActivityTaskQueue",
+    "computePropertiesTimeout",
   ]);
   const concurrency = initialConfig.computePropertiesQueueConcurrency;
   const capacity = initialConfig.computePropertiesQueueCapacity;
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
   const { computePropertiesContainedV2 } = proxyActivities<typeof activities>({
-    startToCloseTimeout: "5 minutes",
+    startToCloseTimeout: initialConfig.computePropertiesTimeout,
     taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
   });
 
