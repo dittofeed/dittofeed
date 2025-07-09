@@ -89,6 +89,7 @@ export async function createCustomSegmentObject(
     accessToken: apiKey,
     basePath: `${twentyCrmUrl}/rest/metadata`,
   });
+  logger().debug({ metaConfiguration }, "twentyCrm metaConfiguration");
   const objectsApi = new ObjectsApi(metaConfiguration);
   const fieldsApi = new FieldsApi(metaConfiguration);
 
@@ -96,7 +97,6 @@ export async function createCustomSegmentObject(
 
   try {
     const { data: objects } = await objectsApi.objectsGet(1000);
-    // FIXME objects is just an html string
     const personObject = objects.data?.objects?.find(
       (o: ObjectForResponse) => o.nameSingular === "person",
     );
@@ -149,8 +149,20 @@ export async function createCustomSegmentObject(
         name: TWENTY_CRM_SEGMENT_OBJECT_FIELD_NAME,
         label: "People",
         description: "People in this segment.",
-        settings: {
+        isNullable: true,
+        defaultValue: null,
+        settings: {},
+
+        relation: {
           relatedTo: personObject.id,
+          // The cardinality of the relationship
+          type: "ONE_TO_MANY",
+
+          // The details for the new field on the Person object
+          reverseRelation: {
+            name: "dittofeedSegments", // A programmatic name
+            label: "Dittofeed Segments", // A display label
+          },
         },
       };
       await fieldsApi.createOneField(newField);

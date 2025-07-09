@@ -12,390 +12,614 @@
  * Do not edit the class manually.
  */
 
-
-import type { Configuration } from '../configuration';
-import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from 'axios';
-import globalAxios from 'axios';
+import type { Configuration } from "../configuration";
+import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from "axios";
+import globalAxios from "axios";
 // Some imports not used depending on template conditions
 // @ts-ignore
-import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObject, setBearerAuthToObject, setOAuthToObject, setSearchParams, serializeDataIfNeeded, toPathString, createRequestFunction } from '../common';
+import {
+  DUMMY_BASE_URL,
+  assertParamExists,
+  setApiKeyToObject,
+  setBasicAuthToObject,
+  setBearerAuthToObject,
+  setOAuthToObject,
+  setSearchParams,
+  serializeDataIfNeeded,
+  toPathString,
+  createRequestFunction,
+} from "../common";
 // @ts-ignore
-import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError, operationServerMap } from '../base';
+import {
+  BASE_PATH,
+  COLLECTION_FORMATS,
+  type RequestArgs,
+  BaseAPI,
+  RequiredError,
+  operationServerMap,
+} from "../base";
 // @ts-ignore
-import type { CreateOneObject200Response } from '../model';
+import type { CreateOneObject200Response } from "../model";
 // @ts-ignore
-import type { DeleteOneObject200Response } from '../model';
+import type { DeleteOneObject200Response } from "../model";
 // @ts-ignore
-import type { InlineObject } from '../model';
+import type { InlineObject } from "../model";
 // @ts-ignore
-import type { InlineObject1 } from '../model';
+import type { InlineObject1 } from "../model";
 // @ts-ignore
-import type { ModelObject } from '../model';
+import type { ModelObject } from "../model";
 // @ts-ignore
-import type { ObjectForUpdate } from '../model';
+import type { ObjectForUpdate } from "../model";
 // @ts-ignore
-import type { ObjectsGet200Response } from '../model';
+import type { ObjectsGet200Response } from "../model";
 // @ts-ignore
-import type { ObjectsIdGet200Response } from '../model';
+import type { ObjectsIdGet200Response } from "../model";
 // @ts-ignore
-import type { UpdateOneObject200Response } from '../model';
+import type { UpdateOneObject200Response } from "../model";
 /**
  * ObjectsApi - axios parameter creator
  * @export
  */
-export const ObjectsApiAxiosParamCreator = function (configuration?: Configuration) {
-    return {
-        /**
-         * 
-         * @summary Create One object
-         * @param {ModelObject} modelObject body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createOneObject: async (modelObject: ModelObject, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'modelObject' is not null or undefined
-            assertParamExists('createOneObject', 'modelObject', modelObject)
-            const localVarPath = `/objects`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
+export const ObjectsApiAxiosParamCreator = function (
+  configuration?: Configuration,
+) {
+  return {
+    /**
+     *
+     * @summary Create One object
+     * @param {ModelObject} modelObject body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createOneObject: async (
+      modelObject: ModelObject,
+      options: RawAxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'modelObject' is not null or undefined
+      assertParamExists("createOneObject", "modelObject", modelObject);
+      const localVarPath = `/objects`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
 
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
 
-            // authentication bearerAuth required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+      // authentication bearerAuth required
+      // http bearer authentication required
+      await setBearerAuthToObject(localVarHeaderParameter, configuration);
 
+      localVarHeaderParameter["Content-Type"] = "application/json";
 
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        modelObject,
+        localVarRequestOptions,
+        configuration,
+      );
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(modelObject, localVarRequestOptions, configuration)
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Delete One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteOneObject: async (
+      id: string,
+      options: RawAxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'id' is not null or undefined
+      assertParamExists("deleteOneObject", "id", id);
+      const localVarPath = `/objects/{id}`.replace(
+        `{${"id"}}`,
+        encodeURIComponent(String(id)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
 
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
-         * @summary Delete One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        deleteOneObject: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('deleteOneObject', 'id', id)
-            const localVarPath = `/objects/{id}`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
+      const localVarRequestOptions = {
+        method: "DELETE",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
 
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
+      // authentication bearerAuth required
+      // http bearer authentication required
+      await setBearerAuthToObject(localVarHeaderParameter, configuration);
 
-            // authentication bearerAuth required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
 
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Find Many objects
+     * @param {number} [limit] Limits the number of objects returned.
+     * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    objectsGet: async (
+      limit?: number,
+      startingAfter?: string,
+      endingBefore?: string,
+      options: RawAxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/objects`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
 
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
 
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
-         * @summary Find Many objects
-         * @param {number} [limit] Limits the number of objects returned.
-         * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        objectsGet: async (limit?: number, startingAfter?: string, endingBefore?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/objects`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
+      // authentication bearerAuth required
+      // http bearer authentication required
+      await setBearerAuthToObject(localVarHeaderParameter, configuration);
 
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
+      if (limit !== undefined) {
+        localVarQueryParameter["limit"] = limit;
+      }
 
-            // authentication bearerAuth required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+      if (startingAfter !== undefined) {
+        localVarQueryParameter["starting_after"] = startingAfter;
+      }
 
-            if (limit !== undefined) {
-                localVarQueryParameter['limit'] = limit;
-            }
+      if (endingBefore !== undefined) {
+        localVarQueryParameter["ending_before"] = endingBefore;
+      }
 
-            if (startingAfter !== undefined) {
-                localVarQueryParameter['starting_after'] = startingAfter;
-            }
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
 
-            if (endingBefore !== undefined) {
-                localVarQueryParameter['ending_before'] = endingBefore;
-            }
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Find One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    objectsIdGet: async (
+      id: string,
+      options: RawAxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'id' is not null or undefined
+      assertParamExists("objectsIdGet", "id", id);
+      const localVarPath = `/objects/{id}`.replace(
+        `{${"id"}}`,
+        encodeURIComponent(String(id)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
 
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
 
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+      // authentication bearerAuth required
+      // http bearer authentication required
+      await setBearerAuthToObject(localVarHeaderParameter, configuration);
 
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
-         * @summary Find One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        objectsIdGet: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('objectsIdGet', 'id', id)
-            const localVarPath = `/objects/{id}`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
 
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Update One object
+     * @param {string} id Object id.
+     * @param {ObjectForUpdate} objectForUpdate body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateOneObject: async (
+      id: string,
+      objectForUpdate: ObjectForUpdate,
+      options: RawAxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'id' is not null or undefined
+      assertParamExists("updateOneObject", "id", id);
+      // verify required parameter 'objectForUpdate' is not null or undefined
+      assertParamExists("updateOneObject", "objectForUpdate", objectForUpdate);
+      const localVarPath = `/objects/{id}`.replace(
+        `{${"id"}}`,
+        encodeURIComponent(String(id)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
 
-            // authentication bearerAuth required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+      const localVarRequestOptions = {
+        method: "PATCH",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
 
+      // authentication bearerAuth required
+      // http bearer authentication required
+      await setBearerAuthToObject(localVarHeaderParameter, configuration);
 
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+      localVarHeaderParameter["Content-Type"] = "application/json";
 
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
-         * @summary Update One object
-         * @param {string} id Object id.
-         * @param {ObjectForUpdate} objectForUpdate body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        updateOneObject: async (id: string, objectForUpdate: ObjectForUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('updateOneObject', 'id', id)
-            // verify required parameter 'objectForUpdate' is not null or undefined
-            assertParamExists('updateOneObject', 'objectForUpdate', objectForUpdate)
-            const localVarPath = `/objects/{id}`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        objectForUpdate,
+        localVarRequestOptions,
+        configuration,
+      );
 
-            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication bearerAuth required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(objectForUpdate, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-    }
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+  };
 };
 
 /**
  * ObjectsApi - functional programming interface
  * @export
  */
-export const ObjectsApiFp = function(configuration?: Configuration) {
-    const localVarAxiosParamCreator = ObjectsApiAxiosParamCreator(configuration)
-    return {
-        /**
-         * 
-         * @summary Create One object
-         * @param {ModelObject} modelObject body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async createOneObject(modelObject: ModelObject, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreateOneObject200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createOneObject(modelObject, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ObjectsApi.createOneObject']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 
-         * @summary Delete One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async deleteOneObject(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeleteOneObject200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteOneObject(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ObjectsApi.deleteOneObject']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 
-         * @summary Find Many objects
-         * @param {number} [limit] Limits the number of objects returned.
-         * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async objectsGet(limit?: number, startingAfter?: string, endingBefore?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ObjectsGet200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.objectsGet(limit, startingAfter, endingBefore, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ObjectsApi.objectsGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 
-         * @summary Find One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async objectsIdGet(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ObjectsIdGet200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.objectsIdGet(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ObjectsApi.objectsIdGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 
-         * @summary Update One object
-         * @param {string} id Object id.
-         * @param {ObjectForUpdate} objectForUpdate body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async updateOneObject(id: string, objectForUpdate: ObjectForUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpdateOneObject200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateOneObject(id, objectForUpdate, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ObjectsApi.updateOneObject']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-    }
+export const ObjectsApiFp = function (configuration?: Configuration) {
+  const localVarAxiosParamCreator = ObjectsApiAxiosParamCreator(configuration);
+  return {
+    /**
+     *
+     * @summary Create One object
+     * @param {ModelObject} modelObject body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createOneObject(
+      modelObject: ModelObject,
+      options?: RawAxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<CreateOneObject200Response>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createOneObject(
+        modelObject,
+        options,
+      );
+      const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+      const localVarOperationServerBasePath =
+        operationServerMap["ObjectsApi.createOneObject"]?.[
+          localVarOperationServerIndex
+        ]?.url;
+      return (axios, basePath) =>
+        createRequestFunction(
+          localVarAxiosArgs,
+          globalAxios,
+          BASE_PATH,
+          configuration,
+        )(axios, localVarOperationServerBasePath || basePath);
+    },
+    /**
+     *
+     * @summary Delete One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async deleteOneObject(
+      id: string,
+      options?: RawAxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<DeleteOneObject200Response>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.deleteOneObject(
+        id,
+        options,
+      );
+      const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+      const localVarOperationServerBasePath =
+        operationServerMap["ObjectsApi.deleteOneObject"]?.[
+          localVarOperationServerIndex
+        ]?.url;
+      return (axios, basePath) =>
+        createRequestFunction(
+          localVarAxiosArgs,
+          globalAxios,
+          BASE_PATH,
+          configuration,
+        )(axios, localVarOperationServerBasePath || basePath);
+    },
+    /**
+     *
+     * @summary Find Many objects
+     * @param {number} [limit] Limits the number of objects returned.
+     * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async objectsGet(
+      limit?: number,
+      startingAfter?: string,
+      endingBefore?: string,
+      options?: RawAxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<ObjectsGet200Response>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.objectsGet(
+        limit,
+        startingAfter,
+        endingBefore,
+        options,
+      );
+      const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+      const localVarOperationServerBasePath =
+        operationServerMap["ObjectsApi.objectsGet"]?.[
+          localVarOperationServerIndex
+        ]?.url;
+      return (axios, basePath) =>
+        createRequestFunction(
+          localVarAxiosArgs,
+          globalAxios,
+          BASE_PATH,
+          configuration,
+        )(axios, localVarOperationServerBasePath || basePath);
+    },
+    /**
+     *
+     * @summary Find One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async objectsIdGet(
+      id: string,
+      options?: RawAxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<ObjectsIdGet200Response>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.objectsIdGet(
+        id,
+        options,
+      );
+      const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+      const localVarOperationServerBasePath =
+        operationServerMap["ObjectsApi.objectsIdGet"]?.[
+          localVarOperationServerIndex
+        ]?.url;
+      return (axios, basePath) =>
+        createRequestFunction(
+          localVarAxiosArgs,
+          globalAxios,
+          BASE_PATH,
+          configuration,
+        )(axios, localVarOperationServerBasePath || basePath);
+    },
+    /**
+     *
+     * @summary Update One object
+     * @param {string} id Object id.
+     * @param {ObjectForUpdate} objectForUpdate body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updateOneObject(
+      id: string,
+      objectForUpdate: ObjectForUpdate,
+      options?: RawAxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<UpdateOneObject200Response>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updateOneObject(
+        id,
+        objectForUpdate,
+        options,
+      );
+      const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+      const localVarOperationServerBasePath =
+        operationServerMap["ObjectsApi.updateOneObject"]?.[
+          localVarOperationServerIndex
+        ]?.url;
+      return (axios, basePath) =>
+        createRequestFunction(
+          localVarAxiosArgs,
+          globalAxios,
+          BASE_PATH,
+          configuration,
+        )(axios, localVarOperationServerBasePath || basePath);
+    },
+  };
 };
 
 /**
  * ObjectsApi - factory interface
  * @export
  */
-export const ObjectsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
-    const localVarFp = ObjectsApiFp(configuration)
-    return {
-        /**
-         * 
-         * @summary Create One object
-         * @param {ModelObject} modelObject body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createOneObject(modelObject: ModelObject, options?: RawAxiosRequestConfig): AxiosPromise<CreateOneObject200Response> {
-            return localVarFp.createOneObject(modelObject, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
-         * @summary Delete One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        deleteOneObject(id: string, options?: RawAxiosRequestConfig): AxiosPromise<DeleteOneObject200Response> {
-            return localVarFp.deleteOneObject(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
-         * @summary Find Many objects
-         * @param {number} [limit] Limits the number of objects returned.
-         * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        objectsGet(limit?: number, startingAfter?: string, endingBefore?: string, options?: RawAxiosRequestConfig): AxiosPromise<ObjectsGet200Response> {
-            return localVarFp.objectsGet(limit, startingAfter, endingBefore, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
-         * @summary Find One object
-         * @param {string} id Object id.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        objectsIdGet(id: string, options?: RawAxiosRequestConfig): AxiosPromise<ObjectsIdGet200Response> {
-            return localVarFp.objectsIdGet(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
-         * @summary Update One object
-         * @param {string} id Object id.
-         * @param {ObjectForUpdate} objectForUpdate body
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        updateOneObject(id: string, objectForUpdate: ObjectForUpdate, options?: RawAxiosRequestConfig): AxiosPromise<UpdateOneObject200Response> {
-            return localVarFp.updateOneObject(id, objectForUpdate, options).then((request) => request(axios, basePath));
-        },
-    };
+export const ObjectsApiFactory = function (
+  configuration?: Configuration,
+  basePath?: string,
+  axios?: AxiosInstance,
+) {
+  const localVarFp = ObjectsApiFp(configuration);
+  return {
+    /**
+     *
+     * @summary Create One object
+     * @param {ModelObject} modelObject body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createOneObject(
+      modelObject: ModelObject,
+      options?: RawAxiosRequestConfig,
+    ): AxiosPromise<CreateOneObject200Response> {
+      return localVarFp
+        .createOneObject(modelObject, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @summary Delete One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteOneObject(
+      id: string,
+      options?: RawAxiosRequestConfig,
+    ): AxiosPromise<DeleteOneObject200Response> {
+      return localVarFp
+        .deleteOneObject(id, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @summary Find Many objects
+     * @param {number} [limit] Limits the number of objects returned.
+     * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    objectsGet(
+      limit?: number,
+      startingAfter?: string,
+      endingBefore?: string,
+      options?: RawAxiosRequestConfig,
+    ): AxiosPromise<ObjectsGet200Response> {
+      return localVarFp
+        .objectsGet(limit, startingAfter, endingBefore, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @summary Find One object
+     * @param {string} id Object id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    objectsIdGet(
+      id: string,
+      options?: RawAxiosRequestConfig,
+    ): AxiosPromise<ObjectsIdGet200Response> {
+      return localVarFp
+        .objectsIdGet(id, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @summary Update One object
+     * @param {string} id Object id.
+     * @param {ObjectForUpdate} objectForUpdate body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateOneObject(
+      id: string,
+      objectForUpdate: ObjectForUpdate,
+      options?: RawAxiosRequestConfig,
+    ): AxiosPromise<UpdateOneObject200Response> {
+      return localVarFp
+        .updateOneObject(id, objectForUpdate, options)
+        .then((request) => request(axios, basePath));
+    },
+  };
 };
 
 /**
@@ -405,67 +629,88 @@ export const ObjectsApiFactory = function (configuration?: Configuration, basePa
  * @extends {BaseAPI}
  */
 export class ObjectsApi extends BaseAPI {
-    /**
-     * 
-     * @summary Create One object
-     * @param {ModelObject} modelObject body
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ObjectsApi
-     */
-    public createOneObject(modelObject: ModelObject, options?: RawAxiosRequestConfig) {
-        return ObjectsApiFp(this.configuration).createOneObject(modelObject, options).then((request) => request(this.axios, this.basePath));
-    }
+  /**
+   *
+   * @summary Create One object
+   * @param {ModelObject} modelObject body
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ObjectsApi
+   */
+  public createOneObject(
+    modelObject: ModelObject,
+    options?: RawAxiosRequestConfig,
+  ) {
+    return ObjectsApiFp(this.configuration)
+      .createOneObject(modelObject, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
 
-    /**
-     * 
-     * @summary Delete One object
-     * @param {string} id Object id.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ObjectsApi
-     */
-    public deleteOneObject(id: string, options?: RawAxiosRequestConfig) {
-        return ObjectsApiFp(this.configuration).deleteOneObject(id, options).then((request) => request(this.axios, this.basePath));
-    }
+  /**
+   *
+   * @summary Delete One object
+   * @param {string} id Object id.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ObjectsApi
+   */
+  public deleteOneObject(id: string, options?: RawAxiosRequestConfig) {
+    return ObjectsApiFp(this.configuration)
+      .deleteOneObject(id, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
 
-    /**
-     * 
-     * @summary Find Many objects
-     * @param {number} [limit] Limits the number of objects returned.
-     * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-     * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ObjectsApi
-     */
-    public objectsGet(limit?: number, startingAfter?: string, endingBefore?: string, options?: RawAxiosRequestConfig) {
-        return ObjectsApiFp(this.configuration).objectsGet(limit, startingAfter, endingBefore, options).then((request) => request(this.axios, this.basePath));
-    }
+  /**
+   *
+   * @summary Find Many objects
+   * @param {number} [limit] Limits the number of objects returned.
+   * @param {string} [startingAfter] Returns objects starting after a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+   * @param {string} [endingBefore] Returns objects ending before a specific cursor. You can find cursors in **startCursor** and **endCursor** in **pageInfo** in response data
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ObjectsApi
+   */
+  public objectsGet(
+    limit?: number,
+    startingAfter?: string,
+    endingBefore?: string,
+    options?: RawAxiosRequestConfig,
+  ) {
+    return ObjectsApiFp(this.configuration)
+      .objectsGet(limit, startingAfter, endingBefore, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
 
-    /**
-     * 
-     * @summary Find One object
-     * @param {string} id Object id.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ObjectsApi
-     */
-    public objectsIdGet(id: string, options?: RawAxiosRequestConfig) {
-        return ObjectsApiFp(this.configuration).objectsIdGet(id, options).then((request) => request(this.axios, this.basePath));
-    }
+  /**
+   *
+   * @summary Find One object
+   * @param {string} id Object id.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ObjectsApi
+   */
+  public objectsIdGet(id: string, options?: RawAxiosRequestConfig) {
+    return ObjectsApiFp(this.configuration)
+      .objectsIdGet(id, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
 
-    /**
-     * 
-     * @summary Update One object
-     * @param {string} id Object id.
-     * @param {ObjectForUpdate} objectForUpdate body
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ObjectsApi
-     */
-    public updateOneObject(id: string, objectForUpdate: ObjectForUpdate, options?: RawAxiosRequestConfig) {
-        return ObjectsApiFp(this.configuration).updateOneObject(id, objectForUpdate, options).then((request) => request(this.axios, this.basePath));
-    }
+  /**
+   *
+   * @summary Update One object
+   * @param {string} id Object id.
+   * @param {ObjectForUpdate} objectForUpdate body
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ObjectsApi
+   */
+  public updateOneObject(
+    id: string,
+    objectForUpdate: ObjectForUpdate,
+    options?: RawAxiosRequestConfig,
+  ) {
+    return ObjectsApiFp(this.configuration)
+      .updateOneObject(id, objectForUpdate, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
 }
-

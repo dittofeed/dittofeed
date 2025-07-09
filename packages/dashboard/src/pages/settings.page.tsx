@@ -1906,10 +1906,8 @@ function TwentyCrmIntegration() {
     );
   }
 
-  if (
-    !twentyCrmIntegration ||
-    twentyCrmIntegration.definition.type !== IntegrationType.Sync
-  ) {
+  if (!twentyCrmIntegration) {
+    console.log("loading 2");
     return null;
   }
 
