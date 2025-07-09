@@ -15,7 +15,10 @@ import {
   stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
-import { findDueWorkspaceMaxTos } from "backend-lib/src/computedProperties/periods";
+import {
+  findDueWorkspaceMaxTos,
+  findDueWorkspaceMinTos,
+} from "backend-lib/src/computedProperties/periods";
 import backendConfig, { SECRETS } from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
@@ -857,6 +860,35 @@ export function createCommands(yargs: Argv): Argv {
           "Finding due workspaces.",
         );
         const workspaces = await findDueWorkspaceMaxTos({
+          now: new Date().getTime(),
+          interval,
+          limit,
+        });
+        logger().info(
+          {
+            workspaces,
+          },
+          "Found due workspaces.",
+        );
+      },
+    )
+    .command(
+      "find-due-workspaces-v2",
+      "Find due workspaces.",
+      (cmd) =>
+        cmd.options({
+          interval: { type: "number", alias: "i" },
+          limit: { type: "number", alias: "l" },
+        }),
+      async ({ interval, limit }) => {
+        logger().info(
+          {
+            interval,
+            limit,
+          },
+          "Finding due workspaces.",
+        );
+        const workspaces = await findDueWorkspaceMinTos({
           now: new Date().getTime(),
           interval,
           limit,
