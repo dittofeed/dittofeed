@@ -1508,12 +1508,14 @@ export const LowCodeEmailJsonBody = Type.Recursive(
 
 export type LowCodeEmailJsonBody = Static<typeof LowCodeEmailJsonBody>;
 
-export enum EmailContentsType {
-  Code = "Code",
-  LowCode = "LowCode",
-}
+export const EmailContentsType = {
+  Code: "Code",
+  LowCode: "LowCode",
+} as const;
 
-export const EmailContentsTypeEnum = Type.Enum(EmailContentsType);
+export const EmailContentsTypeEnum = Type.KeyOf(Type.Const(EmailContentsType));
+
+export type EmailContentsType = Static<typeof EmailContentsTypeEnum>;
 
 export const BaseEmailContents = Type.Object({
   from: Type.String(),
@@ -4954,6 +4956,7 @@ export const BroadcastConfiguration = Type.Object({
   hideDrawer: Type.Optional(Type.Boolean()),
   hideTemplateUserPropertiesPanel: Type.Optional(Type.Boolean()),
   showErrorHandling: Type.Optional(Type.Boolean()),
+  allowedEmailContentsTypes: Type.Optional(Type.Array(EmailContentsTypeEnum)),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;
