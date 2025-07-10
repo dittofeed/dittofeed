@@ -33,14 +33,27 @@ function EmailControls({
   setEmailContentType,
   broadcastId,
   disabled,
+  allowedEmailContentsTypes,
 }: {
   broadcastId: string;
   emailContentType: EmailContentsType | null;
   setEmailContentType: (emailContentType: EmailContentsType | null) => void;
   disabled?: boolean;
+  allowedEmailContentsTypes?: EmailContentsType[];
 }) {
   const { data: broadcast } = useBroadcastQuery(broadcastId);
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
+
+  // If allowedEmailContentsTypes is undefined, empty, or has both types, show toggle
+  const shouldShowToggle =
+    !allowedEmailContentsTypes ||
+    allowedEmailContentsTypes.length === 0 ||
+    allowedEmailContentsTypes.length === 2;
+
+  if (!shouldShowToggle) {
+    return null;
+  }
+
   return (
     <ToggleButtonGroup
       value={emailContentType}
@@ -118,10 +131,12 @@ function BroadcastMessageTemplateEditor({
   broadcastId,
   disabled,
   hideTemplateUserPropertiesPanel,
+  allowedEmailContentsTypes,
 }: {
   broadcastId: string;
   disabled: boolean;
   hideTemplateUserPropertiesPanel?: boolean;
+  allowedEmailContentsTypes?: EmailContentsType[];
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const broadcastMutation = useBroadcastMutation(broadcastId);
@@ -163,7 +178,15 @@ function BroadcastMessageTemplateEditor({
       broadcastId,
     });
 
-    const definition = getDefaultMessageTemplateDefinition(messageType);
+    // Determine the appropriate email contents type based on configuration
+    let emailContentsType: EmailContentsType | undefined;
+    if (messageType === ChannelType.Email && allowedEmailContentsTypes) {
+      if (allowedEmailContentsTypes.length === 1) {
+        emailContentsType = allowedEmailContentsTypes[0];
+      }
+    }
+
+    const definition = getDefaultMessageTemplateDefinition(messageType, emailContentsType);
 
     updateMessageTemplateMutation.mutate(
       {
@@ -178,7 +201,7 @@ function BroadcastMessageTemplateEditor({
         },
       },
     );
-  }, [workspace, isInternalTemplate, messageType]);
+  }, [workspace, isInternalTemplate, messageType, allowedEmailContentsTypes]);
 
   if (!messageTemplate || !messageTemplateId || !isInternalTemplate) {
     return null;
@@ -322,6 +345,7 @@ export default function Content({ state }: { state: BroadcastState }) {
           hideTemplateUserPropertiesPanel={
             state.configuration?.hideTemplateUserPropertiesPanel
           }
+          allowedEmailContentsTypes={state.configuration?.allowedEmailContentsTypes}
         />
       );
       break;
@@ -344,6 +368,9 @@ export default function Content({ state }: { state: BroadcastState }) {
             disabled={disabled}
             emailContentType={emailContentType}
             setEmailContentType={setEmailContentType}
+            allowedEmailContentsTypes={
+              state.configuration?.allowedEmailContentsTypes
+            }
           />
         );
         break;

@@ -3,7 +3,6 @@ import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React from "react";
 import { validate as validateUuid } from "uuid";
 
 import Broadcast from "../../components/broadcast";
