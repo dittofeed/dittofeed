@@ -1396,9 +1396,14 @@ function segmentToResolvedState({
         : null;
 
       if (!userIdStateParam || !userIdPropertyIdParam) {
-        throw new Error(
+        logger().error(
+          {
+            segment,
+            node,
+          },
           "User ID state and property ID are required for random bucket segments",
         );
+        return [];
       }
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const segmentIdParam = qb.addQueryValue(segment.id, "String");

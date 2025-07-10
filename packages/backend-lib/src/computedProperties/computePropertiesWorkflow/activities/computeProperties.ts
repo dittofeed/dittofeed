@@ -201,11 +201,10 @@ export async function computePropertiesIndividual({
         ids: [item.id],
         names: ["id", "anonymousId"],
       });
-      const filtered = userProperties.filter((up) => up.id === item.id);
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments: [],
-        userProperties: filtered,
+        userProperties,
         journeys: [],
         integrations: [],
         now,
