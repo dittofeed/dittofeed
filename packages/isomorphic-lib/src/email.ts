@@ -1,4 +1,8 @@
-import { defaultEmailoContent } from "emailo";
+import {
+  defaultEmailoContent,
+  EmailoJsonContent,
+  emptyEmailoContent,
+} from "emailo";
 
 import { assertUnreachable } from "./typeAssertions";
 import {
@@ -10,6 +14,7 @@ import {
   EmailProviderType,
   EmailProviderTypeSchema,
   EmailTemplateResource,
+  LowCodeEmailDefaultType,
   WorkspaceWideEmailProviders,
 } from "./types";
 
@@ -537,9 +542,11 @@ export const defaultEmailBody = `<!DOCTYPE html>
 export function defaultEmailDefinition({
   emailContentsType,
   emailProvider,
+  lowCodeEmailDefaultType,
 }: {
   emailContentsType: EmailContentsType;
   emailProvider?: Pick<DefaultEmailProviderResource, "fromAddress">;
+  lowCodeEmailDefaultType?: LowCodeEmailDefaultType;
 }): EmailTemplateResource {
   const baseTemplate = {
     type: ChannelType.Email,
@@ -556,12 +563,23 @@ export function defaultEmailDefinition({
         ...baseTemplate,
         body: defaultEmailBody,
       };
-    case EmailContentsType.LowCode:
+    case EmailContentsType.LowCode: {
+      let body: EmailoJsonContent;
+      switch (lowCodeEmailDefaultType) {
+        case LowCodeEmailDefaultType.Empty:
+          body = emptyEmailoContent;
+          break;
+        case LowCodeEmailDefaultType.Informative:
+        default:
+          body = defaultEmailoContent;
+          break;
+      }
       return {
         ...baseTemplate,
         emailContentsType: EmailContentsType.LowCode,
-        body: defaultEmailoContent,
+        body,
       };
+    }
   }
 }
 

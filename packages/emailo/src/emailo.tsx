@@ -54,6 +54,11 @@ export function Emailo({
   );
 }
 
+export const emptyEmailoContent = {
+  type: "doc",
+  content: [],
+};
+
 export const defaultEmailoContent = {
   type: "doc",
   content: [
