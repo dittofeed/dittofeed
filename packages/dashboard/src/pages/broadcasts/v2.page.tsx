@@ -51,9 +51,6 @@ function BroadcastPageContent() {
   return (
     <Broadcast
       queryParams={queryParams}
-      configuration={{
-        lowCodeEmailDefaultType: LowCodeEmailDefaultType.Informative,
-      }}
       sx={{
         pt: 2,
         px: 1,
