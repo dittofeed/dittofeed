@@ -8,6 +8,12 @@
 @import "./partials/typography.css";
 @import "./globals.css";
 
+.body {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
 .emailo {
   * {
     font-family: Arial, Helvetica, sans-serif;

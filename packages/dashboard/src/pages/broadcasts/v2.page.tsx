@@ -1,6 +1,7 @@
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
+import { LowCodeEmailDefaultType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { validate as validateUuid } from "uuid";
@@ -10,7 +11,6 @@ import DashboardContent from "../../components/dashboardContent";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
-import { LowCodeEmailDefaultType } from "isomorphic-lib/src/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {

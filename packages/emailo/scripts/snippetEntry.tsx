@@ -3,7 +3,12 @@ import ReactDOM from "react-dom/client";
 import { createRPCClient } from "vite-dev-rpc";
 
 import { Button } from "../src/components/button";
-import { defaultEmailoContent, Emailo, useEmailo } from "../src/emailo";
+import {
+  defaultEmailoContent,
+  Emailo,
+  emptyEmailoContent,
+  useEmailo,
+} from "../src/emailo";
 import { toMjml } from "../src/toMjml";
 import { MJMLError } from "./rpc";
 
@@ -89,7 +94,8 @@ function Rendered({ html }: { html: string }) {
 
 function Main() {
   const state = useEmailo({
-    content: defaultEmailoContent,
+    content: emptyEmailoContent,
+    // content: defaultEmailoContent,
     userProperties: [
       {
         name: "name",
