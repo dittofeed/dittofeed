@@ -182,11 +182,14 @@ function BroadcastMessageTemplateEditor({
     let emailContentsType: EmailContentsType | undefined;
     if (messageType === ChannelType.Email && allowedEmailContentsTypes) {
       if (allowedEmailContentsTypes.length === 1) {
-        emailContentsType = allowedEmailContentsTypes[0];
+        [emailContentsType] = allowedEmailContentsTypes;
       }
     }
 
-    const definition = getDefaultMessageTemplateDefinition(messageType, emailContentsType);
+    const definition = getDefaultMessageTemplateDefinition(
+      messageType,
+      emailContentsType,
+    );
 
     updateMessageTemplateMutation.mutate(
       {
@@ -345,7 +348,9 @@ export default function Content({ state }: { state: BroadcastState }) {
           hideTemplateUserPropertiesPanel={
             state.configuration?.hideTemplateUserPropertiesPanel
           }
-          allowedEmailContentsTypes={state.configuration?.allowedEmailContentsTypes}
+          allowedEmailContentsTypes={
+            state.configuration?.allowedEmailContentsTypes
+          }
         />
       );
       break;
