@@ -9,6 +9,7 @@ import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
+  LowCodeEmailDefaultType,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -34,12 +35,14 @@ function EmailControls({
   broadcastId,
   disabled,
   allowedEmailContentsTypes,
+  lowCodeEmailDefaultType,
 }: {
   broadcastId: string;
   emailContentType: EmailContentsType | null;
   setEmailContentType: (emailContentType: EmailContentsType | null) => void;
   disabled?: boolean;
   allowedEmailContentsTypes?: EmailContentsType[];
+  lowCodeEmailDefaultType?: LowCodeEmailDefaultType;
 }) {
   const { data: broadcast } = useBroadcastQuery(broadcastId);
   const updateMessageTemplateMutation = useMessageTemplateUpdateMutation();
@@ -67,6 +70,7 @@ function EmailControls({
             name: broadcast.name,
             definition: defaultEmailDefinition({
               emailContentsType: newValue,
+              lowCodeEmailDefaultType,
             }),
           });
         }
@@ -132,11 +136,13 @@ function BroadcastMessageTemplateEditor({
   disabled,
   hideTemplateUserPropertiesPanel,
   allowedEmailContentsTypes,
+  lowCodeEmailDefaultType,
 }: {
   broadcastId: string;
   disabled: boolean;
   hideTemplateUserPropertiesPanel?: boolean;
   allowedEmailContentsTypes?: EmailContentsType[];
+  lowCodeEmailDefaultType?: LowCodeEmailDefaultType;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const broadcastMutation = useBroadcastMutation(broadcastId);
@@ -189,6 +195,7 @@ function BroadcastMessageTemplateEditor({
     const definition = getDefaultMessageTemplateDefinition(
       messageType,
       emailContentsType,
+      lowCodeEmailDefaultType,
     );
 
     updateMessageTemplateMutation.mutate(
@@ -351,6 +358,7 @@ export default function Content({ state }: { state: BroadcastState }) {
           allowedEmailContentsTypes={
             state.configuration?.allowedEmailContentsTypes
           }
+          lowCodeEmailDefaultType={state.configuration?.lowCodeEmailDefaultType}
         />
       );
       break;
@@ -375,6 +383,9 @@ export default function Content({ state }: { state: BroadcastState }) {
             setEmailContentType={setEmailContentType}
             allowedEmailContentsTypes={
               state.configuration?.allowedEmailContentsTypes
+            }
+            lowCodeEmailDefaultType={
+              state.configuration?.lowCodeEmailDefaultType
             }
           />
         );

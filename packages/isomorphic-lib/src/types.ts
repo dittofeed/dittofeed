@@ -4944,6 +4944,17 @@ export const BroadcastStepKey = Type.KeyOf(Type.Const(BroadcastStepKeys));
 
 export type BroadcastStepKey = Static<typeof BroadcastStepKey>;
 
+export const LowCodeEmailDefaultTypeEnum = {
+  Informative: "Informative",
+  Empty: "Empty",
+} as const;
+
+export const LowCodeEmailDefaultType = Type.KeyOf(
+  Type.Const(LowCodeEmailDefaultTypeEnum),
+);
+
+export type LowCodeEmailDefaultType = Static<typeof LowCodeEmailDefaultType>;
+
 export const BroadcastConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.Broadcast),
   stepsAllowList: Type.Optional(Type.Array(BroadcastStepKey)),
@@ -4957,6 +4968,7 @@ export const BroadcastConfiguration = Type.Object({
   hideTemplateUserPropertiesPanel: Type.Optional(Type.Boolean()),
   showErrorHandling: Type.Optional(Type.Boolean()),
   allowedEmailContentsTypes: Type.Optional(Type.Array(EmailContentsTypeEnum)),
+  lowCodeEmailDefaultType: Type.Optional(LowCodeEmailDefaultType),
 });
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;

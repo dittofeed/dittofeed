@@ -28,6 +28,11 @@ export function useEmailo({
     onUpdate,
     editable: !disabled,
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: "min-h-full focus:outline-none",
+      },
+    },
   });
   if (!editor) {
     return null;
@@ -41,18 +46,29 @@ export function Emailo({
   state,
   disabled,
 }: {
+  // eslint-disable-next-line react/require-default-props
   className?: string;
   state: EmailoState;
+  // eslint-disable-next-line react/require-default-props
   disabled?: boolean;
 }) {
   return (
-    <div className={cn("emailo", className)}>
-      <EditorContent editor={state.editor} readOnly={disabled} />
+    <div className={cn("emailo body", className)}>
+      <EditorContent
+        editor={state.editor}
+        readOnly={disabled}
+        className="flex-1 overflow-y-auto"
+      />
       {!disabled && <TextMenu state={state} />}
       <span className="emailo-tippy" />
     </div>
   );
 }
+
+export const emptyEmailoContent = {
+  type: "doc",
+  content: [],
+};
 
 export const defaultEmailoContent = {
   type: "doc",
