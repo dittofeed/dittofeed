@@ -1,6 +1,5 @@
 import { Box, useTheme } from "@mui/material";
 import { GetServerSideProps } from "next";
-import React from "react";
 
 import BroadcastsTable from "../components/broadcasts/indexTable";
 import DashboardContent from "../components/dashboardContent";
