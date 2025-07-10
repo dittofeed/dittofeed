@@ -136,11 +136,13 @@ function BroadcastMessageTemplateEditor({
   disabled,
   hideTemplateUserPropertiesPanel,
   allowedEmailContentsTypes,
+  lowCodeEmailDefaultType,
 }: {
   broadcastId: string;
   disabled: boolean;
   hideTemplateUserPropertiesPanel?: boolean;
   allowedEmailContentsTypes?: EmailContentsType[];
+  lowCodeEmailDefaultType?: LowCodeEmailDefaultType;
 }) {
   const { workspace } = useAppStorePick(["workspace"]);
   const broadcastMutation = useBroadcastMutation(broadcastId);
@@ -193,6 +195,7 @@ function BroadcastMessageTemplateEditor({
     const definition = getDefaultMessageTemplateDefinition(
       messageType,
       emailContentsType,
+      lowCodeEmailDefaultType,
     );
 
     updateMessageTemplateMutation.mutate(
@@ -355,6 +358,7 @@ export default function Content({ state }: { state: BroadcastState }) {
           allowedEmailContentsTypes={
             state.configuration?.allowedEmailContentsTypes
           }
+          lowCodeEmailDefaultType={state.configuration?.lowCodeEmailDefaultType}
         />
       );
       break;
