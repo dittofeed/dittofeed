@@ -201,11 +201,10 @@ export async function computePropertiesIndividual({
         ids: [item.id],
         names: ["id", "anonymousId"],
       });
-      const filtered = userProperties.filter((up) => up.id === item.id);
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments: [],
-        userProperties: filtered,
+        userProperties,
         journeys: [],
         integrations: [],
         now,
@@ -265,10 +264,16 @@ export async function computePropertiesIndividual({
       break;
     }
     case WorkspaceQueueItemType.Journey: {
-      const journeys = await findRunningJourneys({
-        workspaceId: item.workspaceId,
-        ids: [item.id],
-      });
+      const [journeys, userProperties] = await Promise.all([
+        findRunningJourneys({
+          workspaceId: item.workspaceId,
+          ids: [item.id],
+        }),
+        findAllUserPropertyResources({
+          workspaceId: item.workspaceId,
+          names: ["id", "anonymousId"],
+        }),
+      ]);
       const subscribedSegments = journeys.flatMap((j) =>
         Array.from(getSubscribedSegments(j.definition)),
       );
@@ -286,7 +291,7 @@ export async function computePropertiesIndividual({
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments,
-        userProperties: [],
+        userProperties,
         journeys,
         integrations: [],
         now,

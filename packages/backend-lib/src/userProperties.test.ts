@@ -492,8 +492,51 @@ describe("userProperties", () => {
       it("should return the user property resources which match either id or name", async () => {
         const actual = await findAllUserPropertyResources({
           workspaceId: workspace.id,
-          ids: [idUpId],
-          names: ["name"],
+          ids: [nameUpId],
+          names: ["id"],
+        });
+        const actualIds = actual.map((up) => up.id);
+        expect(actualIds).toContain(idUpId);
+        expect(actualIds).toContain(nameUpId);
+      });
+    });
+
+    describe("when passing names", () => {
+      let idUpId: string;
+      let nameUpId: string;
+
+      beforeEach(async () => {
+        const [idUp, nameUp] = await Promise.all([
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: workspace.id,
+              name: "id",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "id",
+              } satisfies UserPropertyDefinition,
+            },
+          }).then(unwrap),
+          insert({
+            table: dbUserProperty,
+            values: {
+              workspaceId: workspace.id,
+              name: "name",
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "name",
+              } satisfies UserPropertyDefinition,
+            },
+          }).then(unwrap),
+        ]);
+        idUpId = idUp.id;
+        nameUpId = nameUp.id;
+      });
+      it("should return the user property resources which match either id or name", async () => {
+        const actual = await findAllUserPropertyResources({
+          workspaceId: workspace.id,
+          names: ["id", "name"],
         });
         const actualIds = actual.map((up) => up.id);
         expect(actualIds).toContain(idUpId);
