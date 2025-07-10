@@ -10,6 +10,7 @@ import DashboardContent from "../../components/dashboardContent";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
+import { LowCodeEmailDefaultType } from "isomorphic-lib/src/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -50,6 +51,9 @@ function BroadcastPageContent() {
   return (
     <Broadcast
       queryParams={queryParams}
+      configuration={{
+        lowCodeEmailDefaultType: LowCodeEmailDefaultType.Informative,
+      }}
       sx={{
         pt: 2,
         px: 1,
