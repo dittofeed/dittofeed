@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
+import { submitBatchWithTriggers } from "backend-lib/src/apps";
 import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
+import { clickhouseClient } from "backend-lib/src/clickhouse";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -31,7 +33,7 @@ import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
-import { NodeEnvEnum, Workspace } from "backend-lib/src/types";
+import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { deleteAllUsers } from "backend-lib/src/users";
 import {
@@ -1126,6 +1128,113 @@ export function createCommands(yargs: Argv): Argv {
           },
           "Current compute properties queue state",
         );
+      },
+    )
+    .command(
+      "re-submit-track-events",
+      "Execute a custom SQL query against ClickHouse and resubmit the track events back to the table, potentially re-triggering journeys",
+      (cmd) =>
+        cmd.options({
+          sql: {
+            type: "string",
+            alias: "s",
+            require: true,
+            describe: "The SQL query to execute against ClickHouse",
+          },
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            describe: "The workspace id to submit events to",
+          },
+        }),
+      async ({ sql, workspaceId }) => {
+        logger().info(
+          {
+            sql,
+            workspaceId,
+          },
+          "Executing custom SQL query and resubmitting events",
+        );
+
+        try {
+          // Execute the custom SQL query
+          const resultSet = await clickhouseClient().query({
+            query: sql,
+            format: "JSONEachRow",
+          });
+
+          const results = await resultSet.json<unknown>();
+
+          if (results.length === 0) {
+            logger().info("No events found for the given query");
+            return;
+          }
+
+          logger().info(
+            {
+              eventCount: results.length,
+            },
+            "Found events, preparing to resubmit",
+          );
+
+          const validationResult = schemaValidateWithErr(
+            results,
+            Type.Array(UserEvent),
+          );
+          if (validationResult.isErr()) {
+            logger().error({ err: validationResult.error }, "Invalid events");
+            return;
+          }
+
+          // Transform the results into batch format
+          const batch = validationResult.value.map((event) => {
+            // Parse the message_raw if it's a string
+            let messageRaw;
+            try {
+              messageRaw =
+                typeof event.message_raw === "string"
+                  ? JSON.parse(event.message_raw)
+                  : event.message_raw;
+            } catch (error) {
+              logger().error(
+                { error, event },
+                "Failed to parse message_raw, using as-is",
+              );
+              messageRaw = event.message_raw;
+            }
+
+            return {
+              ...messageRaw,
+              messageId: event.message_id || messageRaw.messageId,
+              timestamp:
+                event.event_time ||
+                messageRaw.timestamp ||
+                new Date().toISOString(),
+            };
+          });
+
+          // Submit the batch back to the table
+          await submitBatchWithTriggers({
+            workspaceId,
+            data: {
+              batch,
+              context: {},
+            },
+          });
+
+          logger().info(
+            {
+              eventCount: batch.length,
+            },
+            "Successfully resubmitted events",
+          );
+        } catch (error) {
+          logger().error(
+            { error },
+            "Failed to execute query and resubmit events",
+          );
+        }
       },
     );
 }
