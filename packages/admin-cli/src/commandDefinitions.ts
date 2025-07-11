@@ -1133,7 +1133,7 @@ export function createCommands(yargs: Argv): Argv {
       },
     )
     .command(
-      "re-submit-track-events",
+      "submit-track-events",
       "Execute a custom SQL query against ClickHouse and resubmit the track events back to the table, potentially re-triggering journeys",
       (cmd) =>
         cmd.options({
@@ -1171,10 +1171,16 @@ export function createCommands(yargs: Argv): Argv {
           results,
           Type.Array(
             Type.Composite([
-              UserEvent,
+              Type.Omit(UserEvent, [
+                "message_id",
+                "message_raw",
+                "processing_time",
+                "anonymous_id",
+                "user_or_anonymous_id",
+              ]),
               Type.Object({
-                properties: Type.String(),
-                context: Type.String(),
+                properties: Type.Optional(Type.String()),
+                context: Type.Optional(Type.String()),
               }),
             ]),
           ),
@@ -1207,10 +1213,10 @@ export function createCommands(yargs: Argv): Argv {
             return {
               workspaceId: event.workspace_id,
               event: event.event,
-              messageId: event.message_id,
               userId: event.user_id,
+              messageId: randomUUID(),
               timestamp: event.event_time,
-              context: JSON.parse(event.context),
+              context: event.context ? JSON.parse(event.context) : undefined,
               properties: event.properties
                 ? JSON.parse(event.properties)
                 : undefined,
