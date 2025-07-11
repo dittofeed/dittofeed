@@ -1217,6 +1217,10 @@ export async function sendEmail({
         });
       }
 
+      const overriddenFrom = emailName
+        ? `${emailName} <${emailProvider.email}>`
+        : emailProvider.email;
+
       const gmailAttachments: SendGmailEmailParams["attachments"] =
         attachments?.map((attachment) => ({
           filename: attachment.name,
@@ -1228,7 +1232,7 @@ export async function sendEmail({
         accessToken: emailProvider.accessToken,
         params: {
           to,
-          from,
+          from: overriddenFrom,
           subject,
           bodyHtml: body,
           replyTo,
@@ -1252,7 +1256,7 @@ export async function sendEmail({
         type: InternalEventType.MessageSent,
         variant: {
           type: ChannelType.Email,
-          from,
+          from: overriddenFrom,
           body,
           to,
           subject,
