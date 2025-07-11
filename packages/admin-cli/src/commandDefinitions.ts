@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
+import { submitTrackWithTriggers } from "backend-lib/src/apps";
 import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
+import { clickhouseClient } from "backend-lib/src/clickhouse";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -31,7 +33,7 @@ import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
-import { NodeEnvEnum, Workspace } from "backend-lib/src/types";
+import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { deleteAllUsers } from "backend-lib/src/users";
 import {
@@ -52,9 +54,11 @@ import {
 import {
   ChannelType,
   EmailProviderType,
+  EventType,
   FeatureName,
   FeatureNamesEnum,
   Features,
+  KnownTrackData,
   MessageTemplateResourceDefinition,
   SendgridSecret,
   WorkspaceStatusDbEnum,
@@ -1126,6 +1130,107 @@ export function createCommands(yargs: Argv): Argv {
           },
           "Current compute properties queue state",
         );
+      },
+    )
+    .command(
+      "submit-track-events",
+      "Execute a custom SQL query against ClickHouse and resubmit the track events back to the table, potentially re-triggering journeys",
+      (cmd) =>
+        cmd.options({
+          sql: {
+            type: "string",
+            alias: "s",
+            require: true,
+            describe: "The SQL query to execute against ClickHouse",
+          },
+        }),
+      async ({ sql }) => {
+        logger().info(
+          {
+            sql,
+          },
+          "Executing custom SQL query and resubmitting events",
+        );
+
+        // Execute the custom SQL query
+        const resultSet = await clickhouseClient().query({
+          query: sql,
+          format: "JSONEachRow",
+        });
+
+        const results = await resultSet.json<unknown>();
+
+        logger().info(
+          {
+            eventCount: results.length,
+          },
+          "Found events, preparing to resubmit",
+        );
+
+        const validationResult = schemaValidateWithErr(
+          results,
+          Type.Array(
+            Type.Composite([
+              Type.Omit(UserEvent, [
+                "message_id",
+                "message_raw",
+                "processing_time",
+                "anonymous_id",
+                "user_or_anonymous_id",
+              ]),
+              Type.Object({
+                properties: Type.Optional(Type.String()),
+                context: Type.Optional(Type.String()),
+              }),
+            ]),
+          ),
+        );
+        if (validationResult.isErr()) {
+          logger().error({ err: validationResult.error }, "Invalid events");
+          return;
+        }
+        if (results.length === 0) {
+          logger().info("No events found for the given query");
+          return;
+        }
+
+        const trackEvents: (KnownTrackData & { workspaceId: string })[] =
+          validationResult.value.flatMap((event) => {
+            if (event.event_type !== EventType.Track) {
+              logger().info(
+                { event },
+                "Skipping event because it is not a track event",
+              );
+              return [];
+            }
+            if (!event.user_id) {
+              logger().info(
+                { event },
+                "Skipping event because it does not have a user id",
+              );
+              return [];
+            }
+            return {
+              workspaceId: event.workspace_id,
+              event: event.event,
+              userId: event.user_id,
+              messageId: randomUUID(),
+              timestamp: event.event_time,
+              context: event.context ? JSON.parse(event.context) : undefined,
+              properties: event.properties
+                ? JSON.parse(event.properties)
+                : undefined,
+            };
+          });
+        await Promise.all(
+          trackEvents.map(({ workspaceId, ...event }) =>
+            submitTrackWithTriggers({
+              workspaceId,
+              data: event,
+            }),
+          ),
+        );
+        logger().info("Done.");
       },
     );
 }
