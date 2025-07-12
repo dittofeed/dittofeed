@@ -1,6 +1,5 @@
 import { Stack } from "@mui/material";
 import axios from "axios";
-import config from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
@@ -144,13 +143,13 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
 const SubscriptionManagementPage: NextPage<SSP> =
   function SubscriptionManagementPage(props) {
-    const { apiBase } = props;
+    const { apiBase: propsApiBase } = props;
     const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] =
       async (update) => {
         const data: UserSubscriptionsUpdate = update;
         await axios({
           method: "PUT",
-          url: `${apiBase}/api/public/subscription-management/user-subscriptions`,
+          url: `${propsApiBase}/api/public/subscription-management/user-subscriptions`,
           data,
           headers: {
             "Content-Type": "application/json",
