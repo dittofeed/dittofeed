@@ -21,5 +21,8 @@ export function apiBase(): string {
     const base = `${protocol}://${domain}:${port}`;
     return base;
   }
-  return "http://localhost:3001";
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3001";
+  }
+  return "";
 }
