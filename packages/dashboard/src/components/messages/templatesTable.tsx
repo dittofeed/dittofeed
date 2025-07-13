@@ -361,15 +361,6 @@ export default function TemplatesTable({
   );
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Update email content type when configuration changes
-  useEffect(() => {
-    if (messageTemplateConfiguration?.allowedEmailContentsTypes) {
-      if (messageTemplateConfiguration.allowedEmailContentsTypes.length === 1) {
-        setEmailContentType(messageTemplateConfiguration.allowedEmailContentsTypes[0]);
-      }
-    }
-  }, [messageTemplateConfiguration?.allowedEmailContentsTypes]);
-
   // Fetch message templates
   const messageTemplatesQuery = useMessageTemplatesQuery({
     resourceType: ResourceTypeEnum.Declarative,
@@ -465,12 +456,16 @@ export default function TemplatesTable({
     }
 
     const newTemplateId = uuid();
-    
+
     // Determine the appropriate email contents type based on configuration
     let finalEmailContentType: EmailContentsType | undefined = emailContentType;
-    if (selectedChannel === ChannelType.Email && messageTemplateConfiguration?.allowedEmailContentsTypes) {
+    if (
+      selectedChannel === ChannelType.Email &&
+      messageTemplateConfiguration?.allowedEmailContentsTypes
+    ) {
       if (messageTemplateConfiguration.allowedEmailContentsTypes.length === 1) {
-        [finalEmailContentType] = messageTemplateConfiguration.allowedEmailContentsTypes;
+        [finalEmailContentType] =
+          messageTemplateConfiguration.allowedEmailContentsTypes;
       }
     }
 
@@ -850,41 +845,46 @@ export default function TemplatesTable({
               Mobile Push
             </ToggleButton>
           </ToggleButtonGroup>
-          {selectedChannel === ChannelType.Email && (() => {
-            // If allowedEmailContentsTypes is undefined, empty, or has both types, show toggle
-            const shouldShowToggle =
-              !messageTemplateConfiguration?.allowedEmailContentsTypes ||
-              messageTemplateConfiguration.allowedEmailContentsTypes.length === 0 ||
-              messageTemplateConfiguration.allowedEmailContentsTypes.length === 2;
+          {selectedChannel === ChannelType.Email &&
+            (() => {
+              // If allowedEmailContentsTypes is undefined, empty, or has both types, show toggle
+              const shouldShowToggle =
+                !messageTemplateConfiguration?.allowedEmailContentsTypes ||
+                messageTemplateConfiguration.allowedEmailContentsTypes
+                  .length === 0 ||
+                messageTemplateConfiguration.allowedEmailContentsTypes
+                  .length === 2;
 
-            if (!shouldShowToggle) {
-              return null;
-            }
+              if (!shouldShowToggle) {
+                return null;
+              }
 
-            return (
-              <>
-                <Typography display="block" sx={{ mt: 2, mb: 1 }}>
-                  Email Editor Type
-                </Typography>
-                <ToggleButtonGroup
-                  value={emailContentType}
-                  exclusive
-                  onChange={(_, newValue) => {
-                    if (newValue !== null) {
-                      setEmailContentType(newValue);
-                    }
-                  }}
-                  aria-label="email editor type"
-                  size="small"
-                >
-                  <ToggleButton value={EmailContentsType.LowCode}>
-                    Low Code
-                  </ToggleButton>
-                  <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
-                </ToggleButtonGroup>
-              </>
-            );
-          })()}
+              return (
+                <>
+                  <Typography display="block" sx={{ mt: 2, mb: 1 }}>
+                    Email Editor Type
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={emailContentType}
+                    exclusive
+                    onChange={(_, newValue) => {
+                      if (newValue !== null) {
+                        setEmailContentType(newValue);
+                      }
+                    }}
+                    aria-label="email editor type"
+                    size="small"
+                  >
+                    <ToggleButton value={EmailContentsType.LowCode}>
+                      Low Code
+                    </ToggleButton>
+                    <ToggleButton value={EmailContentsType.Code}>
+                      Code
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </>
+              );
+            })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
