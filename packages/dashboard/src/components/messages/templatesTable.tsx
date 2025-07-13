@@ -57,6 +57,7 @@ import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
+  MessageTemplateConfiguration,
   MessageTemplateResource,
   MinimalJourneysResource,
   ResourceTypeEnum,
@@ -67,7 +68,6 @@ import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useUniversalRouter } from "../../lib/authModeProvider";
-import { useMessageTemplateConfigurationQuery } from "../../lib/useComponentConfigurationsQuery";
 import { getDefaultMessageTemplateDefinition } from "../../lib/defaultTemplateDefinition";
 import {
   DeleteMessageTemplateVariables,
@@ -338,7 +338,11 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
-export default function TemplatesTable() {
+export default function TemplatesTable({
+  messageTemplateConfiguration,
+}: {
+  messageTemplateConfiguration?: Omit<MessageTemplateConfiguration, "type">;
+}) {
   const universalRouter = useUniversalRouter();
   const { workspace } = useAppStorePick(["workspace"]);
 
@@ -359,20 +363,17 @@ export default function TemplatesTable() {
 
   // Update email content type when configuration changes
   useEffect(() => {
-    if (messageTemplateConfig?.allowedEmailContentsTypes) {
-      if (messageTemplateConfig.allowedEmailContentsTypes.length === 1) {
-        setEmailContentType(messageTemplateConfig.allowedEmailContentsTypes[0]);
+    if (messageTemplateConfiguration?.allowedEmailContentsTypes) {
+      if (messageTemplateConfiguration.allowedEmailContentsTypes.length === 1) {
+        setEmailContentType(messageTemplateConfiguration.allowedEmailContentsTypes[0]);
       }
     }
-  }, [messageTemplateConfig?.allowedEmailContentsTypes]);
+  }, [messageTemplateConfiguration?.allowedEmailContentsTypes]);
 
   // Fetch message templates
   const messageTemplatesQuery = useMessageTemplatesQuery({
     resourceType: ResourceTypeEnum.Declarative,
   });
-
-  // Fetch message template configuration
-  const { data: messageTemplateConfig } = useMessageTemplateConfigurationQuery();
 
   // Fetch journeys to link to templates
   const { data: resources } = useResourcesQuery({
@@ -467,16 +468,16 @@ export default function TemplatesTable() {
     
     // Determine the appropriate email contents type based on configuration
     let finalEmailContentType: EmailContentsType | undefined = emailContentType;
-    if (selectedChannel === ChannelType.Email && messageTemplateConfig?.allowedEmailContentsTypes) {
-      if (messageTemplateConfig.allowedEmailContentsTypes.length === 1) {
-        [finalEmailContentType] = messageTemplateConfig.allowedEmailContentsTypes;
+    if (selectedChannel === ChannelType.Email && messageTemplateConfiguration?.allowedEmailContentsTypes) {
+      if (messageTemplateConfiguration.allowedEmailContentsTypes.length === 1) {
+        [finalEmailContentType] = messageTemplateConfiguration.allowedEmailContentsTypes;
       }
     }
 
     const definition = getDefaultMessageTemplateDefinition(
       selectedChannel,
       finalEmailContentType,
-      messageTemplateConfig?.lowCodeEmailDefaultType,
+      messageTemplateConfiguration?.lowCodeEmailDefaultType,
     );
 
     const templateData: UpsertMessageTemplateParams = {
@@ -852,9 +853,9 @@ export default function TemplatesTable() {
           {selectedChannel === ChannelType.Email && (() => {
             // If allowedEmailContentsTypes is undefined, empty, or has both types, show toggle
             const shouldShowToggle =
-              !messageTemplateConfig?.allowedEmailContentsTypes ||
-              messageTemplateConfig.allowedEmailContentsTypes.length === 0 ||
-              messageTemplateConfig.allowedEmailContentsTypes.length === 2;
+              !messageTemplateConfiguration?.allowedEmailContentsTypes ||
+              messageTemplateConfiguration.allowedEmailContentsTypes.length === 0 ||
+              messageTemplateConfiguration.allowedEmailContentsTypes.length === 2;
 
             if (!shouldShowToggle) {
               return null;

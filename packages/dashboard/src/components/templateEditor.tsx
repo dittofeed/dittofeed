@@ -47,10 +47,12 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
   EmailProviderType,
   EmailProviderTypeSchema,
   InternalEventType,
   JsonResultType,
+  MessageTemplateConfiguration,
   MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MobilePushProviderType,
@@ -342,6 +344,7 @@ export interface TemplateEditorProps {
   fieldToReadable: (field: string) => string | null;
   mode?: TemplateEditorMode;
   defaultIsUserPropertiesMinimised?: boolean;
+  messageTemplateConfiguration?: Omit<MessageTemplateConfiguration, "type">;
 }
 
 export default function TemplateEditor({
@@ -362,6 +365,7 @@ export default function TemplateEditor({
   defaultIsUserPropertiesMinimised = false,
   hideUserPropertiesPanel = false,
   hideEditor = false,
+  messageTemplateConfiguration,
 }: TemplateEditorProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -420,6 +424,15 @@ export default function TemplateEditor({
     );
     const newEmailContentsType = getEmailContentsType(template.definition);
     if (currentEmailContentsType !== newEmailContentsType) {
+      // Check if the new email contents type is allowed by configuration
+      if (messageTemplateConfiguration?.allowedEmailContentsTypes) {
+        const isNewTypeAllowed = messageTemplateConfiguration.allowedEmailContentsTypes.includes(newEmailContentsType);
+        if (!isNewTypeAllowed) {
+          // Don't switch modes if the target type is not allowed
+          return;
+        }
+      }
+
       setState((d) => {
         if (!d.editedTemplate) {
           return d;
@@ -428,7 +441,7 @@ export default function TemplateEditor({
         return d;
       });
     }
-  }, [template, state.editedTemplate, setState]);
+  }, [template, state.editedTemplate, setState, messageTemplateConfiguration?.allowedEmailContentsTypes]);
 
   const {
     fullscreen,

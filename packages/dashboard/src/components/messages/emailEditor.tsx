@@ -17,6 +17,7 @@ import {
 import {
   ChannelType,
   CompletionStatus,
+  MessageTemplateConfiguration,
   MessageTemplateResourceDraft,
   RenderMessageTemplateRequestContent,
   RenderMessageTemplateRequestContents,
@@ -375,6 +376,7 @@ export default function EmailEditor({
   defaultIsUserPropertiesMinimised,
   hideUserPropertiesPanel,
   hideEditor,
+  messageTemplateConfiguration,
 }: {
   templateId: string;
   hidePublisher?: boolean;
@@ -385,6 +387,7 @@ export default function EmailEditor({
   defaultIsUserPropertiesMinimised?: boolean;
   hideUserPropertiesPanel?: boolean;
   hideEditor?: boolean;
+  messageTemplateConfiguration?: Omit<MessageTemplateConfiguration, "type">;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -517,6 +520,7 @@ export default function EmailEditor({
       defaultIsUserPropertiesMinimised={defaultIsUserPropertiesMinimised}
       hideUserPropertiesPanel={hideUserPropertiesPanel}
       hideEditor={hideEditor}
+      messageTemplateConfiguration={messageTemplateConfiguration}
     />
   );
 }
