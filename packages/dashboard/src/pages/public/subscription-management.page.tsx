@@ -23,6 +23,7 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../../components/subscriptionManagement";
+import { apiBase } from "../../lib/apiBase";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
@@ -122,7 +123,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   });
 
   const props: SSP = {
-    apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
+    apiBase: apiBase(),
     subscriptions,
     hash: h,
     identifier: i,
@@ -142,13 +143,13 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
 const SubscriptionManagementPage: NextPage<SSP> =
   function SubscriptionManagementPage(props) {
-    const { apiBase } = props;
+    const { apiBase: propsApiBase } = props;
     const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] =
       async (update) => {
         const data: UserSubscriptionsUpdate = update;
         await axios({
           method: "PUT",
-          url: `${apiBase}/api/public/subscription-management/user-subscriptions`,
+          url: `${propsApiBase}/api/public/subscription-management/user-subscriptions`,
           data,
           headers: {
             "Content-Type": "application/json",
