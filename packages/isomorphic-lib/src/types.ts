@@ -4883,6 +4883,7 @@ export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
 export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
   Broadcast: "Broadcast",
+  MessageTemplate: "MessageTemplate",
 } as const;
 
 export const DeliveriesAllowedColumnEnum = {
@@ -4973,9 +4974,18 @@ export const BroadcastConfiguration = Type.Object({
 
 export type BroadcastConfiguration = Static<typeof BroadcastConfiguration>;
 
+export const MessageTemplateConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.MessageTemplate),
+  allowedEmailContentsTypes: Type.Optional(Type.Array(EmailContentsTypeEnum)),
+  lowCodeEmailDefaultType: Type.Optional(LowCodeEmailDefaultType),
+});
+
+export type MessageTemplateConfiguration = Static<typeof MessageTemplateConfiguration>;
+
 export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
   BroadcastConfiguration,
+  MessageTemplateConfiguration,
 ]);
 
 export type ComponentConfigurationDefinition = Static<

@@ -57,6 +57,7 @@ import {
   ChannelType,
   CompletionStatus,
   EmailContentsType,
+  MessageTemplateConfiguration,
   MessageTemplateResource,
   MinimalJourneysResource,
   ResourceTypeEnum,
@@ -337,7 +338,11 @@ function JourneysCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
-export default function TemplatesTable() {
+export default function TemplatesTable({
+  messageTemplateConfiguration,
+}: {
+  messageTemplateConfiguration?: Omit<MessageTemplateConfiguration, "type">;
+}) {
   const universalRouter = useUniversalRouter();
   const { workspace } = useAppStorePick(["workspace"]);
 
@@ -451,9 +456,23 @@ export default function TemplatesTable() {
     }
 
     const newTemplateId = uuid();
+
+    // Determine the appropriate email contents type based on configuration
+    let finalEmailContentType: EmailContentsType | undefined = emailContentType;
+    if (
+      selectedChannel === ChannelType.Email &&
+      messageTemplateConfiguration?.allowedEmailContentsTypes
+    ) {
+      if (messageTemplateConfiguration.allowedEmailContentsTypes.length === 1) {
+        [finalEmailContentType] =
+          messageTemplateConfiguration.allowedEmailContentsTypes;
+      }
+    }
+
     const definition = getDefaultMessageTemplateDefinition(
       selectedChannel,
-      emailContentType,
+      finalEmailContentType,
+      messageTemplateConfiguration?.lowCodeEmailDefaultType,
     );
 
     const templateData: UpsertMessageTemplateParams = {
@@ -826,29 +845,46 @@ export default function TemplatesTable() {
               Mobile Push
             </ToggleButton>
           </ToggleButtonGroup>
-          {selectedChannel === ChannelType.Email && (
-            <>
-              <Typography display="block" sx={{ mt: 2, mb: 1 }}>
-                Email Editor Type
-              </Typography>
-              <ToggleButtonGroup
-                value={emailContentType}
-                exclusive
-                onChange={(_, newValue) => {
-                  if (newValue !== null) {
-                    setEmailContentType(newValue);
-                  }
-                }}
-                aria-label="email editor type"
-                size="small"
-              >
-                <ToggleButton value={EmailContentsType.LowCode}>
-                  Low Code
-                </ToggleButton>
-                <ToggleButton value={EmailContentsType.Code}>Code</ToggleButton>
-              </ToggleButtonGroup>
-            </>
-          )}
+          {selectedChannel === ChannelType.Email &&
+            (() => {
+              // If allowedEmailContentsTypes is undefined, empty, or has both types, show toggle
+              const shouldShowToggle =
+                !messageTemplateConfiguration?.allowedEmailContentsTypes ||
+                messageTemplateConfiguration.allowedEmailContentsTypes
+                  .length === 0 ||
+                messageTemplateConfiguration.allowedEmailContentsTypes
+                  .length === 2;
+
+              if (!shouldShowToggle) {
+                return null;
+              }
+
+              return (
+                <>
+                  <Typography display="block" sx={{ mt: 2, mb: 1 }}>
+                    Email Editor Type
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={emailContentType}
+                    exclusive
+                    onChange={(_, newValue) => {
+                      if (newValue !== null) {
+                        setEmailContentType(newValue);
+                      }
+                    }}
+                    aria-label="email editor type"
+                    size="small"
+                  >
+                    <ToggleButton value={EmailContentsType.LowCode}>
+                      Low Code
+                    </ToggleButton>
+                    <ToggleButton value={EmailContentsType.Code}>
+                      Code
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </>
+              );
+            })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
