@@ -1,0 +1,6 @@
+- improve the user properties page
+- use a mui table with tanstack query
+- add a new useUpsertUserPropertyMutation hook
+- add a new useDeleteUserPropertyMutation hook
+- use packages/dashboard/src/components/segments/segmentsTable.tsx as a reference
+- create a new component file for the user properties table
