@@ -1,9 +1,0 @@
-- improve the user properties page
-- use a mui table with tanstack query
-- use packages/dashboard/src/lib/useUserPropertiesQuery.ts
-- add and use a new useUpsertUserPropertyMutation hook
-- add and use a new useDeleteUserPropertyMutation hook
-- use packages/dashboard/src/components/segments/segmentsTable.tsx as a reference
-- create a new component file for the user properties table
-- incorporate new component into packages/dashboard/src/pages/user-properties/index.page.tsx
-- improve the page by removing server side logic to pre-load user properties that's not needed
