@@ -700,7 +700,8 @@ export default function UserPropertiesTable({
 }
 
 declare module "@tanstack/react-table" {
-  interface TableMeta<_TData = unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData = unknown> {
     deleteUserProperty?: (userPropertyId: string) => void;
   }
 }

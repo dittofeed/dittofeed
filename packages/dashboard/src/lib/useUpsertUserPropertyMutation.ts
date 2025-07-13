@@ -10,8 +10,8 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   CompletionStatus,
   SavedUserPropertyResource,
-  UpsertUserPropertyResource,
   UpsertUserPropertyError,
+  UpsertUserPropertyResource,
 } from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";

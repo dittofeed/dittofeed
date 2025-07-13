@@ -17,10 +17,7 @@ import { USER_PROPERTIES_QUERY_KEY } from "./useUserPropertiesQuery";
 type DeleteUserPropertyMutationFn = (userPropertyId: string) => Promise<void>;
 
 export function useDeleteUserPropertyMutation(
-  options?: Omit<
-    UseMutationOptions<void, AxiosError, string>,
-    "mutationFn"
-  >,
+  options?: Omit<UseMutationOptions<void, AxiosError, string>, "mutationFn">,
 ): UseMutationResult<void, AxiosError, string> {
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["workspace"]);
