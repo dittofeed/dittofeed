@@ -97,8 +97,7 @@ export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
   "actions",
 ];
 
-type Row = Omit<SegmentResource, "lastRecomputedAt"> & {
-  lastRecomputed?: number;
+type Row = SegmentResource & {
   journeysUsedBy: MinimalJourneysResource[];
 };
 

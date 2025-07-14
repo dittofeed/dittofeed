@@ -56,6 +56,7 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
+  ComputedPropertyPeriod,
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -65,6 +66,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
+import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteUserPropertyMutation } from "../lib/useDeleteUserPropertyMutation";
 import { useUpsertUserPropertyMutation } from "../lib/useUpsertUserPropertyMutation";
 import {
@@ -305,10 +307,20 @@ export default function UserPropertiesTable({
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const userPropertiesQuery = useUserPropertiesQuery();
+  const { data: computedPropertyPeriods } = useComputedPropertyPeriodsQuery({
+    step: "ComputeAssignments",
+  });
 
   const userPropertiesData: Row[] = useMemo(() => {
     if (!userPropertiesQuery.data?.userProperties) {
       return [];
+    }
+
+    const periodByUserPropertyId = new Map<string, ComputedPropertyPeriod>();
+    for (const period of computedPropertyPeriods?.periods ?? []) {
+      if (period.type === "UserProperty") {
+        periodByUserPropertyId.set(period.id, period);
+      }
     }
 
     return userPropertiesQuery.data.userProperties.map((userProperty) => {
@@ -320,14 +332,22 @@ export default function UserPropertiesTable({
         id,
       }));
 
+      const period = periodByUserPropertyId.get(userProperty.id);
+
       return {
         ...userProperty,
-        lastRecomputed: userProperty.lastRecomputed,
+        lastRecomputed: period?.lastRecomputed
+          ? new Date(period.lastRecomputed).getTime()
+          : undefined,
         templatesUsedBy: templates,
         disableDelete: isProtected,
       };
     });
-  }, [userPropertiesQuery.data?.userProperties, userPropertyMessages]);
+  }, [
+    userPropertiesQuery.data?.userProperties,
+    userPropertyMessages,
+    computedPropertyPeriods?.periods,
+  ]);
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
