@@ -53,7 +53,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
-import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   ComputedPropertyPeriod,
@@ -74,24 +73,17 @@ import {
   useUserPropertiesQuery,
 } from "../lib/useUserPropertiesQuery";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
-import { RelatedResourceSelect } from "./resourceTable";
 
 export type UserPropertiesAllowedColumn =
   | "name"
-  | "templatesUsedBy"
   | "lastRecomputed"
   | "updatedAt"
   | "actions";
 
 export const DEFAULT_ALLOWED_USER_PROPERTIES_COLUMNS: UserPropertiesAllowedColumn[] =
-  ["name", "templatesUsedBy", "lastRecomputed", "updatedAt", "actions"];
+  ["name", "lastRecomputed", "updatedAt", "actions"];
 
 type Row = SavedUserPropertyResource & {
-  templatesUsedBy: {
-    id: string;
-    name: string;
-    type: string;
-  }[];
   disableDelete?: boolean;
 };
 
@@ -262,31 +254,6 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   );
 }
 
-function TemplatesCell({ getValue }: CellContext<Row, unknown>) {
-  const templates = getValue<Row["templatesUsedBy"]>();
-
-  if (!templates || templates.length === 0) {
-    return null;
-  }
-
-  const relatedLabel = `${templates.length} ${templates.length === 1 ? "Template" : "Templates"}`;
-
-  const relatedResources = templates.map((template) => ({
-    href: messageTemplatePath({
-      id: template.id,
-      channel: template.type as "Email",
-    }),
-    name: template.name,
-  }));
-
-  return (
-    <RelatedResourceSelect
-      label={relatedLabel}
-      relatedResources={relatedResources}
-    />
-  );
-}
-
 export default function UserPropertiesTable({
   sx,
   columnAllowList = DEFAULT_ALLOWED_USER_PROPERTIES_COLUMNS,
@@ -296,7 +263,6 @@ export default function UserPropertiesTable({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { userPropertyMessages } = useAppStorePick(["userPropertyMessages"]);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -324,25 +290,16 @@ export default function UserPropertiesTable({
 
     return userPropertiesQuery.data.userProperties.map((userProperty) => {
       const isProtected = protectedUserProperties.has(userProperty.name);
-      const templates = Object.entries(
-        userPropertyMessages[userProperty.id] ?? {},
-      ).map(([id, template]) => ({
-        ...template,
-        id,
-      }));
-
       const period = periodByUserPropertyId.get(userProperty.id);
 
       return {
         ...userProperty,
         lastRecomputedAt: period?.lastRecomputed,
-        templatesUsedBy: templates,
         disableDelete: isProtected,
       };
     });
   }, [
     userPropertiesQuery.data?.userProperties,
-    userPropertyMessages,
     computedPropertyPeriods?.periods,
   ]);
 
@@ -416,13 +373,6 @@ export default function UserPropertiesTable({
         header: "Name",
         accessorKey: "name",
         cell: NameCell,
-      },
-      templatesUsedBy: {
-        id: "templatesUsedBy",
-        header: "Templates Used By",
-        accessorKey: "templatesUsedBy",
-        cell: TemplatesCell,
-        enableSorting: false,
       },
       lastRecomputed: {
         id: "lastRecomputed",
