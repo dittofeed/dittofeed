@@ -49,3 +49,37 @@ Then in the settings of the application, (`https://manage.auth0.com/dashboard/us
 ### Generating a Secret Key
 
 See our documentation on [Authentication Modes](/deployment/self-hosted/auth-modes) for instructions on how to generate a new `SECRET_KEY`.
+
+### AWS Cognito
+
+In order to configure AWS Cognito as an OIDC provider for multi-tenancy, use the following environment variables.
+
+Note that many of these values can be found on your Cognito user pool's `OpenID Connect` settings page.
+
+`https://cognito-idp.<your-region>.amazonaws.com/<your-user-pool-id>/.well-known/openid-configuration`
+
+
+```bash .env
+OPEN_ID_CLIENT_ID='<your-cognito-client-id>'
+OPEN_ID_CLIENT_SECRET='<your-cognito-client-secret>'
+SECRET_KEY='<your-secret-key>'
+AUTH_MODE='multi-tenant'
+AUTH_PROVIDER='cognito'
+SIGNOUT_URL='/dashboard/signout'
+OPEN_ID_ISSUER=https://cognito-idp.us-east-1.amazonaws.com/<your-user-pool-id>
+OPEN_ID_AUTHORIZATION_URL='https://<your-user-pool-id>.auth.<your-region>.amazoncognito.com/oauth2/authorize'
+OPEN_ID_TOKEN_URL='https://<your-user-pool-id>.auth.<your-region>.amazoncognito.com/oauth2/token'
+OPEN_ID_USER_INFO_URL='https://<your-user-pool-id>.auth.<your-region>.amazoncognito.com/oauth2/userInfo'
+OPEN_ID_END_SESSION_ENDPOINT='https://<your-user-pool-id>.auth.<your-region>.amazoncognito.com/logout'
+OPEN_ID_RETURN_TO_QUERY_PARAM=logout_uri
+```
+
+#### Configuring Cognito
+
+- Create a new user pool using a traditional web application.
+- Create a new App client.
+- Configure your app client as follows:
+  - Set the "Allowed callback Urls": `https://<your-dittofeed-instance>/dashboard/oauth2/callback`
+  - Set Allowed sign-out URLs: `https://<your-dittofeed-instance>/dashboard/signout/complete`
+  - Select the "OAuth 2.0 grant types": Authorization code grant
+  - Select the "OpenID Connect scopes": Email, OpenID, and Profile
