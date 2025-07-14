@@ -1,4 +1,4 @@
-FROM node:20-buster AS builder
+FROM node:20 AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -43,7 +43,7 @@ COPY ./packages/lite/ ./packages/lite
 RUN yarn workspace lite build
 
 # Production image
-FROM node:20-buster AS runner
+FROM node:20 AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION
