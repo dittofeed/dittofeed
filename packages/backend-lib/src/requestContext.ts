@@ -33,6 +33,7 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
+import { isProfileEmailVerified } from "./openIdProfile";
 
 export const SESSION_KEY = "df-session-key";
 
@@ -234,7 +235,7 @@ export async function getMultiTenantRequestContext({
   } else {
     if (!authorizationToken) {
       return err({
-        type: RequestContextErrorType.ApplicationError,
+        type: RequestContextErrorType.NotAuthenticated,
         message: "authorizationToken is missing",
       });
     }
@@ -250,9 +251,10 @@ export async function getMultiTenantRequestContext({
   }
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { sub, email, picture, email_verified, name, nickname } = profile;
+  const { sub, email, picture, name, nickname } = profile;
+  const emailVerified = isProfileEmailVerified(profile);
 
-  if (!email_verified) {
+  if (!emailVerified) {
     return err({
       type: RequestContextErrorType.EmailNotVerified,
       email,
@@ -283,7 +285,7 @@ export async function getMultiTenantRequestContext({
   let member: WorkspaceMember;
   if (
     !existingMember ||
-    existingMember.emailVerified !== email_verified ||
+    existingMember.emailVerified !== emailVerified ||
     existingMember.image !== picture
   ) {
     const [updatedMember] = await db()
@@ -291,7 +293,7 @@ export async function getMultiTenantRequestContext({
       .values({
         id: existingMember?.id,
         email,
-        emailVerified: email_verified,
+        emailVerified,
         image: picture,
         name,
         nickname,
@@ -301,7 +303,7 @@ export async function getMultiTenantRequestContext({
           ? [dbWorkspaceMember.id]
           : [dbWorkspaceMember.email],
         set: {
-          emailVerified: email_verified,
+          emailVerified,
           image: picture,
           name,
           nickname,
@@ -311,7 +313,7 @@ export async function getMultiTenantRequestContext({
     if (!updatedMember) {
       logger().error("Failed to update member", {
         email,
-        email_verified,
+        emailVerified,
         picture,
         name,
         nickname,
