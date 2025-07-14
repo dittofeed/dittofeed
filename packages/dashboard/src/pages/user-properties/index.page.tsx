@@ -21,13 +21,10 @@ function UserPropertyListContents() {
   return (
     <Stack
       sx={{
-        padding: 1,
+        padding: 3,
         width: "100%",
-        bgcolor: "background.paper",
-        borderRadius: 1,
-        margin: "1rem",
+        height: "100%",
       }}
-      spacing={2}
     >
       <UserPropertiesTable />
     </Stack>
