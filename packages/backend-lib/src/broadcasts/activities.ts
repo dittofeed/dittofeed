@@ -313,6 +313,7 @@ export function sendMessagesFactory(sender: Sender) {
           });
           const messageTags: MessageTags = {
             messageId,
+            userSegments: JSON.stringify(user.segments),
           };
           if (params.workspaceOccupantId) {
             messageTags.workspaceOccupantId = params.workspaceOccupantId;

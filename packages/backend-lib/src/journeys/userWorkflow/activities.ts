@@ -39,6 +39,7 @@ import {
   UserWorkflowTrackEvent,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
+import { getUsers } from "../../users";
 import {
   recordNodeProcessed,
   RecordNodeProcessedParams,
@@ -91,13 +92,14 @@ async function sendMessageInner({
   } else if (deprecatedContext) {
     context = [deprecatedContext];
   }
-  const [userPropertyAssignments, journey, subscriptionGroup] =
+  const [userPropertyAssignments, journey, subscriptionGroup, userSegments] =
     await Promise.all([
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
       db().query.journey.findFirst({ where: eq(dbJourney.id, journeyId) }),
       subscriptionGroupId
         ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
         : null,
+      getUsers({ workspaceId, userIds: [userId], limit: 1 }),
     ]);
 
   const subscriptionGroupDetails = subscriptionGroup
@@ -123,6 +125,12 @@ async function sendMessageInner({
     });
   }
 
+  // Extract user segments from the userSegments result
+  const segments =
+    userSegments.isOk() && userSegments.value.users.length > 0
+      ? userSegments.value.users[0]?.segments ?? []
+      : [];
+
   const messageTags: MessageTags = {
     workspaceId,
     runId,
@@ -132,6 +140,7 @@ async function sendMessageInner({
     messageId,
     userId,
     channel: rest.channel,
+    userSegments: JSON.stringify(segments),
   };
   if (rest.triggeringMessageId) {
     messageTags.triggeringMessageId = rest.triggeringMessageId;

@@ -514,6 +514,144 @@ describe("messaging", () => {
         });
       });
     });
+
+    describe("when webhook includes userSegments", () => {
+      let templateId: string;
+      beforeEach(async () => {
+        const mockResponse = {
+          data: { message: "Data from base axios call" },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config: {},
+        };
+
+        mockAxios.request.mockResolvedValue(mockResponse);
+
+        const template = unwrap(
+          await upsertMessageTemplate({
+            name: randomUUID(),
+            workspaceId: workspace.id,
+            definition: {
+              type: ChannelType.Webhook,
+              identifierKey: "id",
+              body: `{
+                "config": {
+                  "url": "https://dittofeed-test.com",
+                  "method": "POST",
+                  "responseType": "json",
+                  "data": {
+                    "userId": "{{ tags.userId }}",
+                    "userSegments": {{ tags.userSegments }}
+                  }
+                }
+              }`,
+            } satisfies WebhookTemplateResource,
+          }),
+        );
+        templateId = template.id;
+      });
+
+      it("should include userSegments in the webhook request", async () => {
+        const userId = randomUUID();
+        const userSegments = [
+          { id: "segment-1", name: "Premium Users" },
+          { id: "segment-2", name: "Active Users" },
+        ];
+        
+        const result = await sendWebhook({
+          workspaceId: workspace.id,
+          templateId,
+          userPropertyAssignments: {
+            id: userId,
+          },
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId,
+            runId: randomUUID(),
+            nodeId: randomUUID(),
+            messageId: randomUUID(),
+            userId,
+            userSegments: JSON.stringify(userSegments),
+          } satisfies MessageTags,
+          useDraft: false,
+          userId,
+        });
+
+        if (result.isErr()) {
+          throw new Error(JSON.stringify(result.error));
+        }
+
+        const { value } = result;
+        if (value.type !== InternalEventType.MessageSent) {
+          throw new Error(
+            `Expected message sent event, got ${value.type}`,
+          );
+        }
+        if (value.variant.type !== ChannelType.Webhook) {
+          throw new Error(
+            `Expected webhook event, got ${value.variant.type}`,
+          );
+        }
+
+        // Verify the webhook request was made with userSegments
+        expect(mockAxios.request).toHaveBeenCalledWith({
+          url: "https://dittofeed-test.com",
+          method: "POST",
+          responseType: "json",
+          params: undefined,
+          headers: expect.objectContaining({
+            "df-message-id": expect.any(String),
+          }),
+          data: {
+            userId,
+            userSegments: userSegments,
+          },
+        });
+      });
+
+      it("should handle empty userSegments array", async () => {
+        const userId = randomUUID();
+        
+        const result = await sendWebhook({
+          workspaceId: workspace.id,
+          templateId,
+          userPropertyAssignments: {
+            id: userId,
+          },
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId,
+            runId: randomUUID(),
+            nodeId: randomUUID(),
+            messageId: randomUUID(),
+            userId,
+            userSegments: "[]",
+          } satisfies MessageTags,
+          useDraft: false,
+          userId,
+        });
+
+        if (result.isErr()) {
+          throw new Error(JSON.stringify(result.error));
+        }
+
+        // Verify the webhook request was made with empty userSegments
+        expect(mockAxios.request).toHaveBeenCalledWith({
+          url: "https://dittofeed-test.com",
+          method: "POST",
+          responseType: "json",
+          params: undefined,
+          headers: expect.objectContaining({
+            "df-message-id": expect.any(String),
+          }),
+          data: {
+            userId,
+            userSegments: [],
+          },
+        });
+      });
+    });
   });
 
   describe("upsertMessageTemplate", () => {
