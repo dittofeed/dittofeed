@@ -8,9 +8,6 @@ WORKDIR /service
 
 RUN yarn set version 4.1.1
 
-RUN apt-get update -y && \
-    apt-get install -y openssl
-
 ENV PATH="$PATH:/root/.temporalio/bin"
 
 COPY ./packages/admin-cli/scripts/install-deps.sh ./
