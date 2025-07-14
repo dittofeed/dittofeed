@@ -87,7 +87,6 @@ export const DEFAULT_ALLOWED_USER_PROPERTIES_COLUMNS: UserPropertiesAllowedColum
   ["name", "templatesUsedBy", "lastRecomputed", "updatedAt", "actions"];
 
 type Row = SavedUserPropertyResource & {
-  lastRecomputed?: number;
   templatesUsedBy: {
     id: string;
     name: string;
@@ -336,9 +335,7 @@ export default function UserPropertiesTable({
 
       return {
         ...userProperty,
-        lastRecomputed: period?.lastRecomputed
-          ? new Date(period.lastRecomputed).getTime()
-          : undefined,
+        lastRecomputedAt: period?.lastRecomputed,
         templatesUsedBy: templates,
         disableDelete: isProtected,
       };
@@ -430,7 +427,7 @@ export default function UserPropertiesTable({
       lastRecomputed: {
         id: "lastRecomputed",
         header: "Last Recomputed",
-        accessorKey: "lastRecomputed",
+        accessorKey: "lastRecomputedAt",
         cell: TimeCell,
       },
       updatedAt: {
