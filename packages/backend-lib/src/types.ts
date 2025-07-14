@@ -227,7 +227,11 @@ export type LogLevel = Static<typeof LogLevel>;
 export const OpenIdProfile = Type.Object({
   sub: Type.String(),
   email: Type.String(),
-  email_verified: Type.Boolean(),
+  email_verified: Type.Union([
+    Type.Literal("true"),
+    Type.Literal("false"),
+    Type.Boolean(),
+  ]),
   picture: Type.Optional(Type.String()),
   name: Type.Optional(Type.String()),
   nickname: Type.Optional(Type.String()),
