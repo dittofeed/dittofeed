@@ -1379,8 +1379,6 @@ export async function sendEmail({
               }))
             : undefined,
         Metadata: {
-          recipient: to,
-          from,
           workspaceId,
           templateId,
           ...messageTags,
