@@ -468,6 +468,7 @@ export type EveryoneSegmentNode = Static<typeof EveryoneSegmentNode>;
 
 export const KeyedPerformedPropertiesOperator = Type.Union([
   SegmentEqualsOperator,
+  SegmentNotEqualsOperator,
   ExistsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentLessThanOperator,
@@ -4980,7 +4981,9 @@ export const MessageTemplateConfiguration = Type.Object({
   lowCodeEmailDefaultType: Type.Optional(LowCodeEmailDefaultType),
 });
 
-export type MessageTemplateConfiguration = Static<typeof MessageTemplateConfiguration>;
+export type MessageTemplateConfiguration = Static<
+  typeof MessageTemplateConfiguration
+>;
 
 export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
