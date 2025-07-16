@@ -1736,6 +1736,36 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         );
         break;
       }
+      case SegmentOperatorType.NotEquals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.KeyedPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
       case SegmentOperatorType.GreaterThanOrEqual: {
         const handlePropertyValueChange = (
           e: React.ChangeEvent<HTMLInputElement>,
@@ -1834,6 +1864,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         <Select value={operator.id} onChange={handleOperatorChange}>
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
           </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
