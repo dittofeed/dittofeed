@@ -1,5 +1,6 @@
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
+import logger from "backend-lib/src/logger";
 import { eq } from "drizzle-orm";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
@@ -16,18 +17,23 @@ function getValidatedRedirectPath(redirectTo: unknown): string {
     return defaultPath;
   }
 
-  // Must start with "/" to prevent external redirects
-  if (!redirectTo.startsWith("/")) {
-    return defaultPath;
+  try {
+    // Try to parse as a complete URL first
+    const url = new URL(redirectTo);
+    // If it's a complete URL, extract just the pathname
+    return url.pathname || defaultPath;
+  } catch {
+    // Not a complete URL, treat as a path
+    try {
+      // Parse as a path with dummy origin to validate structure
+      const url = new URL(redirectTo, "http://localhost");
+      return url.pathname || defaultPath;
+    } catch (e) {
+      logger().error({ err: e, redirectTo }, "invalid redirectTo");
+      // Invalid path structure
+      return defaultPath;
+    }
   }
-
-  // Must not contain protocol or domain (additional security)
-  if (redirectTo.includes("://") || redirectTo.includes("//")) {
-    return defaultPath;
-  }
-
-  // Return the validated path
-  return redirectTo;
 }
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
