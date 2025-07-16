@@ -831,14 +831,12 @@ function filterEvent(
         mismatched = Number.isNaN(numValue) || numValue < operator.value;
         break;
       }
+      case SegmentOperatorType.NotEquals: {
+        mismatched = value === operator.value;
+        break;
+      }
       default:
-        logger().error(
-          {
-            operator,
-          },
-          "unsupported operator",
-        );
-        return false;
+        assertUnreachable(operator);
     }
 
     if (mismatched) {
