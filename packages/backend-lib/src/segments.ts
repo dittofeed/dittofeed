@@ -51,6 +51,7 @@ import {
   UserWorkflowTrackEvent,
 } from "./types";
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
+import { doesEventNameMatch } from "isomorphic-lib/src/events";
 
 export function enrichSegment(
   segment: InferSelectModel<typeof dbSegment>,
@@ -761,8 +762,7 @@ function filterEvent(
   },
   e: UserWorkflowTrackEvent,
 ): boolean {
-  // FIXME allow for prefix matching/ wildcards
-  if (e.event !== event) {
+  if (!doesEventNameMatch({ pattern: event, event: e.event })) {
     logger().debug(
       {
         event,
