@@ -761,6 +761,7 @@ function filterEvent(
   },
   e: UserWorkflowTrackEvent,
 ): boolean {
+  // FIXME allow for prefix matching/ wildcards
   if (e.event !== event) {
     logger().debug(
       {

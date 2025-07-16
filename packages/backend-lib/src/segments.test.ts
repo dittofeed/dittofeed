@@ -10,12 +10,15 @@ import {
 } from "./db/schema";
 import {
   buildSegmentsFile,
+  calculateKeyedSegment,
   findAllSegmentAssignments,
   findRecentlyUpdatedUsersInSegment,
   insertSegmentAssignments,
   upsertSegment,
 } from "./segments";
 import {
+  KeyedPerformedSegmentNode,
+  RelationalOperators,
   Segment,
   SegmentDefinition,
   SegmentNodeType,
@@ -461,6 +464,54 @@ describe("segments", () => {
           }),
         );
         expect(segment.status).toBe(SegmentStatusEnum.NotStarted);
+      });
+    });
+  });
+
+  describe("calculateKeyedSegment", () => {
+    describe("when using a not equals operator", () => {
+      describe("when the property does not equal the value", () => {
+        it("returns true", () => {
+          const result = calculateKeyedSegment({
+            keyValue: "order-1",
+            definition: {
+              id: randomUUID(),
+              type: SegmentNodeType.KeyedPerformed,
+              event: "order:*",
+              key: "orderId",
+              times: 1,
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              properties: [
+                {
+                  path: "type",
+                  operator: {
+                    type: SegmentOperatorType.NotEquals,
+                    value: "test",
+                  },
+                },
+              ],
+            },
+            events: [
+              {
+                event: "order:submitted",
+                properties: {
+                  orderId: "order-1",
+                  type: "production",
+                },
+                messageId: randomUUID(),
+              },
+              {
+                event: "order:completed",
+                properties: {
+                  orderId: "order-1",
+                  type: "production",
+                },
+                messageId: randomUUID(),
+              },
+            ],
+          });
+          expect(result).toBe(true);
+        });
       });
     });
   });
