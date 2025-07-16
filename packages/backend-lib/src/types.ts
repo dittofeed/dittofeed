@@ -7,7 +7,6 @@ import {
   RawRequestDefaultExpression,
   RawServerDefault,
 } from "fastify";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   DFRequestContext,
   EventType,

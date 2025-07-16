@@ -2,6 +2,7 @@ import { Row } from "@clickhouse/client";
 import { Type } from "@sinclair/typebox";
 import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
+import { doesEventNameMatch } from "isomorphic-lib/src/events";
 import {
   buildHeritageMap,
   getJourneyConstraintViolations,
@@ -747,9 +748,10 @@ export function triggerEventEntryJourneysFactory({
 
     const starts: Promise<unknown>[] = journeyDetails.flatMap(
       ({ journeyId, event: journeyEvent, definition }) => {
-        const isMatch = journeyEvent.endsWith("*")
-          ? triggerEvent.event.startsWith(journeyEvent.slice(0, -1))
-          : journeyEvent === triggerEvent.event;
+        const isMatch = doesEventNameMatch({
+          pattern: journeyEvent,
+          event: triggerEvent.event,
+        });
 
         if (!isMatch) {
           return [];
