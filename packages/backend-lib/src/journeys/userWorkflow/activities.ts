@@ -16,7 +16,7 @@ import {
 import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
 import { withSpan } from "../../openTelemetry";
-import { calculateKeyedSegment, getSegmentAssignmentDb } from "../../segments";
+import { calculateKeyedSegment, getSegmentAssignmentDb, findAllSegmentAssignments } from "../../segments";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
@@ -39,7 +39,6 @@ import {
   UserWorkflowTrackEvent,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
-import { getUsers } from "../../users";
 import {
   recordNodeProcessed,
   RecordNodeProcessedParams,
@@ -92,14 +91,13 @@ async function sendMessageInner({
   } else if (deprecatedContext) {
     context = [deprecatedContext];
   }
-  const [userPropertyAssignments, journey, subscriptionGroup, userSegments] =
+  const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
       db().query.journey.findFirst({ where: eq(dbJourney.id, journeyId) }),
       subscriptionGroupId
         ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
         : null,
-      getUsers({ workspaceId, userIds: [userId], limit: 1 }),
     ]);
 
   const subscriptionGroupDetails = subscriptionGroup
@@ -125,11 +123,16 @@ async function sendMessageInner({
     });
   }
 
-  // Extract user segments from the userSegments result
-  const segments =
-    userSegments.isOk() && userSegments.value.users.length > 0
-      ? userSegments.value.users[0]?.segments ?? []
-      : [];
+  // Get user segments using the proper segment assignment logic
+  const segmentAssignments = await findAllSegmentAssignments({
+    workspaceId,
+    userId,
+  });
+  
+  // Convert segment assignments to userSegments format
+  const userSegments = Object.entries(segmentAssignments)
+    .filter(([_, inSegment]) => inSegment)
+    .map(([segmentName]) => ({ name: segmentName }));
 
   const messageTags: MessageTags = {
     workspaceId,
@@ -140,7 +143,7 @@ async function sendMessageInner({
     messageId,
     userId,
     channel: rest.channel,
-    userSegments: JSON.stringify(segments),
+    userSegments: JSON.stringify(userSegments),
   };
   if (rest.triggeringMessageId) {
     messageTags.triggeringMessageId = rest.triggeringMessageId;
