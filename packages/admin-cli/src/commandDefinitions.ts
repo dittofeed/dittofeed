@@ -2,7 +2,7 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
-import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
+import { bootstrapClickhouse, bootstrapKafka } from "backend-lib/src/bootstrap";
 import {
   clickhouseClient,
   createClickhouseClient,
@@ -115,6 +115,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await bootstrapClickhouse();
+      },
+    )
+    .command(
+      "bootstrap-kafka",
+      "Bootstraps kafka.",
+      (y) => y,
+      async () => {
+        await bootstrapKafka();
       },
     )
     .command(

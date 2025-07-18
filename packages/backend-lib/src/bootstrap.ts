@@ -358,7 +358,7 @@ export async function bootstrapPostgres({
   });
 }
 
-async function bootstrapKafka() {
+export async function bootstrapKafka() {
   const {
     userEventsTopicName,
     kafkaUserEventsPartitions,
