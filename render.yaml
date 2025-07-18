@@ -15,7 +15,7 @@ services:
       /usr/bin/rpk \
         -X user=$SASL_USER \
         -X pass=$SASL_PASSWORD \
-        redpanda start --smp 1 --memory 1.5G \
+        redpanda start --memory 1.5G \
         --kafka-addr internal://0.0.0.0:9092 \
         --advertise-kafka-addr internal://$RENDER_INTERNAL_HOSTNAME:9092 \
         --pandaproxy-addr external://0.0.0.0:8082 \
