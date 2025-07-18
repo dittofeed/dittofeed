@@ -1,164 +1,54 @@
-databases:
-  - name: dittofeed-db
+# A definitive render.yaml blueprint for deploying a single-node Redpanda instance on Render.com.
+# This configuration exposes the Pandaproxy (HTTP) API to the internet and the native Kafka API
+# to the private network.
 
-envVarGroups:
-  - name: clickhouse-credentials
-    envVars:
-      - key: CLICKHOUSE_USER
-        value: dittofeed
-      - key: CLICKHOUSE_PASSWORD
-        generateValue: true
-  - name: backend-app-env
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: CLICKHOUSE_PROTOCOL
-        value: http
-      - key: DASHBOARD_URL_NAME
-        value: RENDER_EXTERNAL_URL
-      - key: DASHBOARD_API_NAME
-        value: RENDER_EXTERNAL_URL
-      - key: DASHBOARD_API_DOMAIN
-        value: onrender.com
-      - key: DASHBOARD_API_PORT
-        value: 443
-      - key: LITE_MEM_LIMIT
-        value: 412
-  - name: temporal-shared
-    envVars:
-    - key: DYNAMIC_CONFIG_FILE_PATH
-      value: /etc/temporal/dynamicconfig.yaml
-    - key: DB
-      value: postgresql
 services:
-  - type: web
-    name: dittofeed-lite
-    runtime: image
-    autoDeploy: false
+  - type: web # 'web' type is required to expose an HTTP endpoint to the public internet.
+    name: redpanda # A unique name for your service.
+    runtime: image # We use a pre-built image from a public registry.
     image:
-      url: "dittofeed/dittofeed-lite:v0.22.0"
-    # Setting Node.js max-old-space-size to 412 MB.
-    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
-    # Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=412 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+      url: docker.redpanda.com/redpandadata/redpanda:latest # Official Redpanda image.
+    plan: standard # Choose a plan appropriate for your workload.
+    region: oregon # Choose the region closest to your users or other services.
+
+    # The startCommand is the most critical part of the configuration. Redpanda is configured
+    # via command-line flags, not environment variables. We use Render's built-in environment
+    # variables to dynamically configure networking.
+    startCommand: |
+      /usr/bin/rpk redpanda start --mode dev-container --smp 1 \
+        --kafka-addr internal://0.0.0.0:9092 \
+        --advertise-kafka-addr internal://$RENDER_INTERNAL_HOSTNAME:9092 \
+        --pandaproxy-addr external://0.0.0.0:8082 \
+        --advertise-pandaproxy-addr external://$RENDER_EXTERNAL_URL \
+        --schema-registry-addr external_sr://0.0.0.0:8081 \
+        --rpc-addr 0.0.0.0:33145 \
+        --advertise-rpc-addr $RENDER_INTERNAL_HOSTNAME:33145 \
+        --set redpanda.enable_sasl=true \
+        --set 'redpanda.superusers=' \
+        --set redpanda.pandaproxy_api_enable_basic_auth=true \
+        --set redpanda.admin_api_enable_basic_auth=true \
+        --set redpanda.schema_registry_api_enable_basic_auth=true
+
+    # Environment variables are used to inform the Render platform and to securely inject secrets.
+    # 'sync: false' prevents secrets from being stored in git and prompts for them in the Render UI.
     envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
-      - key: WORKSPACE_NAME
-        sync: false
-      - key: REUSE_CONTEXT
-        value: "true"
-      - key: MAX_CACHED_WORKFLOWS
-        value: "10"
-      - key: DATABASE_HOST
-        fromDatabase:
-          name: dittofeed-db
-          property: host
-      - key: DATABASE_USER
-        fromDatabase:
-          name: dittofeed-db
-          property: user
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
-      - key: CLICKHOUSE_HOST
-        fromService:
-          type: pserv
-          name: dittofeed-ch
-          property: host
-      - key: TEMPORAL_ADDRESS
-        fromService:
-          type: pserv
-          name: temporal
-          property: host
-      - key: PASSWORD
-        sync: false
-      - key: SECRET_KEY
-        generateValue: true
-      # comment out bootstrap env var after initial setup
-      - key: BOOTSTRAP
-        value: "true"
-  - type: worker
-    name: admin-cli
-    runtime: image
-    autoDeploy: false
-    image:
-      url: "dittofeed/dittofeed-admin-cli:v0.22.0"
-    dockerCommand: tail -f /dev/null
-    envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
-      - key: DATABASE_HOST
-        fromDatabase:
-          name: dittofeed-db
-          property: host
-      - key: DATABASE_USER
-        fromDatabase:
-          name: dittofeed-db
-          property: user
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
-      - key: CLICKHOUSE_HOST
-        fromService:
-          type: pserv
-          name: dittofeed-ch
-          property: host
-      - key: TEMPORAL_ADDRESS
-        fromService:
-          type: pserv
-          name: temporal
-          property: host
-  - type: pserv
-    name: dittofeed-ch
-    env: docker
-    plan: standard
-    autoDeploy: false
-    dockerfilePath: ./render/clickhouse/Dockerfile
-    dockerContext: .
-    envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
+      - key: PORT # Informs Render which port to route public traffic and health checks to.
+        value: "8082"
+      - key: SASL_USER
+        sync: false # Render will prompt for this value on first deploy.
+      - key: SASL_PASSWORD
+        sync: false # Render will prompt for this value on first deploy.
+
+    # A persistent disk is mandatory to preserve Redpanda's data across deploys and restarts.
     disk:
-      name: data
-      mountPath: /var/lib/clickhouse
-      sizeGB: 10
-  - type: pserv
-    name: temporal
-    autoDeploy: false
-    env: docker
-    dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
-    envVars:
-    - fromGroup: temporal-shared
-    - key: PORT
-      value: 7233
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: DB_PORT
-      fromDatabase:
-        name: dittofeed-db
-        property: port
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
+      name: redpanda-data
+      mountPath: /var/lib/redpanda/data
+      sizeGB: 10 # Adjust size based on your data retention needs.
+
+    # A health check that targets the Pandaproxy's readiness endpoint. This ensures Render
+    # only routes traffic when the service is fully ready to accept connections.
+    healthCheckPath: /status/ready
+
+    # Render's web services only expose one port publicly. We use the PORT environment
+    # variable above to explicitly tell Render's proxy to route traffic to port 8082,
+    # where Pandaproxy is listening.
