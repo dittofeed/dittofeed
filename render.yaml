@@ -10,21 +10,25 @@ services:
       url: docker.redpanda.com/redpandadata/redpanda:latest
     plan: standard
     region: oregon
-    dockerCommand: |
-      /bin/sh -c "RP_BOOTSTRAP_USER=\"$USER:$PASSWORD\" /usr/bin/rpk redpanda start \
-        --smp 1 --memory 1.5G \
+    dockerCommand: >-
+      /bin/sh -e -c "rpk redpanda mode production && \
+      rpk redpanda tune all && \
+      exec rpk redpanda start \
+        --smp 1 \
+        --memory 1.5G \
         --kafka-addr internal://0.0.0.0:9092 \
-        --advertise-kafka-addr internal://$INTERNAL:9092,external://$EXTERNAL:9093 \
+        --advertise-kafka-addr internal://${RENDER_INTERNAL_HOSTNAME}:9092,external://${RENDER_EXTERNAL_URL#https://}:9093 \
         --pandaproxy-addr external://0.0.0.0:8082 \
-        --advertise-pandaproxy-addr external://$RENDER_EXTERNAL_URL \
+        --advertise-pandaproxy-addr external://${RENDER_EXTERNAL_URL#https://} \
         --schema-registry-addr external_sr://0.0.0.0:8081 \
         --rpc-addr 0.0.0.0:33145 \
-        --advertise-rpc-addr $RENDER_INTERNAL_HOSTNAME:33145 \
+        --advertise-rpc-addr ${RENDER_INTERNAL_HOSTNAME}:33145 \
         --set redpanda.enable_sasl=true \
-        --set redpanda.superusers='[\"$USER\"]' \
+        --set redpanda.superusers=[\"${USER}\"] \
         --set redpanda.pandaproxy_api_enable_basic_auth=true \
         --set redpanda.admin_api_enable_basic_auth=true \
         --set redpanda.schema_registry_api_enable_basic_auth=true"
+
 
     envVars:
       - key: PORT
