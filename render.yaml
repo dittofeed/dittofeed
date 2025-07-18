@@ -1,6 +1,6 @@
 # A definitive render.yaml blueprint for deploying a single-node Redpanda instance on Render.com.
 # This configuration exposes the Pandaproxy (HTTP) API to the internet and the native Kafka API
-# to the private network.
+# to the private network. This is configured for production mode.
 
 services:
   - type: web # 'web' type is required to expose an HTTP endpoint to the public internet.
@@ -12,13 +12,12 @@ services:
     region: oregon # Choose the region closest to your users or other services.
 
     # The startCommand is the most critical part of the configuration. We use rpk's global -X flags
-    # to bootstrap the initial superuser, which rpk then uses to configure the broker it starts.
-    # This is the robust way to create a user with a password on first boot.
+    # to bootstrap the initial superuser. The --mode flag is omitted to run in production mode.
     startCommand: |
       /usr/bin/rpk \
         -X user=$SASL_USER \
         -X pass=$SASL_PASSWORD \
-        redpanda start --mode dev-container --smp 1 --memory 1G \
+        redpanda start --smp 1 --memory 1.5G \
         --kafka-addr internal://0.0.0.0:9092 \
         --advertise-kafka-addr internal://$RENDER_INTERNAL_HOSTNAME:9092 \
         --pandaproxy-addr external://0.0.0.0:8082 \
