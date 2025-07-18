@@ -1297,20 +1297,19 @@ export function createCommands(yargs: Argv): Argv {
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
-          logger().info(
-            {
-              cursor,
-              batchSize,
-            },
-            "Fetching events from cursor",
-          );
-
           let queryText: string;
           const queryParams: Record<string, unknown> = {
             batchSize,
           };
 
           if (cursor) {
+            logger().info(
+              {
+                cursor,
+                batchSize,
+              },
+              "Fetching events from cursor",
+            );
             queryText = `
               SELECT *
               FROM user_events_v2
@@ -1324,6 +1323,12 @@ export function createCommands(yargs: Argv): Argv {
             queryParams.event_time = cursor.event_time;
             queryParams.message_id = cursor.message_id;
           } else {
+            logger().info(
+              {
+                batchSize,
+              },
+              "Fetching initial batch of events",
+            );
             queryText = `
               SELECT *
               FROM user_events_v2
