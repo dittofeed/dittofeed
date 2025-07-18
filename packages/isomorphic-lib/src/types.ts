@@ -5625,3 +5625,17 @@ export const SetCsrfCookieRequest = Type.Object({
 });
 
 export type SetCsrfCookieRequest = Static<typeof SetCsrfCookieRequest>;
+
+export interface UserEventV2 {
+  event_type: string;
+  event: string;
+  event_time: string;
+  message_id: string;
+  user_id: string;
+  anonymous_id: string;
+  user_or_anonymous_id: string;
+  properties: string;
+  processing_time: string;
+  message_raw: string;
+  workspace_id: string;
+}

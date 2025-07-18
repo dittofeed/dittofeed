@@ -1,8 +1,12 @@
+/* eslint-disable no-await-in-loop */
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
 import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
-import { clickhouseClient } from "backend-lib/src/clickhouse";
+import {
+  clickhouseClient,
+  createClickhouseClient,
+} from "backend-lib/src/clickhouse";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -61,6 +65,7 @@ import {
   KnownTrackData,
   MessageTemplateResourceDefinition,
   SendgridSecret,
+  UserEventV2,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
@@ -1231,6 +1236,152 @@ export function createCommands(yargs: Argv): Argv {
           ),
         );
         logger().info("Done.");
+      },
+    )
+    .command(
+      "export-user-events",
+      "Copy user events from a source to a destination ClickHouse instance.",
+      (cmd) =>
+        cmd.options({
+          "source-clickhouse-host": { type: "string", demandOption: true },
+          "source-clickhouse-port": { type: "number" },
+          "source-clickhouse-database": { type: "string", demandOption: true },
+          "source-clickhouse-user": { type: "string", demandOption: true },
+          "source-clickhouse-password": { type: "string", demandOption: true },
+          "destination-clickhouse-host": { type: "string", demandOption: true },
+          "destination-clickhouse-port": { type: "number" },
+          "destination-clickhouse-database": {
+            type: "string",
+            demandOption: true,
+          },
+          "destination-clickhouse-user": { type: "string", demandOption: true },
+          "destination-clickhouse-password": {
+            type: "string",
+            demandOption: true,
+          },
+          "batch-size": { type: "number", default: 1000 },
+        }),
+      async ({
+        sourceClickhouseHost,
+        sourceClickhousePort,
+        sourceClickhouseDatabase,
+        sourceClickhouseUser,
+        sourceClickhousePassword,
+        destinationClickhouseHost,
+        destinationClickhousePort,
+        destinationClickhouseDatabase,
+        destinationClickhouseUser,
+        destinationClickhousePassword,
+        batchSize,
+      }) => {
+        const sourceClient = createClickhouseClient({
+          host: sourceClickhousePort
+            ? `http://${sourceClickhouseHost}:${sourceClickhousePort}`
+            : sourceClickhouseHost,
+          database: sourceClickhouseDatabase,
+          user: sourceClickhouseUser,
+          password: sourceClickhousePassword,
+        });
+
+        const destinationClient = createClickhouseClient({
+          host: destinationClickhousePort
+            ? `http://${destinationClickhouseHost}:${destinationClickhousePort}`
+            : destinationClickhouseHost,
+          database: destinationClickhouseDatabase,
+          user: destinationClickhouseUser,
+          password: destinationClickhousePassword,
+        });
+
+        let cursor: UserEventV2 | null = null;
+        let totalCopied = 0;
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          let queryText: string;
+          const queryParams: Record<string, unknown> = {
+            batchSize,
+          };
+
+          if (cursor) {
+            logger().info(
+              {
+                cursor,
+                batchSize,
+              },
+              "Fetching events from cursor",
+            );
+            queryText = `
+              SELECT *
+              FROM user_events_v2
+              WHERE (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) > ({workspace_id:String}, {processing_time:DateTime64(3)}, {user_or_anonymous_id:String}, {event_time:DateTime64}, {message_id:String})
+              ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
+              LIMIT {batchSize:UInt64}
+            `;
+            queryParams.workspace_id = cursor.workspace_id;
+            queryParams.processing_time = cursor.processing_time;
+            queryParams.user_or_anonymous_id = cursor.user_or_anonymous_id;
+            queryParams.event_time = cursor.event_time;
+            queryParams.message_id = cursor.message_id;
+          } else {
+            logger().info(
+              {
+                batchSize,
+              },
+              "Fetching initial batch of events",
+            );
+            queryText = `
+              SELECT *
+              FROM user_events_v2
+              ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
+              LIMIT {batchSize:UInt64}
+            `;
+          }
+
+          const resultSet = await sourceClient.query({
+            query: queryText,
+            query_params: queryParams,
+            format: "JSONEachRow",
+          });
+
+          const events = await resultSet.json<UserEventV2>();
+
+          if (events.length === 0) {
+            logger().info("No more events to copy.");
+            break;
+          }
+
+          logger().info(
+            {
+              eventsLength: events.length,
+            },
+            "Inserting events",
+          );
+
+          await destinationClient.insert({
+            table: "user_events_v2",
+            values: events,
+            format: "JSONEachRow",
+          });
+
+          const lastEvent = events[events.length - 1];
+          if (lastEvent) {
+            cursor = lastEvent;
+          }
+
+          totalCopied += events.length;
+
+          logger().info(
+            {
+              eventsLength: events.length,
+              totalCopied,
+            },
+            "Copied events",
+          );
+        }
+
+        logger().info("Event export completed successfully.");
+        await sourceClient.close();
+        await destinationClient.close();
       },
     );
 }
