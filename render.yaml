@@ -12,8 +12,7 @@ services:
     region: oregon
 
     dockerCommand: |
-      export RP_BOOTSTRAP_USER="${USER}:${PASSWORD}"
-      /usr/bin/rpk \
+      RP_BOOTSTRAP_USER="${USER}:${PASSWORD}" /usr/bin/rpk \
         redpanda start --smp 1 --memory 1.5G \
         --kafka-addr internal://0.0.0.0:9092 \
         --advertise-kafka-addr internal://$INTERNAL:9092,external://$EXTERNAL:9093
