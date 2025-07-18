@@ -11,9 +11,7 @@ services:
     plan: standard
     region: oregon
     preDeployCommand: "rpk redpanda mode production" 
-    dockerCommand: "rpk redpanda start --smp 1 --memory 1.5G --kafka-addr internal://0.0.0.0:9092 --advertise-kafka-addr internal://${RENDER_INTERNAL_HOSTNAME}:9092,external://${RENDER_EXTERNAL_HOSTNAME}:9093 --pandaproxy-addr external://0.0.0.0:8082 --advertise-pandaproxy-addr external://${RENDER_EXTERNAL_HOSTNAME} --schema-registry-addr external_sr://0.0.0.0:8081 --rpc-addr 0.0.0.0:33145 --advertise-rpc-addr ${RENDER_INTERNAL_HOSTNAME}:33145 --set redpanda.enable_sasl=true --set redpanda.superusers=[\"dittofeed\"] --set redpanda.pandaproxy_api_enable_basic_auth=true --set redpanda.admin_api_enable_basic_auth=true --set redpanda.schema_registry_api_enable_basic_auth=true"
-
-
+    dockerCommand: "rpk redpanda start --smp 1 --memory 1536M --kafka-addr internal://0.0.0.0:9092 --advertise-kafka-addr internal://${RENDER_INTERNAL_HOSTNAME}:9092,external://${RENDER_EXTERNAL_HOSTNAME}:9093 --pandaproxy-addr external://0.0.0.0:8082 --advertise-pandaproxy-addr external://${RENDER_EXTERNAL_HOSTNAME} --schema-registry-addr external_sr://0.0.0.0:8081 --rpc-addr 0.0.0.0:33145 --advertise-rpc-addr ${RENDER_INTERNAL_HOSTNAME}:33145 --set redpanda.enable_sasl=true --set redpanda.superusers=[\"dittofeed\"] --set redpanda.pandaproxy_api_enable_basic_auth=true --set redpanda.admin_api_enable_basic_auth=true --set redpanda.schema_registry_api_enable_basic_auth=true"
 
     envVars:
       - key: PORT
