@@ -1,8 +1,11 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
-import { bootstrapClickhouse, createClickhouseClient } from "backend-lib/src/clickhouse";
-import { clickhouseClient } from "backend-lib/src/clickhouse";
+import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
+import {
+  clickhouseClient,
+  createClickhouseClient,
+} from "backend-lib/src/clickhouse";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -1269,21 +1272,21 @@ export function createCommands(yargs: Argv): Argv {
         destinationClickhousePassword,
         batchSize,
       }) => {
-        const sourceClient = createClient({
+        const sourceClient = createClickhouseClient({
           host: sourceClickhousePort
-            ? `${sourceClickhouseHost}:${sourceClickhousePort}`
+            ? `http://${sourceClickhouseHost}:${sourceClickhousePort}`
             : sourceClickhouseHost,
           database: sourceClickhouseDatabase,
-          username: sourceClickhouseUser,
+          user: sourceClickhouseUser,
           password: sourceClickhousePassword,
         });
 
-        const destinationClient = createClient({
+        const destinationClient = createClickhouseClient({
           host: destinationClickhousePort
-            ? `${destinationClickhouseHost}:${destinationClickhousePort}`
+            ? `http://${destinationClickhouseHost}:${destinationClickhousePort}`
             : destinationClickhouseHost,
           database: destinationClickhouseDatabase,
-          username: destinationClickhouseUser,
+          user: destinationClickhouseUser,
           password: destinationClickhousePassword,
         });
 
