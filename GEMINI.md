@@ -1,0 +1,16 @@
+- create a new script in `packages/admin-cli/src/commandDefinitions.ts`
+- it should be called `export-user-events`
+- it should copy user events from the dittofeed.user_events_v2 table in a source clickhouse instance to a destination clickhouse instance.
+- see `packages/backend-lib/src/userEvents/clickhouse.ts` for a reference table implementation.
+- it should have several options:
+    - source-clickhouse-host
+    - source-clickhouse-port
+    - source-clickhouse-database
+    - source-clickhouse-user
+    - source-clickhouse-password
+    - destination-clickhouse-host
+    - destination-clickhouse-port
+    - destination-clickhouse-database
+    - destination-clickhouse-user
+    - destination-clickhouse-password
+    - batch-size: the number of events to copy at a time (clickhouse performs poorly when doing frequent small inserts, and performs better when doing large batch inserts).

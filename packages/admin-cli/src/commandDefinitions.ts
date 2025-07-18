@@ -1232,5 +1232,107 @@ export function createCommands(yargs: Argv): Argv {
         );
         logger().info("Done.");
       },
+    )
+    .command(
+      "export-user-events",
+      "Copy user events from a source to a destination ClickHouse instance.",
+      (cmd) =>
+        cmd.options({
+          "source-clickhouse-host": { type: "string", demandOption: true },
+          "source-clickhouse-port": { type: "number" },
+          "source-clickhouse-database": { type: "string", demandOption: true },
+          "source-clickhouse-user": { type: "string", demandOption: true },
+          "source-clickhouse-password": { type: "string", demandOption: true },
+          "destination-clickhouse-host": { type: "string", demandOption: true },
+          "destination-clickhouse-port": { type: "number" },
+          "destination-clickhouse-database": {
+            type: "string",
+            demandOption: true,
+          },
+          "destination-clickhouse-user": { type: "string", demandOption: true },
+          "destination-clickhouse-password": {
+            type: "string",
+            demandOption: true,
+          },
+          "batch-size": { type: "number", default: 1000 },
+        }),
+      async ({
+        sourceClickhouseHost,
+        sourceClickhousePort,
+        sourceClickhouseDatabase,
+        sourceClickhouseUser,
+        sourceClickhousePassword,
+        destinationClickhouseHost,
+        destinationClickhousePort,
+        destinationClickhouseDatabase,
+        destinationClickhouseUser,
+        destinationClickhousePassword,
+        batchSize,
+      }) => {
+        const sourceClient = createClient({
+          host: sourceClickhousePort
+            ? `${sourceClickhouseHost}:${sourceClickhousePort}`
+            : sourceClickhouseHost,
+          database: sourceClickhouseDatabase,
+          username: sourceClickhouseUser,
+          password: sourceClickhousePassword,
+        });
+
+        const destinationClient = createClient({
+          host: destinationClickhousePort
+            ? `${destinationClickhouseHost}:${destinationClickhousePort}`
+            : destinationClickhouseHost,
+          database: destinationClickhouseDatabase,
+          username: destinationClickhouseUser,
+          password: destinationClickhousePassword,
+        });
+
+        let offset = 0;
+        let totalCopied = 0;
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          logger().info(
+            `Fetching events from offset ${offset} with batch size ${batchSize}...`,
+          );
+
+          const resultSet = await sourceClient.query({
+            query: `
+              SELECT *
+              FROM user_events_v2
+              ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
+              LIMIT ${batchSize}
+              OFFSET ${offset}
+            `,
+            format: "JSONEachRow",
+          });
+
+          const events = await resultSet.json<unknown[]>();
+
+          if (events.length === 0) {
+            logger().info("No more events to copy.");
+            break;
+          }
+
+          logger().info(`Inserting ${events.length} events...`);
+
+          await destinationClient.insert({
+            table: "user_events_v2",
+            values: events,
+            format: "JSONEachRow",
+          });
+
+          totalCopied += events.length;
+          offset += events.length;
+
+          logger().info(
+            `Copied ${events.length} events. Total copied: ${totalCopied}.`,
+          );
+        }
+
+        logger().info("Event export completed successfully.");
+        await sourceClient.close();
+        await destinationClient.close();
+      },
     );
 }
