@@ -8,14 +8,17 @@ services:
     runtime: image # We use a pre-built image from a public registry.
     image:
       url: docker.redpanda.com/redpandadata/redpanda:latest # Official Redpanda image.
-    plan: standard # Choose a plan appropriate for your workload.
+    plan: standard # Choose a plan appropriate for your workload. 'Standard' (2GB RAM) is the minimum.
     region: oregon # Choose the region closest to your users or other services.
 
-    # The startCommand is the most critical part of the configuration. Redpanda is configured
-    # via command-line flags, not environment variables. We use Render's built-in environment
-    # variables to dynamically configure networking.
+    # The startCommand is the most critical part of the configuration. We use rpk's global -X flags
+    # to bootstrap the initial superuser, which rpk then uses to configure the broker it starts.
+    # This is the robust way to create a user with a password on first boot.
     startCommand: |
-      /usr/bin/rpk redpanda start --mode dev-container --smp 1 \
+      /usr/bin/rpk \
+        -X user=$SASL_USER \
+        -X pass=$SASL_PASSWORD \
+        redpanda start --mode dev-container --smp 1 --memory 1.5G \
         --kafka-addr internal://0.0.0.0:9092 \
         --advertise-kafka-addr internal://$RENDER_INTERNAL_HOSTNAME:9092 \
         --pandaproxy-addr external://0.0.0.0:8082 \
@@ -24,7 +27,7 @@ services:
         --rpc-addr 0.0.0.0:33145 \
         --advertise-rpc-addr $RENDER_INTERNAL_HOSTNAME:33145 \
         --set redpanda.enable_sasl=true \
-        --set 'redpanda.superusers=' \
+        --set "redpanda.superusers=" \
         --set redpanda.pandaproxy_api_enable_basic_auth=true \
         --set redpanda.admin_api_enable_basic_auth=true \
         --set redpanda.schema_registry_api_enable_basic_auth=true
