@@ -107,10 +107,10 @@ export interface CreateConfigParams {
   requestTimeout?: number;
   maxBytesRatioBeforeExternalGroupBy?: number;
   maxBytesBeforeExternalGroupBy?: string;
-  clickhouseHost?: string;
-  clickhouseDatabase?: string;
-  clickhouseUser?: string;
-  clickhousePassword?: string;
+  host?: string;
+  database?: string;
+  user?: string;
+  password?: string;
 }
 
 function getClientConfig({
@@ -118,10 +118,10 @@ function getClientConfig({
   requestTimeout = 180000,
   maxBytesRatioBeforeExternalGroupBy: maxBytesRatioBeforeExternalGroupByParam,
   maxBytesBeforeExternalGroupBy: maxBytesBeforeExternalGroupByParam,
-  clickhouseHost: paramsHost,
-  clickhouseDatabase: paramsDatabase,
-  clickhouseUser: paramsUser,
-  clickhousePassword: paramsPassword,
+  host: paramsHost,
+  database: paramsDatabase,
+  user: paramsUser,
+  password: paramsPassword,
 }: CreateConfigParams): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: configHost,

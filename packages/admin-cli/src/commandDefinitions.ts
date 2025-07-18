@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
-import { bootstrapClickhouse } from "backend-lib/src/bootstrap";
+import { bootstrapClickhouse, createClickhouseClient } from "backend-lib/src/clickhouse";
 import { clickhouseClient } from "backend-lib/src/clickhouse";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
