@@ -3,17 +3,15 @@
 # to the private network. This is configured for production mode.
 
 services:
-  - type: web # 'web' type is required to expose an HTTP endpoint to the public internet.
-    name: redpanda # A unique name for your service.
-    runtime: image # We use a pre-built image from a public registry.
+  - type: web
+    name: redpanda
+    runtime: image
     image:
-      url: docker.redpanda.com/redpandadata/redpanda:latest # Official Redpanda image.
-    plan: standard # Choose a plan appropriate for your workload. 'Standard' (2GB RAM) is the minimum.
-    region: oregon # Choose the region closest to your users or other services.
+      url: docker.redpanda.com/redpandadata/redpanda:latest
+    plan: standard
+    region: oregon
 
-    # The startCommand is the most critical part of the configuration. We use rpk's global -X flags
-    # to bootstrap the initial superuser. The --mode flag is omitted to run in production mode.
-    startCommand: |
+    dockerCommand: |
       /usr/bin/rpk \
         -X user=$SASL_USER \
         -X pass=$SASL_PASSWORD \
@@ -31,26 +29,17 @@ services:
         --set redpanda.admin_api_enable_basic_auth=true \
         --set redpanda.schema_registry_api_enable_basic_auth=true
 
-    # Environment variables are used to inform the Render platform and to securely inject secrets.
-    # 'sync: false' prevents secrets from being stored in git and prompts for them in the Render UI.
     envVars:
-      - key: PORT # Informs Render which port to route public traffic and health checks to.
+      - key: PORT
         value: "8082"
       - key: SASL_USER
-        sync: false # Render will prompt for this value on first deploy.
+        sync: false
       - key: SASL_PASSWORD
-        sync: false # Render will prompt for this value on first deploy.
+        sync: false
 
-    # A persistent disk is mandatory to preserve Redpanda's data across deploys and restarts.
     disk:
       name: redpanda-data
       mountPath: /var/lib/redpanda/data
-      sizeGB: 10 # Adjust size based on your data retention needs.
+      sizeGB: 10
 
-    # A health check that targets the Pandaproxy's readiness endpoint. This ensures Render
-    # only routes traffic when the service is fully ready to accept connections.
     healthCheckPath: /status/ready
-
-    # Render's web services only expose one port publicly. We use the PORT environment
-    # variable above to explicitly tell Render's proxy to route traffic to port 8082,
-    # where Pandaproxy is listening.
