@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
@@ -64,6 +65,7 @@ import {
   KnownTrackData,
   MessageTemplateResourceDefinition,
   SendgridSecret,
+  UserEventV2,
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
@@ -1290,34 +1292,65 @@ export function createCommands(yargs: Argv): Argv {
           password: destinationClickhousePassword,
         });
 
-        let offset = 0;
+        let cursor: UserEventV2 | null = null;
         let totalCopied = 0;
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
           logger().info(
-            `Fetching events from offset ${offset} with batch size ${batchSize}...`,
+            {
+              cursor,
+              batchSize,
+            },
+            "Fetching events from cursor",
           );
 
-          const resultSet = await sourceClient.query({
-            query: `
+          let queryText: string;
+          const queryParams: Record<string, unknown> = {
+            batchSize,
+          };
+
+          if (cursor) {
+            queryText = `
+              SELECT *
+              FROM user_events_v2
+              WHERE (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) > ({workspace_id:String}, {processing_time:DateTime64(3)}, {user_or_anonymous_id:String}, {event_time:DateTime64}, {message_id:String})
+              ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
+              LIMIT {batchSize:UInt64}
+            `;
+            queryParams.workspace_id = cursor.workspace_id;
+            queryParams.processing_time = cursor.processing_time;
+            queryParams.user_or_anonymous_id = cursor.user_or_anonymous_id;
+            queryParams.event_time = cursor.event_time;
+            queryParams.message_id = cursor.message_id;
+          } else {
+            queryText = `
               SELECT *
               FROM user_events_v2
               ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
-              LIMIT ${batchSize}
-              OFFSET ${offset}
-            `,
+              LIMIT {batchSize:UInt64}
+            `;
+          }
+
+          const resultSet = await sourceClient.query({
+            query: queryText,
+            query_params: queryParams,
             format: "JSONEachRow",
           });
 
-          const events = await resultSet.json<unknown[]>();
+          const events = await resultSet.json<UserEventV2>();
 
           if (events.length === 0) {
             logger().info("No more events to copy.");
             break;
           }
 
-          logger().info(`Inserting ${events.length} events...`);
+          logger().info(
+            {
+              eventsLength: events.length,
+            },
+            "Inserting events",
+          );
 
           await destinationClient.insert({
             table: "user_events_v2",
@@ -1325,11 +1358,19 @@ export function createCommands(yargs: Argv): Argv {
             format: "JSONEachRow",
           });
 
+          const lastEvent = events[events.length - 1];
+          if (lastEvent) {
+            cursor = lastEvent;
+          }
+
           totalCopied += events.length;
-          offset += events.length;
 
           logger().info(
-            `Copied ${events.length} events. Total copied: ${totalCopied}.`,
+            {
+              eventsLength: events.length,
+              totalCopied,
+            },
+            "Copied events",
           );
         }
 
