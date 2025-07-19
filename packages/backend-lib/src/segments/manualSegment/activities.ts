@@ -15,17 +15,14 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
 import {
-  computePropertiesContainedV2,
   computePropertiesIncremental,
   computePropertiesIncrementalArgs,
-  getComputedUserPropertyArgs,
 } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
-import { findSubscribedRunningJourneysForSegment } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
-import { Segment, WorkspaceQueueItemType } from "../../types";
+import { Segment } from "../../types";
 
 async function computePropertiesForManualSegment({
   workspaceId,
