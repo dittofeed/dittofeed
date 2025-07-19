@@ -46,7 +46,7 @@ async function computePropertiesForManualSegment({
 
   await computePropertiesIncremental({
     workspaceId,
-    segments: [segment],
+    segments: [],
     userProperties,
     journeys: [],
     integrations: [],
@@ -59,7 +59,7 @@ async function computePropertiesForManualSegment({
   await computePropertiesIncremental({
     workspaceId,
     userProperties: [],
-    segments: [],
+    segments: [segment],
     journeys: subscribedJourneys,
     integrations: [],
     now,
