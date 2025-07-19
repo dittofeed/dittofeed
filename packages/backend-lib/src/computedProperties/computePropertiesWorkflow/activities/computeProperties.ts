@@ -42,7 +42,10 @@ export async function getComputedUserPropertyArgs({
     workspaceId,
     requireRunning: true,
     ids: userPropertyIds,
-    names: ["id", "anonymousId"],
+    // only add id and anonymousId if we're purposely restricting the set of
+    // user properties. this way the subset will be guaranteed to include them.
+    // otherwise we'll get all user properties.
+    names: userPropertyIds?.length ? ["id", "anonymousId"] : undefined,
   });
   return userProperties;
 }
@@ -119,6 +122,7 @@ export async function computePropertiesIncremental({
       now: new Date(now).toISOString(),
     };
     span.setAttributes(commonAttributes);
+    logger().debug(commonAttributes, "Computing properties");
 
     try {
       await computeState({
