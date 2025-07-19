@@ -17,6 +17,7 @@ import { submitBatch } from "../../apps/batch";
 import {
   computePropertiesContainedV2,
   computePropertiesIncremental,
+  computePropertiesIncrementalArgs,
   getComputedUserPropertyArgs,
 } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
@@ -35,12 +36,13 @@ async function computePropertiesForManualSegment({
   segment: SavedSegmentResource;
   now: number;
 }) {
-  await computePropertiesContainedV2({
+  const args = await computePropertiesIncrementalArgs({
+    workspaceId,
+  });
+  args.segments.push(segment);
+  await computePropertiesIncremental({
+    ...args,
     now,
-    item: {
-      type: WorkspaceQueueItemType.Workspace,
-      id: workspaceId,
-    },
   });
 }
 
