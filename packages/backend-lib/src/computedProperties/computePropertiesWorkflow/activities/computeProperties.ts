@@ -122,7 +122,6 @@ export async function computePropertiesIncremental({
       now: new Date(now).toISOString(),
     };
     span.setAttributes(commonAttributes);
-    logger().debug(commonAttributes, "Computing properties");
 
     try {
       await computeState({
