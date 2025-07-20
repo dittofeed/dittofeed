@@ -3,48 +3,34 @@ import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
-import { sleep } from "isomorphic-lib/src/time";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import { insert } from "../db";
-import * as schema from "../db/schema";
+import { submitBatch } from "../apps/batch";
 import { searchDeliveries } from "../deliveries";
 import { upsertJourney } from "../journeys";
 import { getUserJourneyWorkflowId } from "../journeys/userWorkflow";
-import logger from "../logger";
 import { upsertMessageTemplate } from "../messaging";
+import { getOrCreateEmailProviders } from "../messaging/email";
 import { upsertSegment } from "../segments";
 import {
   ChannelType,
   EmailProviderType,
   EmailTemplateResource,
   EventType,
-  Journey,
   JourneyNodeType,
   JourneyResource,
-  JourneyStatus,
-  ManualSegmentNode,
-  Segment,
-  SegmentDefinition,
   SegmentNodeType,
   SegmentResource,
   UserPropertyDefinitionType,
   Workspace,
 } from "../types";
-import { findManyEventsWithCount, findManyInternalEvents } from "../userEvents";
-import {
-  insertUserPropertyAssignments,
-  upsertUserProperty,
-} from "../userProperties";
-import { getUsers } from "../users";
+import { upsertUserProperty } from "../userProperties";
 import { createWorkspace } from "../workspaces/createWorkspace";
 import {
   enqueueManualSegmentOperation,
   ManualSegmentOperationTypeEnum,
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
-import { submitBatch } from "../apps/batch";
-import { getOrCreateEmailProviders } from "../messaging/email";
 
 jest.setTimeout(30000);
 
