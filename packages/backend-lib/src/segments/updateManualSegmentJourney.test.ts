@@ -202,24 +202,19 @@ describe("when a segment entry journey has a manual segment", () => {
           },
         );
         await handle1.result();
-        await sleep(5000);
-        const events = await findManyEventsWithCount({
-          workspaceId: workspace.id,
-        });
-        logger().debug(events, "events");
+        const handle2 = testEnv.client.workflow.getHandle(
+          getUserJourneyWorkflowId({
+            userId: "1",
+            journeyId: journey.id,
+          }),
+        );
+        await handle2.result();
         const deliveries = await searchDeliveries({
           workspaceId: workspace.id,
         });
         expect(deliveries.items.length).toBe(1);
         expect(deliveries.items[0]?.userId).toBe("1");
         expect(deliveries.items[0]?.journeyId).toBe(journey.id);
-        // const handle2 = testEnv.client.workflow.getHandle(
-        //   getUserJourneyWorkflowId({
-        //     userId: "1",
-        //     journeyId: journey.id,
-        //   }),
-        // );
-        // await handle2.result();
       });
     });
   });
