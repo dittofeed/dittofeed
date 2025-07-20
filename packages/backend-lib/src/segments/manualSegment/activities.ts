@@ -37,6 +37,7 @@ async function computePropertiesForManualSegment({
     workspaceId,
   });
   args.segments.push(segment);
+  logger().debug(args, "recomputing properties for manual segment");
   await computePropertiesIncremental({
     ...args,
     now,
