@@ -18,6 +18,7 @@ import {
   ChannelType,
   EmailProviderType,
   EmailTemplateResource,
+  EventType,
   Journey,
   JourneyNodeType,
   JourneyResource,
@@ -42,6 +43,8 @@ import {
   ManualSegmentOperationTypeEnum,
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
+import { submitBatch } from "../apps/batch";
+import { getOrCreateEmailProviders } from "../messaging/email";
 
 jest.setTimeout(30000);
 
@@ -87,25 +90,47 @@ describe("when a segment entry journey has a manual segment", () => {
             type: ChannelType.Email,
             from: "test@test.com",
             subject: "test",
-            body: "test",
+            body: `
+              <mjml>
+                <mj-body>
+                  <mj-section>
+                    <mj-column>
+                      <mj-text align='center'>Dittofeed Example</mj-text>
+                    </mj-column>
+                  </mj-section>
+                </mj-body>
+              </mjml>`,
             replyTo: "test@test.com",
           } satisfies EmailTemplateResource,
         }).then(unwrap),
-        upsertUserProperty({
-          workspaceId: workspace.id,
-          name: "id",
-          definition: {
-            type: UserPropertyDefinitionType.Id,
+        upsertUserProperty(
+          {
+            workspaceId: workspace.id,
+            name: "id",
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
           },
-        }).then(unwrap),
-        upsertUserProperty({
-          workspaceId: workspace.id,
-          name: "email",
-          definition: {
-            type: UserPropertyDefinitionType.Trait,
-            path: "email",
+          {
+            skipProtectedCheck: true,
           },
-        }).then(unwrap),
+        ).then(unwrap),
+        upsertUserProperty(
+          {
+            workspaceId: workspace.id,
+            name: "email",
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "email",
+            },
+          },
+          {
+            skipProtectedCheck: true,
+          },
+        ).then(unwrap),
+        getOrCreateEmailProviders({
+          workspaceId: workspace.id,
+        }),
       ]);
       segment = segmentInner;
 
@@ -138,6 +163,21 @@ describe("when a segment entry journey has a manual segment", () => {
           },
         }),
       );
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [
+            {
+              type: EventType.Identify,
+              userId: "1",
+              messageId: randomUUID(),
+              traits: {
+                email: "test@test.com",
+              },
+            },
+          ],
+        },
+      });
     });
     it("they should be messaged", async () => {
       await worker.runUntil(async () => {
