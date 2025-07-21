@@ -16,11 +16,10 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import { submitBatch } from "../../apps/batch";
 import {
   computePropertiesIncremental,
-  getComputedUserPropertyArgs,
+  computePropertiesIncrementalArgs,
 } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
-import { findSubscribedRunningJourneysForSegment } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
 import { Segment } from "../../types";
@@ -34,34 +33,13 @@ async function computePropertiesForManualSegment({
   segment: SavedSegmentResource;
   now: number;
 }) {
-  const [subscribedJourneys, userProperties] = await Promise.all([
-    findSubscribedRunningJourneysForSegment({
-      workspaceId,
-      segmentId: segment.id,
-    }),
-    getComputedUserPropertyArgs({
-      workspaceId,
-    }),
-  ]);
-
-  await computePropertiesIncremental({
+  const args = await computePropertiesIncrementalArgs({
     workspaceId,
-    segments: [segment],
-    userProperties,
-    journeys: [],
-    integrations: [],
-    now,
   });
-
-  // Hack to ensure that the user property values are ready to be read by the time the journeys are processed
-  await sleep(1000);
-
+  args.segments.push(segment);
+  logger().debug(args, "recomputing properties for manual segment");
   await computePropertiesIncremental({
-    workspaceId,
-    userProperties: [],
-    segments: [],
-    journeys: subscribedJourneys,
-    integrations: [],
+    ...args,
     now,
   });
 }
