@@ -108,6 +108,56 @@ export interface UserEventsState {
   filters: Map<Key, Filter>;
 }
 
+type FilterKey =
+  | "event"
+  | "broadcastId"
+  | "journeyId"
+  | "eventType"
+  | "messageId"
+  | "userId";
+
+const keyCommandLabels: Record<FilterKey, string> = {
+  event: "Event Name",
+  broadcastId: "Broadcast",
+  journeyId: "Journey",
+  eventType: "Event Type",
+  messageId: "Message ID",
+  userId: "User ID",
+};
+
+const keyCommands: UserEventsFilterCommand[] = [
+  {
+    label: keyCommandLabels.event,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "event",
+  },
+  {
+    label: keyCommandLabels.broadcastId,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "broadcastId",
+  },
+  {
+    label: keyCommandLabels.journeyId,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "journeyId",
+  },
+  {
+    label: keyCommandLabels.eventType,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "eventType",
+  },
+  {
+    label: keyCommandLabels.messageId,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "messageId",
+  },
+  {
+    label: keyCommandLabels.userId,
+    type: UserEventsFilterCommandType.SelectKey,
+    filterKey: "userId",
+  },
+] as const;
+
 export function getFilterValues(
   state: UserEventsState,
   filterKey: Key,
@@ -186,11 +236,12 @@ export function SelectedUserEventsFilters({
           break;
         }
       }
+      const keyLabel = keyCommandLabels[key];
       return (
         <Chip
           key={key}
           sx={sx}
-          label={`${key} = ${label}`}
+          label={`${keyLabel} = ${label}`}
           onDelete={() =>
             setState((draft) => {
               draft.filters.delete(key as Key);
@@ -273,38 +324,7 @@ export function NewUserEventsFilterButton({
   const commands: UserEventsFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
-        return [
-          {
-            label: "Event Name",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "event",
-          },
-          {
-            label: "Broadcast",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "broadcastId",
-          },
-          {
-            label: "Journey",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "journeyId",
-          },
-          {
-            label: "Event Type",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "eventType",
-          },
-          {
-            label: "Message ID",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "messageId",
-          },
-          {
-            label: "User ID",
-            type: UserEventsFilterCommandType.SelectKey,
-            filterKey: "userId",
-          },
-        ];
+        return keyCommands;
       }
       case StageType.SelectValue: {
         return [];
