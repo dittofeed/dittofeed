@@ -248,7 +248,8 @@ export function NewUserEventsFilterButton({
   setState: SetUserEventsState;
   greyScale?: boolean;
 }) {
-  const { broadcasts, journeys, messages } = useAppStorePick([
+  // FIXME use hooks
+  const { broadcasts, journeys } = useAppStorePick([
     "broadcasts",
     "journeys",
     "messages",
@@ -480,17 +481,25 @@ export function NewUserEventsFilterButton({
       Array.isArray(availableEvents) &&
       availableEvents.length > 0
     ) {
+      const value =
+        state.stage.value.type === FilterType.Value
+          ? state.stage.value.value
+          : "";
+
+      console.log("event autocomplete", {
+        value,
+        inputValue: state.inputValue,
+      });
       popoverBody = (
         <Autocomplete
           freeSolo
           autoFocus
+          open
           options={availableEvents || []}
-          value={
-            state.stage.value.type === FilterType.Value
-              ? state.stage.value.value
-              : ""
-          }
-          onInputChange={(event, newValue) => {
+          autoComplete
+          value={value}
+          inputValue={state.inputValue}
+          onChange={(_event, newValue) => {
             if (newValue === undefined || newValue === null) {
               return;
             }
@@ -498,8 +507,24 @@ export function NewUserEventsFilterButton({
               if (draft.stage.type !== StageType.SelectValue) {
                 return draft;
               }
-              draft.stage.value.value = newValue;
+              if (draft.stage.value.type !== FilterType.Value) {
+                return draft;
+              }
+              // Set the filter
+              draft.filters.set(draft.stage.filterKey, {
+                type: FilterType.Value,
+                value: newValue,
+              });
+              // Reset and close
+              draft.open = false;
+              draft.stage = { type: StageType.SelectKey };
+              draft.inputValue = "";
               return draft;
+            });
+          }}
+          onInputChange={(_event, newInputValue) => {
+            setState((draft) => {
+              draft.inputValue = newInputValue;
             });
           }}
           renderInput={(params) => (
@@ -520,28 +545,6 @@ export function NewUserEventsFilterButton({
               sx={{
                 ...(greyScale ? greyTextFieldStyles : {}),
                 width: 300,
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  setState((draft) => {
-                    if (draft.stage.type !== StageType.SelectValue) {
-                      return draft;
-                    }
-                    if (draft.stage.value.type !== FilterType.Value) {
-                      return draft;
-                    }
-                    // Set the filter
-                    draft.filters.set(draft.stage.filterKey, {
-                      type: FilterType.Value,
-                      value: draft.stage.value.value,
-                    });
-                    // Reset and close
-                    draft.open = false;
-                    draft.stage = { type: StageType.SelectKey };
-                    return draft;
-                  });
-                }
               }}
             />
           )}
