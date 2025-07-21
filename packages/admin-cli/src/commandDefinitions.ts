@@ -39,7 +39,7 @@ import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClien
 import { transferResources } from "backend-lib/src/transferResources";
 import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
-import { deleteAllUsers } from "backend-lib/src/users";
+import { deleteAllUsers, getUsers } from "backend-lib/src/users";
 import {
   activateTombstonedWorkspace,
   pauseWorkspace,
@@ -1390,6 +1390,31 @@ export function createCommands(yargs: Argv): Argv {
         logger().info("Event export completed successfully.");
         await sourceClient.close();
         await destinationClient.close();
+      },
+    )
+    .command(
+      "get-users",
+      "Get users from a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", demandOption: true },
+          "user-ids": { type: "string", array: true },
+          limit: { type: "number", default: 100 },
+          cursor: { type: "string" },
+          "throw-on-error": { type: "boolean", default: false },
+        }),
+      async ({ workspaceId, throwOnError, limit, cursor, userIds }) => {
+        logger().info(
+          {
+            workspaceId,
+          },
+          "Getting users",
+        );
+        const users = await getUsers(
+          { workspaceId, cursor, limit, userIds },
+          { throwOnError },
+        );
+        logger().info(users, "Users");
       },
     );
 }
