@@ -261,6 +261,9 @@ export async function getUsers(
     chQuery({
       query,
       query_params: qb.getQueries(),
+      clickhouse_settings: {
+        output_format_json_named_tuples_as_objects: 0,
+      },
     }),
     db()
       .select({
