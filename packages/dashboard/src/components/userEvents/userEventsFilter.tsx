@@ -474,8 +474,6 @@ export function NewUserEventsFilterButton({
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
-    // For event names, provide autocomplete suggestions if available
-    console.log("availableEvents", availableEvents);
     if (
       state.stage.filterKey === "event" &&
       Array.isArray(availableEvents) &&
@@ -486,10 +484,6 @@ export function NewUserEventsFilterButton({
           ? state.stage.value.value
           : "";
 
-      console.log("event autocomplete", {
-        value,
-        inputValue: state.inputValue,
-      });
       popoverBody = (
         <Autocomplete
           freeSolo
