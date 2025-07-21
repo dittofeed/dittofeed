@@ -16,16 +16,16 @@
   "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
   "references": [
     {
-      "path": "../backend-lib"
+      "path": "../backend-lib/tsconfig.build.json"
     },
     {
-      "path": "../isomorphic-lib"
+      "path": "../isomorphic-lib/tsconfig.build.json"
     },
     {
       "path": "../admin-cli"
     },
     {
-      "path": "../dashboard"
+      "path": "../dashboard/tsconfig.build.json"
     },
     {
       "path": "../emailo"
@@ -34,7 +34,7 @@
       "path": "../worker"
     },
     {
-      "path": "../api"
+      "path": "../api/tsconfig.build.json"
     },
   ]
 }
