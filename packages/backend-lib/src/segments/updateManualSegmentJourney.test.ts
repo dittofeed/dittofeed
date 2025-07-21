@@ -59,7 +59,6 @@ describe("when a segment entry journey has a manual segment", () => {
   });
   describe("and a user is added to the segment", () => {
     beforeEach(async () => {
-      now = await testEnv.currentTimeMs();
       const [segmentInner, messageTemplate] = await Promise.all([
         upsertSegment({
           workspaceId: workspace.id,
@@ -68,7 +67,7 @@ describe("when a segment entry journey has a manual segment", () => {
             entryNode: {
               id: randomUUID(),
               type: SegmentNodeType.Manual,
-              version: getNewManualSegmentVersion(now),
+              version: getNewManualSegmentVersion(Date.now()),
             },
             nodes: [],
           },
