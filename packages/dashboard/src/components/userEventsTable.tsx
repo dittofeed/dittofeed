@@ -439,11 +439,6 @@ interface UserEventsTableProps {
   searchTerm?: string;
   startDate?: number;
   endDate?: number;
-  event?: string[];
-  broadcastId?: string;
-  journeyId?: string;
-  eventType?: string;
-  messageId?: string;
   defaultTimeOption?: TimeOptionId;
   hardcodedFilters?: {
     event?: string[];
@@ -460,11 +455,6 @@ export function UserEventsTable({
   searchTerm: initialSearchTerm,
   startDate: propsStartDate,
   endDate: propsEndDate,
-  event,
-  broadcastId,
-  journeyId,
-  eventType,
-  messageId,
   defaultTimeOption: defaultTimeOptionOverride = defaultTimeOptionId,
   hardcodedFilters,
 }: UserEventsTableProps) {
@@ -497,11 +487,6 @@ export function UserEventsTable({
       searchTerm: initialSearchTerm,
       startDate: initialStartDate,
       endDate: initialEndDate,
-      event,
-      broadcastId,
-      journeyId,
-      eventType,
-      messageId,
     },
     previewEvent: null,
     selectedEventResources: [],
