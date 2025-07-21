@@ -266,7 +266,6 @@ export async function findTrackProperties({
       and event_type = 'track'
     GROUP BY
       property,
-      max_processing_time,
       event
     ORDER BY
       max_processing_time DESC

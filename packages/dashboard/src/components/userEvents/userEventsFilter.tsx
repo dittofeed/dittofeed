@@ -139,11 +139,40 @@ export function SelectedUserEventsFilters({
   state,
   setState,
   sx,
+  hardcodedFilters,
 }: {
   sx?: SxProps<Theme>;
   state: UserEventsState;
   setState: SetUserEventsState;
+  hardcodedFilters?: {
+    event?: string[];
+    broadcastId?: string;
+    journeyId?: string;
+    eventType?: string;
+    messageId?: string;
+    userId?: string;
+  };
 }) {
+  const { broadcasts, journeys } = useAppStorePick(["broadcasts", "journeys"]);
+
+  const resolveIdToName = (key: Key, id: string): string => {
+    switch (key) {
+      case "broadcastId": {
+        const broadcast = broadcasts.find((b) => b.id === id);
+        return broadcast ? broadcast.name : id;
+      }
+      case "journeyId": {
+        if (journeys.type === CompletionStatus.Successful) {
+          const journey = journeys.value.find((j) => j.id === id);
+          return journey ? journey.name : id;
+        }
+        return id;
+      }
+      default:
+        return id;
+    }
+  };
+
   const filterChips = Array.from(state.filters.entries()).map(
     ([key, filters]) => {
       let label: string;
@@ -171,7 +200,41 @@ export function SelectedUserEventsFilters({
       );
     },
   );
-  return <>{filterChips}</>;
+
+  // Add hardcoded filters as disabled chips
+  const hardcodedChips = hardcodedFilters
+    ? Object.entries(hardcodedFilters)
+        .filter(([, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => {
+          let label: string;
+          if (Array.isArray(value)) {
+            // Resolve IDs to names for array values
+            const resolvedValues = value.map((id) =>
+              resolveIdToName(key as Key, id),
+            );
+            label = resolvedValues.join(" OR ");
+          } else {
+            // Resolve ID to name for single values
+            label = resolveIdToName(key as Key, String(value));
+          }
+          return (
+            <Chip
+              key={`hardcoded-${key}`}
+              sx={{
+                ...sx,
+                opacity: 0.7,
+                "& .MuiChip-deleteIcon": {
+                  display: "none",
+                },
+              }}
+              label={`${key} = ${label}`}
+              disabled
+            />
+          );
+        })
+    : [];
+
+  return <>{[...hardcodedChips, ...filterChips]}</>;
 }
 
 export function NewUserEventsFilterButton({
@@ -190,13 +253,19 @@ export function NewUserEventsFilterButton({
     "journeys",
     "messages",
   ]);
-  const { data: properties } = usePropertiesQuery();
+  const { data: properties, error: propertiesError } = usePropertiesQuery();
   const { stage } = state;
 
-  const availableEvents = useMemo(
-    () => Object.keys(properties?.properties ?? {}),
-    [properties],
-  );
+  const availableEvents = useMemo(() => {
+    if (propertiesError) {
+      console.warn(
+        "Properties query failed, continuing without autocomplete:",
+        propertiesError,
+      );
+      return [];
+    }
+    return Object.keys(properties?.properties ?? {});
+  }, [properties, propertiesError]);
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
@@ -279,21 +348,17 @@ export function NewUserEventsFilterButton({
             setState((draft) => {
               draft.inputValue = "";
               switch (value.filterKey) {
-                case "event": {
-                  const children: SelectItemCommand[] = availableEvents.map(
-                    (eventName) => ({
-                      label: eventName,
-                      type: UserEventsFilterCommandType.SelectItem,
-                      id: eventName,
-                    }),
-                  );
+                case "event":
                   draft.stage = {
-                    type: StageType.SelectItem,
+                    type: StageType.SelectValue,
                     filterKey: value.filterKey,
-                    children,
+                    label: value.label,
+                    value: {
+                      type: FilterType.Value,
+                      value: "",
+                    },
                   };
                   break;
-                }
                 case "broadcastId": {
                   const children: SelectItemCommand[] = broadcasts.map(
                     (broadcast) => ({
@@ -388,7 +453,7 @@ export function NewUserEventsFilterButton({
         }
       }
     },
-    [setState, broadcasts, journeys, messages, availableEvents],
+    [setState, broadcasts, journeys],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -408,56 +473,141 @@ export function NewUserEventsFilterButton({
 
   let popoverBody: React.ReactNode;
   if (state.stage.type === StageType.SelectValue) {
-    popoverBody = (
-      <TextField
-        autoFocus
-        variant="filled"
-        InputProps={{
-          sx: {
-            borderRadius: 0,
-          },
-        }}
-        sx={{
-          ...(greyScale ? greyTextFieldStyles : {}),
-          width: 300,
-        }}
-        label={state.stage.label}
-        value={state.stage.value.value}
-        onChange={(event) =>
-          setState((draft) => {
-            if (draft.stage.type !== StageType.SelectValue) {
-              return draft;
-            }
-            draft.stage.value.value = event.target.value;
-            return draft;
-          })
-        }
-        onKeyDown={(event) => {
-          if (event.key !== "Enter") {
-            return;
+    // For event names, provide autocomplete suggestions if available
+    console.log("availableEvents", availableEvents);
+    if (
+      state.stage.filterKey === "event" &&
+      Array.isArray(availableEvents) &&
+      availableEvents.length > 0
+    ) {
+      popoverBody = (
+        <Autocomplete
+          freeSolo
+          autoFocus
+          options={availableEvents || []}
+          value={
+            state.stage.value.type === FilterType.Value
+              ? state.stage.value.value
+              : ""
           }
-          event.preventDefault();
-
-          setState((draft) => {
-            if (draft.stage.type !== StageType.SelectValue) {
-              return draft;
+          onInputChange={(event, newValue) => {
+            if (newValue === undefined || newValue === null) {
+              return;
             }
-            if (draft.stage.value.type !== FilterType.Value) {
+            setState((draft) => {
+              if (draft.stage.type !== StageType.SelectValue) {
+                return draft;
+              }
+              draft.stage.value.value = newValue;
               return draft;
-            }
-            // Set the filter
-            draft.filters.set(draft.stage.filterKey, {
-              type: FilterType.Value,
-              value: draft.stage.value.value,
             });
-            // Reset and close
-            draft.open = false;
-            draft.stage = { type: StageType.SelectKey };
-            return draft;
-          });
-        }}
-      />
-    );
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="filled"
+              label={
+                state.stage.type === StageType.SelectValue
+                  ? state.stage.label
+                  : ""
+              }
+              InputProps={{
+                ...params.InputProps,
+                sx: {
+                  borderRadius: 0,
+                },
+              }}
+              sx={{
+                ...(greyScale ? greyTextFieldStyles : {}),
+                width: 300,
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  setState((draft) => {
+                    if (draft.stage.type !== StageType.SelectValue) {
+                      return draft;
+                    }
+                    if (draft.stage.value.type !== FilterType.Value) {
+                      return draft;
+                    }
+                    // Set the filter
+                    draft.filters.set(draft.stage.filterKey, {
+                      type: FilterType.Value,
+                      value: draft.stage.value.value,
+                    });
+                    // Reset and close
+                    draft.open = false;
+                    draft.stage = { type: StageType.SelectKey };
+                    return draft;
+                  });
+                }
+              }}
+            />
+          )}
+          sx={{ width: 300 }}
+        />
+      );
+    } else {
+      // For other value inputs (messageId, userId) or when no event suggestions available
+      popoverBody = (
+        <TextField
+          autoFocus
+          variant="filled"
+          InputProps={{
+            sx: {
+              borderRadius: 0,
+            },
+          }}
+          sx={{
+            ...(greyScale ? greyTextFieldStyles : {}),
+            width: 300,
+          }}
+          label={
+            state.stage.type === StageType.SelectValue ? state.stage.label : ""
+          }
+          value={
+            state.stage.type === StageType.SelectValue &&
+            state.stage.value.type === FilterType.Value
+              ? state.stage.value.value
+              : ""
+          }
+          onChange={(event) =>
+            setState((draft) => {
+              if (draft.stage.type !== StageType.SelectValue) {
+                return draft;
+              }
+              draft.stage.value.value = event.target.value;
+              return draft;
+            })
+          }
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") {
+              return;
+            }
+            event.preventDefault();
+
+            setState((draft) => {
+              if (draft.stage.type !== StageType.SelectValue) {
+                return draft;
+              }
+              if (draft.stage.value.type !== FilterType.Value) {
+                return draft;
+              }
+              // Set the filter
+              draft.filters.set(draft.stage.filterKey, {
+                type: FilterType.Value,
+                value: draft.stage.value.value,
+              });
+              // Reset and close
+              draft.open = false;
+              draft.stage = { type: StageType.SelectKey };
+              return draft;
+            });
+          }}
+        />
+      );
+    }
   } else if (commands.length > 0) {
     popoverBody = (
       <Autocomplete<UserEventsFilterCommand>

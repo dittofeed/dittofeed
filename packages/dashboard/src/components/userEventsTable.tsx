@@ -897,6 +897,7 @@ export function UserEventsTable({
           <SelectedUserEventsFilters
             state={userEventsFilterState}
             setState={setUserEventsFilterState}
+            hardcodedFilters={hardcodedFilters}
             sx={{
               height: "100%",
             }}
