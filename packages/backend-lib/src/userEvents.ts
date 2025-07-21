@@ -291,6 +291,7 @@ export async function findManyEventsWithCount({
   broadcastId,
   journeyId,
   eventType,
+  messageId,
 }: GetEventsRequest): Promise<{
   events: UserEventsWithTraits[];
   count: number;
@@ -325,6 +326,10 @@ export async function findManyEventsWithCount({
 
   const userIdClause = userId
     ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
+
+  const messageIdClause = messageId
+    ? `AND message_id = ${qb.addQueryValue(messageId, "String")}`
     : "";
 
   const searchClause = searchTerm
@@ -378,6 +383,7 @@ export async function findManyEventsWithCount({
       ${broadcastIdClause}
       ${journeyIdClause}
       ${eventTypeClause}
+      ${messageIdClause}
     ORDER BY processing_time DESC
   `;
 
