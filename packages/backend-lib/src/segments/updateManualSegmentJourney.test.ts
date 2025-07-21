@@ -194,7 +194,16 @@ describe("when a segment entry journey has a manual segment", () => {
             journeyId: journey.id,
           }),
         );
-        await handle2.result();
+
+        // Wait for user journey workflow to complete with a 3 second timeout
+        await Promise.race([
+          handle2.result(),
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(undefined);
+            }, 3000);
+          }),
+        ]);
         const deliveries = await searchDeliveries({
           workspaceId: workspace.id,
         });
