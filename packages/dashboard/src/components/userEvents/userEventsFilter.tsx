@@ -14,16 +14,13 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import {
-  CompletionStatus,
-  InternalEventType,
-  Present,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus, Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 
@@ -38,7 +35,13 @@ export enum UserEventsFilterCommandType {
   SelectKey = "SelectKey",
 }
 
-export type Key = "event" | "broadcastId" | "journeyId" | "eventType" | "messageId" | "userId";
+export type Key =
+  | "event"
+  | "broadcastId"
+  | "journeyId"
+  | "eventType"
+  | "messageId"
+  | "userId";
 
 export type SelectItemCommand = BaseUserEventsFilterCommand & {
   type: UserEventsFilterCommandType.SelectItem;
@@ -182,8 +185,18 @@ export function NewUserEventsFilterButton({
   setState: SetUserEventsState;
   greyScale?: boolean;
 }) {
-  const { broadcasts, journeys, messages } = useAppStorePick(["broadcasts", "journeys", "messages"]);
+  const { broadcasts, journeys, messages } = useAppStorePick([
+    "broadcasts",
+    "journeys",
+    "messages",
+  ]);
+  const { data: properties } = usePropertiesQuery();
   const { stage } = state;
+
+  const availableEvents = useMemo(
+    () => Object.keys(properties?.properties ?? {}),
+    [properties],
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
@@ -267,16 +280,17 @@ export function NewUserEventsFilterButton({
               draft.inputValue = "";
               switch (value.filterKey) {
                 case "event": {
-                  // For event names, we would need to fetch available events from the API
-                  // For now, allow free text input
+                  const children: SelectItemCommand[] = availableEvents.map(
+                    (eventName) => ({
+                      label: eventName,
+                      type: UserEventsFilterCommandType.SelectItem,
+                      id: eventName,
+                    }),
+                  );
                   draft.stage = {
-                    type: StageType.SelectValue,
+                    type: StageType.SelectItem,
                     filterKey: value.filterKey,
-                    label: value.label,
-                    value: {
-                      type: FilterType.Value,
-                      value: "",
-                    },
+                    children,
                   };
                   break;
                 }
@@ -296,9 +310,10 @@ export function NewUserEventsFilterButton({
                   break;
                 }
                 case "journeyId": {
-                  const journeyOptions = journeys.type === CompletionStatus.Successful 
-                    ? journeys.value 
-                    : [];
+                  const journeyOptions =
+                    journeys.type === CompletionStatus.Successful
+                      ? journeys.value
+                      : [];
                   const children: SelectItemCommand[] = journeyOptions.map(
                     (journey) => ({
                       label: journey.name,
@@ -373,7 +388,7 @@ export function NewUserEventsFilterButton({
         }
       }
     },
-    [setState, broadcasts, journeys, messages],
+    [setState, broadcasts, journeys, messages, availableEvents],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
