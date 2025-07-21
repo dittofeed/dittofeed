@@ -6,7 +6,7 @@
     "scripts/**/*.ts",
     "../../node_modules/jest-expect-message/types/index.d.ts"
   ],
-  "exclude": ["dist", "node_modules", "**/*.test.ts"],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
       "path": "../isomorphic-lib"

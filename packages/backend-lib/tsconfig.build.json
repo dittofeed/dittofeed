@@ -13,7 +13,7 @@
   ],
   "references": [
     {
-      "path": "../isomorphic-lib"
+      "path": "../isomorphic-lib/tsconfig.build.json"
     }
   ]
 }
