@@ -61,9 +61,15 @@ import { toCalendarDate } from "../lib/dates";
 import { EventResources } from "../lib/types";
 import { useEventsQuery } from "../lib/useEventsQuery";
 import EventDetailsSidebar from "./eventDetailsSidebar";
-import { GreyButton } from "./greyButtonStyle";
+import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
+import {
+  getFilterValues,
+  NewUserEventsFilterButton,
+  SelectedUserEventsFilters,
+  useUserEventsFilterState,
+} from "./userEvents/userEventsFilter";
 
 export const TimeOptionId = {
   LastSevenDays: "last-7-days",
@@ -150,6 +156,7 @@ interface State {
     broadcastId?: string;
     journeyId?: string;
     eventType?: string;
+    messageId?: string;
   };
   previewEvent: GetEventsResponseItem | null;
   selectedEventResources: EventResources[];
@@ -435,7 +442,16 @@ interface UserEventsTableProps {
   broadcastId?: string;
   journeyId?: string;
   eventType?: string;
+  messageId?: string;
   defaultTimeOption?: TimeOptionId;
+  hardcodedFilters?: {
+    event?: string[];
+    broadcastId?: string;
+    journeyId?: string;
+    eventType?: string;
+    messageId?: string;
+    userId?: string;
+  };
 }
 
 export function UserEventsTable({
@@ -447,7 +463,9 @@ export function UserEventsTable({
   broadcastId,
   journeyId,
   eventType,
+  messageId,
   defaultTimeOption: defaultTimeOptionOverride = defaultTimeOptionId,
+  hardcodedFilters,
 }: UserEventsTableProps) {
   const {
     workspace,
@@ -455,6 +473,8 @@ export function UserEventsTable({
     broadcasts,
     journeys,
   } = useAppStorePick(["workspace", "messages", "broadcasts", "journeys"]);
+
+  const [userEventsFilterState, setUserEventsFilterState] = useUserEventsFilterState();
 
   const initialEndDate = useMemo(
     () => propsEndDate || Date.now(),
@@ -479,6 +499,7 @@ export function UserEventsTable({
       broadcastId,
       journeyId,
       eventType,
+      messageId,
     },
     previewEvent: null,
     selectedEventResources: [],
@@ -560,7 +581,28 @@ export function UserEventsTable({
     [broadcasts, journeys, messages],
   );
 
-  const eventsQuery = useEventsQuery(state.query, {
+  const finalQuery = useMemo(() => {
+    // Get filtered values from the filter state
+    const filteredEvent = getFilterValues(userEventsFilterState, "event");
+    const filteredBroadcastId = getFilterValues(userEventsFilterState, "broadcastId")?.[0];
+    const filteredJourneyId = getFilterValues(userEventsFilterState, "journeyId")?.[0];
+    const filteredEventType = getFilterValues(userEventsFilterState, "eventType")?.[0];
+    const filteredMessageId = getFilterValues(userEventsFilterState, "messageId")?.[0];
+    const filteredUserId = getFilterValues(userEventsFilterState, "userId")?.[0];
+
+    // Combine hardcoded filters with dynamic filters, prioritizing hardcoded
+    return {
+      ...state.query,
+      event: hardcodedFilters?.event || filteredEvent || state.query.event,
+      broadcastId: hardcodedFilters?.broadcastId || filteredBroadcastId || state.query.broadcastId,
+      journeyId: hardcodedFilters?.journeyId || filteredJourneyId || state.query.journeyId,
+      eventType: hardcodedFilters?.eventType || filteredEventType || state.query.eventType,
+      messageId: hardcodedFilters?.messageId || filteredMessageId || state.query.messageId,
+      userId: hardcodedFilters?.userId || filteredUserId || state.query.userId,
+    };
+  }, [state.query, userEventsFilterState, hardcodedFilters]);
+
+  const eventsQuery = useEventsQuery(finalQuery, {
     placeholderData: keepPreviousData,
   });
 
@@ -755,13 +797,11 @@ export function UserEventsTable({
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="space-between"
         spacing={1}
         sx={{ width: "100%", height: "48px" }}
       >
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="h6">User Events</Typography>
-          <FormControl>
+        <Typography variant="h6">User Events</Typography>
+        <FormControl>
             <Select
               value={state.selectedTimeOption}
               renderValue={(value) => {
@@ -828,33 +868,56 @@ export function UserEventsTable({
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
-              disabled={state.selectedTimeOption === "custom"}
-              onClick={() => {
-                setState((draft) => {
-                  const option = timeOptions.find(
-                    (o) => o.id === draft.selectedTimeOption,
-                  );
-                  if (option === undefined || option.type !== "minutes") {
-                    return;
-                  }
-                  draft.query.offset = 0;
-                  const endDate = new Date();
-                  draft.query.endDate = endDate.getTime();
-                  draft.query.startDate = subMinutes(
-                    endDate,
-                    option.minutes,
-                  ).getTime();
-                });
-              }}
-              sx={{
-                border: "1px solid",
-                borderColor: "grey.400",
-              }}
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+            disabled={state.selectedTimeOption === "custom"}
+            onClick={() => {
+              setState((draft) => {
+                const option = timeOptions.find(
+                  (o) => o.id === draft.selectedTimeOption,
+                );
+                if (option === undefined || option.type !== "minutes") {
+                  return;
+                }
+                draft.query.offset = 0;
+                const endDate = new Date();
+                draft.query.endDate = endDate.getTime();
+                draft.query.startDate = subMinutes(
+                  endDate,
+                  option.minutes,
+                ).getTime();
+              });
+            }}
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+            }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ width: "100%", height: "48px" }}
+      >
+        <NewUserEventsFilterButton
+          state={userEventsFilterState}
+          setState={setUserEventsFilterState}
+          greyScale
+          buttonProps={{
+            disableRipple: true,
+            sx: {
+              ...greyButtonStyle,
+              fontWeight: "bold",
+            },
+          }}
+        />
+        <SelectedUserEventsFilters
+          state={userEventsFilterState}
+          setState={setUserEventsFilterState}
+        />
       </Stack>
 
       <Popover
