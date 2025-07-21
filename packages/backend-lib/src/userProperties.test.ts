@@ -23,7 +23,6 @@ import {
   findAllUserPropertyResources,
   findUserIdsByUserPropertyValue,
   insertUserPropertyAssignments,
-  upsertUserProperty,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
 

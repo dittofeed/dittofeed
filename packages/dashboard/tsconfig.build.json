@@ -17,10 +17,10 @@
   "exclude": ["node_modules", "./dist"],
   "references": [
     {
-      "path": "../isomorphic-lib",
+      "path": "../isomorphic-lib/tsconfig.build.json",
     },
     {
-      "path": "../backend-lib",
+      "path": "../backend-lib/tsconfig.build.json",
     },
     {
       "path": "../emailo",
