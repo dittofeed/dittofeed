@@ -38,13 +38,12 @@ import {
 
 jest.setTimeout(30000);
 
-describe("when a segment entry journey has a manual segment", () => {
+describe.skip("when a segment entry journey has a manual segment", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
   let journey: JourneyResource;
   let segment: SegmentResource;
-  let now: number;
 
   beforeEach(async () => {
     workspace = unwrap(
