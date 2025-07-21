@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { times } from "remeda";
+import { pick, times } from "remeda";
 
 import { submitBatch } from "./apps/batch";
 import {
@@ -21,6 +21,7 @@ import {
   SmsProviderType,
 } from "./types";
 import { createWorkspace } from "./workspaces";
+import logger from "./logger";
 
 describe("deliveries", () => {
   let workspaceId: string;
@@ -535,7 +536,12 @@ describe("deliveries", () => {
             event: InternalEventType.MessageSent,
             messageId: messageId1,
             properties: {
-              ...node1Properties,
+              ...pick(node1Properties, [
+                "journeyId",
+                "nodeId",
+                "templateId",
+                "runId",
+              ]),
               ...messageSentEvent1,
             },
           }),
@@ -554,7 +560,12 @@ describe("deliveries", () => {
             event: InternalEventType.MessageSent,
             messageId: messageId2,
             properties: {
-              ...node2Properties,
+              ...pick(node2Properties, [
+                "journeyId",
+                "nodeId",
+                "templateId",
+                "runId",
+              ]),
               ...messageSentEvent2,
             },
           }),
@@ -569,11 +580,17 @@ describe("deliveries", () => {
             event: InternalEventType.MessageSent,
             messageId: messageId3,
             properties: {
-              ...node3Properties,
+              ...pick(node3Properties, [
+                "journeyId",
+                "nodeId",
+                "templateId",
+                "runId",
+              ]),
               ...messageSentEvent3,
             },
           }),
         ];
+        logger().info({ events }, "events");
 
         await submitBatch({
           workspaceId,

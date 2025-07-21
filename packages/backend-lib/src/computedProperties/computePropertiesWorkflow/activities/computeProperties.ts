@@ -42,6 +42,10 @@ export async function getComputedUserPropertyArgs({
     workspaceId,
     requireRunning: true,
     ids: userPropertyIds,
+    // only add id and anonymousId if we're purposely restricting the set of
+    // user properties. this way the subset will be guaranteed to include them.
+    // otherwise we'll get all user properties.
+    names: userPropertyIds?.length ? ["id", "anonymousId"] : undefined,
   });
   return userProperties;
 }
@@ -163,17 +167,44 @@ export async function computePropertiesIndividual({
 }): Promise<void> {
   switch (item.type) {
     case WorkspaceQueueItemType.Segment: {
-      const [segmentsResult, userProperties] = await Promise.all([
-        findManySegmentResourcesSafe({
-          workspaceId: item.workspaceId,
-          segmentIds: [item.id],
-          requireRunning: false,
-        }),
-        findAllUserPropertyResources({
-          workspaceId: item.workspaceId,
-          names: ["id", "anonymousId"],
-        }),
-      ]);
+      const [segmentsResult, userProperties, integrations, journeys] =
+        await Promise.all([
+          findManySegmentResourcesSafe({
+            workspaceId: item.workspaceId,
+            segmentIds: [item.id],
+            requireRunning: false,
+          }),
+          findAllUserPropertyResources({
+            workspaceId: item.workspaceId,
+            names: ["id", "anonymousId"],
+          }),
+          findAllIntegrationResources({
+            workspaceId: item.workspaceId,
+          }),
+          findRunningJourneys({
+            workspaceId: item.workspaceId,
+          }),
+        ]);
+      const subscribedJourneys = journeys.filter((j) =>
+        getSubscribedSegments(j.definition).has(item.id),
+      );
+      const subscribedIntegrations = integrations.flatMap((i) => {
+        if (i.isErr()) {
+          logger().error(
+            {
+              err: i.error,
+              workspaceId: item.workspaceId,
+              segmentId: item.id,
+              integration: i,
+            },
+            "failed to parse integration for segment",
+          );
+          return [];
+        }
+        return i.value.definition.subscribedSegments.includes(item.id)
+          ? [i.value]
+          : [];
+      });
       const segments = segmentsResult.flatMap((r) => {
         if (r.isErr()) {
           logger().error(
@@ -184,12 +215,13 @@ export async function computePropertiesIndividual({
         }
         return [r.value];
       });
+
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments,
         userProperties,
-        journeys: [],
-        integrations: [],
+        journeys: subscribedJourneys,
+        integrations: subscribedIntegrations,
         now,
       });
       break;
@@ -235,7 +267,7 @@ export async function computePropertiesIndividual({
       const userPropertyIds = integrations.flatMap((i) => {
         return i.definition.subscribedUserProperties;
       });
-      const [subscribedSegments, subscribedUserProperties] = await Promise.all([
+      const [subscribedSegments, userPropertyDeps] = await Promise.all([
         findManySegmentResourcesSafe({
           workspaceId: item.workspaceId,
           segmentIds,
@@ -256,7 +288,7 @@ export async function computePropertiesIndividual({
       await computePropertiesIncremental({
         workspaceId: item.workspaceId,
         segments: subscribedSegments,
-        userProperties: subscribedUserProperties,
+        userProperties: userPropertyDeps,
         journeys: [],
         integrations,
         now,

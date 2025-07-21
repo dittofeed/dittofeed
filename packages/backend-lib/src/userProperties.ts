@@ -670,6 +670,12 @@ export async function findAllUserPropertyAssignmentsById({
 
 export async function upsertUserProperty(
   params: UpsertUserPropertyResource,
+  opts: {
+    // should only be used for testing, not exposed to client
+    skipProtectedCheck?: boolean;
+  } = {
+    skipProtectedCheck: false,
+  },
 ): Promise<Result<SavedUserPropertyResource, UpsertUserPropertyError>> {
   const {
     id,
@@ -688,7 +694,7 @@ export async function upsertUserProperty(
   const canCreate = workspaceId && name && definition;
   const definitionUpdatedAt = definition ? new Date() : undefined;
 
-  if (protectedUserProperties.has(name)) {
+  if (!opts.skipProtectedCheck && protectedUserProperties.has(name)) {
     return err({
       type: UpsertUserPropertyErrorType.ProtectedUserProperty,
       message: "User property name is protected",

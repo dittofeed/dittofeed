@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
 import deepEqual from "fast-deep-equal";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { doesEventNameMatch } from "isomorphic-lib/src/events";
 import {
   schemaValidate,
   schemaValidateWithErr,
@@ -51,7 +52,6 @@ import {
   UserWorkflowTrackEvent,
 } from "./types";
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
-import { doesEventNameMatch } from "isomorphic-lib/src/events";
 
 export function enrichSegment(
   segment: InferSelectModel<typeof dbSegment>,
