@@ -1426,6 +1426,7 @@ export const GetEventsRequest = Type.Object({
   userId: Type.Optional(UserId),
   offset: Type.Optional(Type.Number()),
   limit: Type.Optional(Type.Number()),
+  messageId: Type.Optional(Type.String()),
   // unix timestamp units ms
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),

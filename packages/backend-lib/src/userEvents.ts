@@ -217,8 +217,10 @@ export async function trackInternalEvents(props: {
 
 export async function findIdentifyTraits({
   workspaceId,
+  limit = 500,
 }: {
   workspaceId: string;
+  limit?: number;
 }): Promise<string[]> {
   const query = `
     SELECT DISTINCT
@@ -227,6 +229,7 @@ export async function findIdentifyTraits({
     WHERE
       workspace_id = {workspaceId:String}
       and event_type = 'identify'
+    limit {limit:Int32}
   `;
 
   const resultSet = await chQuery({
@@ -234,6 +237,7 @@ export async function findIdentifyTraits({
     format: "JSONEachRow",
     query_params: {
       workspaceId,
+      limit,
     },
   });
 
@@ -243,14 +247,18 @@ export async function findIdentifyTraits({
 
 export async function findTrackProperties({
   workspaceId,
+  limit = 500,
 }: {
   workspaceId: string;
+  limit?: number;
 }): Promise<GetPropertiesResponse["properties"]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const limitParam = qb.addQueryValue(limit, "Int32");
   const query = `
     SELECT
       arrayJoin(JSONExtractKeys(properties)) AS property,
+      max(processing_time) AS max_processing_time,
       event
     FROM user_events_v2
     WHERE
@@ -259,6 +267,9 @@ export async function findTrackProperties({
     GROUP BY
       property,
       event
+    ORDER BY
+      max_processing_time DESC
+    LIMIT ${limitParam}
   `;
 
   const resultSet = await chQuery({
@@ -267,7 +278,11 @@ export async function findTrackProperties({
     query_params: qb.getQueries(),
   });
 
-  const results = await resultSet.json<{ property: string; event: string }>();
+  const results = await resultSet.json<{
+    property: string;
+    event: string;
+    max_processing_time: string;
+  }>();
 
   return results.reduce<Record<string, string[]>>((acc, o) => {
     const properties = acc[o.event] ?? [];
@@ -291,6 +306,7 @@ export async function findManyEventsWithCount({
   broadcastId,
   journeyId,
   eventType,
+  messageId,
 }: GetEventsRequest): Promise<{
   events: UserEventsWithTraits[];
   count: number;
@@ -325,6 +341,10 @@ export async function findManyEventsWithCount({
 
   const userIdClause = userId
     ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
+
+  const messageIdClause = messageId
+    ? `AND message_id = ${qb.addQueryValue(messageId, "String")}`
     : "";
 
   const searchClause = searchTerm
@@ -378,6 +398,7 @@ export async function findManyEventsWithCount({
       ${broadcastIdClause}
       ${journeyIdClause}
       ${eventTypeClause}
+      ${messageIdClause}
     ORDER BY processing_time DESC
   `;
 
