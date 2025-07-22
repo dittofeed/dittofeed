@@ -1,4 +1,6 @@
+import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
+import { format } from "date-fns";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -558,5 +560,55 @@ export async function searchDeliveries({
     items,
     cursor: responseCursor,
     previousCursor: responsePreviousCursor,
+  };
+}
+
+export async function buildDeliveriesFile(
+  request: Omit<SearchDeliveriesRequest, "limit" | "cursor">,
+): Promise<{
+  fileName: string;
+  fileContent: string;
+}> {
+  const deliveries = await searchDeliveries({
+    ...request,
+    limit: 10000,
+  });
+
+  const csvData = deliveries.items.map((delivery) => ({
+    sentAt: delivery.sentAt,
+    updatedAt: delivery.updatedAt,
+    journeyId: delivery.journeyId || "",
+    broadcastId: delivery.broadcastId || "",
+    userId: delivery.userId,
+    isAnonymous: delivery.isAnonymous ? "true" : "false",
+    originMessageId: delivery.originMessageId,
+    triggeringMessageId: delivery.triggeringMessageId || "",
+    templateId: delivery.templateId,
+    status: delivery.status,
+    variant: "variant" in delivery ? JSON.stringify(delivery.variant) : "",
+  }));
+
+  const fileContent = await writeToString(csvData, {
+    headers: [
+      "sentAt",
+      "updatedAt",
+      "journeyId",
+      "broadcastId",
+      "userId",
+      "isAnonymous",
+      "originMessageId",
+      "triggeringMessageId",
+      "templateId",
+      "status",
+      "variant",
+    ],
+  });
+
+  const formattedDate = format(new Date(), "yyyy-MM-dd");
+  const fileName = `deliveries-${formattedDate}.csv`;
+
+  return {
+    fileName,
+    fileContent,
   };
 }

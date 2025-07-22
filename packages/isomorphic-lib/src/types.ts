@@ -5282,6 +5282,13 @@ export const SearchDeliveriesRequest = Type.Object({
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
 
+export const DownloadDeliveriesRequest = Type.Omit(SearchDeliveriesRequest, [
+  "limit",
+  "cursor",
+]);
+
+export type DownloadDeliveriesRequest = Static<typeof DownloadDeliveriesRequest>;
+
 export const BroadcastConfigTypeEnum = {
   V2: "V2",
 } as const;

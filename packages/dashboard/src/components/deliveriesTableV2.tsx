@@ -6,6 +6,7 @@ import {
   Clear as ClearIcon,
   Computer,
   ContentCopy as ContentCopyIcon,
+  DownloadForOffline,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -75,6 +76,7 @@ import {
 import Link from "next/link";
 import qs from "qs";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { omit } from "remeda";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
@@ -83,6 +85,7 @@ import { useAppStorePick } from "../lib/appStore";
 import { useAuthHeaders, useBaseApiUrl } from "../lib/authModeProvider";
 import { toCalendarDate } from "../lib/dates";
 import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
+import { useDownloadDeliveriesMutation } from "../lib/useDownloadDeliveriesMutation";
 import { useResourcesQuery } from "../lib/useResourcesQuery";
 import { BroadcastQueryKeys } from "./broadcasts/broadcastsShared";
 import {
@@ -681,6 +684,20 @@ export function DeliveriesTableV2({
   });
   const { data: broadcasts } = useBroadcastsQuery();
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const downloadMutation = useDownloadDeliveriesMutation({
+    onSuccess: () => {
+      setSnackbarMessage("Downloaded deliveries CSV.");
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      setSnackbarMessage(`Download failed: ${error.message}`);
+      setSnackbarOpen(true);
+    },
+  });
+
   const [deliveriesFilterState, setDeliveriesFilterState] =
     useDeliveriesFilterState();
   const initialEndDate = useMemo(() => new Date(), []);
@@ -729,6 +746,53 @@ export function DeliveriesTableV2({
     [deliveriesFilterState.filters],
   );
 
+  const queryParams = useMemo(() => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return null;
+    }
+    const templateIds = getFilterValues(deliveriesFilterState, "template");
+    const channels = getFilterValues(deliveriesFilterState, "channel") as
+      | ChannelType[]
+      | undefined;
+    const to = getFilterValues(deliveriesFilterState, "to");
+    const statuses = getFilterValues(deliveriesFilterState, "status");
+    const from = getFilterValues(deliveriesFilterState, "from");
+
+    return {
+      workspaceId: workspace.value.id,
+      cursor: state.query.cursor ?? undefined,
+      limit: state.query.limit,
+      startDate: state.query.startDate.toISOString(),
+      endDate: state.query.endDate.toISOString(),
+      templateIds,
+      channels,
+      to,
+      statuses,
+      from,
+      triggeringProperties,
+      sortBy: state.query.sortBy,
+      sortDirection: state.query.sortDirection,
+      userId,
+      groupId,
+      journeyId,
+      broadcastId,
+    } satisfies SearchDeliveriesRequest;
+  }, [
+    workspace,
+    deliveriesFilterState,
+    state.query,
+    triggeringProperties,
+    userId,
+    groupId,
+    journeyId,
+    broadcastId,
+  ]);
+
+  const downloadParams = useMemo(() => {
+    if (!queryParams) return null;
+    return omit(queryParams, ["cursor", "limit"]);
+  }, [queryParams]);
+
   const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: [
       "deliveries",
@@ -741,39 +805,11 @@ export function DeliveriesTableV2({
       workspace,
     ],
     queryFn: async () => {
-      if (workspace.type !== CompletionStatus.Successful) {
+      if (!queryParams) {
         return null;
       }
-
-      const templateIds = getFilterValues(deliveriesFilterState, "template");
-      const channels = getFilterValues(deliveriesFilterState, "channel") as
-        | ChannelType[]
-        | undefined;
-      const to = getFilterValues(deliveriesFilterState, "to");
-      const statuses = getFilterValues(deliveriesFilterState, "status");
-      const from = getFilterValues(deliveriesFilterState, "from");
-
-      const params: SearchDeliveriesRequest = {
-        workspaceId: workspace.value.id,
-        cursor: state.query.cursor ?? undefined,
-        limit: state.query.limit,
-        startDate: state.query.startDate.toISOString(),
-        endDate: state.query.endDate.toISOString(),
-        templateIds,
-        channels,
-        to,
-        statuses,
-        from,
-        triggeringProperties,
-        sortBy: state.query.sortBy,
-        sortDirection: state.query.sortDirection,
-        userId,
-        groupId,
-        journeyId,
-        broadcastId,
-      };
       const response = await axios.get(`${baseApiUrl}/deliveries`, {
-        params,
+        params: queryParams,
         headers: authHeaders,
       });
       const result = unwrap(
@@ -1441,6 +1477,18 @@ export function DeliveriesTableV2({
               </Select>
             </Stack>
           </Popover>
+          <Tooltip title="Download deliveries as CSV" placement="bottom-start">
+            <GreyButton
+              onClick={() => {
+                if (downloadParams) {
+                  downloadMutation.mutate(downloadParams);
+                }
+              }}
+              startIcon={<DownloadForOffline />}
+            >
+              Download Deliveries
+            </GreyButton>
+          </Tooltip>
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
               disabled={state.selectedTimeOption === "custom"}
@@ -1607,6 +1655,13 @@ export function DeliveriesTableV2({
       >
         {preview}
       </Drawer>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </>
   );
 }
