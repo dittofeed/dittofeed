@@ -1,4 +1,3 @@
-import { writeToString } from "@fast-csv/format";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   DownloadEventsRequest,
@@ -11,11 +10,11 @@ import {
   GetTraitsResponse,
 } from "backend-lib/src/types";
 import {
+  buildEventsFile,
   findIdentifyTraits,
   findManyEventsWithCount,
   findTrackProperties,
 } from "backend-lib/src/userEvents";
-import { format } from "date-fns";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -130,42 +129,7 @@ export default async function eventsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      // Get all events without pagination for CSV export
-      const { events } = await findManyEventsWithCount({
-        ...request.query,
-        limit: undefined, // Remove pagination to get all events
-        offset: undefined,
-      });
-
-      // Transform events to CSV format
-      const csvData = events.map((event) => ({
-        messageId: event.message_id,
-        eventType: event.event_type,
-        event: event.event,
-        userId: event.user_id || "",
-        anonymousId: event.anonymous_id || "",
-        processingTime: event.processing_time,
-        eventTime: event.event_time,
-        traits: event.traits,
-        properties: event.properties,
-      }));
-
-      // Define CSV headers
-      const headers = [
-        "messageId",
-        "eventType",
-        "event",
-        "userId",
-        "anonymousId",
-        "processingTime",
-        "eventTime",
-        "traits",
-        "properties",
-      ];
-
-      const fileContent = await writeToString(csvData, { headers });
-      const formattedDate = format(new Date(), "yyyy-MM-dd");
-      const fileName = `events-${formattedDate}.csv`;
+      const { fileName, fileContent } = await buildEventsFile(request.query);
 
       return reply
         .header("Content-Disposition", `attachment; filename=${fileName}`)
