@@ -1371,6 +1371,18 @@ export function DeliveriesTableV2({
               </IconButton>
             </Stack>
           )}
+          <Tooltip title="Download deliveries as CSV" placement="bottom-start">
+            <GreyButton
+              onClick={() => {
+                if (downloadParams) {
+                  downloadMutation.mutate(downloadParams);
+                }
+              }}
+              startIcon={<DownloadForOffline />}
+            >
+              Download Deliveries
+            </GreyButton>
+          </Tooltip>
           <GreyButton
             startIcon={<SwapVertIcon />}
             sx={{
@@ -1477,18 +1489,6 @@ export function DeliveriesTableV2({
               </Select>
             </Stack>
           </Popover>
-          <Tooltip title="Download deliveries as CSV" placement="bottom-start">
-            <GreyButton
-              onClick={() => {
-                if (downloadParams) {
-                  downloadMutation.mutate(downloadParams);
-                }
-              }}
-              startIcon={<DownloadForOffline />}
-            >
-              Download Deliveries
-            </GreyButton>
-          </Tooltip>
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
               disabled={state.selectedTimeOption === "custom"}
