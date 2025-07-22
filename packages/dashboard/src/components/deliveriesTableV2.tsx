@@ -746,7 +746,7 @@ export function DeliveriesTableV2({
     [deliveriesFilterState.filters],
   );
 
-  const queryParams = useMemo(() => {
+  const resolvedQueryParams = useMemo(() => {
     if (workspace.type !== CompletionStatus.Successful) {
       return null;
     }
@@ -789,9 +789,9 @@ export function DeliveriesTableV2({
   ]);
 
   const downloadParams = useMemo(() => {
-    if (!queryParams) return null;
-    return omit(queryParams, ["cursor", "limit"]);
-  }, [queryParams]);
+    if (!resolvedQueryParams) return null;
+    return omit(resolvedQueryParams, ["cursor", "limit"]);
+  }, [resolvedQueryParams]);
 
   const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: [
@@ -805,11 +805,11 @@ export function DeliveriesTableV2({
       workspace,
     ],
     queryFn: async () => {
-      if (!queryParams) {
+      if (!resolvedQueryParams) {
         return null;
       }
       const response = await axios.get(`${baseApiUrl}/deliveries`, {
-        params: queryParams,
+        params: resolvedQueryParams,
         headers: authHeaders,
       });
       const result = unwrap(
