@@ -1,7 +1,5 @@
-import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
 import { writeToString } from "@fast-csv/format";
-import { format } from "date-fns";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   DownloadEventsRequest,
   GetEventsRequest,
@@ -17,6 +15,7 @@ import {
   findManyEventsWithCount,
   findTrackProperties,
 } from "backend-lib/src/userEvents";
+import { format } from "date-fns";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
