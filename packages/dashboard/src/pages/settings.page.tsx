@@ -1748,6 +1748,7 @@ function IntegrationSettings() {
 
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
+  const { apiBase } = useAppStorePick(["apiBase"]);
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
@@ -1763,6 +1764,7 @@ function SubscriptionManagementSettings() {
     name: sg.name,
     id: sg.id,
     isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
+    channel: sg.channel,
   }));
 
   if (!workspace) {
@@ -1817,7 +1819,6 @@ function SubscriptionManagementSettings() {
               key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
               workspaceName={workspace.name}
-              onSubscriptionUpdate={async () => {}}
               subscriptionChange={
                 fromSubscribe
                   ? SubscriptionChange.Subscribe
@@ -1828,6 +1829,7 @@ function SubscriptionManagementSettings() {
               hash="example-hash"
               identifier="example@email.com"
               identifierKey="email"
+              apiBase={apiBase}
             />
           </Paper>
         </Stack>

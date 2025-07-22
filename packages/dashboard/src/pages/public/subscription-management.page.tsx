@@ -9,7 +9,7 @@ import {
   updateUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -27,6 +27,7 @@ import { apiBase } from "../../lib/apiBase";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
+  changedSubscriptionChannel?: string;
 };
 export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
@@ -90,6 +91,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   const { userId } = userLookupResult.value;
 
   let subscriptionChange: SubscriptionChange | undefined;
+  let changedSubscriptionChannel: string | undefined;
   if (s && sub) {
     logger().debug(
       {
@@ -104,17 +106,51 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
         ? SubscriptionChange.Subscribe
         : SubscriptionChange.Unsubscribe;
 
-    await updateUserSubscriptions({
-      workspaceId: w,
-      userUpdates: [
-        {
-          userId,
-          changes: {
-            [s]: sub === "1",
-          },
-        },
-      ],
+    // Get the subscription group to determine its channel
+    const targetSubscriptionGroup = await db().query.subscriptionGroup.findFirst({
+      where: eq(schema.subscriptionGroup.id, s),
     });
+
+    if (targetSubscriptionGroup) {
+      changedSubscriptionChannel = targetSubscriptionGroup.channel;
+
+      // If unsubscribing, unsubscribe from all subscription groups in the same channel
+      if (subscriptionChange === SubscriptionChange.Unsubscribe) {
+        const channelSubscriptionGroups = await db().query.subscriptionGroup.findMany({
+          where: and(
+            eq(schema.subscriptionGroup.workspaceId, w),
+            eq(schema.subscriptionGroup.channel, targetSubscriptionGroup.channel)
+          ),
+        });
+
+        const channelChanges: Record<string, boolean> = {};
+        channelSubscriptionGroups.forEach((sg) => {
+          channelChanges[sg.id] = false;
+        });
+
+        await updateUserSubscriptions({
+          workspaceId: w,
+          userUpdates: [
+            {
+              userId,
+              changes: channelChanges,
+            },
+          ],
+        });
+      } else {
+        await updateUserSubscriptions({
+          workspaceId: w,
+          userUpdates: [
+            {
+              userId,
+              changes: {
+                [s]: sub === "1",
+              },
+            },
+          ],
+        });
+      }
+    }
   }
 
   const subscriptions = await getUserSubscriptions({
@@ -137,30 +173,22 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   if (s) {
     props.changedSubscription = s;
   }
+  if (changedSubscriptionChannel) {
+    props.changedSubscriptionChannel = changedSubscriptionChannel;
+  }
 
   return { props };
 };
 
 const SubscriptionManagementPage: NextPage<SSP> =
   function SubscriptionManagementPage(props) {
-    const { apiBase: propsApiBase } = props;
-    const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] =
-      async (update) => {
-        const data: UserSubscriptionsUpdate = update;
-        await axios({
-          method: "PUT",
-          url: `${propsApiBase}/api/public/subscription-management/user-subscriptions`,
-          data,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      };
     const {
+      apiBase,
       workspaceId,
       subscriptions,
       subscriptionChange,
       changedSubscription,
+      changedSubscriptionChannel,
       hash,
       identifier,
       identifierKey,
@@ -177,11 +205,12 @@ const SubscriptionManagementPage: NextPage<SSP> =
           subscriptions={subscriptions}
           subscriptionChange={subscriptionChange}
           changedSubscription={changedSubscription}
+          changedSubscriptionChannel={changedSubscriptionChannel}
           hash={hash}
           identifier={identifier}
           identifierKey={identifierKey}
           workspaceName={workspaceName}
-          onSubscriptionUpdate={onUpdate}
+          apiBase={apiBase}
         />
       </Stack>
     );
