@@ -4,7 +4,10 @@ import {
   UseMutationResult,
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import { CompletionStatus, DownloadEventsRequest } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DownloadEventsRequest,
+} from "isomorphic-lib/src/types";
 
 import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
