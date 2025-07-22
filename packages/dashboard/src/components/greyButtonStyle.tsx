@@ -1,4 +1,5 @@
 import { Button, ButtonProps } from "@mui/material";
+import { forwardRef } from "react";
 
 export const greyButtonStyle = {
   bgcolor: "grey.200",
@@ -15,15 +16,18 @@ export const greyButtonStyle = {
   },
 } as const;
 
-export function GreyButton(props: ButtonProps) {
-  const { sx, ...rest } = props;
-  return (
-    <Button
-      {...rest}
-      sx={{
-        ...greyButtonStyle,
-        ...sx,
-      }}
-    />
-  );
-}
+export const GreyButton = forwardRef<HTMLButtonElement, ButtonProps>(
+  function GreyButton(props, ref) {
+    const { sx, ...rest } = props;
+    return (
+      <Button
+        ref={ref}
+        {...rest}
+        sx={{
+          ...greyButtonStyle,
+          ...sx,
+        }}
+      />
+    );
+  }
+);
