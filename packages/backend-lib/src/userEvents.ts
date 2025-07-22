@@ -1,5 +1,7 @@
 import { ClickHouseSettings, Row } from "@clickhouse/client";
+import { writeToString } from "@fast-csv/format";
 import { and, eq } from "drizzle-orm";
+import { format } from "date-fns";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
@@ -16,6 +18,7 @@ import {
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
 import {
+  DownloadEventsRequest,
   GetEventsRequest,
   GetPropertiesResponse,
   InternalEventType,
@@ -501,4 +504,53 @@ export async function findUserIdsByUserProperty({
     ]);
   }
   return result;
+}
+
+export async function buildEventsFile(
+  params: DownloadEventsRequest,
+): Promise<{
+  fileName: string;
+  fileContent: string;
+}> {
+  // Get all events without pagination for CSV export
+  const { events } = await findManyEventsWithCount({
+    ...params,
+    limit: undefined, // Remove pagination to get all events
+    offset: undefined,
+  });
+
+  // Transform events to CSV format
+  const csvData = events.map((event) => ({
+    messageId: event.message_id,
+    eventType: event.event_type,
+    event: event.event,
+    userId: event.user_id || "",
+    anonymousId: event.anonymous_id || "",
+    processingTime: event.processing_time,
+    eventTime: event.event_time,
+    traits: event.traits,
+    properties: event.properties,
+  }));
+
+  // Define CSV headers
+  const headers = [
+    "messageId",
+    "eventType",
+    "event",
+    "userId",
+    "anonymousId",
+    "processingTime",
+    "eventTime",
+    "traits",
+    "properties",
+  ];
+
+  const fileContent = await writeToString(csvData, { headers });
+  const formattedDate = format(new Date(), "yyyy-MM-dd");
+  const fileName = `events-${formattedDate}.csv`;
+
+  return {
+    fileName,
+    fileContent,
+  };
 }

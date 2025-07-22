@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+  DownloadEventsRequest,
   GetEventsRequest,
   GetEventsResponse,
   GetEventsResponseItem,
@@ -9,6 +10,7 @@ import {
   GetTraitsResponse,
 } from "backend-lib/src/types";
 import {
+  buildEventsFile,
   findIdentifyTraits,
   findManyEventsWithCount,
   findTrackProperties,
@@ -110,6 +112,29 @@ export default async function eventsController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send({ properties });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/download",
+    {
+      schema: {
+        description: "Download a csv containing events.",
+        tags: ["Events"],
+        querystring: DownloadEventsRequest,
+        200: {
+          type: "string",
+          format: "binary",
+        },
+      },
+    },
+    async (request, reply) => {
+      const { fileName, fileContent } = await buildEventsFile(request.query);
+
+      return reply
+        .header("Content-Disposition", `attachment; filename=${fileName}`)
+        .type("text/csv")
+        .send(fileContent);
     },
   );
 }
