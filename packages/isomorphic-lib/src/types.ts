@@ -1480,6 +1480,12 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
+export const DownloadEventsRequest = Type.Omit(GetEventsRequest, [
+  "offset",
+  "limit",
+]);
+export type DownloadEventsRequest = Static<typeof DownloadEventsRequest>;
+
 export const LowCodeEmailJsonBody = Type.Recursive(
   (self) =>
     Type.Composite([

@@ -2,6 +2,7 @@ import { CalendarDate } from "@internationalized/date";
 import {
   Computer,
   ContentCopy as ContentCopyIcon,
+  Download as DownloadIcon,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -40,6 +41,7 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
+import { omit } from "remeda";
 import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
@@ -64,6 +66,7 @@ import { useEventsQuery } from "../lib/useEventsQuery";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
+import { useDownloadEventsMutation } from "../lib/useDownloadEventsMutation";
 import { RangeCalendar } from "./rangeCalendar";
 import {
   getFilterValues,
@@ -620,6 +623,8 @@ export function UserEventsTable({
     placeholderData: keepPreviousData,
   });
 
+  const downloadEventsMutation = useDownloadEventsMutation();
+
   const onNextPage = useCallback(() => {
     setState((draft) => {
       draft.query.offset += draft.query.limit;
@@ -903,6 +908,20 @@ export function UserEventsTable({
             }}
           />
         </Stack>
+        <Tooltip title="Download Events as CSV" placement="bottom-start">
+          <IconButton
+            onClick={() => {
+              downloadEventsMutation.mutate(omit(finalQuery, ['offset', 'limit']));
+            }}
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+              marginRight: 1,
+            }}
+          >
+            <DownloadIcon />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Refresh Results" placement="bottom-start">
           <IconButton
             disabled={state.selectedTimeOption === "custom"}
