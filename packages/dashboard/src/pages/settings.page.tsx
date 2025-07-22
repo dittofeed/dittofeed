@@ -1760,18 +1760,27 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  const subscriptions = subscriptionGroups.map((sg, i) => ({
+  // For unsubscribe simulation, unsubscribe all groups in the same channel as the first group
+  const firstSubscriptionGroup = subscriptionGroups[0];
+  const channelToUnsubscribeFrom = firstSubscriptionGroup?.channel;
+  
+  const subscriptions = subscriptionGroups.map((sg) => ({
     name: sg.name,
     id: sg.id,
-    isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
+    isSubscribed: !(fromSubscriptionChange && !fromSubscribe && sg.channel === channelToUnsubscribeFrom),
     channel: sg.channel,
   }));
 
   if (!workspace) {
     return null;
   }
+  
   const changedSubscription = fromSubscriptionChange
     ? subscriptions[0]?.id
+    : undefined;
+    
+  const changedSubscriptionChannel = fromSubscriptionChange && !fromSubscribe
+    ? channelToUnsubscribeFrom
     : undefined;
 
   return (
@@ -1825,6 +1834,7 @@ function SubscriptionManagementSettings() {
                   : SubscriptionChange.Unsubscribe
               }
               changedSubscription={changedSubscription}
+              changedSubscriptionChannel={changedSubscriptionChannel}
               workspaceId={workspace.id}
               hash="example-hash"
               identifier="example@email.com"
