@@ -909,18 +909,17 @@ export function UserEventsTable({
           />
         </Stack>
         <Tooltip title="Download Events as CSV" placement="bottom-start">
-          <IconButton
+          <GreyButton
             onClick={() => {
               downloadEventsMutation.mutate(omit(finalQuery, ['offset', 'limit']));
             }}
+            startIcon={<DownloadIcon />}
             sx={{
-              border: "1px solid",
-              borderColor: "grey.400",
               marginRight: 1,
             }}
           >
-            <DownloadIcon />
-          </IconButton>
+            Download Events
+          </GreyButton>
         </Tooltip>
         <Tooltip title="Refresh Results" placement="bottom-start">
           <IconButton
