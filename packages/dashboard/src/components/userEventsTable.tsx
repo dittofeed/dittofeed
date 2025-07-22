@@ -41,7 +41,6 @@ import {
   Row,
   useReactTable,
 } from "@tanstack/react-table";
-import { omit } from "remeda";
 import { subDays, subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
@@ -56,17 +55,18 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../lib/appStore";
 import { toCalendarDate } from "../lib/dates";
 import { EventResources } from "../lib/types";
+import { useDownloadEventsMutation } from "../lib/useDownloadEventsMutation";
 import { useEventsQuery } from "../lib/useEventsQuery";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
-import { useDownloadEventsMutation } from "../lib/useDownloadEventsMutation";
 import { RangeCalendar } from "./rangeCalendar";
 import {
   getFilterValues,
@@ -911,7 +911,9 @@ export function UserEventsTable({
         <Tooltip title="Download Events as CSV" placement="bottom-start">
           <GreyButton
             onClick={() => {
-              downloadEventsMutation.mutate(omit(finalQuery, ['offset', 'limit']));
+              downloadEventsMutation.mutate(
+                omit(finalQuery, ["offset", "limit"]),
+              );
             }}
             startIcon={<DownloadIcon />}
             sx={{

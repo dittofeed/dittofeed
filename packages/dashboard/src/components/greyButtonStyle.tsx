@@ -29,5 +29,5 @@ export const GreyButton = forwardRef<HTMLButtonElement, ButtonProps>(
         }}
       />
     );
-  }
+  },
 );
