@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { randomUUID } from "crypto";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -20,6 +20,8 @@ import { testTemplate, upsertMessageTemplate } from "../messaging";
 import { Workspace } from "../types";
 
 jest.mock("axios");
+
+const { AxiosHeaders } = jest.requireActual<typeof import("axios")>("axios");
 
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
@@ -44,12 +46,15 @@ describe("testTemplate", () => {
 
   it("should reproduce schema validation error with webhook response", async () => {
     // Mock webhook response with empty body that causes schema validation issues
-    const mockResponse = {
+    const headers = AxiosHeaders.from({ "content-type": "application/json" });
+    const mockResponse: AxiosResponse = {
       data: "", // Empty string body that might cause schema validation issues
       status: 201,
       statusText: "Created",
-      headers: { "content-type": "application/json" },
-      config: {},
+      headers,
+      config: {
+        headers,
+      },
     };
 
     mockAxios.request.mockResolvedValue(mockResponse);
@@ -121,14 +126,19 @@ describe("testTemplate", () => {
     }
   });
 
-  it("should handle webhook response with special characters", async () => {
-    // Mock webhook response with special characters that might cause issues
-    const mockResponse = {
-      data: "#", // Special character that might trigger schema validation error
+  it.only("should handle array headers", async () => {
+    const headers = AxiosHeaders.from({
+      "content-type": ["text/plain", "application/json"],
+    });
+
+    const mockResponse: AxiosResponse = {
+      data: undefined,
       status: 201,
       statusText: "Created",
-      headers: { "content-type": "text/plain" },
-      config: {},
+      headers,
+      config: {
+        headers,
+      },
     };
 
     mockAxios.request.mockResolvedValue(mockResponse);

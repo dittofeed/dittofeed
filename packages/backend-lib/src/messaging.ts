@@ -1,7 +1,7 @@
 import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
 import { randomUUID } from "crypto";
 import { and, eq, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
@@ -2012,6 +2012,20 @@ export async function sendWebhook({
       headers: renderedHeaders,
     });
 
+    const axiosHeaders =
+      response.headers instanceof AxiosHeaders
+        ? response.headers.toJSON()
+        : response.headers;
+
+    logger().debug(
+      {
+        rawHeaders: response.headers,
+        axiosHeaders,
+        typeofAxiosHeaders: typeof axiosHeaders,
+        prototype: axiosHeaders?.constructor?.name,
+      },
+      "webhook response headers",
+    );
     return ok({
       type: InternalEventType.MessageSent,
       variant: {
@@ -2023,7 +2037,7 @@ export async function sendWebhook({
         } satisfies WebhookConfig,
         response: {
           status: response.status,
-          headers: response.headers as Record<string, string> | undefined,
+          headers: axiosHeaders as WebhookResponse["headers"] | undefined,
           body: response.data,
         } satisfies WebhookResponse,
       } satisfies MessageWebhookSuccess,
@@ -2097,6 +2111,7 @@ export async function testTemplate(
     messageId: request.tags?.messageId ?? randomUUID(),
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const userId = request.userProperties.id;
   if (typeof userId === "string") {
     messageTags.userId = userId;
