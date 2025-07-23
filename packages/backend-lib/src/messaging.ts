@@ -1,7 +1,8 @@
 import { SESv2ServiceException } from "@aws-sdk/client-sesv2";
 import { MessagesMessage as MailChimpMessage } from "@mailchimp/mailchimp_transactional";
 import { MailDataRequired } from "@sendgrid/mail";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
+import { randomUUID } from "crypto";
 import { and, eq, SQL } from "drizzle-orm";
 import { toMjml } from "emailo/src/toMjml";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
@@ -85,6 +86,7 @@ import {
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   MessageTemplateResourceDraft,
+  MessageTemplateTestRequest,
   MessageWebhookServiceFailure,
   MessageWebhookSuccess,
   MobilePushProviderType,
@@ -2010,6 +2012,11 @@ export async function sendWebhook({
       headers: renderedHeaders,
     });
 
+    const axiosHeaders =
+      response.headers instanceof AxiosHeaders
+        ? response.headers.toJSON()
+        : response.headers;
+
     return ok({
       type: InternalEventType.MessageSent,
       variant: {
@@ -2021,7 +2028,7 @@ export async function sendWebhook({
         } satisfies WebhookConfig,
         response: {
           status: response.status,
-          headers: response.headers as Record<string, string> | undefined,
+          headers: axiosHeaders as WebhookResponse["headers"] | undefined,
           body: response.data,
         } satisfies WebhookResponse,
       } satisfies MessageWebhookSuccess,
@@ -2085,4 +2092,68 @@ export async function sendMessage(
         return sendWebhook(params);
     }
   });
+}
+
+export async function testTemplate(
+  request: MessageTemplateTestRequest,
+): Promise<BackendMessageSendResult> {
+  const messageTags: MessageTags = {
+    ...(request.tags ?? {}),
+    messageId: request.tags?.messageId ?? randomUUID(),
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const userId = request.userProperties.id;
+  if (typeof userId === "string") {
+    messageTags.userId = userId;
+  }
+  const baseSendMessageParams: Omit<
+    SendMessageParameters,
+    "provider" | "channel"
+  > = {
+    workspaceId: request.workspaceId,
+    templateId: request.templateId,
+    userId: messageTags.userId ?? "test-user",
+    userPropertyAssignments: request.userProperties,
+    useDraft: true,
+    messageTags,
+  };
+  let sendMessageParams: SendMessageParameters;
+  switch (request.channel) {
+    case ChannelType.Email: {
+      sendMessageParams = {
+        ...baseSendMessageParams,
+        channel: request.channel,
+        providerOverride: request.provider,
+      };
+      break;
+    }
+    case ChannelType.Sms: {
+      sendMessageParams = {
+        ...baseSendMessageParams,
+        providerOverride: request.provider,
+        channel: request.channel,
+        disableCallback: true,
+      };
+      break;
+    }
+    case ChannelType.MobilePush: {
+      sendMessageParams = {
+        ...baseSendMessageParams,
+        provider: request.provider,
+        channel: request.channel,
+      };
+      break;
+    }
+    case ChannelType.Webhook: {
+      sendMessageParams = {
+        ...baseSendMessageParams,
+        channel: request.channel,
+      };
+      break;
+    }
+    default:
+      assertUnreachable(request);
+  }
+  return sendMessage(sendMessageParams);
 }

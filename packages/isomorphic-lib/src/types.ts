@@ -3661,8 +3661,19 @@ export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
 export const WebhookResponse = Type.Object({
   status: Type.Optional(Type.Number()),
-  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  body: Type.Unknown(),
+  headers: Type.Optional(
+    Type.Record(
+      Type.String(),
+      Type.Union([
+        Type.String(),
+        Type.Number(),
+        Type.Array(Type.String()),
+        Type.Null(),
+        Type.Boolean(),
+      ]),
+    ),
+  ),
+  body: Type.Optional(Type.Unknown()),
 });
 
 export type WebhookResponse = Static<typeof WebhookResponse>;
@@ -5294,7 +5305,9 @@ export const DownloadDeliveriesRequest = Type.Omit(SearchDeliveriesRequest, [
   "cursor",
 ]);
 
-export type DownloadDeliveriesRequest = Static<typeof DownloadDeliveriesRequest>;
+export type DownloadDeliveriesRequest = Static<
+  typeof DownloadDeliveriesRequest
+>;
 
 export const BroadcastConfigTypeEnum = {
   V2: "V2",

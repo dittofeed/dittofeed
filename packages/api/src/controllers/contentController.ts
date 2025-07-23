@@ -6,8 +6,7 @@ import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
   enrichMessageTemplate,
-  sendMessage,
-  SendMessageParameters,
+  testTemplate,
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
 import { Secret } from "backend-lib/src/types";
@@ -325,65 +324,7 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const messageTags: MessageTags = {
-        ...(request.body.tags ?? {}),
-        messageId: request.body.tags?.messageId ?? randomUUID(),
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const userId = request.body.userProperties.id;
-      if (typeof userId === "string") {
-        messageTags.userId = userId;
-      }
-      const baseSendMessageParams: Omit<
-        SendMessageParameters,
-        "provider" | "channel"
-      > = {
-        workspaceId: request.body.workspaceId,
-        templateId: request.body.templateId,
-        userId: messageTags.userId ?? "test-user",
-        userPropertyAssignments: request.body.userProperties,
-        useDraft: true,
-        messageTags,
-      };
-      let sendMessageParams: SendMessageParameters;
-      switch (request.body.channel) {
-        case ChannelType.Email: {
-          sendMessageParams = {
-            ...baseSendMessageParams,
-            channel: request.body.channel,
-            providerOverride: request.body.provider,
-          };
-          break;
-        }
-        case ChannelType.Sms: {
-          sendMessageParams = {
-            ...baseSendMessageParams,
-            providerOverride: request.body.provider,
-            channel: request.body.channel,
-            disableCallback: true,
-          };
-          break;
-        }
-        case ChannelType.MobilePush: {
-          sendMessageParams = {
-            ...baseSendMessageParams,
-            provider: request.body.provider,
-            channel: request.body.channel,
-          };
-          break;
-        }
-        case ChannelType.Webhook: {
-          sendMessageParams = {
-            ...baseSendMessageParams,
-            channel: request.body.channel,
-          };
-          break;
-        }
-        default:
-          assertUnreachable(request.body);
-      }
-      const result = await sendMessage(sendMessageParams);
+      const result = await testTemplate(request.body);
       if (result.isOk()) {
         return reply.status(200).send({
           type: JsonResultType.Ok,
