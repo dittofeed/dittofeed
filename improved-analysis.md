@@ -27,3 +27,11 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - message state (delivered, opened etc.)
 - note that some journey filters availability should be conditional on prior selected filters.
     - e.g. provider should only be available if a particular channel is selected 
+
+## Choice of libraries
+
+- you should use tanstack query and axios for data fetching
+    - see packages/dashboard/src/lib/useSegmentsQuery.ts and packages/dashboard/src/lib/useUpdateSegmentsMutation.ts as examples
+
+## Steps
+ - create new backend method

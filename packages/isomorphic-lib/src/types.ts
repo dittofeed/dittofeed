@@ -5667,3 +5667,16 @@ export interface UserEventV2 {
   message_raw: string;
   workspace_id: string;
 }
+
+export const GetAnalysisRequest = Type.Object({
+  workspaceId: Type.String(),
+  channel: Type.Optional(Type.Enum(ChannelType)),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+  userId: Type.Optional(Type.String()),
+  startDate: Type.Optional(Type.String()),
+  endDate: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
+});
+
+export type GetAnalysisRequest = Static<typeof GetAnalysisRequest>;
