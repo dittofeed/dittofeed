@@ -125,7 +125,7 @@ const keyCommandLabels: Record<FilterKey, string> = {
   userId: "User ID",
 };
 
-const keyCommands: UserEventsFilterCommand[] = [
+const keyCommands = [
   {
     label: keyCommandLabels.event,
     type: UserEventsFilterCommandType.SelectKey,
@@ -156,7 +156,7 @@ const keyCommands: UserEventsFilterCommand[] = [
     type: UserEventsFilterCommandType.SelectKey,
     filterKey: "userId",
   },
-] as const;
+] as const satisfies UserEventsFilterCommand[];
 
 export function getFilterValues(
   state: UserEventsState,
