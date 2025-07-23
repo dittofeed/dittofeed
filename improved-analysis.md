@@ -8,3 +8,22 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 
 ## Proposed UX
 
+- The top left corner should have:
+    - a date range selector.
+    - a group by selector.
+    - and a filter selector.
+- The top right corner should have a:
+    - refresh button
+    - button to auto-refresh
+    - button to export data (CSV)
+    - a button to toggle between percentages and absolute values
+
+- filter and group by should be dropdowns with the following options:
+    - journeys
+        - can further filter by template
+    - broadcasts
+    - channel
+    - provider
+    - message state (delivered, opened etc.)
+- note that some journey filters availability should be conditional on prior selected filters.
+    - e.g. provider should only be available if a particular channel is selected 
