@@ -1763,25 +1763,30 @@ function SubscriptionManagementSettings() {
   // For unsubscribe simulation, unsubscribe all groups in the same channel as the first group
   const firstSubscriptionGroup = subscriptionGroups[0];
   const channelToUnsubscribeFrom = firstSubscriptionGroup?.channel;
-  
+
   const subscriptions = subscriptionGroups.map((sg) => ({
     name: sg.name,
     id: sg.id,
-    isSubscribed: !(fromSubscriptionChange && !fromSubscribe && sg.channel === channelToUnsubscribeFrom),
+    isSubscribed: !(
+      fromSubscriptionChange &&
+      !fromSubscribe &&
+      sg.channel === channelToUnsubscribeFrom
+    ),
     channel: sg.channel,
   }));
 
   if (!workspace) {
     return null;
   }
-  
+
   const changedSubscription = fromSubscriptionChange
     ? subscriptions[0]?.id
     : undefined;
-    
-  const changedSubscriptionChannel = fromSubscriptionChange && !fromSubscribe
-    ? channelToUnsubscribeFrom
-    : undefined;
+
+  const changedSubscriptionChannel =
+    fromSubscriptionChange && !fromSubscribe
+      ? channelToUnsubscribeFrom
+      : undefined;
 
   return (
     <Stack>
@@ -1840,6 +1845,7 @@ function SubscriptionManagementSettings() {
               identifier="example@email.com"
               identifierKey="email"
               apiBase={apiBase}
+              isPreview
             />
           </Paper>
         </Stack>

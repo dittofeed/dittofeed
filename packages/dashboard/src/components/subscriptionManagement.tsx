@@ -11,9 +11,7 @@ import {
 } from "@mui/material";
 import { SubscriptionChange } from "backend-lib/src/types";
 import {
-  ChannelType,
   UserSubscriptionResource,
-  UserSubscriptionsUpdate,
 } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
 import React, { useMemo } from "react";
@@ -35,6 +33,7 @@ export interface SubscriptionManagementProps {
   workspaceId: string;
   workspaceName: string;
   apiBase: string;
+  isPreview?: boolean;
 }
 
 export function SubscriptionManagement({
@@ -48,6 +47,7 @@ export function SubscriptionManagement({
   identifierKey,
   workspaceName,
   apiBase,
+  isPreview = false,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
     () =>
@@ -60,7 +60,9 @@ export function SubscriptionManagement({
 
   // Group subscriptions by channel
   const subscriptionsByChannel = React.useMemo(() => {
-    const grouped = subscriptions.reduce<Record<string, UserSubscriptionResource[]>>((acc, subscription) => {
+    const grouped = subscriptions.reduce<
+      Record<string, UserSubscriptionResource[]>
+    >((acc, subscription) => {
       const existingChannelSubs = acc[subscription.channel];
       if (existingChannelSubs) {
         existingChannelSubs.push(subscription);
@@ -75,13 +77,17 @@ export function SubscriptionManagement({
   // Calculate initial channel state based on subscription states
   const initialChannelState = React.useMemo(() => {
     const channelState: ChannelState = {};
-    Object.entries(subscriptionsByChannel).forEach(([channel, channelSubscriptions]) => {
-      if (channelSubscriptions && channelSubscriptions.length > 0) {
-        // Channel is checked if ANY subscription in that channel is checked
-        const anySubscribed = channelSubscriptions.some(sub => initialSubscriptionManagementState[sub.id]);
-        channelState[channel] = anySubscribed;
-      }
-    });
+    Object.entries(subscriptionsByChannel).forEach(
+      ([channel, channelSubscriptions]) => {
+        if (channelSubscriptions.length > 0) {
+          // Channel is checked if ANY subscription in that channel is checked
+          const anySubscribed = channelSubscriptions.some(
+            (sub) => initialSubscriptionManagementState[sub.id],
+          );
+          channelState[channel] = anySubscribed;
+        }
+      },
+    );
     return channelState;
   }, [subscriptionsByChannel, initialSubscriptionManagementState]);
 
@@ -89,20 +95,21 @@ export function SubscriptionManagement({
   const [state, updateState] = useImmer<SubscriptionState>(
     initialSubscriptionManagementState,
   );
-  const [channelState, updateChannelState] = useImmer<ChannelState>(
-    initialChannelState,
-  );
+  const [channelState, updateChannelState] =
+    useImmer<ChannelState>(initialChannelState);
 
   const updateSubscriptionsMutation = useUpdateSubscriptionsMutation(apiBase, {
     onSuccess: () => {
-      enqueueSnackbar("Updated subscription preferences.", {
+      const message = isPreview
+        ? "Preview: Subscription preferences would be updated."
+        : "Updated subscription preferences.";
+      enqueueSnackbar(message, {
         variant: "success",
         autoHideDuration: 3000,
         anchorOrigin: noticeAnchorOrigin,
       });
     },
-    onError: (error) => {
-      console.error(error);
+    onError: () => {
       enqueueSnackbar("API Error: failed to update subscription preferences.", {
         variant: "error",
         autoHideDuration: 3000,
@@ -111,24 +118,26 @@ export function SubscriptionManagement({
     },
   });
 
-  const handleSubscriptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSubscriptionChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const subscriptionId = event.target.name;
     const isChecked = event.target.checked;
-    
+
     updateState((draft) => {
       draft[subscriptionId] = isChecked;
     });
 
     // Update channel state based on subscription changes
-    const subscription = subscriptions.find(sub => sub.id === subscriptionId);
+    const subscription = subscriptions.find((sub) => sub.id === subscriptionId);
     if (subscription) {
       const channelSubscriptions = subscriptionsByChannel[subscription.channel];
       if (channelSubscriptions) {
         // Check if ANY subscription in the channel will be checked after this change
-        const anyChannelSubscriptionChecked = channelSubscriptions.some(sub => 
-          sub.id === subscriptionId ? isChecked : state[sub.id]
+        const anyChannelSubscriptionChecked = channelSubscriptions.some(
+          (sub) => (sub.id === subscriptionId ? isChecked : state[sub.id]),
         );
-        
+
         updateChannelState((draft) => {
           draft[subscription.channel] = anyChannelSubscriptionChecked;
         });
@@ -139,7 +148,7 @@ export function SubscriptionManagement({
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const channel = event.target.name;
     const isChecked = event.target.checked;
-    
+
     updateChannelState((draft) => {
       draft[channel] = isChecked;
     });
@@ -160,35 +169,40 @@ export function SubscriptionManagement({
   );
 
   let subscriptionChangeSection = null;
-  if (subscriptionChange && (changedSubscription || changedSubscriptionChannel)) {
+  if (
+    subscriptionChange &&
+    (changedSubscription || changedSubscriptionChannel)
+  ) {
     let message: string;
-    
+
     if (subscriptionChange === SubscriptionChange.Subscribe) {
       message = `You have subscribed to ${changedSubscriptionName}`;
+    } else if (changedSubscriptionChannel) {
+      message = `You have unsubscribed from all ${changedSubscriptionChannel} messages`;
     } else {
-      // For unsubscribe, show channel-wide message
-      if (changedSubscriptionChannel) {
-        message = `You have unsubscribed from all ${changedSubscriptionChannel} messages`;
-      } else {
-        message = `You have unsubscribed from ${changedSubscriptionName}`;
-      }
+      message = `You have unsubscribed from ${changedSubscriptionName}`;
     }
 
-    subscriptionChangeSection = (
-      <Alert severity="info">
-        {message}
-      </Alert>
-    );
+    subscriptionChangeSection = <Alert severity="info">{message}</Alert>;
   }
 
   const handleUpdate = () => {
-    updateSubscriptionsMutation.mutate({
-      workspaceId,
-      hash,
-      identifier,
-      identifierKey,
-      changes: state,
-    });
+    if (isPreview) {
+      // In preview mode, just show the success message without making an API call
+      enqueueSnackbar("Preview: Subscription preferences would be updated.", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    } else {
+      updateSubscriptionsMutation.mutate({
+        workspaceId,
+        hash,
+        identifier,
+        identifierKey,
+        changes: state,
+      });
+    }
   };
   return (
     <Stack
@@ -208,40 +222,42 @@ export function SubscriptionManagement({
       </Typography>
       {subscriptionChangeSection}
       <FormGroup>
-        {Object.entries(subscriptionsByChannel).map(([channel, channelSubscriptions]) => (
-          <Box key={channel}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={channelState[channel] === true}
-                  onChange={handleChannelChange}
-                  name={channel}
-                />
-              }
-              label={channel}
-              sx={{ fontWeight: "bold" }}
-            />
-            <Stack sx={{ ml: 3 }}>
-              {channelSubscriptions.map((subscription) => (
-                <FormControlLabel
-                  key={subscription.id}
-                  control={
-                    <Checkbox
-                      checked={state[subscription.id] === true}
-                      onChange={handleSubscriptionChange}
-                      name={subscription.id}
-                    />
-                  }
-                  label={subscription.name}
-                />
-              ))}
-            </Stack>
-          </Box>
-        ))}
+        {Object.entries(subscriptionsByChannel).map(
+          ([channel, channelSubscriptions]) => (
+            <Box key={channel}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={channelState[channel] === true}
+                    onChange={handleChannelChange}
+                    name={channel}
+                  />
+                }
+                label={channel}
+                sx={{ fontWeight: "bold" }}
+              />
+              <Stack sx={{ ml: 3 }}>
+                {channelSubscriptions.map((subscription) => (
+                  <FormControlLabel
+                    key={subscription.id}
+                    control={
+                      <Checkbox
+                        checked={state[subscription.id] === true}
+                        onChange={handleSubscriptionChange}
+                        name={subscription.id}
+                      />
+                    }
+                    label={subscription.name}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          ),
+        )}
       </FormGroup>
       <Box>
         <LoadingButton
-          loading={updateSubscriptionsMutation.isPending}
+          loading={!isPreview && updateSubscriptionsMutation.isPending}
           variant="contained"
           onClick={handleUpdate}
         >

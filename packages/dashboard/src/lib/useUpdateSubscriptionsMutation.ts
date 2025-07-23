@@ -4,9 +4,7 @@ import {
   UseMutationResult,
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import {
-  UserSubscriptionsUpdate,
-} from "isomorphic-lib/src/types";
+import { UserSubscriptionsUpdate } from "isomorphic-lib/src/types";
 
 export type UpdateSubscriptionsMutationParams = UserSubscriptionsUpdate;
 
@@ -18,18 +16,10 @@ type UpdateSubscriptionsMutationFn = (
 export function useUpdateSubscriptionsMutation(
   apiBase: string,
   options?: Omit<
-    UseMutationOptions<
-      void,
-      AxiosError,
-      UpdateSubscriptionsMutationParams
-    >,
+    UseMutationOptions<void, AxiosError, UpdateSubscriptionsMutationParams>,
     "mutationFn"
   >,
-): UseMutationResult<
-  void,
-  AxiosError,
-  UpdateSubscriptionsMutationParams
-> {
+): UseMutationResult<void, AxiosError, UpdateSubscriptionsMutationParams> {
   const mutationFn: UpdateSubscriptionsMutationFn = async (data) => {
     await axios({
       method: "PUT",

@@ -1,5 +1,4 @@
 import { Stack } from "@mui/material";
-import axios from "axios";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
@@ -12,10 +11,7 @@ import { SubscriptionChange } from "backend-lib/src/types";
 import { and, eq } from "drizzle-orm";
 import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  SubscriptionParams,
-  UserSubscriptionsUpdate,
-} from "isomorphic-lib/src/types";
+import { SubscriptionParams } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import React from "react";
 
@@ -107,21 +103,26 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
         : SubscriptionChange.Unsubscribe;
 
     // Get the subscription group to determine its channel
-    const targetSubscriptionGroup = await db().query.subscriptionGroup.findFirst({
-      where: eq(schema.subscriptionGroup.id, s),
-    });
+    const targetSubscriptionGroup =
+      await db().query.subscriptionGroup.findFirst({
+        where: eq(schema.subscriptionGroup.id, s),
+      });
 
     if (targetSubscriptionGroup) {
       changedSubscriptionChannel = targetSubscriptionGroup.channel;
 
       // If unsubscribing, unsubscribe from all subscription groups in the same channel
       if (subscriptionChange === SubscriptionChange.Unsubscribe) {
-        const channelSubscriptionGroups = await db().query.subscriptionGroup.findMany({
-          where: and(
-            eq(schema.subscriptionGroup.workspaceId, w),
-            eq(schema.subscriptionGroup.channel, targetSubscriptionGroup.channel)
-          ),
-        });
+        const channelSubscriptionGroups =
+          await db().query.subscriptionGroup.findMany({
+            where: and(
+              eq(schema.subscriptionGroup.workspaceId, w),
+              eq(
+                schema.subscriptionGroup.channel,
+                targetSubscriptionGroup.channel,
+              ),
+            ),
+          });
 
         const channelChanges: Record<string, boolean> = {};
         channelSubscriptionGroups.forEach((sg) => {
@@ -183,7 +184,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 const SubscriptionManagementPage: NextPage<SSP> =
   function SubscriptionManagementPage(props) {
     const {
-      apiBase,
+      apiBase: propsApiBase,
       workspaceId,
       subscriptions,
       subscriptionChange,
