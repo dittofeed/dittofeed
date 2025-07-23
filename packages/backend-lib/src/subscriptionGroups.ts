@@ -492,12 +492,13 @@ export async function getUserSubscriptions({
     }
     const inSegment = assignments[segment.id] === true;
 
-    const { id, name } = subscriptionGroup;
+    const { id, name, channel } = subscriptionGroup;
 
     subscriptions.push({
       id,
       name,
       isSubscribed: inSegment,
+      channel,
     });
   }
 

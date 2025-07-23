@@ -2621,6 +2621,7 @@ export const UserSubscriptionResource = Type.Object({
   id: Type.String(),
   name: Type.String(),
   isSubscribed: Type.Boolean(),
+  channel: Type.Enum(ChannelType),
 });
 
 export type UserSubscriptionResource = Static<typeof UserSubscriptionResource>;
