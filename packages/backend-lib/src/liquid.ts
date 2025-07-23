@@ -115,6 +115,41 @@ function generateUnsubscribeUrl(scope: any): string {
   return "";
 }
 
+function generateSubscriptionManagementUrl(scope: any): string {
+  const allScope = scope.getAll() as Record<string, unknown>;
+  const secrets = allScope.secrets as Secrets | undefined;
+  const workspaceId = allScope.workspace_id as string;
+  const userProperties = allScope.user as UserPropertyAssignments;
+  const identifierKey = allScope.identifier_key as string | undefined;
+
+  const identifier = identifierKey
+    ? assignmentAsString(userProperties, identifierKey)
+    : null;
+  const userId = assignmentAsString(userProperties, "id");
+
+  const subscriptionSecret = secrets?.[SecretNames.Subscription];
+  if (subscriptionSecret && identifierKey && identifier && userId) {
+    return generateSubscriptionChangeUrl({
+      workspaceId,
+      identifier,
+      identifierKey,
+      subscriptionSecret,
+      userId,
+    });
+  }
+
+  logger().error(
+    {
+      hasSubscriptionSecret: !!subscriptionSecret,
+      identifierKey,
+      identifier,
+      userId,
+    },
+    "Subscription management URL not generating",
+  );
+  return "";
+}
+
 liquidEngine.registerTag("unsubscribe_link", {
   parse(tagToken) {
     this.contents = tagToken.args;
@@ -133,6 +168,27 @@ liquidEngine.registerTag("unsubscribe_link", {
 liquidEngine.registerTag("unsubscribe_url", {
   render(scope) {
     return generateUnsubscribeUrl(scope);
+  },
+});
+
+liquidEngine.registerTag("subscription_management_link", {
+  parse(tagToken) {
+    this.contents = tagToken.args;
+  },
+  render(scope) {
+    const linkText: string =
+      (this.contents as string) || "manage subscriptions";
+    const url = generateSubscriptionManagementUrl(scope);
+    const href = url ? `href="${url}"` : "";
+
+    // Note that clicktracking=off is added to the subscription management link to prevent sendgrid from including link tracking
+    return `<a class="df-subscription-management" clicktracking=off ${href} target="_blank">${linkText}</a>`;
+  },
+});
+
+liquidEngine.registerTag("subscription_management_url", {
+  render(scope) {
+    return generateSubscriptionManagementUrl(scope);
   },
 });
 
