@@ -10,9 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { SubscriptionChange } from "backend-lib/src/types";
-import {
-  UserSubscriptionResource,
-} from "isomorphic-lib/src/types";
+import { UserSubscriptionResource } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
 import React, { useMemo } from "react";
 import { useImmer } from "use-immer";
