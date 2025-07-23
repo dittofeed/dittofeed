@@ -1,5 +1,6 @@
 import {
   Kafka,
+  KafkaConfig,
   Partitioners,
   Producer,
   ProducerConfig,
@@ -7,6 +8,7 @@ import {
 } from "kafkajs";
 
 import config from "./config";
+import logger from "./logger";
 
 let KAFKA: Kafka | null = null;
 
@@ -29,12 +31,14 @@ export function kafka(): Kafka {
       : undefined;
 
   if (!KAFKA) {
-    KAFKA = new Kafka({
+    const kafkaConfig: KafkaConfig = {
       clientId: "dittofeed",
       brokers: kafkaBrokers,
       ssl: kafkaSsl,
       sasl,
-    });
+    };
+    logger().debug({ kafkaConfig }, "Initializing Kafka client");
+    KAFKA = new Kafka(kafkaConfig);
   }
   return KAFKA;
 }
