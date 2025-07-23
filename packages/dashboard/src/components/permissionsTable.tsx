@@ -39,7 +39,6 @@ import {
 import { noticeAnchorOrigin } from "../lib/notices";
 import DeleteDialog from "./confirmDeleteDialog";
 import { GreyButton } from "./greyButtonStyle";
-import { useAppStorePick } from "../lib/appStore";
 
 interface PermissionDialogProps {
   open: boolean;

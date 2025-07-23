@@ -310,22 +310,23 @@ const settingsSectionIds = {
   permissions: "permissions",
 } as const;
 
-const menuItems: MenuItemGroup[] = [
-  {
-    id: "data-sources",
-    title: "Data Sources",
-    type: "group",
-    children: [
-      {
-        id: "data-sources-segment-io",
-        title: "Segment",
-        type: "item",
-        url: `/settings#${settingsSectionIds.segmentSource}`,
-        icon: SimCardDownload,
-        description: "",
-      },
-    ],
-  },
+function getMenuItems(authMode: string): MenuItemGroup[] {
+  const baseMenuItems: MenuItemGroup[] = [
+    {
+      id: "data-sources",
+      title: "Data Sources",
+      type: "group",
+      children: [
+        {
+          id: "data-sources-segment-io",
+          title: "Segment",
+          type: "item",
+          url: `/settings#${settingsSectionIds.segmentSource}`,
+          icon: SimCardDownload,
+          description: "",
+        },
+      ],
+    },
   {
     id: "message-channels",
     title: "Messaging Channels",
@@ -420,28 +421,37 @@ const menuItems: MenuItemGroup[] = [
       },
     ],
     url: `/settings#${settingsSectionIds.workspaceMetadata}`,
-  },
-  {
-    id: settingsSectionIds.permissions,
-    title: "Permissions",
-    type: "group",
-    children: [
-      {
-        id: "workspace-permissions",
-        title: "Workspace Permissions",
-        type: "item",
-        url: `/settings#${settingsSectionIds.permissions}`,
-        icon: Key,
-        description: "Manage workspace member roles and permissions.",
-      },
-    ],
-    url: `/settings#${settingsSectionIds.permissions}`,
-  },
-];
+  }];
+
+  // Only add permissions menu item in multi-tenant mode
+  if (authMode === "multi-tenant") {
+    baseMenuItems.push({
+      id: settingsSectionIds.permissions,
+      title: "Permissions",
+      type: "group",
+      children: [
+        {
+          id: "workspace-permissions",
+          title: "Workspace Permissions",
+          type: "item",
+          url: `/settings#${settingsSectionIds.permissions}`,
+          icon: Key,
+          description: "Manage workspace member roles and permissions.",
+        },
+      ],
+      url: `/settings#${settingsSectionIds.permissions}`,
+    });
+  }
+
+  return baseMenuItems;
+}
 
 function SettingsLayout(
   props: Omit<React.ComponentProps<typeof Layout>, "items">,
 ) {
+  const { authMode } = useAppStorePick(["authMode"]);
+  const menuItems = getMenuItems(authMode);
+  
   return (
     <>
       <DashboardHead />
@@ -1948,6 +1958,13 @@ function Metadata() {
 }
 
 function PermissionsSettings() {
+  const { authMode } = useAppStorePick(["authMode"]);
+  
+  // Only render in multi-tenant mode
+  if (authMode !== "multi-tenant") {
+    return null;
+  }
+  
   return (
     <Stack spacing={3}>
       <SectionHeader
