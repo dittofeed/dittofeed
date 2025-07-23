@@ -211,7 +211,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
           identifier={identifier}
           identifierKey={identifierKey}
           workspaceName={workspaceName}
-          apiBase={apiBase}
+          apiBase={propsApiBase}
         />
       </Stack>
     );
