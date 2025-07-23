@@ -200,6 +200,77 @@ describe("renderWithUserProperties", () => {
     });
   });
 
+  describe("with all of the necessary values to render a subscription management link", () => {
+    const expectedRenderedSubscriptionManagementUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9`;
+    const expectedRenderedSubscriptionManagementLink = `
+      <a class="df-subscription-management" clicktracking=off href="${expectedRenderedSubscriptionManagementUrl}" target="_blank">manage subscriptions</a>
+    `;
+
+    it("can render a subscription management link", () => {
+      const rendered = renderLiquid({
+        template: `{% subscription_management_link %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+      expect(rendered.trim()).toEqual(
+        expectedRenderedSubscriptionManagementLink.trim(),
+      );
+    });
+
+    it("can render a subscription management url", () => {
+      const rendered = renderLiquid({
+        template: `{% subscription_management_url %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+      expect(rendered.trim()).toEqual(
+        expectedRenderedSubscriptionManagementUrl.trim(),
+      );
+    });
+  });
+
+  describe("when text is passed to the subscription management link", () => {
+    const subscriptionManagementTemplate = `
+      {% subscription_management_link here %}
+    `;
+
+    const expectedRenderedSubscriptionManagementEmail = `
+      <a class="df-subscription-management" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9" target="_blank">here</a>
+    `;
+
+    it("can render a subscription management link", () => {
+      const rendered = renderLiquid({
+        template: subscriptionManagementTemplate,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+      expect(rendered.trim()).toEqual(
+        expectedRenderedSubscriptionManagementEmail.trim(),
+      );
+    });
+  });
+
   describe.skip("when inlining a file", () => {
     describe("when the rendered user property is not a file", () => {});
     describe("when the rendered user property is a file", () => {

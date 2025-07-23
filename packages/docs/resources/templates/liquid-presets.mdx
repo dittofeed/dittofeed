@@ -50,3 +50,33 @@ If you need to customize the unsubscribe link, you can use the `unsubscribe_url`
 ```html
 <a class="df-unsubscribe" clicktracking=off href="{% unsubscribe_url %}" target="_blank">unsubscribe</a>
 ```
+
+### `subscription_management_link`
+
+The `subscription_management_link` tag outputs a link to the subscription management page without automatically unsubscribing the user. This allows users to manage their subscription preferences manually.
+
+```html
+{% subscription_management_link %}
+```
+
+This renders a link of the form,
+
+```html
+<a class="df-subscription-management" clicktracking=off href="..." target="_blank">manage subscriptions</a>
+```
+
+The link's text can also be overridden by passing a parameter to the tag e.g.
+
+```html
+You can {% subscription_management_link manage your subscription preferences %}.
+```
+
+This tag is useful when you want to provide users with access to subscription management without automatically changing their subscription status upon page load.
+
+### `subscription_management_url`
+
+If you need to customize the subscription management link, you can use the `subscription_management_url` tag to only output the URL.
+
+```html
+<a class="df-subscription-management" clicktracking=off href="{% subscription_management_url %}" target="_blank">manage subscriptions</a>
+```

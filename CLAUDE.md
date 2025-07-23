@@ -1,7 +1,0 @@
-- modify packages/backend-lib/src/liquid.ts to add a new tag `subscription_management_link` and `subscription_management_url`
-    - this should be equivalent to the `unsubscribe_link` and `unsubscribe_url` tags, but without the `subscriptionChange` or `changedSubscription` parameters
-    - the purpose of this is to allow users to link to the subscription management page from the email without automatically unsubscribing the users on page load
-- add a new test in packages/backend-lib/src/liquid.test.ts
-- update our docs
-    - packages/docs/resources/templates/liquid-presets.mdx
-    - packages/docs/resources/subscription-groups.mdx

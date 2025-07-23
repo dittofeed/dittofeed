@@ -145,7 +145,27 @@ You can also use the `unsubscribe_url` liquid tag to just render the unsubscribe
 >
 ```
 
-On loading the Subscription Management page, users will be either subscribed or unsubscribed to a specific subscription group.
+On loading the Subscription Management page via unsubscribe links, users will be automatically unsubscribed from the specific subscription group.
+
+## Adding Subscription Management Links to Emails
+
+For cases where you want to provide users with access to subscription management without automatically unsubscribing them, you can use the `subscription_management_link` liquid tag.
+
+```html
+{% subscription_management_link %}
+```
+
+This creates a link that directs users to the subscription management page without performing any automatic subscription changes on page load. Users can then manually manage their subscription preferences.
+
+You can also use the `subscription_management_url` liquid tag to just render the subscription management url, without the link element.
+
+```html
+<a class="custom-subscription-management-link" href="{% subscription_management_url %}"
+  >manage your subscription preferences</a
+>
+```
+
+These tags are useful when you want to give users control over their subscription preferences without forcing an immediate unsubscribe action.
 
 ## The Importance of Subscription Groups for Regulatory Compliance
 
