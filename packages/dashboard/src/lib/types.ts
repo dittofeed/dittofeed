@@ -176,9 +176,8 @@ export type AppState = {
     | "additionalDashboardSettingsPath"
     | "additionalDashboardSettingsTitle"
     | "gmailClientId"
-    | "authMode"
   > &
-  Partial<Pick<Config, "signoutUrl">>;
+  Partial<Pick<Config, "signoutUrl" | "authMode">>;
 
 export interface AppActions {
   toggleDrawer: () => void;

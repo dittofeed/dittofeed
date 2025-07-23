@@ -310,7 +310,7 @@ const settingsSectionIds = {
   permissions: "permissions",
 } as const;
 
-function getMenuItems(authMode: string): MenuItemGroup[] {
+function getMenuItems(authMode: string | undefined): MenuItemGroup[] {
   const baseMenuItems: MenuItemGroup[] = [
     {
       id: "data-sources",
