@@ -156,7 +156,7 @@ const keyCommands = [
     type: UserEventsFilterCommandType.SelectKey,
     filterKey: "userId",
   },
-] as const satisfies UserEventsFilterCommand[];
+] as const satisfies readonly UserEventsFilterCommand[];
 
 export function getFilterValues(
   state: UserEventsState,
