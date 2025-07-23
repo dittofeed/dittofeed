@@ -30,6 +30,7 @@ export function addInitialStateToProps<
     additionalDashboardSettingsPath,
     additionalDashboardSettingsTitle,
     gmailClientId,
+    authMode,
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
@@ -53,6 +54,7 @@ export function addInitialStateToProps<
     additionalDashboardSettingsPath,
     additionalDashboardSettingsTitle,
     gmailClientId,
+    authMode,
   });
 
   return {

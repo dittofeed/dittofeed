@@ -89,6 +89,7 @@ import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
 import WebhookSecretTable from "../components/webhookSecretTable";
+import { PermissionsTable } from "../components/permissionsTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -306,6 +307,7 @@ const settingsSectionIds = {
   adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
+  permissions: "permissions",
 } as const;
 
 const menuItems: MenuItemGroup[] = [
@@ -418,6 +420,22 @@ const menuItems: MenuItemGroup[] = [
       },
     ],
     url: `/settings#${settingsSectionIds.workspaceMetadata}`,
+  },
+  {
+    id: settingsSectionIds.permissions,
+    title: "Permissions",
+    type: "group",
+    children: [
+      {
+        id: "workspace-permissions",
+        title: "Workspace Permissions",
+        type: "item",
+        url: `/settings#${settingsSectionIds.permissions}`,
+        icon: Key,
+        description: "Manage workspace member roles and permissions.",
+      },
+    ],
+    url: `/settings#${settingsSectionIds.permissions}`,
   },
 ];
 
@@ -1929,6 +1947,19 @@ function Metadata() {
   );
 }
 
+function PermissionsSettings() {
+  return (
+    <Stack spacing={3}>
+      <SectionHeader
+        id={settingsSectionIds.permissions}
+        title="Permissions"
+        description="Manage workspace member roles and permissions."
+      />
+      <PermissionsTable />
+    </Stack>
+  );
+}
+
 function SettingsContents() {
   const { inTransition } = useAppStorePick(["inTransition"]);
   if (inTransition) {
@@ -1941,6 +1972,7 @@ function SettingsContents() {
       <AuthenticationSettings />
       <SubscriptionManagementSettings />
       <IntegrationSettings />
+      <PermissionsSettings />
       <Metadata />
     </>
   );
