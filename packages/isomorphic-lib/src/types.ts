@@ -3672,7 +3672,7 @@ export const WebhookResponse = Type.Object({
       ]),
     ),
   ),
-  body: Type.Unknown(),
+  body: Type.Optional(Type.Unknown()),
 });
 
 export type WebhookResponse = Static<typeof WebhookResponse>;

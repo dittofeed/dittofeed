@@ -2017,15 +2017,6 @@ export async function sendWebhook({
         ? response.headers.toJSON()
         : response.headers;
 
-    logger().debug(
-      {
-        rawHeaders: response.headers,
-        axiosHeaders,
-        typeofAxiosHeaders: typeof axiosHeaders,
-        prototype: axiosHeaders?.constructor?.name,
-      },
-      "webhook response headers",
-    );
     return ok({
       type: InternalEventType.MessageSent,
       variant: {

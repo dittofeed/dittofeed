@@ -126,7 +126,7 @@ describe("testTemplate", () => {
     }
   });
 
-  it.only("should handle array headers", async () => {
+  it("should handle array headers with undefined body", async () => {
     const headers = AxiosHeaders.from({
       "content-type": ["text/plain", "application/json"],
     });
