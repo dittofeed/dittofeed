@@ -321,7 +321,7 @@ export function NewUserEventsFilterButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
-  const commands: UserEventsFilterCommand[] = useMemo(() => {
+  const commands = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
         return keyCommands;
