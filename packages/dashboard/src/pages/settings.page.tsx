@@ -452,7 +452,8 @@ function SettingsLayout(
 ) {
   const { authMode } = useAppStorePick(["authMode"]);
   const menuItems = getMenuItems(authMode);
-  
+
+  console.log("authMode", authMode);
   return (
     <>
       <DashboardHead />

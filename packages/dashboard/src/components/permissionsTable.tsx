@@ -1,42 +1,42 @@
-import React, { useState } from "react";
+import { Add, Edit } from "@mui/icons-material";
 import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  IconButton,
   Typography,
-  Box,
-  Alert,
 } from "@mui/material";
-import { Add, Edit } from "@mui/icons-material";
-import { enqueueSnackbar } from "notistack";
 import {
   Role,
   RoleEnum,
   WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
+import { enqueueSnackbar } from "notistack";
+import { useState } from "react";
 
-import { usePermissionsQuery } from "../lib/usePermissionsQuery";
+import { noticeAnchorOrigin } from "../lib/notices";
 import {
   useCreatePermissionMutation,
-  useUpdatePermissionMutation,
   useDeletePermissionMutation,
+  useUpdatePermissionMutation,
 } from "../lib/usePermissionsMutations";
-import { noticeAnchorOrigin } from "../lib/notices";
+import { usePermissionsQuery } from "../lib/usePermissionsQuery";
 import DeleteDialog from "./confirmDeleteDialog";
 import { GreyButton } from "./greyButtonStyle";
 
