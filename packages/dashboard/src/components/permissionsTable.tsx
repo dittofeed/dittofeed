@@ -1,9 +1,13 @@
 import {
   Add,
-  ArrowDownward as ArrowDownwardIcon,
-  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward,
+  ArrowUpward,
+  Computer,
+  Delete as DeleteIcon,
   Edit,
-  SwapVert as SwapVertIcon,
+  Home,
+  MoreVert as MoreVertIcon,
+  UnfoldMore,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -17,6 +21,7 @@ import {
   FormControl,
   IconButton,
   InputLabel,
+  Menu,
   MenuItem,
   Paper,
   Select,
@@ -28,9 +33,12 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import {
+  CellContext,
   ColumnDef,
   flexRender,
   getCoreRowModel,
@@ -38,6 +46,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   Role,
   RoleEnum,
@@ -199,23 +208,67 @@ function EmailCell({ value }: EmailCellProps) {
   );
 }
 
-interface NameCellProps {
-  member: WorkspaceMemberWithRoles["member"];
-}
+function TimeCell({
+  getValue,
+}: CellContext<WorkspaceMemberWithRoles, unknown>) {
+  const timestamp = getValue<string | undefined>();
+  if (!timestamp) {
+    return null;
+  }
+  const date = new Date(timestamp);
 
-function NameCell({ member }: NameCellProps) {
-  const displayName = member.name ?? member.nickname ?? "-";
+  const tooltipContent = (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Computer sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            Your device
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Home sx={{ color: "text.secondary" }} />
+        <Stack>
+          <Typography variant="body2" color="text.secondary">
+            UTC
+          </Typography>
+          <Typography>
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZone: "UTC",
+            }).format(date)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+
+  const formatted = formatDistanceToNow(date, { addSuffix: true });
   return (
-    <Box
-      sx={{
-        maxWidth: "200px",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      }}
-    >
-      <Typography>{displayName}</Typography>
-    </Box>
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Typography variant="body2">{formatted}</Typography>
+    </Tooltip>
   );
 }
 
@@ -242,49 +295,85 @@ function RoleCell({ roles }: RoleCellProps) {
   );
 }
 
-interface ActionsCellProps {
-  memberWithRole: WorkspaceMemberWithRoles;
-  onEdit: (memberWithRole: WorkspaceMemberWithRoles) => void;
-  onDelete: (memberWithRole: WorkspaceMemberWithRoles) => void;
-  isDeleting: boolean;
-}
-
 function ActionsCell({
-  memberWithRole,
-  onEdit,
-  onDelete,
-  isDeleting,
-}: ActionsCellProps) {
+  row,
+  table,
+}: CellContext<WorkspaceMemberWithRoles, unknown>) {
+  const theme = useTheme();
+  const memberWithRole = row.original;
+
+  const onEdit = table.options.meta?.onEdit;
+  const onDelete = table.options.meta?.onDelete;
+  const isDeleting = table.options.meta?.isDeleting ?? false;
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(memberWithRole);
+    }
+    handleClose();
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(memberWithRole);
+    }
+    handleClose();
+  };
+
   return (
-    <Box sx={{ display: "flex", gap: 0.5 }}>
-      <IconButton
-        size="small"
-        onClick={() => onEdit(memberWithRole)}
-        sx={{
-          color: "grey.600",
-          "&:hover": {
-            color: "primary.main",
-            bgcolor: "primary.50",
+    <>
+      <Tooltip title="Actions">
+        <IconButton aria-label="actions" onClick={handleClick} size="small">
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          "aria-labelledby": "actions-button",
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            boxShadow: theme.shadows[2],
           },
         }}
       >
-        <Edit fontSize="small" />
-      </IconButton>
-      <DeleteDialog
-        onConfirm={() => onDelete(memberWithRole)}
-        title="Remove Permission"
-        message={`Are you sure you want to remove ${memberWithRole.member.email}'s permissions?`}
-        size="small"
-        sx={{
-          color: "grey.600",
-          "&:hover": {
-            color: "error.main",
-            bgcolor: "error.50",
-          },
-        }}
-        disabled={isDeleting}
-      />
-    </Box>
+        <MenuItem onClick={handleEdit}>
+          <Edit fontSize="small" sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
+        <MenuItem
+          onClick={handleDelete}
+          disabled={isDeleting}
+          sx={{ color: theme.palette.error.main }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+    </>
   );
 }
 
@@ -341,31 +430,11 @@ export function PermissionsTable() {
     [],
   );
 
-  const renderNameCell = useCallback(
-    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
-      <NameCell member={row.original.member} />
-    ),
-    [],
-  );
-
   const renderRoleCell = useCallback(
     ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
       <RoleCell roles={row.original.roles} />
     ),
     [],
-  );
-
-  const renderActionsCell = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, react/no-unused-prop-types
-    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
-      <ActionsCell
-        memberWithRole={row.original}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        isDeleting={deleteMutation.isPending}
-      />
-    ),
-    [handleEdit, handleDelete, deleteMutation.isPending],
   );
 
   const data = useMemo(() => {
@@ -381,25 +450,26 @@ export function PermissionsTable() {
         cell: renderEmailCell,
       },
       {
-        id: "name",
-        header: "Name",
-        accessorFn: (row) => row.member.name ?? row.member.nickname ?? "-",
-        cell: renderNameCell,
-      },
-      {
         id: "role",
         header: "Role",
         accessorFn: (row) => row.roles.map((role) => role.role).join(", "),
         cell: renderRoleCell,
       },
       {
+        id: "createdAt",
+        header: "Created At",
+        accessorKey: "member.createdAt",
+        cell: TimeCell,
+      },
+      {
         id: "actions",
-        header: "Actions",
-        cell: renderActionsCell,
+        header: "",
+        size: 70,
+        cell: ActionsCell,
         enableSorting: false,
       },
     ],
-    [renderEmailCell, renderNameCell, renderRoleCell, renderActionsCell],
+    [renderEmailCell, renderRoleCell],
   );
 
   const table = useReactTable({
@@ -416,6 +486,11 @@ export function PermissionsTable() {
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    meta: {
+      onEdit: handleEdit,
+      onDelete: handleDelete,
+      isDeleting: deleteMutation.isPending,
+    },
   });
 
   if (isLoading) {
@@ -457,13 +532,11 @@ export function PermissionsTable() {
                   <TableCell
                     key={header.id}
                     colSpan={header.colSpan}
-                    sx={{
-                      bgcolor: "background.paper",
-                      borderBottom: "1px solid",
-                      borderColor: "grey.200",
-                      fontWeight: 600,
-                      ...(header.id === "actions" && { width: "120px" }),
+                    style={{
+                      width:
+                        header.getSize() !== 150 ? header.getSize() : undefined,
                     }}
+                    sortDirection={header.column.getIsSorted() || false}
                   >
                     {header.isPlaceholder ? null : (
                       <Box
@@ -482,25 +555,21 @@ export function PermissionsTable() {
                           header.getContext(),
                         )}
                         {header.column.getCanSort() && (
-                          <Box
-                            sx={{ display: "flex", flexDirection: "column" }}
+                          <IconButton
+                            size="small"
+                            sx={{ ml: 0.5 }}
+                            aria-label={`Sort by ${header.column.columnDef.header}`}
                           >
-                            {(() => {
-                              const sortDirection = header.column.getIsSorted();
-                              if (sortDirection === "asc") {
-                                return <ArrowUpwardIcon fontSize="small" />;
-                              }
-                              if (sortDirection === "desc") {
-                                return <ArrowDownwardIcon fontSize="small" />;
-                              }
-                              return (
-                                <SwapVertIcon
-                                  fontSize="small"
-                                  sx={{ color: "grey.400" }}
-                                />
-                              );
-                            })()}
-                          </Box>
+                            {{
+                              asc: <ArrowUpward fontSize="inherit" />,
+                              desc: <ArrowDownward fontSize="inherit" />,
+                            }[header.column.getIsSorted() as string] ?? (
+                              <UnfoldMore
+                                fontSize="inherit"
+                                sx={{ opacity: 0.5 }}
+                              />
+                            )}
+                          </IconButton>
                         )}
                       </Box>
                     )}
@@ -513,20 +582,15 @@ export function PermissionsTable() {
             {table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
+                hover
                 sx={{
                   "&:hover": {
-                    bgcolor: "grey.50",
+                    backgroundColor: "action.hover",
                   },
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    sx={{
-                      borderBottom: "1px solid",
-                      borderColor: "grey.100",
-                    }}
-                  >
+                  <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -560,4 +624,13 @@ export function PermissionsTable() {
       />
     </Stack>
   );
+}
+
+// Add type definition for table meta
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData = unknown> {
+    onEdit?: (memberWithRole: WorkspaceMemberWithRoles) => void;
+    onDelete?: (memberWithRole: WorkspaceMemberWithRoles) => void;
+    isDeleting?: boolean;
+  }
 }
