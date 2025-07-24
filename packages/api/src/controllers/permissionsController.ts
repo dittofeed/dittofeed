@@ -1,21 +1,22 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import {
+  createWorkspaceMemberRole,
+  deleteWorkspaceMemberRole,
+  getWorkspaceMemberRoles,
+  updateWorkspaceMemberRole,
+} from "backend-lib/src/rbac";
 import { FastifyInstance } from "fastify";
 import {
   CreateWorkspaceMemberRoleRequest,
-  UpdateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
+  EmptyResponse,
   GetWorkspaceMemberRolesRequest,
   GetWorkspaceMemberRolesResponse,
+  UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
-  EmptyResponse,
 } from "isomorphic-lib/src/types";
-import {
-  getWorkspaceMemberRoles,
-  createWorkspaceMemberRole,
-  updateWorkspaceMemberRole,
-  deleteWorkspaceMemberRole,
-} from "backend-lib/src/rbac";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export default async function permissionsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
     "/",
