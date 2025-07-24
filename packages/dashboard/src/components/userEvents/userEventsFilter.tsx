@@ -125,7 +125,7 @@ const keyCommandLabels: Record<FilterKey, string> = {
   userId: "User ID",
 };
 
-const keyCommands: UserEventsFilterCommand[] = [
+const keyCommands = [
   {
     label: keyCommandLabels.event,
     type: UserEventsFilterCommandType.SelectKey,
@@ -156,7 +156,7 @@ const keyCommands: UserEventsFilterCommand[] = [
     type: UserEventsFilterCommandType.SelectKey,
     filterKey: "userId",
   },
-] as const;
+] as const satisfies readonly UserEventsFilterCommand[];
 
 export function getFilterValues(
   state: UserEventsState,
@@ -321,7 +321,7 @@ export function NewUserEventsFilterButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
-  const commands: UserEventsFilterCommand[] = useMemo(() => {
+  const commands = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
         return keyCommands;

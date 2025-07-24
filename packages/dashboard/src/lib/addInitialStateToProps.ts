@@ -30,6 +30,7 @@ export function addInitialStateToProps<
     additionalDashboardSettingsPath,
     additionalDashboardSettingsTitle,
     gmailClientId,
+    authMode,
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
@@ -53,8 +54,10 @@ export function addInitialStateToProps<
     additionalDashboardSettingsPath,
     additionalDashboardSettingsTitle,
     gmailClientId,
+    authMode,
   });
 
+  console.log("stateWithEnvVars", stateWithEnvVars);
   return {
     ...props,
     // the "stringify and then parse again" piece is required as next.js

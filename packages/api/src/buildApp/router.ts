@@ -15,6 +15,7 @@ import groupsController from "../controllers/groupsController";
 import indexController from "../controllers/indexController";
 import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
+import permissionsController from "../controllers/permissionsController";
 import publicAppsController from "../controllers/publicAppsController";
 import resourcesController from "../controllers/resourcesController";
 import secretsController from "../controllers/secretsController";
@@ -53,6 +54,7 @@ export default async function router(
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(settingsController, { prefix: "/settings" }),
         f.register(integrationsController, { prefix: "/integrations" }),
+        f.register(permissionsController, { prefix: "/permissions" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),

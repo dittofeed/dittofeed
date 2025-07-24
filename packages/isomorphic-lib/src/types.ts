@@ -2608,6 +2608,58 @@ export type WorkspaceMemberRoleResource = Static<
   typeof WorkspaceMemberRoleResource
 >;
 
+export const CreateWorkspaceMemberRoleRequest = Type.Object({
+  workspaceId: Type.String(),
+  email: Type.String(),
+  role: Role,
+});
+
+export type CreateWorkspaceMemberRoleRequest = Static<
+  typeof CreateWorkspaceMemberRoleRequest
+>;
+
+export const UpdateWorkspaceMemberRoleRequest = Type.Object({
+  workspaceId: Type.String(),
+  email: Type.String(),
+  role: Role,
+});
+
+export type UpdateWorkspaceMemberRoleRequest = Static<
+  typeof UpdateWorkspaceMemberRoleRequest
+>;
+
+export const DeleteWorkspaceMemberRoleRequest = Type.Object({
+  workspaceId: Type.String(),
+  email: Type.String(),
+});
+
+export type DeleteWorkspaceMemberRoleRequest = Static<
+  typeof DeleteWorkspaceMemberRoleRequest
+>;
+
+export const GetWorkspaceMemberRolesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetWorkspaceMemberRolesRequest = Static<
+  typeof GetWorkspaceMemberRolesRequest
+>;
+
+export const WorkspaceMemberWithRoles = Type.Object({
+  member: WorkspaceMemberResource,
+  roles: Type.Array(WorkspaceMemberRoleResource),
+});
+
+export type WorkspaceMemberWithRoles = Static<typeof WorkspaceMemberWithRoles>;
+
+export const GetWorkspaceMemberRolesResponse = Type.Object({
+  memberRoles: Type.Array(WorkspaceMemberWithRoles),
+});
+
+export type GetWorkspaceMemberRolesResponse = Static<
+  typeof GetWorkspaceMemberRolesResponse
+>;
+
 export interface DFRequestContext {
   workspace: WorkspaceResource & {
     type: WorkspaceTypeApp;
