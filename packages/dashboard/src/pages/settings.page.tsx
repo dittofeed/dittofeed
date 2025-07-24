@@ -87,9 +87,9 @@ import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
+import { PermissionsTable } from "../components/permissionsTable";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
 import WebhookSecretTable from "../components/webhookSecretTable";
-import { PermissionsTable } from "../components/permissionsTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -327,101 +327,102 @@ function getMenuItems(authMode: string | undefined): MenuItemGroup[] {
         },
       ],
     },
-  {
-    id: "message-channels",
-    title: "Messaging Channels",
-    type: "group",
-    children: [
-      {
-        id: "email",
-        title: "Email",
-        type: "item",
-        url: `/settings#${settingsSectionIds.emailChannel}`,
-        icon: Mail,
-        description:
-          "Configure email settings, including the email provider credentials.",
-      },
-      {
-        id: "sms",
-        title: "SMS",
-        type: "item",
-        url: `/settings#${settingsSectionIds.smsChannel}`,
-        icon: SmsOutlined,
-        description:
-          "Configure email settings, including the email provider credentials.",
-      },
-      {
-        id: "webhook",
-        title: "Webhook",
-        type: "item",
-        url: `/settings#${settingsSectionIds.webhookChannel}`,
-        icon: Webhook,
-        description: "Configure webhook settings, including custom secrets.",
-      },
-    ],
-  },
-  {
-    id: "subscription-management",
-    title: "Subscription Management",
-    type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.subscription}`,
-  },
-  {
-    id: "authentication",
-    title: "Authentication",
-    type: "group",
-    children: [
-      {
-        id: "write-key",
-        title: "Public Write Key",
-        type: "item",
-        url: `/settings#${settingsSectionIds.writeKey}`,
-        description: "Write key used to submit user data to Dittofeed.",
-        icon: Create,
-      },
-      {
-        id: "admin-api-key",
-        title: "Admin API Key",
-        type: "item",
-        url: `/settings#${settingsSectionIds.adminApiKey}`,
-        description: "API key used to authenticate against the Admin API.",
-        icon: Key,
-      },
-    ],
-  },
-  {
-    id: "integrations",
-    title: "Integrations",
-    type: "group",
-    children: [
-      {
-        id: "hubspot",
-        title: "Hubspot",
-        type: "item",
-        url: `/settings#${settingsSectionIds.hubspotIntegration}`,
-        icon: HubspotIcon,
-        description: "Configure Hubspot integration.",
-      },
-    ],
-    url: `/settings#${settingsSectionIds.hubspotIntegration}`,
-  },
-  {
-    id: settingsSectionIds.workspaceMetadata,
-    title: "Workspace Metadata",
-    type: "group",
-    children: [
-      {
-        id: "workspace-id",
-        title: "Workspace Id",
-        type: "item",
-        url: `/settings#${settingsSectionIds.workspaceMetadata}`,
-        icon: InfoOutlined,
-        description: "Copy workspace id to clipboard.",
-      },
-    ],
-    url: `/settings#${settingsSectionIds.workspaceMetadata}`,
-  }];
+    {
+      id: "message-channels",
+      title: "Messaging Channels",
+      type: "group",
+      children: [
+        {
+          id: "email",
+          title: "Email",
+          type: "item",
+          url: `/settings#${settingsSectionIds.emailChannel}`,
+          icon: Mail,
+          description:
+            "Configure email settings, including the email provider credentials.",
+        },
+        {
+          id: "sms",
+          title: "SMS",
+          type: "item",
+          url: `/settings#${settingsSectionIds.smsChannel}`,
+          icon: SmsOutlined,
+          description:
+            "Configure email settings, including the email provider credentials.",
+        },
+        {
+          id: "webhook",
+          title: "Webhook",
+          type: "item",
+          url: `/settings#${settingsSectionIds.webhookChannel}`,
+          icon: Webhook,
+          description: "Configure webhook settings, including custom secrets.",
+        },
+      ],
+    },
+    {
+      id: "subscription-management",
+      title: "Subscription Management",
+      type: "group",
+      children: [],
+      url: `/settings#${settingsSectionIds.subscription}`,
+    },
+    {
+      id: "authentication",
+      title: "Authentication",
+      type: "group",
+      children: [
+        {
+          id: "write-key",
+          title: "Public Write Key",
+          type: "item",
+          url: `/settings#${settingsSectionIds.writeKey}`,
+          description: "Write key used to submit user data to Dittofeed.",
+          icon: Create,
+        },
+        {
+          id: "admin-api-key",
+          title: "Admin API Key",
+          type: "item",
+          url: `/settings#${settingsSectionIds.adminApiKey}`,
+          description: "API key used to authenticate against the Admin API.",
+          icon: Key,
+        },
+      ],
+    },
+    {
+      id: "integrations",
+      title: "Integrations",
+      type: "group",
+      children: [
+        {
+          id: "hubspot",
+          title: "Hubspot",
+          type: "item",
+          url: `/settings#${settingsSectionIds.hubspotIntegration}`,
+          icon: HubspotIcon,
+          description: "Configure Hubspot integration.",
+        },
+      ],
+      url: `/settings#${settingsSectionIds.hubspotIntegration}`,
+    },
+    {
+      id: settingsSectionIds.workspaceMetadata,
+      title: "Workspace Metadata",
+      type: "group",
+      children: [
+        {
+          id: "workspace-id",
+          title: "Workspace Id",
+          type: "item",
+          url: `/settings#${settingsSectionIds.workspaceMetadata}`,
+          icon: InfoOutlined,
+          description: "Copy workspace id to clipboard.",
+        },
+      ],
+      url: `/settings#${settingsSectionIds.workspaceMetadata}`,
+    },
+  ];
 
   // Only add permissions menu item in multi-tenant mode
   if (authMode === "multi-tenant") {
@@ -1959,12 +1960,12 @@ function Metadata() {
 
 function PermissionsSettings() {
   const { authMode } = useAppStorePick(["authMode"]);
-  
+
   // Only render in multi-tenant mode
   if (authMode !== "multi-tenant") {
     return null;
   }
-  
+
   return (
     <Stack spacing={3}>
       <SectionHeader

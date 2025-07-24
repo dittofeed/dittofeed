@@ -1,17 +1,16 @@
-import { db } from "./db";
-import * as schema from "./db/schema";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   CreateWorkspaceMemberRoleRequest,
-  UpdateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
   GetWorkspaceMemberRolesRequest,
   GetWorkspaceMemberRolesResponse,
-  WorkspaceMemberWithRoles,
-  WorkspaceMemberResource,
+  UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
-  Role,
+  WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
+
+import { db } from "./db";
+import * as schema from "./db/schema";
 
 export async function getWorkspaceMemberRoles({
   workspaceId,
@@ -37,11 +36,14 @@ export async function getWorkspaceMemberRoles({
     .from(schema.workspaceMemberRole)
     .innerJoin(
       schema.workspaceMember,
-      eq(schema.workspaceMemberRole.workspaceMemberId, schema.workspaceMember.id)
+      eq(
+        schema.workspaceMemberRole.workspaceMemberId,
+        schema.workspaceMember.id,
+      ),
     )
     .innerJoin(
       schema.workspace,
-      eq(schema.workspaceMemberRole.workspaceId, schema.workspace.id)
+      eq(schema.workspaceMemberRole.workspaceId, schema.workspace.id),
     )
     .where(eq(schema.workspaceMemberRole.workspaceId, workspaceId));
 
@@ -63,7 +65,10 @@ export async function getWorkspaceMemberRoles({
         roles: [],
       });
     }
-    memberRoleMap.get(memberId)!.roles.push(row.role);
+    const member = memberRoleMap.get(memberId);
+    if (member) {
+      member.roles.push(row.role);
+    }
   }
 
   return {
@@ -95,7 +100,7 @@ export async function createWorkspaceMemberRole({
   const existingRole = await db().query.workspaceMemberRole.findFirst({
     where: and(
       eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-      eq(schema.workspaceMemberRole.workspaceMemberId, memberId)
+      eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
     ),
   });
 
@@ -133,7 +138,7 @@ export async function updateWorkspaceMemberRole({
   const existingRole = await db().query.workspaceMemberRole.findFirst({
     where: and(
       eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-      eq(schema.workspaceMemberRole.workspaceMemberId, memberId)
+      eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
     ),
   });
 
@@ -147,8 +152,8 @@ export async function updateWorkspaceMemberRole({
     .where(
       and(
         eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-        eq(schema.workspaceMemberRole.workspaceMemberId, memberId)
-      )
+        eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+      ),
     );
 
   return {
@@ -168,8 +173,8 @@ export async function deleteWorkspaceMemberRole({
     .where(
       and(
         eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-        eq(schema.workspaceMemberRole.workspaceMemberId, memberId)
-      )
+        eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+      ),
     );
 
   return (result.rowCount ?? 0) > 0;
