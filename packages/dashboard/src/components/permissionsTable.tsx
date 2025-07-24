@@ -98,12 +98,12 @@ function PermissionDialog({
   const handleSubmit = () => {
     if (isEdit && memberWithRole) {
       updateMutation.mutate({
-        memberId: memberWithRole.member.id,
+        email: memberWithRole.member.email,
         role,
       });
     } else {
       createMutation.mutate({
-        memberId: email, // For now, using email as memberId - this would need to be resolved via member lookup
+        email,
         role,
       });
     }
@@ -182,7 +182,7 @@ export function PermissionsTable() {
 
   const handleDelete = (memberWithRole: WorkspaceMemberWithRoles) => {
     deleteMutation.mutate({
-      memberId: memberWithRole.member.id,
+      email: memberWithRole.member.email,
     });
   };
 

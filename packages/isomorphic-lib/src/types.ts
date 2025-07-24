@@ -2610,7 +2610,7 @@ export type WorkspaceMemberRoleResource = Static<
 
 export const CreateWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
-  memberId: Type.String(),
+  email: Type.String(),
   role: Role,
 });
 
@@ -2620,7 +2620,7 @@ export type CreateWorkspaceMemberRoleRequest = Static<
 
 export const UpdateWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
-  memberId: Type.String(),
+  email: Type.String(),
   role: Role,
 });
 
@@ -2630,7 +2630,7 @@ export type UpdateWorkspaceMemberRoleRequest = Static<
 
 export const DeleteWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
-  memberId: Type.String(),
+  email: Type.String(),
 });
 
 export type DeleteWorkspaceMemberRoleRequest = Static<

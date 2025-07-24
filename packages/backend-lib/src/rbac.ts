@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CreateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
@@ -9,8 +10,9 @@ import {
   WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
 
-import { db } from "./db";
+import { db, insert } from "./db";
 import * as schema from "./db/schema";
+import { WorkspaceMember } from "./types";
 
 export async function getWorkspaceMemberRoles({
   workspaceId,
@@ -78,7 +80,7 @@ export async function getWorkspaceMemberRoles({
 
 export async function createWorkspaceMemberRole({
   workspaceId,
-  memberId,
+  email,
   role,
 }: CreateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
   const workspace = await db().query.workspace.findFirst({
@@ -89,18 +91,32 @@ export async function createWorkspaceMemberRole({
     throw new Error("Workspace not found");
   }
 
-  const member = await db().query.workspaceMember.findFirst({
-    where: eq(schema.workspaceMember.id, memberId),
+  // Find or create workspace member
+  let workspaceMember: WorkspaceMember;
+  const maybeWorkspaceMember = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.email, email),
   });
 
-  if (!member) {
-    throw new Error("Workspace member not found");
+  if (maybeWorkspaceMember) {
+    workspaceMember = maybeWorkspaceMember;
+  } else {
+    workspaceMember = unwrap(
+      await insert({
+        table: schema.workspaceMember,
+        doNothingOnConflict: true,
+        lookupExisting: eq(schema.workspaceMember.email, email),
+        values: {
+          email,
+        },
+      }),
+    );
   }
 
+  // Check if role already exists
   const existingRole = await db().query.workspaceMemberRole.findFirst({
     where: and(
       eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-      eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+      eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
     ),
   });
 
@@ -110,13 +126,13 @@ export async function createWorkspaceMemberRole({
 
   await db().insert(schema.workspaceMemberRole).values({
     workspaceId,
-    workspaceMemberId: memberId,
+    workspaceMemberId: workspaceMember.id,
     role,
   });
 
   return {
     role,
-    workspaceMemberId: memberId,
+    workspaceMemberId: workspaceMember.id,
     workspaceId,
     workspaceName: workspace.name,
   };
@@ -124,7 +140,7 @@ export async function createWorkspaceMemberRole({
 
 export async function updateWorkspaceMemberRole({
   workspaceId,
-  memberId,
+  email,
   role,
 }: UpdateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
   const workspace = await db().query.workspace.findFirst({
@@ -135,10 +151,18 @@ export async function updateWorkspaceMemberRole({
     throw new Error("Workspace not found");
   }
 
+  const workspaceMember = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.email, email),
+  });
+
+  if (!workspaceMember) {
+    throw new Error("Workspace member not found");
+  }
+
   const existingRole = await db().query.workspaceMemberRole.findFirst({
     where: and(
       eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-      eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+      eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
     ),
   });
 
@@ -152,13 +176,13 @@ export async function updateWorkspaceMemberRole({
     .where(
       and(
         eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-        eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+        eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
       ),
     );
 
   return {
     role,
-    workspaceMemberId: memberId,
+    workspaceMemberId: workspaceMember.id,
     workspaceId,
     workspaceName: workspace.name,
   };
@@ -166,14 +190,22 @@ export async function updateWorkspaceMemberRole({
 
 export async function deleteWorkspaceMemberRole({
   workspaceId,
-  memberId,
+  email,
 }: DeleteWorkspaceMemberRoleRequest): Promise<boolean> {
+  const workspaceMember = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.email, email),
+  });
+
+  if (!workspaceMember) {
+    return false;
+  }
+
   const result = await db()
     .delete(schema.workspaceMemberRole)
     .where(
       and(
         eq(schema.workspaceMemberRole.workspaceId, workspaceId),
-        eq(schema.workspaceMemberRole.workspaceMemberId, memberId),
+        eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
       ),
     );
 
