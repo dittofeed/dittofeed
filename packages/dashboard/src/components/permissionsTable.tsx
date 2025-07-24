@@ -104,8 +104,8 @@ function PermissionDialog({
       });
       onClose();
     },
-    onError: (error) => {
-      enqueueSnackbar(`Failed to update permission: ${error.message}`, {
+    onError: (err) => {
+      enqueueSnackbar(`Failed to update permission: ${err.message}`, {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });
@@ -160,7 +160,7 @@ function PermissionDialog({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!email || !role || isLoading}
+          disabled={!email || isLoading}
         >
           {isEdit ? "Update" : "Create"}
         </Button>
@@ -204,7 +204,7 @@ interface NameCellProps {
 }
 
 function NameCell({ member }: NameCellProps) {
-  const displayName = member.name || member.nickname || "-";
+  const displayName = member.name ?? member.nickname ?? "-";
   return (
     <Box
       sx={{
@@ -334,6 +334,40 @@ export function PermissionsTable() {
     setEditingMember(undefined);
   }, []);
 
+  const renderEmailCell = useCallback(
+    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
+      <EmailCell value={row.original.member.email} />
+    ),
+    [],
+  );
+
+  const renderNameCell = useCallback(
+    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
+      <NameCell member={row.original.member} />
+    ),
+    [],
+  );
+
+  const renderRoleCell = useCallback(
+    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
+      <RoleCell roles={row.original.roles} />
+    ),
+    [],
+  );
+
+  const renderActionsCell = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, react/no-unused-prop-types
+    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
+      <ActionsCell
+        memberWithRole={row.original}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        isDeleting={deleteMutation.isPending}
+      />
+    ),
+    [handleEdit, handleDelete, deleteMutation.isPending],
+  );
+
   const data = useMemo(() => {
     return permissionsData?.memberRoles ?? [];
   }, [permissionsData]);
@@ -344,35 +378,28 @@ export function PermissionsTable() {
         id: "email",
         header: "Email",
         accessorKey: "member.email",
-        cell: ({ row }) => <EmailCell value={row.original.member.email} />,
+        cell: renderEmailCell,
       },
       {
         id: "name",
         header: "Name",
-        accessorFn: (row) => row.member.name || row.member.nickname || "-",
-        cell: ({ row }) => <NameCell member={row.original.member} />,
+        accessorFn: (row) => row.member.name ?? row.member.nickname ?? "-",
+        cell: renderNameCell,
       },
       {
         id: "role",
         header: "Role",
         accessorFn: (row) => row.roles.map((role) => role.role).join(", "),
-        cell: ({ row }) => <RoleCell roles={row.original.roles} />,
+        cell: renderRoleCell,
       },
       {
         id: "actions",
         header: "Actions",
-        cell: ({ row }) => (
-          <ActionsCell
-            memberWithRole={row.original}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            isDeleting={deleteMutation.isPending}
-          />
-        ),
+        cell: renderActionsCell,
         enableSorting: false,
       },
     ],
-    [handleEdit, handleDelete, deleteMutation.isPending],
+    [renderEmailCell, renderNameCell, renderRoleCell, renderActionsCell],
   );
 
   const table = useReactTable({
@@ -458,16 +485,21 @@ export function PermissionsTable() {
                           <Box
                             sx={{ display: "flex", flexDirection: "column" }}
                           >
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ArrowUpwardIcon fontSize="small" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ArrowDownwardIcon fontSize="small" />
-                            ) : (
-                              <SwapVertIcon
-                                fontSize="small"
-                                sx={{ color: "grey.400" }}
-                              />
-                            )}
+                            {(() => {
+                              const sortDirection = header.column.getIsSorted();
+                              if (sortDirection === "asc") {
+                                return <ArrowUpwardIcon fontSize="small" />;
+                              }
+                              if (sortDirection === "desc") {
+                                return <ArrowDownwardIcon fontSize="small" />;
+                              }
+                              return (
+                                <SwapVertIcon
+                                  fontSize="small"
+                                  sx={{ color: "grey.400" }}
+                                />
+                              );
+                            })()}
                           </Box>
                         )}
                       </Box>

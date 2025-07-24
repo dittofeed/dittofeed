@@ -1,4 +1,8 @@
-import { useQuery, UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
+import {
+  useQuery,
+  UseQueryOptions,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import {
   CompletionStatus,
@@ -46,7 +50,10 @@ export function usePermissionsQuery(
   };
 
   return useQuery({
-    queryKey: [PERMISSIONS_QUERY_KEY, { workspaceId: workspaceId ?? "" }] as const,
+    queryKey: [
+      PERMISSIONS_QUERY_KEY,
+      { workspaceId: workspaceId ?? "" },
+    ] as const,
     queryFn,
     enabled: !!workspaceId,
     ...options,

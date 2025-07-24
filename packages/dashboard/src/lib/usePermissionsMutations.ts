@@ -8,8 +8,8 @@ import axios, { AxiosError } from "axios";
 import {
   CompletionStatus,
   CreateWorkspaceMemberRoleRequest,
-  UpdateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
+  UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
 } from "isomorphic-lib/src/types";
 
