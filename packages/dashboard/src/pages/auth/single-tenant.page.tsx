@@ -9,11 +9,13 @@ import { useRouter } from "next/router";
 import React from "react";
 
 import NavCard from "../../components/layout/drawer/drawerContent/navCard";
+import { apiBase } from "../../lib/apiBase";
 import { useSingleTenantLoginMutation } from "../../lib/useSingleTenantLoginMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
 
 interface SingleTenantAuthProps {
   warnings: string[];
+  apiBaseUrl: string;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -85,6 +87,7 @@ export const getServerSideProps: GetServerSideProps<
   return {
     props: {
       warnings,
+      apiBaseUrl: apiBase(),
     },
   };
 };
@@ -92,13 +95,13 @@ export const getServerSideProps: GetServerSideProps<
 const APPLICATION_ERROR = "API Error: something wen't wrong.";
 
 const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
-  function SingleTenantAuth({ warnings }) {
+  function SingleTenantAuth({ warnings, apiBaseUrl }) {
     const path = useRouter();
     const theme = useTheme();
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState("");
 
-    const loginMutation = useSingleTenantLoginMutation({
+    const loginMutation = useSingleTenantLoginMutation(apiBaseUrl, {
       onSuccess: () => {
         path.push("/");
       },
