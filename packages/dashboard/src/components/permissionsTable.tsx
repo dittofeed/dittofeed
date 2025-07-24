@@ -1,8 +1,15 @@
-import { Add, Edit } from "@mui/icons-material";
+import {
+  Add,
+  ArrowDownward as ArrowDownwardIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  Edit,
+  SwapVert as SwapVertIcon,
+} from "@mui/icons-material";
 import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,6 +20,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -23,12 +31,21 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
   Role,
   RoleEnum,
   WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useImmer } from "use-immer";
 
 import { noticeAnchorOrigin } from "../lib/notices";
 import {
@@ -152,11 +169,134 @@ function PermissionDialog({
   );
 }
 
+interface PermissionsTableState {
+  sorting: SortingState;
+}
+
+interface EmailCellProps {
+  value: string;
+}
+
+function EmailCell({ value }: EmailCellProps) {
+  return (
+    <Box
+      sx={{
+        maxWidth: "250px",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <Typography
+        sx={{
+          fontFamily: "monospace",
+          fontSize: "0.875rem",
+        }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  );
+}
+
+interface NameCellProps {
+  member: WorkspaceMemberWithRoles["member"];
+}
+
+function NameCell({ member }: NameCellProps) {
+  const displayName = member.name || member.nickname || "-";
+  return (
+    <Box
+      sx={{
+        maxWidth: "200px",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <Typography>{displayName}</Typography>
+    </Box>
+  );
+}
+
+interface RoleCellProps {
+  roles: WorkspaceMemberWithRoles["roles"];
+}
+
+function RoleCell({ roles }: RoleCellProps) {
+  return (
+    <Box
+      sx={{
+        bgcolor: "primary.50",
+        color: "primary.800",
+        px: 1.5,
+        py: 0.5,
+        borderRadius: 1,
+        fontSize: "0.75rem",
+        fontWeight: 500,
+        display: "inline-block",
+      }}
+    >
+      {roles.map((role) => role.role).join(", ")}
+    </Box>
+  );
+}
+
+interface ActionsCellProps {
+  memberWithRole: WorkspaceMemberWithRoles;
+  onEdit: (memberWithRole: WorkspaceMemberWithRoles) => void;
+  onDelete: (memberWithRole: WorkspaceMemberWithRoles) => void;
+  isDeleting: boolean;
+}
+
+function ActionsCell({
+  memberWithRole,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: ActionsCellProps) {
+  return (
+    <Box sx={{ display: "flex", gap: 0.5 }}>
+      <IconButton
+        size="small"
+        onClick={() => onEdit(memberWithRole)}
+        sx={{
+          color: "grey.600",
+          "&:hover": {
+            color: "primary.main",
+            bgcolor: "primary.50",
+          },
+        }}
+      >
+        <Edit fontSize="small" />
+      </IconButton>
+      <DeleteDialog
+        onConfirm={() => onDelete(memberWithRole)}
+        title="Remove Permission"
+        message={`Are you sure you want to remove ${memberWithRole.member.email}'s permissions?`}
+        size="small"
+        sx={{
+          color: "grey.600",
+          "&:hover": {
+            color: "error.main",
+            bgcolor: "error.50",
+          },
+        }}
+        disabled={isDeleting}
+      />
+    </Box>
+  );
+}
+
 export function PermissionsTable() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<
     WorkspaceMemberWithRoles | undefined
   >();
+
+  const [state, setState] = useImmer<PermissionsTableState>({
+    sorting: [],
+  });
 
   const { data: permissionsData, isLoading, error } = usePermissionsQuery();
 
@@ -167,32 +307,96 @@ export function PermissionsTable() {
         anchorOrigin: noticeAnchorOrigin,
       });
     },
-    onError: (error) => {
-      enqueueSnackbar(`Failed to delete permission: ${error.message}`, {
+    onError: (err) => {
+      enqueueSnackbar(`Failed to delete permission: ${err.message}`, {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });
     },
   });
 
-  const handleEdit = (memberWithRole: WorkspaceMemberWithRoles) => {
+  const handleEdit = useCallback((memberWithRole: WorkspaceMemberWithRoles) => {
     setEditingMember(memberWithRole);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (memberWithRole: WorkspaceMemberWithRoles) => {
-    deleteMutation.mutate({
-      email: memberWithRole.member.email,
-    });
-  };
+  const handleDelete = useCallback(
+    (memberWithRole: WorkspaceMemberWithRoles) => {
+      deleteMutation.mutate({
+        email: memberWithRole.member.email,
+      });
+    },
+    [deleteMutation],
+  );
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);
     setEditingMember(undefined);
-  };
+  }, []);
+
+  const data = useMemo(() => {
+    return permissionsData?.memberRoles ?? [];
+  }, [permissionsData]);
+
+  const columns = useMemo<ColumnDef<WorkspaceMemberWithRoles>[]>(
+    () => [
+      {
+        id: "email",
+        header: "Email",
+        accessorKey: "member.email",
+        cell: ({ row }) => <EmailCell value={row.original.member.email} />,
+      },
+      {
+        id: "name",
+        header: "Name",
+        accessorFn: (row) => row.member.name || row.member.nickname || "-",
+        cell: ({ row }) => <NameCell member={row.original.member} />,
+      },
+      {
+        id: "role",
+        header: "Role",
+        accessorFn: (row) => row.roles.map((role) => role.role).join(", "),
+        cell: ({ row }) => <RoleCell roles={row.original.roles} />,
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <ActionsCell
+            memberWithRole={row.original}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            isDeleting={deleteMutation.isPending}
+          />
+        ),
+        enableSorting: false,
+      },
+    ],
+    [handleEdit, handleDelete, deleteMutation.isPending],
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting: state.sorting,
+    },
+    onSortingChange: (updater) => {
+      setState((draft) => {
+        draft.sorting =
+          typeof updater === "function" ? updater(draft.sorting) : updater;
+      });
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   if (isLoading) {
-    return <Typography>Loading permissions...</Typography>;
+    return (
+      <Box display="flex" justifyContent="center" p={4}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
@@ -204,175 +408,102 @@ export function PermissionsTable() {
   }
 
   return (
-    <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
+    <Stack spacing={2}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        sx={{ height: "48px" }}
       >
         <Typography variant="h6">Workspace Permissions</Typography>
         <GreyButton startIcon={<Add />} onClick={() => setDialogOpen(true)}>
           Add Permission
         </GreyButton>
-      </Box>
+      </Stack>
 
       <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
-            <TableRow>
-              <TableCell
-                sx={{
-                  bgcolor: "background.paper",
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200",
-                  fontWeight: 600,
-                }}
-              >
-                Email
-              </TableCell>
-              <TableCell
-                sx={{
-                  bgcolor: "background.paper",
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200",
-                  fontWeight: 600,
-                }}
-              >
-                Name
-              </TableCell>
-              <TableCell
-                sx={{
-                  bgcolor: "background.paper",
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200",
-                  fontWeight: 600,
-                }}
-              >
-                Role
-              </TableCell>
-              <TableCell
-                sx={{
-                  bgcolor: "background.paper",
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200",
-                  fontWeight: 600,
-                  width: "120px",
-                }}
-              >
-                Actions
-              </TableCell>
-            </TableRow>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableCell
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    sx={{
+                      bgcolor: "background.paper",
+                      borderBottom: "1px solid",
+                      borderColor: "grey.200",
+                      fontWeight: 600,
+                      ...(header.id === "actions" && { width: "120px" }),
+                    }}
+                  >
+                    {header.isPlaceholder ? null : (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          cursor: header.column.getCanSort()
+                            ? "pointer"
+                            : "default",
+                        }}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {header.column.getCanSort() && (
+                          <Box
+                            sx={{ display: "flex", flexDirection: "column" }}
+                          >
+                            {header.column.getIsSorted() === "asc" ? (
+                              <ArrowUpwardIcon fontSize="small" />
+                            ) : header.column.getIsSorted() === "desc" ? (
+                              <ArrowDownwardIcon fontSize="small" />
+                            ) : (
+                              <SwapVertIcon
+                                fontSize="small"
+                                sx={{ color: "grey.400" }}
+                              />
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
           </TableHead>
           <TableBody>
-            {permissionsData?.memberRoles.map((memberWithRole) => (
+            {table.getRowModel().rows.map((row) => (
               <TableRow
-                key={memberWithRole.member.id}
+                key={row.id}
                 sx={{
                   "&:hover": {
                     bgcolor: "grey.50",
                   },
                 }}
               >
-                <TableCell
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "grey.100",
-                    maxWidth: "250px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Typography
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
                     sx={{
-                      fontFamily: "monospace",
-                      fontSize: "0.875rem",
+                      borderBottom: "1px solid",
+                      borderColor: "grey.100",
                     }}
                   >
-                    {memberWithRole.member.email}
-                  </Typography>
-                </TableCell>
-                <TableCell
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "grey.100",
-                    maxWidth: "200px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {memberWithRole.member.name ||
-                    memberWithRole.member.nickname ||
-                    "-"}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "grey.100",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      bgcolor: "primary.50",
-                      color: "primary.800",
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 1,
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                      display: "inline-block",
-                    }}
-                  >
-                    {memberWithRole.roles.map((role) => role.role).join(", ")}
-                  </Box>
-                </TableCell>
-                <TableCell
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "grey.100",
-                  }}
-                >
-                  <Box sx={{ display: "flex", gap: 0.5 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEdit(memberWithRole)}
-                      sx={{
-                        color: "grey.600",
-                        "&:hover": {
-                          color: "primary.main",
-                          bgcolor: "primary.50",
-                        },
-                      }}
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <DeleteDialog
-                      onConfirm={() => handleDelete(memberWithRole)}
-                      title="Remove Permission"
-                      message={`Are you sure you want to remove ${memberWithRole.member.email}'s permissions?`}
-                      size="small"
-                      sx={{
-                        color: "grey.600",
-                        "&:hover": {
-                          color: "error.main",
-                          bgcolor: "error.50",
-                        },
-                      }}
-                      disabled={deleteMutation.isPending}
-                    />
-                  </Box>
-                </TableCell>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
               </TableRow>
             ))}
-            {(!permissionsData?.memberRoles ||
-              permissionsData.memberRoles.length === 0) && (
+            {data.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={columns.length}
                   align="center"
                   sx={{
                     borderBottom: "1px solid",
@@ -395,6 +526,6 @@ export function PermissionsTable() {
         memberWithRole={editingMember}
         isEdit={!!editingMember}
       />
-    </Box>
+    </Stack>
   );
 }
