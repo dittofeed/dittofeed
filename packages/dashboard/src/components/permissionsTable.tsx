@@ -63,7 +63,6 @@ import {
   useUpdatePermissionMutation,
 } from "../lib/usePermissionsMutations";
 import { usePermissionsQuery } from "../lib/usePermissionsQuery";
-import DeleteDialog from "./confirmDeleteDialog";
 import { GreyButton } from "./greyButtonStyle";
 
 interface PermissionDialogProps {
@@ -431,6 +430,7 @@ export function PermissionsTable() {
   );
 
   const renderRoleCell = useCallback(
+    // eslint-disable-next-line react/no-unused-prop-types
     ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
       <RoleCell roles={row.original.roles} />
     ),
@@ -628,6 +628,7 @@ export function PermissionsTable() {
 
 // Add type definition for table meta
 declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
     onEdit?: (memberWithRole: WorkspaceMemberWithRoles) => void;
     onDelete?: (memberWithRole: WorkspaceMemberWithRoles) => void;

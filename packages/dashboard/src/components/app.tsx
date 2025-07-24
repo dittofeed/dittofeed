@@ -14,7 +14,6 @@ import { Provider as StoreProvider, useCreateStore } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
 import { PreloadedState } from "../lib/types";
 import ThemeCustomization from "../themeCustomization";
-import { SdkInitializer } from "./dittofeedSdk";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -223,25 +222,20 @@ export default function App({
 
   return (
     <StoreProvider createStore={createStore}>
-      <SdkInitializer>
-        <EmotionCacheProvider value={emotionCache}>
-          <Head>
-            <meta
-              name="viewport"
-              content="initial-scale=1, width=device-width"
-            />
-          </Head>
-          <ThemeCustomization>
-            <SnackbarProvider preventDuplicate>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <QueryClientProvider client={queryClient}>
-                  <Component {...pageProps} />
-                </QueryClientProvider>
-              </LocalizationProvider>
-            </SnackbarProvider>
-          </ThemeCustomization>
-        </EmotionCacheProvider>
-      </SdkInitializer>
+      <EmotionCacheProvider value={emotionCache}>
+        <Head>
+          <meta name="viewport" content="initial-scale=1, width=device-width" />
+        </Head>
+        <ThemeCustomization>
+          <SnackbarProvider preventDuplicate>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <QueryClientProvider client={queryClient}>
+                <Component {...pageProps} />
+              </QueryClientProvider>
+            </LocalizationProvider>
+          </SnackbarProvider>
+        </ThemeCustomization>
+      </EmotionCacheProvider>
     </StoreProvider>
   );
 }
