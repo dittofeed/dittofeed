@@ -1,6 +1,6 @@
 import { LoadingButton } from "@mui/lab";
 import { Stack, TextField, useTheme } from "@mui/material";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import backendConfig, { DEFAULT_BACKEND_CONFIG } from "backend-lib/src/config";
 import { SESSION_KEY } from "backend-lib/src/requestContext";
 import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import React from "react";
 
 import NavCard from "../../components/layout/drawer/drawerContent/navCard";
+import { useSingleTenantLoginMutation } from "../../lib/useSingleTenantLoginMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
 
 interface SingleTenantAuthProps {
@@ -96,25 +97,26 @@ const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
     const theme = useTheme();
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState("");
-    const [loading, setLoading] = React.useState(false);
-    const submit = async () => {
-      if (loading) {
-        return;
-      }
-      setLoading(true);
-      try {
-        await axios.post("/api/public/single-tenant/login", {
-          password,
-        });
+
+    const loginMutation = useSingleTenantLoginMutation({
+      onSuccess: () => {
         path.push("/");
-      } catch (e) {
-        setLoading(false);
+      },
+      onError: (e) => {
         if (!(e instanceof AxiosError) || e.response?.status !== 401) {
           setError(APPLICATION_ERROR);
           return;
         }
         setError("Invalid password");
+      },
+    });
+
+    const submit = async () => {
+      if (loginMutation.isPending) {
+        return;
       }
+      setError("");
+      loginMutation.mutate({ password });
     };
 
     return (
@@ -148,8 +150,8 @@ const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
             }}
           />
           <LoadingButton
-            disabled={loading}
-            loading={loading}
+            disabled={loginMutation.isPending}
+            loading={loginMutation.isPending}
             onClick={submit}
             sx={{ height: "3.3rem" }}
             variant="contained"
