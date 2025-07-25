@@ -85,11 +85,22 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - you should use tanstack query and axios for data fetching
     - see packages/dashboard/src/lib/useSegmentsQuery.ts and packages/dashboard/src/lib/useUpdateSegmentsMutation.ts as examples
 
+## Relevant References
+
+- packages/backend-lib/src/userEvents.ts to see how user events can be fetched from clickhouse
+- packages/backend-lib/src/deliveries.ts to see how deliveries can be fetched from clickhouse
+- packages/backend-lib/src/db/schema.ts to see our postgres schema
+- packages/backend-lib/src/userEvents/clickhouse.ts to see our clickhouse schema
+
 ## Steps
 
+### Stage 1 Backend
+
 - create new backend method in packages/backend-lib/src/analysis.ts getChartData
+    - this and other methods should use typebox schema defined types for their parameters and return values, see packages/backend-lib/src/segments.ts as an example
 - create a new test in packages/backend-lib/src/analysis.test.ts for getChartData
 - create a new method in packages/backend-lib/src/analysis.ts getSummarizedData
     - this is used to represent the summary row between the chart and the table
 - create a new test in packages/backend-lib/src/analysis.test.ts for getSummarizedData
-
+- add a new analysis controller. use packages/api/src/controllers/segmentsController.ts as an example
+- add controller to router packages/api/src/buildApp/router.ts
