@@ -84,6 +84,7 @@ function generateUnsubscribeUrl(scope: any): string {
     | undefined;
   const userProperties = allScope.user as UserPropertyAssignments;
   const identifierKey = allScope.identifier_key as string | undefined;
+  const isPreview = allScope.is_preview as boolean | undefined;
 
   const identifier = identifierKey
     ? assignmentAsString(userProperties, identifierKey)
@@ -100,6 +101,7 @@ function generateUnsubscribeUrl(scope: any): string {
       userId,
       changedSubscription: subscriptionGroupId,
       subscriptionChange: SubscriptionChange.Unsubscribe,
+      isPreview,
     });
   }
 
@@ -121,6 +123,7 @@ function generateSubscriptionManagementUrl(scope: any): string {
   const workspaceId = allScope.workspace_id as string;
   const userProperties = allScope.user as UserPropertyAssignments;
   const identifierKey = allScope.identifier_key as string | undefined;
+  const isPreview = allScope.is_preview as boolean | undefined;
 
   const identifier = identifierKey
     ? assignmentAsString(userProperties, identifierKey)
@@ -135,6 +138,7 @@ function generateSubscriptionManagementUrl(scope: any): string {
       identifierKey,
       subscriptionSecret,
       userId,
+      isPreview,
     });
   }
 
@@ -205,6 +209,7 @@ export interface RenderLiquidOptions {
   workspaceId: string;
   // TODO [DF-471] make this field required and render tags in the user property field
   tags?: MessageTags;
+  isPreview?: boolean;
 }
 
 export function renderLiquid({
@@ -216,6 +221,7 @@ export function renderLiquid({
   secrets = {},
   mjml = false,
   tags,
+  isPreview = false,
 }: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
@@ -229,6 +235,7 @@ export function renderLiquid({
     identifier_key: identifierKey,
     // TODO [DF-471] remove default
     tags: tags ?? {},
+    is_preview: isPreview,
   }) as string;
   if (!mjml) {
     return liquidRendered;

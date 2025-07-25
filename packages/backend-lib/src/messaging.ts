@@ -31,6 +31,7 @@ import {
   messageTemplate as dbMessageTemplate,
   secret as dbSecret,
   smsProvider as dbSmsProvider,
+  subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
@@ -96,6 +97,8 @@ import {
   SmsProviderOverride,
   SmsProviderSecret,
   SmsProviderType,
+  SubscriptionChange,
+  SubscriptionGroupType,
   TwilioSecret,
   TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
@@ -267,7 +270,7 @@ async function getSendMessageModels({
   workspaceId: string;
   templateId: string;
   channel: ChannelType;
-  subscriptionGroupDetails?: SubscriptionGroupDetails;
+  subscriptionGroupDetails?: Omit<SubscriptionGroupDetails, "name">;
   useDraft?: boolean;
 }): Promise<
   Result<
@@ -369,6 +372,7 @@ export interface SendMessageParametersBase {
   subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
   messageTags?: MessageTags;
   useDraft: boolean;
+  isPreview?: boolean;
 }
 
 export interface SendMessageParametersEmail extends SendMessageParametersBase {
@@ -699,6 +703,7 @@ export async function sendEmail({
   userId,
   providerOverride,
   useDraft,
+  isPreview,
 }: Omit<
   SendMessageParametersEmail,
   "channel"
@@ -750,6 +755,7 @@ export async function sendEmail({
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     tags: messageTags,
+    isPreview,
     templates: {
       from: {
         contents: messageTemplateDefinition.from,
@@ -842,6 +848,7 @@ export async function sendEmail({
       subscriptionGroupId: subscriptionGroupDetails?.id,
       workspaceId,
       tags: messageTags,
+      isPreview,
       templates: headersToRender,
     });
     if (renderedCustomHeaders.isErr()) {
@@ -1585,6 +1592,7 @@ export async function sendSms(
     userId,
     messageTags,
     disableCallback = false,
+    isPreview,
   } = params;
   const [getSendModelsResult, smsProvider] = await Promise.all([
     getSendMessageModels({
@@ -1646,6 +1654,7 @@ export async function sendSms(
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     tags: messageTags,
+    isPreview,
     templates: {
       body: {
         contents: messageTemplateDefinition.body,
@@ -1848,6 +1857,7 @@ export async function sendWebhook({
   subscriptionGroupDetails,
   useDraft,
   messageTags,
+  isPreview,
 }: Omit<
   SendMessageParametersWebhook,
   "channel"
@@ -1912,6 +1922,7 @@ export async function sendWebhook({
     workspaceId,
     secrets,
     tags: messageTags,
+    isPreview,
     templates: {
       body: {
         contents: messageTemplateDefinition.body,
@@ -2097,6 +2108,24 @@ export async function sendMessage(
 export async function testTemplate(
   request: MessageTemplateTestRequest,
 ): Promise<BackendMessageSendResult> {
+  // Look up the first subscription group for the template's channel
+  const messageTemplate = await db().query.messageTemplate.findFirst({
+    where: eq(dbMessageTemplate.id, request.templateId),
+  });
+
+  let firstSubscriptionGroup:
+    | { id: string; name: string; type: "OptIn" | "OptOut" }
+    | undefined;
+  if (messageTemplate) {
+    firstSubscriptionGroup = await db().query.subscriptionGroup.findFirst({
+      where: and(
+        eq(dbSubscriptionGroup.workspaceId, request.workspaceId),
+        eq(dbSubscriptionGroup.channel, request.channel),
+      ),
+      orderBy: dbSubscriptionGroup.createdAt,
+      columns: { id: true, name: true, type: true },
+    });
+  }
   const messageTags: MessageTags = {
     ...(request.tags ?? {}),
     messageId: request.tags?.messageId ?? randomUUID(),
@@ -2117,6 +2146,15 @@ export async function testTemplate(
     userPropertyAssignments: request.userProperties,
     useDraft: true,
     messageTags,
+    isPreview: true,
+    ...(firstSubscriptionGroup && {
+      subscriptionGroupDetails: {
+        id: firstSubscriptionGroup.id,
+        name: firstSubscriptionGroup.name,
+        action: SubscriptionChange.Subscribe,
+        type: firstSubscriptionGroup.type === "OptIn" ? SubscriptionGroupType.OptIn : SubscriptionGroupType.OptOut,
+      },
+    }),
   };
   let sendMessageParams: SendMessageParameters;
   switch (request.channel) {

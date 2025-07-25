@@ -361,6 +361,7 @@ export function generateSubscriptionChangeUrl({
   identifierKey,
   changedSubscription,
   subscriptionChange,
+  isPreview,
 }: {
   workspaceId: string;
   userId: string;
@@ -369,6 +370,7 @@ export function generateSubscriptionChangeUrl({
   identifierKey: string;
   changedSubscription?: string;
   subscriptionChange?: SubscriptionChange;
+  isPreview?: boolean;
 }): string {
   const hash = generateSubscriptionHash({
     workspaceId,
@@ -388,6 +390,9 @@ export function generateSubscriptionChangeUrl({
     params.s = changedSubscription;
     params.sub =
       subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0";
+  }
+  if (isPreview) {
+    params.isPreview = "true";
   }
   const url = new URL(config().dashboardUrl);
   url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);

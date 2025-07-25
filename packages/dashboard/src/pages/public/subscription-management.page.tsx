@@ -42,7 +42,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       },
     };
   }
-  const { i, w, h, sub, s, ik } = params.value;
+  const { i, w, h, sub, s, ik, isPreview } = params.value;
 
   const [userLookupResult, workspace] = await Promise.all([
     lookupUserForSubscriptions({
@@ -88,7 +88,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
   let subscriptionChange: SubscriptionChange | undefined;
   let changedSubscriptionChannel: string | undefined;
-  if (s && sub) {
+  if (s && sub && isPreview !== "true") {
     logger().debug(
       {
         subscriptionId: s,
@@ -167,6 +167,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     identifierKey: ik,
     workspaceId: w,
     workspaceName: workspace.name,
+    isPreview: isPreview === "true",
   };
   if (subscriptionChange) {
     props.subscriptionChange = subscriptionChange;
@@ -194,6 +195,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
       identifier,
       identifierKey,
       workspaceName,
+      isPreview,
     } = props;
     return (
       <Stack
@@ -212,6 +214,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
           identifierKey={identifierKey}
           workspaceName={workspaceName}
           apiBase={propsApiBase}
+          isPreview={isPreview}
         />
       </Stack>
     );
