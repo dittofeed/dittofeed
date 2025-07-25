@@ -47,17 +47,27 @@ Users can be added to subscription groups with manual csv uploads from the dashb
 The provided CSV file should have the following format.
 
 ```csv users.csv
-id,email,firstName,lastName
-d1bdf186-7dd9-485e-9f93-6e0e3f3e6b8a,johndoe@example.com,John,Doe
-f5c5d1e5-d1f5-4d65-8b8f-7d4d153c4a51,janedoe@example.com,Jane,Doe
-a4ef2311-cd4c-4e5d-9d21-7c3e8b29c7b1,alice@example.com,Alice,Johnson
-b8c5cd71-214d-4d62-92a4-85e9e4d4efbe,bob@example.com,Bob,Smith
+id,email,firstName,lastName,action
+d1bdf186-7dd9-485e-9f93-6e0e3f3e6b8a,johndoe@example.com,John,Doe,subscribe
+f5c5d1e5-d1f5-4d65-8b8f-7d4d153c4a51,janedoe@example.com,Jane,Doe,unsubscribe
+a4ef2311-cd4c-4e5d-9d21-7c3e8b29c7b1,alice@example.com,Alice,Johnson,subscribe
+b8c5cd71-214d-4d62-92a4-85e9e4d4efbe,bob@example.com,Bob,Smith,
 7b73a62c-bfd2-4a8a-ba9f-bfcbfd234c89,charlie@example.com,Charlie,Brown
 ```
 
-The `id` field must be present to identify the user, otherwise the upload will fail.
+#### Required Fields
 
-Non-identifying fields such as `firstName` and `lastName` are optional and will map to and update user traits. Users will be created if they do not already exist.
+Either `id` or `email` field must be present to identify the user, otherwise the upload will fail.
+
+#### Optional Fields
+
+- **Non-identifying fields** such as `firstName` and `lastName` are optional and will map to and update user traits. Users will be created if they do not already exist.
+
+- **`action` field** controls the subscription action for each user:
+  - `subscribe` - subscribes the user to the subscription group
+  - `unsubscribe` - unsubscribes the user from the subscription group
+  - If the `action` column is missing, empty, or null, users will be subscribed by default
+  - Any other value will result in a 400 error
 
 ### Submit a Track Event
 

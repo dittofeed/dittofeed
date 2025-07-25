@@ -219,13 +219,31 @@ export default async function subscriptionGroupsController(
           continue;
         }
 
+        // Handle action column
+        const actionValue = (row as Record<string, string>).action;
+        let subscriptionAction = SubscriptionChange.Subscribe; // default to subscribe
+
+        if (actionValue !== undefined && actionValue !== "") {
+          if (actionValue === "subscribe") {
+            subscriptionAction = SubscriptionChange.Subscribe;
+          } else if (actionValue === "unsubscribe") {
+            subscriptionAction = SubscriptionChange.Unsubscribe;
+          } else {
+            // Invalid action value
+            const errorResponse: CsvUploadValidationError = {
+              message: `Invalid action value: "${actionValue}". Must be "subscribe" or "unsubscribe".`,
+            };
+            return reply.status(400).send(errorResponse);
+          }
+        }
+
         const identifyEvent: InsertUserEvent = {
           messageId: uuid(),
           messageRaw: JSON.stringify({
             userId,
             timestamp,
             type: "identify",
-            traits: omit(row, ["id"]),
+            traits: omit(row, ["id", "action"]),
           }),
         };
 
@@ -233,7 +251,7 @@ export default async function subscriptionGroupsController(
           userId,
           currentTime,
           subscriptionGroupId,
-          action: SubscriptionChange.Subscribe,
+          action: subscriptionAction,
         });
 
         userEvents.push(trackEvent);
