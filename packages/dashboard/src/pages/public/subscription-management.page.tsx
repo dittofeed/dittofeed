@@ -42,33 +42,43 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       },
     };
   }
-  const { i, w, h, sub, s, ik } = params.value;
+  const { i, w, h, sub, s, ik, isPreview: isPreviewParam } = params.value;
+  const isPreview = isPreviewParam === "true";
 
   const [userLookupResult, workspace] = await Promise.all([
-    lookupUserForSubscriptions({
-      workspaceId: w,
-      identifier: i,
-      identifierKey: ik,
-      hash: h,
-    }),
+    isPreview
+      ? null
+      : lookupUserForSubscriptions({
+          workspaceId: w,
+          identifier: i,
+          identifierKey: ik,
+          hash: h,
+        }),
     db().query.workspace.findFirst({
       where: eq(schema.workspace.id, w),
     }),
   ]);
 
-  if (userLookupResult.isErr()) {
-    logger().info(
-      {
-        err: userLookupResult.error,
-      },
-      "Failed user lookup",
-    );
-    return {
-      redirect: {
-        destination: UNAUTHORIZED_PAGE,
-        permanent: false,
-      },
-    };
+  let userId: string | undefined;
+  if (userLookupResult) {
+    if (userLookupResult.isErr()) {
+      logger().info(
+        {
+          err: userLookupResult.error,
+        },
+        "Failed user lookup",
+      );
+      return {
+        redirect: {
+          destination: UNAUTHORIZED_PAGE,
+          permanent: false,
+        },
+      };
+    }
+    userId = userLookupResult.value.userId;
+  } else {
+    // handles preview case
+    userId = "123-preview";
   }
 
   if (!workspace) {
@@ -84,11 +94,9 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     };
   }
 
-  const { userId } = userLookupResult.value;
-
   let subscriptionChange: SubscriptionChange | undefined;
   let changedSubscriptionChannel: string | undefined;
-  if (s && sub) {
+  if (s && sub && !isPreview) {
     logger().debug(
       {
         subscriptionId: s,
@@ -167,6 +175,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     identifierKey: ik,
     workspaceId: w,
     workspaceName: workspace.name,
+    isPreview,
   };
   if (subscriptionChange) {
     props.subscriptionChange = subscriptionChange;
@@ -194,6 +203,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
       identifier,
       identifierKey,
       workspaceName,
+      isPreview,
     } = props;
     return (
       <Stack
@@ -212,6 +222,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
           identifierKey={identifierKey}
           workspaceName={workspaceName}
           apiBase={propsApiBase}
+          isPreview={isPreview}
         />
       </Stack>
     );

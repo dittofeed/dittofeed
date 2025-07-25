@@ -57,7 +57,6 @@ export function addInitialStateToProps<
     authMode,
   });
 
-  console.log("stateWithEnvVars", stateWithEnvVars);
   return {
     ...props,
     // the "stringify and then parse again" piece is required as next.js

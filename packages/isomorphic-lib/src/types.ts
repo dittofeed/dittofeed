@@ -2706,6 +2706,11 @@ export const SubscriptionParams = Type.Object(
         }),
       ]),
     ),
+    isPreview: Type.Optional(
+      Type.String({
+        description: "Preview mode flag to skip subscription updates.",
+      }),
+    ),
   },
   {
     description:
