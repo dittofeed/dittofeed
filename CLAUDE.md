@@ -17,3 +17,10 @@ Currently, the "Test" button can render unsubscribe links, but clicking the link
 The goal of this task is to to update the subscription management link generation logic, and subscription management page, such that the links go to the subscription management page with the first subscription group in the message template's channel.
 
 ## Outline
+
+- update packages/dashboard/src/pages/public/subscription-management.page.tsx
+    - add a new query param and prop "isPreview" which if `"true"` in the params will skip the subscription update which occurs on page load, and pass `true` to the component. 
+- update packages/backend-lib/src/liquid.ts to accept an optional `isPreview` parameter and pass it through when generating links to the subscription management page, using the various custom tags.
+- update packages/backend-lib/src/messaging.ts
+    - update `sendMessage` to accept an optional `isPreview` parameter and pass it through to the liquid renderer.
+    - update `testTemplate` to pass `isPreview` to `sendMessage`. also look up the first subscription group in the message template's channel (as determined by the oldest `createdAt` timestamp on the subscription group records), and pass that subscription group id to `sendMessage`.
