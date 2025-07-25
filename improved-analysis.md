@@ -84,6 +84,7 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 
 - you should use tanstack query and axios for data fetching
     - see packages/dashboard/src/lib/useSegmentsQuery.ts and packages/dashboard/src/lib/useUpdateSegmentsMutation.ts as examples
+- we're going to use recharts for charting
 
 ## Relevant References
 
@@ -98,6 +99,9 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 
 - create new backend method in packages/backend-lib/src/analysis.ts getChartData
     - this and other methods should use typebox schema defined types for their parameters and return values, see packages/backend-lib/src/segments.ts as an example
+    - this method should also accept a "granularity" parameter of "auto", 30 second, 1 minute, 5 minutes, 10 minutes, 30 minutes, 1 hour, 6 hours, 12 hours, 1 day, 7 days, 30 days
+    - this granularity should be used to prevent the api from having to load all data into memory at once, overloading the api or ui.
+    - within a given granularity, the api should return the total number of events i.e. as a form of chunking, or bucketing.
 - create a new test in packages/backend-lib/src/analysis.test.ts for getChartData
 - create a new method in packages/backend-lib/src/analysis.ts getSummarizedData
     - this is used to represent the summary row between the chart and the table
