@@ -3,3 +3,4 @@
 - If a column value is an empty string, null, or undefined, assume the user is subscribed.
 - If the column contains a non-empty string that is neither "subscribe" nor "unsubscribe", return a 400 error.
 - Document the structure of the csv in the subscription groups docs packages/docs/resources/subscription-groups.mdx
+- Create a new sample upload csv file for local development in packages/dashboard/sample-uploads/
