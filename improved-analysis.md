@@ -15,7 +15,7 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - The top right corner should have a:
     - refresh button
     - button to auto-refresh
-    - button to export data (CSV)
+    - button to export/download data (CSV)
     - a button to toggle between percentages and absolute values
 
 - filter and group by should be dropdowns with the following options:
@@ -25,8 +25,60 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - channel
     - provider
     - message state (delivered, opened etc.)
-- note that some journey filters availability should be conditional on prior selected filters.
-    - e.g. provider should only be available if a particular channel is selected 
+- selecting a provider that is unique to a specific channel should automatically select that channel
+- the body of the page should be split vertically into two sections:
+    - the top half should have a chart
+    - the bottom half should have a table
+        - the table should have a header with a toggle button to select whether to display the raw related events (individual message status updates, unsubscribes, etc.), or the the "deliveries" (i.e. for any particular message, its status, contents etc.)
+
+### Sample Layout
+
++--------------------------------------------------------------------------------------------------+
+| Dittofeed Analysis                                                                               |
++--------------------------------------------------------------------------------------------------+
+|                                                                                                  |
+|  Date Range: [ Jul 1, 2025 - Jul 25, 2025 v ]               (↻) Auto-Refresh [ ] (↓) Export CSV  |
+|  Compare to: [ (Optional) Previous Period v ]                                                    |
+|                                                                                                  |
+|  Group By: [ Journey                      v ]                                                    |
+|                                                                                                  |
+|  Filters:  [ Channel is Email x ] [ + Add Filter ]                                               |
+|                                                                                                  |
++------------------------------------------------------------------+-------------------------------+
+|   [• Values ] [  %   ]                                           |                               |
+|   Performance over Time                                          |            Legend             |
+|                                                                  |   -------------------------   |
+|   1.5K | . . . . . . . . . . . . . .* . . . . . . . . . . . . . . |   [>] Welcome Series (*)      |
+|        | . . . . . . . . . . . . * . . .* . . . . . . . . . . . . |   [>] Onboarding Funnel (~)   |
+|   1.0K | ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~*~ ~ ~ ~ ~ *~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |   [>] Re-engagement (-)       |
+|        | . . . . . . . . . . * . . . . . . .* . . . . . . . . . . |                               |
+|    500 | - - - - - - -*~ ~ ~-~-~-~-~-~-~-~*~-~-~-~-~-~-~-~-~- - - |                               |
+|        | . . . . . . * . . . . . . . . . . . * . . . . . . . . .  |                               |
+|      0 +----------------------------------------------------------+                               |
+|          Jul 1      Jul 7       Jul 14      Jul 21      Jul 25   |                               |
++------------------------------------------------------------------+-------------------------------+
+|                                                                                                  |
+|   +-----------------+  +-----------------+  +-----------------+  +-----------------+             |
+|   |   DELIVERIES    |  |      OPENS      |  |      CLICKS     |  |     BOUNCES     |             |
+|   |     32,481      |  |      7,890      |  |      1,002      |  |       102       |             |
+|   +-----------------+  +-----------------+  +-----------------+  +-----------------+             |
+|                                                                                                  |
++--------------------------------------------------------------------------------------------------+
+|                                                                                                  |
+|   [• Message Summary ] [ Event Log ]                                                             |
+|                                                                                                  |
+|   +----------------------+--------------------------+-----------+-----------------------------+  |
+|   | Timestamp            | Recipient                | Status    | Journey / Template          |  |
+|   +----------------------+--------------------------+-----------+-----------------------------+  |
+|   | 2025-07-25 13:37:00  | user1@example.com        | DELIVERED | Welcome Series              |  |
+|   | 2025-07-25 13:36:10  | user2@example.com        | OPENED    | Welcome Series              |  |
+|   | 2025-07-24 09:15:22  | user3@example.com        | CLICKED   | Onboarding Funnel           |  |
+|   | ...                  | ...                      | ...       | ...                         |  |
+|   +----------------------+--------------------------+-----------+-----------------------------+  |
+|                                                                                                  |
++--------------------------------------------------------------------------------------------------+
+
+- note that the art above includes a compare to feature, but this will be saved for a later iteration.
 
 ## Choice of libraries
 
@@ -34,4 +86,10 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - see packages/dashboard/src/lib/useSegmentsQuery.ts and packages/dashboard/src/lib/useUpdateSegmentsMutation.ts as examples
 
 ## Steps
- - create new backend method
+
+- create new backend method in packages/backend-lib/src/analysis.ts getChartData
+- create a new test in packages/backend-lib/src/analysis.test.ts for getChartData
+- create a new method in packages/backend-lib/src/analysis.ts getSummarizedData
+    - this is used to represent the summary row between the chart and the table
+- create a new test in packages/backend-lib/src/analysis.test.ts for getSummarizedData
+
