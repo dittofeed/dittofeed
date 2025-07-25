@@ -15,6 +15,7 @@ import {
   EmailProviderTypeSchema,
   EmailTemplateResource,
   LowCodeEmailDefaultType,
+  LowCodeEmailDefaultTypeEnum,
   WorkspaceWideEmailProviders,
 } from "./types";
 
@@ -566,10 +567,10 @@ export function defaultEmailDefinition({
     case EmailContentsType.LowCode: {
       let body: EmailoJsonContent;
       switch (lowCodeEmailDefaultType) {
-        case LowCodeEmailDefaultType.Empty:
+        case LowCodeEmailDefaultTypeEnum.Empty:
           body = emptyEmailoContent;
           break;
-        case LowCodeEmailDefaultType.Informative:
+        case LowCodeEmailDefaultTypeEnum.Informative:
         default:
           body = defaultEmailoContent;
           break;
