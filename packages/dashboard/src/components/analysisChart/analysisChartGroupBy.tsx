@@ -58,10 +58,13 @@ export function AnalysisChartGroupBy({
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    anchorEl.current = event.currentTarget;
-    setOpen(true);
-  }, []);
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      anchorEl.current = event.currentTarget;
+      setOpen(true);
+    },
+    [],
+  );
 
   const handleClose = useCallback(() => {
     anchorEl.current = null;
@@ -80,7 +83,9 @@ export function AnalysisChartGroupBy({
     [onChange],
   );
 
-  const displayValue = value ? groupByCommands.find(cmd => cmd.value === value)?.label || "None" : "None";
+  const displayValue = value
+    ? groupByCommands.find((cmd) => cmd.value === value)?.label || "None"
+    : "None";
 
   const popoverBody = (
     <Autocomplete<GroupByCommand>

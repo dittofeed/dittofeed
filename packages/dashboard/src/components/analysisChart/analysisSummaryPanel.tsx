@@ -4,14 +4,15 @@ import {
   Button,
   Card,
   CardContent,
+  Skeleton,
   Stack,
   Typography,
-  Skeleton,
 } from "@mui/material";
 import { ChannelType } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAnalysisSummaryQuery } from "../../lib/useAnalysisSummaryQuery";
+import { greyButtonStyle } from "../greyButtonStyle";
 import { AnalysisFiltersState } from "./analysisChartFilters";
 
 interface AnalysisSummaryPanelProps {
@@ -31,15 +32,15 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, isLoading = false }: MetricCardProps) {
   return (
-    <Card sx={{ minWidth: 120, textAlign: "center" }}>
-      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
+    <Card sx={{ minWidth: 80, textAlign: "center" }}>
+      <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+        <Typography variant="caption" color="text.secondary" gutterBottom>
           {title}
         </Typography>
         {isLoading ? (
-          <Skeleton variant="text" width={60} height={32} sx={{ mx: "auto" }} />
+          <Skeleton variant="text" width={40} height={24} sx={{ mx: "auto" }} />
         ) : (
-          <Typography variant="h6" component="div">
+          <Typography variant="subtitle1" component="div">
             {value.toLocaleString()}
           </Typography>
         )}
@@ -56,28 +57,41 @@ export function AnalysisSummaryPanel({
   // Check if channel filter is already applied
   const hasChannelFilter = filtersState.filters.has("channels");
   const selectedChannel = hasChannelFilter
-    ? Array.from(filtersState.filters.get("channels")?.value.keys() || [])[0] as ChannelType
+    ? (Array.from(
+        filtersState.filters.get("channels")?.value.keys() || [],
+      )[0] as ChannelType)
     : undefined;
 
   // Build filters object from filter state
   const filters = useMemo(() => {
-    const journeyIds = filtersState.filters.get("journeys")
-      ? Array.from(filtersState.filters.get("journeys")!.value.keys())
+    const journeyFilter = filtersState.filters.get("journeys");
+    const journeyIds = journeyFilter
+      ? Array.from(journeyFilter.value.keys())
       : undefined;
-    const broadcastIds = filtersState.filters.get("broadcasts")
-      ? Array.from(filtersState.filters.get("broadcasts")!.value.keys())
+
+    const broadcastFilter = filtersState.filters.get("broadcasts");
+    const broadcastIds = broadcastFilter
+      ? Array.from(broadcastFilter.value.keys())
       : undefined;
-    const channels = filtersState.filters.get("channels")
-      ? Array.from(filtersState.filters.get("channels")!.value.keys())
+
+    const channelFilter = filtersState.filters.get("channels");
+    const channels = channelFilter
+      ? Array.from(channelFilter.value.keys())
       : undefined;
-    const providers = filtersState.filters.get("providers")
-      ? Array.from(filtersState.filters.get("providers")!.value.keys())
+
+    const providerFilter = filtersState.filters.get("providers");
+    const providers = providerFilter
+      ? Array.from(providerFilter.value.keys())
       : undefined;
-    const messageStates = filtersState.filters.get("messageStates")
-      ? Array.from(filtersState.filters.get("messageStates")!.value.keys())
+
+    const messageStateFilter = filtersState.filters.get("messageStates");
+    const messageStates = messageStateFilter
+      ? Array.from(messageStateFilter.value.keys())
       : undefined;
-    const templateIds = filtersState.filters.get("templates")
-      ? Array.from(filtersState.filters.get("templates")!.value.keys())
+
+    const templateFilter = filtersState.filters.get("templates");
+    const templateIds = templateFilter
+      ? Array.from(templateFilter.value.keys())
       : undefined;
 
     // Only return filters object if at least one filter is set
@@ -118,41 +132,54 @@ export function AnalysisSummaryPanel({
   };
 
   if (!hasChannelFilter) {
-    // Show basic deliveries count with channel selection buttons
+    // Show basic sent messages count with channel selection buttons
     return (
-      <Box sx={{ py: 3 }}>
-        <Stack spacing={3} alignItems="center">
+      <Box sx={{ py: 2 }}>
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <MetricCard
+            title="SENT"
+            value={summary.deliveries}
+            isLoading={summaryQuery.isLoading}
+          />
           <Stack direction="row" spacing={2} alignItems="center">
-            <MetricCard
-              title="DELIVERIES"
-              value={summary.deliveries}
-              isLoading={summaryQuery.isLoading}
-            />
-            <Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Select a channel to see a detailed summary.
-              </Typography>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Email />}
-                  onClick={() => onChannelSelect(ChannelType.Email)}
-                  sx={{ textTransform: "none" }}
-                >
-                  Email
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Sms />}
-                  onClick={() => onChannelSelect(ChannelType.Sms)}
-                  sx={{ textTransform: "none" }}
-                >
-                  SMS
-                </Button>
-              </Stack>
-            </Box>
+            <Typography variant="body2" color="text.secondary">
+              Select a channel to see a detailed summary.
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Email />}
+                onClick={() => onChannelSelect(ChannelType.Email)}
+                disableRipple
+                sx={{
+                  ...greyButtonStyle,
+                  textTransform: "none",
+                  fontWeight: "bold",
+                }}
+              >
+                Email
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Sms />}
+                onClick={() => onChannelSelect(ChannelType.Sms)}
+                disableRipple
+                sx={{
+                  ...greyButtonStyle,
+                  textTransform: "none",
+                  fontWeight: "bold",
+                }}
+              >
+                SMS
+              </Button>
+            </Stack>
           </Stack>
         </Stack>
       </Box>
@@ -161,7 +188,7 @@ export function AnalysisSummaryPanel({
 
   // Show detailed summary for selected channel
   return (
-    <Box sx={{ py: 3 }}>
+    <Box sx={{ py: 2 }}>
       <Stack direction="row" spacing={2} justifyContent="center">
         <MetricCard
           title="DELIVERIES"
@@ -170,7 +197,11 @@ export function AnalysisSummaryPanel({
         />
         <MetricCard
           title={selectedChannel === ChannelType.Email ? "OPENS" : "DELIVERED"}
-          value={selectedChannel === ChannelType.Email ? summary.opens : summary.deliveries - summary.bounces}
+          value={
+            selectedChannel === ChannelType.Email
+              ? summary.opens
+              : summary.deliveries - summary.bounces
+          }
           isLoading={summaryQuery.isLoading}
         />
         {selectedChannel === ChannelType.Email && (

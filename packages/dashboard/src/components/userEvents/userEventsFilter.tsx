@@ -275,7 +275,11 @@ export function SelectedUserEventsFilters({
           }
           const fullLabel = `${key} = ${label}`;
           return (
-            <Tooltip key={`hardcoded-${key}`} title={fullLabel} placement="bottom-start">
+            <Tooltip
+              key={`hardcoded-${key}`}
+              title={fullLabel}
+              placement="bottom-start"
+            >
               <Chip
                 sx={{
                   ...sharedFilterChipSx,

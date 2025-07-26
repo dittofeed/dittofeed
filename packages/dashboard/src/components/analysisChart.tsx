@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
-import { ChartDataPoint, ChannelType } from "isomorphic-lib/src/types";
+import { ChannelType, ChartDataPoint } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useRef } from "react";
 import {
   Legend,
@@ -281,16 +281,19 @@ export function AnalysisChart({}: AnalysisChartProps) {
     });
   }, [setState]);
 
-  const handleChannelSelect = useCallback((channel: ChannelType) => {
-    setFiltersState((draft) => {
-      // Add or update channel filter
-      const channelFilter = {
-        type: FilterType.MultiSelect,
-        value: new Map([[channel, channel]]),
-      };
-      draft.filters.set("channels", channelFilter);
-    });
-  }, [setFiltersState]);
+  const handleChannelSelect = useCallback(
+    (channel: ChannelType) => {
+      setFiltersState((draft) => {
+        // Add or update channel filter
+        const channelFilter = {
+          type: FilterType.MultiSelect,
+          value: new Map([[channel, channel]]),
+        };
+        draft.filters.set("channels", channelFilter);
+      });
+    },
+    [setFiltersState],
+  );
 
   // Transform chart data for recharts
   const chartData = useMemo(() => {
@@ -438,7 +441,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
                   height: "100%",
                 }}
               />
-              
+
               {/* Group By */}
               <Divider
                 orientation="vertical"
@@ -495,13 +498,13 @@ export function AnalysisChart({}: AnalysisChartProps) {
                     : new Date(value).toLocaleDateString()
                 }
               />
-              <YAxis 
-                label={{ 
-                  value: 'Messages', 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle' }
-                }} 
+              <YAxis
+                label={{
+                  value: "Messages",
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { textAnchor: "middle" },
+                }}
               />
               <RechartsTooltip
                 labelFormatter={(value) => new Date(value).toLocaleString()}
