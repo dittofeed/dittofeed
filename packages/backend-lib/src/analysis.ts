@@ -4,6 +4,7 @@ import {
   GetChartDataResponse,
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
+  ResolvedChartGranularity,
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
@@ -193,6 +194,11 @@ export async function getChartData({
     }
   }
 
+  // Resolve the actual granularity used
+  let resolvedGranularity: ResolvedChartGranularity = granularity === "auto" 
+    ? selectAutoGranularity({ startDate, endDate }) as ResolvedChartGranularity
+    : granularity as ResolvedChartGranularity;
+
   const timeFunction = getClickHouseTimeFunction({
     granularity,
     startDate,
@@ -263,7 +269,7 @@ export async function getChartData({
     groupLabel: row.groupLabel || undefined,
   }));
 
-  return { data };
+  return { data, granularity: resolvedGranularity };
 }
 
 /**

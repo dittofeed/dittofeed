@@ -108,6 +108,32 @@ function formatCalendarDate(date: CalendarDate) {
   );
 }
 
+function formatTimestampForGranularity(timestamp: string, granularity: string) {
+  const date = new Date(timestamp);
+  
+  switch (granularity) {
+    case "30second":
+    case "1minute":
+    case "5minutes":
+    case "10minutes":
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case "30minutes":
+    case "1hour":
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case "6hours":
+    case "12hours":
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+        ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case "1day":
+    case "7days":
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    case "30days":
+      return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+    default:
+      return date.toLocaleDateString();
+  }
+}
+
 interface State {
   selectedTimeOption: string;
   referenceDate: Date;
@@ -190,7 +216,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
     if (!chartQuery.data?.data) return [];
 
     // Group data by timestamp and create chart points
-    const grouped = new Map<string, Record<string, number>>();
+    const grouped = new Map<string, Record<string, string | number>>();
     const groups = new Set<string>();
 
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
@@ -209,7 +235,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
     });
 
     return Array.from(grouped.values()).sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => new Date(a.timestamp as string).getTime() - new Date(b.timestamp as string).getTime()
     );
   }, [chartQuery.data]);
 
@@ -327,7 +353,11 @@ export function AnalysisChart({}: AnalysisChartProps) {
             <LineChart data={chartData}>
               <XAxis 
                 dataKey="timestamp" 
-                tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                tickFormatter={(value) => 
+                  chartQuery.data?.granularity 
+                    ? formatTimestampForGranularity(value, chartQuery.data.granularity)
+                    : new Date(value).toLocaleDateString()
+                }
               />
               <YAxis />
               <RechartsTooltip 

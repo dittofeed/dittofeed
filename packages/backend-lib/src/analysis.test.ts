@@ -165,8 +165,11 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("data");
+      expect(result).toHaveProperty("granularity");
       expect(Array.isArray(result.data)).toBe(true);
       expect(result.data.length).toBeGreaterThan(0);
+      expect(typeof result.granularity).toBe("string");
+      expect(result.granularity).not.toBe("auto"); // Should be resolved
 
       // Check that each data point has the required properties
       result.data.forEach((point) => {
@@ -190,7 +193,9 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("data");
+      expect(result).toHaveProperty("granularity");
       expect(Array.isArray(result.data)).toBe(true);
+      expect(result.granularity).toBe("1hour"); // Should return the specific granularity
     });
 
     it("returns chart data grouped by journey", async () => {

@@ -5682,24 +5682,28 @@ export const GetAnalysisRequest = Type.Object({
 export type GetAnalysisRequest = Static<typeof GetAnalysisRequest>;
 
 // Analysis Dashboard Types
+export const ChartGranularity = Type.Union([
+  Type.Literal("auto"),
+  Type.Literal("30second"),
+  Type.Literal("1minute"),
+  Type.Literal("5minutes"),
+  Type.Literal("10minutes"),
+  Type.Literal("30minutes"),
+  Type.Literal("1hour"),
+  Type.Literal("6hours"),
+  Type.Literal("12hours"),
+  Type.Literal("1day"),
+  Type.Literal("7days"),
+  Type.Literal("30days"),
+]);
+
+export type ChartGranularity = Static<typeof ChartGranularity>;
+
 export const GetChartDataRequest = Type.Object({
   workspaceId: Type.String(),
   startDate: Type.String(),
   endDate: Type.String(),
-  granularity: Type.Optional(Type.Union([
-    Type.Literal("auto"),
-    Type.Literal("30second"),
-    Type.Literal("1minute"),
-    Type.Literal("5minutes"),
-    Type.Literal("10minutes"),
-    Type.Literal("30minutes"),
-    Type.Literal("1hour"),
-    Type.Literal("6hours"),
-    Type.Literal("12hours"),
-    Type.Literal("1day"),
-    Type.Literal("7days"),
-    Type.Literal("30days"),
-  ])),
+  granularity: Type.Optional(ChartGranularity),
   displayMode: Type.Union([
     Type.Literal("absolute"),
     Type.Literal("percentage"),
@@ -5758,8 +5762,25 @@ export const ChartDataPoint = Type.Object({
 
 export type ChartDataPoint = Static<typeof ChartDataPoint>;
 
+export const ResolvedChartGranularity = Type.Union([
+  Type.Literal("30second"),
+  Type.Literal("1minute"),
+  Type.Literal("5minutes"),
+  Type.Literal("10minutes"),
+  Type.Literal("30minutes"),
+  Type.Literal("1hour"),
+  Type.Literal("6hours"),
+  Type.Literal("12hours"),
+  Type.Literal("1day"),
+  Type.Literal("7days"),
+  Type.Literal("30days"),
+]);
+
+export type ResolvedChartGranularity = Static<typeof ResolvedChartGranularity>;
+
 export const GetChartDataResponse = Type.Object({
   data: Type.Array(ChartDataPoint),
+  granularity: ResolvedChartGranularity,
 });
 
 export type GetChartDataResponse = Static<typeof GetChartDataResponse>;
