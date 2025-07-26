@@ -3,6 +3,7 @@ import logger from "backend-lib/src/logger";
 import { DittofeedFastifyInstance } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 
+import analysisController from "../controllers/analysisController";
 import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
 import componentConfigurationsController from "../controllers/componentConfigurationsController";
@@ -46,6 +47,7 @@ export default async function router(
       await fastify.register(requestContext);
 
       await Promise.all([
+        f.register(analysisController, { prefix: "/analysis" }),
         f.register(contentController, { prefix: "/content" }),
         f.register(eventsController, { prefix: "/events" }),
         f.register(journeysController, { prefix: "/journeys" }),

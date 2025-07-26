@@ -86,6 +86,13 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - see packages/dashboard/src/lib/useSegmentsQuery.ts and packages/dashboard/src/lib/useUpdateSegmentsMutation.ts as examples
 - we're going to use recharts for charting
 
+## Useful Commands
+
+- `yarn workspace backend-lib check` to check the backend lib for type errors
+- `yarn workspace dashboard check` to check the dashboard for type errors, where the backend lib is a dependency and will be checked transitively
+- `yarn workspace dashboard lint --fix` to list and fix linting errors in the dashboard
+- `yarn jest packages/backend-lib/src/analysis.test.ts` to run  our new tests
+
 ## Relevant References
 
 - packages/backend-lib/src/userEvents.ts to see how user events can be fetched from clickhouse
