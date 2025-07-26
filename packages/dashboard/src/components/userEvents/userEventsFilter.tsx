@@ -213,7 +213,7 @@ export function SelectedUserEventsFilters({
         return broadcast ? broadcast.name : id;
       }
       case "journeyId": {
-        const journey = journeys?.journeys?.find((j: any) => j.id === id);
+        const journey = journeys?.journeys?.find((j) => j.id === id);
         return journey ? journey.name : id;
       }
       default:
