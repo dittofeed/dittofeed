@@ -19,8 +19,8 @@ import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
-import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 

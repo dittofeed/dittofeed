@@ -1,94 +1,188 @@
+import { ViewList } from "@mui/icons-material";
 import {
-  FormControl,
-  MenuItem,
-  Select,
+  Autocomplete,
+  Box,
+  Button,
+  Paper,
   SxProps,
+  TextField,
   Theme,
   Typography,
 } from "@mui/material";
-import { useCallback } from "react";
+import Popover from "@mui/material/Popover";
+import React, { HTMLAttributes, useCallback, useRef, useState } from "react";
+import { omit } from "remeda";
 
-import { greyMenuItemStyles, greySelectStyles } from "../greyScaleStyles";
+import { greyTextFieldStyles } from "../greyScaleStyles";
+import { sharedFilterButtonProps } from "../shared/filterStyles";
+import { SquarePaper } from "../squarePaper";
 
-export type GroupByOption = 
+export type GroupByOption =
   | "journey"
-  | "broadcast" 
+  | "broadcast"
   | "channel"
   | "provider"
   | "messageState"
-  | "template"
   | null;
 
-const groupByLabels: Record<NonNullable<GroupByOption>, string> = {
-  journey: "Journey",
-  broadcast: "Broadcast",
-  channel: "Channel", 
-  provider: "Provider",
-  messageState: "Message Status",
-  template: "Template",
-};
+interface GroupByCommand {
+  label: string;
+  value: GroupByOption;
+  icon?: React.ReactNode;
+}
 
-const groupByOptions: { value: GroupByOption; label: string }[] = [
-  { value: null, label: "None" },
-  { value: "journey", label: groupByLabels.journey },
-  { value: "broadcast", label: groupByLabels.broadcast },
-  { value: "channel", label: groupByLabels.channel },
-  { value: "provider", label: groupByLabels.provider },
-  { value: "messageState", label: groupByLabels.messageState },
-  { value: "template", label: groupByLabels.template },
+const groupByCommands: GroupByCommand[] = [
+  { label: "None", value: null },
+  { label: "Journey", value: "journey" },
+  { label: "Broadcast", value: "broadcast" },
+  { label: "Channel", value: "channel" },
+  { label: "Provider", value: "provider" },
+  { label: "Message State", value: "messageState" },
 ];
 
 interface AnalysisChartGroupByProps {
   value: GroupByOption;
   onChange: (value: GroupByOption) => void;
-  sx?: SxProps<Theme>;
   greyScale?: boolean;
 }
 
 export function AnalysisChartGroupBy({
   value,
   onChange,
-  sx,
   greyScale = false,
 }: AnalysisChartGroupByProps) {
-  const handleChange = useCallback(
-    (event: { target: { value: string } }) => {
-      const newValue = event.target.value === "null" ? null : (event.target.value as GroupByOption);
-      onChange(newValue);
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const anchorEl = useRef<HTMLElement | null>(null);
+
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    anchorEl.current = event.currentTarget;
+    setOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    anchorEl.current = null;
+    setOpen(false);
+    setInputValue("");
+  }, []);
+
+  const handleCommandSelect = useCallback(
+    (_event: any, selectedValue: GroupByCommand | null) => {
+      if (selectedValue) {
+        onChange(selectedValue.value);
+        setOpen(false);
+        setInputValue("");
+      }
     },
     [onChange],
   );
 
-  return (
-    <FormControl size="small" sx={sx}>
-      <Typography variant="body2" sx={{ mb: 0.5, fontWeight: "medium" }}>
-        Group By
-      </Typography>
-      <Select
-        value={value || "null"}
-        onChange={handleChange}
-        MenuProps={{
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "left",
-          },
-          transformOrigin: {
-            vertical: "top",
-            horizontal: "left",
-          },
-          sx: greyScale ? greyMenuItemStyles : undefined,
-        }}
-        sx={greyScale ? greySelectStyles : undefined}
-      >
-        {groupByOptions.map((option) => (
-          <MenuItem
-            key={option.value || "null"}
-            value={option.value || "null"}
+  const displayValue = value ? groupByCommands.find(cmd => cmd.value === value)?.label || "None" : "None";
+
+  const popoverBody = (
+    <Autocomplete<GroupByCommand>
+      disablePortal
+      open
+      ListboxProps={{
+        sx: {
+          padding: 0,
+        },
+      }}
+      PaperComponent={SquarePaper}
+      value={null}
+      inputValue={inputValue}
+      onInputChange={(_event, newInputValue) => setInputValue(newInputValue)}
+      options={groupByCommands}
+      getOptionLabel={(option) => option.label}
+      onChange={handleCommandSelect}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          autoFocus
+          label="Group By"
+          variant="filled"
+          sx={greyScale ? greyTextFieldStyles : undefined}
+          inputRef={inputRef}
+        />
+      )}
+      renderOption={(props, option) => {
+        const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
+          key: string;
+        };
+        return (
+          <Paper
+            component="li"
+            square
+            key={option.label}
+            {...omit(propsWithKey, ["key"])}
+            sx={{
+              borderRadius: 0,
+              width: 300,
+            }}
           >
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+            <Typography
+              variant="body2"
+              style={{
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              {option.icon}
+              <span style={{ marginLeft: "8px" }}>{option.label}</span>
+            </Typography>
+          </Paper>
+        );
+      }}
+      sx={{
+        width: 300,
+        padding: 0,
+        height: "100%",
+      }}
+    />
+  );
+
+  return (
+    <>
+      <Button
+        startIcon={<ViewList />}
+        variant="contained"
+        color="info"
+        {...sharedFilterButtonProps}
+        sx={{
+          ...sharedFilterButtonProps.sx,
+          textTransform: "none",
+          height: "100%",
+        }}
+        onClick={handleClick}
+      >
+        Group By: {displayValue}
+      </Button>
+      <Popover
+        open={open}
+        anchorEl={anchorEl.current}
+        onClose={handleClose}
+        TransitionProps={{
+          onEntered: () => {
+            inputRef.current?.focus();
+          },
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        sx={{
+          "& .MuiPopover-paper": {
+            overflow: "visible",
+          },
+        }}
+      >
+        <Box sx={{ opacity: open ? 1 : 0 }}>{popoverBody}</Box>
+      </Popover>
+    </>
   );
 }

@@ -21,7 +21,10 @@ import { Updater, useImmer } from "use-immer";
 
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
-import { sharedFilterButtonProps, sharedFilterChipSx } from "../shared/filterStyles";
+import {
+  sharedFilterButtonProps,
+  sharedFilterChipSx,
+} from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
 export interface BaseAnalysisFilterCommand {

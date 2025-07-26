@@ -2,6 +2,7 @@ import { CalendarDate } from "@internationalized/date";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
 import {
   Box,
+  Divider,
   FormControl,
   IconButton,
   MenuItem,
@@ -15,7 +16,6 @@ import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
 import { ChartDataPoint } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useRef } from "react";
-import { Updater, useImmer } from "use-immer";
 import {
   Legend,
   Line,
@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Updater, useImmer } from "use-immer";
 
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
@@ -34,6 +35,10 @@ import {
   SelectedAnalysisFilters,
   useAnalysisFiltersState,
 } from "./analysisChart/analysisChartFilters";
+import {
+  AnalysisChartGroupBy,
+  GroupByOption,
+} from "./analysisChart/analysisChartGroupBy";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 import { SharedFilterContainer } from "./shared/filterStyles";
@@ -76,8 +81,18 @@ const defaultTimeOption = {
 const defaultTimeOptionId = defaultTimeOption.id;
 
 const timeOptions: TimeOption[] = [
-  { type: "minutes", id: "last-15-minutes", minutes: 15, label: "Last 15 minutes" },
-  { type: "minutes", id: "last-30-minutes", minutes: 30, label: "Last 30 minutes" },
+  {
+    type: "minutes",
+    id: "last-15-minutes",
+    minutes: 15,
+    label: "Last 15 minutes",
+  },
+  {
+    type: "minutes",
+    id: "last-30-minutes",
+    minutes: 30,
+    label: "Last 30 minutes",
+  },
   { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
   {
     type: "minutes",
@@ -117,25 +132,36 @@ function formatCalendarDate(date: CalendarDate) {
 
 function formatTimestampForGranularity(timestamp: string, granularity: string) {
   const date = new Date(timestamp);
-  
+
   switch (granularity) {
     case "30second":
     case "1minute":
     case "5minutes":
     case "10minutes":
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     case "30minutes":
     case "1hour":
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     case "6hours":
     case "12hours":
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
-        ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${date.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+      })} ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
     case "1day":
     case "7days":
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
     case "30days":
-      return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+      return date.toLocaleDateString([], { month: "short", year: "numeric" });
     default:
       return date.toLocaleDateString();
   }
@@ -152,6 +178,7 @@ interface State {
     startDate: string;
     endDate: string;
   };
+  groupBy: GroupByOption;
 }
 
 type SetState = Updater<State>;
@@ -175,6 +202,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       startDate: new Date(initialStartDate).toISOString(),
       endDate: new Date(initialEndDate).toISOString(),
     },
+    groupBy: null,
   });
 
   // Build filters object from filter state
@@ -214,6 +242,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       endDate: state.dateRange.endDate,
       granularity: "auto",
       displayMode: "absolute",
+      ...(state.groupBy && { groupBy: state.groupBy }),
       ...(filters && { filters }),
     },
     {
@@ -236,9 +265,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
 
   const onRefresh = useCallback(() => {
     setState((draft) => {
-      const option = timeOptions.find(
-        (o) => o.id === draft.selectedTimeOption,
-      );
+      const option = timeOptions.find((o) => o.id === draft.selectedTimeOption);
       if (option === undefined || option.type !== "minutes") {
         return;
       }
@@ -264,38 +291,40 @@ export function AnalysisChart({}: AnalysisChartProps) {
       const timestamp = new Date(point.timestamp).toISOString();
       const groupKey = point.groupKey || "default";
       const groupLabel = point.groupLabel || "Total";
-      
+
       groups.add(groupLabel);
-      
+
       if (!grouped.has(timestamp)) {
         grouped.set(timestamp, { timestamp });
       }
-      
+
       const entry = grouped.get(timestamp)!;
       entry[groupLabel] = point.value;
     });
 
     return Array.from(grouped.values()).sort(
-      (a, b) => new Date(a.timestamp as string).getTime() - new Date(b.timestamp as string).getTime()
+      (a, b) =>
+        new Date(a.timestamp as string).getTime() -
+        new Date(b.timestamp as string).getTime(),
     );
   }, [chartQuery.data]);
 
   const legendData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
-    
+
     const groups = new Set<string>();
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
       const groupLabel = point.groupLabel || "Total";
       groups.add(groupLabel);
     });
-    
+
     return Array.from(groups);
   }, [chartQuery.data]);
 
   // Colors for different lines
   const colors = [
     "#8884d8",
-    "#82ca9d", 
+    "#82ca9d",
     "#ffc658",
     "#ff7300",
     "#00ff00",
@@ -306,8 +335,19 @@ export function AnalysisChart({}: AnalysisChartProps) {
     <Paper sx={{ p: 3, height: "400px" }}>
       <Stack spacing={2} sx={{ height: "100%" }}>
         {/* Header with controls */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ height: "48px" }}>
-          <Stack direction="row" spacing={1} alignItems="center" flex={1} sx={{ height: "100%" }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ height: "48px" }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            flex={1}
+            sx={{ height: "100%" }}
+          >
             <FormControl size="small">
               <Select
                 value={state.selectedTimeOption}
@@ -341,7 +381,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
                       };
                       return;
                     }
-                    const option = timeOptions.find((o) => o.id === e.target.value);
+                    const option = timeOptions.find(
+                      (o) => o.id === e.target.value,
+                    );
                     if (option === undefined || option.type !== "minutes") {
                       return;
                     }
@@ -371,22 +413,43 @@ export function AnalysisChart({}: AnalysisChartProps) {
 
             {/* Filters */}
             <SharedFilterContainer>
-              <NewAnalysisFilterButton 
-                state={filtersState} 
+              <NewAnalysisFilterButton
+                state={filtersState}
                 setState={setFiltersState}
                 greyScale
               />
-              <SelectedAnalysisFilters 
-                state={filtersState} 
+              <SelectedAnalysisFilters
+                state={filtersState}
                 setState={setFiltersState}
                 sx={{
                   height: "100%",
                 }}
               />
+              
+              {/* Group By */}
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: "grey.300" }}
+              />
+              <AnalysisChartGroupBy
+                value={state.groupBy}
+                onChange={(value) =>
+                  setState((draft) => {
+                    draft.groupBy = value;
+                  })
+                }
+                greyScale
+              />
             </SharedFilterContainer>
           </Stack>
-          
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ height: "100%" }}>
+
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ height: "100%" }}
+          >
             <Tooltip title="Refresh Results" placement="bottom-start">
               <IconButton
                 disabled={state.selectedTimeOption === "custom"}
@@ -403,28 +466,31 @@ export function AnalysisChart({}: AnalysisChartProps) {
         </Stack>
 
         {/* Custom date range popover would go here (similar to userEventsTable) */}
-        
+
         {/* Chart */}
         <Box sx={{ flex: 1, width: "100%" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <XAxis 
-                dataKey="timestamp" 
-                tickFormatter={(value) => 
-                  chartQuery.data?.granularity 
-                    ? formatTimestampForGranularity(value, chartQuery.data.granularity)
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={(value) =>
+                  chartQuery.data?.granularity
+                    ? formatTimestampForGranularity(
+                        value,
+                        chartQuery.data.granularity,
+                      )
                     : new Date(value).toLocaleDateString()
                 }
               />
               <YAxis />
-              <RechartsTooltip 
+              <RechartsTooltip
                 labelFormatter={(value) => new Date(value).toLocaleString()}
               />
               <Legend />
               {legendData.map((group, index) => (
                 <Line
                   key={group}
-                  type="monotone" 
+                  type="monotone"
                   dataKey={group}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}

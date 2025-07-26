@@ -18,10 +18,7 @@ export const sharedFilterChipSx = {
 };
 
 // Shared container for filters that includes the divider and horizontal layout
-export function SharedFilterContainer({ 
-  children, 
-  ...props 
-}: StackProps) {
+export function SharedFilterContainer({ children, ...props }: StackProps) {
   return (
     <>
       <Divider
@@ -29,11 +26,11 @@ export function SharedFilterContainer({
         flexItem
         sx={{ borderColor: "grey.300" }}
       />
-      <Stack 
-        direction="row" 
-        spacing={1} 
-        flex={1} 
-        sx={{ height: "100%" }} 
+      <Stack
+        direction="row"
+        spacing={1}
+        flex={1}
+        sx={{ height: "100%" }}
         {...props}
       >
         {children}

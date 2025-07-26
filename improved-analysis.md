@@ -141,3 +141,5 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - Create a new component in packages/dashboard/src/components/analysisChart/analysisChartFilters.tsx
     - This component should allow filters to be applied to the chart, as described above.
 - Add group by functionality to the chart in packages/dashboard/src/components/analysisChart/analysisChartGroupBy.tsx
+
+### Stage 3 Frontend - Summary Panel

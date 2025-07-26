@@ -11,6 +11,7 @@ import {
   EventType,
   InternalEventType,
   MessageSendSuccess,
+  SmsProviderType,
 } from "./types";
 import { createWorkspace } from "./workspaces";
 
@@ -506,11 +507,11 @@ describe("analysis", () => {
       expect(typeof result.summary.bounces).toBe("number");
 
       // Verify we have the expected counts based on our test data
-      // Now counts unique deliveries (messages) rather than events
+      // Default behavior now only tracks sent messages
       expect(result.summary.deliveries).toBe(2); // 2 unique sent messages
-      expect(result.summary.opens).toBe(1); // 1 unique message was opened (sentMessageId1)
-      expect(result.summary.clicks).toBe(1); // 1 unique message was clicked (sentMessageId1)
-      expect(result.summary.bounces).toBe(1); // 1 unique message bounced (sentMessageId2)
+      expect(result.summary.opens).toBe(0); // Not tracked in default mode
+      expect(result.summary.clicks).toBe(0); // Not tracked in default mode
+      expect(result.summary.bounces).toBe(0); // Not tracked in default mode
     });
 
     it("returns summarized metrics with journey filter", async () => {
@@ -529,9 +530,9 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(2);
-      expect(result.summary.opens).toBe(1);
-      expect(result.summary.clicks).toBe(1);
-      expect(result.summary.bounces).toBe(1);
+      expect(result.summary.opens).toBe(0); // Not tracked in default mode
+      expect(result.summary.clicks).toBe(0); // Not tracked in default mode
+      expect(result.summary.bounces).toBe(0); // Not tracked in default mode
     });
 
     it("returns summarized metrics with message state filter", async () => {
@@ -553,9 +554,47 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(2);
-      expect(result.summary.opens).toBe(1);
-      expect(result.summary.clicks).toBe(0); // Filtered out
-      expect(result.summary.bounces).toBe(0); // Filtered out
+      expect(result.summary.opens).toBe(0); // Not tracked in default mode
+      expect(result.summary.clicks).toBe(0); // Not tracked in default mode
+      expect(result.summary.bounces).toBe(0); // Not tracked in default mode
+    });
+
+    it("returns email-specific metrics when email channel is specified", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        displayMode: "absolute",
+        channel: ChannelType.Email,
+      });
+
+      expect(result).toHaveProperty("summary");
+      expect(result.summary.deliveries).toBe(2); // 2 email messages sent
+      expect(result.summary.opens).toBe(1); // 1 email opened
+      expect(result.summary.clicks).toBe(1); // 1 email clicked
+      expect(result.summary.bounces).toBe(1); // 1 email bounced
+    });
+
+    it("returns default behavior (sent messages only) when no channel is specified", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        displayMode: "absolute",
+        // No channel specified
+      });
+
+      expect(result).toHaveProperty("summary");
+      expect(result.summary.deliveries).toBe(2); // 2 messages sent
+      expect(result.summary.opens).toBe(0); // Not tracked in default mode
+      expect(result.summary.clicks).toBe(0); // Not tracked in default mode  
+      expect(result.summary.bounces).toBe(0); // Not tracked in default mode
     });
 
     it("returns zero metrics for non-existent workspace", async () => {
@@ -592,6 +631,151 @@ describe("analysis", () => {
       expect(result.summary.opens).toBe(0);
       expect(result.summary.clicks).toBe(0);
       expect(result.summary.bounces).toBe(0);
+    });
+  });
+
+  describe("getSummarizedData with SMS channel", () => {
+    let journeyId: string;
+    let templateId: string;
+    let userId1: string;
+    let userId2: string;
+
+    beforeEach(async () => {
+      journeyId = randomUUID();
+      templateId = randomUUID();
+      userId1 = randomUUID();
+      userId2 = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Sms,
+          to: "+1234567890",
+          body: "Test SMS message",
+          provider: {
+            type: SmsProviderType.Twilio,
+            sid: randomUUID(),
+          },
+        },
+      };
+
+      const now = new Date();
+      
+      // Create message IDs for sent messages
+      const sentMessageId1 = randomUUID();
+      const sentMessageId2 = randomUUID();
+      
+      const events: BatchItem[] = [
+        // SMS sent events
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
+          type: EventType.Track,
+          messageId: sentMessageId1,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: userId2,
+          timestamp: new Date(now.getTime() - 1800000).toISOString(), // 30 minutes ago
+          type: EventType.Track,
+          messageId: sentMessageId2,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId2,
+            ...messageSentEvent,
+          },
+        },
+        // SMS delivered event - reference the original sent message
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3590000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.SmsDelivered,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1, // Reference the original sent message
+          },
+        },
+        // SMS failed event - reference the original sent message
+        {
+          userId: userId2,
+          timestamp: new Date(now.getTime() - 1790000).toISOString(), // ~30 minutes ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.SmsFailed,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId2, // Reference the original sent message
+          },
+        },
+      ];
+
+      // Submit events with specific processing times
+      const baseTime = new Date();
+      const eventTimes = [
+        baseTime.getTime() - 3600000, // 1 hour ago
+        baseTime.getTime() - 1800000, // 30 minutes ago
+        baseTime.getTime() - 3590000, // ~1 hour ago (for delivered)
+        baseTime.getTime() - 1790000, // ~30 minutes ago (for failed)
+      ];
+
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: eventTimes[i],
+            },
+          );
+        }
+      }
+    });
+
+    it("returns SMS-specific metrics when SMS channel is specified", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        displayMode: "absolute",
+        channel: ChannelType.Sms,
+      });
+
+      expect(result).toHaveProperty("summary");
+      expect(result.summary.deliveries).toBe(2); // 2 SMS messages sent
+      expect(result.summary.opens).toBe(0); // SMS doesn't have opens
+      expect(result.summary.clicks).toBe(0); // SMS doesn't have clicks
+      expect(result.summary.bounces).toBe(1); // 1 SMS failed (treated as bounce)
     });
   });
 });

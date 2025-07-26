@@ -5,6 +5,7 @@ import {
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
   ResolvedChartGranularity,
+  ChannelType,
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
@@ -195,9 +196,13 @@ export async function getChartData({
   }
 
   // Resolve the actual granularity used
-  let resolvedGranularity: ResolvedChartGranularity = granularity === "auto" 
-    ? selectAutoGranularity({ startDate, endDate }) as ResolvedChartGranularity
-    : granularity as ResolvedChartGranularity;
+  const resolvedGranularity: ResolvedChartGranularity =
+    granularity === "auto"
+      ? (selectAutoGranularity({
+          startDate,
+          endDate,
+        }) as ResolvedChartGranularity)
+      : granularity;
 
   const timeFunction = getClickHouseTimeFunction({
     granularity,
@@ -216,7 +221,7 @@ export async function getChartData({
         event,
         properties,
         if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
-        ${selectClause.replace(/properties/g, 'uev.properties')}
+        ${selectClause.replace(/properties/g, "uev.properties")}
       FROM user_events_v2 AS uev
       WHERE
         workspace_id = ${workspaceIdParam}
@@ -224,7 +229,7 @@ export async function getChartData({
         AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
         AND event_type = 'track'
         AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
-        ${filterClauses.replace(/properties/g, 'uev.properties')}
+        ${filterClauses.replace(/properties/g, "uev.properties")}
     ) AS processed_events
     WHERE origin_message_id != ''
     ${groupByClause}
@@ -280,6 +285,7 @@ export async function getSummarizedData({
   startDate,
   endDate,
   displayMode,
+  channel,
   filters,
 }: GetSummarizedDataRequest): Promise<GetSummarizedDataResponse> {
   const qb = new ClickHouseQueryBuilder();
@@ -331,6 +337,77 @@ export async function getSummarizedData({
     }
   }
 
+  // Determine which events to track based on channel
+  let eventsToTrack: string[];
+  let channelFilter = "";
+
+  if (!channel) {
+    // Default behavior: only track sent messages
+    eventsToTrack = [InternalEventType.MessageSent];
+  } else {
+    // Add channel filter
+    channelFilter = `AND JSONExtractString(properties, 'variant.type') = ${qb.addQueryValue(channel, "String")}`;
+
+    switch (channel) {
+      case ChannelType.Email:
+        eventsToTrack = [
+          InternalEventType.MessageSent,
+          InternalEventType.EmailDelivered,
+          InternalEventType.EmailOpened,
+          InternalEventType.EmailClicked,
+          InternalEventType.EmailBounced,
+          InternalEventType.EmailMarkedSpam,
+          InternalEventType.EmailDropped,
+        ];
+        break;
+      case ChannelType.Sms:
+        eventsToTrack = [
+          InternalEventType.MessageSent,
+          InternalEventType.SmsDelivered,
+          InternalEventType.SmsFailed,
+        ];
+        break;
+      case ChannelType.MobilePush:
+      case ChannelType.Webhook:
+      default:
+        // For other channels, only track sent messages for now
+        eventsToTrack = [InternalEventType.MessageSent];
+        break;
+    }
+  }
+
+  const eventsInClause = eventsToTrack.map((event) => `'${event}'`).join(", ");
+
+  // Build channel-specific summary fields
+  let summaryFields: string;
+  if (!channel) {
+    // Default: only deliveries (sent messages)
+    summaryFields = `
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      0 as opens,
+      0 as clicks,
+      0 as bounces`;
+  } else if (channel === ChannelType.Email) {
+    summaryFields = `
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.EmailOpened}') as opens,
+      sumIf(event_count, event = '${InternalEventType.EmailClicked}') as clicks,
+      sumIf(event_count, event = '${InternalEventType.EmailBounced}') as bounces`;
+  } else if (channel === ChannelType.Sms) {
+    summaryFields = `
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      0 as opens,
+      0 as clicks,
+      sumIf(event_count, event = '${InternalEventType.SmsFailed}') as bounces`;
+  } else {
+    // Other channels: only deliveries
+    summaryFields = `
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      0 as opens,
+      0 as clicks,
+      0 as bounces`;
+  }
+
   const query = `
     WITH summary_data AS (
       SELECT
@@ -346,22 +423,30 @@ export async function getSummarizedData({
           AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
           AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
           AND event_type = 'track'
-          AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
+          AND event IN (${eventsInClause})
+          ${channelFilter}
           ${filterClauses}
       ) AS processed_events
       WHERE origin_message_id != ''
       GROUP BY event
     )
     SELECT
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
-      sumIf(event_count, event = '${InternalEventType.EmailOpened}') as opens,
-      sumIf(event_count, event = '${InternalEventType.EmailClicked}') as clicks,
-      sumIf(event_count, event = '${InternalEventType.EmailBounced}') as bounces
+      ${summaryFields}
     FROM summary_data
   `;
 
   logger().debug(
-    { query, workspaceId, startDate, endDate, displayMode, filters },
+    {
+      query,
+      workspaceId,
+      startDate,
+      endDate,
+      displayMode,
+      channel,
+      filters,
+      channelFilter,
+      eventsToTrack,
+    },
     "Executing summarized data query",
   );
 
