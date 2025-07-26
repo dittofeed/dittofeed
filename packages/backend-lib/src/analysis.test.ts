@@ -53,11 +53,11 @@ describe("analysis", () => {
       };
 
       const now = new Date();
-      
+
       // Create message IDs for sent messages
       const sentMessageId1 = randomUUID();
       const sentMessageId2 = randomUUID();
-      
+
       const events: BatchItem[] = [
         // Message sent events
         {
@@ -371,11 +371,11 @@ describe("analysis", () => {
       };
 
       const now = new Date();
-      
+
       // Create message IDs for sent messages
       const sentMessageId1 = randomUUID();
       const sentMessageId2 = randomUUID();
-      
+
       const events: BatchItem[] = [
         // Message sent events
         {
@@ -408,6 +408,21 @@ describe("analysis", () => {
             templateId,
             messageId: sentMessageId2,
             ...messageSentEvent,
+          },
+        },
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3580000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailDelivered,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1, // Reference the original sent message
           },
         },
         // Email opened events - reference the original sent message
@@ -514,8 +529,8 @@ describe("analysis", () => {
 
       // Verify we have the expected counts based on our test data
       // Default behavior now only tracks sent messages for both deliveries and sent
-      expect(result.summary.deliveries).toBe(2); // 2 unique sent messages
       expect(result.summary.sent).toBe(2); // 2 unique sent messages
+      expect(result.summary.deliveries).toBe(0); // 0 unique deliveries
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -536,8 +551,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2);
       expect(result.summary.sent).toBe(2);
+      expect(result.summary.deliveries).toBe(0);
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -561,8 +576,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2);
       expect(result.summary.sent).toBe(2);
+      expect(result.summary.deliveries).toBe(0);
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -581,8 +596,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(1); // 1 email actually delivered (from EmailDelivered event)
       expect(result.summary.sent).toBe(2); // 2 email messages sent
+      expect(result.summary.deliveries).toBe(1); // 1 email actually delivered (from EmailDelivered event)
       expect(result.summary.opens).toBe(1); // 1 email opened
       expect(result.summary.clicks).toBe(1); // 1 email clicked
       expect(result.summary.bounces).toBe(1); // 1 email bounced
@@ -601,10 +616,10 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2); // 2 messages sent (default behavior)
       expect(result.summary.sent).toBe(2); // 2 messages sent
+      expect(result.summary.deliveries).toBe(0); // 0 messages sent (default behavior)
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
-      expect(result.summary.clicks).toBe(0); // Not tracked in default mode  
+      expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
     });
 
@@ -672,11 +687,11 @@ describe("analysis", () => {
       };
 
       const now = new Date();
-      
+
       // Create message IDs for sent messages
       const sentMessageId1 = randomUUID();
       const sentMessageId2 = randomUUID();
-      
+
       const events: BatchItem[] = [
         // SMS sent events
         {
@@ -785,8 +800,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(1); // 1 SMS actually delivered (from SmsDelivered event)
       expect(result.summary.sent).toBe(2); // 2 SMS messages sent
+      expect(result.summary.deliveries).toBe(1); // 1 SMS actually delivered (from SmsDelivered event)
       expect(result.summary.opens).toBe(0); // SMS doesn't have opens
       expect(result.summary.clicks).toBe(0); // SMS doesn't have clicks
       expect(result.summary.bounces).toBe(1); // 1 SMS failed (treated as bounce)

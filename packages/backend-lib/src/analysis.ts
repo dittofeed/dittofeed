@@ -400,13 +400,13 @@ export async function getSummarizedData({
 
     if (filters.channels && filters.channels.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")}`,
+        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")})`,
       );
     }
 
     if (filters.providers && filters.providers.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
+        `JSON_VALUE(properties, '$.variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
       );
     }
 
@@ -436,7 +436,8 @@ export async function getSummarizedData({
     eventsToTrack = [InternalEventType.MessageSent];
   } else {
     // Add channel filter
-    channelFilter = `AND JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")}`;
+    // Check that message sent events have the correct channel
+    channelFilter = `AND (event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")})`;
 
     switch (channel) {
       case ChannelType.Email:
@@ -495,8 +496,8 @@ export async function getSummarizedData({
   } else {
     // Other channels: only sent messages
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
       sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
+      0 as deliveries,
       0 as opens,
       0 as clicks,
       0 as bounces`;

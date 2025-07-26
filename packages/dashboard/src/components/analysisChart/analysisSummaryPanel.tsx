@@ -146,7 +146,7 @@ export function AnalysisSummaryPanel({
         >
           <MetricCard
             title="SENT"
-            value={summary.deliveries}
+            value={summary.sent}
             isLoading={summaryQuery.isLoading}
           />
           <Stack direction="row" spacing={2} alignItems="center">
