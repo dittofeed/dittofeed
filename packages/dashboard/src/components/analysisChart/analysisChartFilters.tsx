@@ -21,6 +21,7 @@ import { Updater, useImmer } from "use-immer";
 
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
+import { sharedFilterButtonProps, sharedFilterChipSx } from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
 export interface BaseAnalysisFilterCommand {
@@ -176,7 +177,10 @@ export function SelectedAnalysisFilters({
       return (
         <Chip
           key={key}
-          sx={sx}
+          sx={{
+            ...sharedFilterChipSx,
+            ...sx,
+          }}
           label={`${keyLabel} = ${label}`}
           onDelete={() =>
             setState((draft) => {
@@ -505,6 +509,11 @@ export function NewAnalysisFilterButton({
         variant="contained"
         color="info"
         {...buttonProps}
+        {...sharedFilterButtonProps}
+        sx={{
+          ...sharedFilterButtonProps.sx,
+          ...buttonProps?.sx,
+        }}
         onClick={handleClick}
       >
         Add Filter

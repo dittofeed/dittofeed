@@ -36,6 +36,7 @@ import {
 } from "./analysisChart/analysisChartFilters";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
+import { SharedFilterContainer } from "./shared/filterStyles";
 
 const TimeOptionId = {
   Last15Minutes: "last-15-minutes",
@@ -305,8 +306,8 @@ export function AnalysisChart({}: AnalysisChartProps) {
     <Paper sx={{ p: 3, height: "400px" }}>
       <Stack spacing={2} sx={{ height: "100%" }}>
         {/* Header with controls */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" spacing={1} alignItems="center" flex={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ height: "48px" }}>
+          <Stack direction="row" spacing={1} alignItems="center" flex={1} sx={{ height: "100%" }}>
             <FormControl size="small">
               <Select
                 value={state.selectedTimeOption}
@@ -369,35 +370,23 @@ export function AnalysisChart({}: AnalysisChartProps) {
             </FormControl>
 
             {/* Filters */}
-            <Stack direction="row" spacing={1} alignItems="center" flex={1}>
+            <SharedFilterContainer>
               <NewAnalysisFilterButton 
                 state={filtersState} 
                 setState={setFiltersState}
                 greyScale
-                buttonProps={{
-                  size: "small",
-                  disableRipple: true,
-                  sx: {
-                    backgroundColor: "grey.100",
-                    color: "text.primary",
-                    border: "1px solid",
-                    borderColor: "grey.300",
-                    fontWeight: "bold",
-                    "&:hover": {
-                      backgroundColor: "grey.200",
-                      borderColor: "grey.400",
-                    },
-                  },
-                }}
               />
               <SelectedAnalysisFilters 
                 state={filtersState} 
                 setState={setFiltersState}
+                sx={{
+                  height: "100%",
+                }}
               />
-            </Stack>
+            </SharedFilterContainer>
           </Stack>
           
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ height: "100%" }}>
             <Tooltip title="Refresh Results" placement="bottom-start">
               <IconButton
                 disabled={state.selectedTimeOption === "custom"}
