@@ -127,6 +127,11 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - Initially, this chart should implement a date range selector, and the refresh button, but none of the other controls or functionality beyond the line chart itself.
     - This chart should implement a legend
     - Should include a new hook for querying the chart data.
+- Create a script in packages/admin-cli/src/commandDefinitions.ts called seed-delivery-events.
+    - This script should have a parameter called --scenario or -s for short which should prepare a preset collection of events to write to clickhouse.
+    - The purpose of this script is to allow me to visually inspect the chart's UI as its developed. 
+    - The initial scenario, which we'll call "basic-email", will involve 10 message sent events, 7 opened events, 4 clicks, and 2 bounces and 1 spam report.
+    - To get a sense of how this event data will be structured take a look at packages/backend-lib/src/deliveries.test.ts .
 - Create a new component in packages/dashboard/src/components/analysisChart/analysisChartFilters.tsx
     - This component should allow filters to be applied to the chart, as described above.
 - Add group by functionality to the chart in packages/dashboard/src/components/analysisChart/analysisChartGroupBy.tsx

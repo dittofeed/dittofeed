@@ -119,11 +119,9 @@ interface State {
 
 type SetState = Updater<State>;
 
-interface AnalysisChartProps {
-  title?: string;
-}
+interface AnalysisChartProps {}
 
-export function AnalysisChart({ title = "Performance over Time" }: AnalysisChartProps) {
+export function AnalysisChart({}: AnalysisChartProps) {
   const initialEndDate = useMemo(() => Date.now(), []);
   const initialStartDate = useMemo(
     () => subMinutes(initialEndDate, defaultTimeOption.minutes).getTime(),
@@ -238,8 +236,6 @@ export function AnalysisChart({ title = "Performance over Time" }: AnalysisChart
       <Stack spacing={2} sx={{ height: "100%" }}>
         {/* Header with controls */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">{title}</Typography>
-          
           <Stack direction="row" spacing={1} alignItems="center">
             <FormControl size="small">
               <Select
@@ -301,7 +297,9 @@ export function AnalysisChart({ title = "Performance over Time" }: AnalysisChart
                 ))}
               </Select>
             </FormControl>
-            
+          </Stack>
+          
+          <Stack direction="row" spacing={1} alignItems="center">
             <Tooltip title="Refresh Results" placement="bottom-start">
               <IconButton
                 disabled={state.selectedTimeOption === "custom"}
