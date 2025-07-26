@@ -175,9 +175,11 @@ describe("analysis", () => {
       // Check that each data point has the required properties
       result.data.forEach((point) => {
         expect(point).toHaveProperty("timestamp");
-        expect(point).toHaveProperty("value");
+        expect(point).toHaveProperty("deliveries");
+        expect(point).toHaveProperty("sent");
         expect(typeof point.timestamp).toBe("string");
-        expect(typeof point.value).toBe("number");
+        expect(typeof point.deliveries).toBe("number");
+        expect(typeof point.sent).toBe("number");
       });
     });
 
@@ -318,9 +320,11 @@ describe("analysis", () => {
       // Check that each data point has the required properties
       result.data.forEach((point) => {
         expect(point).toHaveProperty("timestamp");
-        expect(point).toHaveProperty("value");
+        expect(point).toHaveProperty("deliveries");
+        expect(point).toHaveProperty("sent");
         expect(typeof point.timestamp).toBe("string");
-        expect(typeof point.value).toBe("number");
+        expect(typeof point.deliveries).toBe("number");
+        expect(typeof point.sent).toBe("number");
       });
     });
 
@@ -497,18 +501,21 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary).toHaveProperty("deliveries");
+      expect(result.summary).toHaveProperty("sent");
       expect(result.summary).toHaveProperty("opens");
       expect(result.summary).toHaveProperty("clicks");
       expect(result.summary).toHaveProperty("bounces");
 
       expect(typeof result.summary.deliveries).toBe("number");
+      expect(typeof result.summary.sent).toBe("number");
       expect(typeof result.summary.opens).toBe("number");
       expect(typeof result.summary.clicks).toBe("number");
       expect(typeof result.summary.bounces).toBe("number");
 
       // Verify we have the expected counts based on our test data
-      // Default behavior now only tracks sent messages
+      // Default behavior now only tracks sent messages for both deliveries and sent
       expect(result.summary.deliveries).toBe(2); // 2 unique sent messages
+      expect(result.summary.sent).toBe(2); // 2 unique sent messages
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -530,6 +537,7 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(2);
+      expect(result.summary.sent).toBe(2);
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -554,6 +562,7 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(2);
+      expect(result.summary.sent).toBe(2);
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -572,7 +581,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2); // 2 email messages sent
+      expect(result.summary.deliveries).toBe(1); // 1 email actually delivered (from EmailDelivered event)
+      expect(result.summary.sent).toBe(2); // 2 email messages sent
       expect(result.summary.opens).toBe(1); // 1 email opened
       expect(result.summary.clicks).toBe(1); // 1 email clicked
       expect(result.summary.bounces).toBe(1); // 1 email bounced
@@ -591,7 +601,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2); // 2 messages sent
+      expect(result.summary.deliveries).toBe(2); // 2 messages sent (default behavior)
+      expect(result.summary.sent).toBe(2); // 2 messages sent
       expect(result.summary.opens).toBe(0); // Not tracked in default mode
       expect(result.summary.clicks).toBe(0); // Not tracked in default mode  
       expect(result.summary.bounces).toBe(0); // Not tracked in default mode
@@ -610,6 +621,7 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(0);
+      expect(result.summary.sent).toBe(0);
       expect(result.summary.opens).toBe(0);
       expect(result.summary.clicks).toBe(0);
       expect(result.summary.bounces).toBe(0);
@@ -628,6 +640,7 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("summary");
       expect(result.summary.deliveries).toBe(0);
+      expect(result.summary.sent).toBe(0);
       expect(result.summary.opens).toBe(0);
       expect(result.summary.clicks).toBe(0);
       expect(result.summary.bounces).toBe(0);
@@ -772,7 +785,8 @@ describe("analysis", () => {
       });
 
       expect(result).toHaveProperty("summary");
-      expect(result.summary.deliveries).toBe(2); // 2 SMS messages sent
+      expect(result.summary.deliveries).toBe(1); // 1 SMS actually delivered (from SmsDelivered event)
+      expect(result.summary.sent).toBe(2); // 2 SMS messages sent
       expect(result.summary.opens).toBe(0); // SMS doesn't have opens
       expect(result.summary.clicks).toBe(0); // SMS doesn't have clicks
       expect(result.summary.bounces).toBe(1); // 1 SMS failed (treated as bounce)

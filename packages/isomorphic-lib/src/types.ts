@@ -5757,7 +5757,8 @@ export type GetSummarizedDataRequest = Static<typeof GetSummarizedDataRequest>;
 
 export const ChartDataPoint = Type.Object({
   timestamp: Type.String(),
-  value: Type.Number(),
+  deliveries: Type.Number(),
+  sent: Type.Number(),
   groupKey: Type.Optional(Type.String()),
   groupLabel: Type.Optional(Type.String()),
 });
@@ -5789,6 +5790,7 @@ export type GetChartDataResponse = Static<typeof GetChartDataResponse>;
 
 export const SummaryMetric = Type.Object({
   deliveries: Type.Number(),
+  sent: Type.Number(),
   opens: Type.Number(),
   clicks: Type.Number(),
   bounces: Type.Number(),

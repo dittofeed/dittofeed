@@ -1,17 +1,17 @@
+import { eq, inArray } from "drizzle-orm";
 import {
+  ChannelType,
   ChartDataPoint,
   GetChartDataRequest,
   GetChartDataResponse,
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
   ResolvedChartGranularity,
-  ChannelType,
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { db } from "./db";
 import { broadcast, journey, messageTemplate } from "./db/schema";
-import { eq, inArray } from "drizzle-orm";
 import logger from "./logger";
 import { InternalEventType } from "./types";
 
@@ -176,19 +176,23 @@ export async function getChartData({
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "broadcast":
-        selectClause = "JSONExtractString(properties, 'broadcastId') as groupKey";
+        selectClause =
+          "JSONExtractString(properties, 'broadcastId') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageTemplate":
-        selectClause = "JSONExtractString(properties, 'templateId') as groupKey";
+        selectClause =
+          "JSONExtractString(properties, 'templateId') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "channel":
-        selectClause = "JSONExtractString(properties, 'variant.type') as groupKey";
+        selectClause =
+          "JSONExtractString(properties, 'variant.type') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "provider":
-        selectClause = "JSONExtractString(properties, 'variant.provider.type') as groupKey";
+        selectClause =
+          "JSONExtractString(properties, 'variant.provider.type') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageState":
@@ -216,7 +220,8 @@ export async function getChartData({
   const query = `
     SELECT
       ${timeFunction} as timestamp,
-      uniqExact(origin_message_id) as value,
+      uniqExact(origin_message_id) as deliveries,
+      uniqExactIf(origin_message_id, event = '${InternalEventType.MessageSent}') as sent,
       ${selectClause}
     FROM (
       SELECT
@@ -231,10 +236,11 @@ export async function getChartData({
         AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
         AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
         AND event_type = 'track'
-        AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
+        AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
         ${filterClauses.replace(/properties/g, "uev.properties")}
     ) AS processed_events
     WHERE origin_message_id != ''
+    AND event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}', '${InternalEventType.MessageSent}')
     ${groupByClause}
     ORDER BY timestamp ASC
   `;
@@ -265,60 +271,79 @@ export async function getChartData({
 
   const rows = await result.json<{
     timestamp: string;
-    value: string | number;
+    deliveries: string | number;
+    sent: string | number;
     groupKey?: string;
   }>();
 
   // Resolve group labels (names) from database for resource IDs
   const groupLabels = new Map<string, string>();
-  
-  if (groupBy && ["journey", "broadcast", "messageTemplate"].includes(groupBy)) {
+
+  if (
+    groupBy &&
+    ["journey", "broadcast", "messageTemplate"].includes(groupBy)
+  ) {
     // Extract unique group keys (filter out undefined values)
-    const uniqueGroupKeys = Array.from(new Set(rows.map(row => row.groupKey).filter((key): key is string => Boolean(key))));
-    
+    const uniqueGroupKeys = Array.from(
+      new Set(
+        rows
+          .map((row) => row.groupKey)
+          .filter((key): key is string => Boolean(key)),
+      ),
+    );
+
     if (uniqueGroupKeys.length > 0) {
       try {
         let resourceNames: { id: string; name: string }[] = [];
-        
+
         switch (groupBy) {
-          case "journey":
+          case "journey": {
             const journeys = await db()
               .select({ id: journey.id, name: journey.name })
               .from(journey)
               .where(inArray(journey.id, uniqueGroupKeys));
             resourceNames = journeys;
             break;
-          case "broadcast":
+          }
+          case "broadcast": {
             const broadcasts = await db()
               .select({ id: broadcast.id, name: broadcast.name })
               .from(broadcast)
               .where(inArray(broadcast.id, uniqueGroupKeys));
             resourceNames = broadcasts;
             break;
-          case "messageTemplate":
+          }
+          case "messageTemplate": {
             const templates = await db()
               .select({ id: messageTemplate.id, name: messageTemplate.name })
               .from(messageTemplate)
               .where(inArray(messageTemplate.id, uniqueGroupKeys));
             resourceNames = templates;
             break;
+          }
         }
-        
+
         // Build lookup map
-        resourceNames.forEach(resource => {
+        resourceNames.forEach((resource) => {
           groupLabels.set(resource.id, resource.name);
         });
       } catch (error) {
-        logger().warn({ error, groupBy, uniqueGroupKeys }, "Failed to resolve resource names");
+        logger().warn(
+          { error, groupBy, uniqueGroupKeys },
+          "Failed to resolve resource names",
+        );
       }
     }
   }
 
   const data: ChartDataPoint[] = rows.map((row) => {
     let groupLabel: string | undefined;
-    
+
     if (row.groupKey) {
-      if (groupBy && ["journey", "broadcast", "messageTemplate"].includes(groupBy)) {
+      if (
+        groupBy &&
+        ["journey", "broadcast", "messageTemplate"].includes(groupBy)
+      ) {
         // Use resolved name with fallback to ID
         groupLabel = groupLabels.get(row.groupKey) || row.groupKey;
       } else {
@@ -326,10 +351,13 @@ export async function getChartData({
         groupLabel = row.groupKey;
       }
     }
-    
+
     return {
       timestamp: row.timestamp,
-      value: typeof row.value === "string" ? parseInt(row.value, 10) : row.value,
+      deliveries:
+        typeof row.deliveries === "string" ? parseInt(row.deliveries, 10) : row.deliveries,
+      sent:
+        typeof row.sent === "string" ? parseInt(row.sent, 10) : row.sent,
       groupKey: row.groupKey || undefined,
       groupLabel,
     };
@@ -442,28 +470,32 @@ export async function getSummarizedData({
   // Build channel-specific summary fields
   let summaryFields: string;
   if (!channel) {
-    // Default: only deliveries (sent messages)
+    // Default: only sent messages
     summaryFields = `
       sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
       0 as opens,
       0 as clicks,
       0 as bounces`;
   } else if (channel === ChannelType.Email) {
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.EmailDelivered}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
       sumIf(event_count, event = '${InternalEventType.EmailOpened}') as opens,
       sumIf(event_count, event = '${InternalEventType.EmailClicked}') as clicks,
       sumIf(event_count, event = '${InternalEventType.EmailBounced}') as bounces`;
   } else if (channel === ChannelType.Sms) {
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.SmsDelivered}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
       0 as opens,
       0 as clicks,
       sumIf(event_count, event = '${InternalEventType.SmsFailed}') as bounces`;
   } else {
-    // Other channels: only deliveries
+    // Other channels: only sent messages
     summaryFields = `
       sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
+      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
       0 as opens,
       0 as clicks,
       0 as bounces`;
@@ -523,6 +555,7 @@ export async function getSummarizedData({
 
   const rows = await result.json<{
     deliveries: string | number;
+    sent: string | number;
     opens: string | number;
     clicks: string | number;
     bounces: string | number;
@@ -530,6 +563,7 @@ export async function getSummarizedData({
 
   const rawSummary = rows[0] || {
     deliveries: "0",
+    sent: "0",
     opens: "0",
     clicks: "0",
     bounces: "0",
@@ -540,6 +574,10 @@ export async function getSummarizedData({
       typeof rawSummary.deliveries === "string"
         ? parseInt(rawSummary.deliveries, 10)
         : rawSummary.deliveries,
+    sent:
+      typeof rawSummary.sent === "string"
+        ? parseInt(rawSummary.sent, 10)
+        : rawSummary.sent,
     opens:
       typeof rawSummary.opens === "string"
         ? parseInt(rawSummary.opens, 10)

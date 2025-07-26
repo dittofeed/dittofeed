@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
-import { ChartDataPoint } from "isomorphic-lib/src/types";
+import { ChartDataPoint, ChannelType } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useRef } from "react";
 import {
   Legend,
@@ -30,6 +30,7 @@ import { Updater, useImmer } from "use-immer";
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
 import {
+  FilterType,
   getFilterValues,
   NewAnalysisFilterButton,
   SelectedAnalysisFilters,
@@ -39,6 +40,7 @@ import {
   AnalysisChartGroupBy,
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
+import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 import { SharedFilterContainer } from "./shared/filterStyles";
@@ -279,6 +281,17 @@ export function AnalysisChart({}: AnalysisChartProps) {
     });
   }, [setState]);
 
+  const handleChannelSelect = useCallback((channel: ChannelType) => {
+    setFiltersState((draft) => {
+      // Add or update channel filter
+      const channelFilter = {
+        type: FilterType.MultiSelect,
+        value: new Map([[channel, channel]]),
+      };
+      draft.filters.set("channels", channelFilter);
+    });
+  }, [setFiltersState]);
+
   // Transform chart data for recharts
   const chartData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
@@ -507,6 +520,13 @@ export function AnalysisChart({}: AnalysisChartProps) {
             </LineChart>
           </ResponsiveContainer>
         </Box>
+
+        {/* Summary Panel */}
+        <AnalysisSummaryPanel
+          dateRange={state.dateRange}
+          filtersState={filtersState}
+          onChannelSelect={handleChannelSelect}
+        />
       </Stack>
     </Paper>
   );
