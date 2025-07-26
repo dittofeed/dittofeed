@@ -2,6 +2,7 @@
 import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
+import { submitBatch } from "backend-lib/src/apps/batch";
 import { bootstrapClickhouse, bootstrapKafka } from "backend-lib/src/bootstrap";
 import {
   clickhouseClient,
@@ -56,12 +57,14 @@ import {
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  BatchItem,
   ChannelType,
   EmailProviderType,
   EventType,
   FeatureName,
   FeatureNamesEnum,
   Features,
+  InternalEventType,
   KnownTrackData,
   MessageTemplateResourceDefinition,
   SendgridSecret,
@@ -1422,7 +1425,7 @@ export function createCommands(yargs: Argv): Argv {
       "Seed delivery events for testing analysis charts.",
       (cmd) =>
         cmd.options({
-          "workspace-id": { type: "string", alias: "w", demandOption: true },
+          "workspace-id": { type: "string", alias: "w", demandOption: false },
           scenario: {
             type: "string",
             alias: "s",
@@ -1431,7 +1434,33 @@ export function createCommands(yargs: Argv): Argv {
             describe: "The scenario to seed",
           },
         }),
-      async ({ workspaceId, scenario }) => {
+      async ({ workspaceId: inputWorkspaceId, scenario }) => {
+        // Resolve workspace ID
+        let workspaceId = inputWorkspaceId;
+        if (!workspaceId) {
+          if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
+            throw new Error(
+              "workspace-id is required in non-development environments",
+            );
+          }
+
+          const defaultWorkspace = await db().query.workspace.findFirst({
+            where: eq(schema.workspace.name, "Default"),
+          });
+
+          if (!defaultWorkspace) {
+            throw new Error(
+              "No workspace with name 'Default' found in development environment",
+            );
+          }
+
+          workspaceId = defaultWorkspace.id;
+          logger().info(
+            { workspaceId },
+            "Using Default workspace for development",
+          );
+        }
+
         logger().info(
           {
             workspaceId,
@@ -1459,7 +1488,9 @@ export function createCommands(yargs: Argv): Argv {
 
               events.push({
                 userId,
-                timestamp: new Date(baseTime - (10 - index) * 30000).toISOString(), // 30 seconds apart
+                timestamp: new Date(
+                  baseTime - (10 - index) * 30000,
+                ).toISOString(), // 30 seconds apart
                 type: EventType.Track,
                 messageId,
                 event: InternalEventType.MessageSent,
@@ -1485,95 +1516,113 @@ export function createCommands(yargs: Argv): Argv {
             });
 
             // User 0: spam report
-            events.push({
-              userId: userIds[0],
-              timestamp: new Date(baseTime - 9 * 30000 + 60000).toISOString(), // 1 minute after send
-              type: EventType.Track,
-              messageId: randomUUID(),
-              event: InternalEventType.EmailMarkedSpam,
-              properties: {
-                workspaceId,
-                journeyId,
-                nodeId,
-                runId,
-                templateId,
-                messageId: events[0].messageId, // Reference the sent message
-              },
-            });
-
-            // User 1: bounce
-            events.push({
-              userId: userIds[1],
-              timestamp: new Date(baseTime - 8 * 30000 + 15000).toISOString(), // 15 seconds after send
-              type: EventType.Track,
-              messageId: randomUUID(),
-              event: InternalEventType.EmailBounced,
-              properties: {
-                workspaceId,
-                journeyId,
-                nodeId,
-                runId,
-                templateId,
-                messageId: events[1].messageId, // Reference the sent message
-                reason: "hard_bounce",
-              },
-            });
-
-            // Users 2, 3, 4: open but no click
-            for (let i = 2; i <= 4; i++) {
+            const user0 = userIds[0];
+            if (user0) {
               events.push({
-                userId: userIds[i],
-                timestamp: new Date(baseTime - (10 - i) * 30000 + 45000).toISOString(), // 45 seconds after send
+                userId: user0,
+                timestamp: new Date(baseTime - 9 * 30000 + 60000).toISOString(), // 1 minute after send
                 type: EventType.Track,
                 messageId: randomUUID(),
-                event: InternalEventType.EmailOpened,
+                event: InternalEventType.EmailMarkedSpam,
                 properties: {
                   workspaceId,
                   journeyId,
                   nodeId,
                   runId,
                   templateId,
-                  messageId: events[i].messageId, // Reference the sent message
+                  messageId: events[0]?.messageId, // Reference the sent message
                 },
               });
             }
 
+            // User 1: bounce
+            const user1 = userIds[1];
+            if (user1) {
+              events.push({
+                userId: user1,
+                timestamp: new Date(baseTime - 8 * 30000 + 15000).toISOString(), // 15 seconds after send
+                type: EventType.Track,
+                messageId: randomUUID(),
+                event: InternalEventType.EmailBounced,
+                properties: {
+                  workspaceId,
+                  journeyId,
+                  nodeId,
+                  runId,
+                  templateId,
+                  messageId: events[1]?.messageId, // Reference the sent message
+                  reason: "hard_bounce",
+                },
+              });
+            }
+
+            // Users 2, 3, 4: open but no click
+            for (let i = 2; i <= 4; i++) {
+              const userId = userIds[i];
+              if (userId) {
+                events.push({
+                  userId,
+                  timestamp: new Date(
+                    baseTime - (10 - i) * 30000 + 45000,
+                  ).toISOString(), // 45 seconds after send
+                  type: EventType.Track,
+                  messageId: randomUUID(),
+                  event: InternalEventType.EmailOpened,
+                  properties: {
+                    workspaceId,
+                    journeyId,
+                    nodeId,
+                    runId,
+                    templateId,
+                    messageId: events[i]?.messageId, // Reference the sent message
+                  },
+                });
+              }
+            }
+
             // Users 5, 6: open and click
             for (let i = 5; i <= 6; i++) {
-              // Open event
-              events.push({
-                userId: userIds[i],
-                timestamp: new Date(baseTime - (10 - i) * 30000 + 45000).toISOString(), // 45 seconds after send
-                type: EventType.Track,
-                messageId: randomUUID(),
-                event: InternalEventType.EmailOpened,
-                properties: {
-                  workspaceId,
-                  journeyId,
-                  nodeId,
-                  runId,
-                  templateId,
-                  messageId: events[i].messageId, // Reference the sent message
-                },
-              });
+              const userId = userIds[i];
+              if (userId) {
+                // Open event
+                events.push({
+                  userId,
+                  timestamp: new Date(
+                    baseTime - (10 - i) * 30000 + 45000,
+                  ).toISOString(), // 45 seconds after send
+                  type: EventType.Track,
+                  messageId: randomUUID(),
+                  event: InternalEventType.EmailOpened,
+                  properties: {
+                    workspaceId,
+                    journeyId,
+                    nodeId,
+                    runId,
+                    templateId,
+                    messageId: events[i]?.messageId, // Reference the sent message
+                  },
+                });
 
-              // Click event
-              events.push({
-                userId: userIds[i],
-                timestamp: new Date(baseTime - (10 - i) * 30000 + 90000).toISOString(), // 90 seconds after send
-                type: EventType.Track,
-                messageId: randomUUID(),
-                event: InternalEventType.EmailClicked,
-                properties: {
-                  workspaceId,
-                  journeyId,
-                  nodeId,
-                  runId,
-                  templateId,
-                  messageId: events[i].messageId, // Reference the sent message
-                  link: "https://example.com/clicked-link",
-                },
-              });
+                // Click event
+                events.push({
+                  userId,
+                  timestamp: new Date(
+                    baseTime - (10 - i) * 30000 + 90000,
+                  ).toISOString(), // 90 seconds after send
+                  type: EventType.Track,
+                  messageId: randomUUID(),
+                  event: InternalEventType.EmailClicked,
+                  properties: {
+                    workspaceId,
+                    journeyId,
+                    nodeId,
+                    runId,
+                    templateId,
+                    messageId: events[i]?.messageId, // Reference the sent message
+                    link: "https://example.com/clicked-link",
+                  },
+                });
+              }
             }
 
             // Users 7, 8, 9: no additional events beyond send
@@ -1596,12 +1645,23 @@ export function createCommands(yargs: Argv): Argv {
               "Created events for basic-email scenario",
             );
 
-            await submitBatch({
-              workspaceId,
-              data: {
-                batch: events,
-              },
-            });
+            // Submit events individually with specific processing times to spread them across time buckets
+            for (const event of events) {
+              const eventTimestamp = event.timestamp
+                ? new Date(event.timestamp).getTime()
+                : undefined;
+              await submitBatch(
+                {
+                  workspaceId,
+                  data: {
+                    batch: [event],
+                  },
+                },
+                {
+                  processingTime: eventTimestamp,
+                },
+              );
+            }
 
             logger().info("Successfully seeded delivery events");
             break;

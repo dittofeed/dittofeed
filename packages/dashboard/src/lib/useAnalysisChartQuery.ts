@@ -39,7 +39,7 @@ export function useAnalysisChartQuery<TData = GetChartDataResponse>(
     queryKey,
     queryFn: async (): Promise<GetChartDataResponse> => {
       try {
-        const response = await axios.get(`${baseApiUrl}/analysis/chart`, {
+        const response = await axios.get(`${baseApiUrl}/analysis/chart-data`, {
           params: {
             ...params,
             workspaceId,
