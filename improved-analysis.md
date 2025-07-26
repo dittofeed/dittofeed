@@ -123,4 +123,10 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 
 ### Stage 2 Frontend - Chart
 
-- We're going to 
+- Create a new component in packages/dashboard/src/components/analysisChart.tsx
+    - Initially, this chart should implement a date range selector, and the refresh button, but none of the other controls or functionality beyond the line chart itself.
+    - This chart should implement a legend
+    - Should include a new hook for querying the chart data.
+- Create a new component in packages/dashboard/src/components/analysisChart/analysisChartFilters.tsx
+    - This component should allow filters to be applied to the chart, as described above.
+- Add group by functionality to the chart in packages/dashboard/src/components/analysisChart/analysisChartGroupBy.tsx
