@@ -261,6 +261,44 @@ describe("analysis", () => {
       expect(Array.isArray(result.data)).toBe(true);
     });
 
+    it("returns chart data with provider filter", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        displayMode: "absolute",
+        filters: {
+          providers: ["SendGrid"],
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it("returns chart data with channel filter", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        displayMode: "absolute",
+        filters: {
+          channels: ["Email"],
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
     it("returns chart data with default granularity when not specified", async () => {
       const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
       const endDate = new Date().toISOString();

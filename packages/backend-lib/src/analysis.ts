@@ -140,7 +140,7 @@ export async function getChartData({
 
     if (filters.providers && filters.providers.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'provider') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
+        `JSONExtractString(properties, 'variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
       );
     }
 
@@ -184,7 +184,7 @@ export async function getChartData({
         break;
       case "provider":
         selectClause =
-          "JSONExtractString(properties, 'provider') as groupKey, JSONExtractString(properties, 'provider') as groupLabel";
+          "JSONExtractString(properties, 'variant.provider.type') as groupKey, JSONExtractString(properties, 'variant.provider.type') as groupLabel";
         groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
         break;
       case "messageState":
@@ -310,7 +310,7 @@ export async function getSummarizedData({
 
     if (filters.providers && filters.providers.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'provider') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
+        `JSONExtractString(properties, 'variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
       );
     }
 

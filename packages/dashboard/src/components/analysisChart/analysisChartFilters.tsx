@@ -14,12 +14,12 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, Present } from "isomorphic-lib/src/types";
+import { Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
-import { useAppStorePick } from "../../lib/appStore";
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
 
@@ -169,31 +169,23 @@ export function SelectedAnalysisFilters({
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
 }) {
-  const { broadcasts, journeys, messages } = useAppStorePick([
-    "broadcasts",
-    "journeys",
-    "messages",
-  ]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
+  const { data: templates } = useResourcesQuery({ messageTemplates: true });
 
   const resolveIdToName = (key: AnalysisFilterKey, id: string): string => {
     switch (key) {
       case "broadcasts": {
-        const broadcast = broadcasts.find((b) => b.id === id);
+        const broadcast = broadcasts?.broadcasts?.find((b) => b.id === id);
         return broadcast ? broadcast.name : id;
       }
       case "journeys": {
-        if (journeys.type === CompletionStatus.Successful) {
-          const journey = journeys.value.find((j) => j.id === id);
-          return journey ? journey.name : id;
-        }
-        return id;
+        const journey = journeys?.journeys?.find((j) => j.id === id);
+        return journey ? journey.name : id;
       }
       case "templates": {
-        if (messages.type === CompletionStatus.Successful) {
-          const template = messages.value.find((t) => t.id === id);
-          return template ? template.name : id;
-        }
-        return id;
+        const template = templates?.messageTemplates?.find((t) => t.id === id);
+        return template ? template.name : id;
       }
       default:
         return id;
@@ -233,11 +225,9 @@ export function NewAnalysisFilterButton({
   setState: SetAnalysisFiltersState;
   greyScale?: boolean;
 }) {
-  const { broadcasts, journeys, messages } = useAppStorePick([
-    "broadcasts",
-    "journeys",
-    "messages",
-  ]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
+  const { data: templates } = useResourcesQuery({ messageTemplates: true });
   const { stage } = state;
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -285,10 +275,7 @@ export function NewAnalysisFilterButton({
               draft.inputValue = "";
               switch (value.filterKey) {
                 case "journeys": {
-                  const journeyOptions =
-                    journeys.type === CompletionStatus.Successful
-                      ? journeys.value
-                      : [];
+                  const journeyOptions = journeys?.journeys || [];
                   const children: SelectItemCommand[] = journeyOptions.map(
                     (journey) => ({
                       label: journey.name,
@@ -304,7 +291,8 @@ export function NewAnalysisFilterButton({
                   break;
                 }
                 case "broadcasts": {
-                  const children: SelectItemCommand[] = broadcasts.map(
+                  const broadcastOptions = broadcasts?.broadcasts || [];
+                  const children: SelectItemCommand[] = broadcastOptions.map(
                     (broadcast) => ({
                       label: broadcast.name,
                       type: AnalysisFilterCommandType.SelectItem,
@@ -323,22 +311,22 @@ export function NewAnalysisFilterButton({
                     {
                       label: "Email",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "email",
+                      id: "Email",
                     },
                     {
                       label: "SMS",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "sms",
+                      id: "Sms",
                     },
                     {
-                      label: "Push",
+                      label: "Mobile Push",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "mobilePush",
+                      id: "MobilePush",
                     },
                     {
                       label: "Webhook",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "webhook",
+                      id: "Webhook",
                     },
                   ];
                   draft.stage = {
@@ -349,27 +337,37 @@ export function NewAnalysisFilterButton({
                   break;
                 }
                 case "providers": {
-                  // Common email providers - could be made dynamic
+                  // Provider types matching EmailProviderType enum values
                   const children: SelectItemCommand[] = [
                     {
                       label: "SendGrid",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "sendgrid",
+                      id: "SendGrid",
+                    },
+                    {
+                      label: "Amazon SES",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "AmazonSes",
                     },
                     {
                       label: "Postmark",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "postmark",
+                      id: "Postmark",
                     },
                     {
-                      label: "AWS SES",
+                      label: "Resend",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "amazon-ses",
+                      id: "Resend",
                     },
                     {
-                      label: "Twilio",
+                      label: "SMTP",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "twilio",
+                      id: "Smtp",
+                    },
+                    {
+                      label: "Gmail",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Gmail",
                     },
                   ];
                   draft.stage = {
@@ -410,10 +408,7 @@ export function NewAnalysisFilterButton({
                   break;
                 }
                 case "templates": {
-                  const templateOptions =
-                    messages.type === CompletionStatus.Successful
-                      ? messages.value
-                      : [];
+                  const templateOptions = templates?.messageTemplates || [];
                   const children: SelectItemCommand[] = templateOptions.map(
                     (template) => ({
                       label: template.name,
@@ -436,7 +431,7 @@ export function NewAnalysisFilterButton({
         }
       }
     },
-    [setState, broadcasts, journeys, messages],
+    [setState, broadcasts, journeys, templates],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -454,76 +449,77 @@ export function NewAnalysisFilterButton({
     });
   };
 
-  const popoverBody = commands.length > 0 ? (
-    <Autocomplete<AnalysisFilterCommand>
-      disablePortal
-      open
-      ListboxProps={{
-        sx: {
-          padding: 0,
-        },
-      }}
-      PaperComponent={SquarePaper}
-      value={null}
-      inputValue={state.inputValue}
-      onInputChange={(_event, newInputValue) =>
-        setState((draft) => {
-          draft.inputValue = newInputValue;
-        })
-      }
-      options={commands}
-      getOptionLabel={(option) => option.label}
-      onChange={(event, value, reason, details) => {
-        handleCommandSelect(event, value, reason, details);
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          autoFocus
-          label="Add Filter"
-          variant="filled"
-          sx={greyScale ? greyTextFieldStyles : undefined}
-          inputRef={inputRef}
-        />
-      )}
-      renderOption={(props, option) => {
-        const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
-          key: string;
-        };
-        return (
-          <Paper
-            component="li"
-            square
-            key={option.label}
-            {...omit(propsWithKey, ["key"])}
-            sx={{
-              opacity: option.disabled ? 0.5 : 1,
-              pointerEvents: option.disabled ? "none" : "auto",
-              borderRadius: 0,
-              width: 300,
-            }}
-          >
-            <Typography
-              variant="body2"
-              style={{
-                display: "flex",
-                alignItems: "center",
+  const popoverBody =
+    commands.length > 0 ? (
+      <Autocomplete<AnalysisFilterCommand>
+        disablePortal
+        open
+        ListboxProps={{
+          sx: {
+            padding: 0,
+          },
+        }}
+        PaperComponent={SquarePaper}
+        value={null}
+        inputValue={state.inputValue}
+        onInputChange={(_event, newInputValue) =>
+          setState((draft) => {
+            draft.inputValue = newInputValue;
+          })
+        }
+        options={commands}
+        getOptionLabel={(option) => option.label}
+        onChange={(event, value, reason, details) => {
+          handleCommandSelect(event, value, reason, details);
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            autoFocus
+            label="Add Filter"
+            variant="filled"
+            sx={greyScale ? greyTextFieldStyles : undefined}
+            inputRef={inputRef}
+          />
+        )}
+        renderOption={(props, option) => {
+          const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
+            key: string;
+          };
+          return (
+            <Paper
+              component="li"
+              square
+              key={option.label}
+              {...omit(propsWithKey, ["key"])}
+              sx={{
+                opacity: option.disabled ? 0.5 : 1,
+                pointerEvents: option.disabled ? "none" : "auto",
+                borderRadius: 0,
+                width: 300,
               }}
             >
-              {option.icon}
-              <span style={{ marginLeft: "8px" }}>{option.label}</span>
-            </Typography>
-          </Paper>
-        );
-      }}
-      getOptionDisabled={(option) => option.disabled ?? false}
-      sx={{
-        width: 300,
-        padding: 0,
-        height: "100%",
-      }}
-    />
-  ) : null;
+              <Typography
+                variant="body2"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {option.icon}
+                <span style={{ marginLeft: "8px" }}>{option.label}</span>
+              </Typography>
+            </Paper>
+          );
+        }}
+        getOptionDisabled={(option) => option.disabled ?? false}
+        sx={{
+          width: 300,
+          padding: 0,
+          height: "100%",
+        }}
+      />
+    ) : null;
 
   return (
     <>

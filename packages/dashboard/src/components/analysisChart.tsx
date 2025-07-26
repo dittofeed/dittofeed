@@ -28,6 +28,12 @@ import {
 
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
+import {
+  getFilterValues,
+  NewAnalysisFilterButton,
+  SelectedAnalysisFilters,
+  useAnalysisFiltersState,
+} from "./analysisChart/analysisChartFilters";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 
@@ -158,6 +164,8 @@ export function AnalysisChart({}: AnalysisChartProps) {
     [initialEndDate],
   );
 
+  const [filtersState, setFiltersState] = useAnalysisFiltersState();
+
   const [state, setState] = useImmer<State>({
     selectedTimeOption: defaultTimeOptionId,
     referenceDate: new Date(initialEndDate),
@@ -168,12 +176,44 @@ export function AnalysisChart({}: AnalysisChartProps) {
     },
   });
 
+  // Build filters object from filter state
+  const filters = useMemo(() => {
+    const journeyIds = getFilterValues(filtersState, "journeys");
+    const broadcastIds = getFilterValues(filtersState, "broadcasts");
+    const channels = getFilterValues(filtersState, "channels");
+    const providers = getFilterValues(filtersState, "providers");
+    const messageStates = getFilterValues(filtersState, "messageStates");
+    const templateIds = getFilterValues(filtersState, "templates");
+
+    // Only return filters object if at least one filter is set
+    if (
+      !journeyIds &&
+      !broadcastIds &&
+      !channels &&
+      !providers &&
+      !messageStates &&
+      !templateIds
+    ) {
+      return undefined;
+    }
+
+    return {
+      ...(journeyIds && { journeyIds }),
+      ...(broadcastIds && { broadcastIds }),
+      ...(channels && { channels }),
+      ...(providers && { providers }),
+      ...(messageStates && { messageStates }),
+      ...(templateIds && { templateIds }),
+    };
+  }, [filtersState]);
+
   const chartQuery = useAnalysisChartQuery(
     {
       startDate: state.dateRange.startDate,
       endDate: state.dateRange.endDate,
       granularity: "auto",
       displayMode: "absolute",
+      ...(filters && { filters }),
     },
     {
       placeholderData: keepPreviousData,
@@ -266,7 +306,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       <Stack spacing={2} sx={{ height: "100%" }}>
         {/* Header with controls */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" flex={1}>
             <FormControl size="small">
               <Select
                 value={state.selectedTimeOption}
@@ -327,6 +367,34 @@ export function AnalysisChart({}: AnalysisChartProps) {
                 ))}
               </Select>
             </FormControl>
+
+            {/* Filters */}
+            <Stack direction="row" spacing={1} alignItems="center" flex={1}>
+              <NewAnalysisFilterButton 
+                state={filtersState} 
+                setState={setFiltersState}
+                greyScale
+                buttonProps={{
+                  size: "small",
+                  disableRipple: true,
+                  sx: {
+                    backgroundColor: "grey.100",
+                    color: "text.primary",
+                    border: "1px solid",
+                    borderColor: "grey.300",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "grey.200",
+                      borderColor: "grey.400",
+                    },
+                  },
+                }}
+              />
+              <SelectedAnalysisFilters 
+                state={filtersState} 
+                setState={setFiltersState}
+              />
+            </Stack>
           </Stack>
           
           <Stack direction="row" spacing={1} alignItems="center">
