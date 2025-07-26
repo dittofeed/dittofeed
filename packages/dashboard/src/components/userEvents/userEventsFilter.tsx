@@ -10,6 +10,7 @@ import {
   SxProps,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
@@ -22,6 +23,7 @@ import { Updater, useImmer } from "use-immer";
 import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
+import { sharedFilterChipSx } from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
 export interface BaseUserEventsFilterCommand {
@@ -235,17 +237,22 @@ export function SelectedUserEventsFilters({
         }
       }
       const keyLabel = keyCommandLabels[key];
+      const fullLabel = `${keyLabel} = ${label}`;
       return (
-        <Chip
-          key={key}
-          sx={sx}
-          label={`${keyLabel} = ${label}`}
-          onDelete={() =>
-            setState((draft) => {
-              draft.filters.delete(key as Key);
-            })
-          }
-        />
+        <Tooltip key={key} title={fullLabel} placement="bottom-start">
+          <Chip
+            sx={{
+              ...sharedFilterChipSx,
+              ...sx,
+            }}
+            label={fullLabel}
+            onDelete={() =>
+              setState((draft) => {
+                draft.filters.delete(key as Key);
+              })
+            }
+          />
+        </Tooltip>
       );
     },
   );
@@ -266,19 +273,22 @@ export function SelectedUserEventsFilters({
             // Resolve ID to name for single values
             label = resolveIdToName(key as Key, String(value));
           }
+          const fullLabel = `${key} = ${label}`;
           return (
-            <Chip
-              key={`hardcoded-${key}`}
-              sx={{
-                ...sx,
-                opacity: 0.7,
-                "& .MuiChip-deleteIcon": {
-                  display: "none",
-                },
-              }}
-              label={`${key} = ${label}`}
-              disabled
-            />
+            <Tooltip key={`hardcoded-${key}`} title={fullLabel} placement="bottom-start">
+              <Chip
+                sx={{
+                  ...sharedFilterChipSx,
+                  ...sx,
+                  opacity: 0.7,
+                  "& .MuiChip-deleteIcon": {
+                    display: "none",
+                  },
+                }}
+                label={fullLabel}
+                disabled
+              />
+            </Tooltip>
           );
         })
     : [];

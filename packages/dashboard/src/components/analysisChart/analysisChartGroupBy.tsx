@@ -20,6 +20,7 @@ import { SquarePaper } from "../squarePaper";
 export type GroupByOption =
   | "journey"
   | "broadcast"
+  | "messageTemplate"
   | "channel"
   | "provider"
   | "messageState"
@@ -35,6 +36,7 @@ const groupByCommands: GroupByCommand[] = [
   { label: "None", value: null },
   { label: "Journey", value: "journey" },
   { label: "Broadcast", value: "broadcast" },
+  { label: "Message Template", value: "messageTemplate" },
   { label: "Channel", value: "channel" },
   { label: "Provider", value: "provider" },
   { label: "Message State", value: "messageState" },

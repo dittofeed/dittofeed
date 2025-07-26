@@ -10,6 +10,7 @@ import {
   SxProps,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
@@ -177,20 +178,22 @@ export function SelectedAnalysisFilters({
     ([key, filter]) => {
       const label = Array.from(filter.value.values()).join(" OR ");
       const keyLabel = keyCommandLabels[key];
+      const fullLabel = `${keyLabel} = ${label}`;
       return (
-        <Chip
-          key={key}
-          sx={{
-            ...sharedFilterChipSx,
-            ...sx,
-          }}
-          label={`${keyLabel} = ${label}`}
-          onDelete={() =>
-            setState((draft) => {
-              draft.filters.delete(key);
-            })
-          }
-        />
+        <Tooltip key={key} title={fullLabel} placement="bottom-start">
+          <Chip
+            sx={{
+              ...sharedFilterChipSx,
+              ...sx,
+            }}
+            label={fullLabel}
+            onDelete={() =>
+              setState((draft) => {
+                draft.filters.delete(key);
+              })
+            }
+          />
+        </Tooltip>
       );
     },
   );

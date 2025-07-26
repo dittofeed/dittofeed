@@ -5712,6 +5712,7 @@ export const GetChartDataRequest = Type.Object({
     Type.Union([
       Type.Literal("journey"),
       Type.Literal("broadcast"),
+      Type.Literal("messageTemplate"),
       Type.Literal("channel"),
       Type.Literal("provider"),
       Type.Literal("messageState"),

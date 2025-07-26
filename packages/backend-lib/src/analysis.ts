@@ -9,6 +9,9 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
+import { db } from "./db";
+import { broadcast, journey, messageTemplate } from "./db/schema";
+import { eq, inArray } from "drizzle-orm";
 import logger from "./logger";
 import { InternalEventType } from "./types";
 
@@ -164,33 +167,33 @@ export async function getChartData({
 
   // Build group by clause
   let groupByClause = "GROUP BY timestamp";
-  let selectClause = "'' as groupKey, '' as groupLabel";
+  let selectClause = "'' as groupKey";
 
   if (groupBy) {
     switch (groupBy) {
       case "journey":
-        selectClause =
-          "JSONExtractString(properties, 'journeyId') as groupKey, JSONExtractString(properties, 'journeyName') as groupLabel";
-        groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
+        selectClause = "JSONExtractString(properties, 'journeyId') as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "broadcast":
-        selectClause =
-          "JSONExtractString(properties, 'broadcastId') as groupKey, JSONExtractString(properties, 'broadcastName') as groupLabel";
-        groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
+        selectClause = "JSONExtractString(properties, 'broadcastId') as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
+        break;
+      case "messageTemplate":
+        selectClause = "JSONExtractString(properties, 'templateId') as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "channel":
-        selectClause =
-          "JSONExtractString(properties, 'variant.type') as groupKey, JSONExtractString(properties, 'variant.type') as groupLabel";
-        groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
+        selectClause = "JSONExtractString(properties, 'variant.type') as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "provider":
-        selectClause =
-          "JSONExtractString(properties, 'variant.provider.type') as groupKey, JSONExtractString(properties, 'variant.provider.type') as groupLabel";
-        groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
+        selectClause = "JSONExtractString(properties, 'variant.provider.type') as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageState":
-        selectClause = "event as groupKey, event as groupLabel";
-        groupByClause = "GROUP BY timestamp, groupKey, groupLabel";
+        selectClause = "event as groupKey";
+        groupByClause = "GROUP BY timestamp, groupKey";
         break;
     }
   }
@@ -264,15 +267,73 @@ export async function getChartData({
     timestamp: string;
     value: string | number;
     groupKey?: string;
-    groupLabel?: string;
   }>();
 
-  const data: ChartDataPoint[] = rows.map((row) => ({
-    timestamp: row.timestamp,
-    value: typeof row.value === "string" ? parseInt(row.value, 10) : row.value,
-    groupKey: row.groupKey || undefined,
-    groupLabel: row.groupLabel || undefined,
-  }));
+  // Resolve group labels (names) from database for resource IDs
+  const groupLabels = new Map<string, string>();
+  
+  if (groupBy && ["journey", "broadcast", "messageTemplate"].includes(groupBy)) {
+    // Extract unique group keys (filter out undefined values)
+    const uniqueGroupKeys = Array.from(new Set(rows.map(row => row.groupKey).filter((key): key is string => Boolean(key))));
+    
+    if (uniqueGroupKeys.length > 0) {
+      try {
+        let resourceNames: { id: string; name: string }[] = [];
+        
+        switch (groupBy) {
+          case "journey":
+            const journeys = await db()
+              .select({ id: journey.id, name: journey.name })
+              .from(journey)
+              .where(inArray(journey.id, uniqueGroupKeys));
+            resourceNames = journeys;
+            break;
+          case "broadcast":
+            const broadcasts = await db()
+              .select({ id: broadcast.id, name: broadcast.name })
+              .from(broadcast)
+              .where(inArray(broadcast.id, uniqueGroupKeys));
+            resourceNames = broadcasts;
+            break;
+          case "messageTemplate":
+            const templates = await db()
+              .select({ id: messageTemplate.id, name: messageTemplate.name })
+              .from(messageTemplate)
+              .where(inArray(messageTemplate.id, uniqueGroupKeys));
+            resourceNames = templates;
+            break;
+        }
+        
+        // Build lookup map
+        resourceNames.forEach(resource => {
+          groupLabels.set(resource.id, resource.name);
+        });
+      } catch (error) {
+        logger().warn({ error, groupBy, uniqueGroupKeys }, "Failed to resolve resource names");
+      }
+    }
+  }
+
+  const data: ChartDataPoint[] = rows.map((row) => {
+    let groupLabel: string | undefined;
+    
+    if (row.groupKey) {
+      if (groupBy && ["journey", "broadcast", "messageTemplate"].includes(groupBy)) {
+        // Use resolved name with fallback to ID
+        groupLabel = groupLabels.get(row.groupKey) || row.groupKey;
+      } else {
+        // For channel, provider, messageState - use the key as label
+        groupLabel = row.groupKey;
+      }
+    }
+    
+    return {
+      timestamp: row.timestamp,
+      value: typeof row.value === "string" ? parseInt(row.value, 10) : row.value,
+      groupKey: row.groupKey || undefined,
+      groupLabel,
+    };
+  });
 
   return { data, granularity: resolvedGranularity };
 }

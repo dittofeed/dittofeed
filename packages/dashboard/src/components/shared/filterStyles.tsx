@@ -15,6 +15,13 @@ export const sharedFilterButtonProps = {
 // Shared chip styling for filter chips that matches userEventsTable
 export const sharedFilterChipSx = {
   height: "100%",
+  maxWidth: "240px",
+  "& .MuiChip-label": {
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    maxWidth: "100%",
+  },
 };
 
 // Shared container for filters that includes the divider and horizontal layout
