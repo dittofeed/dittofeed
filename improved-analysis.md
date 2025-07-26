@@ -93,14 +93,19 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - `yarn workspace dashboard lint --fix` to list and fix linting errors in the dashboard
 - `yarn jest packages/backend-lib/src/analysis.test.ts` to run  our new tests
 
-## Relevant References
+## Additional Relevant References
+
+### Backend
 
 - packages/backend-lib/src/userEvents.ts to see how user events can be fetched from clickhouse
 - packages/backend-lib/src/deliveries.ts to see how deliveries can be fetched from clickhouse
 - packages/backend-lib/src/db/schema.ts to see our postgres schema
 - packages/backend-lib/src/userEvents/clickhouse.ts to see our clickhouse schema
 
-## Steps
+### Frontend
+
+- packages/dashboard/src/components/userEventsTable.tsx to see how we can construct date range selectors
+- packages/dashboard/src/components/userEvents/userEventsFilter.tsx to see how we can construct filter selectors
 
 ### Stage 1 Backend
 
@@ -115,3 +120,7 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - create a new test in packages/backend-lib/src/analysis.test.ts for getSummarizedData
 - add a new analysis controller. use packages/api/src/controllers/segmentsController.ts as an example
 - add controller to router packages/api/src/buildApp/router.ts
+
+### Stage 2 Frontend - Chart
+
+- We're going to 
