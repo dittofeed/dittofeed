@@ -1,110 +1,14 @@
-import { Static, Type } from "@sinclair/typebox";
-import { format } from "date-fns";
+import {
+  ChartDataPoint,
+  GetChartDataRequest,
+  GetChartDataResponse,
+  GetSummarizedDataRequest,
+  GetSummarizedDataResponse,
+} from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import logger from "./logger";
-import { ChannelType, InternalEventType } from "./types";
-
-// Request types
-export const GetChartDataRequest = Type.Object({
-  workspaceId: Type.String(),
-  startDate: Type.String(),
-  endDate: Type.String(),
-  granularity: Type.Optional(Type.Union([
-    Type.Literal("auto"),
-    Type.Literal("30second"),
-    Type.Literal("1minute"),
-    Type.Literal("5minutes"),
-    Type.Literal("10minutes"),
-    Type.Literal("30minutes"),
-    Type.Literal("1hour"),
-    Type.Literal("6hours"),
-    Type.Literal("12hours"),
-    Type.Literal("1day"),
-    Type.Literal("7days"),
-    Type.Literal("30days"),
-  ])),
-  displayMode: Type.Union([
-    Type.Literal("absolute"),
-    Type.Literal("percentage"),
-  ]),
-  groupBy: Type.Optional(
-    Type.Union([
-      Type.Literal("journey"),
-      Type.Literal("broadcast"),
-      Type.Literal("channel"),
-      Type.Literal("provider"),
-      Type.Literal("messageState"),
-    ]),
-  ),
-  filters: Type.Optional(
-    Type.Object({
-      journeyIds: Type.Optional(Type.Array(Type.String())),
-      broadcastIds: Type.Optional(Type.Array(Type.String())),
-      channels: Type.Optional(Type.Array(Type.String())),
-      providers: Type.Optional(Type.Array(Type.String())),
-      messageStates: Type.Optional(Type.Array(Type.String())),
-      templateIds: Type.Optional(Type.Array(Type.String())),
-    }),
-  ),
-});
-
-export type GetChartDataRequest = Static<typeof GetChartDataRequest>;
-
-export const GetSummarizedDataRequest = Type.Object({
-  workspaceId: Type.String(),
-  startDate: Type.String(),
-  endDate: Type.String(),
-  displayMode: Type.Union([
-    Type.Literal("absolute"),
-    Type.Literal("percentage"),
-  ]),
-  filters: Type.Optional(
-    Type.Object({
-      journeyIds: Type.Optional(Type.Array(Type.String())),
-      broadcastIds: Type.Optional(Type.Array(Type.String())),
-      channels: Type.Optional(Type.Array(Type.String())),
-      providers: Type.Optional(Type.Array(Type.String())),
-      messageStates: Type.Optional(Type.Array(Type.String())),
-      templateIds: Type.Optional(Type.Array(Type.String())),
-    }),
-  ),
-});
-
-export type GetSummarizedDataRequest = Static<typeof GetSummarizedDataRequest>;
-
-// Response types
-export const ChartDataPoint = Type.Object({
-  timestamp: Type.String(),
-  value: Type.Number(),
-  groupKey: Type.Optional(Type.String()),
-  groupLabel: Type.Optional(Type.String()),
-});
-
-export type ChartDataPoint = Static<typeof ChartDataPoint>;
-
-export const GetChartDataResponse = Type.Object({
-  data: Type.Array(ChartDataPoint),
-});
-
-export type GetChartDataResponse = Static<typeof GetChartDataResponse>;
-
-export const SummaryMetric = Type.Object({
-  deliveries: Type.Number(),
-  opens: Type.Number(),
-  clicks: Type.Number(),
-  bounces: Type.Number(),
-});
-
-export type SummaryMetric = Static<typeof SummaryMetric>;
-
-export const GetSummarizedDataResponse = Type.Object({
-  summary: SummaryMetric,
-});
-
-export type GetSummarizedDataResponse = Static<
-  typeof GetSummarizedDataResponse
->;
+import { InternalEventType } from "./types";
 
 /**
  * Auto-select granularity based on time range width
