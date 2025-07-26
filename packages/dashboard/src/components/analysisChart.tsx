@@ -32,11 +32,13 @@ import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 
 const TimeOptionId = {
+  Last15Minutes: "last-15-minutes",
+  Last30Minutes: "last-30-minutes",
+  LastHour: "last-hour",
+  Last24Hours: "last-24-hours",
   LastSevenDays: "last-7-days",
   LastThirtyDays: "last-30-days",
   LastNinetyDays: "last-90-days",
-  LastHour: "last-hour",
-  Last24Hours: "last-24-hours",
   Custom: "custom",
 } as const;
 
@@ -67,6 +69,8 @@ const defaultTimeOption = {
 const defaultTimeOptionId = defaultTimeOption.id;
 
 const timeOptions: TimeOption[] = [
+  { type: "minutes", id: "last-15-minutes", minutes: 15, label: "Last 15 minutes" },
+  { type: "minutes", id: "last-30-minutes", minutes: 30, label: "Last 30 minutes" },
   { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
   {
     type: "minutes",

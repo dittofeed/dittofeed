@@ -202,16 +202,25 @@ export async function getChartData({
   const query = `
     SELECT
       ${timeFunction} as timestamp,
-      uniqExact(message_id) as value,
+      uniqExact(origin_message_id) as value,
       ${selectClause}
-    FROM user_events_v2
-    WHERE
-      workspace_id = ${workspaceIdParam}
-      AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-      AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-      AND event_type = 'track'
-      AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
-      ${filterClauses}
+    FROM (
+      SELECT
+        processing_time,
+        event,
+        properties,
+        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
+        ${selectClause.replace(/properties/g, 'uev.properties')}
+      FROM user_events_v2 AS uev
+      WHERE
+        workspace_id = ${workspaceIdParam}
+        AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND event_type = 'track'
+        AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
+        ${filterClauses.replace(/properties/g, 'uev.properties')}
+    ) AS processed_events
+    WHERE origin_message_id != ''
     ${groupByClause}
     ORDER BY timestamp ASC
   `;
@@ -320,15 +329,21 @@ export async function getSummarizedData({
     WITH summary_data AS (
       SELECT
         event,
-        uniqExact(message_id) as event_count
-      FROM user_events_v2
-      WHERE
-        workspace_id = ${workspaceIdParam}
-        AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-        AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND event_type = 'track'
-        AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
-        ${filterClauses}
+        uniqExact(origin_message_id) as event_count
+      FROM (
+        SELECT
+          event,
+          if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id
+        FROM user_events_v2
+        WHERE
+          workspace_id = ${workspaceIdParam}
+          AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+          AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+          AND event_type = 'track'
+          AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
+          ${filterClauses}
+      ) AS processed_events
+      WHERE origin_message_id != ''
       GROUP BY event
     )
     SELECT

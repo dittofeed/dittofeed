@@ -52,13 +52,18 @@ describe("analysis", () => {
       };
 
       const now = new Date();
+      
+      // Create message IDs for sent messages
+      const sentMessageId1 = randomUUID();
+      const sentMessageId2 = randomUUID();
+      
       const events: BatchItem[] = [
         // Message sent events
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
           type: EventType.Track,
-          messageId: randomUUID(),
+          messageId: sentMessageId1,
           event: InternalEventType.MessageSent,
           properties: {
             workspaceId,
@@ -66,7 +71,7 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1,
             ...messageSentEvent,
           },
         },
@@ -74,7 +79,7 @@ describe("analysis", () => {
           userId: userId2,
           timestamp: new Date(now.getTime() - 1800000).toISOString(), // 30 minutes ago
           type: EventType.Track,
-          messageId: randomUUID(),
+          messageId: sentMessageId2,
           event: InternalEventType.MessageSent,
           properties: {
             workspaceId,
@@ -82,11 +87,11 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId2,
             ...messageSentEvent,
           },
         },
-        // Email delivered events
+        // Email delivered events - reference the original sent message
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3590000).toISOString(), // ~1 hour ago
@@ -99,10 +104,10 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1, // Reference the original sent message
           },
         },
-        // Email opened events
+        // Email opened events - reference the original sent message
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3580000).toISOString(), // ~1 hour ago
@@ -115,7 +120,7 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1, // Reference the original sent message
           },
         },
       ];
@@ -318,13 +323,18 @@ describe("analysis", () => {
       };
 
       const now = new Date();
+      
+      // Create message IDs for sent messages
+      const sentMessageId1 = randomUUID();
+      const sentMessageId2 = randomUUID();
+      
       const events: BatchItem[] = [
         // Message sent events
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
           type: EventType.Track,
-          messageId: randomUUID(),
+          messageId: sentMessageId1,
           event: InternalEventType.MessageSent,
           properties: {
             workspaceId,
@@ -332,7 +342,7 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1,
             ...messageSentEvent,
           },
         },
@@ -340,7 +350,7 @@ describe("analysis", () => {
           userId: userId2,
           timestamp: new Date(now.getTime() - 1800000).toISOString(), // 30 minutes ago
           type: EventType.Track,
-          messageId: randomUUID(),
+          messageId: sentMessageId2,
           event: InternalEventType.MessageSent,
           properties: {
             workspaceId,
@@ -348,11 +358,11 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId2,
             ...messageSentEvent,
           },
         },
-        // Email opened events
+        // Email opened events - reference the original sent message
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3580000).toISOString(), // ~1 hour ago
@@ -365,10 +375,10 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1, // Reference the original sent message
           },
         },
-        // Email clicked events
+        // Email clicked events - reference the original sent message
         {
           userId: userId1,
           timestamp: new Date(now.getTime() - 3570000).toISOString(), // ~1 hour ago
@@ -381,10 +391,10 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId1, // Reference the original sent message
           },
         },
-        // Email bounced events
+        // Email bounced events - reference the original sent message
         {
           userId: userId2,
           timestamp: new Date(now.getTime() - 1790000).toISOString(), // ~30 minutes ago
@@ -397,7 +407,7 @@ describe("analysis", () => {
             nodeId: randomUUID(),
             runId: randomUUID(),
             templateId,
-            messageId: randomUUID(),
+            messageId: sentMessageId2, // Reference the original sent message
           },
         },
       ];
@@ -453,10 +463,11 @@ describe("analysis", () => {
       expect(typeof result.summary.bounces).toBe("number");
 
       // Verify we have the expected counts based on our test data
-      expect(result.summary.deliveries).toBe(2); // 2 MessageSent events
-      expect(result.summary.opens).toBe(1); // 1 EmailOpened event
-      expect(result.summary.clicks).toBe(1); // 1 EmailClicked event
-      expect(result.summary.bounces).toBe(1); // 1 EmailBounced event
+      // Now counts unique deliveries (messages) rather than events
+      expect(result.summary.deliveries).toBe(2); // 2 unique sent messages
+      expect(result.summary.opens).toBe(1); // 1 unique message was opened (sentMessageId1)
+      expect(result.summary.clicks).toBe(1); // 1 unique message was clicked (sentMessageId1)
+      expect(result.summary.bounces).toBe(1); // 1 unique message bounced (sentMessageId2)
     });
 
     it("returns summarized metrics with journey filter", async () => {

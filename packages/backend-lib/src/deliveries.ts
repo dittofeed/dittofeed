@@ -468,7 +468,7 @@ export async function searchDeliveries({
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
             uev.event,
             uev.event_time,
-            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
+            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) origin_message_id,
             if(uev.event = '${InternalEventType.MessageSent}', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
             JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
             uev.anonymous_id != '' as is_anonymous
