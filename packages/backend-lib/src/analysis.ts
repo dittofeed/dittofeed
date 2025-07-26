@@ -10,7 +10,7 @@ export const GetChartDataRequest = Type.Object({
   workspaceId: Type.String(),
   startDate: Type.String(),
   endDate: Type.String(),
-  granularity: Type.Union([
+  granularity: Type.Optional(Type.Union([
     Type.Literal("auto"),
     Type.Literal("30second"),
     Type.Literal("1minute"),
@@ -23,7 +23,7 @@ export const GetChartDataRequest = Type.Object({
     Type.Literal("1day"),
     Type.Literal("7days"),
     Type.Literal("30days"),
-  ]),
+  ])),
   displayMode: Type.Union([
     Type.Literal("absolute"),
     Type.Literal("percentage"),
@@ -202,7 +202,7 @@ export async function getChartData({
   workspaceId,
   startDate,
   endDate,
-  granularity,
+  granularity = "auto",
   displayMode,
   groupBy,
   filters,

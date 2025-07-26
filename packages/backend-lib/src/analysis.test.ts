@@ -251,6 +251,30 @@ describe("analysis", () => {
       expect(Array.isArray(result.data)).toBe(true);
     });
 
+    it("returns chart data with default granularity when not specified", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        displayMode: "absolute",
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(result.data.length).toBeGreaterThan(0);
+
+      // Check that each data point has the required properties
+      result.data.forEach((point) => {
+        expect(point).toHaveProperty("timestamp");
+        expect(point).toHaveProperty("value");
+        expect(typeof point.timestamp).toBe("string");
+        expect(typeof point.value).toBe("number");
+      });
+    });
+
     it("returns empty data for non-existent workspace", async () => {
       const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
       const endDate = new Date().toISOString();

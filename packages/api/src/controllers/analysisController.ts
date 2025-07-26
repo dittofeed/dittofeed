@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { FastifyInstance } from "fastify";
 import {
   getChartData,
   GetChartDataRequest,
@@ -8,6 +7,7 @@ import {
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
 } from "backend-lib/src/analysis";
+import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function analysisController(fastify: FastifyInstance) {
