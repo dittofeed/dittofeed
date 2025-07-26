@@ -332,8 +332,8 @@ export function AnalysisChart({}: AnalysisChartProps) {
   ];
 
   return (
-    <Paper sx={{ p: 3, height: "400px" }}>
-      <Stack spacing={2} sx={{ height: "100%" }}>
+    <Paper sx={{ p: 2, height: "400px" }}>
+      <Stack spacing={1} sx={{ height: "100%" }}>
         {/* Header with controls */}
         <Stack
           direction="row"
@@ -482,7 +482,14 @@ export function AnalysisChart({}: AnalysisChartProps) {
                     : new Date(value).toLocaleDateString()
                 }
               />
-              <YAxis />
+              <YAxis 
+                label={{ 
+                  value: 'Messages', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }} 
+              />
               <RechartsTooltip
                 labelFormatter={(value) => new Date(value).toLocaleString()}
               />

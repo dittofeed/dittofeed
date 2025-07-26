@@ -143,3 +143,10 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - Add group by functionality to the chart in packages/dashboard/src/components/analysisChart/analysisChartGroupBy.tsx
 
 ### Stage 3 Frontend - Summary Panel
+
+- We're going to create a new component in packages/dashboard/src/components/analysisChart/analysisSummaryPanel.tsx
+- This component will use the getSummarizedData method to fetch the summary data for the chart.
+- It will look like the middle section of the sample layout above between the chart and the table.
+- It will by default only contain the message sent values when no channel filter is selected.
+    - In this case it should also display a message saying "Select a channel to see a detailed summary."
+    - Adjacent to this message should be two buttons: email and sms, which if clicked will update the filter to only show the selected channel.
