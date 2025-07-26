@@ -5740,12 +5740,11 @@ export const GetSummarizedDataRequest = Type.Object({
     Type.Literal("absolute"),
     Type.Literal("percentage"),
   ]),
-  channel: Type.Optional(Type.Enum(ChannelType)),
   filters: Type.Optional(
     Type.Object({
       journeyIds: Type.Optional(Type.Array(Type.String())),
       broadcastIds: Type.Optional(Type.Array(Type.String())),
-      channels: Type.Optional(Type.Array(Type.String())),
+      channel: Type.Optional(Type.Enum(ChannelType)),
       providers: Type.Optional(Type.Array(Type.String())),
       messageStates: Type.Optional(Type.Array(Type.String())),
       templateIds: Type.Optional(Type.Array(Type.String())),

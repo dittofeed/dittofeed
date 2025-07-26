@@ -375,7 +375,6 @@ export async function getSummarizedData({
   startDate,
   endDate,
   displayMode,
-  channel,
   filters,
 }: GetSummarizedDataRequest): Promise<GetSummarizedDataResponse> {
   const qb = new ClickHouseQueryBuilder();
@@ -398,9 +397,9 @@ export async function getSummarizedData({
       );
     }
 
-    if (filters.channels && filters.channels.length > 0) {
+    if (filters.channel) {
       conditions.push(
-        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")})`,
+        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(filters.channel, "String")})`,
       );
     }
 
@@ -430,6 +429,7 @@ export async function getSummarizedData({
   // Determine which events to track based on channel
   let eventsToTrack: string[];
   let channelFilter = "";
+  const channel = filters?.channel;
 
   if (!channel) {
     // Default behavior: only track sent messages
