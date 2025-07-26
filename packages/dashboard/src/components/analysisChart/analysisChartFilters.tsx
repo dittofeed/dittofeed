@@ -169,29 +169,6 @@ export function SelectedAnalysisFilters({
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
 }) {
-  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
-  const { data: journeys } = useResourcesQuery({ journeys: true });
-  const { data: templates } = useResourcesQuery({ messageTemplates: true });
-
-  const resolveIdToName = (key: AnalysisFilterKey, id: string): string => {
-    switch (key) {
-      case "broadcasts": {
-        const broadcast = broadcasts?.broadcasts?.find((b) => b.id === id);
-        return broadcast ? broadcast.name : id;
-      }
-      case "journeys": {
-        const journey = journeys?.journeys?.find((j) => j.id === id);
-        return journey ? journey.name : id;
-      }
-      case "templates": {
-        const template = templates?.messageTemplates?.find((t) => t.id === id);
-        return template ? template.name : id;
-      }
-      default:
-        return id;
-    }
-  };
-
   const filterChips = Array.from(state.filters.entries()).map(
     ([key, filter]) => {
       const label = Array.from(filter.value.values()).join(" OR ");

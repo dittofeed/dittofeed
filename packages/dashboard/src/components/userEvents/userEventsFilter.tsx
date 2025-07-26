@@ -14,12 +14,12 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, Present } from "isomorphic-lib/src/types";
+import { Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
-import { useAppStorePick } from "../../lib/appStore";
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
@@ -203,20 +203,18 @@ export function SelectedUserEventsFilters({
     userId?: string;
   };
 }) {
-  const { broadcasts, journeys } = useAppStorePick(["broadcasts", "journeys"]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
 
   const resolveIdToName = (key: Key, id: string): string => {
     switch (key) {
       case "broadcastId": {
-        const broadcast = broadcasts.find((b) => b.id === id);
+        const broadcast = broadcasts?.broadcasts?.find((b) => b.id === id);
         return broadcast ? broadcast.name : id;
       }
       case "journeyId": {
-        if (journeys.type === CompletionStatus.Successful) {
-          const journey = journeys.value.find((j) => j.id === id);
-          return journey ? journey.name : id;
-        }
-        return id;
+        const journey = journeys?.journeys?.find((j: any) => j.id === id);
+        return journey ? journey.name : id;
       }
       default:
         return id;
@@ -299,12 +297,8 @@ export function NewUserEventsFilterButton({
   setState: SetUserEventsState;
   greyScale?: boolean;
 }) {
-  // FIXME use hooks
-  const { broadcasts, journeys } = useAppStorePick([
-    "broadcasts",
-    "journeys",
-    "messages",
-  ]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
   const { data: properties, error: propertiesError } = usePropertiesQuery();
   const { stage } = state;
 
@@ -381,7 +375,8 @@ export function NewUserEventsFilterButton({
                   };
                   break;
                 case "broadcastId": {
-                  const children: SelectItemCommand[] = broadcasts.map(
+                  const broadcastList = broadcasts?.broadcasts || [];
+                  const children: SelectItemCommand[] = broadcastList.map(
                     (broadcast) => ({
                       label: broadcast.name,
                       type: UserEventsFilterCommandType.SelectItem,
@@ -396,12 +391,9 @@ export function NewUserEventsFilterButton({
                   break;
                 }
                 case "journeyId": {
-                  const journeyOptions =
-                    journeys.type === CompletionStatus.Successful
-                      ? journeys.value
-                      : [];
+                  const journeyOptions = journeys?.journeys || [];
                   const children: SelectItemCommand[] = journeyOptions.map(
-                    (journey) => ({
+                    (journey: any) => ({
                       label: journey.name,
                       type: UserEventsFilterCommandType.SelectItem,
                       id: journey.id,
