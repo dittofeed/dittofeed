@@ -191,6 +191,11 @@ export function AnalysisSummaryPanel({
     <Box sx={{ py: 2 }}>
       <Stack direction="row" spacing={2} justifyContent="center">
         <MetricCard
+          title="SENT"
+          value={summary.deliveries}
+          isLoading={summaryQuery.isLoading}
+        />
+        <MetricCard
           title="DELIVERIES"
           value={summary.deliveries}
           isLoading={summaryQuery.isLoading}
