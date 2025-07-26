@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import {
   ChannelType,
   ChartDataPoint,
@@ -355,9 +355,10 @@ export async function getChartData({
     return {
       timestamp: row.timestamp,
       deliveries:
-        typeof row.deliveries === "string" ? parseInt(row.deliveries, 10) : row.deliveries,
-      sent:
-        typeof row.sent === "string" ? parseInt(row.sent, 10) : row.sent,
+        typeof row.deliveries === "string"
+          ? parseInt(row.deliveries, 10)
+          : row.deliveries,
+      sent: typeof row.sent === "string" ? parseInt(row.sent, 10) : row.sent,
       groupKey: row.groupKey || undefined,
       groupLabel,
     };
@@ -435,7 +436,7 @@ export async function getSummarizedData({
     eventsToTrack = [InternalEventType.MessageSent];
   } else {
     // Add channel filter
-    channelFilter = `AND JSONExtractString(properties, 'variant.type') = ${qb.addQueryValue(channel, "String")}`;
+    channelFilter = `AND JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")}`;
 
     switch (channel) {
       case ChannelType.Email:
@@ -472,8 +473,8 @@ export async function getSummarizedData({
   if (!channel) {
     // Default: only sent messages
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as deliveries,
       sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
+      0 as deliveries,
       0 as opens,
       0 as clicks,
       0 as bounces`;

@@ -8,7 +8,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { ChannelType } from "isomorphic-lib/src/types";
+import { ChannelType, SummaryMetric } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAnalysisSummaryQuery } from "../../lib/useAnalysisSummaryQuery";
@@ -124,12 +124,15 @@ export function AnalysisSummaryPanel({
     ...(filters && { filters }),
   });
 
-  const summary = summaryQuery.data?.summary || {
+  const summary: SummaryMetric = summaryQuery.data?.summary || {
+    sent: 0,
     deliveries: 0,
     opens: 0,
     clicks: 0,
     bounces: 0,
   };
+
+  console.log({ summary, summaryQueryData: summaryQuery.data });
 
   if (!hasChannelFilter) {
     // Show basic sent messages count with channel selection buttons
@@ -192,7 +195,7 @@ export function AnalysisSummaryPanel({
       <Stack direction="row" spacing={2} justifyContent="center">
         <MetricCard
           title="SENT"
-          value={summary.deliveries}
+          value={summary.sent}
           isLoading={summaryQuery.isLoading}
         />
         <MetricCard
