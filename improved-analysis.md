@@ -130,7 +130,12 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - Create a script in packages/admin-cli/src/commandDefinitions.ts called seed-delivery-events.
     - This script should have a parameter called --scenario or -s for short which should prepare a preset collection of events to write to clickhouse.
     - The purpose of this script is to allow me to visually inspect the chart's UI as its developed. 
-    - The initial scenario, which we'll call "basic-email", will involve 10 message sent events, 7 opened events, 4 clicks, and 2 bounces and 1 spam report.
+    - The initial scenario, which we'll call "basic-email", will 10 message send events to 10 different users. Those users will also have the following events:
+        - 1 will have a spam report 
+        - 1 will have a bounce
+        - 3 will have an open but no click
+        - 2 will have an open and a click 
+        - 3 will have no additional events beyond the send event
     - To get a sense of how this event data will be structured take a look at packages/backend-lib/src/deliveries.test.ts .
 - Create a new component in packages/dashboard/src/components/analysisChart/analysisChartFilters.tsx
     - This component should allow filters to be applied to the chart, as described above.
