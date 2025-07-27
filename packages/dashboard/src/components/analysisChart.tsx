@@ -21,7 +21,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Legend,
   Line,
@@ -183,6 +183,7 @@ export function AnalysisChart() {
   );
 
   const [filtersState, setFiltersState] = useAnalysisFiltersState();
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
 
   // Translate analysis filters to deliveries filter props
   const deliveriesFilters = useMemo(() => {
@@ -388,6 +389,47 @@ export function AnalysisChart() {
     "#0088fe",
   ];
 
+  // Custom Legend component with hover interaction
+  const CustomLegend = ({ payload }: { payload?: Array<{
+    value: string;
+    color: string;
+    type?: string;
+    id?: string;
+  }> }) => {
+    if (!payload) return null;
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {payload.map((entry, index) => (
+          <div
+            key={entry.value}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+              opacity: hoveredGroup && hoveredGroup !== entry.value ? 0.3 : 1,
+              transition: "opacity 0.2s ease",
+            }}
+            onMouseEnter={() => setHoveredGroup(entry.value)}
+            onMouseLeave={() => setHoveredGroup(null)}
+          >
+            <div
+              style={{
+                width: "12px",
+                height: "2px",
+                backgroundColor: entry.color,
+                marginRight: "8px",
+              }}
+            />
+            <span style={{ fontSize: "14px", color: "#333" }}>
+              {entry.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Stack spacing={1}>
       {/* Chart Container */}
@@ -566,6 +608,7 @@ export function AnalysisChart() {
                   align="right"
                   verticalAlign="middle"
                   layout="vertical"
+                  content={<CustomLegend />}
                 />
                 {legendData.map((group, index) => (
                   <Line
@@ -573,8 +616,14 @@ export function AnalysisChart() {
                     type="monotone"
                     dataKey={group}
                     stroke={colors[index % colors.length]}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
+                    strokeWidth={hoveredGroup && hoveredGroup !== group ? 1 : 2}
+                    strokeOpacity={hoveredGroup && hoveredGroup !== group ? 0.3 : 1}
+                    dot={{ 
+                      r: hoveredGroup && hoveredGroup !== group ? 2 : 3,
+                      opacity: hoveredGroup && hoveredGroup !== group ? 0.3 : 1
+                    }}
+                    onMouseEnter={() => setHoveredGroup(group)}
+                    onMouseLeave={() => setHoveredGroup(null)}
                   />
                 ))}
               </LineChart>

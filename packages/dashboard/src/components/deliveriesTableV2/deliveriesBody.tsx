@@ -1015,7 +1015,14 @@ export function DeliveriesBody({
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableCell key={header.id} colSpan={header.colSpan}>
+                    <TableCell
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      sx={{
+                        paddingTop: "8px",
+                        paddingBottom: "8px",
+                      }}
+                    >
                       {header.isPlaceholder ? null : (
                         <Box>
                           {flexRender(
