@@ -175,11 +175,9 @@ describe("analysis", () => {
       // Check that each data point has the required properties
       result.data.forEach((point) => {
         expect(point).toHaveProperty("timestamp");
-        expect(point).toHaveProperty("deliveries");
-        expect(point).toHaveProperty("sent");
+        expect(point).toHaveProperty("count");
         expect(typeof point.timestamp).toBe("string");
-        expect(typeof point.deliveries).toBe("number");
-        expect(typeof point.sent).toBe("number");
+        expect(typeof point.count).toBe("number");
       });
     });
 
@@ -201,7 +199,107 @@ describe("analysis", () => {
       expect(result.granularity).toBe("1hour"); // Should return the specific granularity
     });
 
-    it("returns chart data grouped by journey", async () => {
+    it("returns chart data grouped by journey with separate counts for different journeys", async () => {
+      // Create a second journey with different messages
+      const secondJourneyId = randomUUID();
+      const secondTemplateId = randomUUID();
+      const userId3 = randomUUID();
+      const userId4 = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const now = new Date();
+      const sentMessageId3 = randomUUID();
+      const sentMessageId4 = randomUUID();
+
+      // Create events for the second journey
+      const secondJourneyEvents: BatchItem[] = [
+        {
+          userId: userId3,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
+          type: EventType.Track,
+          messageId: sentMessageId3,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: secondJourneyId, // Different journey
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: secondTemplateId,
+            messageId: sentMessageId3,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: userId4,
+          timestamp: new Date(now.getTime() - 1800000).toISOString(), // 30 minutes ago
+          type: EventType.Track,
+          messageId: sentMessageId4,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: secondJourneyId, // Different journey
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: secondTemplateId,
+            messageId: sentMessageId4,
+            ...messageSentEvent,
+          },
+        },
+        // Add an additional event for the second journey to make counts different
+        {
+          userId: randomUUID(),
+          timestamp: new Date(now.getTime() - 2700000).toISOString(), // 45 minutes ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: secondJourneyId, // Different journey
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: secondTemplateId,
+            messageId: randomUUID(),
+            ...messageSentEvent,
+          },
+        },
+      ];
+
+      // Submit the second journey events
+      const eventTimes = [
+        now.getTime() - 3600000, // 1 hour ago
+        now.getTime() - 1800000, // 30 minutes ago
+        now.getTime() - 2700000, // 45 minutes ago
+      ];
+
+      for (let i = 0; i < secondJourneyEvents.length; i++) {
+        const event = secondJourneyEvents[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: eventTimes[i],
+            },
+          );
+        }
+      }
+
       const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
       const endDate = new Date().toISOString();
 
@@ -216,14 +314,48 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("data");
       expect(Array.isArray(result.data)).toBe(true);
+      expect(result.data.length).toBeGreaterThan(0);
 
-      // Check that grouped data has groupKey and groupLabel
-      if (result.data.length > 0) {
-        const firstPoint = result.data[0];
-        if (firstPoint?.groupKey) {
-          expect(typeof firstPoint.groupKey).toBe("string");
-        }
-      }
+      // Verify we have data points for both journeys
+      const journeyGroups = new Set(result.data.map((point) => point.groupKey));
+      expect(journeyGroups.has(journeyId)).toBe(true); // Original journey
+      expect(journeyGroups.has(secondJourneyId)).toBe(true); // New journey
+
+      // Verify counts are different between journeys
+      const firstJourneyPoints = result.data.filter(
+        (point) => point.groupKey === journeyId,
+      );
+      const secondJourneyPoints = result.data.filter(
+        (point) => point.groupKey === secondJourneyId,
+      );
+
+      expect(firstJourneyPoints.length).toBeGreaterThan(0);
+      expect(secondJourneyPoints.length).toBeGreaterThan(0);
+
+      // Sum up counts for each journey
+      const firstJourneyTotal = firstJourneyPoints.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+      const secondJourneyTotal = secondJourneyPoints.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+
+      // First journey should have 2 messages, second journey should have 3 messages
+      expect(firstJourneyTotal).toBe(2);
+      expect(secondJourneyTotal).toBe(3);
+
+      // Verify all points have proper structure
+      result.data.forEach((point) => {
+        expect(point).toHaveProperty("timestamp");
+        expect(point).toHaveProperty("count");
+        expect(point).toHaveProperty("groupKey");
+        expect(typeof point.timestamp).toBe("string");
+        expect(typeof point.count).toBe("number");
+        expect(typeof point.groupKey).toBe("string");
+        expect([journeyId, secondJourneyId]).toContain(point.groupKey);
+      });
     });
 
     it("returns chart data with journey filter", async () => {
@@ -320,11 +452,9 @@ describe("analysis", () => {
       // Check that each data point has the required properties
       result.data.forEach((point) => {
         expect(point).toHaveProperty("timestamp");
-        expect(point).toHaveProperty("deliveries");
-        expect(point).toHaveProperty("sent");
+        expect(point).toHaveProperty("count");
         expect(typeof point.timestamp).toBe("string");
-        expect(typeof point.deliveries).toBe("number");
-        expect(typeof point.sent).toBe("number");
+        expect(typeof point.count).toBe("number");
       });
     });
 

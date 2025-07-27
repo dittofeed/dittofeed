@@ -5756,8 +5756,7 @@ export type GetSummarizedDataRequest = Static<typeof GetSummarizedDataRequest>;
 
 export const ChartDataPoint = Type.Object({
   timestamp: Type.String(),
-  deliveries: Type.Number(),
-  sent: Type.Number(),
+  count: Type.Number(),
   groupKey: Type.Optional(Type.String()),
   groupLabel: Type.Optional(Type.String()),
 });

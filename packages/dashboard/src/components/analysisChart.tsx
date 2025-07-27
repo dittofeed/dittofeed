@@ -315,7 +315,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       }
 
       const entry = grouped.get(timestamp)!;
-      entry[groupLabel] = point.sent;
+      entry[groupLabel] = point.count;
     });
 
     return Array.from(grouped.values()).sort(

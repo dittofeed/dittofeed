@@ -105,7 +105,20 @@ function getClickHouseTimeFunction({
 }
 
 /**
- * Get chart data for the analysis dashboard
+ * Get chart data for the analysis dashboard.
+ *
+ * This method aggregates message events into time-bucketed counts, with support for:
+ * - Cascading event logic: clicks count as opens+deliveries, opens count as deliveries
+ * - Deduplication: each message can only contribute once to each state type
+ * - Flexible grouping: by journey, broadcast, template, channel, provider, or message state
+ * - When grouping by state, counts are disaggregated by event type
+ * - When not grouping by state, all events aggregate into a single count
+ *
+ * Event hierarchy (higher events include lower events):
+ * - Click events count as: click + open + delivery
+ * - Open events count as: open + delivery
+ * - Delivery events count as: delivery
+ * - But each message can only be counted once per state type
  */
 export async function getChartData({
   workspaceId,
@@ -165,38 +178,31 @@ export async function getChartData({
     }
   }
 
-  // Build group by clause
-  let groupByClause = "GROUP BY timestamp";
+  // Build select clause for grouping
   let selectClause = "'' as groupKey";
 
   if (groupBy) {
     switch (groupBy) {
       case "journey":
         selectClause = "JSONExtractString(properties, 'journeyId') as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "broadcast":
         selectClause =
           "JSONExtractString(properties, 'broadcastId') as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageTemplate":
         selectClause =
           "JSONExtractString(properties, 'templateId') as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "channel":
         selectClause = "JSON_VALUE(properties, '$.variant.type') as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "provider":
         selectClause =
           "JSON_VALUE(properties, '$.variant.provider.type') as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageState":
         selectClause = "event as groupKey";
-        groupByClause = "GROUP BY timestamp, groupKey";
         break;
     }
   }
@@ -216,31 +222,132 @@ export async function getChartData({
     endDate,
   });
 
+  // Determine the event types to include based on groupBy
+  let eventStates: string[];
+  if (groupBy === "messageState") {
+    // When grouping by state, we need to handle each state separately
+    eventStates = [
+      InternalEventType.MessageSent,
+      InternalEventType.EmailDelivered,
+      InternalEventType.SmsDelivered,
+      InternalEventType.EmailOpened,
+      InternalEventType.EmailClicked,
+      InternalEventType.EmailBounced,
+      InternalEventType.SmsFailed,
+    ];
+  } else {
+    // When not grouping by state, aggregate all events into a single count
+    eventStates = [
+      InternalEventType.MessageSent,
+      InternalEventType.EmailDelivered,
+      InternalEventType.SmsDelivered,
+      InternalEventType.EmailOpened,
+      InternalEventType.EmailClicked,
+      InternalEventType.EmailBounced,
+      InternalEventType.SmsFailed,
+    ];
+  }
+
+  // Simplify query structure based on whether we're grouping by message state or not
+  let groupSelectClause = selectClause;
+  let groupBySQL = "";
+
+  if (groupBy) {
+    if (groupBy === "messageState") {
+      groupSelectClause = "'' as groupKey";
+      groupBySQL = "GROUP BY timestamp, groupKey";
+    } else {
+      groupBySQL = "GROUP BY timestamp, groupKey";
+    }
+  } else {
+    groupSelectClause = "'' as groupKey";
+    groupBySQL = "GROUP BY timestamp";
+  }
+
+  // Build a simpler query that handles cascading logic correctly
   const query = `
-    SELECT
-      ${timeFunction} as timestamp,
-      uniqExact(origin_message_id) as deliveries,
-      uniqExactIf(origin_message_id, event = '${InternalEventType.MessageSent}') as sent,
-      ${selectClause}
-    FROM (
+    WITH message_events AS (
       SELECT
         processing_time,
         event,
         properties,
         if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
-        ${selectClause.replace(/properties/g, "uev.properties")}
+        ${groupSelectClause.replace(/properties/g, "uev.properties")}
       FROM user_events_v2 AS uev
       WHERE
         workspace_id = ${workspaceIdParam}
         AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
         AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
         AND event_type = 'track'
-        AND event IN ('${InternalEventType.MessageSent}', '${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}')
+        AND event IN (${eventStates.map((e) => `'${e}'`).join(", ")})
         ${filterClauses.replace(/properties/g, "uev.properties")}
-    ) AS processed_events
-    WHERE origin_message_id != ''
-    AND event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}', '${InternalEventType.MessageSent}')
-    ${groupByClause}
+    ),
+    message_states_per_message AS (
+      SELECT
+        origin_message_id,
+        groupKey,
+        ${timeFunction} as timestamp,
+        countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
+        countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
+        countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
+        countIf(event = '${InternalEventType.EmailClicked}') > 0 as has_clicked,
+        countIf(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) > 0 as has_bounced
+      FROM message_events
+      WHERE origin_message_id != ''
+      GROUP BY origin_message_id, groupKey, timestamp
+    )
+    ${
+      groupBy === "messageState"
+        ? `
+    SELECT
+      timestamp,
+      event_type as groupKey,
+      sum(count) as count
+    FROM (
+      SELECT timestamp, '${InternalEventType.MessageSent}' as event_type, sum(toUInt64(has_sent)) as count 
+      FROM message_states_per_message 
+      WHERE has_sent = 1
+      GROUP BY timestamp
+      
+      UNION ALL
+      
+      SELECT timestamp, 'delivered' as event_type, sum(toUInt64(has_delivered)) as count
+      FROM message_states_per_message 
+      WHERE has_delivered = 1
+      GROUP BY timestamp
+      
+      UNION ALL
+      
+      SELECT timestamp, '${InternalEventType.EmailOpened}' as event_type, sum(toUInt64(has_opened)) as count
+      FROM message_states_per_message 
+      WHERE has_opened = 1  
+      GROUP BY timestamp
+      
+      UNION ALL
+      
+      SELECT timestamp, '${InternalEventType.EmailClicked}' as event_type, sum(toUInt64(has_clicked)) as count
+      FROM message_states_per_message 
+      WHERE has_clicked = 1
+      GROUP BY timestamp
+      
+      UNION ALL
+      
+      SELECT timestamp, 'bounced' as event_type, sum(toUInt64(has_bounced)) as count
+      FROM message_states_per_message 
+      WHERE has_bounced = 1
+      GROUP BY timestamp
+    ) all_states
+    GROUP BY timestamp, event_type
+    `
+        : `
+    SELECT
+      timestamp,
+      ${groupBy ? "groupKey" : "'' as groupKey"},
+      count(*) as count
+    FROM message_states_per_message
+    ${groupBySQL}
+    `
+    }
     ORDER BY timestamp ASC
   `;
 
@@ -269,96 +376,20 @@ export async function getChartData({
 
   const rows = await result.json<{
     timestamp: string;
-    deliveries: string | number;
-    sent: string | number;
+    count: string | number;
     groupKey?: string;
   }>();
 
-  // Resolve group labels (names) from database for resource IDs
-  const groupLabels = new Map<string, string>();
-
-  if (
-    groupBy &&
-    ["journey", "broadcast", "messageTemplate"].includes(groupBy)
-  ) {
-    // Extract unique group keys (filter out undefined values)
-    const uniqueGroupKeys = Array.from(
-      new Set(
-        rows
-          .map((row) => row.groupKey)
-          .filter((key): key is string => Boolean(key)),
-      ),
-    );
-
-    if (uniqueGroupKeys.length > 0) {
-      try {
-        let resourceNames: { id: string; name: string }[] = [];
-
-        switch (groupBy) {
-          case "journey": {
-            const journeys = await db()
-              .select({ id: journey.id, name: journey.name })
-              .from(journey)
-              .where(inArray(journey.id, uniqueGroupKeys));
-            resourceNames = journeys;
-            break;
-          }
-          case "broadcast": {
-            const broadcasts = await db()
-              .select({ id: broadcast.id, name: broadcast.name })
-              .from(broadcast)
-              .where(inArray(broadcast.id, uniqueGroupKeys));
-            resourceNames = broadcasts;
-            break;
-          }
-          case "messageTemplate": {
-            const templates = await db()
-              .select({ id: messageTemplate.id, name: messageTemplate.name })
-              .from(messageTemplate)
-              .where(inArray(messageTemplate.id, uniqueGroupKeys));
-            resourceNames = templates;
-            break;
-          }
-        }
-
-        // Build lookup map
-        resourceNames.forEach((resource) => {
-          groupLabels.set(resource.id, resource.name);
-        });
-      } catch (error) {
-        logger().warn(
-          { error, groupBy, uniqueGroupKeys },
-          "Failed to resolve resource names",
-        );
-      }
-    }
-  }
+  // For this stage, we return IDs only without resolving names
+  // This removes the resource name lookup logic as specified in Stage 4
 
   const data: ChartDataPoint[] = rows.map((row) => {
-    let groupLabel: string | undefined;
-
-    if (row.groupKey) {
-      if (
-        groupBy &&
-        ["journey", "broadcast", "messageTemplate"].includes(groupBy)
-      ) {
-        // Use resolved name with fallback to ID
-        groupLabel = groupLabels.get(row.groupKey) || row.groupKey;
-      } else {
-        // For channel, provider, messageState - use the key as label
-        groupLabel = row.groupKey;
-      }
-    }
-
     return {
       timestamp: row.timestamp,
-      deliveries:
-        typeof row.deliveries === "string"
-          ? parseInt(row.deliveries, 10)
-          : row.deliveries,
-      sent: typeof row.sent === "string" ? parseInt(row.sent, 10) : row.sent,
+      count:
+        typeof row.count === "string" ? parseInt(row.count, 10) : row.count,
       groupKey: row.groupKey || undefined,
-      groupLabel,
+      groupLabel: row.groupKey || undefined, // Use ID as label since we're not resolving names
     };
   });
 

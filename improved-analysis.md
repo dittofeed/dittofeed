@@ -94,6 +94,11 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - `yarn workspace dashboard lint --fix` to list and fix linting errors in the dashboard
 - `yarn jest packages/backend-lib/src/analysis.test.ts` to run  our new tests
 
+## Coding Guidelines
+
+- never use the `any` type, type assertions, or non-null assertions. if you find yourself using these, please ask for clarification.
+- in general, if you find yourself re-writing code 2-3 times and struggling, please ask for assistance.
+
 ## Additional Relevant References
 
 ### Backend
