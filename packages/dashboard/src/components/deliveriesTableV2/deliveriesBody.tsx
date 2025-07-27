@@ -530,7 +530,7 @@ export interface DeliveriesBodyProps {
   endDate: Date;
   sortBy?: SearchDeliveriesRequestSortBy;
   sortDirection?: SortDirection;
-  onSortChange?: (sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => void;
+  limit?: number;
 }
 
 export function DeliveriesBody({
@@ -554,7 +554,7 @@ export function DeliveriesBody({
   endDate,
   sortBy = "sentAt",
   sortDirection = SortDirectionEnum.Desc,
-  onSortChange,
+  limit = 10,
 }: DeliveriesBodyProps) {
   const { workspace } = useAppStorePick(["workspace"]);
   const baseApiUrl = useBaseApiUrl();
@@ -564,7 +564,6 @@ export function DeliveriesBody({
     messageTemplates: true,
   });
   const { data: broadcasts } = useBroadcastsQuery();
-
 
   const [state, setState] = useImmer<DeliveriesBodyState>({
     previewMessageId: null,
@@ -580,15 +579,16 @@ export function DeliveriesBody({
 
   const theme = useTheme();
   const filtersHash = useMemo(
-    () => JSON.stringify({
-      templateIds,
-      channels,
-      to,
-      statuses,
-      from,
-      journeyIds,
-      broadcastIds,
-    }),
+    () =>
+      JSON.stringify({
+        templateIds,
+        channels,
+        to,
+        statuses,
+        from,
+        journeyIds,
+        broadcastIds,
+      }),
     [templateIds, channels, to, statuses, from, journeyIds, broadcastIds],
   );
 
@@ -598,17 +598,23 @@ export function DeliveriesBody({
     }
 
     // Apply cascading logic to statuses
-    const expandedStatuses = statuses ? expandCascadingMessageFilters(statuses) : undefined;
+    const expandedStatuses = statuses
+      ? expandCascadingMessageFilters(statuses)
+      : undefined;
 
     // For now, use the first journey/broadcast ID if arrays are provided
     // TODO: Update backend to support arrays of journey and broadcast IDs
-    const resolvedJourneyId = journeyId || (journeyIds && journeyIds.length > 0 ? journeyIds[0] : undefined);
-    const resolvedBroadcastId = broadcastId || (broadcastIds && broadcastIds.length > 0 ? broadcastIds[0] : undefined);
+    const resolvedJourneyId =
+      journeyId ||
+      (journeyIds && journeyIds.length > 0 ? journeyIds[0] : undefined);
+    const resolvedBroadcastId =
+      broadcastId ||
+      (broadcastIds && broadcastIds.length > 0 ? broadcastIds[0] : undefined);
 
     return {
       workspaceId: workspace.value.id,
       cursor: state.cursor ?? undefined,
-      limit: 10,
+      limit,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       templateIds,
@@ -625,26 +631,27 @@ export function DeliveriesBody({
       broadcastId: resolvedBroadcastId,
     } satisfies SearchDeliveriesRequest;
   }, [
-    workspace,
-    templateIds,
-    channels,
-    to,
+    workspace.type,
+    workspace.value.id,
     statuses,
-    from,
-    state.cursor,
-    startDate,
-    endDate,
-    sortBy,
-    sortDirection,
-    triggeringProperties,
-    userId,
-    groupId,
     journeyId,
     journeyIds,
     broadcastId,
     broadcastIds,
+    state.cursor,
+    limit,
+    startDate,
+    endDate,
+    templateIds,
+    channels,
+    to,
+    from,
+    triggeringProperties,
+    sortBy,
+    sortDirection,
+    userId,
+    groupId,
   ]);
-
 
   const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: [
@@ -903,7 +910,6 @@ export function DeliveriesBody({
     });
   }, [query, workspace, resources, broadcasts]);
 
-
   const onNextPage = useCallback(() => {
     setState((draft) => {
       if (query.data?.cursor) {
@@ -1129,7 +1135,9 @@ export function DeliveriesBody({
 export { getSortByLabel };
 
 // Export function to create download params
-export function createDownloadParams(resolvedQueryParams: Record<string, any> | null) {
+export function createDownloadParams(
+  resolvedQueryParams: Record<string, any> | null,
+) {
   if (!resolvedQueryParams) return null;
   return omit(resolvedQueryParams, ["cursor", "limit"]);
 }

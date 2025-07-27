@@ -33,14 +33,14 @@ interface MetricCardProps {
 function MetricCard({ title, value, isLoading = false }: MetricCardProps) {
   return (
     <Card sx={{ minWidth: 80, textAlign: "center" }}>
-      <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
-        <Typography variant="caption" color="text.secondary" gutterBottom>
+      <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
           {title}
         </Typography>
         {isLoading ? (
-          <Skeleton variant="text" width={40} height={24} sx={{ mx: "auto" }} />
+          <Skeleton variant="text" width={40} height={20} sx={{ mx: "auto" }} />
         ) : (
-          <Typography variant="subtitle1" component="div">
+          <Typography variant="subtitle2" component="div">
             {value.toLocaleString()}
           </Typography>
         )}
@@ -141,10 +141,10 @@ export function AnalysisSummaryPanel({
   if (!hasChannelFilter) {
     // Show basic sent messages count with channel selection buttons
     return (
-      <Box sx={{ py: 2 }}>
+      <Box sx={{ py: 0.5 }}>
         <Stack
           direction="row"
-          spacing={2}
+          spacing={1}
           alignItems="center"
           justifyContent="center"
         >
@@ -153,11 +153,11 @@ export function AnalysisSummaryPanel({
             value={summary.sent}
             isLoading={summaryQuery.isLoading}
           />
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" color="text.secondary">
               Select a channel to see a detailed summary.
             </Typography>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={0.5}>
               <Button
                 variant="contained"
                 size="small"
@@ -195,40 +195,38 @@ export function AnalysisSummaryPanel({
 
   // Show detailed summary for selected channel
   return (
-    <Box sx={{ py: 2 }}>
-      <Stack direction="row" spacing={2} justifyContent="center">
+    <Stack direction="row" spacing={1} justifyContent="center" sx={{ py: 0.5 }}>
+      <MetricCard
+        title="SENT"
+        value={summary.sent}
+        isLoading={summaryQuery.isLoading}
+      />
+      <MetricCard
+        title="DELIVERIES"
+        value={summary.deliveries}
+        isLoading={summaryQuery.isLoading}
+      />
+      <MetricCard
+        title={selectedChannel === ChannelType.Email ? "OPENS" : "DELIVERED"}
+        value={
+          selectedChannel === ChannelType.Email
+            ? summary.opens
+            : summary.deliveries - summary.bounces
+        }
+        isLoading={summaryQuery.isLoading}
+      />
+      {selectedChannel === ChannelType.Email && (
         <MetricCard
-          title="SENT"
-          value={summary.sent}
+          title="CLICKS"
+          value={summary.clicks}
           isLoading={summaryQuery.isLoading}
         />
-        <MetricCard
-          title="DELIVERIES"
-          value={summary.deliveries}
-          isLoading={summaryQuery.isLoading}
-        />
-        <MetricCard
-          title={selectedChannel === ChannelType.Email ? "OPENS" : "DELIVERED"}
-          value={
-            selectedChannel === ChannelType.Email
-              ? summary.opens
-              : summary.deliveries - summary.bounces
-          }
-          isLoading={summaryQuery.isLoading}
-        />
-        {selectedChannel === ChannelType.Email && (
-          <MetricCard
-            title="CLICKS"
-            value={summary.clicks}
-            isLoading={summaryQuery.isLoading}
-          />
-        )}
-        <MetricCard
-          title={selectedChannel === ChannelType.Email ? "BOUNCES" : "FAILED"}
-          value={summary.bounces}
-          isLoading={summaryQuery.isLoading}
-        />
-      </Stack>
-    </Box>
+      )}
+      <MetricCard
+        title={selectedChannel === ChannelType.Email ? "BOUNCES" : "FAILED"}
+        value={summary.bounces}
+        isLoading={summaryQuery.isLoading}
+      />
+    </Stack>
   );
 }

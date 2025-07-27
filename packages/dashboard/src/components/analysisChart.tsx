@@ -49,8 +49,8 @@ import {
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
 import {
-  DeliveriesBody,
   createDownloadParams,
+  DeliveriesBody,
 } from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
@@ -216,8 +216,12 @@ export function AnalysisChart({}: AnalysisChartProps) {
     const selectedStatuses = getFilterValues(filtersState, "messageStates");
     return {
       templateIds: getFilterValues(filtersState, "templates"),
-      channels: getFilterValues(filtersState, "channels") as ChannelType[] | undefined,
-      statuses: selectedStatuses ? expandCascadingMessageFilters(selectedStatuses) : undefined,
+      channels: getFilterValues(filtersState, "channels") as
+        | ChannelType[]
+        | undefined,
+      statuses: selectedStatuses
+        ? expandCascadingMessageFilters(selectedStatuses)
+        : undefined,
       journeyIds: getFilterValues(filtersState, "journeys"),
       broadcastIds: getFilterValues(filtersState, "broadcasts"),
       // Note: to, from would come from other analysis filters if they exist
@@ -237,7 +241,6 @@ export function AnalysisChart({}: AnalysisChartProps) {
     sortDirection: SortDirectionEnum.Desc,
   });
 
-
   // Build filters object from filter state
   const filters = useMemo(() => {
     const journeyIds = getFilterValues(filtersState, "journeys");
@@ -248,7 +251,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
     const templateIds = getFilterValues(filtersState, "templates");
 
     // Apply cascading logic to message states for chart data
-    const expandedMessageStates = messageStates ? expandCascadingMessageFilters(messageStates) : undefined;
+    const expandedMessageStates = messageStates
+      ? expandCascadingMessageFilters(messageStates)
+      : undefined;
 
     // Only return filters object if at least one filter is set
     if (
@@ -330,12 +335,15 @@ export function AnalysisChart({}: AnalysisChartProps) {
   );
 
   // Handle sort changes for deliveries table
-  const handleSortChange = useCallback((sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => {
-    setState((draft) => {
-      draft.sortBy = sortBy;
-      draft.sortDirection = sortDirection;
-    });
-  }, [setState]);
+  const handleSortChange = useCallback(
+    (sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => {
+      setState((draft) => {
+        draft.sortBy = sortBy;
+        draft.sortDirection = sortDirection;
+      });
+    },
+    [setState],
+  );
 
   // Create resolved query params for download functionality
   const resolvedQueryParams = useMemo(() => {
@@ -407,9 +415,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
   ];
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1}>
       {/* Chart Container */}
-      <Paper sx={{ p: 2, height: "400px" }}>
+      <Box sx={{ height: "400px" }}>
         <Stack spacing={1} sx={{ height: "100%" }}>
           {/* Header with controls */}
           <Stack
@@ -555,7 +563,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
           {/* Custom date range popover would go here (similar to userEventsTable) */}
 
           {/* Chart */}
-          <Box sx={{ flex: 1, width: "100%" }}>
+          <Paper sx={{ flex: 1, width: "100%", p: 1 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <XAxis
@@ -593,12 +601,12 @@ export function AnalysisChart({}: AnalysisChartProps) {
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          </Box>
+          </Paper>
         </Stack>
-      </Paper>
+      </Box>
 
       {/* Summary Panel - Separate Container */}
-      <Paper sx={{ p: 0 }}>
+      <Paper>
         <AnalysisSummaryPanel
           dateRange={state.dateRange}
           filtersState={filtersState}
@@ -607,20 +615,18 @@ export function AnalysisChart({}: AnalysisChartProps) {
       </Paper>
 
       {/* Deliveries Table */}
-      <Paper sx={{ p: 2 }}>
-        <DeliveriesBody
-          templateIds={deliveriesFilters.templateIds}
-          channels={deliveriesFilters.channels}
-          statuses={deliveriesFilters.statuses}
-          journeyIds={deliveriesFilters.journeyIds}
-          broadcastIds={deliveriesFilters.broadcastIds}
-          startDate={new Date(state.dateRange.startDate)}
-          endDate={new Date(state.dateRange.endDate)}
-          sortBy={state.sortBy}
-          sortDirection={state.sortDirection}
-          onSortChange={handleSortChange}
-        />
-      </Paper>
+      <DeliveriesBody
+        templateIds={deliveriesFilters.templateIds}
+        channels={deliveriesFilters.channels}
+        statuses={deliveriesFilters.statuses}
+        journeyIds={deliveriesFilters.journeyIds}
+        broadcastIds={deliveriesFilters.broadcastIds}
+        startDate={new Date(state.dateRange.startDate)}
+        endDate={new Date(state.dateRange.endDate)}
+        sortBy={state.sortBy}
+        sortDirection={state.sortDirection}
+        limit={5}
+      />
     </Stack>
   );
 }
