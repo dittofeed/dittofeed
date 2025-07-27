@@ -122,7 +122,6 @@ export async function getChartData({
   startDate,
   endDate,
   granularity = "auto",
-  displayMode,
   groupBy,
   filters,
 }: GetChartDataRequest): Promise<GetChartDataResponse> {
@@ -376,7 +375,6 @@ export async function getChartData({
       startDate,
       endDate,
       granularity,
-      displayMode,
       groupBy,
       filters,
     },
@@ -421,7 +419,6 @@ export async function getSummarizedData({
   workspaceId,
   startDate,
   endDate,
-  displayMode,
   filters,
 }: GetSummarizedDataRequest): Promise<GetSummarizedDataResponse> {
   const qb = new ClickHouseQueryBuilder();
@@ -582,7 +579,6 @@ export async function getSummarizedData({
       workspaceId,
       startDate,
       endDate,
-      displayMode,
       channel,
       filters,
       eventsToTrack,

@@ -4,11 +4,13 @@ import {
   Box,
   Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Switch,
   Tooltip,
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -24,6 +26,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Legend,
+  LegendPayload,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -173,53 +176,44 @@ interface State {
   groupBy: GroupByOption;
   sortBy: SearchDeliveriesRequestSortBy;
   sortDirection: SortDirection;
+  displayMode: "absolute" | "percentage";
 }
 
 // Custom Legend component with hover interaction
-function CustomLegend({
-  payload,
-  hoveredGroup,
-  setHoveredGroup,
-}: {
-  payload?: {
-    value: string;
-    color: string;
-    type?: string;
-    id?: string;
-  }[];
-  hoveredGroup: string | null;
-  setHoveredGroup: (group: string | null) => void;
-}) {
+function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
+  const { payload } = props;
+  
   if (!payload) return null;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {payload.map((entry) => (
-        <Box
-          key={entry.value}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-            opacity: hoveredGroup && hoveredGroup !== entry.value ? 0.3 : 1,
-            transition: "opacity 0.2s ease",
-          }}
-          onMouseEnter={() => setHoveredGroup(entry.value)}
-          onMouseLeave={() => setHoveredGroup(null)}
-        >
+      {payload.map((entry) => {
+        const value = entry.value || "";
+        return (
           <Box
+            key={value}
             sx={{
-              width: "12px",
-              height: "2px",
-              backgroundColor: entry.color,
-              marginRight: 1,
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+              fontSize: "14px",
+              color: "#333",
             }}
-          />
-          <Box component="span" sx={{ fontSize: "14px", color: "#333" }}>
-            {entry.value}
+          >
+            <Box
+              sx={{
+                width: "12px",
+                height: "2px",
+                backgroundColor: entry.color,
+                marginRight: 1,
+              }}
+            />
+            <Box component="span">
+              {value}
+            </Box>
           </Box>
-        </Box>
-      ))}
+        );
+      })}
     </Box>
   );
 }
@@ -232,7 +226,6 @@ export function AnalysisChart() {
   );
 
   const [filtersState, setFiltersState] = useAnalysisFiltersState();
-  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
 
   // Translate analysis filters to deliveries filter props
   const deliveriesFilters = useMemo(() => {
@@ -262,6 +255,7 @@ export function AnalysisChart() {
     groupBy: null,
     sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
     sortDirection: SortDirectionEnum.Desc,
+    displayMode: "absolute",
   });
 
   // Build filters object from filter state
@@ -305,7 +299,6 @@ export function AnalysisChart() {
       startDate: state.dateRange.startDate,
       endDate: state.dateRange.endDate,
       granularity: "auto",
-      displayMode: "absolute",
       ...(state.groupBy && { groupBy: state.groupBy }),
       ...(filters && { filters }),
     },
@@ -409,12 +402,76 @@ export function AnalysisChart() {
       }
     });
 
-    return Array.from(grouped.values()).sort(
-      (a, b) =>
-        new Date(a.timestamp as string).getTime() -
-        new Date(b.timestamp as string).getTime(),
-    );
-  }, [chartQuery.data]);
+    const sortedData = Array.from(grouped.values()).sort((a, b) => {
+      const aTime =
+        typeof a.timestamp === "string" ? new Date(a.timestamp).getTime() : 0;
+      const bTime =
+        typeof b.timestamp === "string" ? new Date(b.timestamp).getTime() : 0;
+      return aTime - bTime;
+    });
+
+    // Apply percentage calculation if in percentage mode
+    if (state.displayMode === "percentage") {
+      return sortedData.map((dataPoint) => {
+        if (typeof dataPoint.timestamp !== "string") {
+          return dataPoint; // Skip if timestamp is not a string
+        }
+        const result: Record<string, string | number> = {
+          timestamp: dataPoint.timestamp,
+        };
+
+        // Different percentage logic based on groupBy type
+        if (state.groupBy === "messageState") {
+          // For message state grouping: use "sent" as baseline (100%)
+          let baseline = 0;
+          const sentKey = Array.from(groups).find(group => 
+            group.toLowerCase().includes("sent")
+          );
+          
+          if (sentKey) {
+            const sentValue = dataPoint[sentKey];
+            baseline = typeof sentValue === "number" ? sentValue : 0;
+          }
+
+          // Convert each group's value to percentage of sent
+          Array.from(groups).forEach((group) => {
+            const value = dataPoint[group];
+            if (typeof value === "number") {
+              if (group === sentKey) {
+                result[group] = 100; // Sent is always 100%
+              } else if (baseline > 0) {
+                result[group] = Math.round((value / baseline) * 10000) / 100;
+              } else {
+                result[group] = 0;
+              }
+            } else {
+              result[group] = 0;
+            }
+          });
+        } else {
+          // For other groupings (journey, template, etc.): use total as baseline
+          const total = Array.from(groups).reduce((sum, group) => {
+            const value = dataPoint[group];
+            return sum + (typeof value === "number" ? value : 0);
+          }, 0);
+
+          // Convert each group's value to percentage of total
+          Array.from(groups).forEach((group) => {
+            const value = dataPoint[group];
+            if (typeof value === "number" && total > 0) {
+              result[group] = Math.round((value / total) * 10000) / 100;
+            } else {
+              result[group] = 0;
+            }
+          });
+        }
+
+        return result;
+      });
+    }
+
+    return sortedData;
+  }, [chartQuery.data, state.displayMode]);
 
   const legendData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
@@ -437,7 +494,6 @@ export function AnalysisChart() {
     "#00ff00",
     "#0088fe",
   ];
-
 
   return (
     <Stack spacing={1}>
@@ -562,6 +618,29 @@ export function AnalysisChart() {
               alignItems="center"
               sx={{ height: "100%" }}
             >
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={state.displayMode === "percentage"}
+                    onChange={(e) =>
+                      setState((draft) => {
+                        draft.displayMode = e.target.checked
+                          ? "percentage"
+                          : "absolute";
+                      })
+                    }
+                    size="small"
+                  />
+                }
+                label="Show %"
+                sx={{
+                  marginRight: 0,
+                  "& .MuiFormControlLabel-label": {
+                    fontSize: "14px",
+                    color: "text.secondary",
+                  },
+                }}
+              />
               <DeliveriesDownloadButton
                 resolvedQueryParams={resolvedQueryParams}
               />
@@ -604,7 +683,10 @@ export function AnalysisChart() {
                 />
                 <YAxis
                   label={{
-                    value: "Messages",
+                    value:
+                      state.displayMode === "percentage"
+                        ? "Percentage (%)"
+                        : "Messages",
                     angle: -90,
                     position: "insideLeft",
                     style: { textAnchor: "middle" },
@@ -612,18 +694,18 @@ export function AnalysisChart() {
                 />
                 <RechartsTooltip
                   labelFormatter={(value) => new Date(value).toLocaleString()}
+                  formatter={(value: number, name: string) => {
+                    if (state.displayMode === "percentage") {
+                      return [`${value.toFixed(1)}%`, name];
+                    }
+                    return [value.toLocaleString(), name];
+                  }}
                 />
                 <Legend
                   align="right"
                   verticalAlign="middle"
                   layout="vertical"
-                  content={(props) => (
-                    <CustomLegend
-                      payload={props.payload}
-                      hoveredGroup={hoveredGroup}
-                      setHoveredGroup={setHoveredGroup}
-                    />
-                  )}
+                  content={CustomLegend}
                 />
                 {legendData.map((group, index) => (
                   <Line
@@ -631,14 +713,8 @@ export function AnalysisChart() {
                     type="monotone"
                     dataKey={group}
                     stroke={colors[index % colors.length]}
-                    strokeWidth={hoveredGroup && hoveredGroup !== group ? 1 : 2}
-                    strokeOpacity={
-                      hoveredGroup && hoveredGroup !== group ? 0.3 : 1
-                    }
-                    dot={{
-                      r: hoveredGroup && hoveredGroup !== group ? 2 : 3,
-                      opacity: hoveredGroup && hoveredGroup !== group ? 0.3 : 1,
-                    }}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
                   />
                 ))}
               </LineChart>
@@ -652,6 +728,7 @@ export function AnalysisChart() {
         dateRange={state.dateRange}
         filtersState={filtersState}
         onChannelSelect={handleChannelSelect}
+        displayMode={state.displayMode}
       />
 
       {/* Deliveries Table */}

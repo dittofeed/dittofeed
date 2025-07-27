@@ -540,7 +540,6 @@ export function DeliveriesTableV2({
         endDate={state.dateRange.endDate}
         sortBy={state.sortBy}
         sortDirection={state.sortDirection}
-        onSortChange={handleSortChange}
       />
     </Stack>
   );

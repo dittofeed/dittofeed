@@ -5704,10 +5704,6 @@ export const GetChartDataRequest = Type.Object({
   startDate: Type.String(),
   endDate: Type.String(),
   granularity: Type.Optional(ChartGranularity),
-  displayMode: Type.Union([
-    Type.Literal("absolute"),
-    Type.Literal("percentage"),
-  ]),
   groupBy: Type.Optional(
     Type.Union([
       Type.Literal("journey"),
@@ -5736,10 +5732,6 @@ export const GetSummarizedDataRequest = Type.Object({
   workspaceId: Type.String(),
   startDate: Type.String(),
   endDate: Type.String(),
-  displayMode: Type.Union([
-    Type.Literal("absolute"),
-    Type.Literal("percentage"),
-  ]),
   filters: Type.Optional(
     Type.Object({
       journeyIds: Type.Optional(Type.Array(Type.String())),

@@ -22,15 +22,22 @@ interface AnalysisSummaryPanelProps {
   };
   filtersState: AnalysisFiltersState;
   onChannelSelect: (channel: ChannelType) => void;
+  displayMode: "absolute" | "percentage";
 }
 
 interface MetricCardProps {
   title: string;
   value: number;
   isLoading?: boolean;
+  isPercentage?: boolean;
 }
 
-function MetricCard({ title, value, isLoading = false }: MetricCardProps) {
+function MetricCard({
+  title,
+  value,
+  isLoading = false,
+  isPercentage = false,
+}: MetricCardProps) {
   return (
     <Card sx={{ minWidth: 80, textAlign: "center" }}>
       <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
@@ -41,7 +48,7 @@ function MetricCard({ title, value, isLoading = false }: MetricCardProps) {
           <Skeleton variant="text" width={40} height={20} sx={{ mx: "auto" }} />
         ) : (
           <Typography variant="subtitle2" component="div">
-            {value.toLocaleString()}
+            {isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString()}
           </Typography>
         )}
       </CardContent>
@@ -53,6 +60,7 @@ export function AnalysisSummaryPanel({
   dateRange,
   filtersState,
   onChannelSelect,
+  displayMode,
 }: AnalysisSummaryPanelProps) {
   // Check if channel filter is already applied
   const hasChannelFilter = filtersState.filters.has("channels");
@@ -119,7 +127,6 @@ export function AnalysisSummaryPanel({
   const summaryQuery = useAnalysisSummaryQuery({
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
-    displayMode: "absolute",
     ...(filters || selectedChannel
       ? {
           filters: {
@@ -130,13 +137,27 @@ export function AnalysisSummaryPanel({
       : {}),
   });
 
-  const summary: SummaryMetric = summaryQuery.data?.summary || {
-    sent: 0,
-    deliveries: 0,
-    opens: 0,
-    clicks: 0,
-    bounces: 0,
-  };
+  // Calculate percentage values when in percentage mode
+  const summary = useMemo(() => {
+    const rawSummary: SummaryMetric = summaryQuery.data?.summary ?? {
+      sent: 0,
+      deliveries: 0,
+      opens: 0,
+      clicks: 0,
+      bounces: 0,
+    };
+
+    if (displayMode === "percentage" && rawSummary.sent > 0) {
+      return {
+        sent: 100, // Sent is always 100% in percentage mode
+        deliveries: (rawSummary.deliveries / rawSummary.sent) * 100,
+        opens: (rawSummary.opens / rawSummary.sent) * 100,
+        clicks: (rawSummary.clicks / rawSummary.sent) * 100,
+        bounces: (rawSummary.bounces / rawSummary.sent) * 100,
+      };
+    }
+    return rawSummary;
+  }, [summaryQuery.data?.summary, displayMode]);
 
   if (!hasChannelFilter) {
     // Show basic sent messages count with channel selection buttons
@@ -152,6 +173,7 @@ export function AnalysisSummaryPanel({
             title="SENT"
             value={summary.sent}
             isLoading={summaryQuery.isLoading}
+            isPercentage={displayMode === "percentage"}
           />
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" color="text.secondary">
@@ -200,11 +222,13 @@ export function AnalysisSummaryPanel({
         title="SENT"
         value={summary.sent}
         isLoading={summaryQuery.isLoading}
+        isPercentage={displayMode === "percentage"}
       />
       <MetricCard
         title="DELIVERIES"
         value={summary.deliveries}
         isLoading={summaryQuery.isLoading}
+        isPercentage={displayMode === "percentage"}
       />
       <MetricCard
         title={selectedChannel === ChannelType.Email ? "OPENS" : "DELIVERED"}
@@ -214,18 +238,21 @@ export function AnalysisSummaryPanel({
             : summary.deliveries - summary.bounces
         }
         isLoading={summaryQuery.isLoading}
+        isPercentage={displayMode === "percentage"}
       />
       {selectedChannel === ChannelType.Email && (
         <MetricCard
           title="CLICKS"
           value={summary.clicks}
           isLoading={summaryQuery.isLoading}
+          isPercentage={displayMode === "percentage"}
         />
       )}
       <MetricCard
         title={selectedChannel === ChannelType.Email ? "BOUNCES" : "FAILED"}
         value={summary.bounces}
         isLoading={summaryQuery.isLoading}
+        isPercentage={displayMode === "percentage"}
       />
     </Stack>
   );

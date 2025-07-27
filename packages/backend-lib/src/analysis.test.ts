@@ -162,7 +162,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "auto",
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("data");
@@ -190,7 +189,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("data");
@@ -308,7 +306,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         groupBy: "journey",
       });
 
@@ -367,7 +364,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           journeyIds: [journeyId],
         },
@@ -386,7 +382,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           messageStates: [InternalEventType.MessageSent],
         },
@@ -405,7 +400,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         groupBy: "messageState",
       });
 
@@ -442,7 +436,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           providers: ["SendGrid"],
         },
@@ -461,7 +454,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           channels: ["Email"],
         },
@@ -481,7 +473,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           channels: ["Sms"],
         },
@@ -575,7 +566,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
         filters: {
           channels: ["Sms"],
         },
@@ -603,7 +593,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("data");
@@ -628,7 +617,6 @@ describe("analysis", () => {
         startDate,
         endDate,
         granularity: "1hour",
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("data");
@@ -802,7 +790,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("summary");
@@ -835,7 +822,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         filters: {
           journeyIds: [journeyId],
         },
@@ -857,7 +843,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         filters: {
           messageStates: [
             InternalEventType.MessageSent,
@@ -882,7 +867,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         filters: {
           channel: ChannelType.Email,
         },
@@ -977,7 +961,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         filters: {
           channel: ChannelType.Email,
         },
@@ -1009,7 +992,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         // No channel specified
       });
 
@@ -1029,7 +1011,6 @@ describe("analysis", () => {
         workspaceId: randomUUID(),
         startDate,
         endDate,
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("summary");
@@ -1048,7 +1029,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
       });
 
       expect(result).toHaveProperty("summary");
@@ -1193,7 +1173,6 @@ describe("analysis", () => {
         workspaceId,
         startDate,
         endDate,
-        displayMode: "absolute",
         filters: {
           channel: ChannelType.Sms,
         },
