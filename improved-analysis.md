@@ -167,3 +167,14 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
     - while a click event should be counted as a delivery, if the original message already has an explicit open event, then the click event should not be counted as an additional delivery i.e. each message should count at most one status value per state (one click, one open, one delivery)
 - the inner query includes email bounced events, but excludes sms failed events which are the logical equivalent
 - the query is looking up resource names for e.g. broadcasts, journeys, templates, etc. but this is out of scope for this method, and we should simply pass the ids
+
+### Stage 5 Add the Deliveries Table
+
+We're going to add the deliveries table to the analysis page. However, in order to do that we're going to need to abstract out the logic for its controls, so that we can reuse the controls at the top of the page.
+
+For example, the existing date range selector, and channel filters' values should be passed into the deliveries table (packages/dashboard/src/components/deliveriesTableV2.tsx).
+
+- Create a new component packages/dashboard/src/components/deliveriesTableV2/deliveriesBody.tsx
+- Refactor the deliveries table body into this new component
+- Use this component in packages/dashboard/src/components/deliveriesTableV2.tsx
+- Use this component in packages/dashboard/src/components/analysisChart.tsx

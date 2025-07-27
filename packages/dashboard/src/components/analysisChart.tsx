@@ -10,7 +10,6 @@ import {
   Select,
   Stack,
   Tooltip,
-  Typography,
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
@@ -41,6 +40,7 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
+import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 import { SharedFilterContainer } from "./shared/filterStyles";
@@ -195,6 +195,16 @@ export function AnalysisChart({}: AnalysisChartProps) {
   );
 
   const [filtersState, setFiltersState] = useAnalysisFiltersState();
+
+  // Translate analysis filters to deliveries filter props
+  const deliveriesFilters = useMemo(() => {
+    return {
+      templateIds: getFilterValues(filtersState, "templates"),
+      channels: getFilterValues(filtersState, "channels") as ChannelType[] | undefined,
+      // Note: to, statuses, from would come from other analysis filters if they exist
+      // For now, we only support channels and templates
+    };
+  }, [filtersState]);
 
   const [state, setState] = useImmer<State>({
     selectedTimeOption: defaultTimeOptionId,
@@ -420,7 +430,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
                       key={option.id}
                       value={option.id}
                       onClick={
-                        option.id === "custom" ? customOnClickHandler : undefined
+                        option.id === "custom"
+                          ? customOnClickHandler
+                          : undefined
                       }
                     >
                       {option.label}
@@ -534,6 +546,16 @@ export function AnalysisChart({}: AnalysisChartProps) {
           dateRange={state.dateRange}
           filtersState={filtersState}
           onChannelSelect={handleChannelSelect}
+        />
+      </Paper>
+
+      {/* Deliveries Table */}
+      <Paper sx={{ p: 2 }}>
+        <DeliveriesBody
+          templateIds={deliveriesFilters.templateIds}
+          channels={deliveriesFilters.channels}
+          startDate={new Date(state.dateRange.startDate)}
+          endDate={new Date(state.dateRange.endDate)}
         />
       </Paper>
     </Stack>
