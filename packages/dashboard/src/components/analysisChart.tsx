@@ -315,7 +315,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       }
 
       const entry = grouped.get(timestamp)!;
-      entry[groupLabel] = point.value;
+      entry[groupLabel] = point.sent;
     });
 
     return Array.from(grouped.values()).sort(
@@ -348,189 +348,194 @@ export function AnalysisChart({}: AnalysisChartProps) {
   ];
 
   return (
-    <Paper sx={{ p: 2, height: "400px" }}>
-      <Stack spacing={1} sx={{ height: "100%" }}>
-        {/* Header with controls */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ height: "48px" }}
-        >
+    <Stack spacing={2}>
+      {/* Chart Container */}
+      <Paper sx={{ p: 2, height: "400px" }}>
+        <Stack spacing={1} sx={{ height: "100%" }}>
+          {/* Header with controls */}
           <Stack
             direction="row"
-            spacing={1}
+            justifyContent="space-between"
             alignItems="center"
-            flex={1}
-            sx={{ height: "100%" }}
+            sx={{ height: "48px" }}
           >
-            <FormControl size="small">
-              <Select
-                value={state.selectedTimeOption}
-                renderValue={(value) => {
-                  const option = timeOptions.find((o) => o.id === value);
-                  if (option?.type === "custom") {
-                    return `${formatDate(new Date(state.dateRange.startDate))} - ${formatDate(new Date(state.dateRange.endDate))}`;
-                  }
-                  return option?.label;
-                }}
-                ref={customDateRef}
-                MenuProps={{
-                  anchorOrigin: {
-                    vertical: "bottom",
-                    horizontal: "left",
-                  },
-                  transformOrigin: {
-                    vertical: "top",
-                    horizontal: "left",
-                  },
-                  sx: greyMenuItemStyles,
-                }}
-                sx={greySelectStyles}
-                onChange={(e) =>
-                  setState((draft) => {
-                    if (e.target.value === "custom") {
-                      const dayBefore = subDays(draft.referenceDate, 1);
-                      draft.customDateRange = {
-                        start: toCalendarDate(dayBefore),
-                        end: toCalendarDate(draft.referenceDate),
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flex={1}
+              sx={{ height: "100%" }}
+            >
+              <FormControl size="small">
+                <Select
+                  value={state.selectedTimeOption}
+                  renderValue={(value) => {
+                    const option = timeOptions.find((o) => o.id === value);
+                    if (option?.type === "custom") {
+                      return `${formatDate(new Date(state.dateRange.startDate))} - ${formatDate(new Date(state.dateRange.endDate))}`;
+                    }
+                    return option?.label;
+                  }}
+                  ref={customDateRef}
+                  MenuProps={{
+                    anchorOrigin: {
+                      vertical: "bottom",
+                      horizontal: "left",
+                    },
+                    transformOrigin: {
+                      vertical: "top",
+                      horizontal: "left",
+                    },
+                    sx: greyMenuItemStyles,
+                  }}
+                  sx={greySelectStyles}
+                  onChange={(e) =>
+                    setState((draft) => {
+                      if (e.target.value === "custom") {
+                        const dayBefore = subDays(draft.referenceDate, 1);
+                        draft.customDateRange = {
+                          start: toCalendarDate(dayBefore),
+                          end: toCalendarDate(draft.referenceDate),
+                        };
+                        return;
+                      }
+                      const option = timeOptions.find(
+                        (o) => o.id === e.target.value,
+                      );
+                      if (option === undefined || option.type !== "minutes") {
+                        return;
+                      }
+                      draft.selectedTimeOption = option.id;
+                      const endDate = draft.referenceDate;
+                      const startDate = subMinutes(endDate, option.minutes);
+                      draft.dateRange = {
+                        startDate: startDate.toISOString(),
+                        endDate: endDate.toISOString(),
                       };
-                      return;
-                    }
-                    const option = timeOptions.find(
-                      (o) => o.id === e.target.value,
-                    );
-                    if (option === undefined || option.type !== "minutes") {
-                      return;
-                    }
-                    draft.selectedTimeOption = option.id;
-                    const endDate = draft.referenceDate;
-                    const startDate = subMinutes(endDate, option.minutes);
-                    draft.dateRange = {
-                      startDate: startDate.toISOString(),
-                      endDate: endDate.toISOString(),
-                    };
-                  })
-                }
-              >
-                {timeOptions.map((option) => (
-                  <MenuItem
-                    key={option.id}
-                    value={option.id}
-                    onClick={
-                      option.id === "custom" ? customOnClickHandler : undefined
-                    }
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                    })
+                  }
+                >
+                  {timeOptions.map((option) => (
+                    <MenuItem
+                      key={option.id}
+                      value={option.id}
+                      onClick={
+                        option.id === "custom" ? customOnClickHandler : undefined
+                      }
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            {/* Filters */}
-            <SharedFilterContainer>
-              <NewAnalysisFilterButton
-                state={filtersState}
-                setState={setFiltersState}
-                greyScale
-              />
-              <SelectedAnalysisFilters
-                state={filtersState}
-                setState={setFiltersState}
-                sx={{
-                  height: "100%",
-                }}
-              />
-
-              {/* Group By */}
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{ borderColor: "grey.300" }}
-              />
-              <AnalysisChartGroupBy
-                value={state.groupBy}
-                onChange={(value) =>
-                  setState((draft) => {
-                    draft.groupBy = value;
-                  })
-                }
-                greyScale
-              />
-            </SharedFilterContainer>
-          </Stack>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            sx={{ height: "100%" }}
-          >
-            <Tooltip title="Refresh Results" placement="bottom-start">
-              <IconButton
-                disabled={state.selectedTimeOption === "custom"}
-                onClick={onRefresh}
-                sx={{
-                  border: "1px solid",
-                  borderColor: "grey.400",
-                }}
-              >
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </Stack>
-
-        {/* Custom date range popover would go here (similar to userEventsTable) */}
-
-        {/* Chart */}
-        <Box sx={{ flex: 1, width: "100%" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis
-                dataKey="timestamp"
-                tickFormatter={(value) =>
-                  chartQuery.data?.granularity
-                    ? formatTimestampForGranularity(
-                        value,
-                        chartQuery.data.granularity,
-                      )
-                    : new Date(value).toLocaleDateString()
-                }
-              />
-              <YAxis
-                label={{
-                  value: "Messages",
-                  angle: -90,
-                  position: "insideLeft",
-                  style: { textAnchor: "middle" },
-                }}
-              />
-              <RechartsTooltip
-                labelFormatter={(value) => new Date(value).toLocaleString()}
-              />
-              <Legend />
-              {legendData.map((group, index) => (
-                <Line
-                  key={group}
-                  type="monotone"
-                  dataKey={group}
-                  stroke={colors[index % colors.length]}
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
+              {/* Filters */}
+              <SharedFilterContainer>
+                <NewAnalysisFilterButton
+                  state={filtersState}
+                  setState={setFiltersState}
+                  greyScale
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
+                <SelectedAnalysisFilters
+                  state={filtersState}
+                  setState={setFiltersState}
+                  sx={{
+                    height: "100%",
+                  }}
+                />
 
-        {/* Summary Panel */}
+                {/* Group By */}
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: "grey.300" }}
+                />
+                <AnalysisChartGroupBy
+                  value={state.groupBy}
+                  onChange={(value) =>
+                    setState((draft) => {
+                      draft.groupBy = value;
+                    })
+                  }
+                  greyScale
+                />
+              </SharedFilterContainer>
+            </Stack>
+
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ height: "100%" }}
+            >
+              <Tooltip title="Refresh Results" placement="bottom-start">
+                <IconButton
+                  disabled={state.selectedTimeOption === "custom"}
+                  onClick={onRefresh}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "grey.400",
+                  }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
+
+          {/* Custom date range popover would go here (similar to userEventsTable) */}
+
+          {/* Chart */}
+          <Box sx={{ flex: 1, width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(value) =>
+                    chartQuery.data?.granularity
+                      ? formatTimestampForGranularity(
+                          value,
+                          chartQuery.data.granularity,
+                        )
+                      : new Date(value).toLocaleDateString()
+                  }
+                />
+                <YAxis
+                  label={{
+                    value: "Messages",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: { textAnchor: "middle" },
+                  }}
+                />
+                <RechartsTooltip
+                  labelFormatter={(value) => new Date(value).toLocaleString()}
+                />
+                <Legend />
+                {legendData.map((group, index) => (
+                  <Line
+                    key={group}
+                    type="monotone"
+                    dataKey={group}
+                    stroke={colors[index % colors.length]}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {/* Summary Panel - Separate Container */}
+      <Paper sx={{ p: 0 }}>
         <AnalysisSummaryPanel
           dateRange={state.dateRange}
           filtersState={filtersState}
           onChannelSelect={handleChannelSelect}
         />
-      </Stack>
-    </Paper>
+      </Paper>
+    </Stack>
   );
 }

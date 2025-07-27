@@ -144,7 +144,7 @@ export async function getChartData({
 
     if (filters.providers && filters.providers.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
+        `JSON_VALUE(properties, '$.variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
       );
     }
 
@@ -186,8 +186,7 @@ export async function getChartData({
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "channel":
-        selectClause =
-          "JSONExtractString(properties, 'variant.type') as groupKey";
+        selectClause = "JSON_VALUE(properties, '$.variant.type') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "provider":
@@ -217,6 +216,8 @@ export async function getChartData({
     endDate,
   });
 
+  // FIXME channel filtering is not working
+  // FIXME outer event in logic is not right
   const query = `
     SELECT
       ${timeFunction} as timestamp,
@@ -244,20 +245,6 @@ export async function getChartData({
     ${groupByClause}
     ORDER BY timestamp ASC
   `;
-
-  logger().debug(
-    {
-      query,
-      workspaceId,
-      startDate,
-      endDate,
-      granularity,
-      displayMode,
-      groupBy,
-      filters,
-    },
-    "Executing chart data query",
-  );
 
   const result = await chQuery({
     query,

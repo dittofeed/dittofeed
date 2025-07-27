@@ -120,8 +120,14 @@ export function AnalysisSummaryPanel({
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
     displayMode: "absolute",
-    channel: selectedChannel,
-    ...(filters && { filters }),
+    ...(filters || selectedChannel
+      ? {
+          filters: {
+            ...filters,
+            ...(selectedChannel && { channel: selectedChannel }),
+          },
+        }
+      : {}),
   });
 
   const summary: SummaryMetric = summaryQuery.data?.summary || {

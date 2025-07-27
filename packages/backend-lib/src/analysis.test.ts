@@ -592,7 +592,9 @@ describe("analysis", () => {
         startDate,
         endDate,
         displayMode: "absolute",
-        channel: ChannelType.Email,
+        filters: {
+          channel: ChannelType.Email,
+        },
       });
 
       expect(result).toHaveProperty("summary");
@@ -796,7 +798,9 @@ describe("analysis", () => {
         startDate,
         endDate,
         displayMode: "absolute",
-        channel: ChannelType.Sms,
+        filters: {
+          channel: ChannelType.Sms,
+        },
       });
 
       expect(result).toHaveProperty("summary");
