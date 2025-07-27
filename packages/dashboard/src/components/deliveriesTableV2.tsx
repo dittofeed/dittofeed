@@ -20,7 +20,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
@@ -32,10 +32,7 @@ import {
   SelectedDeliveriesFilters,
   useDeliveriesFilterState,
 } from "./deliveries/deliveriesFilter";
-import {
-  createDownloadParams,
-  DeliveriesBody,
-} from "./deliveriesTableV2/deliveriesBody";
+import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";

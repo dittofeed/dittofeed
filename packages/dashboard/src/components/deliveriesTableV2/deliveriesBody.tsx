@@ -630,8 +630,7 @@ export function DeliveriesBody({
       broadcastId: resolvedBroadcastId,
     } satisfies SearchDeliveriesRequest;
   }, [
-    workspace.type,
-    workspace.value.id,
+    workspace,
     statuses,
     journeyId,
     journeyIds,
@@ -1135,7 +1134,7 @@ export { getSortByLabel };
 
 // Export function to create download params
 export function createDownloadParams(
-  resolvedQueryParams: Record<string, any> | null,
+  resolvedQueryParams: Record<string, unknown> | null,
 ) {
   if (!resolvedQueryParams) return null;
   return omit(resolvedQueryParams, ["cursor", "limit"]);
