@@ -1,17 +1,12 @@
 import {
-  ArrowDownward as ArrowDownwardIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  Clear as ClearIcon,
   Computer,
   ContentCopy as ContentCopyIcon,
-  DownloadForOffline,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
   OpenInNew,
   Refresh as RefreshIcon,
-  SwapVert as SwapVertIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
@@ -20,10 +15,7 @@ import {
   CircularProgress,
   Drawer,
   IconButton,
-  MenuItem,
   Paper,
-  Popover,
-  Select,
   Snackbar,
   Stack,
   Table,
@@ -79,13 +71,11 @@ import { useAppStorePick } from "../../lib/appStore";
 import { useAuthHeaders, useBaseApiUrl } from "../../lib/authModeProvider";
 import { expandCascadingMessageFilters } from "../../lib/cascadingMessageFilters";
 import { useBroadcastsQuery } from "../../lib/useBroadcastsQuery";
-import { useDownloadDeliveriesMutation } from "../../lib/useDownloadDeliveriesMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { BroadcastQueryKeys } from "../broadcasts/broadcastsShared";
 import { humanizeStatus } from "../deliveriesTable";
 import EmailPreviewHeader from "../emailPreviewHeader";
 import { GreyButton } from "../greyButtonStyle";
-import { greyMenuItemStyles, greySelectStyles } from "../greyScaleStyles";
 import EmailPreviewBody from "../messages/emailPreview";
 import { WebhookPreviewBody } from "../messages/webhookPreview";
 import SmsPreviewBody from "../smsPreviewBody";
@@ -401,14 +391,7 @@ function getOrigin({
 
 interface DeliveriesBodyState {
   previewMessageId: string | null;
-  query: {
-    cursor: string | null;
-    limit: number;
-    sortBy: SearchDeliveriesRequestSortBy;
-    sortDirection: SortDirection;
-    startDate: Date;
-    endDate: Date;
-  };
+  cursor: string | null;
 }
 
 type SetDeliveriesBodyState = Updater<DeliveriesBodyState>;
@@ -533,8 +516,10 @@ export interface DeliveriesBodyProps {
   groupId?: string[] | string;
   columnAllowList?: DeliveriesAllowedColumn[];
   journeyId?: string;
+  journeyIds?: string[];
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
   broadcastId?: string;
+  broadcastIds?: string[];
   broadcastUriTemplate?: string;
   templateIds?: string[];
   channels?: ChannelType[];
@@ -543,6 +528,9 @@ export interface DeliveriesBodyProps {
   from?: string[];
   startDate: Date;
   endDate: Date;
+  sortBy?: SearchDeliveriesRequestSortBy;
+  sortDirection?: SortDirection;
+  onSortChange?: (sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => void;
 }
 
 export function DeliveriesBody({
@@ -552,8 +540,10 @@ export function DeliveriesBody({
   groupId,
   columnAllowList,
   journeyId,
+  journeyIds,
   triggeringProperties,
   broadcastId,
+  broadcastIds,
   broadcastUriTemplate,
   templateIds,
   channels,
@@ -562,6 +552,9 @@ export function DeliveriesBody({
   from,
   startDate,
   endDate,
+  sortBy = "sentAt",
+  sortDirection = SortDirectionEnum.Desc,
+  onSortChange,
 }: DeliveriesBodyProps) {
   const { workspace } = useAppStorePick(["workspace"]);
   const baseApiUrl = useBaseApiUrl();
@@ -572,40 +565,18 @@ export function DeliveriesBody({
   });
   const { data: broadcasts } = useBroadcastsQuery();
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-
-  const downloadMutation = useDownloadDeliveriesMutation({
-    onSuccess: () => {
-      setSnackbarMessage("Downloaded deliveries CSV.");
-      setSnackbarOpen(true);
-    },
-    onError: (error) => {
-      setSnackbarMessage(`Download failed: ${error.message}`);
-      setSnackbarOpen(true);
-    },
-  });
 
   const [state, setState] = useImmer<DeliveriesBodyState>({
     previewMessageId: null,
-    query: {
-      cursor: null,
-      limit: 10,
-      startDate,
-      endDate,
-      sortBy: "sentAt",
-      sortDirection: SortDirectionEnum.Desc,
-    },
+    cursor: null,
   });
 
-  // Update query dates when props change
+  // Reset pagination when date range or sort changes
   useEffect(() => {
     setState((draft) => {
-      draft.query.startDate = startDate;
-      draft.query.endDate = endDate;
-      draft.query.cursor = null; // Reset pagination when date range changes
+      draft.cursor = null;
     });
-  }, [startDate, endDate, setState]);
+  }, [startDate, endDate, sortBy, sortDirection, setState]);
 
   const theme = useTheme();
   const filtersHash = useMemo(
@@ -615,8 +586,10 @@ export function DeliveriesBody({
       to,
       statuses,
       from,
+      journeyIds,
+      broadcastIds,
     }),
-    [templateIds, channels, to, statuses, from],
+    [templateIds, channels, to, statuses, from, journeyIds, broadcastIds],
   );
 
   const resolvedQueryParams = useMemo(() => {
@@ -627,24 +600,29 @@ export function DeliveriesBody({
     // Apply cascading logic to statuses
     const expandedStatuses = statuses ? expandCascadingMessageFilters(statuses) : undefined;
 
+    // For now, use the first journey/broadcast ID if arrays are provided
+    // TODO: Update backend to support arrays of journey and broadcast IDs
+    const resolvedJourneyId = journeyId || (journeyIds && journeyIds.length > 0 ? journeyIds[0] : undefined);
+    const resolvedBroadcastId = broadcastId || (broadcastIds && broadcastIds.length > 0 ? broadcastIds[0] : undefined);
+
     return {
       workspaceId: workspace.value.id,
-      cursor: state.query.cursor ?? undefined,
-      limit: state.query.limit,
-      startDate: state.query.startDate.toISOString(),
-      endDate: state.query.endDate.toISOString(),
+      cursor: state.cursor ?? undefined,
+      limit: 10,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
       templateIds,
       channels,
       to,
       statuses: expandedStatuses,
       from,
       triggeringProperties,
-      sortBy: state.query.sortBy,
-      sortDirection: state.query.sortDirection,
+      sortBy,
+      sortDirection,
       userId,
       groupId,
-      journeyId,
-      broadcastId,
+      journeyId: resolvedJourneyId,
+      broadcastId: resolvedBroadcastId,
     } satisfies SearchDeliveriesRequest;
   }, [
     workspace,
@@ -653,18 +631,20 @@ export function DeliveriesBody({
     to,
     statuses,
     from,
-    state.query,
+    state.cursor,
+    startDate,
+    endDate,
+    sortBy,
+    sortDirection,
     triggeringProperties,
     userId,
     groupId,
     journeyId,
+    journeyIds,
     broadcastId,
+    broadcastIds,
   ]);
 
-  const downloadParams = useMemo(() => {
-    if (!resolvedQueryParams) return null;
-    return omit(resolvedQueryParams, ["cursor", "limit"]);
-  }, [resolvedQueryParams]);
 
   const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: [
@@ -676,6 +656,10 @@ export function DeliveriesBody({
       journeyId,
       triggeringProperties,
       workspace,
+      sortBy,
+      sortDirection,
+      startDate,
+      endDate,
     ],
     queryFn: async () => {
       if (!resolvedQueryParams) {
@@ -919,12 +903,11 @@ export function DeliveriesBody({
     });
   }, [query, workspace, resources, broadcasts]);
 
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const onNextPage = useCallback(() => {
     setState((draft) => {
       if (query.data?.cursor) {
-        draft.query.cursor = query.data.cursor;
+        draft.cursor = query.data.cursor;
       }
     });
   }, [setState, query.data]);
@@ -932,14 +915,14 @@ export function DeliveriesBody({
   const onPreviousPage = useCallback(() => {
     setState((draft) => {
       if (query.data?.previousCursor) {
-        draft.query.cursor = query.data.previousCursor;
+        draft.cursor = query.data.previousCursor;
       }
     });
   }, [setState, query.data]);
 
   const onFirstPage = useCallback(() => {
     setState((draft) => {
-      draft.query.cursor = null;
+      draft.cursor = null;
     });
   }, [setState]);
 
@@ -1022,174 +1005,6 @@ export function DeliveriesBody({
           alignItems: "stretch",
         }}
       >
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ width: "100%", height: "48px" }}
-        >
-          <Stack direction="row" spacing={1} flex={1} sx={{ height: "100%" }}>
-            {(state.query.sortBy !== "sentAt" ||
-              state.query.sortDirection !== SortDirectionEnum.Desc) && (
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{
-                  border: "1px solid",
-                  borderColor: "grey.400",
-                  borderRadius: 1,
-                  pl: 1,
-                  pr: 1,
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{ pt: 1, pb: 1 }}
-                >
-                  {getSortByLabel(state.query.sortBy)}
-                  {state.query.sortDirection === SortDirectionEnum.Asc ? (
-                    <ArrowUpwardIcon fontSize="small" />
-                  ) : (
-                    <ArrowDownwardIcon fontSize="small" />
-                  )}
-                </Stack>
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    setState((draft) => {
-                      draft.query.sortBy = "sentAt";
-                      draft.query.sortDirection = SortDirectionEnum.Desc;
-                      draft.query.cursor = null;
-                    });
-                  }}
-                >
-                  <ClearIcon />
-                </IconButton>
-              </Stack>
-            )}
-          </Stack>
-          <Tooltip title="Download deliveries as CSV" placement="bottom-start">
-            <GreyButton
-              onClick={() => {
-                if (downloadParams) {
-                  downloadMutation.mutate(downloadParams);
-                }
-              }}
-              startIcon={<DownloadForOffline />}
-            >
-              Download Deliveries
-            </GreyButton>
-          </Tooltip>
-          <GreyButton
-            startIcon={<SwapVertIcon />}
-            sx={{
-              border: "1px solid",
-              borderColor: "grey.400",
-              backgroundColor: "white",
-            }}
-            onClick={(e) => {
-              setAnchorEl(e.currentTarget);
-            }}
-          >
-            Sort
-          </GreyButton>
-          <Popover
-            open={Boolean(anchorEl)}
-            anchorEl={anchorEl}
-            slotProps={{
-              paper: {
-                elevation: 3,
-                sx: {
-                  borderRadius: 1,
-                  border: "1px solid",
-                  borderColor: "grey.400",
-                  p: 2,
-                },
-              },
-            }}
-            onClose={() => {
-              setAnchorEl(null);
-            }}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right",
-            }}
-          >
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="center"
-              spacing={1}
-            >
-              <Select
-                value={state.query.sortBy}
-                sx={greySelectStyles}
-                onChange={(e) => {
-                  setState((draft) => {
-                    draft.query.sortBy = e.target
-                      .value as SearchDeliveriesRequestSortBy;
-                    draft.query.cursor = null;
-                  });
-                }}
-                MenuProps={{
-                  sx: greyMenuItemStyles,
-                  anchorOrigin: {
-                    vertical: "bottom",
-                    horizontal: "right",
-                  },
-                  transformOrigin: {
-                    vertical: "top",
-                    horizontal: "right",
-                  },
-                }}
-              >
-                <MenuItem value={SearchDeliveriesRequestSortByEnum.sentAt}>
-                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.sentAt)}
-                </MenuItem>
-                <MenuItem value={SearchDeliveriesRequestSortByEnum.from}>
-                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.from)}
-                </MenuItem>
-                <MenuItem value={SearchDeliveriesRequestSortByEnum.to}>
-                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.to)}
-                </MenuItem>
-                <MenuItem value={SearchDeliveriesRequestSortByEnum.status}>
-                  {getSortByLabel(SearchDeliveriesRequestSortByEnum.status)}
-                </MenuItem>
-              </Select>
-              <Select
-                value={state.query.sortDirection}
-                sx={greySelectStyles}
-                onChange={(e) => {
-                  setState((draft) => {
-                    draft.query.sortDirection = e.target.value as SortDirection;
-                    draft.query.cursor = null;
-                  });
-                }}
-                MenuProps={{
-                  sx: greyMenuItemStyles,
-                  anchorOrigin: {
-                    vertical: "bottom",
-                    horizontal: "right",
-                  },
-                  transformOrigin: {
-                    vertical: "top",
-                    horizontal: "right",
-                  },
-                }}
-              >
-                <MenuItem value={SortDirectionEnum.Asc}>Asc</MenuItem>
-                <MenuItem value={SortDirectionEnum.Desc}>Desc</MenuItem>
-              </Select>
-            </Stack>
-          </Popover>
-        </Stack>
         <TableContainer component={Paper}>
           <Table stickyHeader>
             <TableHead>
@@ -1306,13 +1121,15 @@ export function DeliveriesBody({
       >
         {preview}
       </Drawer>
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      />
     </>
   );
+}
+
+// Export utilities that parent components need for download buttons
+export { getSortByLabel };
+
+// Export function to create download params
+export function createDownloadParams(resolvedQueryParams: Record<string, any> | null) {
+  if (!resolvedQueryParams) return null;
+  return omit(resolvedQueryParams, ["cursor", "limit"]);
 }

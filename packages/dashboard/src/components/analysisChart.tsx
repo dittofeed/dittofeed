@@ -13,8 +13,15 @@ import {
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
-import { ChannelType, ChartDataPoint } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef } from "react";
+import {
+  ChannelType,
+  ChartDataPoint,
+  SearchDeliveriesRequestSortBy,
+  SearchDeliveriesRequestSortByEnum,
+  SortDirection,
+  SortDirectionEnum,
+} from "isomorphic-lib/src/types";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Legend,
   Line,
@@ -41,7 +48,12 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
-import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
+import {
+  DeliveriesBody,
+  createDownloadParams,
+} from "./deliveriesTableV2/deliveriesBody";
+import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
+import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
 import { SharedFilterContainer } from "./shared/filterStyles";
@@ -182,6 +194,8 @@ interface State {
     endDate: string;
   };
   groupBy: GroupByOption;
+  sortBy: SearchDeliveriesRequestSortBy;
+  sortDirection: SortDirection;
 }
 
 type SetState = Updater<State>;
@@ -204,8 +218,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
       templateIds: getFilterValues(filtersState, "templates"),
       channels: getFilterValues(filtersState, "channels") as ChannelType[] | undefined,
       statuses: selectedStatuses ? expandCascadingMessageFilters(selectedStatuses) : undefined,
+      journeyIds: getFilterValues(filtersState, "journeys"),
+      broadcastIds: getFilterValues(filtersState, "broadcasts"),
       // Note: to, from would come from other analysis filters if they exist
-      // For now, we support channels, templates, and messageStates
     };
   }, [filtersState]);
 
@@ -218,7 +233,10 @@ export function AnalysisChart({}: AnalysisChartProps) {
       endDate: new Date(initialEndDate).toISOString(),
     },
     groupBy: null,
+    sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
+    sortDirection: SortDirectionEnum.Desc,
   });
+
 
   // Build filters object from filter state
   const filters = useMemo(() => {
@@ -310,6 +328,31 @@ export function AnalysisChart({}: AnalysisChartProps) {
     },
     [setFiltersState],
   );
+
+  // Handle sort changes for deliveries table
+  const handleSortChange = useCallback((sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => {
+    setState((draft) => {
+      draft.sortBy = sortBy;
+      draft.sortDirection = sortDirection;
+    });
+  }, [setState]);
+
+  // Create resolved query params for download functionality
+  const resolvedQueryParams = useMemo(() => {
+    return {
+      ...deliveriesFilters,
+      startDate: state.dateRange.startDate,
+      endDate: state.dateRange.endDate,
+      sortBy: state.sortBy,
+      sortDirection: state.sortDirection,
+    };
+  }, [
+    deliveriesFilters,
+    state.dateRange.startDate,
+    state.dateRange.endDate,
+    state.sortBy,
+    state.sortDirection,
+  ]);
 
   // Transform chart data for recharts
   const chartData = useMemo(() => {
@@ -486,6 +529,14 @@ export function AnalysisChart({}: AnalysisChartProps) {
               alignItems="center"
               sx={{ height: "100%" }}
             >
+              <DeliveriesDownloadButton
+                resolvedQueryParams={resolvedQueryParams}
+              />
+              <DeliveriesSortButton
+                sortBy={state.sortBy}
+                sortDirection={state.sortDirection}
+                onSortChange={handleSortChange}
+              />
               <Tooltip title="Refresh Results" placement="bottom-start">
                 <IconButton
                   disabled={state.selectedTimeOption === "custom"}
@@ -561,8 +612,13 @@ export function AnalysisChart({}: AnalysisChartProps) {
           templateIds={deliveriesFilters.templateIds}
           channels={deliveriesFilters.channels}
           statuses={deliveriesFilters.statuses}
+          journeyIds={deliveriesFilters.journeyIds}
+          broadcastIds={deliveriesFilters.broadcastIds}
           startDate={new Date(state.dateRange.startDate)}
           endDate={new Date(state.dateRange.endDate)}
+          sortBy={state.sortBy}
+          sortDirection={state.sortDirection}
+          onSortChange={handleSortChange}
         />
       </Paper>
     </Stack>

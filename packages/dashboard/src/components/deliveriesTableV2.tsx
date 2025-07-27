@@ -15,8 +15,12 @@ import {
   ChannelType,
   DeliveriesAllowedColumn,
   SearchDeliveriesRequest,
+  SearchDeliveriesRequestSortBy,
+  SearchDeliveriesRequestSortByEnum,
+  SortDirection,
+  SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
@@ -28,7 +32,12 @@ import {
   SelectedDeliveriesFilters,
   useDeliveriesFilterState,
 } from "./deliveries/deliveriesFilter";
-import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
+import {
+  createDownloadParams,
+  DeliveriesBody,
+} from "./deliveriesTableV2/deliveriesBody";
+import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
+import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
@@ -71,6 +80,8 @@ interface State {
     endDate: Date;
   };
   autoReload: boolean;
+  sortBy: SearchDeliveriesRequestSortBy;
+  sortDirection: SortDirection;
 }
 
 export const TimeOptionId = {
@@ -192,6 +203,8 @@ export function DeliveriesTableV2({
       endDate: initialEndDate,
     },
     autoReload: autoReloadByDefault,
+    sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
+    sortDirection: SortDirectionEnum.Desc,
   });
 
   useInterval(
@@ -234,10 +247,48 @@ export function DeliveriesTableV2({
         | ChannelType[]
         | undefined,
       to: getFilterValues(deliveriesFilterState, "to"),
-      statuses: selectedStatuses ? expandCascadingMessageFilters(selectedStatuses) : undefined,
+      statuses: selectedStatuses
+        ? expandCascadingMessageFilters(selectedStatuses)
+        : undefined,
       from: getFilterValues(deliveriesFilterState, "from"),
     };
   }, [deliveriesFilterState]);
+
+  // Create resolved query params for download functionality
+  const resolvedQueryParams = useMemo(() => {
+    return {
+      ...deliveriesFilters,
+      userId,
+      groupId,
+      journeyId,
+      broadcastId,
+      startDate: state.dateRange.startDate.toISOString(),
+      endDate: state.dateRange.endDate.toISOString(),
+      sortBy: state.sortBy,
+      sortDirection: state.sortDirection,
+    };
+  }, [
+    deliveriesFilters,
+    userId,
+    groupId,
+    journeyId,
+    broadcastId,
+    state.dateRange.startDate,
+    state.dateRange.endDate,
+    state.sortBy,
+    state.sortDirection,
+  ]);
+
+  // Handle sort changes
+  const handleSortChange = useCallback(
+    (sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => {
+      setState((draft) => {
+        draft.sortBy = sortBy;
+        draft.sortDirection = sortDirection;
+      });
+    },
+    [setState],
+  );
 
   return (
     <Stack
@@ -417,6 +468,12 @@ export function DeliveriesTableV2({
             }}
           />
         </Stack>
+        <DeliveriesDownloadButton resolvedQueryParams={resolvedQueryParams} />
+        <DeliveriesSortButton
+          sortBy={state.sortBy}
+          sortDirection={state.sortDirection}
+          onSortChange={handleSortChange}
+        />
         <Tooltip title="Refresh Results" placement="bottom-start">
           <IconButton
             disabled={state.selectedTimeOption === "custom"}
@@ -484,6 +541,9 @@ export function DeliveriesTableV2({
         from={deliveriesFilters.from}
         startDate={state.dateRange.startDate}
         endDate={state.dateRange.endDate}
+        sortBy={state.sortBy}
+        sortDirection={state.sortDirection}
+        onSortChange={handleSortChange}
       />
     </Stack>
   );
