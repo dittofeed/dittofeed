@@ -216,7 +216,6 @@ export async function getChartData({
     endDate,
   });
 
-  // FIXME channel filtering is not working
   // FIXME outer event in logic is not right
   const query = `
     SELECT
