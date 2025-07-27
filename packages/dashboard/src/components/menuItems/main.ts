@@ -28,7 +28,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           id: "analysis",
           title: "Analysis",
           type: "item",
-          url: "/analysis/messages",
+          url: "/analysis/overview",
           icon: BarChartOutlined,
           description: "Analyze metrics across your entire workspace.",
         },
