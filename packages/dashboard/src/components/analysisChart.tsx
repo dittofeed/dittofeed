@@ -12,6 +12,7 @@ import {
   Stack,
   Switch,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
 import { subDays, subMinutes } from "date-fns";
@@ -182,22 +183,31 @@ interface State {
 // Custom Legend component with hover interaction
 function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
   const { payload } = props;
+  const maxLength = 20; // Maximum characters to show before truncating
   
   if (!payload) return null;
+
+  const truncateText = (text: string, maxLen: number) => {
+    if (text.length <= maxLen) return text;
+    return text.substring(0, maxLen) + "...";
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {payload.map((entry) => {
         const value = entry.value || "";
-        return (
+        const truncatedValue = truncateText(value, maxLength);
+        const needsTruncation = value.length > maxLength;
+
+        const legendItem = (
           <Box
-            key={value}
             sx={{
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
               fontSize: "14px",
               color: "#333",
+              maxWidth: "200px", // Prevent legend from getting too wide
             }}
           >
             <Box
@@ -206,13 +216,33 @@ function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
                 height: "2px",
                 backgroundColor: entry.color,
                 marginRight: 1,
+                flexShrink: 0, // Prevent the color indicator from shrinking
               }}
             />
-            <Box component="span">
-              {value}
-            </Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#333",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {truncatedValue}
+            </Typography>
           </Box>
         );
+
+        if (needsTruncation) {
+          return (
+            <Tooltip key={value} title={value} placement="left">
+              {legendItem}
+            </Tooltip>
+          );
+        }
+
+        return <Box key={value}>{legendItem}</Box>;
       })}
     </Box>
   );
@@ -682,6 +712,7 @@ export function AnalysisChart() {
                   }
                 />
                 <YAxis
+                  domain={state.displayMode === "percentage" ? [0, 100] : [0, "auto"]}
                   label={{
                     value:
                       state.displayMode === "percentage"
