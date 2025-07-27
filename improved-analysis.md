@@ -150,3 +150,15 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 - It will by default only contain the message sent values when no channel filter is selected.
     - In this case it should also display a message saying "Select a channel to see a detailed summary."
     - Adjacent to this message should be two buttons: email and sms, which if clicked will update the filter to only show the selected channel.
+
+### Stage 4 Backend - getChartData corrections
+
+- the getChartData method in packages/backend-lib/src/analysis.ts has several logical errors and in this task we will correct them along with the tests in packages/backend-lib/src/analysis.test.ts
+- the return / response type of the method is wrong in that it includes "deliveries" and "sent"
+    - there should be instead be a single field called "count"
+    - in the case that we are grouping by message state, the counts will be dissagregated for each state value including sent and delivered, but absent that grouping the counts will be aggregated for all states
+- in some cases a state should be "double counted"
+    - for example, an opened event should be counted as a delivery, and a click event should be counted as an open and a delivery
+    - while a click event should be counted as a delivery, if the original message already has an explicit open event, then the click event should not be counted as an additional delivery i.e. each message should count at most one status value per state (one click, one open, one delivery)
+- the inner query includes email bounced events, but excludes sms failed events which are the logical equivalent
+- the query is looking up resource names for e.g. broadcasts, journeys, templates, etc. but this is out of scope for this method, and we should simply pass the ids

@@ -216,7 +216,6 @@ export async function getChartData({
     endDate,
   });
 
-  // FIXME outer event in logic is not right
   const query = `
     SELECT
       ${timeFunction} as timestamp,
