@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { Present } from "isomorphic-lib/src/types";
+import { InternalEventType, Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
@@ -369,22 +369,22 @@ export function NewAnalysisFilterButton({
                     {
                       label: "Delivered",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "MessageSent",
+                      id: InternalEventType.EmailDelivered,
                     },
                     {
                       label: "Opened",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "EmailOpened",
+                      id: InternalEventType.EmailOpened,
                     },
                     {
                       label: "Clicked",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "EmailClicked",
+                      id: InternalEventType.EmailClicked,
                     },
                     {
                       label: "Bounced",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "EmailBounced",
+                      id: InternalEventType.EmailBounced,
                     },
                   ];
                   draft.stage = {

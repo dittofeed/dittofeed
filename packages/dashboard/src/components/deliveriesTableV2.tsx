@@ -1,10 +1,6 @@
 import { CalendarDate } from "@internationalized/date";
+import { Bolt as BoltIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import {
-  Bolt as BoltIcon,
-  Refresh as RefreshIcon,
-} from "@mui/icons-material";
-import {
-  Box,
   Divider,
   FormControl,
   IconButton,
@@ -21,7 +17,7 @@ import {
   SearchDeliveriesRequest,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo, useRef } from "react";
-import { Updater, useImmer } from "use-immer";
+import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
 import { toCalendarDate } from "../lib/dates";
@@ -75,8 +71,6 @@ interface State {
   };
   autoReload: boolean;
 }
-
-type SetState = Updater<State>;
 
 export const TimeOptionId = {
   LastSevenDays: "last-7-days",
@@ -234,7 +228,9 @@ export function DeliveriesTableV2({
   const deliveriesFilters = useMemo(() => {
     return {
       templateIds: getFilterValues(deliveriesFilterState, "template"),
-      channels: getFilterValues(deliveriesFilterState, "channel") as ChannelType[] | undefined,
+      channels: getFilterValues(deliveriesFilterState, "channel") as
+        | ChannelType[]
+        | undefined,
       to: getFilterValues(deliveriesFilterState, "to"),
       statuses: getFilterValues(deliveriesFilterState, "status"),
       from: getFilterValues(deliveriesFilterState, "from"),
@@ -242,257 +238,251 @@ export function DeliveriesTableV2({
   }, [deliveriesFilterState]);
 
   return (
-    <>
+    <Stack
+      spacing={1}
+      sx={{
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        alignItems: "stretch",
+      }}
+    >
       <Stack
+        direction="row"
+        alignItems="center"
         spacing={1}
-        sx={{
-          width: "100%",
-          height: "100%",
-          minWidth: 0,
-          alignItems: "stretch",
-        }}
+        sx={{ width: "100%", height: "48px" }}
       >
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ width: "100%", height: "48px" }}
-        >
-          <FormControl>
-            <Select
-              value={state.selectedTimeOption}
-              renderValue={(value) => {
-                const option = timeOptions.find((o) => o.id === value);
-                if (option?.type === "custom") {
-                  return `${formatDate(state.dateRange.startDate)} - ${formatDate(state.dateRange.endDate)}`;
-                }
-                return option?.label;
-              }}
-              ref={customDateRef}
-              MenuProps={{
-                anchorOrigin: {
-                  vertical: "bottom",
-                  horizontal: "left",
-                },
-                transformOrigin: {
-                  vertical: "top",
-                  horizontal: "left",
-                },
-                sx: greyMenuItemStyles,
-              }}
-              sx={greySelectStyles}
-              onChange={(e) =>
-                setState((draft) => {
-                  if (e.target.value === "custom") {
-                    const dayBefore = subDays(draft.referenceDate, 1);
-                    draft.customDateRange = {
-                      start: toCalendarDate(dayBefore),
-                      end: toCalendarDate(draft.referenceDate),
-                    };
-                    return;
-                  }
-                  const option = timeOptions.find(
-                    (o) => o.id === e.target.value,
-                  );
-                  if (option === undefined || option.type !== "minutes") {
-                    return;
-                  }
-                  draft.selectedTimeOption = option.id;
-                  draft.dateRange.startDate = subMinutes(
-                    draft.referenceDate,
-                    option.minutes,
-                  );
-                  draft.dateRange.endDate = draft.referenceDate;
-                })
+        <FormControl>
+          <Select
+            value={state.selectedTimeOption}
+            renderValue={(value) => {
+              const option = timeOptions.find((o) => o.id === value);
+              if (option?.type === "custom") {
+                return `${formatDate(state.dateRange.startDate)} - ${formatDate(state.dateRange.endDate)}`;
               }
-              size="small"
-            >
-              {timeOptions.map((option) => (
-                <MenuItem
-                  key={option.id}
-                  value={option.id}
-                  onClick={
-                    option.id === "custom" ? customOnClickHandler : undefined
-                  }
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Popover
-            open={Boolean(state.customDateRange)}
-            anchorEl={customDateRef.current}
-            onClose={() => {
+              return option?.label;
+            }}
+            ref={customDateRef}
+            MenuProps={{
+              anchorOrigin: {
+                vertical: "bottom",
+                horizontal: "left",
+              },
+              transformOrigin: {
+                vertical: "top",
+                horizontal: "left",
+              },
+              sx: greyMenuItemStyles,
+            }}
+            sx={greySelectStyles}
+            onChange={(e) =>
               setState((draft) => {
-                draft.customDateRange = null;
+                if (e.target.value === "custom") {
+                  const dayBefore = subDays(draft.referenceDate, 1);
+                  draft.customDateRange = {
+                    start: toCalendarDate(dayBefore),
+                    end: toCalendarDate(draft.referenceDate),
+                  };
+                  return;
+                }
+                const option = timeOptions.find((o) => o.id === e.target.value);
+                if (option === undefined || option.type !== "minutes") {
+                  return;
+                }
+                draft.selectedTimeOption = option.id;
+                draft.dateRange.startDate = subMinutes(
+                  draft.referenceDate,
+                  option.minutes,
+                );
+                draft.dateRange.endDate = draft.referenceDate;
+              })
+            }
+            size="small"
+          >
+            {timeOptions.map((option) => (
+              <MenuItem
+                key={option.id}
+                value={option.id}
+                onClick={
+                  option.id === "custom" ? customOnClickHandler : undefined
+                }
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Popover
+          open={Boolean(state.customDateRange)}
+          anchorEl={customDateRef.current}
+          onClose={() => {
+            setState((draft) => {
+              draft.customDateRange = null;
+            });
+          }}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "left",
+          }}
+        >
+          <RangeCalendar
+            value={state.customDateRange}
+            visibleDuration={{ months: 2 }}
+            onChange={(newValue) => {
+              setState((draft) => {
+                draft.customDateRange = newValue;
               });
             }}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "left",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "left",
-            }}
-          >
-            <RangeCalendar
-              value={state.customDateRange}
-              visibleDuration={{ months: 2 }}
-              onChange={(newValue) => {
-                setState((draft) => {
-                  draft.customDateRange = newValue;
-                });
-              }}
-              footer={
-                <Stack direction="row" justifyContent="space-between">
-                  <Stack justifyContent="center" alignItems="center" flex={1}>
-                    {state.customDateRange?.start &&
-                      formatCalendarDate(state.customDateRange.start)}
-                    {" - "}
-                    {state.customDateRange?.end &&
-                      formatCalendarDate(state.customDateRange.end)}
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <GreyButton
-                      onClick={() => {
-                        setState((draft) => {
-                          draft.customDateRange = null;
-                        });
-                      }}
-                    >
-                      Cancel
-                    </GreyButton>
-                    <GreyButton
-                      onClick={() => {
-                        setState((draft) => {
-                          if (draft.customDateRange) {
-                            draft.dateRange.startDate =
-                              draft.customDateRange.start.toDate(
-                                Intl.DateTimeFormat().resolvedOptions()
-                                  .timeZone,
-                              );
-                            draft.dateRange.endDate =
-                              draft.customDateRange.end.toDate(
-                                Intl.DateTimeFormat().resolvedOptions()
-                                  .timeZone,
-                              );
-
-                            draft.customDateRange = null;
-                            draft.selectedTimeOption = "custom";
-                          }
-                        });
-                      }}
-                      sx={{
-                        borderColor: "grey.400",
-                        borderWidth: "1px",
-                        borderStyle: "solid",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Apply
-                    </GreyButton>
-                  </Stack>
+            footer={
+              <Stack direction="row" justifyContent="space-between">
+                <Stack justifyContent="center" alignItems="center" flex={1}>
+                  {state.customDateRange?.start &&
+                    formatCalendarDate(state.customDateRange.start)}
+                  {" - "}
+                  {state.customDateRange?.end &&
+                    formatCalendarDate(state.customDateRange.end)}
                 </Stack>
-              }
-            />
-          </Popover>
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ borderColor: "grey.300" }}
+                <Stack direction="row" spacing={1}>
+                  <GreyButton
+                    onClick={() => {
+                      setState((draft) => {
+                        draft.customDateRange = null;
+                      });
+                    }}
+                  >
+                    Cancel
+                  </GreyButton>
+                  <GreyButton
+                    onClick={() => {
+                      setState((draft) => {
+                        if (draft.customDateRange) {
+                          draft.dateRange.startDate =
+                            draft.customDateRange.start.toDate(
+                              Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            );
+                          draft.dateRange.endDate =
+                            draft.customDateRange.end.toDate(
+                              Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            );
+
+                          draft.customDateRange = null;
+                          draft.selectedTimeOption = "custom";
+                        }
+                      });
+                    }}
+                    sx={{
+                      borderColor: "grey.400",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Apply
+                  </GreyButton>
+                </Stack>
+              </Stack>
+            }
           />
-          <Stack direction="row" spacing={1} flex={1} sx={{ height: "100%" }}>
-            <NewDeliveriesFilterButton
-              state={deliveriesFilterState}
-              setState={setDeliveriesFilterState}
-              greyScale
-              buttonProps={{
-                disableRipple: true,
-                sx: {
-                  ...greyButtonStyle,
-                  fontWeight: "bold",
-                },
-              }}
-            />
-            <SelectedDeliveriesFilters
-              state={deliveriesFilterState}
-              setState={setDeliveriesFilterState}
-              sx={{
-                height: "100%",
-              }}
-            />
-          </Stack>
-          <Tooltip title="Refresh Results" placement="bottom-start">
-            <IconButton
-              disabled={state.selectedTimeOption === "custom"}
-              onClick={() => {
-                setState((draft) => {
-                  const option = timeOptions.find(
-                    (o) => o.id === draft.selectedTimeOption,
-                  );
-                  if (option === undefined || option.type !== "minutes") {
-                    return;
-                  }
-                  const endDate = new Date();
-                  draft.dateRange.endDate = endDate;
-                  draft.dateRange.startDate = subMinutes(endDate, option.minutes);
-                });
-              }}
-              sx={{
-                border: "1px solid",
-                borderColor: "grey.400",
-              }}
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={`Auto refresh every ${Math.floor(reloadPeriodMs / 1000)} seconds`}
-            placement="bottom-start"
-          >
-            <IconButton
-              disabled={state.selectedTimeOption === "custom"}
-              onClick={() => {
-                setState((draft) => {
-                  draft.autoReload = !draft.autoReload;
-                });
-              }}
-              sx={{
-                border: "1px solid",
-                borderColor: "grey.400",
-                bgcolor: state.autoReload ? "grey.600" : "inherit",
-                color: state.autoReload ? "white" : "inherit",
-                "&:hover": {
-                  bgcolor: state.autoReload ? "grey.700" : undefined,
-                },
-              }}
-            >
-              <BoltIcon />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-        
-        <DeliveriesBody
-          templateUriTemplate={templateUriTemplate}
-          originUriTemplate={originUriTemplate}
-          userId={userId}
-          groupId={groupId}
-          columnAllowList={columnAllowList}
-          journeyId={journeyId}
-          triggeringProperties={triggeringProperties}
-          broadcastId={broadcastId}
-          broadcastUriTemplate={broadcastUriTemplate}
-          templateIds={deliveriesFilters.templateIds}
-          channels={deliveriesFilters.channels}
-          to={deliveriesFilters.to}
-          statuses={deliveriesFilters.statuses}
-          from={deliveriesFilters.from}
-          startDate={state.dateRange.startDate}
-          endDate={state.dateRange.endDate}
+        </Popover>
+        <Divider
+          orientation="vertical"
+          flexItem
+          sx={{ borderColor: "grey.300" }}
         />
+        <Stack direction="row" spacing={1} flex={1} sx={{ height: "100%" }}>
+          <NewDeliveriesFilterButton
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+            greyScale
+            buttonProps={{
+              disableRipple: true,
+              sx: {
+                ...greyButtonStyle,
+                fontWeight: "bold",
+              },
+            }}
+          />
+          <SelectedDeliveriesFilters
+            state={deliveriesFilterState}
+            setState={setDeliveriesFilterState}
+            sx={{
+              height: "100%",
+            }}
+          />
+        </Stack>
+        <Tooltip title="Refresh Results" placement="bottom-start">
+          <IconButton
+            disabled={state.selectedTimeOption === "custom"}
+            onClick={() => {
+              setState((draft) => {
+                const option = timeOptions.find(
+                  (o) => o.id === draft.selectedTimeOption,
+                );
+                if (option === undefined || option.type !== "minutes") {
+                  return;
+                }
+                const endDate = new Date();
+                draft.dateRange.endDate = endDate;
+                draft.dateRange.startDate = subMinutes(endDate, option.minutes);
+              });
+            }}
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+            }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip
+          title={`Auto refresh every ${Math.floor(reloadPeriodMs / 1000)} seconds`}
+          placement="bottom-start"
+        >
+          <IconButton
+            disabled={state.selectedTimeOption === "custom"}
+            onClick={() => {
+              setState((draft) => {
+                draft.autoReload = !draft.autoReload;
+              });
+            }}
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+              bgcolor: state.autoReload ? "grey.600" : "inherit",
+              color: state.autoReload ? "white" : "inherit",
+              "&:hover": {
+                bgcolor: state.autoReload ? "grey.700" : undefined,
+              },
+            }}
+          >
+            <BoltIcon />
+          </IconButton>
+        </Tooltip>
       </Stack>
-    </>
+
+      <DeliveriesBody
+        templateUriTemplate={templateUriTemplate}
+        originUriTemplate={originUriTemplate}
+        userId={userId}
+        groupId={groupId}
+        columnAllowList={columnAllowList}
+        journeyId={journeyId}
+        triggeringProperties={triggeringProperties}
+        broadcastId={broadcastId}
+        broadcastUriTemplate={broadcastUriTemplate}
+        templateIds={deliveriesFilters.templateIds}
+        channels={deliveriesFilters.channels}
+        to={deliveriesFilters.to}
+        statuses={deliveriesFilters.statuses}
+        from={deliveriesFilters.from}
+        startDate={state.dateRange.startDate}
+        endDate={state.dateRange.endDate}
+      />
+    </Stack>
   );
 }

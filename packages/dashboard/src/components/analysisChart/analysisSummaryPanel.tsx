@@ -138,8 +138,6 @@ export function AnalysisSummaryPanel({
     bounces: 0,
   };
 
-  console.log({ summary, summaryQueryData: summaryQuery.data });
-
   if (!hasChannelFilter) {
     // Show basic sent messages count with channel selection buttons
     return (
