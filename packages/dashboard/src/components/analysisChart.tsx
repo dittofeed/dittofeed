@@ -588,7 +588,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
                 <RechartsTooltip
                   labelFormatter={(value) => new Date(value).toLocaleString()}
                 />
-                <Legend />
+                <Legend align="right" verticalAlign="middle" layout="vertical" />
                 {legendData.map((group, index) => (
                   <Line
                     key={group}
