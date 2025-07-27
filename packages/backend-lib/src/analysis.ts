@@ -138,7 +138,7 @@ export async function getChartData({
 
     if (filters.channels && filters.channels.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")}`,
+        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")})`,
       );
     }
 
@@ -191,7 +191,7 @@ export async function getChartData({
         break;
       case "provider":
         selectClause =
-          "JSONExtractString(properties, 'variant.provider.type') as groupKey";
+          "JSON_VALUE(properties, '$.variant.provider.type') as groupKey";
         groupByClause = "GROUP BY timestamp, groupKey";
         break;
       case "messageState":
@@ -246,6 +246,19 @@ export async function getChartData({
     ORDER BY timestamp ASC
   `;
 
+  logger().debug(
+    {
+      query,
+      workspaceId,
+      startDate,
+      endDate,
+      granularity,
+      displayMode,
+      groupBy,
+      filters,
+    },
+    "Executing chart data query",
+  );
   const result = await chQuery({
     query,
     query_params: qb.getQueries(),
@@ -415,17 +428,12 @@ export async function getSummarizedData({
 
   // Determine which events to track based on channel
   let eventsToTrack: string[];
-  let channelFilter = "";
   const channel = filters?.channel;
 
   if (!channel) {
     // Default behavior: only track sent messages
     eventsToTrack = [InternalEventType.MessageSent];
   } else {
-    // Add channel filter
-    // Check that message sent events have the correct channel
-    channelFilter = `AND (event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")})`;
-
     switch (channel) {
       case ChannelType.Email:
         eventsToTrack = [
@@ -506,7 +514,6 @@ export async function getSummarizedData({
           AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
           AND event_type = 'track'
           AND event IN (${eventsInClause})
-          ${channelFilter}
           ${filterClauses}
       ) AS processed_events
       WHERE origin_message_id != ''
@@ -526,7 +533,6 @@ export async function getSummarizedData({
       displayMode,
       channel,
       filters,
-      channelFilter,
       eventsToTrack,
     },
     "Executing summarized data query",
