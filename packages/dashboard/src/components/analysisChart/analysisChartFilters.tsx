@@ -367,24 +367,49 @@ export function NewAnalysisFilterButton({
                 case "messageStates": {
                   const children: SelectItemCommand[] = [
                     {
-                      label: "Delivered",
+                      label: "Sent",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: InternalEventType.EmailDelivered,
+                      id: InternalEventType.MessageSent,
                     },
                     {
-                      label: "Opened",
+                      label: "Email Bounced",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailBounced,
+                    },
+                    {
+                      label: "Email Marked as Spam",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailMarkedSpam,
+                    },
+                    {
+                      label: "Email Opened",
                       type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailOpened,
                     },
                     {
-                      label: "Clicked",
+                      label: "Email Link Clicked",
                       type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailClicked,
                     },
                     {
-                      label: "Bounced",
+                      label: "Email Delivered",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: InternalEventType.EmailBounced,
+                      id: InternalEventType.EmailDelivered,
+                    },
+                    {
+                      label: "Email Dropped",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: InternalEventType.EmailDropped,
+                    },
+                    {
+                      label: "Sms Delivered",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: InternalEventType.SmsDelivered,
+                    },
+                    {
+                      label: "Sms Failed",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: InternalEventType.SmsFailed,
                     },
                   ];
                   draft.stage = {

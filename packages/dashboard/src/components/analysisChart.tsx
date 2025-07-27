@@ -201,8 +201,9 @@ export function AnalysisChart({}: AnalysisChartProps) {
     return {
       templateIds: getFilterValues(filtersState, "templates"),
       channels: getFilterValues(filtersState, "channels") as ChannelType[] | undefined,
-      // Note: to, statuses, from would come from other analysis filters if they exist
-      // For now, we only support channels and templates
+      statuses: getFilterValues(filtersState, "messageStates"),
+      // Note: to, from would come from other analysis filters if they exist
+      // For now, we support channels, templates, and messageStates
     };
   }, [filtersState]);
 
@@ -554,6 +555,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
         <DeliveriesBody
           templateIds={deliveriesFilters.templateIds}
           channels={deliveriesFilters.channels}
+          statuses={deliveriesFilters.statuses}
           startDate={new Date(state.dateRange.startDate)}
           endDate={new Date(state.dateRange.endDate)}
         />
