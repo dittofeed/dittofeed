@@ -20,6 +20,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
+import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
 import { toCalendarDate } from "../lib/dates";
 import {
   getFilterValues,
@@ -226,13 +227,14 @@ export function DeliveriesTableV2({
 
   // Convert deliveries filter state to individual filter props
   const deliveriesFilters = useMemo(() => {
+    const selectedStatuses = getFilterValues(deliveriesFilterState, "status");
     return {
       templateIds: getFilterValues(deliveriesFilterState, "template"),
       channels: getFilterValues(deliveriesFilterState, "channel") as
         | ChannelType[]
         | undefined,
       to: getFilterValues(deliveriesFilterState, "to"),
-      statuses: getFilterValues(deliveriesFilterState, "status"),
+      statuses: selectedStatuses ? expandCascadingMessageFilters(selectedStatuses) : undefined,
       from: getFilterValues(deliveriesFilterState, "from"),
     };
   }, [deliveriesFilterState]);

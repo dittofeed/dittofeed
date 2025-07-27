@@ -26,6 +26,7 @@ import {
 } from "recharts";
 import { Updater, useImmer } from "use-immer";
 
+import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
 import {
@@ -198,10 +199,11 @@ export function AnalysisChart({}: AnalysisChartProps) {
 
   // Translate analysis filters to deliveries filter props
   const deliveriesFilters = useMemo(() => {
+    const selectedStatuses = getFilterValues(filtersState, "messageStates");
     return {
       templateIds: getFilterValues(filtersState, "templates"),
       channels: getFilterValues(filtersState, "channels") as ChannelType[] | undefined,
-      statuses: getFilterValues(filtersState, "messageStates"),
+      statuses: selectedStatuses ? expandCascadingMessageFilters(selectedStatuses) : undefined,
       // Note: to, from would come from other analysis filters if they exist
       // For now, we support channels, templates, and messageStates
     };
@@ -227,13 +229,16 @@ export function AnalysisChart({}: AnalysisChartProps) {
     const messageStates = getFilterValues(filtersState, "messageStates");
     const templateIds = getFilterValues(filtersState, "templates");
 
+    // Apply cascading logic to message states for chart data
+    const expandedMessageStates = messageStates ? expandCascadingMessageFilters(messageStates) : undefined;
+
     // Only return filters object if at least one filter is set
     if (
       !journeyIds &&
       !broadcastIds &&
       !channels &&
       !providers &&
-      !messageStates &&
+      !expandedMessageStates &&
       !templateIds
     ) {
       return undefined;
@@ -244,7 +249,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
       ...(broadcastIds && { broadcastIds }),
       ...(channels && { channels }),
       ...(providers && { providers }),
-      ...(messageStates && { messageStates }),
+      ...(expandedMessageStates && { messageStates: expandedMessageStates }),
       ...(templateIds && { templateIds }),
     };
   }, [filtersState]);

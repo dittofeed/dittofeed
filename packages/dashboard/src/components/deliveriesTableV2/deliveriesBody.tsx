@@ -77,6 +77,7 @@ import { Updater, useImmer } from "use-immer";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useAuthHeaders, useBaseApiUrl } from "../../lib/authModeProvider";
+import { expandCascadingMessageFilters } from "../../lib/cascadingMessageFilters";
 import { useBroadcastsQuery } from "../../lib/useBroadcastsQuery";
 import { useDownloadDeliveriesMutation } from "../../lib/useDownloadDeliveriesMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
@@ -623,6 +624,9 @@ export function DeliveriesBody({
       return null;
     }
 
+    // Apply cascading logic to statuses
+    const expandedStatuses = statuses ? expandCascadingMessageFilters(statuses) : undefined;
+
     return {
       workspaceId: workspace.value.id,
       cursor: state.query.cursor ?? undefined,
@@ -632,7 +636,7 @@ export function DeliveriesBody({
       templateIds,
       channels,
       to,
-      statuses,
+      statuses: expandedStatuses,
       from,
       triggeringProperties,
       sortBy: state.query.sortBy,
